@@ -5,3 +5,5 @@ process.env.PGDATABASE = "smc_ephemeral_testing_database";
 
 // checked for in some code to behave differently while running unit tests.
 process.env.COCALC_TEST_MODE = true;
+
+process.env.COCALC_MODE = "single-user";

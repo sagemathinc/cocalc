@@ -332,17 +332,19 @@ export const AccountPage: React.FC = () => {
   );
 };
 
+declare var DEBUG;
+
 function RedirectToNextApp({}) {
   const isMountedRef = useIsMountedRef();
 
   useEffect(() => {
     const f = () => {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !DEBUG) {
         // didn't get signed in so go to landing page
         window.location.href = appBasePath;
       }
     };
-    setTimeout(f, 5000);
+    setTimeout(f, 10000);
   }, []);
 
   return <Loading theme="medium" />;

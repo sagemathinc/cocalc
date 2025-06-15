@@ -109,6 +109,7 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
+import { log_opened_time } from "@cocalc/frontend/project/open-file";
 
 interface gutterMarkerParams {
   line: number;
@@ -348,6 +349,11 @@ export class Actions<
     }
 
     this._syncstring.once("ready", (err) => {
+      if (this.doctype != "none") {
+        // doctype = 'none' must be handled elsewhere, e.g., terminals.
+        log_opened_time(this.project_id, this.path);
+      }
+
       if (err) {
         this.set_error(`${err}\nFix this, then try opening the file again.`);
         return;
@@ -356,6 +362,7 @@ export class Actions<
         // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
         return;
       }
+
       this._syncstring_init = true;
       this._syncstring_metadata();
       this._init_settings();
@@ -1220,7 +1227,8 @@ export class Actions<
     if (
       this.is_public ||
       !this.store.get("is_loaded") ||
-      this._syncstring == null
+      this._syncstring == null ||
+      this._syncstring.get_state() != "ready"
     ) {
       return;
     }
@@ -2249,7 +2257,7 @@ export class Actions<
       }
       this.setFormatError("");
     } catch (err) {
-      this.setFormatError(`${err}`, this._syncstring.to_str());
+      this.setFormatError(`${err}`, this._syncstring?.to_str());
     } finally {
       this.set_status("");
     }

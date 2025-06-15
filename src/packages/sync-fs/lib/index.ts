@@ -14,7 +14,7 @@ import {
 } from "fs/promises";
 import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
-import { execa, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
+import { exec, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
 import SyncClient, { type Role } from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
@@ -28,8 +28,8 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
-import { initNatsClientService } from "./nats/syncfs-client";
-import { initNatsServerService } from "./nats/syncfs-server";
+import { initConatClientService } from "./conat/syncfs-client";
+import { initConatServerService } from "./conat/syncfs-server";
 
 const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
 
@@ -96,7 +96,7 @@ export class SyncFS {
   private tar: { send; get };
   // number of failures in a row to sync.
   private numFails: number = 0;
-  private natsService;
+  private conatService;
 
   private client: SyncClient;
 
@@ -166,7 +166,7 @@ export class SyncFS {
   }
 
   init = async () => {
-    await this.initNatsService();
+    await this.initConatService();
     await this.mountUnionFS();
     await this.bindMountExcludes();
     await this.makeScratchDir();
@@ -183,9 +183,9 @@ export class SyncFS {
       return;
     }
     this.state = "closed";
-    if (this.natsService != null) {
-      this.natsService.close();
-      delete this.natsService;
+    if (this.conatService != null) {
+      this.conatService.close();
+      delete this.conatService;
     }
     if (this.timeout != null) {
       clearTimeout(this.timeout);
@@ -198,7 +198,7 @@ export class SyncFS {
     const args = ["-uz", this.mount];
     log("fusermount", args.join(" "));
     try {
-      await execa("fusermount", args);
+      await exec("fusermount", args);
     } catch (err) {
       log("fusermount fail -- ", err);
     }
@@ -357,7 +357,7 @@ export class SyncFS {
     // NOTE: allow_other is essential to allow bind mounted as root
     // of fast scratch directories into HOME!
     // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
-    await execa("unionfs-fuse", [
+    await exec("unionfs-fuse", [
       "-o",
       "allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768",
       `${this.upper}=RW:${this.lower}=RO`,
@@ -381,7 +381,7 @@ export class SyncFS {
         try {
           const target = join(this.mount, path);
           log("unmountExcludes -- unmounting", { target });
-          await execa("sudo", ["umount", target]);
+          await exec("sudo", ["umount", target]);
         } catch (err) {
           log("unmountExcludes -- warning ", err);
         }
@@ -403,7 +403,7 @@ export class SyncFS {
         // Yes, we have to mkdir in the upper level of the unionfs, because
         // we excluded this path from the websocketfs metadataFile caching.
         await mkdirp(upper);
-        await execa("sudo", ["mount", "--bind", source, target]);
+        await exec("sudo", ["mount", "--bind", source, target]);
       } else {
         log("bindMountExcludes -- skipping", { path });
       }
@@ -419,7 +419,7 @@ export class SyncFS {
       log("bindMountExcludes -- explicit hidden path", { source, target });
       await mkdirp(source);
       await mkdirp(upper);
-      await execa("sudo", ["mount", "--bind", source, target]);
+      await exec("sudo", ["mount", "--bind", source, target]);
     }
   };
 
@@ -798,15 +798,15 @@ export class SyncFS {
     }
   };
 
-  initNatsService = async () => {
+  initConatService = async () => {
     if (this.role == "compute_server") {
-      this.natsService = await initNatsClientService({
+      this.conatService = await initConatClientService({
         syncfs: this,
         project_id: this.project_id,
         compute_server_id: this.compute_server_id,
       });
     } else if (this.role == "project") {
-      this.natsService = await initNatsServerService({
+      this.conatService = await initConatServerService({
         syncfs: this,
         project_id: this.project_id,
       });

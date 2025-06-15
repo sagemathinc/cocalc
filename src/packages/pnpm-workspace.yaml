@@ -5,3 +5,8 @@ packages:
   # weird build system, and it totally messes up stuff.
   - "!**/cdn/dist/**"
   - "!compute"
+onlyBuiltDependencies:
+  - better-sqlite3
+  - websocket-sftp
+  - websocketfs
+  - zstd-napi

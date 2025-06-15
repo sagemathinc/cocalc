@@ -18,12 +18,8 @@ import { getClient } from "@cocalc/project/client";
 import { get_configuration } from "../configuration";
 import { run_formatter, run_formatter_string } from "../formatters";
 import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
-import { lean, lean_channel } from "../lean/server";
 import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
-import { synctable_channel } from "../sync/server";
-import { syncdoc_call } from "../sync/sync-doc";
-import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
 import { delete_files } from "@cocalc/backend/files/delete-files";
@@ -32,9 +28,7 @@ import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
 import { realpath } from "./realpath";
-import { project_info_ws } from "../project-info";
 import query from "./query";
-import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";
 import handleSyncFsApiCall, {
   handleSyncFsRequestCall,
@@ -158,9 +152,6 @@ export async function handleApiCall({
     case "eval_code":
       return await eval_code(data.code);
 
-    case "terminal":
-      return await terminal(primus, data.path, data.options);
-
     case "jupyter_strip_notebook":
       return await jupyter_strip_notebook(data.ipynb_path);
     case "jupyter_nbconvert":
@@ -168,29 +159,8 @@ export async function handleApiCall({
     case "jupyter_run_notebook":
       return await jupyter_run_notebook(data.opts);
 
-    case "lean":
-      return await lean(client, primus, log, data.opts);
-    case "lean_channel":
-      return await lean_channel(client, primus, log, data.path);
-
     case "x11_channel":
       return await x11_channel(client, primus, log, data.path, data.display);
-
-    case "synctable_channel":
-      return await synctable_channel(
-        client,
-        primus,
-        log,
-        data.query,
-        data.options,
-      );
-    case "syncdoc_call":
-      return await syncdoc_call(data.path, data.mesg);
-    case "symmetric_channel":
-      return await browser_symmetric_channel(client, primus, log, data.name);
-
-    case "project_info":
-      return await project_info_ws(primus, log);
 
     // compute server
 

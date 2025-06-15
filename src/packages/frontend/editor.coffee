@@ -1094,7 +1094,7 @@ class CodeMirrorEditor extends FileEditor
 
         async.series([show_dialog, convert], (err) =>
             if err
-                msg = "problem printing -- #{misc.to_json(err)}"
+                msg = "problem printing -- #{err.message}"
                 alert_message
                     type    : "error"
                     message : msg
@@ -1191,7 +1191,7 @@ class CodeMirrorEditor extends FileEditor
                 dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".webapp-file-printing-progress").hide()
                 if err
-                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{misc.to_json(err)}")
+                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{err.message}")
             )
             return false
 

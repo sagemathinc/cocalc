@@ -16,20 +16,17 @@ export default function stripRememberMeCookie(cookie): {
   cookie: string;
   remember_me: string | undefined; // the value of the cookie we just stripped out.
   api_key: string | undefined;
-  nats_jwt: string | undefined;
 } {
   if (cookie == null) {
     return {
       cookie,
       remember_me: undefined,
       api_key: undefined,
-      nats_jwt: undefined,
     };
   } else {
     const v: string[] = [];
     let remember_me: string | undefined = undefined;
     let api_key: string | undefined = undefined;
-    let nats_jwt: string | undefined = undefined;
     for (const c of cookie.split(";")) {
       const z = c.split("=");
       if (z[0].trim() == REMEMBER_ME_COOKIE_NAME) {
@@ -43,6 +40,6 @@ export default function stripRememberMeCookie(cookie): {
         v.push(c);
       }
     }
-    return { cookie: v.join(";"), remember_me, api_key, nats_jwt };
+    return { cookie: v.join(";"), remember_me, api_key };
   }
 }

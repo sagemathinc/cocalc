@@ -1,7 +1,7 @@
 /*
 A reference counting cache.
 
-See example usage in nats/sync.
+See example usage in conat/sync.
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -95,6 +95,11 @@ export default function refCache<
   get.info = () => {
     return { name, count: { ...count } };
   };
+  get.one = (): T | undefined => {
+    for (const key in cache) {
+      return cache[key];
+    }
+  };
 
   caches[name] = get;
   return get;
@@ -165,6 +170,11 @@ export function refCacheSync<
   };
   get.info = () => {
     return { name, count: { ...count } };
+  };
+  get.one = (): T | undefined => {
+    for (const key in cache) {
+      return cache[key];
+    }
   };
   caches[name] = get;
   return get;

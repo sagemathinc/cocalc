@@ -24,14 +24,14 @@ export function init() {
     }
   });
 
-  if (webapp_client.hub_client.is_connected()) {
+  if (webapp_client.conat_client.is_connected()) {
     // These events below currently (due to not having finished the react rewrite)
     // have to be emited after the page loads, but may happen before.
     webapp_client.emit("connected");
-    if (webapp_client.hub_client.is_signed_in()) {
+    if (webapp_client.conat_client.is_signed_in()) {
       webapp_client.emit(
         "signed_in",
-        webapp_client.hub_client.get_signed_in_mesg(),
+        webapp_client.conat_client.signedInMessage,
       );
     }
   }

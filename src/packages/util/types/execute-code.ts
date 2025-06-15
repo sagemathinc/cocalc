@@ -35,6 +35,7 @@ export interface ExecuteCodeOptions {
   command: string;
   args?: string[];
   path?: string; // defaults to home directory; where code is executed from.  absolute path or path relative to home directory.
+  cwd?: string; // absolute path where code excuted from (if path not given)
   timeout?: number; // timeout in **seconds**
   ulimit_timeout?: boolean; // If set (the default), use ulimit to ensure a cpu timeout -- don't use when launching a daemon!
   // This has no effect if bash not true.

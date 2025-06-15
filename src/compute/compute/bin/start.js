@@ -9,7 +9,7 @@ process.env.BASE_PATH = process.env.BASE_PATH ?? "/";
 process.env.API_SERVER = process.env.API_SERVER ?? "https://cocalc.com";
 process.env.API_BASE_PATH = process.env.API_BASE_PATH ?? "/";
 
-const { mountProject, jupyter, terminal } = require("@cocalc/compute");
+const { mountProject, jupyter } = require("@cocalc/compute");
 
 const PROJECT_HOME = "/home/user";
 
@@ -58,15 +58,6 @@ async function main() {
       path: PROJECT_HOME,
     });
 
-    if (process.env.TERM_PATH) {
-      console.log("Connecting to", process.env.TERM_PATH);
-      term = await terminal({
-        project_id: process.env.PROJECT_ID,
-        path: process.env.TERM_PATH,
-        cwd: PROJECT_HOME,
-      });
-    }
-
     if (process.env.IPYNB_PATH) {
       console.log("Connecting to", process.env.IPYNB_PATH);
       kernel = await jupyter({
@@ -89,15 +80,6 @@ async function main() {
       );
       console.log(
         `  ${process.env.API_SERVER}/projects/${process.env.PROJECT_ID}/files/${process.env.IPYNB_PATH}`,
-      );
-    }
-
-    if (process.env.TERM_PATH) {
-      console.log(
-        `Your terminal ${process.env.TERM_PATH} should be running in this container.`,
-      );
-      console.log(
-        `  ${process.env.API_SERVER}/projects/${process.env.PROJECT_ID}/files/${process.env.TERM_PATH}`,
       );
     }
 

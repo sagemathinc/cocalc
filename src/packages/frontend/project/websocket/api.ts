@@ -29,30 +29,26 @@ import type {
   Mesg,
   NbconvertParams,
 } from "@cocalc/comm/websocket/types";
-import call from "@cocalc/sync/client/call";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { type ProjectApi } from "@cocalc/nats/project-api";
+import { type ProjectApi } from "@cocalc/conat/project/api";
 import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-import { formatterClient } from "@cocalc/nats/service/formatter";
-import { syncFsClientClient } from "@cocalc/nats/service/syncfs-client";
-// import { syncFsServerClient } from "@cocalc/nats/service/syncfs-server";
+import { formatterClient } from "@cocalc/conat/service/formatter";
+import { syncFsClientClient } from "@cocalc/conat/service/syncfs-client";
+
+const log = (...args) => {
+  console.log("project:websocket: ", ...args);
+};
 
 export class API {
-  private conn;
   private project_id: string;
-  private cachedVersion?: number;
   private apiCache: { [key: string]: ProjectApi } = {};
 
-  constructor(conn, project_id: string) {
-    this.conn = conn;
+  constructor(project_id: string) {
     this.project_id = project_id;
     this.listing = reuseInFlight(this.listing.bind(this));
-    this.conn.on("end", () => {
-      delete this.cachedVersion;
-    });
   }
 
   private getApi = ({
@@ -68,7 +64,7 @@ export class API {
     }
     const key = `${compute_server_id}-${timeout}`;
     if (this.apiCache[key] == null) {
-      this.apiCache[key] = webapp_client.nats_client.projectApi({
+      this.apiCache[key] = webapp_client.conat_client.projectApi({
         project_id: this.project_id,
         compute_server_id,
         timeout,
@@ -77,38 +73,35 @@ export class API {
     return this.apiCache[key]!;
   };
 
-  private primusCall = async (mesg: Mesg, timeout: number) => {
-    return await call(this.conn, mesg, timeout);
-  };
-
-  private _call = async (mesg: Mesg, timeout: number): Promise<any> => {
-    return await webapp_client.nats_client.projectWebsocketApi({
+  private _call = async (
+    mesg: Mesg,
+    timeout: number,
+    compute_server_id = 0,
+  ): Promise<any> => {
+    log("_call (NEW conat call)", mesg);
+    const resp = await webapp_client.conat_client.projectWebsocketApi({
       project_id: this.project_id,
+      compute_server_id,
       mesg,
       timeout,
     });
+    log("_call worked and returned", resp);
+    return resp;
   };
 
-  private getChannel = async (channel_name: string) => {
-    const natsConn = await webapp_client.nats_client.primus(this.project_id);
-    // TODO -- typing
-    return natsConn.channel(channel_name) as unknown as Channel;
+  private getChannel = (
+    channel: string,
+    compute_server_id?: number,
+  ): Channel => {
+    return webapp_client.conat_client.primus({
+      project_id: this.project_id,
+      compute_server_id,
+      channel,
+    }) as unknown as Channel;
   };
 
   call = async (mesg: Mesg, timeout: number) => {
-    try {
-      return await this._call(mesg, timeout);
-    } catch (err) {
-      if (err.code == "PERMISSIONS_VIOLATION") {
-        // request update of our credentials to include this project, then try again
-        await webapp_client.nats_client.addProjectPermissions([
-          this.project_id,
-        ]);
-        return await this._call(mesg, timeout);
-      } else {
-        throw err;
-      }
-    }
+    return await this._call(mesg, timeout);
   };
 
   getComputeServerId = (path: string) => {
@@ -368,39 +361,9 @@ export class API {
     return await api.editor.jupyterRunNotebook(opts);
   };
 
-  // TODO!
-  terminal = async (path: string, options: object = {}): Promise<Channel> => {
-    const channel_name = await this.call(
-      {
-        cmd: "terminal",
-        path,
-        options,
-      },
-      20000,
-    );
-    return await this.getChannel(channel_name);
-  };
-
-  project_info = async (): Promise<Channel> => {
-    const channel_name = await this.primusCall({ cmd: "project_info" }, 60000);
-    return await this.getChannel(channel_name);
-  };
-
-  // Get the lean *channel* for the given '.lean' path.
-  lean_channel = async (path: string): Promise<Channel> => {
-    const channel_name = await this.primusCall(
-      {
-        cmd: "lean_channel",
-        path: path,
-      },
-      60000,
-    );
-    return this.conn.channel(channel_name);
-  };
-
   // Get the x11 *channel* for the given '.x11' path.
   x11_channel = async (path: string, display: number): Promise<Channel> => {
-    const channel_name = await this.primusCall(
+    const channel_name = await this._call(
       {
         cmd: "x11_channel",
         path,
@@ -408,57 +371,8 @@ export class API {
       },
       60000,
     );
-    return this.conn.channel(channel_name);
-  };
-
-  // Get the sync *channel* for the given SyncTable project query.
-  synctable_channel = async (
-    query: { [field: string]: any },
-    options: { [field: string]: any }[],
-  ): Promise<Channel> => {
-    const channel_name = await this.primusCall(
-      {
-        cmd: "synctable_channel",
-        query,
-        options,
-      },
-      10000,
-    );
-    // console.log("synctable_channel", query, options, channel_name);
-    return this.conn.channel(channel_name);
-  };
-
-  // Command-response API for synctables.
-  //   - mesg = {cmd:'close'} -- closes the synctable, even if persistent.
-  syncdoc_call = async (
-    path: string,
-    mesg: { [field: string]: any },
-    timeout_ms: number = 30000, // ms timeout for call
-  ): Promise<any> => {
-    return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
-  };
-
-  // Do a request/response command to the lean server.
-  lean = async (opts: any): Promise<any> => {
-    let timeout_ms = 10000;
-    if (opts.timeout) {
-      timeout_ms = opts.timeout * 1000 + 2000;
-    }
-    return await this.call({ cmd: "lean", opts }, timeout_ms);
-  };
-
-  // I think this isn't used.  It was going to support
-  // sync_channel, but obviously a more nuanced protocol
-  // was required.
-  symmetric_channel = async (name: string): Promise<Channel> => {
-    const channel_name = await this.primusCall(
-      {
-        cmd: "symmetric_channel",
-        name,
-      },
-      30000,
-    );
-    return this.conn.channel(channel_name);
+    log("x11_channel");
+    return this.getChannel(channel_name);
   };
 
   // Copying files to/from compute servers:

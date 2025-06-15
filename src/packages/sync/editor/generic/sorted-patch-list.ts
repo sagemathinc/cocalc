@@ -253,6 +253,7 @@ export class SortedPatchList extends EventEmitter {
         delete this.versions_cache;
         this.patches = this.patches.concat(newPatches);
         this.patches.sort(patch_cmp);
+        this.emit("change");
       } else {
         // nothing moved from staging to live, so **converged**.
         return;

@@ -69,7 +69,7 @@ export default async function handleMessage(
     case "project_exec":
       // this is no longer used by web browser clients; however it *is* used by the HTTP api served
       // by the hub to api key users, so do NOT remove it!  E.g., the latex endpoint, the compute
-      // server, etc., use it.   The web browser clients use the websocket api,
+      // server, etc., use it.   The web browser clients use the websocket api.
       exec_shell_code(socket, mesg);
       return;
 

@@ -40,7 +40,7 @@ export default function SelectComputeServerForFile({
       if (frame_id == null) {
         throw Error("frame_id is required for terminal");
       }
-      return actions.terminals.get(frame_id)?.term_path;
+      return actions.terminals.get(frame_id)?.termPath;
     }
     if (type == "chat") {
       return chatFile(path);
