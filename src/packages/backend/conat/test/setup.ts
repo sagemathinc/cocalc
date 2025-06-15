@@ -1,4 +1,4 @@
-import { getPort } from "@cocalc/backend/conat/test/util";
+import getPort from "@cocalc/backend/get-port";
 import { type Client } from "@cocalc/conat/core/client";
 import {
   init as createConatServer,

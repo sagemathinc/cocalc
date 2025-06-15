@@ -15,6 +15,9 @@ $ node
 
 */
 
+// POOL VERSION - faster to restart but possible subtle issues
+const USE_KERNEL_POOL = true;
+
 // const DEBUG = true; // only for extreme debugging.
 const DEBUG = false; // normal mode
 if (DEBUG) {
@@ -66,9 +69,6 @@ import {
   getLanguage,
   get_kernel_data_by_name,
 } from "@cocalc/jupyter/kernel/kernel-data";
-
-// POOL VERSION - faster to restart but possible subtle issues
-const USE_KERNEL_POOL = true;
 
 import launchJupyterKernel, {
   LaunchJupyterOpts,
@@ -306,98 +306,97 @@ export class JupyterKernel
     return this._state;
   };
 
-  spawn = reuseInFlight(
-    async (spawn_opts?: { env?: { [key: string]: string } }): Promise<void> => {
-      if (this._state === "closed") {
-        // game over!
-        throw Error("closed -- kernel spawn");
+  private spawnedAlready = false;
+  spawn = async (spawn_opts?: {
+    env?: { [key: string]: string };
+  }): Promise<void> => {
+    if (this._state === "closed") {
+      // game over!
+      throw Error("closed -- kernel spawn");
+    }
+    if (!this.name) {
+      // spawning not allowed.
+      throw Error("cannot spawn since no kernel is set");
+    }
+    if (["running", "starting"].includes(this._state)) {
+      // Already spawned, so no need to do it again.
+      return;
+    }
+
+    if (this.spawnedAlready) {
+      return;
+    }
+    this.spawnedAlready = true;
+
+    this._set_state("spawning");
+    const dbg = this.dbg("spawn");
+    dbg("spawning kernel...");
+
+    // ****
+    // CRITICAL: anything added to opts better not be specific
+    // to the kernel path or it will completely break using a
+    // pool, which makes things massively slower.
+    // ****
+
+    const opts: LaunchJupyterOpts = {
+      env: spawn_opts?.env ?? {},
+      ...(this.ulimit != null ? { ulimit: this.ulimit } : undefined),
+    };
+
+    try {
+      const kernelData = await get_kernel_data_by_name(this.name);
+      // This matches "sage", "sage-x.y", and Sage Python3 ("sage -python -m ipykernel")
+      if (kernelData.argv[0].startsWith("sage")) {
+        dbg("setting special environment for Sage kernels");
+        opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
       }
-      if (!this.name) {
-        // spawning not allowed.
-        throw Error("cannot spawn since no kernel is set");
+    } catch (err) {
+      dbg(`No kernelData available for ${this.name}`);
+    }
+
+    // Make cocalc default to the colab renderer for cocalc-jupyter, since
+    // this one happens to work best for us, and they don't have a custom
+    // one for us.  See https://plot.ly/python/renderers/ and
+    // https://github.com/sagemathinc/cocalc/issues/4259
+    opts.env.PLOTLY_RENDERER = "colab";
+    opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
+
+    // !!! WARNING: do NOT add anything new here that depends on that path!!!!
+    // Otherwise the pool will switch to falling back to not being used, and
+    // cocalc would then be massively slower.
+    // Non-uniform customization.
+    // launchJupyterKernel is explicitly smart enough to deal with opts.cwd
+    if (this._directory) {
+      opts.cwd = this._directory;
+    }
+    // launchJupyterKernel is explicitly smart enough to deal with opts.env.COCALC_JUPYTER_FILENAME
+    opts.env.COCALC_JUPYTER_FILENAME = this._path;
+    // and launchJupyterKernel is NOT smart enough to deal with anything else!
+
+    try {
+      if (USE_KERNEL_POOL) {
+        dbg("launching Jupyter kernel, possibly from pool");
+        this._kernel = await launchJupyterKernel(this.name, opts);
+      } else {
+        dbg("launching Jupyter kernel, NOT using pool");
+        this._kernel = await launchJupyterKernelNoPool(this.name, opts);
       }
-      if (["running", "starting"].includes(this._state)) {
-        // Already spawned, so no need to do it again.
-        return;
+      dbg("finishing kernel setup");
+      await this.finish_spawn();
+    } catch (err) {
+      dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
+      // @ts-ignore
+      if (this._state == "closed") {
+        throw Error("closed -- kernel spawn later");
       }
-      this._set_state("spawning");
-      const dbg = this.dbg("spawn");
-      dbg("spawning kernel...");
-
-      // ****
-      // CRITICAL: anything added to opts better not be specific
-      // to the kernel path or it will completely break using a
-      // pool, which makes things massively slower.
-      // ****
-
-      const opts: LaunchJupyterOpts = {
-        env: spawn_opts?.env ?? {},
-        ...(this.ulimit != null ? { ulimit: this.ulimit } : undefined),
-      };
-
-      try {
-        const kernelData = await get_kernel_data_by_name(this.name);
-        // This matches "sage", "sage-x.y", and Sage Python3 ("sage -python -m ipykernel")
-        if (kernelData.argv[0].startsWith("sage")) {
-          dbg("setting special environment for Sage kernels");
-          opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
-        }
-      } catch (err) {
-        dbg(`No kernelData available for ${this.name}`);
-      }
-
-      // Make cocalc default to the colab renderer for cocalc-jupyter, since
-      // this one happens to work best for us, and they don't have a custom
-      // one for us.  See https://plot.ly/python/renderers/ and
-      // https://github.com/sagemathinc/cocalc/issues/4259
-      opts.env.PLOTLY_RENDERER = "colab";
-      opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
-
-      // !!! WARNING: do NOT add anything new here that depends on that path!!!!
-      // Otherwise the pool will switch to falling back to not being used, and
-      // cocalc would then be massively slower.
-      // Non-uniform customization.
-      // launchJupyterKernel is explicitly smart enough to deal with opts.cwd
-      if (this._directory) {
-        opts.cwd = this._directory;
-      }
-      // launchJupyterKernel is explicitly smart enough to deal with opts.env.COCALC_JUPYTER_FILENAME
-      opts.env.COCALC_JUPYTER_FILENAME = this._path;
-      // and launchJupyterKernel is NOT smart enough to deal with anything else!
-
-      try {
-        if (USE_KERNEL_POOL) {
-          dbg("launching Jupyter kernel, possibly from pool");
-          this._kernel = await launchJupyterKernel(this.name, opts);
-        } else {
-          dbg("launching Jupyter kernel, NOT using pool");
-          this._kernel = await launchJupyterKernelNoPool(this.name, opts);
-        }
-        dbg("finishing kernel setup");
-        await this.finish_spawn();
-      } catch (err) {
-        dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
-        // @ts-ignore
-        if (this._state == "closed") {
-          throw Error("closed -- kernel spawn later");
-        }
-        this._set_state("failed");
-        this.emit(
-          "kernel_error",
-          `**Unable to Spawn Jupyter Kernel:**\n\n${err} \n\nTry this in a terminal to help debug this (or contact support): \`jupyter console --kernel=${this.name}\`\n\nOnce you fix the problem, explicitly restart this kernel to test here.`,
-        );
-        throw err;
-      }
-
-      // NOW we do path-related customizations:
-      // TODO: we will set each of these after getting a kernel from the pool
-      // expose path of jupyter notebook -- https://github.com/sagemathinc/cocalc/issues/5165
-      //opts.env.COCALC_JUPYTER_FILENAME = this._path;
-      //     if (this._directory !== "") {
-      //       opts.cwd = this._directory;
-      //     }
-    },
-  );
+      this._set_state("failed");
+      this.emit(
+        "kernel_error",
+        `**Unable to Spawn Jupyter Kernel:**\n\n${err} \n\nTry this in a terminal to help debug this (or contact support): \`jupyter console --kernel=${this.name}\`\n\nOnce you fix the problem, explicitly restart this kernel to test here.`,
+      );
+      throw err;
+    }
+  };
 
   get_spawned_kernel = () => {
     return this._kernel;
@@ -442,10 +441,9 @@ export class JupyterKernel
 
     this._kernel.spawn.stdout.on("data", (_data) => {
       // NOTE: it is very important to read stdout (and stderr above)
-      // even if we **totally ignore** the data. Otherwise, execa saves
-      // some amount then just locks up and doesn't allow flushing the
-      // output stream.  This is a "nice" feature of execa, since it means
-      // no data gets dropped.  See https://github.com/sagemathinc/cocalc/issues/5065
+      // even if we **totally ignore** the data. Otherwise, exec
+      // might overflow
+      // https://github.com/sagemathinc/cocalc/issues/5065
     });
 
     dbg("create main channel...", this._kernel.config);
@@ -721,9 +719,9 @@ export class JupyterKernel
     );
     try {
       await this.ensure_running();
-      this._execute_code_queue[0].go();
+      await this._execute_code_queue[0].go();
     } catch (err) {
-      dbg(`error running kernel -- ${err}`);
+      dbg(`WARNING: error running kernel -- ${err}`);
       for (const code of this._execute_code_queue) {
         code.throw_error(err);
       }

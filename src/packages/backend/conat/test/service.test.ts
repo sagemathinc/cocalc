@@ -16,7 +16,7 @@ import { wait } from "@cocalc/backend/conat/test/util";
 import { is_date as isDate } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { initConatServer } from "@cocalc/backend/conat/test/setup";
-import { getPort } from "@cocalc/backend/conat/test/util";
+import getPort from "@cocalc/backend/get-port";
 import { once } from "@cocalc/util/async-utils";
 
 beforeAll(before);

@@ -23,12 +23,12 @@ import { spawn } from "node:child_process";
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
 import { executeCode } from "@cocalc/backend/execute-code";
-import getPorts from "./get-ports";
 import { writeFile } from "jsonfile";
 import mkdirp from "mkdirp";
 import shellEscape from "shell-escape";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { getLogger } from "@cocalc/backend/logger";
+import { getPorts } from "@cocalc/backend/get-port";
 
 const logger = getLogger("launch-kernel");
 
@@ -91,15 +91,10 @@ function connectionInfo(ports): ConnectionInfo {
   };
 }
 
-const DEFAULT_PORT_OPTS = { port: 9000, host: "127.0.0.1" } as const;
-
 // gather the connection information for a kernel, write it to a json file, and return it
-async function writeConnectionFile(port_options?: {
-  port?: number;
-  host?: string;
-}) {
-  const options = { ...DEFAULT_PORT_OPTS, ...port_options };
-  const ports = await getPorts(5, options);
+async function writeConnectionFile() {
+  const ports = await getPorts(5);
+  // console.log("ports = ", ports);
 
   // Make sure the kernel runtime dir exists before trying to write the kernel file.
   const runtimeDir = jupyter_paths.runtimeDir();

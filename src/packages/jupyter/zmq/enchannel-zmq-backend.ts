@@ -11,6 +11,7 @@ import { fromEvent, merge, Observable, Subject, Subscriber } from "rxjs";
 import { FromEventTarget } from "rxjs/internal/observable/fromEvent";
 import { map, publish, refCount } from "rxjs/operators";
 import { v4 as uuid } from "uuid";
+import { once } from "@cocalc/util/async-utils";
 
 export const ZMQType = {
   frontend: {
@@ -71,42 +72,21 @@ export const formConnectionString = (
  *
  * @returns The new Jupyter ZMQ socket
  */
-export const createSocket = (
+async function createSocket(
   channel: ChannelName,
   config: JupyterConnectionInfo,
   jmp = moduleJMP,
-): Promise<moduleJMP.Socket> => {
+): Promise<moduleJMP.Socket> {
   const zmqType = ZMQType.frontend[channel];
   const scheme = config.signature_scheme.slice("hmac-".length);
   const socket = new jmp.Socket(zmqType, scheme, config.key);
   const url = formConnectionString(config, channel);
-  return verifiedConnect(socket, url);
-};
-
-/**
- * Ensures the socket is ready after connecting.
- *
- * @param socket A 0MQ socket
- * @param url Creates a connection string to connect the socket to
- *
- * @returns A Promise resolving to the same socket.
- */
-export const verifiedConnect = (
-  socket: moduleJMP.Socket,
-  url: string,
-): Promise<moduleJMP.Socket> =>
-  new Promise((resolve) => {
-    socket.on("connect", () => {
-      // We are not ready until this happens for all the sockets
-      // @ts-ignore
-      socket.unmonitor();
-      resolve(socket);
-    });
-    // @ts-ignore
-    socket.monitor();
-    // @ts-ignore
-    socket.connect(url);
-  });
+  const connected = once(socket, "connect");
+  socket.monitor();
+  socket.connect(url);
+  await connected;
+  return socket;
+}
 
 export const getUsername = () =>
   process.env.LOGNAME ||
@@ -177,7 +157,6 @@ export const createSockets = async (
   ]);
 
   // NOTE: ZMQ PUB/SUB subscription (not an Rx subscription)
-  // @ts-ignore
   iopub.subscribe(subscription);
 
   return {
@@ -247,7 +226,6 @@ export const createMainChannelFromSockets = (
       Object.keys(sockets).forEach((name) => {
         const socket = sockets[name];
         socket.removeAllListeners();
-        // @ts-ignore
         socket.close?.();
       }),
   );

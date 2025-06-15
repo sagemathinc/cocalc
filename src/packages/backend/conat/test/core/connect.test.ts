@@ -4,7 +4,7 @@ pnpm test ./connect.test.ts
 
 */
 
-import { getPort } from "@cocalc/backend/conat/test/util";
+import getPort from "@cocalc/backend/get-port";
 import {
   before,
   after,
