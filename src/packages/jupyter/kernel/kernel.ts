@@ -347,7 +347,7 @@ export class JupyterKernel
 
     const opts: LaunchJupyterOpts = {
       env: spawn_opts?.env ?? {},
-      ...(this.ulimit != null ? { ulimit: this.ulimit } : undefined),
+      ulimit: this.ulimit,
     };
 
     try {

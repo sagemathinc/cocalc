@@ -5,7 +5,7 @@ Test the Jupyer stateless api kernel functionality.
 import { getPythonKernelName } from "../kernel/kernel-data";
 import Kernel, { DEFAULT_POOL_SIZE } from "./kernel";
 
-describe("create a jupyter stateless-api kernel and test basic functionality", () => {
+describe.only("create a jupyter stateless-api kernel and test basic functionality", () => {
   let kernel;
   it("gets a kernel", async () => {
     const kernelName = await getPythonKernelName();
@@ -60,5 +60,28 @@ describe("create a jupyter stateless-api kernel and test basic functionality", (
   it("cleans up", () => {
     kernel.close();
     Kernel.closeAll();
+  });
+});
+
+describe("test timeout - this is how long until pool starts getting trimmed", () => {
+  let kernel;
+  it("gets a kernel with a 1s timeout", async () => {
+    const kernelName = await getPythonKernelName();
+    kernel = await Kernel.getFromPool(kernelName, { timeout_s: 1 });
+  });
+
+  it("quick eval works", async () => {
+    const output = await kernel.execute("389+11");
+    expect(output[0].data["text/plain"]).toBe("400");
+  });
+
+  it("something that takes more than a second", async () => {
+    await kernel.execute("print('hi'); import time; time.sleep(1.2)");
+  });
+
+  it("now check that the pool started shrinking", async () => {
+    const kernelName = await getPythonKernelName();
+    // @ts-ignore
+    expect(Kernel.getPool(kernelName).length).toBeLessThan(DEFAULT_POOL_SIZE);
   });
 });

@@ -108,7 +108,6 @@ export default class Kernel {
     this.tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
     const path = `${this.tempDir}/execute.ipynb`;
     // TODO: make this configurable as part of the API call
-    // I'm having a lot of trouble with this for now.
     //   -n = max open files
     //   -f = max bytes allowed to *write* to disk
     //   -t = max cputime is 30 seconds
@@ -116,7 +115,7 @@ export default class Kernel {
     this.kernel = createKernel({
       name: this.kernelName,
       path,
-      // ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
+      ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
     });
     await this.kernel.ensure_running();
     await this.kernel.execute_code_now({ code: "" });
