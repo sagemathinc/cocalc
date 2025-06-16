@@ -289,7 +289,7 @@ describe("test a changefeed", () => {
   });
 
   it("changefeed still works after restarting persist server, though what gets received is somewhat random -- the persist server doesn't have its own state so can't guarantee continguous changefeeds when it restarts", async () => {
-    await delay(500);
+    await delay(1000);
     await s2.set({
       key: "test5",
       messageData: messageData("data5", { headers: { foo: "bar5" } }),

@@ -16,6 +16,7 @@ export { wait } from "@cocalc/backend/conat/test/util";
 export { delay } from "awaiting";
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
+import { spawn, ChildProcess } from "node:child_process";
 
 const logger = getLogger("conat:test:setup");
 
@@ -87,4 +88,37 @@ export async function after() {
   for (const cn of clients) {
     cn.close();
   }
+}
+
+// runs a new ephemeral valkey server on an available port,
+// returning that port.
+export async function runValkey(): Promise<{
+  port: number;
+  address: string;
+  close: () => void;
+}> {
+  const port = await getPort();
+
+  // sapwn valkey-server listening on port running in a mode where
+  // data is never saved to disk using the nodejs spawn command:
+  // // Start valkey-server with in-memory only, no persistence
+  const child: ChildProcess = spawn(
+    "valkey-server",
+    ["--port", String(port), "--save", "", "--appendonly", "no"],
+    {
+      stdio: "ignore", // or "inherit" for debugging
+      detached: true,
+    },
+  );
+
+  const close = () => {
+    if (!child?.pid) return;
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      // already dead or not found
+    }
+  };
+
+  return { port, close, address: `valkey://localhost:${port}` };
 }
