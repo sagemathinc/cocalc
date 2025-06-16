@@ -49,6 +49,9 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -18753,7 +18756,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.0.1
+      '@types/node': 18.19.111
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
