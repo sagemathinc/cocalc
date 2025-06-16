@@ -22,12 +22,16 @@ import { apiKey, natsWebsocketServer } from "@cocalc/backend/data";
 import { inboxPrefix as getInboxPrefix } from "@cocalc/nats/names";
 import { project_id } from "@cocalc/project/data";
 import secretToken from "@cocalc/project/servers/secret-token";
+import * as kucalc from "../kucalc";
 
 export default getConnection;
 
 const logger = getLogger("project:nats:connection");
 
 function getServers() {
+  if (kucalc.IN_KUCALC) {
+    return "nats-server";
+  }
   if (process.env.NATS_SERVER) {
     return process.env.NATS_SERVER;
   } else {
