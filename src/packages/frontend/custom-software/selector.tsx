@@ -5,34 +5,25 @@
 
 // cSpell:ignore descr disp dflt
 
-import { Col, Form, List } from "antd";
-import { ReactNode } from "react";
+import { Col, Form } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
-  CSS,
   React,
   redux,
   useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  A,
-  HelpIcon,
-  Icon,
-  Markdown,
-  Paragraph,
-  SearchInput,
-} from "@cocalc/frontend/components";
-import { CompanyName, HelpEmailLink } from "@cocalc/frontend/customize";
+import { A, HelpIcon, Icon, Paragraph } from "@cocalc/frontend/components";
+import { CompanyName } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SoftwareEnvironmentInformation } from "@cocalc/frontend/project/settings/software-env-info";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../project/settings/software-consts";
+import { SoftwareInfo } from "../project/settings/types";
 import { ComputeImage, ComputeImageTypes, ComputeImages } from "./init";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
@@ -40,25 +31,6 @@ import {
   custom_image_name,
   is_custom_image,
 } from "./util";
-import { SoftwareInfo } from "../project/settings/types";
-
-const CS_LIST_STYLE: CSS = {
-  height: "250px",
-  overflowX: "hidden" as "hidden",
-  overflowY: "scroll" as "scroll",
-  border: `1px solid ${COLORS.GRAY_LL}`,
-  borderRadius: "5px",
-  marginBottom: "0px",
-} as const;
-
-const ENTRIES_ITEM_STYLE: CSS = {
-  width: "100%",
-  margin: "2px 0px",
-  padding: "5px",
-  border: "none",
-  textAlign: "left" as "left",
-  cursor: "pointer",
-} as const;
 
 export interface SoftwareEnvironmentState {
   image_selected?: string;
@@ -118,7 +90,6 @@ export function SoftwareEnvironment(props: Props) {
     [customize_software],
   );
 
-  const [search_img, set_search_img] = useState<string>("");
   const [image_selected, set_image_selected] = useState<string | undefined>(
     undefined,
   );
@@ -127,7 +98,7 @@ export function SoftwareEnvironment(props: Props) {
 
   const [softwareInfo, setSoftwareInfo] = useState<SoftwareInfo | null>(null);
 
-  function set_state(
+  function setState(
     image_selected: string | undefined,
     title_text: string | undefined,
     image_type: ComputeImageTypes,
@@ -149,195 +120,44 @@ export function SoftwareEnvironment(props: Props) {
       if (img == null) {
         // ignore, user has to select from scratch
       } else {
-        set_state(id, img.get("display", ""), "custom");
+        setState(id, img.get("display", ""), "custom");
       }
     } else {
       // must be standard image
       const img = software_images.get(default_image);
       const display = img != null ? img.get("title") ?? "" : "";
-      set_state(default_image, display, "standard");
+      setState(default_image, display, "standard");
     }
   }, []);
-
-  function render_custom_image_entries() {
-    if (images == null) return;
-
-    const search_hit = (() => {
-      if (search_img.length > 0) {
-        return (img: ComputeImage) =>
-          img.get("search_str", "").indexOf(search_img.toLowerCase()) >= 0;
-      } else {
-        return (_img: ComputeImage) => true;
-      }
-    })();
-
-    const entries: JSX.Element[] = images
-      .filter((img) => img.get("type", "") === "custom")
-      .filter(search_hit)
-      .sortBy((img) => img.get("display", "").toLowerCase())
-      .entrySeq()
-      .map((e) => {
-        const [id, img] = e;
-        const display = img.get("display", "");
-        return (
-          <List.Item
-            key={id}
-            onClick={() => set_state(id, display, "custom")}
-            style={{
-              ...ENTRIES_ITEM_STYLE,
-              ...(image_selected === id
-                ? { background: "#337ab7", color: "white" }
-                : undefined),
-            }}
-          >
-            {display}
-          </List.Item>
-        );
-      })
-      .toArray();
-
-    if (entries.length > 0) {
-      return <List style={CS_LIST_STYLE}>{entries}</List>;
-    } else {
-      if (search_img.length > 0) {
-        return <div>No search hits.</div>;
-      } else {
-        return <div>No custom software available.</div>;
-      }
-    }
-  }
-
-  function search(val: string): void {
-    set_search_img(val);
-    set_state(undefined, undefined, image_type);
-  }
-
-  function render_custom_images() {
-    if (image_type !== "custom") return;
-
-    return (
-      <>
-        <div style={{ display: "flex" }}>
-          <SearchInput
-            placeholder={`${intl.formatMessage(labels.search)}…`}
-            autoFocus={false}
-            value={search_img}
-            on_escape={() => search("")}
-            on_change={search}
-            style={{ flex: "1" }}
-          />
-        </div>
-        {render_custom_image_entries()}
-      </>
-    );
-  }
 
   function render_custom_images_config() {
     if (image_type !== "custom") return;
 
     return (
       <>
-        <Col sm={12}>{render_custom_images()}</Col>
-        <Col sm={12}>{render_selected_custom_image_info()}</Col>
-        {render_custom_images_info()}
-      </>
-    );
-  }
+        <Col sm={12}>
+          <FormattedMessage
+            id="custom-software.selector.select-custom-image"
+            defaultMessage={`<p>Specialized software environment are provided by 3rd parties and usually contain accompanying files to work with.</p>
 
-  function render_custom_images_info() {
-    if (image_type !== "custom") return;
-
-    return (
-      <Col sm={24}>
-        <Paragraph type="secondary">
-          Contact us to add more or give feedback:{" "}
-          <HelpEmailLink color={COLORS.GRAY} />.
-        </Paragraph>
-      </Col>
-    );
-  }
-
-  function render_selected_custom_image_info() {
-    if (image_type !== "custom" || images == null) {
-      return;
-    }
-
-    // no image selected, so nothing to render
-    if (image_selected == null) {
-      return (
-        <FormattedMessage
-          id="custom-software.selector.no-custom-image-selected"
-          defaultMessage={`<p>Select a custom software environment to see details.
-            They are provided by 3rd parties and usually contain accompanying files to work with.</p>
-
-            <p>Note: A <em>custom</em> software environment is tied to the project.
-            Create a new project to work in a different software environment.
+            <p>Note: A <em>specialized</em> software environment is tied to the project.
+            In order to work in a different environment, create another project.
             You can always <A>copy files between projects</A> as well.</p>`}
-          values={{
-            em: (c) => <em>{c}</em>,
-            p: (c) => <Paragraph type="secondary">{c}</Paragraph>,
-            A: (c) => (
-              <A
-                href={
-                  "https://doc.cocalc.com/project-files.html#file-actions-on-one-file"
-                }
-              >
-                {c}
-              </A>
-            ),
-          }}
-        />
-      );
-    }
-
-    const id: string = image_selected;
-    const data = images.get(id);
-    if (data == null) {
-      // we have a serious problem
-      console.warn(`compute_image data missing for '${id}'`);
-      return;
-    }
-    // some fields are derived in the "Table" when the data comes in
-    const img: ComputeImage = data;
-    const disp = img.get("display");
-    const desc = img.get("desc", "");
-    const url = img.get("url");
-    const src = img.get("src");
-    const disp_tag = img.get("display_tag");
-
-    const render_source = () => {
-      if (src == null || src.length == 0) return;
-      return (
-        <div style={{ marginTop: "5px" }}>
-          Source: <code>{src}</code>
-        </div>
-      );
-    };
-
-    const render_url = () => {
-      if (url == null || url.length == 0) return;
-      return (
-        <div style={{ marginTop: "5px" }}>
-          <a href={url} target={"_blank"} rel={"noopener"}>
-            <Icon name="external-link" /> Website
-          </a>
-        </div>
-      );
-    };
-
-    return (
-      <>
-        <h3 style={{ marginTop: "5px" }}>{disp}</h3>
-        <div style={{ marginTop: "5px" }}>
-          Image ID: <code>{disp_tag}</code>
-        </div>
-        <div
-          style={{ marginTop: "10px", overflowY: "auto", maxHeight: "200px" }}
-        >
-          <Markdown value={desc} className={"cc-custom-image-desc"} />
-        </div>
-        {render_source()}
-        {render_url()}
+            values={{
+              em: (c) => <em>{c}</em>,
+              p: (c) => <Paragraph type="secondary">{c}</Paragraph>,
+              A: (c) => (
+                <A
+                  href={
+                    "https://doc.cocalc.com/project-files.html#file-actions-on-one-file"
+                  }
+                >
+                  {c}
+                </A>
+              ),
+            }}
+          />
+        </Col>
       </>
     );
   }
@@ -367,7 +187,7 @@ export function SoftwareEnvironment(props: Props) {
                 layout={"horizontal"}
                 onSelect={(img) => {
                   const display = software_images.get(img)?.get("title");
-                  set_state(img, display, "standard");
+                  setState(img, display, "standard");
                 }}
               />
             </Form.Item>
@@ -384,7 +204,7 @@ export function SoftwareEnvironment(props: Props) {
           <FormattedMessage
             id="custom-software.selector.explanation.cocalc_com"
             defaultMessage={`<em>Standard</em> software environments are well tested and
-            maintained by {CompanyName}, while <em>custom</em> software environments are provided by 3rd parties
+            maintained by <CompanyName />, while <em>specialized</em> software environments are provided by 3rd parties
             and tied to a given project – <A2>more info...</A2>.
             `}
             values={{
@@ -400,6 +220,7 @@ export function SoftwareEnvironment(props: Props) {
   }
 
   function render_standard_image_selector() {
+    const isCustom = is_custom_image(image_selected ?? dflt_software_img);
     return (
       <>
         <Col sm={12}>
@@ -413,9 +234,13 @@ export function SoftwareEnvironment(props: Props) {
                 current_image={image_selected ?? dflt_software_img}
                 layout={"dropdown"}
                 setSoftwareInfo={setSoftwareInfo}
-                onSelect={(img) => {
-                  const display = software_images.get(img)?.get("title");
-                  set_state(img, display, "standard");
+                onSelect={(img, display, type) => {
+                  // if is_custom_image, then compute_image2basename(img) is the ID
+                  setState(
+                    is_custom_image(img) ? compute_image2basename(img) : img,
+                    display,
+                    type,
+                  );
                 }}
               />
             </Form.Item>
@@ -430,7 +255,19 @@ export function SoftwareEnvironment(props: Props) {
             {render_software_env_help()}
           </Paragraph>
         </Col>
-        {softwareInfo && <Col sm={24}>{softwareInfo}</Col>}
+        {softwareInfo?.extra != null && (
+          <>
+            <Col
+              sm={isCustom ? 12 : 24}
+              style={{
+                paddingBottom: "30px",
+              }}
+            >
+              {softwareInfo.extra}
+            </Col>
+            {isCustom && render_custom_images_config()}
+          </>
+        )}
       </>
     );
   }
@@ -440,12 +277,7 @@ export function SoftwareEnvironment(props: Props) {
   }
 
   if (onCoCalcCom) {
-    return (
-      <>
-        {render_standard_image_selector()}
-        {render_custom_images_config()}
-      </>
-    );
+    return render_standard_image_selector();
   } else {
     return render_onprem();
   }

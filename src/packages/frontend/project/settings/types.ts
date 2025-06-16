@@ -52,9 +52,8 @@ export type Project = TypedMap<{
 }>;
 
 export type SoftwareInfo = {
-  title: any;
+  title: string;
   desc: string;
-  registry?: any;
-  tag?: any;
+  registryInfo?: JSX.Element;
   extra?: ReactNode | JSX.Element | null;
 };

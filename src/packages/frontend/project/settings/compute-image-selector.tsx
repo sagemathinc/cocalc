@@ -43,8 +43,13 @@ import {
 import {
   ComputeImage,
   ComputeImages,
+  ComputeImageTypes,
 } from "@cocalc/frontend/custom-software/init";
-import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
+import {
+  compute_image2basename,
+  CUSTOM_IMG_PREFIX,
+  is_custom_image,
+} from "@cocalc/frontend/custom-software/util";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
@@ -79,12 +84,17 @@ const img_sorter = (a, b): number => {
 interface ComputeImageSelectorProps {
   current_image: string;
   layout: "horizontal" | "compact" | "dialog" | "dropdown";
-  onSelect: (img: string) => void;
+  onSelect: (
+    img: string,
+    display: string,
+    image_type: ComputeImageTypes,
+  ) => void;
   disabled?: boolean;
   size?: SizeType;
   label?: string; // the "okText" on the main button
   changing?: boolean;
   setSoftwareInfo?: (info?) => void;
+  hideCustomImages?: boolean; // if true, hide custom images
 }
 
 export function ComputeImageSelector({
@@ -96,6 +106,7 @@ export function ComputeImageSelector({
   label: propsLabel,
   changing = false,
   setSoftwareInfo,
+  hideCustomImages = false,
 }: ComputeImageSelectorProps) {
   const intl = useIntl();
 
@@ -140,10 +151,16 @@ export function ComputeImageSelector({
     return computeEnvs.get(name)?.get(type);
   }
 
-  function getComputeImgTitle(name) {
-    return (
-      getComputeImgInfo(name, "title") ?? getComputeImgInfo(name, "tag") ?? name // last resort fallback, in case the img configured in the project no longer exists
-    );
+  function getComputeImgTitle(name: string) {
+    if (is_custom_image(name)) {
+      return getCustomImageInfo(compute_image2basename(name)).title;
+    } else {
+      return (
+        getComputeImgInfo(name, "title") ??
+        getComputeImgInfo(name, "tag") ??
+        name // last resort fallback, in case the img configured in the project no longer exists
+      );
+    }
   }
 
   const default_title = getComputeImgTitle(defaultComputeImg);
@@ -197,8 +214,8 @@ export function ComputeImageSelector({
         return {
           value: `${CUSTOM_IMG_PREFIX}${id}`,
           label: display,
-          title: JSON.stringify(img.toJS()),
-          searchStr: img.get("search_str", ""),
+          title: img.get("desc", display),
+          searchStr: img.get("search_str", display.toLowerCase()),
         };
       })
       .toJS();
@@ -213,8 +230,21 @@ export function ComputeImageSelector({
 
   function select_options(): SelectOptions {
     const standard = GROUPS.map(render_menu_group).filter((x) => x != null);
-    const special = render_special_images();
-    return [...standard, special];
+    if (hideCustomImages) {
+      return standard;
+    } else {
+      return [...standard, render_special_images()];
+    }
+  }
+
+  function onSelectHandler(key: string) {
+    setNextImg(key);
+    const info = get_info(key);
+    setSoftwareInfo?.(info);
+    if (layout !== "dialog") {
+      const isCustom = is_custom_image(key);
+      onSelect(key, info.title, isCustom ? "custom" : "standard");
+    }
   }
 
   function render_selector() {
@@ -226,19 +256,11 @@ export function ComputeImageSelector({
         disabled={disabled}
         style={{ width: "100%" }}
         filterOption={(input, option) => {
-          const l = `${option?.label ?? ""}`;
-          const s: string = (option as any)?.searchStr ?? "";
-          return [l, s].join(" ").toLowerCase().includes(input.toLowerCase());
+          const l = `${option?.label ?? ""}`.toLowerCase();
+          const s = ((option as any)?.searchStr ?? "").toLowerCase();
+          return [l, s].some((x) => x.includes(input.toLowerCase()));
         }}
-        onSelect={(key) => {
-          console.log("selector onSelect key =", key);
-          setNextImg(key);
-          const info = get_info(key);
-          setSoftwareInfo?.(info);
-          if (layout !== "dialog") {
-            onSelect(key);
-          }
-        }}
+        onSelect={onSelectHandler}
         options={select_options()}
       />
     );
@@ -263,9 +285,9 @@ export function ComputeImageSelector({
   }
 
   function getCustomImageInfo(id: string): {
-    desc: string;
     title: string;
     extra?: ReactNode;
+    desc: string;
   } {
     const data = specializedSoftware?.get(id);
     if (data == null) {
@@ -302,11 +324,10 @@ export function ComputeImageSelector({
     };
 
     return {
-      title: id,
-      desc: display,
+      title: display,
+      desc,
       extra: (
         <div>
-          <h3 style={{ marginTop: "5px" }}>{display}</h3>
           <div style={{ marginTop: "5px" }}>
             Image ID: <code>{displayTag}</code>
           </div>
@@ -329,15 +350,15 @@ export function ComputeImageSelector({
       `(${intl.formatMessage(labels.no_description)})`;
     const registry = getComputeImgInfo(img, "registry");
     const tag = getComputeImgInfo(img, "tag");
-    const extra =
+    const registryInfo =
       registry && tag ? (
         <Text type="secondary"> ({`${registry}:${tag}`})</Text>
       ) : undefined;
-    return { title, desc, registry, tag, extra };
+    return { title, desc, registryInfo };
   }
 
   function get_info(img: string): SoftwareInfo {
-    if (img.startsWith(CUSTOM_IMG_PREFIX)) {
+    if (is_custom_image(img)) {
       return getCustomImageInfo(img.substring(CUSTOM_IMG_PREFIX.length));
     } else {
       return getStandardImageInfo(img);
@@ -345,8 +366,14 @@ export function ComputeImageSelector({
   }
 
   function render_info(img: string) {
-    const { desc } = get_info(img);
-    return <Text>{desc}</Text>;
+    if (is_custom_image(img)) return null;
+    const { desc, registryInfo } = get_info(img);
+    return (
+      <Text>
+        {desc}
+        {registryInfo}
+      </Text>
+    );
   }
 
   function renderDialogButton() {
@@ -368,7 +395,7 @@ export function ComputeImageSelector({
           cancelText={<CancelText />}
           onCancel={() => setShowDialog(false)}
           onOk={() => {
-            onSelect(nextImg);
+            onSelectHandler(nextImg);
             setShowDialog(false);
           }}
         >
@@ -421,6 +448,9 @@ export function ComputeImageSelector({
     );
   }
 
+  // only for standard images, specialized ones have a more complex description in "softwareInfo"
+  const description = render_info(nextImg);
+
   switch (layout) {
     case "compact":
       return render_selector();
@@ -434,15 +464,15 @@ export function ComputeImageSelector({
               <FormattedMessage
                 id="custom-software.selector.explanation"
                 defaultMessage={`Select the software environment.
-                Either go with the default environment, or select one of the more specialized ones.
-                Whatever choice you make, you can change it later in
-                Project Settings → Control → Software Environment.`}
+                Either go with the default environment, or select one of the more specialized ones.`}
               />
             </HelpIcon>
           </Col>
-          <Col xs={24}>
-            <span>{render_info(nextImg)}</span>
-          </Col>
+          {description && (
+            <Col xs={24}>
+              <span>{description}</span>
+            </Col>
+          )}
         </Row>
       );
     // used in projects → create new project
@@ -450,9 +480,11 @@ export function ComputeImageSelector({
       return (
         <Row gutter={[10, 10]}>
           <Col xs={24}>{render_selector()}</Col>
-          <Col xs={24}>
-            <Text type="secondary">{render_info(nextImg)}</Text>
-          </Col>
+          {description && (
+            <Col xs={24}>
+              <Text type="secondary">{description}</Text>
+            </Col>
+          )}
         </Row>
       );
     // successor of "vertical", where there is a dialog with a clear indication to click a button

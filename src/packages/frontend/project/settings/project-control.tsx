@@ -27,8 +27,8 @@ import {
   TimeElapsed,
 } from "@cocalc/frontend/components";
 import {
-  CUSTOM_IMG_PREFIX,
   CUSTOM_SOFTWARE_HELP_URL,
+  is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { labels } from "@cocalc/frontend/i18n";
 import {
@@ -289,7 +289,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       return <Loading />;
     }
 
-    if (compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
+    if (is_custom_image(compute_image)) {
       return render_custom_compute_image();
     }
 
@@ -299,6 +299,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         layout={"dialog"}
         onSelect={saveSelectedComputeImage}
         changing={computeImgChanging}
+        hideCustomImages={true}
         label={intl.formatMessage({
           id: "project.settings.compute-image-selector.button.save-restart",
           defaultMessage: "Save and Restart",

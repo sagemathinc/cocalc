@@ -60,7 +60,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   const [error, set_error] = useState<string>("");
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
-  const [specialized, set_specialized] = useState<SoftwareEnvironmentState>({});
+  const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef(null);
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
@@ -113,7 +113,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     set_state("view");
     set_title_text(default_value ?? "");
     set_error("");
-    set_specialized({});
+    setSelected({});
     set_show_add_license(requireLicense);
     set_title_prefill(true);
     set_license_id("");
@@ -133,7 +133,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     let project_id: string;
     const opts = {
       title: title_text,
-      image: await derive_project_img_name(specialized),
+      image: await derive_project_img_name(selected),
       start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
       license: license_id,
     };
@@ -226,9 +226,9 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
       // currently saving (?)
       state === "saving" ||
       // user wants a non-default image, but hasn't selected one yet
-      ((specialized.image_type === "custom" ||
-        specialized.image_type === "standard") &&
-        specialized.image_selected == null)
+      ((selected.image_type === "custom" ||
+        selected.image_type === "standard") &&
+        selected.image_selected == null)
     );
   }
 
@@ -250,11 +250,11 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     }
   }
 
-  function software_on_change(obj: SoftwareEnvironmentState): void {
+  function onChangeHandler(obj: SoftwareEnvironmentState): void {
     if (obj.title_text != null && (!title_prefill || !title_text)) {
       set_title(obj.title_text);
     }
-    set_specialized(obj);
+    setSelected(obj);
   }
 
   function addSiteLicense(lic: string): void {
@@ -295,7 +295,11 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
             confirmLabel={"Add this license"}
             onChange={addSiteLicense}
             requireLicense={requireLicense}
-            requireMessage={`A license is required to create additional projects.`}
+            requireMessage={intl.formatMessage({
+              id: "projects.create-project.requireLicense",
+              defaultMessage:
+                "A license is required to create additional projects.",
+            })}
           />
         </Card>
       );
@@ -324,12 +328,12 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   function render_input_section(): JSX.Element | undefined {
     const helpTxt = intl.formatMessage({
       id: "projects.create-project.helpTxt",
-      defaultMessage: "You can easily change the title later!",
+      defaultMessage: "Pick a title. You can easily change it later!",
     });
 
     return (
       <>
-        <Row gutter={[30, 15]}>
+        <Row gutter={[30, 10]}>
           <Col sm={12}>
             <Form form={form}>
               <Form.Item
@@ -343,7 +347,6 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
                     message: helpTxt,
                   },
                 ]}
-                help={helpTxt}
               >
                 <Input
                   ref={new_project_title_ref}
@@ -382,7 +385,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
               />
             </Paragraph>
           </Col>
-          <SoftwareEnvironment onChange={software_on_change} />
+          <SoftwareEnvironment onChange={onChangeHandler} />
         </Row>
         {render_add_license()}
         {render_license()}

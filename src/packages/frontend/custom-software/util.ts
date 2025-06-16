@@ -45,7 +45,7 @@ export function props2img(props: {
   if (props.project_map == null) return null;
   const ci = props.project_map.getIn([props.project_id, "compute_image"]);
   if (ci == null) return null;
-  if (!ci.startsWith(CUSTOM_IMG_PREFIX)) return null;
+  if (!is_custom_image(ci)) return null;
   return props.images?.get(compute_image2basename(ci));
 }
 
