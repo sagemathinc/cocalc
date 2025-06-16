@@ -29,6 +29,7 @@ import { version } from "@cocalc/util/smc-version";
 import { Message } from "./types";
 import writeTextFileToProject from "./write-text-file-to-project";
 import readTextFileFromProject from "./read-text-file-from-project";
+import { jupyter_execute_response } from "@cocalc/util/message";
 
 const logger = getLogger("handle-message-from-hub");
 
@@ -75,7 +76,11 @@ export default async function handleMessage(
 
     case "jupyter_execute":
       try {
-        await jupyterExecute(socket, mesg);
+        const outputs = await jupyterExecute(mesg as any);
+        socket.write_mesg(
+          "json",
+          jupyter_execute_response({ id: mesg.id, output: outputs }),
+        );
       } catch (err) {
         socket.write_mesg(
           "json",

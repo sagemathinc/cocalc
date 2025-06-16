@@ -104,3 +104,6 @@ export async function signal({
     throw errors[errors.length - 1];
   }
 }
+
+import jupyterExecute from "@cocalc/jupyter/stateless-api/execute";
+export { jupyterExecute };

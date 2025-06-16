@@ -339,9 +339,6 @@ export class CodeExecutionEmitter
     this.kernel.on("shell", this._handle_shell);
     this.kernel.on("iopub", this._handle_iopub);
 
-    log.debug("_execute_code: send the message to get things rolling");
-    this.kernel.channel?.next(this._message);
-
     this.kernel.once("closed", this.handleClosed);
     this.kernel.once("failed", this.handleClosed);
 
@@ -349,6 +346,12 @@ export class CodeExecutionEmitter
       // setup a timeout at which point things will get killed if they don't finish
       this.timer = setTimeout(this.timeout, this.timeout_ms);
     }
+
+    log.debug("_execute_code: send the message to get things rolling");
+    if (this.kernel.channel == null) {
+      throw Error("bug -- channel must be defined");
+    }
+    this.kernel.channel.next(this._message);
   };
 
   private timeout = async (): Promise<void> => {

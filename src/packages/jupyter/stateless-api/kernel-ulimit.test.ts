@@ -8,6 +8,7 @@ import { until } from "@cocalc/util/async-utils";
 
 const SECONDS = 2;
 
+jest.setTimeout(10000);
 describe("ulimit is set on the stateless api kernels (and can be configured)", () => {
   let kernel;
   let kernelName;
@@ -20,14 +21,17 @@ describe("ulimit is set on the stateless api kernels (and can be configured)", (
   it("gets a kernel", async () => {
     // repeat because in rare cases the kernel already in the pool may
     // get the ulimit from starting up python (1s of cpu time is short!)
-    await until(async () => {
-      try {
-        kernel = await Kernel.getFromPool(kernelName);
-        return true;
-      } catch {
-        return false;
-      }
-    });
+    await until(
+      async () => {
+        try {
+          kernel = await Kernel.getFromPool(kernelName);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { start: 1000 },
+    );
   });
 
   it("quick eval works", async () => {

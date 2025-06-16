@@ -7,6 +7,7 @@ import type {
   Configuration,
   ConfigurationAspect,
 } from "@cocalc/comm/project-configuration";
+import { type ProjectJupyterApiOptions } from "@cocalc/util/jupyter/api-types";
 
 export const system = {
   terminate: true,
@@ -30,6 +31,9 @@ export const system = {
   exec: true,
 
   signal: true,
+
+  // jupyter stateless API
+  jupyterExecute: true,
 };
 
 export interface System {
@@ -68,4 +72,6 @@ export interface System {
     pids?: number[];
     pid?: number;
   }) => Promise<void>;
+
+  jupyterExecute: (opts: ProjectJupyterApiOptions) => Promise<object[]>;
 }

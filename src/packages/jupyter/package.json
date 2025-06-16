@@ -21,7 +21,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
-    "test": "pnpm exec jest --forceExit",
+    "test": "pnpm exec jest --forceExit --maxWorkers=2",
     "depcheck": "pnpx depcheck",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },

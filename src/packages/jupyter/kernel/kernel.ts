@@ -554,8 +554,10 @@ export class JupyterKernel
       this.close();
     });
 
-    // so we can start sending code execution to the kernel, etc.
-    this.setState("starting");
+    if (this._state == "spawning") {
+      // so we can start sending code execution to the kernel, etc.
+      this.setState("starting");
+    }
   };
 
   pid = (): number | undefined => {
@@ -646,10 +648,13 @@ export class JupyterKernel
     }
     dbg("spawning");
     await this.spawn();
+    if (this.get_state() != "starting" && this.get_state() != "running") {
+      return;
+    }
     if (this._kernel?.initCode != null) {
       for (const code of this._kernel?.initCode ?? []) {
         dbg("initCode ", code);
-        await new CodeExecutionEmitter(this, { code }).go();
+        this.execute_code({ code }, true);
       }
     }
     if (!this.has_ensured_running) {

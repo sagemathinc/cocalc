@@ -1,11 +1,12 @@
 import { kernel as createKernel } from "@cocalc/jupyter/kernel";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
-import { run_cell, Limits } from "@cocalc/jupyter/nbgrader/jupyter-run";
+import { run_cell } from "@cocalc/jupyter/nbgrader/jupyter-run";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { type Limits } from "@cocalc/util/jupyter/nbgrader-types";
 
 const log = getLogger("jupyter:stateless-api:kernel");
 
@@ -87,6 +88,12 @@ export default class Kernel {
       timeout_s = DEFAULT_POOL_TIMEOUT_S,
     }: { size?: number; timeout_s?: number } = {},
   ): Promise<Kernel> {
+    if (size <= 0) {
+      // not using a pool -- just create and return kernel
+      const k = new Kernel(kernelName);
+      await k.init();
+      return k;
+    }
     this.setIdleTimeout(kernelName, timeout_s);
     const pool = Kernel.getPool(kernelName);
     let i = 1;
@@ -96,13 +103,17 @@ export default class Kernel {
       // we cause this kernel to get init'd soon, but NOT immediately, since starting
       // several at once just makes them all take much longer exactly when the user
       // most wants to use their new kernel
-      setTimeout(async () => {
-        try {
-          await k.init();
-        } catch (err) {
-          log.debug("Failed to pre-init Jupyter kernel -- ", kernelName, err);
-        }
-      }, 3000 * i); // stagger startup by a few seconds, though kernels that are needed will start ASAP.
+      setTimeout(
+        async () => {
+          try {
+            await k.init();
+          } catch (err) {
+            log.debug("Failed to pre-init Jupyter kernel -- ", kernelName, err);
+          }
+        },
+        // stagger startup by a few seconds, though kernels that are needed will start ASAP.
+        Math.random() * 3000 * i,
+      );
       i += 1;
       pool.push(k);
     }
@@ -141,7 +152,7 @@ export default class Kernel {
 
   execute = async (
     code: string,
-    limits: Limits = {
+    limits: Partial<Limits> = {
       timeout_ms: 30000,
       timeout_ms_per_cell: 30000,
       max_output: 5000000,
@@ -177,7 +188,9 @@ export default class Kernel {
   };
 
   close = async () => {
-    if (this.kernel == null) return;
+    if (this.kernel == null) {
+      return;
+    }
     try {
       await this.kernel.close();
     } catch (err) {
