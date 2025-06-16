@@ -24,18 +24,26 @@
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "conat", "cocalc"],
+  "keywords": [
+    "utilities",
+    "conat",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/ascii-table3": "^1.0.1",
     "@cocalc/comm": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.4.1",
     "@msgpack/msgpack": "^3.1.1",
     "@socket.io/redis-streams-adapter": "^0.2.2",
+    "ascii-table3": "^1.0.1",
     "awaiting": "^3.0.0",
     "consistent-hash": "^1.2.2",
     "dayjs": "^1.11.11",

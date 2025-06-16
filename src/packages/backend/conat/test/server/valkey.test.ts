@@ -1,5 +1,7 @@
 /*
 Test using socket servers connected via valkey.
+
+pnpm test ./valkey.test.ts
 */
 
 import {
@@ -10,6 +12,8 @@ import {
   initConatServer,
   delay,
 } from "@cocalc/backend/conat/test/setup";
+
+const valkey = "valkey://127.0.0.1:6379";
 
 beforeAll(before);
 
@@ -42,8 +46,8 @@ describe("create two conat socket servers NOT connected via a valkey stream, and
 describe.skip("do the same setup as above with two servers, but connected via valkey, and see that they do communicate", () => {
   let server1, server2;
   it("creates valkey and two servers", async () => {
-    server1 = await initConatServer({ valkey: "valkey://127.0.0.1:6379" });
-    server2 = await initConatServer({ valkey: "valkey://127.0.0.1:6379" });
+    server1 = await initConatServer({ valkey });
+    server2 = await initConatServer({ valkey });
     expect(server1.options.port).not.toEqual(server2.options.port);
   });
 
@@ -52,16 +56,22 @@ describe.skip("do the same setup as above with two servers, but connected via va
   it("observe client connected to each server CAN communicate", async () => {
     client1 = server1.client();
     client2 = server2.client();
-    const sub = await client1.subscribe("subject");
-    // this will never be seen by client:
+    const sub = await client1.subscribe("my-subject");
+    console.log("server1", Object.keys(server1.interest.patterns));
+    console.log("server2", Object.keys(server2.interest.patterns));
+    expect(Object.keys(server1.interest.patterns)).toContain("my-subject");
+    expect(Object.keys(server2.interest.patterns)).toContain("my-subject");
+    // await delay(2000);
     client2.publish("subject", "from client 2");
-    await delay(1500);
-    console.log(server1.interest);
-    console.log(server2.interest);
-    //client1.publish("subject", "from client 1");
+    //     while (true) {
+    //       await delay(1000);
+    //       console.log("server1", Object.keys(server1.interest.patterns));
+    //       console.log("server2", Object.keys(server2.interest.patterns));
+    //     }
+    //     //client1.publish("subject", "from client 1");
     const { value } = await sub.next();
-    expect(value.data).toBe("from client 2");
-    //expect(value.data).toBe("from client 1");
+    //     expect(value.data).toBe("from client 2");
+    //     //expect(value.data).toBe("from client 1");
   });
 
   it("cleans up", () => {

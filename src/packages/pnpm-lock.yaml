@@ -161,9 +161,6 @@ importers:
 
   conat:
     dependencies:
-      '@cocalc/ascii-table3':
-        specifier: ^1.0.1
-        version: 1.0.1
       '@cocalc/comm':
         specifier: workspace:*
         version: link:../comm
@@ -182,6 +179,9 @@ importers:
       '@socket.io/redis-streams-adapter':
         specifier: ^0.2.2
         version: 0.2.2(socket.io-adapter@2.5.5)
+      ascii-table3:
+        specifier: ^1.0.1
+        version: 1.0.1
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -2235,10 +2235,6 @@ packages:
   '@choojs/findup@0.2.1':
     resolution: {integrity: sha512-YstAqNb0MCN8PjdLCDfRsBcGVRN41f3vgLvaI0IrIcBp4AqILRSS0DeWNGkicC+f/zRIPJLc+9RURVSepwvfBw==}
     hasBin: true
-
-  '@cocalc/ascii-table3@1.0.1':
-    resolution: {integrity: sha512-GNsWMSk3gqItk/Q7c4gRXCR8N/kfYiD8cMCx8zts0TAg0c09boKrihFqj/3OMM5jLuxVnqqXxarPNyVzp9vKjw==}
-    engines: {node: '>=11.14.0'}
 
   '@cocalc/gcloud-pricing-calculator@1.17.0':
     resolution: {integrity: sha512-sQ/76dIdQZMhth+4H8l8+BwkgsFMxb+Lxgpz7gqK0y3whQhkUpEltoZCrc0bHNacy3uxZMOVJhEmT4iZ0pmaBg==}
@@ -4602,6 +4598,10 @@ packages:
 
   asap@2.0.6:
     resolution: {integrity: sha512-BSHWgDSAiKs50o2Re8ppvp3seVHXSRM44cdSsT9FfNEUUZLOGWVCsiWaRPWM1Znn+mqZ1OfVZ3z3DWEzSp7hRA==}
+
+  ascii-table3@1.0.1:
+    resolution: {integrity: sha512-xOCMZC8S375W4JajrAxFWPyI1VddfbscW9G5zMfhCySSt2Rvi/rs21jAjopzldTPOaFrOocjyGKibQiGExmLrg==}
+    engines: {node: '>=11.14.0'}
 
   asn1@0.2.6:
     resolution: {integrity: sha512-ix/FxPn0MDjeyJ7i/yoHGFt/EX6LyNbxSEhPPXODPL+KB0VPk86UYfL0lMdy+KCnv+fmvIzySwaK5COwqVbWTQ==}
@@ -11943,10 +11943,6 @@ snapshots:
     dependencies:
       commander: 2.20.3
 
-  '@cocalc/ascii-table3@1.0.1':
-    dependencies:
-      printable-characters: 1.0.42
-
   '@cocalc/gcloud-pricing-calculator@1.17.0':
     dependencies:
       awaiting: 3.0.0
@@ -14840,6 +14836,10 @@ snapshots:
   arrify@2.0.1: {}
 
   asap@2.0.6: {}
+
+  ascii-table3@1.0.1:
+    dependencies:
+      printable-characters: 1.0.42
 
   asn1@0.2.6:
     dependencies:

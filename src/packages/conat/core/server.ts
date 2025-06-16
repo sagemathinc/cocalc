@@ -68,6 +68,11 @@ import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { until } from "@cocalc/util/async-utils";
 
+const VALKEY_INTEREST_STREAM = "interest";
+const VALKEY_STICKY_STREAM = "sticky";
+const VALKEY_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
+const VALKEY_TRIM_INTERVAL = 5 * 60 * 1000; // every 5 minutes
+
 const DEBUG = false;
 
 interface InterestUpdate {
@@ -119,7 +124,12 @@ export class ConatServer {
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
   readonly options: Partial<Options>;
-  private readonly valkey?: { adapter: Valkey; pub: Valkey; sub: Valkey };
+  private readonly valkey?: {
+    adapter: Valkey;
+    pub: Valkey;
+    subInterest: Valkey;
+    subSticky: Valkey;
+  };
 
   private sockets: { [id: string]: any } = {};
   private disconnectingTimeout: {
@@ -179,10 +189,15 @@ export class ConatServer {
     this.logger = logger;
     if (valkey) {
       this.log(`Using Valkey for clustering -- ${valkey}`);
+      // NOTE: subInterest and subSticky are separate valkey connections
+      // since they *block* and only one wait can be done with that
+      // connection at at time. We put adapater on its own, since that's
+      // used by socketio directly.
       this.valkey = {
         adapter: new Valkey(valkey),
         pub: new Valkey(valkey),
-        sub: new Valkey(valkey),
+        subInterest: new Valkey(valkey),
+        subSticky: new Valkey(valkey),
       };
       this.trimValkeyStreamsLoop();
     }
@@ -266,8 +281,22 @@ export class ConatServer {
     await this.updateInterest({ op: "delete", subject, room });
   };
 
+  private updateInterest = async (update: InterestUpdate) => {
+    this._updateInterest(update);
+    if (this.valkey != null) {
+      // console.log(this.options.port, "valkey: publish interest change", update);
+      await this.valkey.pub.xadd(
+        VALKEY_INTEREST_STREAM,
+        "*",
+        "update",
+        JSON.stringify(update),
+      );
+    }
+  };
+
   private initInterestSubscription = async () => {
     if (this.valkey == null) {
+      // console.log("valkey: NOT initializing interest subscription");
       throw Error("valkey not defined");
     }
     // [ ] TODO: we need to limit the size of the stream and/or
@@ -278,15 +307,23 @@ export class ConatServer {
     let lastId = "0";
     let d = 50;
     while (true) {
-      // console.log("waiting for interest update");
-      const results = await this.valkey.sub.xread(
+      //       console.log(
+      //         this.options.port,
+      //         "valkey: waiting for interest sub update...",
+      //         { lastId },
+      //       );
+      const results = await this.valkey.subInterest.xread(
         "block" as any,
         0,
         "STREAMS",
-        "interest",
+        VALKEY_INTEREST_STREAM,
         lastId,
       );
-      // console.log("valkey interest -- got: ", results);
+      //       console.log(
+      //         this.options.port,
+      //         "valkey: receive interest update",
+      //         JSON.stringify(results?.slice(-3)),
+      //       );
       if (results == null) {
         d = Math.min(1000, d * 1.2);
         await delay(d);
@@ -311,11 +348,11 @@ export class ConatServer {
     let lastId = "0";
     let d = 50;
     while (true) {
-      const results = await this.valkey.sub.xread(
+      const results = await this.valkey.subSticky.xread(
         "block" as any,
         0,
         "STREAMS",
-        "sticky",
+        VALKEY_STICKY_STREAM,
         lastId,
       );
       // console.log("got ", results);
@@ -336,29 +373,14 @@ export class ConatServer {
     }
   };
 
-  private updateInterest = async (update: InterestUpdate) => {
-    this._updateInterest(update);
-    if (this.valkey != null) {
-      // publish interest change to valkey.
-      await this.valkey.pub.xadd(
-        "interest",
-        "*",
-        "update",
-        JSON.stringify(update),
-      );
-    }
-  };
-
   private trimValkeyStreamsLoop = async () => {
-    const STREAMS = ["interest", "sticky"];
-    const MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
-    const TRIM_INTERVAL = 2 * 60 * 1000;
+    const STREAMS = [VALKEY_INTEREST_STREAM, VALKEY_STICKY_STREAM];
     await until(
       async () => {
         if (!this.valkey || this.state == "closed") {
           return true;
         }
-        const cutoff = Date.now() - MAX_AGE_MS;
+        const cutoff = Date.now() - VALKEY_MAX_AGE;
         const minId = Math.floor(cutoff) + "-0";
         for (const stream of STREAMS) {
           try {
@@ -370,11 +392,12 @@ export class ConatServer {
         // keep loop going
         return false;
       },
-      { start: TRIM_INTERVAL, max: TRIM_INTERVAL },
+      { start: VALKEY_TRIM_INTERVAL, max: VALKEY_TRIM_INTERVAL },
     );
   };
 
   private _updateInterest = ({ op, subject, queue, room }: InterestUpdate) => {
+    if (this.state != "ready") return;
     const groups = this.interest.get(subject);
     if (op == "add") {
       if (typeof queue != "string") {

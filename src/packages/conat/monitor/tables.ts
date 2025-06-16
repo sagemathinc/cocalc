@@ -7,7 +7,7 @@ have for various reasons.
 
 */
 
-import { AsciiTable3 } from "@cocalc/ascii-table3";
+import { AsciiTable3 } from "ascii-table3";
 import { type Client } from "@cocalc/conat/core/client";
 import { field_cmp, human_readable_size } from "@cocalc/util/misc";
 import dayjs from "dayjs";

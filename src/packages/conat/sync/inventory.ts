@@ -24,7 +24,7 @@ import {
   type Configuration,
   type PartialInventory,
 } from "@cocalc/conat/persist/storage";
-import { AsciiTable3 } from "@cocalc/ascii-table3";
+import { AsciiTable3 } from "ascii-table3";
 
 export const INVENTORY_UPDATE_INTERVAL = 30000;
 export const THROTTLE_MS = 10000;
