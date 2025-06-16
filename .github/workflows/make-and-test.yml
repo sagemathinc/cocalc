@@ -90,14 +90,14 @@ jobs:
           # which aren't true.
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
-          
+
       - name: Download and install Valkey
         run: |
           VALKEY_VERSION=8.1.2
-          curl -LO https://download.valkey.io/releases/valkey-${VALKE?Y_VERSION}-jammy-x86_64.tar.gz
-          tar -xzf valkey-${VALKE?Y_VERSION}-jammy-x86_64.tar.gz
-          sudo cp valkey-${VALKE?Y_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
-    
+          curl -LO https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          tar -xzf valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          sudo cp valkey-${VALKEY_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
+
       - name: Set up Python venv and Jupyter kernel
         run: |
           python3 -m pip install --upgrade pip virtualenv
@@ -105,7 +105,7 @@ jobs:
           source venv/bin/activate
           pip install ipykernel
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
-    
+
       - run: cd src && npm install -g pnpm
       - run: cd src && pnpm run make
       - run: source venv/bin/activate && cd src && pnpm run test || pnpm run test || pnpm run test
