@@ -5,7 +5,7 @@ Test the Jupyer stateless api kernel functionality.
 import { getPythonKernelName } from "../kernel/kernel-data";
 import Kernel, { DEFAULT_POOL_SIZE } from "./kernel";
 
-describe.only("create a jupyter stateless-api kernel and test basic functionality", () => {
+describe("create a jupyter stateless-api kernel and test basic functionality", () => {
   let kernel;
   it("gets a kernel", async () => {
     const kernelName = await getPythonKernelName();
@@ -85,3 +85,4 @@ describe("test timeout - this is how long until pool starts getting trimmed", ()
     expect(Kernel.getPool(kernelName).length).toBeLessThan(DEFAULT_POOL_SIZE);
   });
 });
+

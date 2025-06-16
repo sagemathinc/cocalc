@@ -15,9 +15,16 @@ const DEFAULT_POOL_TIMEOUT_S = 3600;
 // When we idle timeout we always keep at least this many kernels around.  We don't go to 0.
 const MIN_POOL_SIZE = 1;
 
+//   -n = max open files
+//   -f = max bytes allowed to *write* to disk
+//   -t = max cputime is 30 seconds
+//   -v = max virtual memory usage to 3GB
+const DEFAULT_ULIMIT = "-n 1000 -f 10485760 -t 30 -v 3000000";
+
 export default class Kernel {
   private static pools: { [kernelName: string]: Kernel[] } = {};
   private static last_active: { [kernelName: string]: number } = {};
+  private static ulimit: { [kernelName: string]: string } = {};
 
   private kernel?: JupyterKernelInterface;
   private tempDir: string;
@@ -30,6 +37,11 @@ export default class Kernel {
       pool = Kernel.pools[kernelName] = [];
     }
     return pool;
+  }
+
+  // changing ulimit only impacts NEWLY **created** kernels.
+  static setUlimit(kernelName: string, ulimit: string) {
+    Kernel.ulimit[kernelName] = ulimit;
   }
 
   // Set a timeout for a given kernel pool (for a specifically named kernel)
@@ -107,15 +119,10 @@ export default class Kernel {
     }
     this.tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
     const path = `${this.tempDir}/execute.ipynb`;
-    // TODO: make this configurable as part of the API call
-    //   -n = max open files
-    //   -f = max bytes allowed to *write* to disk
-    //   -t = max cputime is 30 seconds
-    //   -v = max virtual memory usage to 3GB
     this.kernel = createKernel({
       name: this.kernelName,
       path,
-      ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
+      ulimit: Kernel.ulimit[this.kernelName] ?? DEFAULT_ULIMIT,
     });
     await this.kernel.ensure_running();
     await this.kernel.execute_code_now({ code: "" });

@@ -22,7 +22,7 @@ import { mkdir } from "fs/promises";
 import { spawn } from "node:child_process";
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
-import { bash } from "@cocalc/backend/execute-code";
+import bash from "@cocalc/backend/bash";
 import { writeFile } from "jsonfile";
 import mkdirp from "mkdirp";
 import shellEscape from "shell-escape";
@@ -161,10 +161,10 @@ async function launchKernelSpec(
     const escapedCmd = shellEscape(argv);
 
     // Prepend the ulimit command
-    const bashCmd = `${ulimitCmd} && ${escapedCmd}`;
+    const bashCmd = `${ulimitCmd}\n\n${escapedCmd}`;
 
     // Execute the command with ulimit
-    running_kernel = bash(bashCmd, full_spawn_options);
+    running_kernel = await bash(bashCmd, full_spawn_options);
   } else {
     running_kernel = spawn(argv[0], argv.slice(1), full_spawn_options);
   }
