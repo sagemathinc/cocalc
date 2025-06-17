@@ -88,10 +88,27 @@ export async function after() {
   for (const cn of clients) {
     cn.close();
   }
+  for (const { close } of valkeys) {
+    close();
+  }
 }
+
+process.once("exit", () => {
+  for (const { close } of valkeys) {
+    try {
+      close();
+    } catch {}
+  }
+});
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    process.exit();
+  });
+});
 
 // runs a new ephemeral valkey server on an available port,
 // returning that port.
+const valkeys: any[] = [];
 export async function runValkey(): Promise<{
   port: number;
   address: string;
@@ -118,11 +135,14 @@ export async function runValkey(): Promise<{
     ],
     {
       stdio: "ignore", // or "inherit" for debugging
-      detached: true,
+      detached: false,
     },
   );
 
+  let closed = false;
   const close = () => {
+    if (closed) return;
+    closed = true;
     if (!child?.pid) return;
     try {
       process.kill(-child.pid, "SIGKILL");
@@ -131,10 +151,13 @@ export async function runValkey(): Promise<{
     }
   };
 
-  return {
+  const server = {
     port,
     close,
     address: `valkey://:${password}@localhost:${port}`,
     password,
   };
+  valkeys.push(server);
+
+  return server;
 }
