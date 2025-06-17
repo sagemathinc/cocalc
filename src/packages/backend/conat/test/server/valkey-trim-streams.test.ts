@@ -11,7 +11,7 @@ import {
   initConatServer,
   runValkey,
 } from "@cocalc/backend/conat/test/setup";
-import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
+//import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 
 beforeAll(before);
 
@@ -20,7 +20,7 @@ describe("create two servers connected via valkey and observe stream trimming", 
   let server1, server2, client1, client2, valkeyServer;
   // we configure very aggressive trimming -- every 500ms we delete everything older than 1 seconds.
   const opts = { valkeyTrimMaxAge: 1000, valkeyTrimInterval: 500 };
-  it(`do a benchmark with valkey of send/receiving ${count2} messages`, async () => {
+  it("create servers and clients", async () => {
     valkeyServer = await runValkey();
     const valkey = valkeyServer.address;
     server1 = await initConatServer({
