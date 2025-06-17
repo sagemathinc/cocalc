@@ -190,7 +190,7 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
     const z = await client3.request("sticky.io.foo", null);
     expect(z.data).toBe(stickyTarget);
   });
-
+  
   it("cleans up", () => {
     valkeyServer.close();
     client1.close();

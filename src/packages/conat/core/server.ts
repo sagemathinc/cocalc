@@ -499,7 +499,7 @@ export class ConatServer {
       if (numSubs >= maxSubs) {
         // error 429 == "too many requests"
         throw new ConatError(
-          `there is a limit of at most ${maxSubs} subscriptions and you currently have ${numSubs} subscriptions`,
+          `there is a limit of at most ${maxSubs} subscriptions and you currently have ${numSubs} subscriptions -- subscription to '${subject}' denied`,
           { code: 429 },
         );
       }
