@@ -14,6 +14,7 @@ import {
   runValkey,
   wait,
 } from "@cocalc/backend/conat/test/setup";
+import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 
 beforeAll(before);
 
@@ -121,6 +122,84 @@ describe("do the same setup as above with two servers, but connected via valkey,
     client2.close();
     server1.close();
     server2.close();
+  });
+});
+
+// this is very important, since the sticky resolution needs to be consistent
+describe("create two servers connected via valkey, and verify that *sticky* subs properly work", () => {
+  let server1, server2, valkey, valkeyServer, client1, client2;
+  it("creates valkey, two servers and two clients", async () => {
+    valkeyServer = await runValkey();
+    valkey = valkeyServer.address;
+    server1 = await initConatServer({ valkey });
+    client1 = server1.client();
+    server2 = await initConatServer({ valkey });
+    client2 = server2.client();
+  });
+
+  let s1, s2, stickyTarget;
+  const pattern = "sticky.io.*";
+  it("setup a sticky server on both clients, then observe that its state is consistent", async () => {
+    s1 = await client1.subscribe(pattern, { queue: STICKY_QUEUE_GROUP });
+    s2 = await client2.subscribe(pattern, { queue: STICKY_QUEUE_GROUP });
+    (async () => {
+      for await (const x of s1) {
+        x.respond("s1");
+      }
+    })();
+    (async () => {
+      for await (const x of s2) {
+        x.respond("s2");
+      }
+    })();
+
+    // we select a specific subject sticky.io.foo that matches the pattern :
+    const x = await client1.request("sticky.io.foo", null);
+    // this is the server it ended up hitting.
+    stickyTarget = x.data;
+    // check it still does
+    for (let i = 0; i < 3; i++) {
+      const y = await client1.request("sticky.io.foo", null);
+      expect(y.data).toBe(stickyTarget);
+    }
+    // another client requesting sticky.io.foo even though a different
+    // socketio conat server must get the same target:
+    const z = await client2.request("sticky.io.foo", null);
+    expect(z.data).toBe(stickyTarget);
+
+    expect(server1.sticky).toEqual(server2.sticky);
+    expect(server1.sticky[pattern] != null).toBe(true);
+    expect(server1.sticky[pattern]["sticky.io.foo"] != null).toBe(true);
+  });
+
+  let server3, server4, client3;
+  it("add new conat servers and observe sticky mapping is still the same so using shared  state instead of consistent hashing", async () => {
+    server3 = await initConatServer({ valkey });
+    server4 = await initConatServer({ valkey });
+    await wait({
+      until: () => {
+        return (
+          server3.sticky[pattern] != null && server4.sticky[pattern] != null
+        );
+      },
+    });
+    expect(server1.sticky).toEqual(server3.sticky);
+    expect(server1.sticky).toEqual(server4.sticky);
+
+    client3 = server3.client();
+    const z = await client3.request("sticky.io.foo", null);
+    expect(z.data).toBe(stickyTarget);
+  });
+
+  it("cleans up", () => {
+    valkeyServer.close();
+    client1.close();
+    client2.close();
+    client3.close();
+    server1.close();
+    server2.close();
+    server3.close();
+    server4.close();
   });
 });
 

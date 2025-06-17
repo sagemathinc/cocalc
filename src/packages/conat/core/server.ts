@@ -547,7 +547,11 @@ export class ConatServer {
     return count;
   };
 
-  private sticky: { [subject: string]: any } = {};
+  private sticky: {
+    // the target string is JSON.stringifh({ id: string; subject: string }), which is the
+    // socket.io room to send the messages to.
+    [pattern: string]: { [subject: string]: string };
+  } = {};
   private loadBalance = ({
     pattern,
     subject,
