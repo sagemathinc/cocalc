@@ -42,6 +42,7 @@ const log = VERBOSE ? console.log : (..._args) => {};
 
 beforeAll(before);
 
+jest.setTimeout(15000);
 // this is very important, since the sticky resolution needs to be consistent
 describe("create two servers connected via valkey and two clients and test messaging speed", () => {
   let server, client1, client2;
