@@ -227,9 +227,15 @@ export class ConatServer {
       // connection at at time. We put adapater on its own, since that's
       // used by socketio directly.
       this.valkey = {
-        pub: valkeyClient(valkey),
-        subInterest: valkeyClient(valkey),
-        subSticky: valkeyClient(valkey),
+        pub: valkeyClient(
+          typeof valkey == "string" ? valkey : { ...valkey, db: 2 },
+        ),
+        subInterest: valkeyClient(
+          typeof valkey == "string" ? valkey : { ...valkey, db: 2 },
+        ),
+        subSticky: valkeyClient(
+          typeof valkey == "string" ? valkey : { ...valkey, db: 2 },
+        ),
       };
       this.trimValkeyStreamsLoop();
     }
