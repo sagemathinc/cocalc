@@ -246,7 +246,7 @@ const MSGPACK_ENCODER_OPTIONS = {
 
 export const STICKY_QUEUE_GROUP = "sticky";
 
-const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
+export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // A major problem if we allow long polling is that we must always use at most
   // half the chunk size... because there is no way to know if recipients will be
   // using long polling to RECEIVE messages.  Not insurmountable.

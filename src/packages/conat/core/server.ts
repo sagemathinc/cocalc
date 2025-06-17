@@ -17,17 +17,18 @@ cd packages/server
    s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000}); 0
 
 
-For clustering:
+For valkey clustering:
 
-   s0 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'redis://localhost:6379', port:3000})
+   s0 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'valkey://localhost:6379', port:3000, getUser:()=>{return {hub_id:'hub'}}})
 
-   s1 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'redis://localhost:6379', port:3001})
+   s1 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'valkey://localhost:6379', port:3001, getUser:()=>{return {hub_id:'hub'}}})
 
 Corresponding clients:
 
    c0 = require('@cocalc/conat/core/client').connect('http://localhost:3000')
 
    c1 = require('@cocalc/conat/core/client').connect('http://localhost:3001')
+
 
 ---
 
@@ -45,7 +46,7 @@ import {
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 import Valkey from "iovalkey";
 import { Server } from "socket.io";
-import { delay } from "awaiting";
+import { callback } from "awaiting";
 import {
   ConatError,
   connect,
@@ -68,13 +69,8 @@ import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { until } from "@cocalc/util/async-utils";
 
-const VALKEY_INTEREST_STREAM = "interest";
-const VALKEY_STICKY_STREAM = "sticky";
-
-const VALKEY_TRIM_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
-const VALKEY_TRIM_INTERVAL = 5 * 60 * 1000; // every 5 minutes
-
-const VALKEY_XREAD_TIMEOUT = parseInt(process.env.VALKEY_XREAD_TIMEOUT ?? "0");
+const INTEREST_STREAM = "interest";
+const STICKY_STREAM = "sticky";
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
 
@@ -97,6 +93,12 @@ interface InterestUpdate {
   subject: string;
   queue?: string;
   room: string;
+}
+
+interface StickyUpdate {
+  pattern: string;
+  subject: string;
+  target: string;
 }
 
 export function init(opts: Options) {
@@ -136,11 +138,6 @@ export interface Options {
   systemAccountPassword?: string;
   // if true, use https when creating an internal client.
   ssl?: boolean;
-
-  // override the defaults VALKEY_TRIM_MAX_AGE and VALKEY_TRIM_INTERVAL
-  // (this is primarily here for unit testing purposes)
-  valkeyTrimMaxAge?: number;
-  valkeyTrimInterval?: number;
 }
 
 type State = "ready" | "closed";
@@ -149,16 +146,11 @@ export class ConatServer {
   public readonly io;
   public readonly id: string;
   private readonly logger: (...args) => void;
-  private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
-  private subscriptions: { [socketId: string]: Set<string> } = {};
+
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
   readonly options: Partial<Options>;
-  private readonly valkey?: {
-    pub: Valkey;
-    subInterest: Valkey;
-    subSticky: Valkey;
-  };
+  private cluster?: boolean;
 
   private sockets: { [id: string]: any } = {};
   private disconnectingTimeout: {
@@ -168,6 +160,16 @@ export class ConatServer {
   private stats: { [id: string]: ConnectionStats } = {};
   private usage: UsageMonitor;
   private state: State = "ready";
+
+  private subscriptions: { [socketId: string]: Set<string> } = {};
+  private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
+  private interestUpdates: InterestUpdate[] = [];
+  private sticky: {
+    // the target string is JSON.stringifh({ id: string; subject: string }), which is the
+    // socket.io room to send the messages to.
+    [pattern: string]: { [subject: string]: string };
+  } = {};
+  private stickyUpdates: StickyUpdate[] = [];
 
   constructor(options: Options) {
     const {
@@ -182,8 +184,6 @@ export class ConatServer {
       valkey,
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
       maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
-      valkeyTrimMaxAge = VALKEY_TRIM_MAX_AGE,
-      valkeyTrimInterval = VALKEY_TRIM_INTERVAL,
       systemAccountPassword,
     } = options;
     this.options = {
@@ -195,9 +195,9 @@ export class ConatServer {
       maxSubscriptionsPerClient,
       maxSubscriptionsPerHub,
       systemAccountPassword,
-      valkeyTrimMaxAge,
-      valkeyTrimInterval,
     };
+    // for now valkey is the one and only supported cluster approach
+    this.cluster = !!valkey;
     this.getUser = async (socket) => {
       if (getUser == null) {
         // no auth at all
@@ -220,33 +220,19 @@ export class ConatServer {
     this.isAllowed = isAllowed ?? (async () => true);
     this.id = id;
     this.logger = logger;
-    if (valkey && !process.env.DISABLE_CONAT_VALKEY) {
-      this.log(`Using Valkey for clustering`);
-      // NOTE: subInterest and subSticky are separate valkey connections
-      // since they *block* and only one wait can be done with that
-      // connection at at time. We put adapater on its own, since that's
-      // used by socketio directly.
-      this.valkey = {
-        pub: valkeyClient(valkey),
-        subInterest: valkeyClient(valkey),
-        subSticky: valkeyClient(valkey),
-      };
-      this.trimValkeyStreamsLoop();
-    }
     this.log("Starting Conat server...", {
       id,
       path,
       port: this.options.port,
       httpServer: httpServer ? "httpServer(...)" : undefined,
-      valkey: !!valkey,
+      valkey: !!valkey, // valkey has password in it so do not log
     });
     // NOTE: do NOT enable connectionStateRecovery; it seems to cause issues
     // when restarting the server.
     const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
-      adapter:
-        this.valkey != null ? createAdapter(valkeyClient(valkey)) : undefined,
+      adapter: valkey != null ? createAdapter(valkeyClient(valkey)) : undefined,
       // perMessageDeflate is disabled by default in socket.io due to FUD -- see https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
       perMessageDeflate: { threshold: 1024 },
     };
@@ -266,7 +252,7 @@ export class ConatServer {
 
   private init = () => {
     this.io.on("connection", this.handleSocket);
-    if (this.valkey != null) {
+    if (this.cluster != null) {
       this.initInterestSubscription();
       this.initStickySubscription();
     }
@@ -313,132 +299,66 @@ export class ConatServer {
     await this.updateInterest({ op: "delete", subject, room });
   };
 
+  // INTEREST
+
   private updateInterest = async (update: InterestUpdate) => {
     this._updateInterest(update);
-    if (this.valkey != null) {
-      // console.log(this.options.port, "valkey: publish interest change", update);
-      await this.valkey.pub.xadd(
-        VALKEY_INTEREST_STREAM,
-        "*",
-        "update",
-        JSON.stringify(update),
-      );
-    }
+    if (!this.cluster) return;
+    // console.log(this.options.port, "cluster: publish interest change", update);
+    this.io.of("cluster").serverSideEmit(INTEREST_STREAM, "update", update);
   };
 
-  private initInterestSubscription = async () => {
-    if (this.valkey == null) {
-      // console.log("valkey: NOT initializing interest subscription");
-      throw Error("valkey not defined");
-    }
-    // [ ] TODO: we need to limit the size of the stream and/or
-    // timeout interest and/or reconcile it periodically with
-    // actual connected users to avoid the interest object
-    // getting too big for no reason.  E.g, maybe all subscriptions
-    // need to be renewed periodically.
-    let lastId = "0";
-    let d = 50;
-    while (true) {
-      //       console.log(
-      //         this.options.port,
-      //         "valkey: waiting for interest sub update...",
-      //         { lastId },
-      //       );
-      const results = await this.valkey.subInterest.xread(
-        "block" as any,
-        VALKEY_XREAD_TIMEOUT,
-        "STREAMS",
-        VALKEY_INTEREST_STREAM,
-        lastId,
-      );
-      //       console.log(
-      //         this.options.port,
-      //         "valkey: receive interest update",
-      //         JSON.stringify(results?.slice(-3)),
-      //       );
-      if (results == null) {
-        d = Math.min(1000, d * 1.2);
-        await delay(d);
-        continue;
-      } else {
-        d = 50;
-      }
-      const [_, messages] = results[0];
-      for (const message of messages) {
-        const update = JSON.parse(message[1][1]);
-        this._updateInterest(update);
-      }
-      lastId = messages[messages.length - 1][0];
-      // console.log({ lastId });
-    }
-  };
+  private initInterest = async () => {
+    if (!this.cluster) return;
+    const getStateFromCluster = (cb) => {
+      this.io.of("cluster").serverSideEmit(INTEREST_STREAM, "init", cb);
+    };
 
-  private initStickySubscription = async () => {
-    let lastId = "0";
-    let d = 50;
-    while (this.valkey != null) {
-      const results = await this.valkey.subSticky.xread(
-        "block" as any,
-        VALKEY_XREAD_TIMEOUT,
-        "STREAMS",
-        VALKEY_STICKY_STREAM,
-        lastId,
-      );
-      // console.log("got ", results);
-      if (results == null) {
-        d = Math.min(1000, d * 1.2);
-        await delay(d);
-        continue;
-      } else {
-        d = 50;
-      }
-      const [_, messages] = results[0];
-      for (const message of messages) {
-        const update = JSON.parse(message[1][1]);
-        this._updateSticky(update);
-      }
-      lastId = messages[messages.length - 1][0];
-      // console.log({ lastId });
-    }
-  };
-
-  private trimValkeyStreamsLoop = async () => {
-    const { valkeyTrimMaxAge, valkeyTrimInterval } = this.options;
-    if (!valkeyTrimMaxAge || !valkeyTrimInterval) {
-      // disable if either set to 0
-      return;
-    }
-    const STREAMS = [VALKEY_INTEREST_STREAM, VALKEY_STICKY_STREAM];
     await until(
       async () => {
-        if (!this.valkey || this.state == "closed") {
-          return true;
-        }
-        const cutoff = Date.now() - valkeyTrimMaxAge;
-        const minId = Math.floor(cutoff) + "-0";
-        for (const stream of STREAMS) {
-          if (this.valkey == null) {
-            // done.
+        try {
+          const responses = await callback(getStateFromCluster);
+          // console.log("initInterest got", responses);
+          if (responses.length > 0) {
+            for (const response of responses) {
+              for (const update of response) {
+                this._updateInterest(update);
+              }
+            }
             return true;
+          } else {
+            // console.log(`init interest state -- waiting for other nodes...`);
+            return false;
           }
-          try {
-            await this.valkey.pub.xtrim(stream, "MINID", minId);
-          } catch (e) {
-            this.log(`Error trimming stream ${stream}:`, e);
-          }
+        } catch (err) {
+          console.log(`initInterest: WARNING -- ${err}`);
+          return false;
         }
-        // keep loop going
-        return false;
       },
-      {
-        start: valkeyTrimInterval,
-        max: valkeyTrimInterval,
-      },
+      { start: 100, decay: 1.5, max: 5000 },
     );
   };
 
-  private _updateInterest = ({ op, subject, queue, room }: InterestUpdate) => {
+  private initInterestSubscription = async () => {
+    if (!this.cluster) return;
+
+    this.initInterest();
+
+    this.io.of("cluster").on(INTEREST_STREAM, (action, args) => {
+      // console.log("INTEREST_STREAM received", { action, args });
+      if (action == "update") {
+        // console.log("applying interest update", args);
+        this._updateInterest(args);
+      } else if (action == "init") {
+        args(this.interestUpdates);
+      }
+    });
+  };
+
+  private _updateInterest = (update: InterestUpdate) => {
     if (this.state != "ready") return;
+    this.interestUpdates.push(update);
+    const { op, subject, queue, room } = update;
     const groups = this.interest.get(subject);
     if (op == "add") {
       if (typeof queue != "string") {
@@ -473,41 +393,77 @@ export class ConatServer {
     }
   };
 
-  private updateSticky = async (update: {
-    pattern: string;
-    subject: string;
-    target: string;
-  }) => {
+  // STICKY
+
+  private initSticky = async () => {
+    if (!this.cluster) return;
+    const getStateFromCluster = (cb) => {
+      this.io.of("cluster").serverSideEmit(STICKY_STREAM, "init", cb);
+    };
+
+    await until(
+      async () => {
+        try {
+          const responses = await callback(getStateFromCluster);
+          // console.log("initInterest got", responses);
+          if (responses.length > 0) {
+            for (const response of responses) {
+              for (const update of response) {
+                this._updateSticky(update);
+              }
+            }
+            return true;
+          } else {
+            // console.log(`init sticky state -- waiting for other nodes...`);
+            return false;
+          }
+        } catch (err) {
+          console.log(`initInterest: WARNING -- ${err}`);
+          return false;
+        }
+      },
+      { start: 100, decay: 1.5, max: 5000 },
+    );
+  };
+
+  private initStickySubscription = async () => {
+    if (!this.cluster) return;
+
+    this.initSticky();
+
+    this.io.of("cluster").on(STICKY_STREAM, (action, args) => {
+      // console.log("STICKY_STREAM received", { action, args });
+      if (action == "update") {
+        this._updateSticky(args);
+      } else if (action == "init") {
+        // console.log("sending stickyUpdates", this.stickyUpdates);
+        args(this.stickyUpdates);
+      }
+    });
+  };
+
+  private updateSticky = async (update: StickyUpdate) => {
     this._updateSticky(update);
-    if (this.valkey != null) {
-      // publish interest change to valkey.
-      await this.valkey.pub.xadd(
-        "sticky",
-        "*",
-        "update",
-        JSON.stringify(update),
-      );
+    if (!this.cluster) return;
+
+    // console.log(this.options.port, "cluster: publish sticky update", update);
+    this.io.of("cluster").serverSideEmit(STICKY_STREAM, "update", update);
+  };
+
+  private _updateSticky = (update: StickyUpdate) => {
+    this.stickyUpdates.push(update);
+    const { pattern, subject, target } = update;
+    if (this.sticky[pattern] === undefined) {
+      this.sticky[pattern] = {};
     }
+    this.sticky[pattern][subject] = target;
   };
 
   private getStickyTarget = ({ pattern, subject }) => {
     return this.sticky[pattern]?.[subject];
   };
 
-  private _updateSticky = ({
-    pattern,
-    subject,
-    target,
-  }: {
-    pattern: string;
-    subject: string;
-    target: string;
-  }) => {
-    if (this.sticky[pattern] === undefined) {
-      this.sticky[pattern] = {};
-    }
-    this.sticky[pattern][subject] = target;
-  };
+  //
 
   private subscribe = async ({ socket, subject, queue, user }) => {
     if (DEBUG) {
@@ -588,11 +544,6 @@ export class ConatServer {
     return count;
   };
 
-  private sticky: {
-    // the target string is JSON.stringifh({ id: string; subject: string }), which is the
-    // socket.io room to send the messages to.
-    [pattern: string]: { [subject: string]: string };
-  } = {};
   private loadBalance = ({
     pattern,
     subject,
@@ -789,12 +740,15 @@ export class ConatServer {
   // create new client in the same process connected to this server.
   // This is useful for unit testing and is not cached by default (i.e., multiple
   // calls return distinct clients).
-  client = (options?: ClientOptions): Client => {
+  private address = () => {
     const port = this.options.port;
     const path = this.options.path?.slice(0, -"/conat".length) ?? "";
-    const address = `http${this.options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
+    return `http${this.options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
+  };
+
+  client = (options?: ClientOptions): Client => {
     return connect({
-      address,
+      address: this.address(),
       noCache: true,
       ...options,
     });

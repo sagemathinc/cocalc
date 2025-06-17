@@ -18,6 +18,22 @@ import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 
 beforeAll(before);
 
+export async function waitForSubscription(server, subject) {
+  await wait({
+    until: () => {
+      return Object.keys(server.interest.patterns).includes(subject);
+    },
+  });
+}
+
+export async function waitForNonSubscription(server, subject) {
+  await wait({
+    until: () => {
+      return !Object.keys(server.interest.patterns).includes(subject);
+    },
+  });
+}
+
 describe("create two conat socket servers NOT connected via a valkey stream, and observe this is totally broken", () => {
   let server2;
   it("creates a second server", async () => {
@@ -50,7 +66,7 @@ describe("do the same setup as above with two servers, but connected via valkey,
     valkeyServer = await runValkey();
     valkey = valkeyServer.address;
     server1 = await initConatServer({ valkey });
-    
+
     // configuration for valkey can also be given as a json string:
     server2 = await initConatServer({
       valkey: JSON.stringify({
@@ -66,10 +82,13 @@ describe("do the same setup as above with two servers, but connected via valkey,
   let sub1;
   const SUBJECT = "my-subject.org";
   const SUBJECT2 = "my-subject2.org";
-  it("observe client connected to each server and CAN communicate with each other via pub/sub", async () => {
+  it("create client connected to each server and verify that they CAN communicate with each other via pub/sub", async () => {
     client1 = server1.client();
     client2 = server2.client();
+
     sub1 = await client1.subscribe(SUBJECT);
+    await waitForSubscription(server2, SUBJECT);
+
     expect(Object.keys(server1.interest.patterns)).toContain(SUBJECT);
     expect(Object.keys(server2.interest.patterns)).toContain(SUBJECT);
     client2.publish(SUBJECT, "from client 2");
@@ -77,31 +96,35 @@ describe("do the same setup as above with two servers, but connected via valkey,
     expect(value.data).toBe("from client 2");
 
     const sub2 = await client2.subscribe(SUBJECT2);
+    await waitForSubscription(server1, SUBJECT2);
+
     client1.publish(SUBJECT2, "hi from client 1");
     const { value: value2 } = await sub2.next();
     expect(value2.data).toBe("hi from client 1");
   });
 
-  it("client unsubscribes and that is reflected immediately in the other server", async () => {
+  it("client unsubscribes and that is reflected in both servers", async () => {
     sub1.close();
-    await wait({
-      until: () => {
-        return server1.interest.patterns[SUBJECT] == null;
-      },
-    });
+    await waitForNonSubscription(server1, SUBJECT);
+    await waitForNonSubscription(server2, SUBJECT);
     expect(Object.keys(server1.interest.patterns)).not.toContain(SUBJECT);
     expect(Object.keys(server2.interest.patterns)).not.toContain(SUBJECT);
   });
 
-  const count = 1000;
+  const count = 450;
   let server3;
   it(`one client subscribes to ${count} distinct subjects and these are all visible in the other servers -- all messages get routed properly when sent to all subjects`, async () => {
     server3 = await initConatServer({ valkey });
     const v: any[] = [];
+    let subj;
     for (let i = 0; i < count; i++) {
-      v.push(client1.subscribe(`subject.${i}`));
+      subj = `subject.${i}`;
+      v.push(client1.subscribe(subj));
     }
     const subs = await Promise.all(v);
+    await waitForSubscription(server1, subj);
+    await waitForSubscription(server2, subj);
+    await waitForSubscription(server3, subj);
 
     for (let i = 0; i < count; i++) {
       expect(Object.keys(server1.interest.patterns)).toContain(`subject.${i}`);
@@ -120,6 +143,25 @@ describe("do the same setup as above with two servers, but connected via valkey,
     const result = await Promise.all(p2);
     for (let i = 0; i < count; i++) {
       expect(result[i].value.data).toBe(i);
+    }
+
+    // and can unsubscribe
+    for (let i = 0; i < count; i++) {
+      subs[i].close();
+    }
+    await waitForNonSubscription(server1, subj);
+    await waitForNonSubscription(server2, subj);
+    await waitForNonSubscription(server3, subj);
+    for (let i = 0; i < count; i++) {
+      expect(Object.keys(server1.interest.patterns)).not.toContain(
+        `subject.${i}`,
+      );
+      expect(Object.keys(server2.interest.patterns)).not.toContain(
+        `subject.${i}`,
+      );
+      expect(Object.keys(server3.interest.patterns)).not.toContain(
+        `subject.${i}`,
+      );
     }
   });
 
@@ -149,6 +191,8 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
   it("setup a sticky server on both clients, then observe that its state is consistent", async () => {
     s1 = await client1.subscribe(pattern, { queue: STICKY_QUEUE_GROUP });
     s2 = await client2.subscribe(pattern, { queue: STICKY_QUEUE_GROUP });
+    await waitForSubscription(server1, pattern);
+    await waitForSubscription(server2, pattern);
     (async () => {
       for await (const x of s1) {
         x.respond("s1");

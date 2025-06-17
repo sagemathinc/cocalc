@@ -12,6 +12,7 @@ import {
   runValkey,
 } from "@cocalc/backend/conat/test/setup";
 //import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
+import { waitForSubscription } from "./valkey.test";
 
 beforeAll(before);
 
@@ -36,8 +37,11 @@ describe("create two servers connected via valkey and observe stream trimming", 
   });
 
   it("test that the stream is working at all", async () => {
-    const sub = await client1.subscribe("stream-trim");
-    client2.publish("stream-trim", "foo");
+    const subject = "stream.trim";
+    const sub = await client1.subscribe(subject);
+    await waitForSubscription(server1, subject);
+    await waitForSubscription(server2, subject);
+    client2.publish(subject, "foo");
     await sub.next();
   });
 });
