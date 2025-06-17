@@ -153,7 +153,6 @@ export class ConatServer {
   private isAllowed: AllowFunction;
   readonly options: Partial<Options>;
   private readonly valkey?: {
-    adapter: Valkey;
     pub: Valkey;
     subInterest: Valkey;
     subSticky: Valkey;
@@ -219,14 +218,13 @@ export class ConatServer {
     this.isAllowed = isAllowed ?? (async () => true);
     this.id = id;
     this.logger = logger;
-    if (valkey) {
+    if (valkey && !process.env.DISABLE_CONAT_VALKEY) {
       this.log(`Using Valkey for clustering`);
       // NOTE: subInterest and subSticky are separate valkey connections
       // since they *block* and only one wait can be done with that
       // connection at at time. We put adapater on its own, since that's
       // used by socketio directly.
       this.valkey = {
-        adapter: valkeyClient(valkey),
         pub: valkeyClient(valkey),
         subInterest: valkeyClient(valkey),
         subSticky: valkeyClient(valkey),
@@ -246,7 +244,7 @@ export class ConatServer {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
       adapter:
-        this.valkey != null ? createAdapter(this.valkey.adapter) : undefined,
+        this.valkey != null ? createAdapter(valkeyClient(valkey)) : undefined,
       // perMessageDeflate is disabled by default in socket.io due to FUD -- see https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
       perMessageDeflate: { threshold: 1024 },
     };
@@ -374,12 +372,9 @@ export class ConatServer {
   };
 
   private initStickySubscription = async () => {
-    if (this.valkey == null) {
-      throw Error("valkey not defined");
-    }
     let lastId = "0";
     let d = 50;
-    while (true) {
+    while (this.valkey != null) {
       const results = await this.valkey.subSticky.xread(
         "block" as any,
         0,
@@ -420,6 +415,10 @@ export class ConatServer {
         const cutoff = Date.now() - valkeyTrimMaxAge;
         const minId = Math.floor(cutoff) + "-0";
         for (const stream of STREAMS) {
+          if (this.valkey == null) {
+            // done.
+            return true;
+          }
           try {
             await this.valkey.pub.xtrim(stream, "MINID", minId);
           } catch (e) {
@@ -803,7 +802,7 @@ export class ConatServer {
     if (!this.options.systemAccountPassword) {
       throw Error("system service requires system account");
     }
-    this.log("starting service listening on sys", this.options);
+    this.log("starting service listening on sys");
     const client = this.client({
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });

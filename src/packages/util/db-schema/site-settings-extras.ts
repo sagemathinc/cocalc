@@ -296,15 +296,15 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Conat"],
   },
   conat_valkey: {
-    name: "[Valkey](https://valkey.io/) Connection String",
+    name: "Valkey Connection String",
     desc: "[Valkey](https://valkey.io/) is required to run multiple Conat socketio servers, which is required to scale to thousands of simultaneous connections. This is the connection URL, which is of the form [valkey://user:password@host:port/dbnum](https://valkey.io/topics/cli/).  E.g., `valkey://127.0.0.1:6379`.   For HA with sentinels, use something like 'sentinel://valkey-sentinel-0[:port],valkey-sentinel-1[:port],valkey-sentinel-2[:port]' as the connection string instead of 'valkey:// ..'",
     default: "",
     password: false,
     tags: ["Conat"],
   },
   conat_socketio_count: {
-    name: "Number of Conat [Socketio](https://socket.io/) Servers to Run",
-    desc: "The number of conat socketio servers to create.  When running CoCalc on a single server, you can run a single socketio websocket server in the same nodejs process as everything else.  Alternnatively, if you set this value to a number $n$ bigger than 1 and enable valkey by setting a connection string above, then $n$ random ports will be chosen and $n$ separate socket.io servers will be spawned as subprocesses listening on those ports.  The main hub server will load balance websocket connections to these servers.  This allows you to scale the traffic load beyond a single CPU.",
+    name: "Number of Conat Socketio Servers to Run",
+    desc: "The number of conat [Socketio](https://socket.io/) servers to create.  When running CoCalc on a single server, you can run a single socketio websocket server in the same nodejs process as everything else.  Alternatively, if you set this value to a number $n$ bigger than 1 and enable valkey by setting a connection string above, then $n$ random ports will be chosen and $n$ separate socket.io servers will be spawned as subprocesses listening on those ports.  The main hub server will load balance websocket connections to these servers.  This allows you to scale the traffic load beyond a single CPU.",
     default: "1",
     valid: only_pos_int,
     tags: ["Conat"],
