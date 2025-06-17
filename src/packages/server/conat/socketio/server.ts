@@ -50,13 +50,12 @@ export async function init(options: Partial<Options> = {}) {
   let valkey: undefined | string | any = undefined;
   if (valkeyPassword) {
     // only hope is making valkey an object
-    valkey = { password: valkeyPassword };
     if (conatValkey) {
-      const i = conatValkey.lastIndexOf("/");
-      const x = conatValkey.slice(i + 1);
-      const v = x.split(":");
-      valkey.host = v[0] ?? "localhost";
-      valkey.port = v[1] ? parseInt(v[1]) : 6379;
+      if (conatValkey.startsWith("sentinel://")) {
+        valkey = parseSentinelConfig(conatValkey, valkeyPassword);
+      } else {
+        valkey = parseValkeyConfigString(conatValkey, valkeyPassword);
+      }
     }
   } else if (conatValkey) {
     valkey = conatValkey;
@@ -80,4 +79,40 @@ export async function init(options: Partial<Options> = {}) {
     // and all connected to valkey.   Proxy traffic to them.
     throw Error(`not implemented -- socket count = ${conatSocketioCount}`);
   }
+}
+
+export function parseValkeyConfigString(conatValkey: string, password: string) {
+  const i = conatValkey.lastIndexOf("/");
+  const x = conatValkey.slice(i + 1);
+  const v = x.split(":");
+  return {
+    host: v[0] ?? "localhost",
+    port: v[1] ? parseInt(v[1]) : 6379,
+    password,
+  };
+}
+
+// E.g., input:    sentinel://valkey-sentinel-0,valkey-sentinel-1,valkey-sentinel-2
+
+export function parseSentinelConfig(conatValkey: string, password: string) {
+  /*
+  name: "cocalc",
+  sentinelPassword: password,
+  password,
+  sentinels: [0, 1, 2].map((i) => ({
+    host: `valkey-sentinel-${i}`,
+    port: 26379,
+  })),
+  */
+  const config = {
+    name: "cocalc",
+    sentinelPassword: password,
+    password,
+    sentinels: [] as { host: string; port: number }[],
+  };
+  for (const sentinel of conatValkey.split("sentinel://")[1].split(",")) {
+    const [host, port = "26379"] = sentinel.split(":");
+    config.sentinels.push({ host, port: parseInt(port) });
+  }
+  return config;
 }

@@ -226,7 +226,7 @@ export function setConatPassword(password: string) {
   conatPassword = password;
 }
 
-export let conatValkey: string | object = process.env.CONAT_VALKEY ?? "";
+export let conatValkey: string = process.env.CONAT_VALKEY ?? "";
 export function setConatValkey(valkey: string) {
   conatValkey = valkey;
 }

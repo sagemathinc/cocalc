@@ -297,7 +297,7 @@ export const EXTRAS: SettingsExtras = {
   },
   conat_valkey: {
     name: "[Valkey](https://valkey.io/) Connection String",
-    desc: "[Valkey](https://valkey.io/) is required to run multiple Conat socketio servers, which is required to scale to thousands of simultaneous connections. This is the connection URL, which is of the form [valkey://user:password@host:port/dbnum](https://valkey.io/topics/cli/).  E.g., `valkey://127.0.0.1:6379`",
+    desc: "[Valkey](https://valkey.io/) is required to run multiple Conat socketio servers, which is required to scale to thousands of simultaneous connections. This is the connection URL, which is of the form [valkey://user:password@host:port/dbnum](https://valkey.io/topics/cli/).  E.g., `valkey://127.0.0.1:6379`.   For HA with sentinels, use something like 'sentinel://valkey-sentinel-0[:port],valkey-sentinel-1[:port],valkey-sentinel-2[:port]' as the connection string instead of 'valkey:// ..'",
     default: "",
     password: false,
     tags: ["Conat"],
