@@ -96,15 +96,26 @@ export async function runValkey(): Promise<{
   port: number;
   address: string;
   close: () => void;
+  password: string;
 }> {
   const port = await getPort();
+  const password = "testpass";
 
   // sapwn valkey-server listening on port running in a mode where
   // data is never saved to disk using the nodejs spawn command:
   // // Start valkey-server with in-memory only, no persistence
   const child: ChildProcess = spawn(
     "valkey-server",
-    ["--port", String(port), "--save", "", "--appendonly", "no"],
+    [
+      "--port",
+      String(port),
+      "--save",
+      "",
+      "--appendonly",
+      "no",
+      "--requirepass",
+      password,
+    ],
     {
       stdio: "ignore", // or "inherit" for debugging
       detached: true,
@@ -119,6 +130,11 @@ export async function runValkey(): Promise<{
       // already dead or not found
     }
   };
-  
-  return { port, close, address: `valkey://localhost:${port}` };
+
+  return {
+    port,
+    close,
+    address: `valkey://:${password}@localhost:${port}`,
+    password,
+  };
 }
