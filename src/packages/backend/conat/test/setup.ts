@@ -13,6 +13,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 export { wait } from "@cocalc/backend/conat/test/util";
+import { delay } from "awaiting";
 export { delay } from "awaiting";
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
@@ -119,6 +120,8 @@ export async function runValkey(): Promise<{
       // already dead or not found
     }
   };
+  
+  await delay(500);
 
   return { port, close, address: `valkey://localhost:${port}` };
 }
