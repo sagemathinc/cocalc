@@ -5,8 +5,8 @@
 
 // cspell:ignore descr
 
-import { Alert, Button, Card, Divider, Radio, Space } from "antd";
-import { useEffect, useState } from "react";
+import { Alert, Card, Divider, Radio, Space } from "antd";
+import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -14,9 +14,10 @@ import { A, Icon, Markdown } from "@cocalc/frontend/components";
 import {
   ComputeImage,
   ComputeImages,
+  ComputeImageTypes,
 } from "@cocalc/frontend/custom-software/init";
 import {
-  SoftwareEnvironment,
+  //SoftwareEnvironment,
   SoftwareEnvironmentState,
 } from "@cocalc/frontend/custom-software/selector";
 import {
@@ -30,6 +31,7 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
+import { ComputeImageSelector } from "../../project/settings/compute-image-selector";
 import { ConfigurationActions } from "./actions";
 
 const CSI_HELP =
@@ -61,8 +63,21 @@ export function StudentProjectSoftwareEnvironment({
   const [state, set_state] = useState<SoftwareEnvironmentState>({});
   const [changing, set_changing] = useState(false);
 
-  function handleChange(state): void {
-    set_state(state);
+  async function handleSelect(
+    image_selected: string,
+    title_text: string,
+    image_type: ComputeImageTypes,
+  ) {
+    set_changing(true);
+    const nextState: SoftwareEnvironmentState = {
+      image_selected,
+      title_text,
+      image_type,
+    };
+    set_state(nextState);
+    await actions.set_software_environment(nextState);
+    set_changing(false);
+    close?.();
   }
   const current_environment = <SoftwareImageDisplay image={software_image} />;
 
@@ -86,70 +101,37 @@ export function StudentProjectSoftwareEnvironment({
     }
   }
 
-  useEffect(() => {
-    if (inherit) {
-      set_changing(false);
-    }
-  }, [inherit]);
-
   function csi_warning() {
     return (
       <Alert
         type={"warning"}
         message={
           <>
-            <strong>Warning:</strong> Do not change a custom image once there is
-            already one setup and deployed!
+            <strong>Warning:</strong> Do not change a specialized software
+            environment after it has already been deployed and in use!
           </>
         }
         description={
-          "The associated user files will not be updated and the software environment changes might break the functionality of existing files."
+          "The associated user files will not be updated and the software environment changes likely break the functionality of existing files."
         }
       />
     );
   }
 
   function render_controls_body() {
-    if (!changing) {
-      return (
-        <Button onClick={() => set_changing(true)} disabled={changing}>
-          {intl.formatMessage(labels.change)}...
-        </Button>
-      );
-    } else {
-      return (
-        <div>
-          <SoftwareEnvironment
-            onChange={handleChange}
-            default_image={software_image}
-          />
-          {state.image_type === "custom" && csi_warning()}
-          <br />
-          <Space>
-            <Button
-              onClick={() => {
-                set_changing(false);
-              }}
-            >
-              {intl.formatMessage(labels.cancel)}
-            </Button>
-            <Button
-              disabled={
-                state.image_type === "custom" && state.image_selected == null
-              }
-              type="primary"
-              onClick={async () => {
-                set_changing(false);
-                await actions.set_software_environment(state);
-                close?.();
-              }}
-            >
-              {intl.formatMessage(labels.save)}
-            </Button>
-          </Space>
-        </div>
-      );
-    }
+    return (
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <ComputeImageSelector
+          current_image={software_image ?? default_compute_img}
+          layout={"dialog"}
+          onSelect={handleSelect}
+          hideCustomImages={false}
+          label={intl.formatMessage(labels.save)}
+          changing={changing}
+        />
+        {state.image_type === "custom" && csi_warning()}
+      </Space>
+    );
   }
 
   function render_controls() {

@@ -77,13 +77,8 @@ export function SoftwareEnvironment(props: Props) {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const onCoCalcCom = customize_kucalc === KUCALC_COCALC_COM;
   const customize_software = useTypedRedux("customize", "software");
-  const [dflt_software_img, software_images] = useMemo(
-    () => [
-      customize_software.get("default"),
-      customize_software.get("environments"),
-    ],
-    [customize_software],
-  );
+  const dflt_software_img = customize_software.get("default");
+  const software_images = customize_software.get("environments");
 
   const haveSoftwareImages: boolean = useMemo(
     () => (customize_software.get("environments")?.size ?? 0) > 0,

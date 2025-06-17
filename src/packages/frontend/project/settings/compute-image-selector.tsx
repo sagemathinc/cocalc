@@ -237,13 +237,14 @@ export function ComputeImageSelector({
     }
   }
 
-  function onSelectHandler(key: string) {
+  function onSelectHandler(key: string, dialogSave = false) {
     setNextImg(key);
-    const info = get_info(key);
+    const info = getImageInfo(key);
     setSoftwareInfo?.(info);
-    if (layout !== "dialog") {
+    if (dialogSave || layout !== "dialog") {
       const isCustom = is_custom_image(key);
-      onSelect(key, info.title, isCustom ? "custom" : "standard");
+      const id = isCustom ? compute_image2basename(key) : key;
+      onSelect(id, info.title, isCustom ? "custom" : "standard");
     }
   }
 
@@ -260,7 +261,7 @@ export function ComputeImageSelector({
           const s = ((option as any)?.searchStr ?? "").toLowerCase();
           return [l, s].some((x) => x.includes(input.toLowerCase()));
         }}
-        onSelect={onSelectHandler}
+        onSelect={(key) => onSelectHandler(key)}
         options={select_options()}
       />
     );
@@ -357,7 +358,7 @@ export function ComputeImageSelector({
     return { title, desc, registryInfo };
   }
 
-  function get_info(img: string): SoftwareInfo {
+  function getImageInfo(img: string): SoftwareInfo {
     if (is_custom_image(img)) {
       return getCustomImageInfo(img.substring(CUSTOM_IMG_PREFIX.length));
     } else {
@@ -367,7 +368,7 @@ export function ComputeImageSelector({
 
   function render_info(img: string) {
     if (is_custom_image(img)) return null;
-    const { desc, registryInfo } = get_info(img);
+    const { desc, registryInfo } = getImageInfo(img);
     return (
       <Text>
         {desc}
@@ -395,15 +396,16 @@ export function ComputeImageSelector({
           cancelText={<CancelText />}
           onCancel={() => setShowDialog(false)}
           onOk={() => {
-            onSelectHandler(nextImg);
+            onSelectHandler(nextImg, true);
             setShowDialog(false);
           }}
         >
           <>
             <Paragraph>
-              {capitalize(intl.formatMessage(labels.select))}
-              {": "}
-              {render_selector()}
+              <Space>
+                {`${capitalize(intl.formatMessage(labels.select))}:`}
+                {render_selector()}
+              </Space>
             </Paragraph>
             {renderDialogHelpContent(nextImg)}
             <Paragraph>{render_doubt()}</Paragraph>
@@ -414,20 +416,24 @@ export function ComputeImageSelector({
   }
 
   function renderDialogHelpContent(img) {
-    const { title, desc, extra } = get_info(img);
+    const { title, extra, desc, registryInfo } = getImageInfo(img);
 
     const items: DescriptionsProps["items"] = [
       {
         label: intl.formatMessage(labels.name),
         children: <Text strong>{title}</Text>,
       },
-      { label: intl.formatMessage(labels.description), children: desc },
+      {
+        label: intl.formatMessage(labels.description),
+        children: extra ?? desc,
+        style: { maxHeight: "4em", overflowY: "auto" },
+      },
     ];
 
-    if (extra) {
+    if (registryInfo) {
       items.push({
         label: "Image", // do not translate, it's a "docker image"
-        children: <Text>{extra}</Text>,
+        children: <Text>{registryInfo}</Text>,
       });
     }
 
