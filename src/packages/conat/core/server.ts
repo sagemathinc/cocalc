@@ -75,9 +75,14 @@ const VALKEY_TRIM_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
 const VALKEY_TRIM_INTERVAL = 5 * 60 * 1000; // every 5 minutes
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
+
 export function valkeyClient(valkey) {
   if (typeof valkey == "string") {
-    return new Valkey(valkey, VALKEY_OPTIONS);
+    if (valkey.startsWith("{") && valkey.endsWith("}")) {
+      return new Valkey({ ...VALKEY_OPTIONS, ...JSON.parse(valkey) });
+    } else {
+      return new Valkey(valkey, VALKEY_OPTIONS);
+    }
   } else {
     return new Valkey({ ...VALKEY_OPTIONS, ...valkey });
   }
@@ -215,7 +220,7 @@ export class ConatServer {
     this.id = id;
     this.logger = logger;
     if (valkey) {
-      this.log(`Using Valkey for clustering -- ${valkey}`);
+      this.log(`Using Valkey for clustering`);
       // NOTE: subInterest and subSticky are separate valkey connections
       // since they *block* and only one wait can be done with that
       // connection at at time. We put adapater on its own, since that's
@@ -233,7 +238,7 @@ export class ConatServer {
       path,
       port: this.options.port,
       httpServer: httpServer ? "httpServer(...)" : undefined,
-      valkey,
+      valkey: !!valkey,
     });
     // NOTE: do NOT enable connectionStateRecovery; it seems to cause issues
     // when restarting the server.

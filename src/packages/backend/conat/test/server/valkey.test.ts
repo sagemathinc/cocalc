@@ -50,7 +50,14 @@ describe("do the same setup as above with two servers, but connected via valkey,
     valkeyServer = await runValkey();
     valkey = valkeyServer.address;
     server1 = await initConatServer({ valkey });
-    server2 = await initConatServer({ valkey });
+    
+    // configuration for valkey can also be given as a json string:
+    server2 = await initConatServer({
+      valkey: JSON.stringify({
+        password: valkeyServer.password,
+        port: valkeyServer.port,
+      }),
+    });
     expect(server1.options.port).not.toEqual(server2.options.port);
   });
 
@@ -190,7 +197,7 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
     const z = await client3.request("sticky.io.foo", null);
     expect(z.data).toBe(stickyTarget);
   });
-  
+
   it("cleans up", () => {
     valkeyServer.close();
     client1.close();
