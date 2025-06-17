@@ -70,10 +70,18 @@ import { until } from "@cocalc/util/async-utils";
 
 const VALKEY_INTEREST_STREAM = "interest";
 const VALKEY_STICKY_STREAM = "sticky";
-const VALKEY_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
+
+const VALKEY_TRIM_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
 const VALKEY_TRIM_INTERVAL = 5 * 60 * 1000; // every 5 minutes
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
+export function valkeyClient(valkey) {
+  if (typeof valkey == "string") {
+    return new Valkey(valkey, VALKEY_OPTIONS);
+  } else {
+    return new Valkey({ ...VALKEY_OPTIONS, ...valkey });
+  }
+}
 
 const DEBUG = false;
 
@@ -107,12 +115,25 @@ export interface Options {
   path?: string;
   getUser?: UserFunction;
   isAllowed?: AllowFunction;
-  valkey?: string;
+  valkey?:
+    | string
+    | {
+        port?: number;
+        host?: string;
+        username?: string;
+        password?: string;
+        db?: number;
+      };
   maxSubscriptionsPerClient?: number;
   maxSubscriptionsPerHub?: number;
   systemAccountPassword?: string;
   // if true, use https when creating an internal client.
   ssl?: boolean;
+
+  // override the defaults VALKEY_TRIM_MAX_AGE and VALKEY_TRIM_INTERVAL
+  // (this is primarily here for unit testing purposes)
+  valkeyTrimMaxAge?: number;
+  valkeyTrimInterval?: number;
 }
 
 type State = "ready" | "closed";
@@ -155,6 +176,8 @@ export class ConatServer {
       valkey,
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
       maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
+      valkeyTrimMaxAge = VALKEY_TRIM_MAX_AGE,
+      valkeyTrimInterval = VALKEY_TRIM_INTERVAL,
       systemAccountPassword,
     } = options;
     this.options = {
@@ -166,6 +189,8 @@ export class ConatServer {
       maxSubscriptionsPerClient,
       maxSubscriptionsPerHub,
       systemAccountPassword,
+      valkeyTrimMaxAge,
+      valkeyTrimInterval,
     };
     this.getUser = async (socket) => {
       if (getUser == null) {
@@ -196,10 +221,10 @@ export class ConatServer {
       // connection at at time. We put adapater on its own, since that's
       // used by socketio directly.
       this.valkey = {
-        adapter: new Valkey(valkey, VALKEY_OPTIONS),
-        pub: new Valkey(valkey, VALKEY_OPTIONS),
-        subInterest: new Valkey(valkey, VALKEY_OPTIONS),
-        subSticky: new Valkey(valkey, VALKEY_OPTIONS),
+        adapter: valkeyClient(valkey),
+        pub: valkeyClient(valkey),
+        subInterest: valkeyClient(valkey),
+        subSticky: valkeyClient(valkey),
       };
       this.trimValkeyStreamsLoop();
     }
@@ -376,13 +401,18 @@ export class ConatServer {
   };
 
   private trimValkeyStreamsLoop = async () => {
+    const { valkeyTrimMaxAge, valkeyTrimInterval } = this.options;
+    if (!valkeyTrimMaxAge || !valkeyTrimInterval) {
+      // disable if either set to 0
+      return;
+    }
     const STREAMS = [VALKEY_INTEREST_STREAM, VALKEY_STICKY_STREAM];
     await until(
       async () => {
         if (!this.valkey || this.state == "closed") {
           return true;
         }
-        const cutoff = Date.now() - VALKEY_MAX_AGE;
+        const cutoff = Date.now() - valkeyTrimMaxAge;
         const minId = Math.floor(cutoff) + "-0";
         for (const stream of STREAMS) {
           try {
@@ -394,7 +424,10 @@ export class ConatServer {
         // keep loop going
         return false;
       },
-      { start: VALKEY_TRIM_INTERVAL, max: VALKEY_TRIM_INTERVAL },
+      {
+        start: valkeyTrimInterval,
+        max: valkeyTrimInterval,
+      },
     );
   };
 
