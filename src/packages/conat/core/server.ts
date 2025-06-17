@@ -74,6 +74,8 @@ const VALKEY_STICKY_STREAM = "sticky";
 const VALKEY_TRIM_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
 const VALKEY_TRIM_INTERVAL = 5 * 60 * 1000; // every 5 minutes
 
+const VALKEY_XREAD_TIMEOUT = parseInt(process.env.VALKEY_XREAD_TIMEOUT ?? "0");
+
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
 
 export function valkeyClient(valkey) {
@@ -344,7 +346,7 @@ export class ConatServer {
       //       );
       const results = await this.valkey.subInterest.xread(
         "block" as any,
-        0,
+        VALKEY_XREAD_TIMEOUT,
         "STREAMS",
         VALKEY_INTEREST_STREAM,
         lastId,
@@ -377,7 +379,7 @@ export class ConatServer {
     while (this.valkey != null) {
       const results = await this.valkey.subSticky.xread(
         "block" as any,
-        0,
+        VALKEY_XREAD_TIMEOUT,
         "STREAMS",
         VALKEY_STICKY_STREAM,
         lastId,
