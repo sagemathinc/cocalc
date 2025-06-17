@@ -17,7 +17,9 @@ The speed doesn't depend much on the situation above, though it goes down to
 about 2K/second with valkey.   It seems like we will need at least one socket.io
 server per say 100 clients.
 
-pnpm test ./pubsub-stress.test.ts
+
+t ./pubsub-stress.test.ts
+
 */
 
 import {
@@ -27,6 +29,7 @@ import {
   runValkey,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
+import { waitForSubscription } from "./valkey.test";
 
 // should be several thousand, so 250 seems reasonable as a cutoff to indicate
 // things are horribly wrong
@@ -44,7 +47,7 @@ beforeAll(before);
 
 jest.setTimeout(15000);
 // this is very important, since the sticky resolution needs to be consistent
-describe("create two servers connected via valkey and two clients and test messaging speed", () => {
+describe.only("create two servers connected via valkey and two clients and test messaging speed", () => {
   let server, client1, client2;
   it("one server and two clients connected to it", async () => {
     server = await initConatServer();
@@ -55,6 +58,7 @@ describe("create two servers connected via valkey and two clients and test messa
   const count1 = 1000;
   it(`do a benchmark without valkey of send/receiving ${count1} messages`, async () => {
     const sub = await client1.subscribe("bench");
+    await waitForSubscription(server, "bench");
     const f = async () => {
       const start = Date.now();
       let i = 0;
@@ -90,6 +94,8 @@ describe("create two servers connected via valkey and two clients and test messa
     const client1 = server1.client();
     const client2 = server2.client();
     const sub = await client1.subscribe("bench");
+    await waitForSubscription(server1, "bench");
+    await waitForSubscription(server2, "bench");
     const f = async () => {
       const start = Date.now();
       let i = 0;
@@ -124,6 +130,8 @@ describe("create two servers connected via valkey and two clients and test messa
     const client1 = server1.client();
     const client2 = server2.client();
     const sub = await client1.subscribe("bench", { queue: STICKY_QUEUE_GROUP });
+    await waitForSubscription(server1, "bench");
+    await waitForSubscription(server2, "bench");
     const f = async () => {
       const start = Date.now();
       let i = 0;
@@ -164,8 +172,12 @@ describe("create two servers connected via valkey and two clients and test messa
       v.push(await client1.subscribe(`bench.one.${i}`));
       v.push(await client2.subscribe(`bench.two.${i}`));
     }
+    await waitForSubscription(server1, `bench.one.${subcount - 1}`);
+    await waitForSubscription(server2, `bench.two.${subcount - 1}`);
 
     const sub = await client1.subscribe("bench", { queue: STICKY_QUEUE_GROUP });
+    await waitForSubscription(server1, "bench");
+    await waitForSubscription(server2, "bench");
     const f = async () => {
       const start = Date.now();
       let i = 0;
