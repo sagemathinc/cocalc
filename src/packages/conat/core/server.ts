@@ -73,6 +73,8 @@ const VALKEY_STICKY_STREAM = "sticky";
 const VALKEY_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
 const VALKEY_TRIM_INTERVAL = 5 * 60 * 1000; // every 5 minutes
 
+const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
+
 const DEBUG = false;
 
 interface InterestUpdate {
@@ -194,10 +196,10 @@ export class ConatServer {
       // connection at at time. We put adapater on its own, since that's
       // used by socketio directly.
       this.valkey = {
-        adapter: new Valkey(valkey),
-        pub: new Valkey(valkey),
-        subInterest: new Valkey(valkey),
-        subSticky: new Valkey(valkey),
+        adapter: new Valkey(valkey, VALKEY_OPTIONS),
+        pub: new Valkey(valkey, VALKEY_OPTIONS),
+        subInterest: new Valkey(valkey, VALKEY_OPTIONS),
+        subSticky: new Valkey(valkey, VALKEY_OPTIONS),
       };
       this.trimValkeyStreamsLoop();
     }
