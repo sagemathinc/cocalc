@@ -335,6 +335,12 @@ class Client extends EventEmitter implements WebappClient {
       x.setNotDeleted(path);
     }
     x.touch(path);
+    try {
+      // just in case -- I saw instances where the first touch isn't sufficient
+      await delay(1000);
+      x.touch(path);
+      await delay(1000);
+    } catch {}
   };
 }
 
