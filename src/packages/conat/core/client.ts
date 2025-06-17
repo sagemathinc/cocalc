@@ -246,6 +246,21 @@ const MSGPACK_ENCODER_OPTIONS = {
 
 export const STICKY_QUEUE_GROUP = "sticky";
 
+const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
+  // A major problem if we allow long polling is that we must always use at most
+  // half the chunk size... because there is no way to know if recipients will be
+  // using long polling to RECEIVE messages.  Not insurmountable.
+  transports: ["websocket"],
+  
+  // nodejs specific for project/compute server in some settings
+  rejectUnauthorized: false,
+
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 15000,
+  reconnectionAttempts: 9999999999, // infinite
+};
+
 type State = "disconnected" | "connected" | "closed";
 
 const logger = getLogger("core/client");
@@ -399,18 +414,7 @@ export class Client extends EventEmitter {
     //       console.trace("WARNING: no auth set");
     //     }
     this.conn = connectToSocketIO(address, {
-      // A major problem if we allow long polling is that we must always use at most
-      // half the chunk size... because there is no way to know if recipients will be
-      // using long polling to RECEIVE messages.  Not insurmountable.
-      transports: ["websocket"],
-      // nodejs specific for project/compute server in some settings
-      rejectUnauthorized: false,
-
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 30000,
-      reconnectionAttempts: 120,
-
+      ...DEFAULT_SOCKETIO_CLIENT_OPTIONS,
       ...options,
       path,
     });
