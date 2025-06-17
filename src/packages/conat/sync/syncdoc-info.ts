@@ -22,7 +22,7 @@ export async function getSyncDocType({
     );
     let s = syncdocs.get_one();
     if (s?.doctype == null) {
-      // wait until there is a syncstring and its doctype is set:
+      // wait until there is a syncstring and its doctype is set (this should be done by the frontend)
       await syncdocs.wait(() => {
         s = syncdocs.get_one();
         return s?.doctype != null;

@@ -172,13 +172,13 @@ export class ConatSocketClient extends ConatSocketBase {
           this.close();
           return;
         } else if (cmd == "ping") {
-          logger.silly("responding to ping from server", this.id);
+          // logger.silly("responding to ping from server", this.id);
           mesg.respond(null);
         } else if (mesg.isRequest()) {
-          logger.silly("client got request");
+          // logger.silly("client got request");
           this.emit("request", mesg);
         } else {
-          logger.silly("client got data"); //, { data: mesg.data });
+          // logger.silly("client got data"); //, { data: mesg.data });
           this.tcp?.recv.process(mesg);
         }
       }

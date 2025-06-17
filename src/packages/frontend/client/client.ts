@@ -322,11 +322,12 @@ class Client extends EventEmitter implements WebappClient {
     project_id,
     path,
     setNotDeleted,
-    // id
+    doctype,
   }: {
     project_id: string;
     path: string;
     id?: number;
+    doctype?;
     // if file is deleted, this explicitly undeletes it.
     setNotDeleted?: boolean;
   }) => {
@@ -334,13 +335,7 @@ class Client extends EventEmitter implements WebappClient {
     if (setNotDeleted) {
       x.setNotDeleted(path);
     }
-    x.touch(path);
-    try {
-      // just in case -- I saw instances where the first touch isn't sufficient
-      await delay(1000);
-      x.touch(path);
-      await delay(1000);
-    } catch {}
+    x.touch(path, doctype);
   };
 }
 

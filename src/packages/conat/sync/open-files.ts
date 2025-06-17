@@ -6,10 +6,15 @@ conflicts, e.g,. one client changes the compute server id and another changes
 whether a file is deleted.  By using dko, only the field that changed is sync'd
 out, so we get last-write-wins on the level of fields.
 
-(An old version use dkv with merge conflict resolution, but with multiple clients
+WARNINGS:
+An old version use dkv with merge conflict resolution, but with multiple clients
 and the project, feedback loops or something happened and it would start getting
 slow -- basically, merge conflicts could take a few seconds to resolve, which would
-make opening a file start to be slow.)
+make opening a file start to be slow.  Instead we use DKO data type, where fields
+are treated separately atomically by the storage system.  A *subtle issue* is
+that when you set an object, this is NOT treated atomically.  E.g., if you 
+set 2 fields in a set operation, then 2 distinct changes are emitted as the
+two fields get set. 
 
 DEVELOPMENT:
 
@@ -62,8 +67,6 @@ interface Backend {
   time: number;
 }
 
-// IMPORTANT: if you add/change any fields below, be sure to update
-// the merge conflict function!
 export interface KVEntry {
   // a web browser has the file open at this point in time (in ms)
   time?: number;
@@ -82,6 +85,9 @@ export interface KVEntry {
   // If it gets killed/broken and doesn't have a chance to clear it, then
   // backend.time can be used to decide this isn't valid.
   backend?: Backend;
+
+  // optional information
+  doctype?;
 }
 
 export interface Entry extends KVEntry {
@@ -181,19 +187,25 @@ export class OpenFiles extends EventEmitter {
   // When a client has a file open, they should periodically
   // touch it to indicate that it is open.
   // updates timestamp and ensures open=true.
-  touch = (path: string) => {
+  touch = (path: string, doctype?) => {
     if (!path) {
       throw Error("path must be specified");
     }
     const kv = this.getKv();
-    // n =  sequence number to make sure a write happens, which updates
-    // server assigned timestamp.
     const cur = kv.get(path);
     const time = getTime();
-    this.set(path, {
-      ...cur,
-      time,
-    });
+    if (doctype) {
+      this.set(path, {
+        ...cur,
+        time,
+        doctype,
+      });
+    } else {
+      this.set(path, {
+        ...cur,
+        time,
+      });
+    }
   };
 
   setError = (path: string, err?: any) => {

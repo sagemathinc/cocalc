@@ -82,6 +82,7 @@ import {
   once,
   retry_until_success,
   reuse_in_flight_methods,
+  until,
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
@@ -118,6 +119,8 @@ import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
 import { getLogger } from "@cocalc/conat/client";
+
+const DEBUG = false;
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -352,39 +355,27 @@ export class SyncDoc extends EventEmitter {
     // const start = Date.now();
     this.assert_not_closed("init");
     const log = this.dbg("init");
-
-    let d = 3000;
-    while (this.state == "init") {
-      try {
-        //const t0 = new Date();
-
-        log("initializing all tables...");
-        await this.initAll();
-        log("initAll succeeded");
-        // got it!
-        break;
-
-        //console.log(
-        //  `time to open file ${this.path}: ${Date.now() - t0.valueOf()}`
-        //);
-      } catch (err) {
-        const m = `WARNING: problem initializing ${this.path} -- ${err}`;
-        log(m);
-        // log always:
-        console.log(m);
-        // @ts-ignore
-        if (this.state == "closed") {
-          log("init", this.path, "state closed so exit");
-          // completely normal that this could happen on frontend - it just means
-          // that we closed the file before finished opening it...
-          return;
+    await until(
+      async () => {
+        if (this.state != "init") {
+          return true;
         }
-        log(`wait ${d} then try again`);
-        await delay(d);
-        d = Math.min(d * 1.3, 15000);
-      }
-    }
-    // console.log(`time to popen ${this.path}:`, (Date.now() - start) / 1000);
+        try {
+          log("initializing all tables...");
+          await this.initAll();
+          log("initAll succeeded");
+          return true;
+        } catch (err) {
+          const m = `WARNING: problem initializing ${this.path} -- ${err}`;
+          log(m);
+          // log always:
+          console.log(m);
+        }
+        log("wait then try again");
+        return false;
+      },
+      { start: 3000, max: 15000, decay: 1.3 },
+    );
 
     // Success -- everything initialized with no issues.
     this.set_state("ready");
@@ -1028,11 +1019,14 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     this.dbg("set_initialized")({ error, read_only, size });
     const init = { time: this.client.server_time(), size, error };
-    await this.set_syncstring_table({
-      init,
-      read_only,
-      last_active: this.client.server_time(),
-    });
+    for (let i = 0; i < 3; i++) {
+      await this.set_syncstring_table({
+        init,
+        read_only,
+        last_active: this.client.server_time(),
+      });
+      await delay(1000);
+    }
   };
 
   /* List of logical timestamps of the versions of this string in the sync
@@ -1389,10 +1383,13 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg = (_f: string = ""): Function => {
-    return (..._args) => {};
-    //     return (...args) => {
-    //       logger.debug(this.path, _f, ...args);
-    //     };
+    if (DEBUG) {
+      return (...args) => {
+        logger.debug(this.path, _f, ...args);
+      };
+    } else {
+      return (..._args) => {};
+    }
   };
 
   private initAll = async (): Promise<void> => {
@@ -1408,9 +1405,8 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 
-    log("syncstring_table");
-    this.assert_not_closed("initAll -- before init_syncstring_table");
-    await this.init_syncstring_table();
+    await this.init_syncstring_table(),
+      this.assert_not_closed("initAll -- successful init_syncstring_table");
 
     log("patch_list, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
@@ -1462,7 +1458,7 @@ export class SyncDoc extends EventEmitter {
       });
       log("done loading from disk");
     } else {
-      if (this.patch_list?.count() == 0) {
+      if (this.patch_list!.count() == 0) {
         await Promise.race([
           this.waitUntilFullyReady(),
           once(this.patch_list!, "change"),
@@ -1783,7 +1779,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("init_patch_list -- after making synctable");
 
     const update_has_unsaved_changes = debounce(
-      this.update_has_unsaved_changes.bind(this),
+      this.update_has_unsaved_changes,
       500,
       { leading: true, trailing: true },
     );
@@ -2665,7 +2661,7 @@ export class SyncDoc extends EventEmitter {
 
     // Brand new syncstring
     // TODO: worry about race condition with everybody making themselves
-    // have user_id 0... ?
+    // have user_id 0... and also setting doctype.
     this.my_user_id = 0;
     this.users = [this.client.client_id()];
     const obj = {
@@ -3082,12 +3078,14 @@ export class SyncDoc extends EventEmitter {
     try {
       await this.save_to_disk_aux();
     } catch (err) {
+      if (this.state != "ready") return;
       const error = `save to disk failed -- ${err}`;
       dbg(error);
       if (await this.isFileServer()) {
         this.set_save({ error, state: "done" });
       }
     }
+    if (this.state != "ready") return;
 
     if (!(await this.isFileServer())) {
       dbg("now wait for the save to disk to finish");
@@ -3500,16 +3498,31 @@ export class SyncDoc extends EventEmitter {
   };
 
   private initInterestLoop = async () => {
-    if (!this.client.is_browser() || this.client.touchOpenFile == null) {
+    if (!this.client.is_browser()) {
       // only browser clients -- so actual humans
       return;
     }
-    while (this.state != "closed") {
+    const touch = async () => {
+      if (this.state == "closed" || this.client?.touchOpenFile == null) return;
       await this.client.touchOpenFile({
         path: this.path,
         project_id: this.project_id,
+        doctype: this.doctype,
       });
-      await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
-    }
+    };
+    // then every CONAT_OPEN_FILE_TOUCH_INTERVAL (30 seconds).
+    await until(
+      async () => {
+        if (this.state == "closed") {
+          return true;
+        }
+        await touch();
+        return false;
+      },
+      {
+        start: CONAT_OPEN_FILE_TOUCH_INTERVAL,
+        max: CONAT_OPEN_FILE_TOUCH_INTERVAL,
+      },
+    );
   };
 }

@@ -56,7 +56,7 @@ export interface ConatConnectionStatus {
 
 const DEFAULT_TIMEOUT = 15000;
 
-declare var DEBUG: boolean;
+const DEBUG = false;
 
 export class ConatClient extends EventEmitter {
   client: WebappClient;
@@ -149,17 +149,16 @@ export class ConatClient extends EventEmitter {
       account_id: this.client.account_id,
       conat: this.conat,
       reconnect: async () => this.reconnect(),
-      getLogger:
-        false && DEBUG
-          ? (name) => {
-              return {
-                info: (...args) => console.info(name, ...args),
-                debug: (...args) => console.log(name, ...args),
-                warn: (...args) => console.warn(name, ...args),
-                silly: (...args) => console.log(name, ...args),
-              };
-            }
-          : undefined,
+      getLogger: DEBUG
+        ? (name) => {
+            return {
+              info: (...args) => console.info(name, ...args),
+              debug: (...args) => console.log(name, ...args),
+              warn: (...args) => console.warn(name, ...args),
+              silly: (...args) => console.log(name, ...args),
+            };
+          }
+        : undefined,
     });
     this.clientWithState = getClientWithState();
     this.clientWithState.on("state", (state) => {

@@ -78,7 +78,6 @@ import {
   type OpenFiles,
   type OpenFileEntry,
 } from "@cocalc/project/conat/sync";
-import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
 import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import { compute_server_id, project_id } from "@cocalc/project/data";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
@@ -177,7 +176,13 @@ export async function init() {
 
   // handle changes
   openFiles.on("change", (entry) => {
-    handleChange(entry);
+    // we ONLY actually try to open the file here if there
+    // is a doctype set.  When it is first being created,
+    // the doctype won't be the first field set, and we don't
+    // want to launch this until it is set.
+    if (entry.doctype) {
+      handleChange(entry);
+    }
   });
 
   formatter = await createFormatterService({ openSyncDocs: openDocs });
@@ -221,46 +226,52 @@ async function handleChange({
   time,
   deleted,
   backend,
+  doctype,
   id,
 }: OpenFileEntry & { id?: number }) {
-  if (id == null) {
-    id = computeServerId(path);
-  }
-  logger.debug("handleChange", { path, time, deleted, backend, id });
-  const syncDoc = openDocs[path];
-  const isOpenHere = syncDoc != null;
-
-  if (id != compute_server_id) {
-    if (backend?.id == compute_server_id) {
-      // we are definitely not the backend right now.
-      openFiles?.setNotBackend(path, compute_server_id);
+  try {
+    if (id == null) {
+      id = computeServerId(path);
     }
-    // only thing we should do is close it if it is open.
-    if (isOpenHere) {
-      await closeDoc(path);
-    }
-    return;
-  }
+    logger.debug("handleChange", { path, time, deleted, backend, doctype, id });
+    const syncDoc = openDocs[path];
+    const isOpenHere = syncDoc != null;
 
-  if (deleted?.deleted) {
-    if (await exists(path)) {
-      // it's back
-      openFiles?.setNotDeleted(path);
-    } else {
+    if (id != compute_server_id) {
+      if (backend?.id == compute_server_id) {
+        // we are definitely not the backend right now.
+        openFiles?.setNotBackend(path, compute_server_id);
+      }
+      // only thing we should do is close it if it is open.
       if (isOpenHere) {
         await closeDoc(path);
       }
       return;
     }
-  }
 
-  if (time != null && time >= getCutoff()) {
-    if (!isOpenHere) {
-      logger.debug("handleChange: opening", { path });
-      // users actively care about this file being opened HERE, but it isn't
-      await openDoc(path);
+    if (deleted?.deleted) {
+      if (await exists(path)) {
+        // it's back
+        openFiles?.setNotDeleted(path);
+      } else {
+        if (isOpenHere) {
+          await closeDoc(path);
+        }
+        return;
+      }
     }
-    return;
+
+    if (time != null && time >= getCutoff()) {
+      if (!isOpenHere) {
+        logger.debug("handleChange: opening", { path });
+        // users actively care about this file being opened HERE, but it isn't
+        await openDoc(path);
+      }
+      return;
+    }
+  } catch (err) {
+    console.trace(err);
+    logger.debug(`handleChange: WARNING - error opening ${path} -- ${err}`);
   }
 }
 
@@ -433,17 +444,28 @@ const openDoc = reuseInFlight(async (path: string) => {
     openTimes[path] = Date.now();
 
     if (path.endsWith(".term")) {
-      // terminals are handled directly by the project api
+      // terminals are handled directly by the project api -- also since
+      // doctype probably not set for them, they won't end up here.
+      // (this could change though, e.g., we might use doctype to
+      // set the terminal command).
       return;
     }
 
     const client = getClient();
-    const doctype = await getSyncDocType({
-      project_id,
+    let doctype: any = openFiles?.get(path)?.doctype;
+    logger.debug("openDoc: open files table knows ", openFiles?.get(path), {
       path,
-      client,
     });
-    logger.debug("openDoc got", { path, doctype });
+    if (doctype == null) {
+      logger.debug("openDoc: doctype must be set but isn't, so bailing", {
+        path,
+      });
+    } else {
+      logger.debug("openDoc: got doctype from openFiles table", {
+        path,
+        doctype,
+      });
+    }
 
     let syncdoc;
     if (doctype.type == "string") {
