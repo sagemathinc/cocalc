@@ -11,38 +11,40 @@ import { init as createConatServer } from "@cocalc/conat/core/server";
 import cluster from "node:cluster";
 import { createServer } from "http";
 import { availableParallelism } from "os";
-import { setupMaster, setupWorker } from "@socket.io/sticky";
+import {
+  setupMaster as setupPrimarySticky,
+  setupWorker,
+} from "@socket.io/sticky";
 import { createAdapter, setupPrimary } from "@socket.io/cluster-adapter";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
 import { getLogger } from "@cocalc/backend/logger";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
-import { conatSocketioCount } from "@cocalc/backend/data";
+import { conatSocketioCount, conatClusterPort } from "@cocalc/backend/data";
 import { loadConatConfiguration } from "../configuration";
 import { join } from "path";
 
-console.log("* CONATS Core Pub/Sub Server *");
+console.log(`* CONAT Core Pub/Sub Server on port ${port} *`);
 
-async function master() {
-  console.log(`Master pid=${process.pid} is running`);
+async function primary() {
+  console.log(`Socketio Server Primary pid=${process.pid} is running`);
 
   await loadConatConfiguration();
 
   const httpServer = createServer();
-  setupMaster(httpServer, {
+  setupPrimarySticky(httpServer, {
     loadBalancingMethod: "least-connection",
   });
 
   setupPrimary();
   cluster.setupPrimary({ serialization: "advanced" });
-  httpServer.listen(port);
+  httpServer.listen(conatClusterPort ? conatClusterPort : port);
 
   const numWorkers = conatSocketioCount
     ? conatSocketioCount
     : availableParallelism();
   const systemAccountPassword = await secureRandomString(32);
-  console.log({ systemAccountPassword });
   for (let i = 0; i < numWorkers; i++) {
     cluster.fork({ SYSTEM_ACCOUNT_PASSWORD: systemAccountPassword });
   }
@@ -55,8 +57,11 @@ async function master() {
 }
 
 async function worker() {
-  console.log(`Worker pid=${process.pid} started`);
+  console.log("BASE_PATH=", process.env.BASE_PATH);
   await loadConatConfiguration();
+
+  const path = join(basePath, "conat");
+  console.log(`Socketio Worker pid=${process.pid} started with path=${path}`);
 
   const httpServer = createServer();
   const id = `${cluster.worker?.id ?? ""}`;
@@ -65,12 +70,10 @@ async function worker() {
 
   const conatServer = createConatServer({
     logger: getLogger(`conat-server:worker-${id}`).debug,
-    path: join(basePath, "conat"),
+    path,
     httpServer,
     id,
-    getUser: () => {
-      return { hub_id: id };
-    },
+    getUser,
     isAllowed,
     systemAccountPassword,
     cluster: true,
@@ -79,8 +82,8 @@ async function worker() {
   setupWorker(conatServer.io);
 }
 
-if (cluster.isMaster) {
-  master();
+if (cluster.isPrimary) {
+  primary();
 } else {
   worker();
 }

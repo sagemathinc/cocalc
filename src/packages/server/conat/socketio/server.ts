@@ -37,16 +37,28 @@ import {
   conatValkey,
   conatSocketioCount,
   valkeyPassword,
+  conatClusterPort,
 } from "@cocalc/backend/data";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { join } from "path";
+import startCluster from "./start-cluster";
 import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("conat-server");
 
 export async function init(options: Partial<Options> = {}) {
   logger.debug("init");
+  console.log({ conatClusterPort, conatSocketioCount });
+
+  if (conatClusterPort) {
+    const mesg = `Conat cluster port is set so we spawn a cluster listening on port ${conatClusterPort}, instead of an in-process conat server`;
+    console.log(mesg);
+    logger.debug(mesg);
+    startCluster();
+    return;
+  }
+
   let valkey: undefined | string | any = undefined;
   if (valkeyPassword) {
     // only hope is making valkey an object

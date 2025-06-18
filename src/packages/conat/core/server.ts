@@ -47,7 +47,7 @@ import { createAdapter as createValkeyStreamsAdapter } from "@cocalc/redis-strea
 import { createAdapter as createValkeyPubSubAdapter } from "@socket.io/redis-adapter";
 import Valkey from "iovalkey";
 import { Server } from "socket.io";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import {
   ConatError,
   connect,
@@ -276,7 +276,12 @@ export class ConatServer {
 
   private init = async () => {
     this.io.on("connection", this.handleSocket);
-    if (this.cluster != null) {
+    if (this.cluster) {
+      if (this.options.valkey == null) {
+        // the cluster adapter doesn't get configured until after the constructor,
+        // so we wait a moment before configuring these.
+        await delay(1);
+      }
       this.initInterestSubscription();
       this.initStickySubscription();
     }

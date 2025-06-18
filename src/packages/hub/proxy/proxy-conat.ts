@@ -7,12 +7,19 @@ setting, where we need certain types of scalability.
 
 import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import getLogger from "@cocalc/backend/logger";
-import { conatServer } from "@cocalc/backend/data";
+import {
+  conatServer as conatServer0,
+  conatClusterPort,
+} from "@cocalc/backend/data";
+import basePath from "@cocalc/backend/base-path";
 
 const logger = getLogger("hub:proxy-conat");
 
 let proxy: ProxyServer | null = null;
 export async function proxyConatWebsocket(req, socket, head) {
+  const conatServer = conatServer0
+    ? conatServer0
+    : `http://localhost:${conatClusterPort}${basePath.length > 1 ? basePath : ""}`;
   const i = req.url.lastIndexOf("/conat");
   const target = conatServer + req.url.slice(i);
   logger.debug(`conat proxy -- proxying a WEBSOCKET connection to ${target}`);

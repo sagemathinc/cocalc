@@ -35,7 +35,7 @@
     "test": "TZ=UTC jest --forceExit --runInBand",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "test",
-    "conat-server": "node ./dist/conat/socketio/start-server.js"
+    "conat-server": "node ./dist/conat/socketio/cluster.js"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",

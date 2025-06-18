@@ -179,9 +179,15 @@ importers:
       '@msgpack/msgpack':
         specifier: ^3.1.1
         version: 3.1.2
+      '@socket.io/cluster-adapter':
+        specifier: ^0.2.2
+        version: 0.2.2(socket.io-adapter@2.5.5)
       '@socket.io/redis-adapter':
         specifier: ^8.3.0
         version: 8.3.0(socket.io-adapter@2.5.5)
+      '@socket.io/sticky':
+        specifier: ^1.0.4
+        version: 1.0.4
       ascii-table3:
         specifier: ^1.0.1
         version: 1.0.1
@@ -14950,7 +14956,7 @@ snapshots:
 
   axios@1.10.0:
     dependencies:
-      follow-redirects: 1.15.9
+      follow-redirects: 1.15.9(debug@4.4.1)
       form-data: 4.0.2
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -17167,8 +17173,6 @@ snapshots:
   flatten-vertex-data@1.0.2:
     dependencies:
       dtype: 2.0.0
-
-  follow-redirects@1.15.9: {}
 
   follow-redirects@1.15.9(debug@4.4.1):
     optionalDependencies:

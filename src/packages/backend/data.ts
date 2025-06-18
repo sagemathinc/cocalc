@@ -244,6 +244,15 @@ export function setConatSocketioCount(count: number) {
   conatSocketioCount = count ? count : 1;
 }
 
+// if configured, will create a socketio cluster using
+// the cluster adapter, listening on the given port.
+// It makes no sense to use both this *and* valkey. It's
+// one or the other.
+export let conatClusterPort = parseInt(process.env.CONAT_CLUSTER_PORT ?? "0");
+export function setConatClusterPort(port: number) {
+  conatClusterPort = port;
+}
+
 // API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
