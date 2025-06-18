@@ -444,7 +444,7 @@ export function FilesBottom({
       expandIcon={({ isActive }) => (
         <CaretRightOutlined rotate={isActive ? 90 : 0} />
       )}
-      destroyInactivePanel={true}
+      destroyOnHidden={true}
       style={{
         ...style,
         flex: "0 0 auto",

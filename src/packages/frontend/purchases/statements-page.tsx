@@ -52,7 +52,7 @@ export default function StatementsPage() {
       <Statement />
       <Divider>Monthly and Daily Statements</Divider>
       <Collapse
-        destroyInactivePanel
+        destroyOnHidden
         activeKey={activeKey}
         onChange={(x) => {
           cache.activeKey = x;

@@ -350,7 +350,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
         style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
         activeKey={expandedPanels}
         onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
-        destroyInactivePanel={true}
+        destroyOnHidden={true}
         items={items}
       />
     );

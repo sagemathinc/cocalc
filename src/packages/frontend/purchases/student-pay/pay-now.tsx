@@ -79,7 +79,7 @@ export default function PayNow({
       open={open}
       zIndex={zIndexPayAsGo - 1}
       width={800}
-      destroyOnClose
+      destroyOnHidden
       footer={null}
       onOk={() => setOpen?.(false)}
       onCancel={() => setOpen?.(false)}

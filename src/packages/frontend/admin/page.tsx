@@ -108,7 +108,7 @@ export function AdminPage() {
     >
       <Title level={3}>Administration</Title>
       <Collapse
-        destroyInactivePanel /* so that data is refreshed when they are shown */
+        destroyOnHidden /* so that data is refreshed when they are shown */
         activeKey={activeKey}
         onChange={(activeKey) => {
           setActiveKey(activeKey as string[]);

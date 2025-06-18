@@ -184,7 +184,7 @@ export function AppLauncherModal({
       open
       onOk={close}
       onCancel={close}
-      destroyOnClose
+      destroyOnHidden
     >
       {apps[name]?.tip}
       <AppLauncher

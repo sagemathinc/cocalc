@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { Button, Checkbox, Tour } from "antd";
-import type { TourProps } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
-import projectsImage from "./tour-projects.png";
-import infoImage from "./tour-info.png";
-import collabsImage from "./tour-collabs.png";
-import track from "@cocalc/frontend/user-tracking";
-import { SiteName } from "@cocalc/frontend/customize";
 import { A } from "@cocalc/frontend/components/A";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import track from "@cocalc/frontend/user-tracking";
+import type { TourProps } from "antd";
+import { Button, Checkbox, Space, Tour } from "antd";
+import { useState } from "react";
+import collabsImage from "./tour-collabs.png";
+import infoImage from "./tour-info.png";
+import projectsImage from "./tour-projects.png";
 
 export default function ProjectsPageTour({
   searchRef,
@@ -50,9 +50,9 @@ export default function ProjectsPageTour({
       ),
       description: (
         <div>
-          To start your work on <SiteName />, click the "Create Project"
-          button. You can specify the project's title, and customize the image
-          and license. Create as many projects as you want!
+          To start your work on <SiteName />, click the "Create Project" button.
+          You can specify the project's title, and customize the image and
+          license. Create as many projects as you want!
         </div>
       ),
       target: () => createNewRef.current,
@@ -167,7 +167,7 @@ export default function ProjectsPageTour({
   ];
   return (
     <div>
-      <Button.Group style={style}>
+      <Space.Compact style={style}>
         <Button
           type="primary"
           onClick={() => {
@@ -177,7 +177,7 @@ export default function ProjectsPageTour({
         >
           <Icon name="map" /> Tour
         </Button>
-      </Button.Group>
+      </Space.Compact>
       <Tour
         open={open}
         onClose={() => {
