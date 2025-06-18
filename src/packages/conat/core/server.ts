@@ -43,7 +43,7 @@ import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/conat/util";
-import { createAdapter } from "@socket.io/redis-streams-adapter";
+import { createAdapter } from "@cocalc/redis-streams-adapter";
 import Valkey from "iovalkey";
 import { Server } from "socket.io";
 import { callback } from "awaiting";
@@ -73,6 +73,8 @@ const INTEREST_STREAM = "interest";
 const STICKY_STREAM = "sticky";
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
+
+const VALKEY_READ_COUNT = 100;
 
 export function valkeyClient(valkey) {
   if (typeof valkey == "string") {
@@ -232,7 +234,15 @@ export class ConatServer {
     const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
-      adapter: valkey != null ? createAdapter(valkeyClient(valkey)) : undefined,
+
+      adapter:
+        valkey != null
+          ? createAdapter(valkeyClient(valkey), {
+              readCount: VALKEY_READ_COUNT,
+              blockTime: 1,
+            })
+          : undefined,
+
       // perMessageDeflate is disabled by default in socket.io due to FUD -- see https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
       perMessageDeflate: { threshold: 1024 },
     };

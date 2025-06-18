@@ -167,6 +167,9 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: 'link:'
+      '@cocalc/redis-streams-adapter':
+        specifier: ^0.2.3
+        version: 0.2.3(socket.io-adapter@2.5.5)
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
@@ -176,9 +179,6 @@ importers:
       '@msgpack/msgpack':
         specifier: ^3.1.1
         version: 3.1.2
-      '@socket.io/redis-streams-adapter':
-        specifier: ^0.2.2
-        version: 0.2.2(socket.io-adapter@2.5.5)
       ascii-table3:
         specifier: ^1.0.1
         version: 1.0.1
@@ -2250,6 +2250,12 @@ packages:
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
 
+  '@cocalc/redis-streams-adapter@0.2.3':
+    resolution: {integrity: sha512-9ttOz86edQS2RYt9ADN1l5s2kOnOG7d1wA11TRTrxOjaXa7xvTqgLjwzQL1LnVJ8C1+CipN8mDzw3PaSug3kWg==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      socket.io-adapter: ^2.5.4
+
   '@cocalc/widgets@1.2.0':
     resolution: {integrity: sha512-q1Ka84hQYwocvoS81gjlgtT6cvgrEtgP9vKbAp6AzKd9moW9r6oHkduL8i9CT8GD/4b7fTJ6oAAqxh160VUuPA==}
 
@@ -3673,12 +3679,6 @@ packages:
 
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
-
-  '@socket.io/redis-streams-adapter@0.2.2':
-    resolution: {integrity: sha512-BMPa6oGC0wFgpMXoGksbJ75zMBwk+79pxjHc2YusdoK+X0BxN4fTsqEBuFV7yeXi9ekbi87rwlsT61+WZGVW9g==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      socket.io-adapter: ^2.5.4
 
   '@stripe/react-stripe-js@3.7.0':
     resolution: {integrity: sha512-PYls/2S9l0FF+2n0wHaEJsEU8x7CmBagiH7zYOsxbBlLIHEsqUIQ4MlIAbV9Zg6xwT8jlYdlRIyBTHmO3yM7kQ==}
@@ -11967,6 +11967,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@cocalc/redis-streams-adapter@0.2.3(socket.io-adapter@2.5.5)':
+    dependencies:
+      '@msgpack/msgpack': 2.8.0
+      debug: 4.3.7
+      socket.io-adapter: 2.5.5
+    transitivePeerDependencies:
+      - supports-color
+
   '@cocalc/widgets@1.2.0': {}
 
   '@cspell/cspell-bundled-dicts@8.19.4':
@@ -13710,14 +13718,6 @@ snapshots:
       '@sinonjs/commons': 3.0.1
 
   '@socket.io/component-emitter@3.1.2': {}
-
-  '@socket.io/redis-streams-adapter@0.2.2(socket.io-adapter@2.5.5)':
-    dependencies:
-      '@msgpack/msgpack': 2.8.0
-      debug: 4.3.7
-      socket.io-adapter: 2.5.5
-    transitivePeerDependencies:
-      - supports-color
 
   '@stripe/react-stripe-js@3.7.0(@stripe/stripe-js@5.10.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:

@@ -47,7 +47,7 @@ beforeAll(before);
 
 jest.setTimeout(15000);
 // this is very important, since the sticky resolution needs to be consistent
-describe.only("create two servers connected via valkey and two clients and test messaging speed", () => {
+describe("create two servers connected via valkey and two clients and test messaging speed", () => {
   let server, client1, client2;
   it("one server and two clients connected to it", async () => {
     server = await initConatServer();
