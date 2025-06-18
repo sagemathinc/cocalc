@@ -58,6 +58,7 @@ class PersistStreamClient extends EventEmitter {
       return;
     }
     this.socket?.close();
+    // console.log("making a socket connection to ", persistSubject(this.user));
     this.socket = this.client.socket.connect(persistSubject(this.user), {
       desc: `persist: ${this.storage.path}`,
       reconnection: false,

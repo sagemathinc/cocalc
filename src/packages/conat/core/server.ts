@@ -586,6 +586,8 @@ export class ConatServer {
       return undefined;
     }
     if (queue == STICKY_QUEUE_GROUP) {
+      const v = subject.split(".");
+      subject = v.slice(0, v.length - 1).join(".");
       const currentTarget = this.getStickyTarget({ pattern, subject });
       if (currentTarget === undefined || !targets.has(currentTarget)) {
         // we use consistent hashing instead of random to make the choice, because if

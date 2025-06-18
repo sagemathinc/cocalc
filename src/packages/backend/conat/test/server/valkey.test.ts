@@ -15,32 +15,13 @@ import {
   wait,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
+import {
+  waitForSubscription,
+  waitForNonSubscription,
+  waitForSticky,
+} from "./util";
 
 beforeAll(before);
-
-export async function waitForSubscription(server, subject) {
-  await wait({
-    until: () => {
-      return server.interest.patterns[subject] !== undefined;
-    },
-  });
-}
-
-export async function waitForNonSubscription(server, subject) {
-  await wait({
-    until: () => {
-      return server.interest.patterns[subject] === undefined;
-    },
-  });
-}
-
-export async function waitForSticky(server, subject) {
-  await wait({
-    until: () => {
-      return server.sticky[subject] !== undefined;
-    },
-  });
-}
 
 describe("create two conat socket servers NOT connected via a valkey stream, and observe communication is totally broken (of course)", () => {
   let server2;
@@ -231,7 +212,8 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
 
     expect(server1.sticky).toEqual(server2.sticky);
     expect(server1.sticky[pattern] != null).toBe(true);
-    expect(server1.sticky[pattern]["sticky.io.foo"] != null).toBe(true);
+    // the last segment of the subject is discarded in the sticky choice:
+    expect(server1.sticky[pattern]["sticky.io"] != null).toBe(true);
   });
 
   let server3, server4, client3;

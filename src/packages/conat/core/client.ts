@@ -251,7 +251,7 @@ export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // half the chunk size... because there is no way to know if recipients will be
   // using long polling to RECEIVE messages.  Not insurmountable.
   transports: ["websocket"],
-  
+
   // nodejs specific for project/compute server in some settings
   rejectUnauthorized: false,
 
@@ -315,8 +315,21 @@ interface SubscriptionOptions {
   mesgLimit?: number;
   queue?: string;
   // sticky: when a choice from a queue group is made, the same choice is always made
-  // in the future for any messages with the same subject, until the target goes away.
-  // Setting this just sets the queue option to STICKY_QUEUE_GROUP.
+  // in the future for any message with subject matching subject with the last segment
+  // replaced by a *, until the target goes away. Setting this just sets the queue 
+  // option to STICKY_QUEUE_GROUP.  
+  //
+  // Examples of subjects matching except possibly last segment are
+  //             foo.bar.lJcBSieLn and foo.bar.ZzsDC376ge
+  // You can put anything random in the last segment and all messages
+  // that match foo.bar.* get the same choice from the queue group.
+  // The idea is that *when* the message with subject foo.bar.lJcBSieLn gets
+  // sent, the backend server selects a target from the queue group to receive
+  // that message.  It remembers the choice, and so long as that target is subscribed,
+  // it sends any message matching foo.bar.* to that same target.
+  // This is used in our implementation of persistent socket connections that
+  // are built on pub/sub.  The underlying implementation uses consistent
+  // hashing and messages to sync state of the servers.
   sticky?: boolean;
   respond?: Function;
   timeout?: number;

@@ -19,6 +19,7 @@ import { stream } from "@cocalc/conat/persist/client";
 import { delay } from "awaiting";
 import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import { messageData } from "@cocalc/conat/core/client";
+import { uuid } from "@cocalc/util/misc";
 
 beforeAll(before);
 
@@ -37,14 +38,17 @@ describe("multiple clients using multiple persist servers", () => {
 
   let persistClients: any[] = [];
   let count = 50;
+  const projects: string[] = [];
   it(`creates ${count} persist clients`, async () => {
     const ids = new Set<string>([]);
     for (let i = 0; i < count; i++) {
       const client = connect();
+      const project_id = uuid();
+      projects.push(project_id);
       const persistClient = stream({
         client,
-        user: { hub_id: "x" },
-        storage: { path: `hub/foo-${i}` },
+        user: { project_id },
+        storage: { path: `projects/${project_id}/foo-${i}` },
       });
       ids.add(await persistClient.serverId());
       persistClients.push(persistClient);
@@ -53,7 +57,8 @@ describe("multiple clients using multiple persist servers", () => {
       });
       expect(seq).toBe(1);
     }
-    // given that we're randomly distributing so many clients,
+    // given that we're randomly distributing so many clients (what really matters
+    // is the user field above)
     // it's highly likely we hit all servers.
     expect(ids.size).toBe(persistServers.length);
   });
@@ -75,23 +80,24 @@ describe("multiple clients using multiple persist servers", () => {
     }
   });
 
-  it("new clients use all the servers", async () => {
+  it("new clients use exactly the same servers, since the assignment was already made above", async () => {
     const ids = new Set<string>([]);
     for (let i = 0; i < count; i++) {
       const client = connect();
+      const project_id = projects[i];
       const persistClient = stream({
         client,
-        user: { hub_id: "x" },
-        storage: { path: `hub/foo-${count + i}` },
+        user: { project_id },
+        storage: { path: `projects/${project_id}/foo-${i}` },
       });
       ids.add(await persistClient.serverId());
       persistClients.push(persistClient);
       const { seq } = await persistClient.set({
         messageData: messageData(i, { headers: { [i]: i } }),
       });
-      expect(seq).toBe(1);
+      expect(seq).toBe(2);
     }
-    expect(ids.size).toBe(persistServers.length);
+    expect(ids.size).toBe(numServers);
   });
 
   it("cleans up", () => {

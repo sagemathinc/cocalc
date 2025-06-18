@@ -11,8 +11,7 @@ import {
   initConatServer,
   runValkey,
 } from "@cocalc/backend/conat/test/setup";
-//import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
-import { waitForSubscription } from "./valkey.test";
+import { waitForSubscription } from "./util";
 
 beforeAll(before);
 

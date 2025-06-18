@@ -143,6 +143,7 @@ export class OpenFiles extends EventEmitter {
       },
       noAutosave: this.noAutosave,
       noCache: this.noCache,
+      noInventory: true,
     });
     this.kv = d;
     d.on("change", this.handleChange);

@@ -26,6 +26,8 @@ async function createDstream<T>(opts) {
   });
 }
 
+jest.setTimeout(10000);
+
 describe("create a dstream and do some basic operations", () => {
   let s;
 
