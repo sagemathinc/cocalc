@@ -31,10 +31,7 @@ export async function initConatServer(
     options = { ...options, port };
   }
 
-  return createConatServer({
-    logger: logger.debug,
-    ...options,
-  });
+  return createConatServer(options);
 }
 
 export let tempDir;
