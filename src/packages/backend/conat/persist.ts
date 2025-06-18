@@ -1,3 +1,13 @@
+/*
+
+To test having multiple persist servers at once in dev mode, start
+up your dev server.  Then do the following in nodejs to create an
+additional persist server:
+
+   require("@cocalc/backend/conat/persist").initPersistServer()
+
+*/
+
 import "./index";
 import betterSqlite3 from "better-sqlite3";
 import { initContext } from "@cocalc/conat/persist/context";
@@ -21,7 +31,9 @@ import { conat } from "./conat";
 const persistServers: any[] = [];
 
 export function initPersistServer() {
-  const persistServer = server({ client: conat() });
+  const persistServer = server({
+    client: conat({ noCache: persistServers.length > 0 }),
+  });
   persistServers.push(persistServer);
 }
 

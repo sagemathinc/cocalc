@@ -70,7 +70,7 @@ export default function refCache<
     cache[key] = obj;
     count[key] = 1;
     close[key] = obj.close;
-    obj.close = async () => {
+    obj.close = () => {
       count[key] -= 1;
       if (VERBOSE) {
         console.log("refCache: close", { name, key, count: count[key] });
@@ -147,13 +147,13 @@ export function refCacheSync<
     cache[key] = obj;
     count[key] = 1;
     close[key] = obj.close;
-    obj.close = async () => {
+    obj.close = () => {
       count[key] -= 1;
       if (VERBOSE) {
         console.log("refCacheSync: close", { name, key, count: count[key] });
       }
       if (count[key] <= 0) {
-        await close[key]?.();
+        close[key]?.();
         delete cache[key];
         delete count[key];
         delete close[key];

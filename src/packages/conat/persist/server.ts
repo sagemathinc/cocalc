@@ -1,19 +1,32 @@
 /*
 CONAT_SERVER=http://localhost:3000 node
 
-// the server
+// making a server from scratch
 
-require('@cocalc/backend/conat/persist'); client = await require('@cocalc/backend/conat').conat(); s = require('@cocalc/conat/persist/server').server({client}); 0;
+// initialize persist context
+
+require('@cocalc/backend/conat/persist');
+
+// a conat server and client
+s = require('@cocalc/conat/core/server').init({port:4567, getUser:()=>{return {hub_id:'hub'}}}); client = s.client();
+
+// persist server
+p = require('@cocalc/conat/persist/server').server({client}); 0;
 
 
 
-// a client
+// a client for persist server
 
-client = await require('@cocalc/backend/conat').conat(); c = require('@cocalc/conat/persist/client').stream({client, user:{project_id:'3fa218e5-7196-4020-8b30-e2127847cc4f'}, storage:{path:'projects/3fa218e5-7196-4020-8b30-e2127847cc4f/a.txt'}});
+c = require('@cocalc/conat/persist/client').stream({client, user:{hub_id:'hub'}, storage:{path:'b.txt'}});
 
-s = await c.getAll()
+for await (x of await c.getAll()) { console.log(x) }
+
 
 await c.set({messageData:client.message(123)})
+
+for await (x of await c.getAll()) { console.log(x) }
+
+[ { seq: 1, time: 1750218209211, encoding: 0, raw: <Buffer 7b> } ]
 
 (await c.get({seq:5})).data
 
@@ -37,6 +50,7 @@ client = await require('@cocalc/backend/conat').conat(); kv = await require('@co
 
 
 client = await require('@cocalc/backend/conat').conat(); s = await require('@cocalc/conat/sync/core-stream').cstream({name:'d.txt',client})
+
 
 */
 

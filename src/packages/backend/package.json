@@ -21,7 +21,8 @@
     "prepublishOnly": "pnpm test",
     "conat-watch": "node ./bin/conat-watch.cjs",
     "conat-connections": "node ./bin/conat-connections.cjs",
-    "conat-disconnect": "node ./bin/conat-disconnect.cjs"
+    "conat-disconnect": "node ./bin/conat-disconnect.cjs",
+    "conat-persist": "DEBUG=cocalc:*  node ./bin/conat-persist.cjs"
   },
   "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",

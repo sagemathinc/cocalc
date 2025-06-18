@@ -103,6 +103,7 @@ class PersistStreamClient extends EventEmitter {
   };
 
   close = () => {
+    logger.debug("close", this.storage);
     // paths.delete(this.storage.path);
     // console.log("persist -- close", this.storage.path, paths);
     this.state = "closed";

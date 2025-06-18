@@ -82,7 +82,7 @@ describe("multiple clients using multiple persist servers", () => {
       const persistClient = stream({
         client,
         user: { hub_id: "x" },
-        storage: { path: `hub/foo-${count+i}` },
+        storage: { path: `hub/foo-${count + i}` },
       });
       ids.add(await persistClient.serverId());
       persistClients.push(persistClient);

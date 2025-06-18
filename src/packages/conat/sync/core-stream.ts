@@ -51,6 +51,9 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { until } from "@cocalc/util/async-utils";
 import { type PartialInventory } from "@cocalc/conat/persist/storage";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("sync:core-stream");
 
 const PUBLISH_MANY_BATCH_SIZE = 500;
 
@@ -170,6 +173,7 @@ export class CoreStream<T = any> extends EventEmitter {
     client,
   }: CoreStreamOptions) {
     super();
+    logger.debug("constructor", name)
     if (client == null) {
       throw Error("client must be specified");
     }
@@ -249,6 +253,7 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   close = () => {
+    logger.debug("close", this.name)
     delete this.client;
     this.removeAllListeners();
     this.persistClient?.close();

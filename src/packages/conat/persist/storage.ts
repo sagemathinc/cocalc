@@ -56,6 +56,9 @@ import {
   ConatError,
 } from "@cocalc/conat/core/client";
 import TTL from "@isaacs/ttlcache";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("persist:storage");
 
 export interface PartialInventory {
   // how much space is used by this stream
@@ -204,6 +207,8 @@ export class PersistentStream extends EventEmitter {
 
   constructor(options: StorageOptions) {
     super();
+    logger.debug("constructor ", options.path);
+
     this.setMaxListeners(100);
     options = { compression: DEFAULT_COMPRESSION, ...options };
     this.options = options;
@@ -253,6 +258,7 @@ export class PersistentStream extends EventEmitter {
   };
 
   close = () => {
+    logger.debug("close ", this.options.path);
     if (this.db != null) {
       this.vacuum();
       this.db.prepare("PRAGMA wal_checkpoint(FULL)").run();

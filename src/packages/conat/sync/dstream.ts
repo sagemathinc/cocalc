@@ -40,6 +40,9 @@ import {
   type Inventory,
   INVENTORY_UPDATE_INTERVAL,
 } from "./inventory";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("sync:dstream");
 
 export interface DStreamOptions {
   // what it's called by us
@@ -75,6 +78,7 @@ export class DStream<T = any> extends EventEmitter {
 
   constructor(opts: DStreamOptions) {
     super();
+    logger.debug("constructor", opts.name);
     if (opts.client == null) {
       throw Error("client must be specified");
     }
@@ -148,6 +152,7 @@ export class DStream<T = any> extends EventEmitter {
     if (this.isClosed()) {
       return;
     }
+    logger.debug("close", this.name);
     const stream = this.stream;
     stream.removeListener("change", this.handleChange);
     // @ts-ignore

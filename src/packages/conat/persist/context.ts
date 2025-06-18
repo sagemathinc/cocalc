@@ -24,7 +24,7 @@ export let syncFiles = { local: "", archive: "" };
 export let ensureContainingDirectoryExists: (path: string) => Promise<void> = (
   _path,
 ) => {
-  throw Error("must initialize persiste context");
+  throw Error("must initialize persist context");
 };
 
 export function initContext(opts: {
