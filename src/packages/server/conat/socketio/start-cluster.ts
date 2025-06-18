@@ -20,6 +20,7 @@ export default function startCluster({
       detached: false,
       cwd: __dirname,
       env: {
+        ...process.env,
         PORT: `${port}`,
         CONAT_SOCKETIO_COUNT: `${numWorkers}`,
         BASE_PATH: basePath,
