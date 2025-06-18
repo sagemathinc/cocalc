@@ -32,7 +32,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
-  Gap,
   HelpIcon,
   Icon,
   Loading,
@@ -186,7 +185,8 @@ export function ComputeImageSelector({
           );
         const extra = registry && tag ? ` (${registry}:${tag})` : "";
         const title = `${img.get("descr")}${extra}`;
-        return { value, title, label: label as any };
+        const searchStr = `${title} ${labelStr}`.toLowerCase();
+        return { value, title, label: label as any, searchStr };
       })
       .valueSeq()
       .toJS();
@@ -263,9 +263,8 @@ export function ComputeImageSelector({
         disabled={disabled}
         style={{ width: "100%" }}
         filterOption={(input, option) => {
-          const l = `${option?.label ?? ""}`.toLowerCase();
           const s = ((option as any)?.searchStr ?? "").toLowerCase();
-          return [l, s].some((x) => x.includes(input.toLowerCase()));
+          return s.includes(input.toLowerCase());
         }}
         onSelect={(key) => onSelectHandler(key)}
         options={select_options()}
@@ -408,10 +407,14 @@ export function ComputeImageSelector({
         >
           <>
             <Paragraph>
-              <Space>
-                {`${capitalize(intl.formatMessage(labels.select))}:`}
-                {render_selector()}
-              </Space>
+              <div
+                style={{ display: "flex", width: "100%", alignItems: "center" }}
+              >
+                <div
+                  style={{ flex: "0 0 auto", marginRight: "10px" }}
+                >{`${capitalize(intl.formatMessage(labels.select))}:`}</div>
+                <div style={{ flex: "1 1 auto" }}>{render_selector()}</div>
+              </div>
             </Paragraph>
             {renderDialogHelpContent(nextImg)}
             <Paragraph>{render_doubt()}</Paragraph>
@@ -468,24 +471,21 @@ export function ComputeImageSelector({
       return render_selector();
     case "horizontal":
       return (
-        <Row gutter={[10, 10]}>
-          <Col xs={24}>
-            {render_selector()}
-            <Gap />
-            <HelpIcon title={intl.formatMessage(labels.software_environment)}>
-              <FormattedMessage
-                id="custom-software.selector.explanation"
-                defaultMessage={`Select the software environment.
+        <>
+          <div style={{ width: "100%", display: "flex", alignItems: "center" }}>
+            <div style={{ flex: "1 1 auto" }}>{render_selector()}</div>
+            <div style={{ flex: "0 0 auto", marginLeft: "10px" }}>
+              <HelpIcon title={intl.formatMessage(labels.software_environment)}>
+                <FormattedMessage
+                  id="custom-software.selector.explanation"
+                  defaultMessage={`Select the software environment.
                 Either go with the default environment, or select one of the more specialized ones.`}
-              />
-            </HelpIcon>
-          </Col>
-          {description && (
-            <Col xs={24}>
-              <span>{description}</span>
-            </Col>
-          )}
-        </Row>
+                />
+              </HelpIcon>
+            </div>
+          </div>
+          {description && <Paragraph>{description}</Paragraph>}
+        </>
       );
     // used in projects → create new project
     case "dropdown":

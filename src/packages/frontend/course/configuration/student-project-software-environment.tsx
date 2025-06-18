@@ -16,22 +16,20 @@ import {
   ComputeImages,
   ComputeImageTypes,
 } from "@cocalc/frontend/custom-software/init";
-import {
-  //SoftwareEnvironment,
-  SoftwareEnvironmentState,
-} from "@cocalc/frontend/custom-software/selector";
+import { SoftwareEnvironmentState } from "@cocalc/frontend/custom-software/selector";
 import {
   compute_image2basename,
   is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SoftwareImageDisplay } from "@cocalc/frontend/project/settings/software-image-display";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { ComputeImageSelector } from "../../project/settings/compute-image-selector";
 import { ConfigurationActions } from "./actions";
 
 const CSI_HELP =
@@ -53,6 +51,7 @@ export function StudentProjectSoftwareEnvironment({
   close,
 }: Props) {
   const intl = useIntl();
+  const { onCoCalcCom } = useProjectContext();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
   const software_envs = customize_software.get("environments");
@@ -129,7 +128,7 @@ export function StudentProjectSoftwareEnvironment({
           current_image={software_image ?? default_compute_img}
           layout={"dialog"}
           onSelect={handleSelect}
-          hideCustomImages={false}
+          hideCustomImages={!onCoCalcCom}
           label={intl.formatMessage(labels.save)}
           changing={changing}
         />

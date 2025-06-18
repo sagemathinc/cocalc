@@ -177,12 +177,13 @@ export function SoftwareEnvironment(props: Props) {
           <Form>
             <Form.Item
               label={render_software_form_label()}
-              style={{ marginBottom: "0px" }}
+              style={{ marginBottom: "0px", width: "100%" }}
             >
               <ComputeImageSelector
                 size={"middle"}
                 current_image={selected}
                 layout={"horizontal"}
+                hideCustomImages={true}
                 onSelect={({ id }) => {
                   const display = software_images.get(id)?.get("title") ?? id;
                   setState(id, display, "standard");
