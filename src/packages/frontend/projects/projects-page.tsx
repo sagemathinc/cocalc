@@ -116,16 +116,13 @@ export const ProjectsPage: React.FC = () => {
       // on n when it is *first* rendered.
       return;
     }
-    const ts = new Date().toISOString().split("T")[0];
+
     return (
       <div
         ref={createNewRef}
         style={{ margin: "15px auto", maxWidth: "900px" }}
       >
-        <NewProjectCreator
-          noProjects={n === 0}
-          default_value={search || `Untitled ${ts}`}
-        />
+        <NewProjectCreator noProjects={n === 0} default_value={search} />
       </div>
     );
   }

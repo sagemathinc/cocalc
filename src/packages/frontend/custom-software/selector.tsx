@@ -19,11 +19,11 @@ import { A, HelpIcon, Icon, Paragraph } from "@cocalc/frontend/components";
 import { CompanyName } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { SoftwareEnvironmentInformation } from "@cocalc/frontend/project/settings/software-env-info";
+import { SoftwareInfo } from "@cocalc/frontend/project/settings/types";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
-import { SOFTWARE_ENVIRONMENT_ICON } from "../project/settings/software-consts";
-import { SoftwareInfo } from "../project/settings/types";
 import { ComputeImage, ComputeImageTypes, ComputeImages } from "./init";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
@@ -89,7 +89,6 @@ export function SoftwareEnvironment(props: Props) {
   const [image_selected, set_image_selected] = useState<string | undefined>(
     undefined,
   );
-  const set_title_text = useState<string | undefined>(undefined)[1];
   const [image_type, set_image_type] = useState<ComputeImageTypes>("standard");
 
   const [softwareInfo, setSoftwareInfo] = useState<SoftwareInfo | null>(null);
@@ -104,7 +103,6 @@ export function SoftwareEnvironment(props: Props) {
         ? custom_image_name(image_selected)
         : image_selected;
     set_image_selected(id);
-    set_title_text(title_text);
     set_image_type(image_type);
     onChange({ image_selected, title_text, image_type });
   }

@@ -46,8 +46,8 @@ const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
 const CARD_STYLE: CSS = { margin: "10px 0" } as const;
 
 interface Props {
-  noProjects?: boolean;
-  default_value?: string;
+  noProjects: boolean;
+  default_value: string;
 }
 
 type EditState = "edit" | "view" | "saving";
@@ -56,9 +56,13 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   const intl = useIntl();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
-  const [title_text, set_title_text] = useState<string>(default_value ?? "");
+  const [title_text, set_title_text] = useState<string>(
+    default_value ?? getDefaultTitle(),
+  );
   const [error, set_error] = useState<string>("");
-  const [title_prefill, set_title_prefill] = useState<boolean>(false);
+  const [title_manually, set_title_manually] = useState<boolean>(
+    default_value.length > 0,
+  );
   const [license_id, set_license_id] = useState<string>("");
   const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef(null);
@@ -87,12 +91,12 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    select_text();
-  }, []);
-
-  useEffect(() => {
     form.setFieldsValue({ title: title_text });
   }, [title_text]);
+
+  useEffect(() => {
+    set_title_manually(default_value.length > 0);
+  }, [default_value.length > 0]);
 
   const is_mounted_ref = useIsMountedRef();
 
@@ -102,20 +106,25 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     (new_project_title_ref.current as any)?.input?.select();
   }
 
+  function getDefaultTitle(): string {
+    const ts = new Date().toISOString().split("T")[0];
+    return `Untitled ${ts}`;
+  }
+
   function start_editing(): void {
     set_state("edit");
-    set_title_text(default_value ?? "");
+    set_title_text(default_value || getDefaultTitle());
     select_text();
   }
 
   function cancel_editing(): void {
     if (!is_mounted_ref.current) return;
     set_state("view");
-    set_title_text(default_value ?? "");
+    set_title_text(default_value || getDefaultTitle());
     set_error("");
     setSelected({});
     set_show_add_license(requireLicense);
-    set_title_prefill(true);
+    set_title_manually(false);
     set_license_id("");
   }
 
@@ -232,14 +241,10 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     );
   }
 
-  function set_title(text: string): void {
-    set_title_text(text);
-    set_title_prefill(false);
-  }
-
   function input_on_change(): void {
     const text = (new_project_title_ref.current as any)?.input?.value;
-    set_title(text);
+    set_title_text(text);
+    set_title_manually(true);
   }
 
   function handle_keypress(e): void {
@@ -251,8 +256,8 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   }
 
   function onChangeHandler(obj: SoftwareEnvironmentState): void {
-    if (obj.title_text != null && (!title_prefill || !title_text)) {
-      set_title(obj.title_text);
+    if (obj.title_text != null && (!title_manually || !title_text)) {
+      set_title_text(obj.title_text);
     }
     setSelected(obj);
   }
