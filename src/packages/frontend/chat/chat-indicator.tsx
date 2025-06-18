@@ -29,9 +29,10 @@ export type ChatState =
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
-  paddingTop: "3px",
+  paddingTop: "2px",
   cursor: "pointer",
   background: "#e8e8e8",
+  borderTop: "2px solid lightgrey",
 } as const;
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
