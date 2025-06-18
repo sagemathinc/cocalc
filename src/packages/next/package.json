@@ -38,7 +38,7 @@
     "test": "NODE_ENV='dev' pnpm exec jest && NODE_ENV='production' pnpm exec jest ./lib/api/framework.test.ts",
     "depcheck": "pnpx depcheck --ignores @openapitools/openapi-generator-cli,eslint-config-next,locales,components,lib,public,pages,software-inventory,pg",
     "prepublishOnly": "pnpm test",
-    "patch-openapi": "sed -i '/^interface NrfOasData {/s/^interface/export interface/' node_modules/next-rest-framework/dist/index.d.ts",
+    "patch-openapi": "sed -i '' '/^interface NrfOasData {/s/^interface/export interface/' node_modules/next-rest-framework/dist/index.d.ts",
     "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework generate",
     "validate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework validate",
     "i18n:upload": "bash ./locales/upload.sh",
