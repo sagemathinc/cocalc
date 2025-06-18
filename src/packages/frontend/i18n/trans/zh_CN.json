@@ -556,7 +556,7 @@
   "custom-software.reset-bar.info": "<p>点击“重置”会将此自定义软件环境的所有附带文件复制到您的主目录中。这在项目创建时已执行过一次，您现在可以重复此操作。如果这些附带文件在{NAME}上托管期间有更新，您将收到新版本。</p> <p>请注意，这将覆盖您对这些附带文件所做的任何更改，但不会修改或删除任何其他文件。不过，不会丢失任何内容：您仍然可以通过<A1>快照备份</A1>或<A2>时光旅行</A2>访问以前的版本。</p> <p>此操作还将重新启动您的项目！</p>",
   "custom-software.reset-bar.reset-and-restart": "重置并重启",
   "custom-software.selector.explanation": "选择软件环境。可以使用默认环境，或者选择更专业的环境。",
-  "custom-software.selector.explanation.cocalc_com": "<em>标准</em>软件环境经过<CompanyName />的充分测试和维护，而<em>专用</em>软件环境由第三方提供并与特定项目相关联 – <A2>更多信息...</A2>。",
+  "custom-software.selector.explanation.cocalc_com": "<em>标准</em>软件环境由{company}进行良好的测试和维护，而<em>专用</em>软件环境由第三方提供并与特定项目相关联 – <A2>更多信息...</A2>。",
   "custom-software.selector.explanation.onprem": "软件环境为项目提供编程语言、工具和库。",
   "custom-software.selector.select-custom-image": "<p>专业软件环境由第三方提供，通常包含用于工作的配套文件。</p> <p>注意：一个<em>专业</em>软件环境与项目绑定。要在不同的环境中工作，请创建另一个项目。您也可以随时<A>在项目之间复制文件</A>。</p>",
   "customize.footer.name": "{name} 由 {organizationName}",

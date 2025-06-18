@@ -16,7 +16,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { A, HelpIcon, Icon, Paragraph } from "@cocalc/frontend/components";
-import { CompanyName } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
@@ -77,6 +76,7 @@ export function SoftwareEnvironment(props: Props) {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const onCoCalcCom = customize_kucalc === KUCALC_COCALC_COM;
   const customize_software = useTypedRedux("customize", "software");
+  const organization_name = useTypedRedux("customize", "organization_name");
   const dflt_software_img = customize_software.get("default");
   const software_images = customize_software.get("environments");
 
@@ -203,17 +203,17 @@ export function SoftwareEnvironment(props: Props) {
           <FormattedMessage
             id="custom-software.selector.explanation.cocalc_com"
             defaultMessage={`<em>Standard</em> software environments are well tested and
-            maintained by <CompanyName />, while <em>specialized</em> software environments are provided by 3rd parties
+            maintained by {company}, while <em>specialized</em> software environments are provided by 3rd parties
             and tied to a given project – <A2>more info...</A2>.
             `}
             values={{
               em: (c) => <em>{c}</em>,
-              CompanyName: () => <CompanyName />,
+              company: organization_name,
               A2: (c) => <A href={CUSTOM_SOFTWARE_HELP_URL}>{c}</A>,
             }}
           />
-          <SoftwareEnvironmentInformation />
         </Paragraph>
+        <SoftwareEnvironmentInformation />
       </HelpIcon>
     );
   }
