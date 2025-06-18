@@ -214,6 +214,8 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
 
     // we select a specific subject sticky.io.foo that matches the pattern :
     const x = await client1.request("sticky.io.foo", null);
+    await waitForSticky(server1, "sticky.io.*");
+    await waitForSticky(server2, "sticky.io.*");
     // this is the server it ended up hitting.
     stickyTarget = x.data;
     // check it still does
@@ -236,6 +238,8 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
   it("add new conat servers and observe sticky mapping is still the same so using shared  state instead of consistent hashing", async () => {
     server3 = await initConatServer({ valkey });
     server4 = await initConatServer({ valkey });
+    await waitForSticky(server3, "sticky.io.*");
+    await waitForSticky(server4, "sticky.io.*");
     await wait({
       until: () => {
         return (
@@ -253,13 +257,13 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
 
   it("cleans up", () => {
     valkeyServer.close();
-    client1.close();
-    client2.close();
-    client3.close();
-    server1.close();
-    server2.close();
-    server3.close();
-    server4.close();
+    client1?.close();
+    client2?.close();
+    client3?.close();
+    server1?.close();
+    server2?.close();
+    server3?.close();
+    server4?.close();
   });
 });
 

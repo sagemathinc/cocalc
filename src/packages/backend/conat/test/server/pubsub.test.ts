@@ -29,7 +29,7 @@ import {
   runValkey,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
-import { waitForSubscription, waitForSticky } from "./valkey.test";
+import { waitForSubscription } from "./valkey.test";
 
 // should be several thousand, so 250 seems reasonable as a cutoff to indicate
 // things are horribly wrong

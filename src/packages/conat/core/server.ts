@@ -340,7 +340,9 @@ export class ConatServer {
     await until(
       async () => {
         try {
-          const responses = await callback(getStateFromCluster);
+          const responses = (await callback(getStateFromCluster)).filter(
+            (x) => x.length > 0,
+          );
           // console.log("initInterest got", responses);
           if (responses.length > 0) {
             for (const response of responses) {
@@ -427,8 +429,10 @@ export class ConatServer {
     await until(
       async () => {
         try {
-          const responses = await callback(getStateFromCluster);
-          // console.log("initInterest got", responses);
+          const responses = (await callback(getStateFromCluster)).filter(
+            (x) => x.length > 0,
+          );
+          // console.log("initSticky got", responses);
           if (responses.length > 0) {
             for (const response of responses) {
               for (const update of response) {

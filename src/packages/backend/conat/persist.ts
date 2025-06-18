@@ -18,12 +18,16 @@ import { server } from "@cocalc/conat/persist/server";
 export { server };
 import { conat } from "./conat";
 
-let persistServer: any = undefined;
+const persistServers: any[] = [];
 
 export function initPersistServer() {
-  persistServer = server({ client: conat() });
+  const persistServer = server({ client: conat() });
+  persistServers.push(persistServer);
 }
+
 export function close() {
-  persistServer?.end(); // end is a bit more graceful
-  persistServer = undefined;
+  for (const persistServer of persistServers) {
+    persistServer.end(); // end is a bit more graceful
+  }
+  persistServers.length = 0;
 }
