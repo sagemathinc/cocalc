@@ -63,16 +63,20 @@ export function StudentProjectSoftwareEnvironment({
   const [state, set_state] = useState<SoftwareEnvironmentState>({});
   const [changing, set_changing] = useState(false);
 
-  async function handleSelect(
-    image_selected: string,
-    title_text: string,
-    image_type: ComputeImageTypes,
-  ) {
+  async function handleSelect({
+    id,
+    display,
+    type,
+  }: {
+    id: string;
+    display: string;
+    type: ComputeImageTypes;
+  }) {
     set_changing(true);
     const nextState: SoftwareEnvironmentState = {
-      image_selected,
-      title_text,
-      image_type,
+      image_selected: id,
+      title_text: display,
+      image_type: type,
     };
     set_state(nextState);
     await actions.set_software_environment(nextState);

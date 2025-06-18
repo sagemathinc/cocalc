@@ -28,6 +28,7 @@ import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { trunc, trunc_middle } from "@cocalc/util/misc";
 import { UnpublishEverything } from "./unpublish-everything";
+import { custom_image_name } from "../../custom-software/util";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
@@ -301,7 +302,8 @@ function ComputeImage({ compute_image, project_id, path, setError }) {
         disabled={saving}
         current_image={selectedImage}
         layout={"compact"}
-        onSelect={async (img) => {
+        onSelect={async ({ id, type }) => {
+          const img = type === "custom" ? custom_image_name(id) : id;
           setSelectedImage(img);
           try {
             setSaving(true);

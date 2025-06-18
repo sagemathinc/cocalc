@@ -85,6 +85,7 @@ export function SoftwareEnvironment(props: Props) {
     [customize_software],
   );
 
+  // ID of the image, custom images without "CUSTOM_PREFIX/" – that info is in the image_type variable.
   const [image_selected, set_image_selected] = useState<string | undefined>(
     undefined,
   );
@@ -180,9 +181,9 @@ export function SoftwareEnvironment(props: Props) {
                 size={"middle"}
                 current_image={selected}
                 layout={"horizontal"}
-                onSelect={(img) => {
-                  const display = software_images.get(img)?.get("title");
-                  setState(img, display, "standard");
+                onSelect={({ id }) => {
+                  const display = software_images.get(id)?.get("title");
+                  setState(id, display, "standard");
                 }}
               />
             </Form.Item>
@@ -229,13 +230,8 @@ export function SoftwareEnvironment(props: Props) {
                 current_image={image_selected ?? dflt_software_img}
                 layout={"dropdown"}
                 setSoftwareInfo={setSoftwareInfo}
-                onSelect={(img, display, type) => {
-                  // if is_custom_image, then compute_image2basename(img) is the ID
-                  setState(
-                    is_custom_image(img) ? compute_image2basename(img) : img,
-                    display,
-                    type,
-                  );
+                onSelect={({ id, display, type }) => {
+                  setState(id, display, type);
                 }}
               />
             </Form.Item>

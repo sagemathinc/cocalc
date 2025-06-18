@@ -84,11 +84,15 @@ const img_sorter = (a, b): number => {
 interface ComputeImageSelectorProps {
   current_image: string;
   layout: "horizontal" | "compact" | "dialog" | "dropdown";
-  onSelect: (
-    img: string,
-    display: string,
-    image_type: ComputeImageTypes,
-  ) => void;
+  onSelect: ({
+    id, // image ID, without "custom/" prefix
+    display,
+    type,
+  }: {
+    id: string;
+    display: string;
+    type: ComputeImageTypes;
+  }) => void;
   disabled?: boolean;
   size?: SizeType;
   label?: string; // the "okText" on the main button
@@ -244,7 +248,11 @@ export function ComputeImageSelector({
     if (dialogSave || layout !== "dialog") {
       const isCustom = is_custom_image(key);
       const id = isCustom ? compute_image2basename(key) : key;
-      onSelect(id, info.title, isCustom ? "custom" : "standard");
+      onSelect({
+        id,
+        display: info.title,
+        type: isCustom ? "custom" : "standard",
+      });
     }
   }
 

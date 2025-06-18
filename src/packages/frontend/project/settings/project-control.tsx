@@ -26,6 +26,7 @@ import {
   TimeAgo,
   TimeElapsed,
 } from "@cocalc/frontend/components";
+import { ComputeImageTypes } from "@cocalc/frontend/custom-software/init";
 import {
   custom_image_name,
   CUSTOM_SOFTWARE_HELP_URL,
@@ -46,7 +47,6 @@ import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
 import { Project } from "./types";
-import { ComputeImage, ComputeImageTypes } from "../../custom-software/init";
 
 interface ReactProps {
   project: Project;
@@ -229,11 +229,13 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  async function saveSelectedComputeImage(
-    id: string,
-    _,
-    type: ComputeImageTypes,
-  ) {
+  async function saveSelectedComputeImage({
+    id,
+    type,
+  }: {
+    id: string;
+    type: ComputeImageTypes;
+  }) {
     const actions = redux.getProjectActions(project_id);
     try {
       setComputeImgChanging(true);
