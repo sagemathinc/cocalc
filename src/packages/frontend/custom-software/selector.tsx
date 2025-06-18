@@ -95,11 +95,15 @@ export function SoftwareEnvironment(props: Props) {
   const [softwareInfo, setSoftwareInfo] = useState<SoftwareInfo | null>(null);
 
   function setState(
-    image_selected: string | undefined,
-    title_text: string | undefined,
+    image_selected: string,
+    title_text: string,
     image_type: ComputeImageTypes,
   ): void {
-    set_image_selected(image_selected);
+    const id =
+      image_type === "custom"
+        ? custom_image_name(image_selected)
+        : image_selected;
+    set_image_selected(id);
     set_title_text(title_text);
     set_image_type(image_type);
     onChange({ image_selected, title_text, image_type });
@@ -182,7 +186,7 @@ export function SoftwareEnvironment(props: Props) {
                 current_image={selected}
                 layout={"horizontal"}
                 onSelect={({ id }) => {
-                  const display = software_images.get(id)?.get("title");
+                  const display = software_images.get(id)?.get("title") ?? id;
                   setState(id, display, "standard");
                 }}
               />

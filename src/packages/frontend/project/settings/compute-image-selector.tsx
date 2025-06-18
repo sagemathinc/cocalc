@@ -168,8 +168,6 @@ export function ComputeImageSelector({
   }
 
   const default_title = getComputeImgTitle(defaultComputeImg);
-  const current_title = getComputeImgTitle(current_image);
-  const selected_title = getComputeImgTitle(nextImg);
 
   function render_menu_children(group: string): SelectOption[] {
     return computeEnvs
@@ -261,7 +259,7 @@ export function ComputeImageSelector({
       <Select
         showSearch
         value={nextImg}
-        labelRender={() => selected_title}
+        labelRender={() => getComputeImgTitle(nextImg)}
         disabled={disabled}
         style={{ width: "100%" }}
         filterOption={(input, option) => {
@@ -368,7 +366,7 @@ export function ComputeImageSelector({
 
   function getImageInfo(img: string): SoftwareInfo {
     if (is_custom_image(img)) {
-      return getCustomImageInfo(img.substring(CUSTOM_IMG_PREFIX.length));
+      return getCustomImageInfo(compute_image2basename(img));
     } else {
       return getStandardImageInfo(img);
     }
@@ -511,8 +509,8 @@ export function ComputeImageSelector({
                 name={SOFTWARE_ENVIRONMENT_ICON}
                 style={{ marginTop: "5px" }}
               />{" "}
-              {current_title} {renderDialogHelp(current_image)}{" "}
-              {renderDialogButton()}
+              {getComputeImgTitle(current_image)}{" "}
+              {renderDialogHelp(current_image)} {renderDialogButton()}
             </Space>
           </Col>
         </Row>
