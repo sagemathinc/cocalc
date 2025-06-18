@@ -52,11 +52,20 @@ export function changefeedServer({
     const v = socket.subject.split(".")[1];
     if (!v?.startsWith("account-")) {
       socket.write({ error: "only account users can create changefeeds" });
+      logger.debug(
+        "socket.close: due to changefeed request from non-account subject",
+        socket.subject,
+      );
       socket.close();
       return;
     }
     const account_id = v.slice("account-".length);
     if (!isValidUUID(account_id)) {
+      logger.debug(
+        "socket.close: due to invalid uuid",
+        socket.subject,
+        account_id,
+      );
       socket.write({
         error: `invalid account_id -- '${account_id}',  subject=${socket.subject}`,
       });
@@ -69,6 +78,11 @@ export function changefeedServer({
       added = true;
     } catch (err) {
       socket.write({ error: `${err}`, code: err.code });
+      logger.debug(
+        "socket.close: due to usage error (limit exceeded?)",
+        socket.subject,
+        err,
+      );
       socket.close();
       return;
     }
@@ -76,6 +90,10 @@ export function changefeedServer({
     const changes = uuid();
 
     socket.on("closed", () => {
+      logger.debug(
+        "socket.close: cleaning up since socket closed for some external reason (timeout?)",
+        socket.subject,
+      );
       if (added) {
         usage.delete(account_id);
       }
@@ -86,6 +104,10 @@ export function changefeedServer({
     socket.on("data", (data) => {
       if (running) {
         socket.write({ error: "exactly one query per connection" });
+        logger.debug(
+          "socket.close: due to attempt to run more than one query",
+          socket.subject,
+        );
         socket.close();
         return;
       }
@@ -107,12 +129,21 @@ export function changefeedServer({
               error = `${err}`;
             }
             if (error) {
+              logger.debug(
+                "socket.close: due to error from postgres changefeed",
+                socket.subject,
+                error,
+              );
               socket.close();
             }
           },
         });
       } catch (err) {
-        logger.debug("error creating query", err);
+        logger.debug(
+          "socket.close: due to error creating query",
+          socket.subject,
+          err,
+        );
         try {
           socket.write({ error: `${err}` });
         } catch {}

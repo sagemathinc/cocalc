@@ -28,22 +28,20 @@ export class KeepAlive {
 
   private run = async () => {
     while (this.state == "ready") {
-      if (Date.now() - (this.last ?? 0) >= this.keepAlive) {
-        try {
-          logger.silly(this.role, "keepalive -- sending ping");
-          await this.ping?.();
-        } catch (err) {
-          logger.silly(this.role, "keepalive -- ping failed -- disconnecting");
-          this.disconnect?.();
-          this.close();
-          return;
-        }
-        this.last = Date.now();
+      try {
+        logger.silly(this.role, "keepalive -- sending ping");
+        await this.ping?.();
+      } catch (err) {
+        logger.silly(this.role, "keepalive -- ping failed -- disconnecting");
+        this.disconnect?.();
+        this.close();
+        return;
       }
+      this.last = Date.now();
       if (this.state == ("closed" as any)) {
         return;
       }
-      await delay(this.keepAlive - (Date.now() - (this.last ?? 0)));
+      await delay(this.keepAlive - (Date.now() - this.last));
     }
   };
 
