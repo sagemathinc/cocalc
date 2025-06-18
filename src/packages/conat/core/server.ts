@@ -137,6 +137,7 @@ export interface Options {
         password?: string;
         db?: number;
       };
+  cluster?: boolean;
   maxSubscriptionsPerClient?: number;
   maxSubscriptionsPerHub?: number;
   systemAccountPassword?: string;
@@ -186,6 +187,7 @@ export class ConatServer {
       getUser,
       isAllowed,
       valkey,
+      cluster,
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
       maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
       systemAccountPassword,
@@ -200,8 +202,7 @@ export class ConatServer {
       maxSubscriptionsPerHub,
       systemAccountPassword,
     };
-    // for now valkey is the one and only supported cluster approach
-    this.cluster = !!valkey;
+    this.cluster = cluster || !!valkey;
     this.getUser = async (socket) => {
       if (getUser == null) {
         // no auth at all
@@ -273,7 +274,7 @@ export class ConatServer {
     }
   }
 
-  private init = () => {
+  private init = async () => {
     this.io.on("connection", this.handleSocket);
     if (this.cluster != null) {
       this.initInterestSubscription();

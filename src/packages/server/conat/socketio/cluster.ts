@@ -10,7 +10,7 @@ Run this to be able to use all the cores, since nodejs is (mostly) single thread
 import { init as createConatServer } from "@cocalc/conat/core/server";
 import cluster from "node:cluster";
 import { createServer } from "http";
-import { cpus } from "os";
+import { availableParallelism } from "os";
 import { setupMaster, setupWorker } from "@socket.io/sticky";
 import { createAdapter, setupPrimary } from "@socket.io/cluster-adapter";
 import { getUser, isAllowed } from "./auth";
@@ -25,7 +25,7 @@ import { join } from "path";
 console.log("* CONATS Core Pub/Sub Server *");
 
 async function master() {
-  console.log(`Master ${process.pid} is running`);
+  console.log(`Master pid=${process.pid} is running`);
 
   await loadConatConfiguration();
 
@@ -38,8 +38,11 @@ async function master() {
   cluster.setupPrimary({ serialization: "advanced" });
   httpServer.listen(port);
 
-  const numWorkers = conatSocketioCount ? conatSocketioCount : cpus().length;
-  const systemAccountPassword = await secureRandomString(64);
+  const numWorkers = conatSocketioCount
+    ? conatSocketioCount
+    : availableParallelism();
+  const systemAccountPassword = await secureRandomString(32);
+  console.log({ systemAccountPassword });
   for (let i = 0; i < numWorkers; i++) {
     cluster.fork({ SYSTEM_ACCOUNT_PASSWORD: systemAccountPassword });
   }
@@ -52,7 +55,7 @@ async function master() {
 }
 
 async function worker() {
-  console.log(`Worker ${process.pid} started`);
+  console.log(`Worker pid=${process.pid} started`);
   await loadConatConfiguration();
 
   const httpServer = createServer();
@@ -65,9 +68,12 @@ async function worker() {
     path: join(basePath, "conat"),
     httpServer,
     id,
-    getUser,
+    getUser: () => {
+      return { hub_id: id };
+    },
     isAllowed,
     systemAccountPassword,
+    cluster: true,
   });
   conatServer.io.adapter(createAdapter());
   setupWorker(conatServer.io);
