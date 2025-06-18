@@ -78,7 +78,7 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
         const x = stats[id];
         let user;
         if (x.user?.error) {
-          user = user.error;
+          user = x.user.error;
         } else {
           user = JSON.stringify(x.user).slice(1, -1);
         }
