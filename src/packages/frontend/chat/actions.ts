@@ -90,9 +90,7 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   toggleFoldThread = (reply_to: Date, messageIndex?: number) => {
-    if (this.syncdb == null) {
-      return;
-    }
+    if (this.syncdb == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
     const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
     const folding = cur?.get("folding") ?? List([]);
@@ -110,6 +108,29 @@ export class ChatActions extends Actions<ChatState> {
 
     if (folded && messageIndex != null) {
       this.scrollToIndex(messageIndex);
+    }
+  };
+
+  foldAllThreads = (onlyLLM = true) => {
+    if (this.syncdb == null || this.store == null) return;
+    const messages = this.store.get("messages");
+    if (messages == null) return;
+    const account_id = this.redux.getStore("account").get_account_id();
+    for (const [_timestamp, message] of messages) {
+      // ignore replies
+      if (message.get("reply_to") != null) continue;
+      const date = message.get("date");
+      if (!(date instanceof Date)) continue;
+      const isLLMThread = this.isLanguageModelThread(date) !== false;
+      if (onlyLLM && !isLLMThread) continue;
+      const folding = message?.get("folding") ?? List([]);
+      const folded = folding.includes(account_id);
+      if (!folded) {
+        this.syncdb.set({
+          folding: folding.push(account_id),
+          date,
+        });
+      }
     }
   };
 
@@ -479,6 +500,7 @@ export class ChatActions extends Actions<ChatState> {
       scrollToDate: null,
     });
   };
+
   scrollToIndex = (index: number = -1) => {
     if (this.syncdb == null) return;
     // we first clear, then set it, since scroll to needs to

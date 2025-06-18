@@ -101,23 +101,26 @@ export function inboxPrefix({
 export function streamSubject({
   project_id,
   account_id,
+  ephemeral,
 }: {
   project_id?: string;
   account_id?: string;
+  ephemeral?: boolean;
 }) {
+  const e = ephemeral ? "e" : "";
   if (project_id) {
     if (account_id) {
       throw Error("both account_id and project_id can't be set");
     }
-    return `project.${project_id}.stream.>`;
+    return `project.${project_id}.${e}stream.>`;
   }
   if (!account_id) {
     if (process.env.COCALC_TEST_MODE) {
-      return "test.stream.>";
+      return `test.${e}stream.>`;
     }
-    return "public.stream.>";
+    return `public.${e}stream.>`;
   }
-  return `account.${account_id}.stream.>`;
+  return `account.${account_id}.${e}stream.>`;
 }
 
 export function projectSubject({

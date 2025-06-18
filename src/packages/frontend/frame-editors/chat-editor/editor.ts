@@ -8,12 +8,13 @@ Top-level react component for editing chat
 */
 
 import { createElement } from "react";
+
 import { ChatRoom } from "@cocalc/frontend/chat/chatroom";
-import { set } from "@cocalc/util/misc";
 import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
-import type { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import type { EditorComponentProps, EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
+import { set } from "@cocalc/util/misc";
 import { search } from "./search";
 
 const chatroom: EditorDescription = {
@@ -21,7 +22,7 @@ const chatroom: EditorDescription = {
   short: "Chatroom",
   name: "Chatroom",
   icon: "comment",
-  component: (props) => {
+  component: (props: EditorComponentProps) => {
     const actions = props.actions.getChatActions(props.id);
     return createElement(ChatRoom, {
       ...props,

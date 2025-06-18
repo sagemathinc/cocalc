@@ -10,7 +10,7 @@ export default docsApiRoute({
   openApiObject: {
     info: {
       title: "CoCalc API",
-      version: "1.0.0",
+      version: "2.0.0",
       summary: `This is the CoCalc HTTP API. To get started, you'll need to
                 [create an API key](https://doc.cocalc.com/apikeys.html).`,
       description: `This is the CoCalc HTTP API. To get started, you'll need to

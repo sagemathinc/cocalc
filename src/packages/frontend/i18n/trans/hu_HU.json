@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(vagy <keyboard>Shift+Return</keyboard> a keresőmezőben)",
   "project.explorer.file-listing.stale-warning": "Elavult könyvtárlista megjelenítése {is_missing, select, true {<b>hiányzó {missing} fájlok</b>} other {}}. A könyvtárlista frissítéséhez <a>indítsa el ezt a projektet</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "Megnyitja az aktuális könyvtárat egy {name} szerver példányban, amely ebben a projektben fut.",
-  "project.explorer.search-bar.placeholder": "Keresés vagy fájl létrehozása",
+  "project.explorer.search-bar.placeholder": "Szűrje a fájlokat vagy \"/\" a terminálhoz...",
   "project.explorer.start_project.warning": "A fájlok megtekintéséhez ebben a könyvtárban, <a>indítsd el ezt a projektet</a>.",
   "project.history.log-entry.invited_user": "meghívott felhasználó",
   "project.history.log-entry.invited_user_via": "új felhasználó meghívása μέσω",

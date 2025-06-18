@@ -226,6 +226,10 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     return this.syncdoc?.historyVersionNumber(version);
   };
 
+  wallTime = (version: number): number | undefined => {
+    return this.syncdoc?.wallTime(version);
+  };
+
   // Get the given version of the document.
   get_doc = (version: number): Document | undefined => {
     // log("get_doc", version);
@@ -344,13 +348,16 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   private gitCommand = async (args: string[], commit?: string) => {
     // log("gitCommand", { args, commit });
     const { head, tail } = path_split(this.docpath);
-    return await exec({
-      command: "git",
-      args: args.concat([`${commit ? commit + ":./" : ""}${tail}`]),
-      path: head,
-      project_id: this.project_id,
-      err_on_exit: true,
-    });
+    return await exec(
+      {
+        command: "git",
+        args: args.concat([`${commit ? commit + ":./" : ""}${tail}`]),
+        path: head,
+        project_id: this.project_id,
+        err_on_exit: true,
+      },
+      this.path,
+    );
   };
 
   updateGitVersions = async () => {

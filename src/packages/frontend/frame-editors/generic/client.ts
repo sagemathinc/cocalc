@@ -8,7 +8,6 @@ Typescript async/await rewrite of @cocalc/util/client.coffee...
 */
 
 import { Map } from "immutable";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
@@ -17,6 +16,7 @@ import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { FakeSyncstring } from "./syncstring-fake";
 import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
 export { type User };
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
@@ -30,13 +30,28 @@ export function server_time(): Date {
 }
 
 // async version of the webapp_client exec -- let's you run any code in a project!
-export async function exec(opts: ExecOpts): Promise<ExecOutput> {
+// If the second argument filePath is the file this is being used for as a second argument,
+// it always runs code on the compute server that the given file is on.
+export async function exec(
+  opts: ExecOpts,
+  filePath?: string,
+): Promise<ExecOutput> {
+  if (filePath) {
+    let compute_server_id =
+      redux
+        .getProjectActions(opts.project_id)
+        .getComputeServerIdForFile({ path: filePath }) ?? 0;
+    if (compute_server_id && excludeFromComputeServer(filePath)) {
+      compute_server_id = 0;
+    }
+    opts = { ...opts, compute_server_id };
+  }
   return await webapp_client.project_client.exec(opts);
 }
 
 export async function touch(project_id: string, path: string): Promise<void> {
   // touch the file on disk
-  await exec({ project_id, command: "touch", args: [path] });
+  await exec({ project_id, command: "touch", args: [path] }, path);
   // Also record in file-use table that we are editing the file (so appears in file use)
   // Have to use any type, since file_use isn't converted to typescript yet.
   const actions: any = redux.getActions("file_use");

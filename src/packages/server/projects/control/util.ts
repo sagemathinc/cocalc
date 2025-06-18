@@ -13,9 +13,10 @@ import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
-import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
+import { pidFilename } from "@cocalc/util/project-info";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { natsPorts, natsServer } from "@cocalc/backend/data";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 const logger = getLogger("project-control:util");
 
@@ -54,15 +55,22 @@ function pidFile(HOME: string): string {
   return join(dataPath(HOME), pidFilename);
 }
 
+let _bootTime = 0;
+export async function bootTime(): Promise<number> {
+  if (!_bootTime) {
+    const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
+    _bootTime = new Date(stdout).valueOf();
+  }
+  return _bootTime;
+}
+
 // throws error if no such file
 export async function getProjectPID(HOME: string): Promise<number> {
   const path = pidFile(HOME);
-  // if path is older than 2*pidUpdateIntervalMs, throw an error:
+  // if path was created **before OS booted**, throw an error
   const stats = await stat(path);
   const modificationTime = stats.mtime.getTime();
-  const now = Date.now();
-
-  if (now - modificationTime > 2 * pidUpdateIntervalMs + 1) {
+  if (modificationTime <= (await bootTime())) {
     throw new Error(
       `The pid file "${path}" is too old -- considering project to be dead`,
     );
@@ -109,12 +117,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
-  const args = [
-    "cocalc-project",
-    "--daemon",
-    "--init",
-    "project_init.sh",
-  ];
+  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
   logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );

@@ -19,12 +19,15 @@ export async function bibtex(
   output_directory?: string,
 ) {
   const { base, directory } = parse_path(path);
-  return await exec({
-    command: "bibtex",
-    args: [base],
-    project_id: project_id,
-    path: output_directory || directory,
-    err_on_exit: false,
-    aggregate: time,
-  });
+  return await exec(
+    {
+      command: "bibtex",
+      args: [base],
+      project_id: project_id,
+      path: output_directory || directory,
+      err_on_exit: false,
+      aggregate: time,
+    },
+    path,
+  );
 }

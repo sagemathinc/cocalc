@@ -197,7 +197,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private init_ext_path(): void {
     if (this.knitr) {
-      // changing the path to the (to be generated) tex file makes everyting else
+      // changing the path to the (to be generated) tex file makes everything else
       // here compatible with the latex commands
       this.path = change_filename_extension(this.path, "tex");
       this.setState({ knitr: this.knitr, knitr_error: false });
@@ -225,7 +225,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         ) {
           this._last_syncstring_hash = hash;
           // there are two cases: the parent "master" file triggers the build (usual case)
-          // or an included depdenency – i.e. where parent_file is set
+          // or an included dependency – i.e. where parent_file is set
           if (this.parent_file != null && this.parent_file != this.path) {
             const parent_actions = this.redux.getEditorActions(
               this.project_id,
@@ -672,7 +672,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       // kicks off a save of all relevant files
       // Obviously, do not make this save_all(true), because
       // that would end up calling this very function again
-      // crashing the browser in an INFINITE RECURSSION
+      // crashing the browser in an INFINITE RECURSION
       // (this was a bug for a while!).
       // Also, the save of the related files is NOT
       // explicit -- the user is only explicitly saving this
@@ -725,14 +725,17 @@ export class Actions extends BaseActions<LatexEditorState> {
     const { pid, status } = job;
     if (status === "running" && typeof pid === "number") {
       try {
-        await exec({
-          project_id: this.project_id,
-          // negative PID, to kill the entire process group
-          command: `kill -9 -${pid}`,
-          // bash:true is necessary. kill + array does not work. IDK why.
-          bash: true,
-          err_on_exit: false,
-        });
+        await exec(
+          {
+            project_id: this.project_id,
+            // negative PID, to kill the entire process group
+            command: `kill -9 -${pid}`,
+            // bash:true is necessary. kill + array does not work. IDK why.
+            bash: true,
+            err_on_exit: false,
+          },
+          this.path,
+        );
       } catch (err) {
         // likely "No such process", we just ignore it
       } finally {

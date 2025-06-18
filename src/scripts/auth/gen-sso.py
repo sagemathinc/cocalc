@@ -160,6 +160,7 @@ if exists(saml20fn):
                 "full_name": "displayName",
                 "emails": "email",
                 "id": "id",
+                # "_sep": "->", # uncomment this to test _sep, no need to change the values above
             },
             "issuer": "https://cocalc.com",
             "cert": saml20cert

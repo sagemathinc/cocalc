@@ -1,24 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import useAutoHide from "@cocalc/frontend/components/use-auto-hide";
 import { State, elementsList } from "./actions";
 import Canvas from "./canvas";
+import KernelPanel from "./elements/code/kernel";
+import { useFrameContext, usePageInfo } from "./hooks";
+import NewPage from "./new-page";
+import StartSlideshowButton from "./start-slideshow";
+import CodePanel from "./tools/code";
+import EdgePanel from "./tools/edge";
+import FramePanel from "./tools/frame";
+import IconPanel from "./tools/icon";
+import NavigationPanel from "./tools/navigation";
+import NotePanel from "./tools/note";
 import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
-import NotePanel from "./tools/note";
 import TextPanel from "./tools/text";
-import CodePanel from "./tools/code";
-import IconPanel from "./tools/icon";
 import TimerPanel from "./tools/timer";
-import FramePanel from "./tools/frame";
-import EdgePanel from "./tools/edge";
-import NavigationPanel from "./tools/navigation";
-import { useFrameContext, usePageInfo } from "./hooks";
 import Upload from "./tools/upload";
-import KernelPanel from "./elements/code/kernel";
-import NewPage from "./new-page";
-import useAutoHide from "@cocalc/frontend/components/use-auto-hide";
-import StartSlideshowButton from "./start-slideshow";
 
 interface Props {
   presentation?: boolean;

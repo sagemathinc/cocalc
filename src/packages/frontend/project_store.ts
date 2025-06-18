@@ -404,8 +404,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
         if (listingStored == null) {
           return {};
         }
-        if ((listingStored != null ? listingStored.errno : undefined) != null) {
-          return { error: misc.to_json(listingStored) };
+        try {
+          if (listingStored?.errno) {
+            return { error: misc.to_json(listingStored) };
+          }
+        } catch (err) {
+          return {
+            error: "Error getting directory listing - please try again.",
+          };
+        }
+
+        if (listingStored?.toJS == null) {
+          return {
+            error: "Unable to get directory listing - please try again.",
+          };
         }
 
         // We can proceed and get the listing as a JS object.

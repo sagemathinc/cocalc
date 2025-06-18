@@ -31,7 +31,7 @@ export async function revealjs_slideshow_html(
     args,
     project_id,
   };
-  await exec(opts);
+  await exec(opts, path);
   const ext = ".slides.html";
   const html_filename = split.head
     ? [split.head, base + ext].join("/")

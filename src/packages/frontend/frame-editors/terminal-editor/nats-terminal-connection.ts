@@ -26,6 +26,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private service?;
   private options?;
   private writeQueue: string = "";
+  private ephemeral?: boolean;
 
   constructor({
     project_id,
@@ -81,7 +82,7 @@ export class NatsTerminalConnection extends EventEmitter {
     }
     if (typeof data != "string") {
       if (data.cmd == "size") {
-        const { rows, cols } = data;
+        const { rows, cols, kick } = data;
         if (
           rows <= 0 ||
           cols <= 0 ||
@@ -98,6 +99,7 @@ export class NatsTerminalConnection extends EventEmitter {
             rows,
             cols,
             browser_id: webapp_client.browser_id,
+            kick,
           });
         } catch {
           // harmless to ignore
@@ -152,14 +154,19 @@ export class NatsTerminalConnection extends EventEmitter {
     }
   };
 
-  close = () => {
+  close = async () => {
     webapp_client.nats_client.removeListener("connected", this.clearWriteQueue);
     this.stream?.close();
     delete this.stream;
     this.service?.close();
     delete this.service;
-    this.api.close(webapp_client.browser_id);
     this.setState("closed");
+    try {
+      await this.api.close(webapp_client.browser_id);
+    } catch {
+      // we did our best to quickly tell that we're closed, but if it times out or fails,
+      // it is the responsibility of the project to stop worrying about this browser.
+    }
   };
 
   end = () => {
@@ -174,12 +181,17 @@ export class NatsTerminalConnection extends EventEmitter {
         if (this.state == "closed") {
           return;
         }
-        if ((this.state as State) == "closed") {
-          return;
+        const { success, note, ephemeral } = await this.api.create({
+          ...this.options,
+          ephemeral: true,
+        });
+        this.ephemeral = ephemeral;
+        if (!success) {
+          throw Error(`failed to create terminal -- ${note}`);
         }
-        await this.api.create(this.options);
         return;
-      } catch {
+      } catch (err) {
+        console.log(`Warning -- ${err} (will retry)`);
         try {
           await this.api.nats.waitFor({ maxWait });
         } catch (err) {
@@ -196,6 +208,7 @@ export class NatsTerminalConnection extends EventEmitter {
     return await nats_client.dstream<string>({
       name: `terminal-${this.path}`,
       project_id: this.project_id,
+      ephemeral: this.ephemeral,
     });
   };
 
@@ -236,7 +249,7 @@ export class NatsTerminalConnection extends EventEmitter {
   private setReady = async () => {
     // wait until after render loop of terminal before allowing writing,
     // or we get corruption.
-    await delay(250);
+    await delay(500);
     this.setState("running");
     this.emit("ready");
   };

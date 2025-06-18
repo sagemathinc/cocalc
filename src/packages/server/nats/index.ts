@@ -6,6 +6,7 @@ import { init as initLLM } from "./llm";
 import { init as initAuth } from "./auth";
 import { init as initTieredStorage } from "./tiered-storage/api";
 import { loadNatsConfiguration } from "./configuration";
+import { createTimeService } from "@cocalc/nats/service/time";
 
 export { loadNatsConfiguration };
 
@@ -34,4 +35,5 @@ export async function initNatsServer() {
   initAPI();
   await initAuth();
   await initLLM();
+  createTimeService();
 }

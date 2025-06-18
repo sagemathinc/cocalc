@@ -224,7 +224,11 @@ export class XpraServer {
     }
     opts.env.DISPLAY = `:${this.display}`;
     (opts as any).project_id = this.project_id;
-    return await exec(opts as ExecOpts);
+    return await exec({
+      ...(opts as ExecOpts),
+      // no support for compute servers yet.
+      compute_server_id: 0,
+    });
   }
 
   // get the current contents of the X11 clipboard

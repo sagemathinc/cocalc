@@ -20,9 +20,9 @@ TODO:
 
 import { delay } from "awaiting";
 
-import { Rendered, Component, rclass, rtypes } from "../../../app-framework";
+import { Rendered, Component, rclass, rtypes } from "@cocalc/frontend/app-framework";
 
-import { Loading } from "../../../components";
+import { Loading } from "@cocalc/frontend/components";
 
 import { Map } from "immutable";
 

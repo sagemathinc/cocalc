@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(या <keyboard>Shift+Return</keyboard> खोज बॉक्स में)",
   "project.explorer.file-listing.stale-warning": "पुरानी निर्देशिका सूची दिखा रहा है {is_missing, select, true {<b>गुम {missing} फाइलें</b>} other {}}. निर्देशिका सूची को अपडेट करने के लिए <a>इस परियोजना को शुरू करें</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "वर्तमान निर्देशिका को इस प्रोजेक्ट के अंदर चल रहे एक {name} सर्वर उदाहरण में खोलता है",
-  "project.explorer.search-bar.placeholder": "फ़ाइल खोजें या बनाएँ",
+  "project.explorer.search-bar.placeholder": "फ़ाइलों को फ़िल्टर करें या टर्मिनल के लिए \"/\"...",
   "project.explorer.start_project.warning": "इस निर्देशिका में फाइलें देखने के लिए, आपको <a>इस प्रोजेक्ट को शुरू करना</a> होगा।",
   "project.history.log-entry.invited_user": "आमंत्रित उपयोगकर्ता",
   "project.history.log-entry.invited_user_via": "नए उपयोगकर्ता को आमंत्रित किया गया द्वारा",

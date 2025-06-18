@@ -3,26 +3,26 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Layout, Tooltip } from "antd";
+import { Button, Layout, Tooltip } from "antd";
 import Link from "next/link";
 import { join } from "path";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SoftwareEnvNames } from "@cocalc/util/consts/software-envs";
 import { COLORS } from "@cocalc/util/theme";
 import AccountNavTab from "components/account/navtab";
 import Analytics from "components/analytics";
 import DemoCell from "components/demo-cell";
+import LiveDemo from "components/landing/live-demo";
 import Logo from "components/logo";
 import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import SubNav, { Page, SubPage } from "./sub-nav";
-import LiveDemo from "components/landing/live-demo";
-import { Button } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
 
-const GAP = "4%";
+const GAP = "3%";
 
 const SHOW_AI_CHAT: Readonly<string[]> = ["ai"] as const;
 
@@ -72,7 +72,7 @@ export default function Header(props: Props) {
           }}
         >
           {true || account ? (
-            <LiveDemo context="header" type="primary" />
+            <LiveDemo context="header" btnType="primary" />
           ) : (
             <Button
               type="primary"
@@ -130,14 +130,14 @@ export default function Header(props: Props) {
           </Tooltip>
         )}
         {enabledPages?.store && (
-          <A href="/store" style={page == "store" ? SelectedStyle : LinkStyle}>
+          <A href="/store" style={page === "store" ? SelectedStyle : LinkStyle}>
             Store
           </A>
         )}
         {enabledPages?.features && (
           <A
             href="/features/"
-            style={page == "features" ? SelectedStyle : LinkStyle}
+            style={page === "features" ? SelectedStyle : LinkStyle}
           >
             Features
           </A>
@@ -161,7 +161,7 @@ export default function Header(props: Props) {
         )}
         {enabledPages?.info && (
           <A
-            style={page == "info" ? SelectedStyle : LinkStyle}
+            style={page === "info" ? SelectedStyle : LinkStyle}
             href="/info"
             title="Documentation and links to resources for learning more about CoCalc"
           >
@@ -171,7 +171,7 @@ export default function Header(props: Props) {
         {enabledPages?.share && (
           <Link
             href={"/share/public_paths/page/1"}
-            style={page == "share" ? SelectedStyle : LinkStyle}
+            style={page === "share" ? SelectedStyle : LinkStyle}
             title="View files that people have published."
           >
             Share
@@ -179,7 +179,7 @@ export default function Header(props: Props) {
         )}
         {enabledPages?.support && (
           <A
-            style={page == "support" ? SelectedStyle : LinkStyle}
+            style={page === "support" ? SelectedStyle : LinkStyle}
             href="/support"
             title="Create and view support tickets"
           >
@@ -188,7 +188,7 @@ export default function Header(props: Props) {
         )}
         {enabledPages?.news && (
           <A
-            style={page == "news" ? SelectedStyle : LinkStyle}
+            style={page === "news" ? SelectedStyle : LinkStyle}
             href="/news"
             title={`News about ${siteName}`}
           >
@@ -197,28 +197,37 @@ export default function Header(props: Props) {
         )}
         {enabledPages?.about.index && (
           <A
-            style={page == "about" ? SelectedStyle : LinkStyle}
+            style={page === "about" ? SelectedStyle : LinkStyle}
             href="/about"
             title={`About ${siteName}`}
           >
             About
           </A>
         )}
+        {enabledPages?.policies.index && (
+          <A
+            style={page === "policies" ? SelectedStyle : LinkStyle}
+            href="/policies"
+            title={`Policies of ${siteName}`}
+          >
+            Policies
+          </A>
+        )}
         {account ? (
           <AccountNavTab
-            style={page == "account" ? SelectedStyle : LinkStyle}
+            style={page === "account" ? SelectedStyle : LinkStyle}
           />
         ) : (
           <>
             <A
-              style={page == "sign-up" ? SelectedStyle : LinkStyle}
+              style={page === "sign-up" ? SelectedStyle : LinkStyle}
               href="/auth/sign-up"
               title={`Sign up for a ${siteName} account.`}
             >
               Sign Up
             </A>
             <A
-              style={page == "sign-in" ? SelectedStyle : LinkStyle}
+              style={page === "sign-in" ? SelectedStyle : LinkStyle}
               href="/auth/sign-in"
               title={`Sign in to ${siteName} or create an account.`}
             >
@@ -228,7 +237,7 @@ export default function Header(props: Props) {
         )}
         {enabledPages?.auth.try && (
           <A
-            style={page == "try" ? SelectedStyle : LinkStyle}
+            style={page === "try" ? SelectedStyle : LinkStyle}
             href={"/auth/try"}
             title={`Try ${siteName} immediately without creating an account.`}
           >

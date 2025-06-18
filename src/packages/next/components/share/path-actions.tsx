@@ -61,14 +61,22 @@ export default function PathActions({
   }
   if (!url && include("hosted")) {
     v.push(
-      <Link key="hosted" href={`/share/public_paths/${id}`}>
+      <Link
+        key="hosted"
+        href={`/share/public_paths/${id}`}
+        style={{ marginTop: "5px" }}
+      >
         Hosted by <SiteName />
       </Link>,
     );
   }
   if (!url && !isDir && include("download")) {
     v.push(
-      <a key="download" href={downloadURL(id, path, relativePath)}>
+      <a
+        key="download"
+        href={downloadURL(id, path, relativePath)}
+        style={{ marginTop: "5px" }}
+      >
         <Icon name="cloud-download" /> Download
       </a>,
     );
@@ -95,5 +103,9 @@ export default function PathActions({
   }
   */
 
-  return <div style={{ marginTop: "5px" }}>{r_join(v, " | ")}</div>;
+  return (
+    <div style={{ display: "flex" }}>
+      {r_join(v, <div style={{ width: "10px" }} />)}
+    </div>
+  );
 }

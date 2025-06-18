@@ -23,14 +23,17 @@ function exec_synctex(
   path: string,
   args: string[],
 ): Promise<ExecOutput> {
-  return exec({
-    timeout: 5,
-    command: "synctex",
-    args,
-    project_id,
+  return exec(
+    {
+      timeout: 5,
+      command: "synctex",
+      args,
+      project_id,
+      path,
+      err_on_exit: true,
+    },
     path,
-    err_on_exit: true,
-  });
+  );
 }
 
 export async function pdf_to_tex(opts: {

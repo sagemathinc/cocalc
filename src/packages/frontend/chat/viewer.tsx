@@ -2,17 +2,19 @@
 Used for viewing a list of messages, e.g., in timetravel.
 */
 
-import { MessageList, getSortedDates } from "./chat-log";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { useMemo } from "react";
 import { Map as immutableMap } from "immutable";
+import { useMemo } from "react";
+
+import type { Document } from "@cocalc/sync/editor/generic/types";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { MessageList, getSortedDates } from "./chat-log";
 import type { ChatMessages } from "./types";
 
 export default function Viewer({
   doc,
   font_size,
 }: {
-  doc;
+  doc: Document;
   font_size?: number;
 }) {
   const messages = useMemo<ChatMessages>(() => {

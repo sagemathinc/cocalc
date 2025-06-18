@@ -322,11 +322,6 @@ export function StudentProjectUpgrades({
                   user: "academic",
                   period: "range",
                   run_limit: (get_store()?.num_students() ?? 0) + 2,
-                  member: true,
-                  uptime: "short",
-                  cpu: 1,
-                  ram: 2,
-                  disk: 3,
                   title: settings.get("title") ?? "",
                   description: settings.get("description") ?? "",
                 }}

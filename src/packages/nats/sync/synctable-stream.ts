@@ -101,6 +101,8 @@ export class SyncTableStream extends EventEmitter {
       desc: { path: this.path },
       start_seq: this.start_seq,
       noInventory: this.noInventory,
+      // ephemeral: true,
+      // leader: typeof navigator == "undefined",
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);

@@ -37,15 +37,21 @@ const COMPUTE_SERVER_PROMPT_MESSAGE =
 const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
-const HISTORY_LIMIT_BYTES = 20000;
+const HISTORY_LIMIT_BYTES = parseInt(
+  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "20000",
+);
 
 // Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
 
 //   Limit number of MB/s in data:
-const MAX_BYTES_PER_SECOND = 1 * 1000000;
+const MAX_BYTES_PER_SECOND = parseInt(
+  process.env.COCALC_TERMINAL_MAX_BYTES_PER_SECOND ?? "500000",
+);
 
-//   Limit number of messages per second (not doing this makes it easy to cause trouble to the server)
-const MAX_MSGS_PER_SECOND = 250;
+// Limit number of messages per second.
+const MAX_MSGS_PER_SECOND = parseInt(
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "250",
+);
 
 const sessions: { [path: string]: Session } = {};
 
@@ -74,11 +80,15 @@ export async function createTerminalService(path: string) {
       command?: string;
       args?: string[];
       cwd?: string;
-    }): Promise<{ success: "ok"; note?: string }> => {
+      ephemeral?: boolean;
+    }): Promise<{ success: "ok"; note?: string; ephemeral?: boolean }> => {
       // save options to reuse.
       options = opts;
       const note = await createTerminal({ ...opts, path });
-      return { success: "ok", note };
+      // passing back ephemeral is for backward compat, since old versions don't
+      // know about this, so they always pass back false, and the frontend can
+      // then use false.  TODO: remove this later.
+      return { success: "ok", note, ephemeral: opts.ephemeral };
     },
 
     write: async (data: string): Promise<void> => {
@@ -108,7 +118,12 @@ export async function createTerminalService(path: string) {
       }
     },
 
-    size: async (opts: { rows: number; cols: number; browser_id: string }) => {
+    size: async (opts: {
+      rows: number;
+      cols: number;
+      browser_id: string;
+      kick?: boolean;
+    }) => {
       const session = await getSession();
       session.setSize(opts);
     },
@@ -257,6 +272,9 @@ class Session {
   createStream = async () => {
     this.stream = await dstream<string>({
       name: this.streamName,
+      ephemeral: this.options.ephemeral,
+      // server side is THE leader.
+      leader: true,
       limits: {
         max_bytes: HISTORY_LIMIT_BYTES,
         max_bytes_per_second: MAX_BYTES_PER_SECOND,
@@ -266,18 +284,20 @@ class Session {
     this.stream.on("reject", ({ err }) => {
       if (err.limit == "max_bytes_per_second") {
         // instead, send something small
-        this.throttledEllipses("bytes");
+        this.throttledEllipses();
       } else if (err.limit == "max_msgs_per_second") {
         // only sometimes send [...], because channel is already full and it
         // doesn't help to double the messages!
-        this.throttledEllipses("messages");
+        this.throttledEllipses();
       }
     });
   };
 
   private throttledEllipses = throttle(
-    (what) => {
-      this.stream?.publish(` [...(truncated ${what})...] `);
+    () => {
+      this.stream?.publish(
+        `\r\n[...excessive output discarded above...]\r\n\r\n`,
+      );
     },
     1000,
     { leading: true, trailing: true },
@@ -335,11 +355,16 @@ class Session {
     browser_id,
     rows,
     cols,
+    kick,
   }: {
     browser_id: string;
     rows: number;
     cols: number;
+    kick?: boolean;
   }) => {
+    if (kick) {
+      this.clientSizes = {};
+    }
     this.clientSizes[browser_id] = { rows, cols, time: Date.now() };
     this.resize();
   };
@@ -362,7 +387,7 @@ class Session {
     logger.debug("resize", "new size", rows, cols);
     try {
       this.setSizePty({ rows, cols });
-      // tell browsers about out new size
+      // tell browsers about our new size
       await this.browserApi.size({ rows, cols });
     } catch (err) {
       logger.debug(`WARNING: unable to resize term: ${err}`);
@@ -377,6 +402,10 @@ class Session {
     }
     // logger.debug("setSize", { rows, cols }, "DOING IT!");
 
+    // the underlying ptyjs library -- if it thinks the size is already set,
+    // it will do NOTHING.  This ends up being very bad when clients reconnect.
+    // As a hack, we just change it, then immediately change it back
+    this.pty.resize(cols, rows + 1);
     this.pty.resize(cols, rows);
     this.size = { rows, cols };
   };

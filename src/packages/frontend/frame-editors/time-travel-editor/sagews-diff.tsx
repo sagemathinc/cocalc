@@ -4,18 +4,20 @@
  */
 
 /*
-This is just going to be a horible wrapper around the ancient complicated
+This is just going to be a horrible wrapper around the ancient complicated
 code to get this done for now.
 */
 
-import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
-import { Map } from "immutable";
-import { useEffect, useRef, MutableRefObject } from "react";
+import { debounce } from "lodash";
+import { MutableRefObject, useEffect, useRef } from "react";
+
+import { AccountState } from "@cocalc/frontend/account/types";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { set_cm_line_diff } from "./diff-util";
+
 const { codemirror_editor } = require("../../editor");
 const { SynchronizedWorksheet } = require("../../sagews/sagews");
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
   v0: string;
@@ -23,7 +25,7 @@ interface Props {
   path: string;
   project_id: string;
   font_size: number;
-  editor_settings: Map<string, any>;
+  editor_settings: AccountState["editor_settings"];
 }
 
 export function SagewsDiff(props: Props) {

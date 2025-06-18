@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(o <keyboard>Shift+Return</keyboard> nella casella di ricerca)",
   "project.explorer.file-listing.stale-warning": "Mostrando l'elenco delle directory non aggiornato {is_missing, select, true {<b>mancano {missing} file</b>} other {}}. Per aggiornare l'elenco delle directory <a>avvia questo progetto</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "Apre la directory corrente in un'istanza del server {name}, in esecuzione all'interno di questo progetto.",
-  "project.explorer.search-bar.placeholder": "Cerca o crea file",
+  "project.explorer.search-bar.placeholder": "Filtra file o \"/\" per terminale...",
   "project.explorer.start_project.warning": "Per vedere i file in questa directory, devi <a>avviare questo progetto</a>.",
   "project.history.log-entry.invited_user": "utente invitato",
   "project.history.log-entry.invited_user_via": "ha invitato un nuovo utente tramite",

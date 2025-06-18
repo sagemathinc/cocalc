@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(oder <keyboard>Shift+Return</keyboard> im Suchfeld)",
   "project.explorer.file-listing.stale-warning": "Veraltete Verzeichnisliste{is_missing, select, true {, <b>{missing} Dateien fehlen</b>} other {}}. Um die Verzeichnisliste zu aktualisieren <a>dieses Projekt starten</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "Öffnet das aktuelle Verzeichnis in einer {name}-Serverinstanz, die innerhalb dieses Projekts läuft.",
-  "project.explorer.search-bar.placeholder": "Suche oder erstelle Datei",
+  "project.explorer.search-bar.placeholder": "Dateien filtern oder \"/\" für Terminal...",
   "project.explorer.start_project.warning": "Um die Dateien in diesem Verzeichnis zu sehen, müssen Sie <a>dieses Projekt starten</a>.",
   "project.history.log-entry.invited_user": "eingeladener Benutzer",
   "project.history.log-entry.invited_user_via": "neuen Benutzer eingeladen über",

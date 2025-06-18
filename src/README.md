@@ -64,7 +64,6 @@ If you export the PORT environment variable, that determines what port everythin
 
 CoCalc also runs a NATS server listening on two ports on localhost, one for TCP and one for WebSocket connections.  To avoid conflicts, you can customize their ports by setting the environment variables `COCALC_NATS_PORT` (default 4222), and `COCALC_NATS_WS_PORT` (default 8443).
 
-
 **Note**: If you installed `pnpm` locally (instead of globally), simply run `npm run` in place of `pnpm` to execute
 these commands via [NPM run scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts).
 
@@ -144,7 +143,7 @@ You can also just type `pnpm psql` :
 ~/cocalc/src$ pnpm psql
 ```
 
-NOTE:  As of Jan 2023, CoCalc should fully work with any version of PostgreSQL from version 10.x onward.  However, obviously at some point we will stop supporting PostgreSQL v 10.
+NOTE:  As of Jan 2023, CoCalc should fully work with any version of PostgreSQL from version 14.x onward.  However, obviously at some point we will stop supporting PostgreSQL v 14.
 
 ### 2. More about Starting the Hub
 
@@ -185,6 +184,14 @@ which installs exactly the right packages, and builds the code.
 #### Environment Variables
 
 See `packages/backend/data.ts` . In particular, you can set BASE_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults. Data is stored in `cocalc/src/data/` by default.
+
+For NATS when doing development, it can be useful to set these in .bashrc so NATS uses ports of your choosing that are available.
+
+```sh
+export COCALC_NATS_SERVER_NAME=localhost
+export COCALC_NATS_PORT=5007
+export COCALC_NATS_WS_PORT=5008
+```
 
 #### File System Build Caching
 
