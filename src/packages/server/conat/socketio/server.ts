@@ -44,6 +44,7 @@ import port from "@cocalc/backend/port";
 import { join } from "path";
 import startCluster from "./start-cluster";
 import { getLogger } from "@cocalc/backend/logger";
+import "@cocalc/backend/conat";
 
 const logger = getLogger("conat-server");
 
@@ -74,7 +75,6 @@ export async function init(options: Partial<Options> = {}) {
   }
 
   const opts = {
-    logger: logger.debug,
     getUser,
     isAllowed,
     systemAccountPassword: await secureRandomString(64),

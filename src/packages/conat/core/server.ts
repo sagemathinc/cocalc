@@ -69,6 +69,9 @@ import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { until } from "@cocalc/util/async-utils";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("conat:core:server");
 
 const INTEREST_STREAM = "interest";
 const STICKY_STREAM = "sticky";
@@ -124,7 +127,6 @@ export interface Options {
   httpServer?;
   port?: number;
   id?: string;
-  logger?;
   path?: string;
   getUser?: UserFunction;
   isAllowed?: AllowFunction;
@@ -150,7 +152,6 @@ type State = "ready" | "closed";
 export class ConatServer {
   public readonly io;
   public readonly id: string;
-  private readonly logger: (...args) => void;
 
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
@@ -182,7 +183,6 @@ export class ConatServer {
       port = 3000,
       ssl = false,
       id = randomId(),
-      logger,
       path = "/conat",
       getUser,
       isAllowed,
@@ -224,7 +224,6 @@ export class ConatServer {
     };
     this.isAllowed = isAllowed ?? (async () => true);
     this.id = id;
-    this.logger = logger;
     this.log("Starting Conat server...", {
       id,
       path,
@@ -316,7 +315,7 @@ export class ConatServer {
   };
 
   private log = (...args) => {
-    this.logger?.(new Date().toISOString(), "conat", this.id, ":", ...args);
+    logger.debug(this.id, ":", ...args);
   };
 
   private unsubscribe = async ({ socket, subject }) => {
@@ -782,8 +781,10 @@ export class ConatServer {
   };
 
   client = (options?: ClientOptions): Client => {
+    const address = this.address();
+    this.log("client: connecting to - ", { address });
     return connect({
-      address: this.address(),
+      address,
       noCache: true,
       ...options,
     });
@@ -793,32 +794,37 @@ export class ConatServer {
     if (!this.options.systemAccountPassword) {
       throw Error("system service requires system account");
     }
-    this.log("starting service listening on sys");
+    this.log("starting service listening on sys...");
     const client = this.client({
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
-    await client.service(
-      "sys.conat.server",
-      {
-        stats: () => {
-          return { [this.id]: this.stats };
+    try {
+      await client.service(
+        "sys.conat.server",
+        {
+          stats: () => {
+            return { [this.id]: this.stats };
+          },
+          usage: () => {
+            return { [this.id]: this.usage.stats() };
+          },
+          // user has to explicitly refresh there browser after
+          // being disconnected this way
+          disconnect: (ids: string | string[]) => {
+            if (typeof ids == "string") {
+              ids = [ids];
+            }
+            for (const id of ids) {
+              this.io.in(id).disconnectSockets();
+            }
+          },
         },
-        usage: () => {
-          return { [this.id]: this.usage.stats() };
-        },
-        // user has to explicitly refresh there browser after
-        // being disconnected this way
-        disconnect: (ids: string | string[]) => {
-          if (typeof ids == "string") {
-            ids = [ids];
-          }
-          for (const id of ids) {
-            this.io.in(id).disconnectSockets();
-          }
-        },
-      },
-      { queue: this.id },
-    );
+        { queue: this.id },
+      );
+      this.log(`successfully started sys.conat.server service`);
+    } catch (err) {
+      this.log(`WARNING: unable to start sys.conat.server service -- ${err}`);
+    }
   };
 }
 

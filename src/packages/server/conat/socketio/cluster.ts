@@ -18,12 +18,14 @@ import {
 import { createAdapter, setupPrimary } from "@socket.io/cluster-adapter";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
-import { getLogger } from "@cocalc/backend/logger";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { conatSocketioCount, conatClusterPort } from "@cocalc/backend/data";
 import { loadConatConfiguration } from "../configuration";
 import { join } from "path";
+
+// ensure conat logging, credentials, etc. is setup
+import "@cocalc/backend/conat";
 
 console.log(`* CONAT Core Pub/Sub Server on port ${port} *`);
 
@@ -39,7 +41,7 @@ async function primary() {
 
   setupPrimary();
   cluster.setupPrimary({ serialization: "advanced" });
-  httpServer.listen(conatClusterPort ? conatClusterPort : port);
+  httpServer.listen(getPort());
 
   const numWorkers = conatSocketioCount
     ? conatSocketioCount
@@ -69,17 +71,22 @@ async function worker() {
   delete process.env.SYSTEM_ACCOUNT_PASSWORD;
 
   const conatServer = createConatServer({
-    logger: getLogger(`conat-server:worker-${id}`).debug,
     path,
     httpServer,
     id,
     getUser,
     isAllowed,
     systemAccountPassword,
+    // port -- server needs to know implicitly to make a clients
+    port: getPort(),
     cluster: true,
   });
   conatServer.io.adapter(createAdapter());
   setupWorker(conatServer.io);
+}
+
+function getPort() {
+  return conatClusterPort ? conatClusterPort : port;
 }
 
 if (cluster.isPrimary) {
