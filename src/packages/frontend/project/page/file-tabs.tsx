@@ -151,7 +151,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
         tabBarStyle={{
           minHeight: "36px",
           background: "#e8e8e8",
-          borderTop: "1px solid lightgrey",
+          borderTop: "2px solid lightgrey",
         }}
         onEdit={onEdit}
         style={{ width: "100%" }}
