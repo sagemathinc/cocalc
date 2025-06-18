@@ -31,7 +31,6 @@ import {
   init as createConatServer,
   type Options,
 } from "@cocalc/conat/core/server";
-import { getLogger } from "@cocalc/backend/logger";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
 import {
@@ -42,6 +41,7 @@ import {
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { join } from "path";
+import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("conat-server");
 

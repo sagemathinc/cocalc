@@ -1,7 +1,7 @@
 /*
 Select a license or enter a license code.
 
-Component takes as input data that describes a licens.
+Component takes as input data that describes a license.
 
 IMPORTANT: this component must work in *both* from nextjs and static.
 */

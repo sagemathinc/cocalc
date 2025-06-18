@@ -303,7 +303,7 @@ export default function ComputeServer({
     ) : (
       <Modal
         open={edit}
-        destroyOnClose
+        destroyOnHidden
         width={"900px"}
         onCancel={() => setEdit(false)}
         title={

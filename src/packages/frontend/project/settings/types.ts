@@ -3,7 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+import type { Map } from "immutable";
+import type { ReactNode } from "react";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
@@ -49,3 +50,10 @@ export type Project = TypedMap<{
   compute_image: string;
   site_license?: SiteLicense;
 }>;
+
+export type SoftwareInfo = {
+  title: string;
+  desc: string;
+  registryInfo?: JSX.Element;
+  extra?: ReactNode | JSX.Element | null;
+};

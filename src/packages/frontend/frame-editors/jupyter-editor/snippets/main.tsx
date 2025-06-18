@@ -349,7 +349,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         className="cc-jupyter-snippets"
         showArrow={activeSearch == null}
       >
-        <Collapse ghost={true} destroyInactivePanel {...activeSearch}>
+        <Collapse ghost={true} destroyOnHidden {...activeSearch}>
           {lvl2.map(level2)}
         </Collapse>
       </Collapse.Panel>
