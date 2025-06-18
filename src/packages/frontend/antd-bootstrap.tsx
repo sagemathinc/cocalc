@@ -24,6 +24,7 @@ import {
   Row as AntdRow,
   Tabs as AntdTabs,
   TabsProps as AntdTabsProps,
+  Space,
   Tooltip,
 } from "antd";
 import type { MouseEventHandler } from "react";
@@ -203,9 +204,9 @@ export function ButtonGroup(props: {
   className?: string;
 }) {
   return (
-    <AntdButton.Group className={props.className} style={props.style}>
+    <Space.Compact className={props.className} style={props.style}>
       {props.children}
-    </AntdButton.Group>
+    </Space.Compact>
   );
 }
 
@@ -265,7 +266,7 @@ export function Checkbox(props) {
     // Antd checkbox uses the label DOM element, and bootstrap css
     // changes the weight of that DOM element to 700, which is
     // really ugly and conflicts with the antd design style. So
-    // we manualy change it back here.  This will go away if/when
+    // we manually change it back here.  This will go away if/when
     // we no longer include bootstrap css...
     style.fontWeight = 400;
   }

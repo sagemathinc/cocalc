@@ -29,6 +29,11 @@
       "tar-fs@2.1.1": "2.1.3",
       "tar-fs@3.0.8": "3.0.9"
     },
-    "onlyBuiltDependencies": ["websocket-sftp", "websocketfs", "zeromq"]
+    "onlyBuiltDependencies": [
+      "http-proxy-3",
+      "websocket-sftp",
+      "websocketfs",
+      "zeromq"
+    ]
   }
 }

@@ -900,7 +900,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   return (
     <div style={style}>
       <Modal
-        destroyOnClose
+        destroyOnHidden
         width={CONTENT_WIDTH + 40}
         title={renderTitle()}
         open={mode != null}

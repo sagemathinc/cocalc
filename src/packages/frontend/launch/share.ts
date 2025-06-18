@@ -15,7 +15,7 @@
      - if you are a collaborator on the project (or an admin) with this share,
        open that project and go to the appropriate path
      - if you are not a collaborator, make a new project whose name is maybe
-       the name or descripiton of the share if possible (or the path); that's
+       the name or description of the share if possible (or the path); that's
        simple and clean.  Maybe include info in project description about license,
        original URL, etc., or a metadata file with that (which could be used to
        improve the directory listing).
@@ -46,7 +46,7 @@
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { ANON_PROJECT_TITLE } from "@cocalc/frontend/client/anonymous-setup";
-import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
+import { is_custom_image } from "@cocalc/frontend/custom-software/util";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { CSILauncher } from "@cocalc/frontend/launch/custom-image";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -174,7 +174,7 @@ export class ShareLauncher {
   ): Promise<Relationship> {
     const account_store = redux.getStore("account");
     if (account_store == null) {
-      throw Error("acount_store MUST be defined");
+      throw Error("account_store MUST be defined");
     }
     if (!account_store.get("is_logged_in")) {
       throw Error(
@@ -230,7 +230,7 @@ export class ShareLauncher {
   }): Promise<string> {
     try {
       // check, if this is a custom software image and use specific setup code
-      if (compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
+      if (is_custom_image(compute_image)) {
         console.log("creating anonymous custom software project");
         // compute_image is like "custom/[image id]/latest"
         const image_id = compute_image.split("/")[1];
@@ -317,7 +317,7 @@ export class ShareLauncher {
     });
 
     await webapp_client.project_client.copy_path_between_projects({
-      public: true, // uses the shared files for the source, NOT the source project! This is very differenet in KuCalc.
+      public: true, // uses the shared files for the source, NOT the source project! This is very different in KuCalc.
       src_project_id: project_id,
       src_path: path,
       target_project_id,

@@ -503,7 +503,7 @@ export function ComposeModal() {
   };
   return (
     <Modal
-      destroyOnClose
+      destroyOnHidden
       open={compose}
       styles={{ content: { maxWidth: "1000px", margin: "auto" } }}
       width={"85%"}

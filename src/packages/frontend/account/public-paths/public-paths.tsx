@@ -19,6 +19,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
+import { custom_image_name } from "@cocalc/frontend/custom-software/util";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
@@ -290,6 +291,8 @@ export const PublicPaths: React.FC = () => {
 function ComputeImage({ compute_image, project_id, path, setError }) {
   const [selectedImage, setSelectedImage] = useState<string>(compute_image);
   const [saving, setSaving] = useState<boolean>(false);
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const onCoCalcCom = kucalc === KUCALC_COCALC_COM;
 
   useEffect(() => {
     setSelectedImage(compute_image);
@@ -301,7 +304,9 @@ function ComputeImage({ compute_image, project_id, path, setError }) {
         disabled={saving}
         current_image={selectedImage}
         layout={"compact"}
-        onSelect={async (img) => {
+        hideCustomImages={!onCoCalcCom}
+        onSelect={async ({ id, type }) => {
+          const img = type === "custom" ? custom_image_name(id) : id;
           setSelectedImage(img);
           try {
             setSaving(true);

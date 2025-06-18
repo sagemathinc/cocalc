@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// Inputing a site license, e.g., for a project, course, etc.
+// Inputting a site license, e.g., for a project, course, etc.
 
 import {
   redux,
