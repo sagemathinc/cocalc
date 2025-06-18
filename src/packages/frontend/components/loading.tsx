@@ -5,7 +5,7 @@
 
 import { CSSProperties } from "react";
 import { useIntl } from "react-intl";
-
+import FakeProgress from "@cocalc/frontend/components/fake-progress";
 import { TypedMap, useDelayedRender } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
 import { Icon } from "./icon";
@@ -63,7 +63,9 @@ export function Loading({
         {text ?? intl.formatMessage(labels.loading)}
       </span>
       {estimate != undefined && (
-        <div>Estimated time: {estimate.get("time")}s</div>
+        <div>
+          <FakeProgress time={1000 * estimate.get("time")} />
+        </div>
       )}
     </div>
   );
