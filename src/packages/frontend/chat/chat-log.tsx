@@ -7,15 +7,19 @@
 Render all the messages in the chat.
 */
 
+// cSpell:ignore: timespan
+
 import { Alert, Button } from "antd";
 import { Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
+import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 import {
   cmp,
   hoursToTimeIntervalHuman,
@@ -24,12 +28,21 @@ import {
 } from "@cocalc/util/misc";
 import type { ChatActions } from "./actions";
 import Composing from "./composing";
-import Message from "./message";
-import type { ChatMessageTyped, ChatMessages, Mode } from "./types";
-import { getSelectedHashtagsSearch, newest_content } from "./utils";
-import { getRootMessage, getThreadRootDate } from "./utils";
-import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 import { filterMessages } from "./filter-messages";
+import Message from "./message";
+import type {
+  ChatMessageTyped,
+  ChatMessages,
+  CostEstimate,
+  Mode,
+  NumChildren,
+} from "./types";
+import {
+  getRootMessage,
+  getSelectedHashtagsSearch,
+  getThreadRootDate,
+  newest_content,
+} from "./utils";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -83,7 +96,7 @@ export function ChatLog({
   } = useMemo<{
     dates: string[];
     numFolded: number;
-    numChildren;
+    numChildren: NumChildren;
   }>(() => {
     const { dates, numFolded, numChildren } = getSortedDates(
       messages,
@@ -288,10 +301,7 @@ function isPrevMessageSender(
   );
 }
 
-function isThread(
-  message: ChatMessageTyped,
-  numChildren: { [date: number]: number },
-) {
+function isThread(message: ChatMessageTyped, numChildren: NumChildren) {
   if (message.get("reply_to") != null) {
     return true;
   }
@@ -324,7 +334,7 @@ export function getSortedDates(
 ): {
   dates: string[];
   numFolded: number;
-  numChildren: { [date: number]: number };
+  numChildren: NumChildren;
 } {
   let numFolded = 0;
   let m = messages;
@@ -342,7 +352,7 @@ export function getSortedDates(
 
   // Do a linear pass through all messages to divide into threads, so that
   // getSortedDates is O(n) instead of O(n^2) !
-  const numChildren: { [date: number]: number } = {};
+  const numChildren: NumChildren = {};
   for (const [_, message] of m) {
     const parent = message.get("reply_to");
     if (parent != null) {
@@ -486,22 +496,21 @@ export function MessageList({
   selectedDate,
   numChildren,
 }: {
-  messages;
-  account_id;
+  messages: ChatMessages;
+  account_id: string;
   user_map;
   mode;
   sortedDates;
   virtuosoRef?;
-  search?;
-  project_id?;
-  path?;
-  fontSize?;
+  project_id?: string;
+  path?: string;
+  fontSize?: number;
   selectedHashtags?;
   actions?;
-  costEstimate?;
+  costEstimate?: CostEstimate;
   manualScrollRef?;
   selectedDate?: string;
-  numChildren?;
+  numChildren?: NumChildren;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const virtuosoScroll = useVirtuosoScrollHook({

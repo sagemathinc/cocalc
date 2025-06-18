@@ -27,12 +27,12 @@ import {
   userStreamOptionsKey,
   last,
 } from "./stream";
+import { EphemeralStream } from "./ephemeral-stream";
 import { jsName, streamSubject, randomId } from "@cocalc/nats/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { map as awaitMap } from "awaiting";
 import { isNumericString } from "@cocalc/util/misc";
-import { millis } from "@cocalc/nats/util";
 import refCache from "@cocalc/util/refcache";
 import { type JsMsg } from "@nats-io/jetstream";
 import { getEnv } from "@cocalc/nats/client";
@@ -42,6 +42,9 @@ import { getClient, type ClientWithState } from "@cocalc/nats/client";
 import { encodeBase64 } from "@cocalc/nats/util";
 import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
+import { type Msg } from "@nats-io/nats-core";
+import { headersFromRawMessages } from "./stream";
+import { COCALC_MESSAGE_ID_HEADER } from "./ephemeral-stream";
 
 const logger = getLogger("dstream");
 
@@ -50,13 +53,15 @@ const MAX_PARALLEL = 250;
 export interface DStreamOptions extends StreamOptions {
   noAutosave?: boolean;
   noInventory?: boolean;
+  ephemeral?: boolean;
+  leader?: boolean;
 }
 
 export class DStream<T = any> extends EventEmitter {
   public readonly name: string;
-  private stream?: Stream;
+  private stream?: Stream | EphemeralStream;
   private messages: T[];
-  private raw: JsMsg[][];
+  private raw: (JsMsg | Msg)[][];
   private noAutosave: boolean;
   // TODO: using Map for these will be better because we use .length a bunch, which is O(n) instead of O(1).
   private local: { [id: string]: T } = {};
@@ -69,8 +74,10 @@ export class DStream<T = any> extends EventEmitter {
 
   constructor(opts: DStreamOptions) {
     super();
+
     if (
       opts.noInventory ||
+      opts.ephemeral ||
       (process.env.COCALC_TEST_MODE && opts.noInventory == null)
     ) {
       // @ts-ignore
@@ -79,7 +86,7 @@ export class DStream<T = any> extends EventEmitter {
     this.opts = opts;
     this.noAutosave = !!opts.noAutosave;
     this.name = opts.name;
-    this.stream = new Stream(opts);
+    this.stream = opts.ephemeral ? new EphemeralStream(opts) : new Stream(opts);
     this.messages = this.stream.messages;
     this.raw = this.stream.raw;
     if (!this.noAutosave) {
@@ -101,10 +108,23 @@ export class DStream<T = any> extends EventEmitter {
     }
     this.stream.on("change", (mesg: T, raw: JsMsg[]) => {
       delete this.saved[last(raw).seq];
+      const headers = headersFromRawMessages(raw);
+      if (headers?.[COCALC_MESSAGE_ID_HEADER]) {
+        // this is critical with ephemeral-stream.ts, since otherwise there is a moment
+        // when the same message is in both this.local *and* this.messages, and you'll
+        // see it doubled in this.getAll().  I didn't see this ever with
+        // stream.ts, but maybe it is possible.  It probably wouldn't impact any application,
+        // but still it would be a bug to not do this properly, which is what we do here.
+        delete this.local[headers[COCALC_MESSAGE_ID_HEADER]];
+      }
       this.emit("change", mesg);
       if (this.isStable()) {
         this.emit("stable");
       }
+    });
+    this.stream.on("reset", () => {
+      this.local = {};
+      this.saved = {};
     });
     await this.stream.init();
     this.emit("connected");
@@ -186,11 +206,10 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   time = (n: number): Date | undefined => {
-    const r = last(this.raw[n]);
-    if (r == null) {
-      return;
+    if (this.stream == null) {
+      throw Error("not initialized");
     }
-    return new Date(millis(r?.info.timestampNanos));
+    return this.stream.time(n);
   };
 
   // all server assigned times of messages in the stream.
@@ -275,8 +294,10 @@ export class DStream<T = any> extends EventEmitter {
       } catch (err) {
         d = Math.min(10000, d * 1.3) + Math.random() * 100;
         await delay(d);
-        // [ ] TODO: I do not like silently not dealing with this error!
-        console.log(`WARNING stream attemptToSave failed -- ${err}`, this.name);
+        console.warn(
+          `WARNING stream attemptToSave failed -- ${err}`,
+          this.name,
+        );
       }
       if (!this.hasUnsavedChanges()) {
         return;
@@ -459,7 +480,12 @@ export const cache = refCache<UserStreamOptions, DStream>({
 });
 
 export async function dstream<T>(
-  options: UserStreamOptions & { noAutosave?: boolean; noInventory?: boolean },
+  options: UserStreamOptions & {
+    noAutosave?: boolean;
+    noInventory?: boolean;
+    leader?: boolean;
+    ephemeral?: boolean;
+  },
 ): Promise<DStream<T>> {
   return await cache(options);
 }

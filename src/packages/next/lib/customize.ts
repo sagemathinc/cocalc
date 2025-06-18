@@ -70,6 +70,7 @@ interface Customize extends ServerCustomize {
   computeServersEnabled?: boolean; // backend configured to run on external compute servers
   enabledPages?: EnabledPageTree; // tree structure which specifies supported routes for this install
   support?: string; // HTML/MD to replace the generic support pages
+  supportVideoCall?: string;
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

@@ -33,7 +33,7 @@ export async function clean(
   path: string,
   delete_tex: boolean = false,
   logger: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
 ) {
   const { directory, base } = parse_path(path);
 
@@ -42,12 +42,15 @@ export async function clean(
   if (output_directory != null) {
     latexmk_args.push(`-output-directory=${output_directory}`);
   }
-  let output = await exec({
-    command: "latexmk",
-    args: latexmk_args,
-    project_id: project_id,
-    path: directory,
-  });
+  let output = await exec(
+    {
+      command: "latexmk",
+      args: latexmk_args,
+      project_id: project_id,
+      path: directory,
+    },
+    path,
+  );
   if (output) {
     logger(output.stdout + "\n" + output.stderr + "\n");
   }
@@ -69,12 +72,15 @@ export async function clean(
   // --: then it works with filenames starting with a "-"
   const args = ["-v", "-f", "-r", "--"].concat(files);
   logger(`Removing ${files.join(", ")}`);
-  output = await exec({
-    command: "rm",
-    args: args,
-    project_id: project_id,
-    path: directory,
-  });
+  output = await exec(
+    {
+      command: "rm",
+      args: args,
+      project_id: project_id,
+      path: directory,
+    },
+    path,
+  );
   if (output) {
     logger(output.stdout + "\n" + output.stderr + "\n");
   }

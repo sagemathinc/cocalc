@@ -21,6 +21,7 @@ export const system = {
   realpath: true,
   canonicalPaths: true,
 
+  // these should be completel deprecated -- the new streaming writeFile and readFile in nats/files are much better.
   writeTextFileToProject: true,
   readTextFileFromProject: true,
 

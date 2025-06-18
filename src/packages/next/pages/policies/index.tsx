@@ -26,6 +26,19 @@ const dataSourceCoCalcCom = [
     ),
   },
   {
+    link: "/policies/trust",
+    title: POLICIES.trust.label,
+    logo: "lock-outlined",
+    description: (
+      <>
+        The <A href="/policies/trust">{POLICIES.trust.label}</A> page highlights
+        our compliance with laws and frameworks, such as GDPR and SOC 2. We
+        adhere to rigorous standards to protect your data and maintain
+        transparency and accountability in all our operations.
+      </>
+    ),
+  },
+  {
     link: "/policies/copyright",
     title: "Copyright policies",
     logo: "dot-circle",
@@ -45,19 +58,6 @@ const dataSourceCoCalcCom = [
       <>
         The <A href="/policies/privacy">Privacy Policy</A> describes how
         SageMath, Inc. respects the privacy of its users.
-      </>
-    ),
-  },
-  {
-    link: "/policies/trust",
-    title: POLICIES.trust.label,
-    logo: "lock-outlined",
-    description: (
-      <>
-        The <A href="/policies/trust">{POLICIES.trust.label}</A> page highlights
-        our SOC 2 {/*and GDPR*/} compliance. We adhere to rigorous standards to
-        protect your data and maintain transparency and accountability in all
-        our operations.
       </>
     ),
   },

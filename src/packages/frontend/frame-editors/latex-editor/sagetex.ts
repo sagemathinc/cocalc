@@ -33,15 +33,18 @@ export async function sagetex_hash(
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sha1sum ${s}`);
-  const output = await exec({
-    timeout: 10,
-    command: "sha1sum",
-    args: [s],
-    project_id: project_id,
-    path: output_directory || directory,
-    err_on_exit: true,
-    aggregate: time,
-  });
+  const output = await exec(
+    {
+      timeout: 10,
+      command: "sha1sum",
+      args: [s],
+      project_id: project_id,
+      path: output_directory || directory,
+      err_on_exit: true,
+      aggregate: time,
+    },
+    path,
+  );
   return output.stdout.split(" ")[0];
 }
 
@@ -62,8 +65,9 @@ export async function sagetex(
     command: "sage",
     args: [s],
     set_job_info,
-    rundir: output_directory || directory,
+    runDir: output_directory || directory,
     aggregate: hash ? { value: hash } : undefined,
+    path,
   });
 }
 

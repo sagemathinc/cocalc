@@ -17,14 +17,13 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { join } from "path";
 import { useEffect, useState } from "react";
-
+import basePath from "lib/base-path";
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   SHARE_AUTHENTICATED_EXPLANATION,
   SHARE_AUTHENTICATED_ICON,
 } from "@cocalc/util/consts/ui";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import { Tagline } from "components/landing/tagline";
 import A from "components/misc/A";
 import Badge from "components/misc/badge";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
@@ -157,23 +156,21 @@ export default function PublicPath({
     if (disabled) {
       return (
         <>
-          <Icon name="lock" /> Private (only visible to collaborators on the
-          project)
+          <Icon name="lock" /> private
         </>
       );
     }
     if (unlisted) {
       return (
         <>
-          <Icon name="eye-slash" /> Unlisted (only visible to those who know the
-          link)
+          <Icon name="eye-slash" /> unlisted
         </>
       );
     }
     if (authenticated) {
       return (
         <>
-          <Icon name={SHARE_AUTHENTICATED_ICON} /> Authenticated (
+          <Icon name={SHARE_AUTHENTICATED_ICON} /> authenticated (
           {SHARE_AUTHENTICATED_EXPLANATION})
         </>
       );
@@ -182,11 +179,7 @@ export default function PublicPath({
 
   function visibility() {
     if (unlisted || disabled || authenticated) {
-      return (
-        <div>
-          <b>Visibility:</b> {visibility_explanation()}
-        </div>
-      );
+      return <div>{visibility_explanation()}</div>;
     }
   }
 
@@ -246,10 +239,10 @@ export default function PublicPath({
     }
     return (
       <div>
-        <A href="/stars" style={{ marginRight: "10px" }}>
-          Your stars...
-        </A>
-        {btn}
+        <Space.Compact>
+          {btn}
+          <Button href={join(basePath, "stars")}>...</Button>
+        </Space.Compact>
       </div>
     );
   }
@@ -298,7 +291,6 @@ export default function PublicPath({
     }
     return (
       <div>
-        <b>Project:</b>{" "}
         <ProjectLink project_id={project_id} title={projectTitle} />
         <br />
       </div>
@@ -330,7 +322,6 @@ export default function PublicPath({
 
     return (
       <div>
-        <b>Path: </b>
         <LinkedPath
           path={path}
           relativePath={relativePath}
@@ -370,10 +361,6 @@ export default function PublicPath({
           />
         )}
         <div>
-          <Tagline
-            value={customize.indexTagline}
-            style={{ marginTop: "-15px", padding: "5px" }}
-          />
           {invalidRedirect && (
             <Alert
               type="warning"
@@ -451,7 +438,7 @@ export default function PublicPath({
           {renderPathLink()}
           {counter && (
             <>
-              <b>Views:</b> <Badge count={counter} />
+              <Badge count={counter} /> views
               <br />
             </>
           )}
@@ -464,7 +451,7 @@ export default function PublicPath({
           {visibility()}
           {compute_image && (
             <>
-              <b>Image:</b> {compute_image}
+              {compute_image}
               <br />
             </>
           )}

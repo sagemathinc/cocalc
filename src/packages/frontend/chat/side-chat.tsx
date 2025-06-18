@@ -1,6 +1,8 @@
 import { Button, Flex, Space, Tooltip } from "antd";
-import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import {
+  CSS,
   redux,
   useActions,
   useRedux,
@@ -11,20 +13,21 @@ import { A, Icon, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { ProjectUsers } from "@cocalc/frontend/projects/project-users";
 import { user_activity } from "@cocalc/frontend/tracker";
+import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
+import Filter from "./filter";
+import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
-import { COLORS } from "@cocalc/util/theme";
-import Filter from "./filter";
 
 interface Props {
   project_id: string;
   path: string;
-  style?: CSSProperties;
+  style?: CSS;
   fontSize?: number;
   actions?: ChatActions;
   desc?;
@@ -104,7 +107,7 @@ export default function SideChat({
       onMouseMove={markAsRead}
       onFocus={() => {
         // Remove any active key handler that is next to this side chat.
-        // E.g, this is critical for taks lists...
+        // E.g, this is critical for tasks lists...
         redux.getActions("page").erase_active_key_handler();
       }}
     >
@@ -134,6 +137,7 @@ export default function SideChat({
                 <Icon name="history" />
               </Button>
             </Tooltip>
+            <FoldAllThreads actions={actions} shortLabel={true} />
           </Space.Compact>
           <CollabList
             addCollab={addCollab}

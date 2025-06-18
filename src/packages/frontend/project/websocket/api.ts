@@ -118,6 +118,10 @@ export class API {
   };
 
   version = async (compute_server_id?: number): Promise<number> => {
+    if (compute_server_id) {
+      throw Error("version only implemented right now for home base");
+    }
+    compute_server_id = 0;
     const api = this.getApi({ compute_server_id });
     return await api.system.version();
   };
@@ -193,6 +197,13 @@ export class API {
     no_cache = false,
     compute_server_id?: number,
   ): Promise<Configuration> => {
+    if (compute_server_id == null) {
+      // TODO: this is home base configuration for now by default no matter what is
+      // selected in the explorer.  Someday it might be for compute servers,
+      // but right now that info is just not used/known elsewhere in our code. So by
+      // default use home base!
+      compute_server_id = 0;
+    }
     const api = this.getApi({ compute_server_id });
     return await api.system.configuration(aspect, no_cache);
   };

@@ -7,13 +7,14 @@ import {
   ESTIMATION_HELP_TEXT,
   MODEL_FREE_TO_USE,
 } from "@cocalc/frontend/misc/llm-cost-estimation";
+import type { CostEstimate } from "./types";
 
 export function LLMCostEstimationChat({
   costEstimate,
   compact,
   style,
 }: {
-  costEstimate?: { min: number; max: number } | null;
+  costEstimate?: CostEstimate;
   compact: boolean; // only mean is shown
   style?: CSS;
 }) {

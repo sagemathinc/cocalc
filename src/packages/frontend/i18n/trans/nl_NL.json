@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(of <keyboard>Shift+Return</keyboard> in het zoekvak)",
   "project.explorer.file-listing.stale-warning": "Verouderde directorylijst weergeven {is_missing, select, true {<b>ontbrekende {missing} bestanden</b>} other {}}. Om de directorylijst bij te werken <a>start dit project</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "Opent de huidige map in een {name} serverinstantie, draaiend binnen dit project.",
-  "project.explorer.search-bar.placeholder": "Filter bestanden (/ voor terminal)...",
+  "project.explorer.search-bar.placeholder": "Filter bestanden of \"/\" voor terminal...",
   "project.explorer.start_project.warning": "Om de bestanden in deze map te zien, moet u <a>dit project starten</a>.",
   "project.history.log-entry.invited_user": "uitgenodigde gebruiker",
   "project.history.log-entry.invited_user_via": "uitgenodigde nieuwe gebruiker via",

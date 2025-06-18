@@ -18,7 +18,14 @@ import type {
 } from "@cocalc/nats/service";
 
 export interface Patch {
-  time: number; // timestamp of when patch made -- ms since the epoch
+  // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just
+  // has to an increasing sequence of numbers.  It does distinguish between different users
+  // by the congruence class of the number.
+  time: number;
+  // wall = wallclock time of when patch made; plays no role at all in the algorithm and
+  // is purely to **display to the user**.  For backward compat and display, if wall is
+  // not defined in then this should fall back to the time field.
+  wall?: number;
   patch?: CompressedPatch /* compressed format patch -- an array/object (not JSON string) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;

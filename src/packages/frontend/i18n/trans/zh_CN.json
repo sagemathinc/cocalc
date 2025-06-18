@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "（或在搜索框中按<keyboard>Shift+Return</keyboard>）",
   "project.explorer.file-listing.stale-warning": "显示过时的目录列表 {is_missing, select, true {<b>缺少 {missing} 文件</b>} other {}}。要更新目录列表 <a>启动此项目</a>。",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "在此项目中运行的 {name} 服务器实例中打开当前目录",
-  "project.explorer.search-bar.placeholder": "搜索或创建文件",
+  "project.explorer.search-bar.placeholder": "筛选文件或输入“/”进入终端...",
   "project.explorer.start_project.warning": "要查看此目录中的文件，您必须<a>启动此项目</a>。",
   "project.history.log-entry.invited_user": "受邀用户",
   "project.history.log-entry.invited_user_via": "通过邀请新用户",

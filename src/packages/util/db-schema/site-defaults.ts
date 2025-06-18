@@ -62,6 +62,7 @@ export type SiteSettingsKeys =
   | "imprint"
   | "policies"
   | "support"
+  | "support_video_call"
   | "openai_enabled"
   | "google_vertexai_enabled"
   | "mistral_enabled"
@@ -521,6 +522,14 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: (conf) => show_theming_vars(conf) && not_cocalc_com(conf),
     multiline: 5,
+    tags: ["Theme"],
+  },
+  support_video_call: {
+    name: "Video Call for Support",
+    desc: "Link to a form to book a video call.",
+    default: "https://calendly.com/cocalc/discovery?back=1",
+    clearable: true,
+    show: (conf) => show_theming_vars(conf) && only_cocalc_com(conf),
     tags: ["Theme"],
   },
   // ============== END THEMING ============

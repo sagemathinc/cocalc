@@ -153,7 +153,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return (
         <CodeMirror
           actions={
-            props.input_is_readonly ? undefined : props.actions
+            props.is_readonly || props.input_is_readonly
+              ? undefined
+              : props.actions
             /* Do NOT pass in actions when read only, since having any actions *defines*
             not read only for the codemirror editor; also, it will get created with
             potentially the same id as a normal cell, hence get linked to it, and

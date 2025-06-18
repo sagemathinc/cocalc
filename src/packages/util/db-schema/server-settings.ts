@@ -128,4 +128,5 @@ export interface Customize {
   cloudFilesystemsEnabled?: boolean;
   githubProjectId?: string;
   support?: string;
+  supportVideoCall?: string;
 }

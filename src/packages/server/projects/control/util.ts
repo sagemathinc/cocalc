@@ -7,13 +7,14 @@ import { promisify } from "node:util";
 
 import base_path from "@cocalc/backend/base-path";
 import { natsPorts, natsServer, root } from "@cocalc/backend/data";
+import { executeCode } from "@cocalc/backend/execute-code";
 import getLogger from "@cocalc/backend/logger";
 import { getUid, homePath } from "@cocalc/backend/misc";
 import { db } from "@cocalc/database";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { callback2 } from "@cocalc/util/async-utils";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { pidFilename, pidUpdateIntervalMs } from "@cocalc/util/project-info";
+import { pidFilename } from "@cocalc/util/project-info";
 import { getProject } from ".";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 
@@ -50,15 +51,22 @@ function pidFile(HOME: string): string {
   return join(dataPath(HOME), pidFilename);
 }
 
+let _bootTime = 0;
+export async function bootTime(): Promise<number> {
+  if (!_bootTime) {
+    const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
+    _bootTime = new Date(stdout).valueOf();
+  }
+  return _bootTime;
+}
+
 // throws error if no such file
 export async function getProjectPID(HOME: string): Promise<number> {
   const path = pidFile(HOME);
-  // if path is older than 2*pidUpdateIntervalMs, throw an error:
+  // if path was created **before OS booted**, throw an error
   const stats = await stat(path);
   const modificationTime = stats.mtime.getTime();
-  const now = Date.now();
-
-  if (now - modificationTime > 2 * pidUpdateIntervalMs + 1) {
+  if (modificationTime <= (await bootTime())) {
     throw new Error(
       `The pid file "${path}" is too old -- considering project to be dead`,
     );

@@ -17,7 +17,7 @@ async function _convert(
   project_id: string,
   path: string,
   frontmatter: string,
-  hash
+  hash,
 ): Promise<ExecOutput> {
   const x = path_split(path);
   const infile = x.tail;
@@ -35,15 +35,18 @@ async function _convert(
     cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE, output_options = list(self_contained = FALSE))`;
   }
 
-  return await exec({
-    timeout: 4 * 60,
-    bash: true, // so timeout is enforced by ulimit
-    command: "Rscript",
-    args: ["-e", cmd],
-    env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
-    project_id: project_id,
-    path: x.head,
-    err_on_exit: false,
-    aggregate: { value: hash },
-  });
+  return await exec(
+    {
+      timeout: 4 * 60,
+      bash: true, // so timeout is enforced by ulimit
+      command: "Rscript",
+      args: ["-e", cmd],
+      env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
+      project_id: project_id,
+      path: x.head,
+      err_on_exit: false,
+      aggregate: { value: hash },
+    },
+    path,
+  );
 }

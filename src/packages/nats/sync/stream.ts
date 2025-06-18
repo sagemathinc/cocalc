@@ -69,6 +69,7 @@ import { CHUNKS_HEADER } from "./general-kv";
 import jsonStableStringify from "json-stable-stringify";
 import { asyncDebounce } from "@cocalc/util/async-utils";
 import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
+import { COCALC_MESSAGE_ID_HEADER, type RawMsg } from "./ephemeral-stream";
 
 const PUBLISH_TIMEOUT = 15000;
 
@@ -136,8 +137,8 @@ export interface StreamOptions {
   // actually name of the jetstream in NATS
   jsname: string;
   // subject = default subject used for publishing; defaults to filter if filter doesn't have any wildcard
-  subjects: string | string[];
   subject?: string;
+  subjects: string | string[];
   filter?: string;
   env?: NatsEnv;
   natsStreamOptions?;
@@ -357,22 +358,7 @@ export class Stream<T = any> extends EventEmitter {
   };
 
   headers = (n: number): { [key: string]: string } | undefined => {
-    if (this.raw[n] == null) {
-      return;
-    }
-    const x: { [key: string]: string } = {};
-    let hasHeaders = false;
-    for (const raw of this.raw[n]) {
-      const { headers } = raw;
-      if (headers == null) {
-        continue;
-      }
-      for (const [key, value] of headers) {
-        x[key] = value[0];
-        hasHeaders = true;
-      }
-    }
-    return hasHeaders ? x : undefined;
+    return headersFromRawMessages(this.raw[n]);
   };
 
   // get server assigned global sequence number of n-th message in stream
@@ -405,6 +391,7 @@ export class Stream<T = any> extends EventEmitter {
     return this._start_seq;
   }
 
+  // WARNING: if you push multiple values at once here, then the order is NOT guaranteed
   push = async (...args: T[]) => {
     await awaitMap(args, MAX_PARALLEL, this.publish);
   };
@@ -441,6 +428,14 @@ export class Stream<T = any> extends EventEmitter {
       throw err;
     }
     this.enforceLimits();
+    if (options?.msgID) {
+      if (options.headers) {
+        // also put it here so can be used to clear this.local by dstream:
+        options.headers[COCALC_MESSAGE_ID_HEADER] = options.msgID;
+      } else {
+        options.headers = { [COCALC_MESSAGE_ID_HEADER]: options.msgID };
+      }
+    }
     let resp;
     const chunks: Buffer[] = [];
     const headers: ReturnType<typeof createHeaders>[] = [];
@@ -449,50 +444,14 @@ export class Stream<T = any> extends EventEmitter {
     const maxMessageSize = (await getMaxPayload()) - 1000;
     //const maxMessageSize = 20; // DEV ONLY!!!
 
-    const now = Date.now();
-    if (
-      this.limits.max_bytes_per_second > 0 ||
-      this.limits.max_msgs_per_second > 0
-    ) {
-      const cutoff = now - 1000;
-      let bytes = 0,
-        msgs = 0;
-      for (const t in this.bytesSent) {
-        if (parseInt(t) < cutoff) {
-          delete this.bytesSent[t];
-        } else {
-          bytes += this.bytesSent[t];
-          msgs += 1;
-        }
-      }
-      if (
-        this.limits.max_bytes_per_second > 0 &&
-        bytes + data.length > this.limits.max_bytes_per_second
-      ) {
-        const err = new PublishRejectError(
-          `bytes per second limit of ${this.limits.max_bytes_per_second} exceeded`,
-        );
-        err.code = "REJECT";
-        err.mesg = mesg;
-        err.subject = this.subject;
-        err.limit = "max_bytes_per_second";
-        throw err;
-      }
-      if (
-        this.limits.max_msgs_per_second > 0 &&
-        msgs > this.limits.max_msgs_per_second
-      ) {
-        const err = new PublishRejectError(
-          `messages per second limit of ${this.limits.max_msgs_per_second} exceeded`,
-        );
-        err.code = "REJECT";
-        err.mesg = mesg;
-        err.subject = this.subject;
-        err.limit = "max_msgs_per_second";
-        throw err;
-      }
-      this.bytesSent[now] = data.length;
-    }
+    // this may throw an exception:
+    enforceRateLimits({
+      limits: this.limits,
+      bytesSent: this.bytesSent,
+      subject: this.subject,
+      data,
+      mesg,
+    });
 
     if (data.length > maxMessageSize) {
       // we chunk the message into blocks of size maxMessageSize,
@@ -509,7 +468,7 @@ export class Stream<T = any> extends EventEmitter {
         if (i == 1 && options?.headers != null) {
           // also include custom user headers
           for (const k in options.headers) {
-            h.append(k, options.headers[k]);
+            h.append(k, `${options.headers[k]}`);
           }
         }
         h.append(CHUNKS_HEADER, `${i}/${last}`);
@@ -521,7 +480,7 @@ export class Stream<T = any> extends EventEmitter {
       if (options?.headers != null) {
         const h = createHeaders();
         for (const k in options.headers) {
-          h.append(k, options.headers[k]);
+          h.append(k, `${options.headers[k]}`);
         }
         headers.push(h);
       }
@@ -845,63 +804,11 @@ export class Stream<T = any> extends EventEmitter {
     if (this.jsm == null) {
       return;
     }
-    const { max_msgs, max_age, max_bytes } = this.limits;
-    // we check with each defined limit if some old messages
-    // should be dropped, and if so move limit forward.  If
-    // it is above -1 at the end, we do the drop.
-    let index = -1;
-    const setIndex = (i, _limit) => {
-      // console.log("setIndex", { i, _limit });
-      index = Math.max(i, index);
-    };
-    // max_msgs
-    // console.log({ max_msgs, l: this.messages.length, messages: this.messages });
-    if (max_msgs > -1 && this.messages.length > max_msgs) {
-      // ensure there are at most this.limits.max_msgs messages
-      // by deleting the oldest ones up to a specified point.
-      const i = this.messages.length - max_msgs;
-      if (i > 0) {
-        setIndex(i - 1, "max_msgs");
-      }
-    }
-
-    // max_age
-    if (max_age > 0) {
-      // expire messages older than max_age nanoseconds
-      const recent = this.raw[this.raw.length - 1];
-      if (recent != null) {
-        // to avoid potential clock skew, we define *now* as the time of the most
-        // recent message.  For us, this should be fine, since we only impose limits
-        // when writing new messages, and none of these limits are guaranteed.
-        const now = last(recent).info.timestampNanos;
-        const cutoff = now - nanos(max_age);
-        for (let i = this.raw.length - 1; i >= 0; i--) {
-          if (last(this.raw[i]).info.timestampNanos < cutoff) {
-            // it just went over the limit.  Everything before
-            // and including the i-th message must be deleted.
-            setIndex(i, "max_age");
-            break;
-          }
-        }
-      }
-    }
-
-    // max_bytes
-    if (max_bytes >= 0) {
-      let t = 0;
-      for (let i = this.raw.length - 1; i >= 0; i--) {
-        for (const r of this.raw[i]) {
-          t += r.data.length;
-        }
-        if (t > max_bytes) {
-          // it just went over the limit.  Everything before
-          // and including the i-th message must be deleted.
-          setIndex(i, "max_bytes");
-          break;
-        }
-      }
-    }
-
+    const index = enforceLimits({
+      messages: this.messages,
+      raw: this.raw,
+      limits: this.limits,
+    });
     // console.log("enforceLImits", { index });
     if (index > -1) {
       try {
@@ -1053,4 +960,152 @@ export function last(v: any[] | undefined) {
     return v;
   }
   return v[v.length - 1];
+}
+
+export function enforceLimits({
+  messages,
+  raw,
+  limits,
+}: {
+  messages: any[];
+  raw: (JsMsg | RawMsg)[][];
+  limits: FilteredStreamLimitOptions;
+}) {
+  const { max_msgs, max_age, max_bytes } = limits;
+  // we check with each defined limit if some old messages
+  // should be dropped, and if so move limit forward.  If
+  // it is above -1 at the end, we do the drop.
+  let index = -1;
+  const setIndex = (i, _limit) => {
+    // console.log("setIndex", { i, _limit });
+    index = Math.max(i, index);
+  };
+  // max_msgs
+  // console.log({ max_msgs, l: messages.length, messages });
+  if (max_msgs > -1 && messages.length > max_msgs) {
+    // ensure there are at most limits.max_msgs messages
+    // by deleting the oldest ones up to a specified point.
+    const i = messages.length - max_msgs;
+    if (i > 0) {
+      setIndex(i - 1, "max_msgs");
+    }
+  }
+
+  // max_age
+  if (max_age > 0) {
+    // expire messages older than max_age nanoseconds
+    const recent = raw[raw.length - 1];
+    if (recent != null) {
+      // to avoid potential clock skew, we define *now* as the time of the most
+      // recent message.  For us, this should be fine, since we only impose limits
+      // when writing new messages, and none of these limits are guaranteed.
+      const nanos = last(recent).info?.timestampNanos;
+      const now = nanos ? nanos / 10 ** 6 : last(recent).timestamp;
+      if (now) {
+        const cutoff = now - max_age;
+        for (let i = raw.length - 1; i >= 0; i--) {
+          const nanos = last(raw[i]).info?.timestampNanos;
+          const t = nanos ? nanos / 10 ** 6 : last(raw[i]).timestamp;
+          if (t < cutoff) {
+            // it just went over the limit.  Everything before
+            // and including the i-th message must be deleted.
+            setIndex(i, "max_age");
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // max_bytes
+  if (max_bytes >= 0) {
+    let t = 0;
+    for (let i = raw.length - 1; i >= 0; i--) {
+      for (const r of raw[i]) {
+        t += r.data.length;
+      }
+      if (t > max_bytes) {
+        // it just went over the limit.  Everything before
+        // and including the i-th message must be deleted.
+        setIndex(i, "max_bytes");
+        break;
+      }
+    }
+  }
+
+  return index;
+}
+
+export function enforceRateLimits({
+  limits,
+  bytesSent,
+  subject,
+  data,
+  mesg,
+}: {
+  limits: { max_bytes_per_second: number; max_msgs_per_second: number };
+  bytesSent: { [time: number]: number };
+  subject?: string;
+  data;
+  mesg;
+}) {
+  const now = Date.now();
+  if (!(limits.max_bytes_per_second > 0) && !(limits.max_msgs_per_second > 0)) {
+    return;
+  }
+
+  const cutoff = now - 1000;
+  let bytes = 0,
+    msgs = 0;
+  for (const t in bytesSent) {
+    if (parseInt(t) < cutoff) {
+      delete bytesSent[t];
+    } else {
+      bytes += bytesSent[t];
+      msgs += 1;
+    }
+  }
+  if (
+    limits.max_bytes_per_second > 0 &&
+    bytes + data.length > limits.max_bytes_per_second
+  ) {
+    const err = new PublishRejectError(
+      `bytes per second limit of ${limits.max_bytes_per_second} exceeded`,
+    );
+    err.code = "REJECT";
+    err.mesg = mesg;
+    err.subject = subject;
+    err.limit = "max_bytes_per_second";
+    throw err;
+  }
+  if (limits.max_msgs_per_second > 0 && msgs > limits.max_msgs_per_second) {
+    const err = new PublishRejectError(
+      `messages per second limit of ${limits.max_msgs_per_second} exceeded`,
+    );
+    err.code = "REJECT";
+    err.mesg = mesg;
+    err.subject = subject;
+    err.limit = "max_msgs_per_second";
+    throw err;
+  }
+  bytesSent[now] = data.length;
+}
+
+export function headersFromRawMessages(messages?: (JsMsg | RawMsg)[]) {
+  if (messages == null) {
+    return undefined;
+  }
+  const x: { [key: string]: string } = {};
+  let hasHeaders = false;
+  for (const raw of messages) {
+    const { headers } = raw;
+    if (headers == null) {
+      continue;
+    }
+    for (const [key, value] of headers) {
+      x[key] = value[0];
+      hasHeaders = true;
+    }
+  }
+  return hasHeaders ? x : undefined;
 }

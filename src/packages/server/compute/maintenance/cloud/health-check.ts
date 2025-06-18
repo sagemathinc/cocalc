@@ -63,7 +63,7 @@ FROM servers
 WHERE health_check#>>'{command}' != ''
   AND health_check#>>'{enabled}' =  'true'
 `;
-  logger.debug("query=", query);
+  //logger.debug("query=", query);
   const { rows } = await pool.query(query);
   const now = Date.now();
   const v = rows.filter(({ id, health_check }) => {

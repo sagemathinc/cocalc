@@ -54,6 +54,7 @@ import httpApi from "./api";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
 import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
+import { readFile, type ReadFileOptions } from "@cocalc/nats/files/read";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -72,19 +73,8 @@ export class ProjectClient {
   };
 
   // This can write small text files in one message.
-  public async write_text_file({
-    project_id,
-    path,
-    content,
-  }: {
-    project_id: string;
-    path: string;
-    content: string;
-  }): Promise<void> {
-    await this.natsApi(project_id).system.writeTextFileToProject({
-      path,
-      content,
-    });
+  public async write_text_file(opts): Promise<void> {
+    await this.writeFile(opts);
   }
 
   // writeFile -- easily write **arbitrarily large text or binary files**
@@ -97,6 +87,18 @@ export class ProjectClient {
       opts.stream = new Blob([opts.content], { type: "text/plain" }).stream();
     }
     return await writeFile(opts);
+  };
+
+  // readFile -- read **arbitrarily large text or binary files**
+  // from a project via a readable stream.
+  // Look at the code below if you want to stream a file for memory
+  // efficiency...
+  readFile = async (opts: ReadFileOptions): Promise<Buffer> => {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of await readFile(opts)) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
   };
 
   public async read_text_file({
@@ -681,3 +683,31 @@ const touchComputeServer = throttle(
   },
   30000,
 );
+
+// Polyfill for Safari: Add async iterator support to ReadableStream if missing.
+// E.g., this is missing in all versions of Safari as of May 2025 according to
+//           https://caniuse.com/?search=ReadableStream%20async
+// This breaks reading and writing files to projects, which is why this
+// is here (e.g., the writeFile and readFile functions above).
+// This might also matter for Jupyter.
+// https://chatgpt.com/share/6827a476-dbe8-800e-9156-3326eb41baae
+if (
+  typeof ReadableStream !== "undefined" &&
+  !ReadableStream.prototype[Symbol.asyncIterator]
+) {
+  ReadableStream.prototype[Symbol.asyncIterator] = function () {
+    const reader = this.getReader();
+    return {
+      async next() {
+        return reader.read();
+      },
+      async return() {
+        reader.releaseLock();
+        return { done: true };
+      },
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+    };
+  };
+}

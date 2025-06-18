@@ -1,7 +1,7 @@
 /*
 DEVELOPMENT:
 
-pnpm exec jest --watch --forceExit --detectOpenHandles "time.test.ts"
+pnpm test ./time.test.ts
 */
 
 // this sets client
@@ -26,5 +26,17 @@ describe("get time from nats", () => {
 
   it("time is a number", () => {
     expect(typeof time()).toBe("number");
+  });
+});
+
+import { timeClient, createTimeService } from "@cocalc/nats/service/time";
+
+describe("start the time server and client and test that it works", () => {
+  it("starts the time server and queries it", async () => {
+    await import("@cocalc/backend/nats");
+    createTimeService();
+    const client = timeClient();
+    const t = await client.time();
+    expect(Math.abs(Date.now() - t)).toBeLessThan(200);
   });
 });

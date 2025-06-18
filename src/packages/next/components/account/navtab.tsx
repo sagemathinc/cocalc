@@ -228,7 +228,7 @@ export default function AccountNavTab({ style }: Props) {
         yours.push(
           menuItem(
             "stars",
-            <A href="/stars">Starred Shared Files</A>,
+            <A href="/stars">Starred Files</A>,
             "star-filled",
           ),
         );

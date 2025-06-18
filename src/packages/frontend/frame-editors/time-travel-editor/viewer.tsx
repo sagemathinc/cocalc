@@ -2,16 +2,16 @@
 Render a document, where the rendering is determined by the file extension
 */
 
-import type { Document } from "@cocalc/sync/editor/generic/types";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { TextDocument } from "./document";
-import { TasksHistoryViewer } from "../../editors/task-editor/history-viewer";
-import { HistoryViewer as JupyterHistoryViewer } from "../../jupyter/history-viewer";
-import { SagewsCodemirror } from "./sagews-codemirror";
-import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
-import { isObjectDoc } from "./view-document";
-import { getScale } from "@cocalc/frontend/frame-editors/frame-tree/hooks";
 import ChatViewer from "@cocalc/frontend/chat/viewer";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { TasksHistoryViewer } from "@cocalc/frontend/editors/task-editor/history-viewer";
+import { getScale } from "@cocalc/frontend/frame-editors/frame-tree/hooks";
+import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
+import { HistoryViewer as JupyterHistoryViewer } from "@cocalc/frontend/jupyter/history-viewer";
+import type { Document } from "@cocalc/sync/editor/generic/types";
+import { TextDocument } from "./document";
+import { SagewsCodemirror } from "./sagews-codemirror";
+import { isObjectDoc } from "./view-document";
 
 export const HAS_SPECIAL_VIEWER = new Set([
   "tasks",

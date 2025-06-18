@@ -66,6 +66,8 @@ const WHITELIST = [
   "a whole package of antd",
   // we can't do anything about bokeh crashes in their own code
   "cdn.bokeh.org",
+  // xtermjs
+  "renderRows",
 ];
 const isWhitelisted = function (opts) {
   const s = JSON.stringify(opts);

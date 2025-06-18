@@ -338,7 +338,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function cm_cursor(): void {
-    if (cm.current == null || actions == null) {
+    if (cm.current == null || actions == null || !cm_is_focused.current) {
       return;
     }
     const sel = cm.current.listSelections();

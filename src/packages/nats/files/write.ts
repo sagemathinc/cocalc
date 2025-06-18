@@ -73,6 +73,7 @@ import {
 import { projectSubject } from "@cocalc/nats/names";
 import { type Subscription } from "@nats-io/nats-core";
 import { type Readable } from "node:stream";
+import { runLoop } from "./util";
 
 function getWriteSubject({ project_id, compute_server_id }) {
   return projectSubject({
@@ -111,9 +112,13 @@ export async function createServer({
     return;
   }
   const { nc } = await getEnv();
-  sub = nc.subscribe(subject);
-  subs[subject] = sub;
-  listen({ sub, createWriteStream, project_id, compute_server_id });
+  runLoop({
+    listen,
+    subs,
+    subject,
+    nc,
+    opts: { createWriteStream, project_id, compute_server_id },
+  });
 }
 
 async function listen({

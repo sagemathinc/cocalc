@@ -14,7 +14,8 @@ interface TerminalApi {
     command?: string;
     args?: string[];
     cwd?: string;
-  }) => Promise<{ success: "ok"; note?: string }>;
+    ephemeral?: boolean;
+  }) => Promise<{ success: "ok"; note?: string; ephemeral?: boolean }>;
 
   write: (data: string) => Promise<void>;
 
@@ -28,6 +29,7 @@ interface TerminalApi {
     rows: number;
     cols: number;
     browser_id: string;
+    kick?: boolean;
   }) => Promise<void>;
 
   // sent from browser to project when this client is leaving.

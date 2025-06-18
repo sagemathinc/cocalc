@@ -48,6 +48,8 @@ export interface ServiceDescription extends Location {
 
   // DEFAULT: ENABLE_SERVICE_FRAMEWORK
   enableServiceFramework?: boolean;
+
+  subject?: string;
 }
 
 export interface ServiceCall extends ServiceDescription {
@@ -100,10 +102,11 @@ export async function callNatsService(opts: ServiceCall): Promise<any> {
     return result;
   };
 
-  // we just try to call the service
+  // we just try to call the service first
   try {
     return await doRequest();
   } catch (err) {
+    //console.log(`request to '${subject}' failed -- ${err}`);
     // it failed.
     if (err.name == "NatsError" && !opts.noRetry) {
       // it's a nats problem
@@ -156,7 +159,12 @@ export function serviceSubject({
   compute_server_id,
 
   path,
+
+  subject,
 }: ServiceDescription): string {
+  if (subject) {
+    return subject;
+  }
   let segments;
   path = path ? encodeBase64(path) : "_";
   if (!project_id && !account_id) {
@@ -284,20 +292,21 @@ export class NatsService extends EventEmitter {
         }
       }
 
+      const queue = this.options.all ? randomId() : "0";
       if (this.options.enableServiceFramework ?? ENABLE_SERVICE_FRAMEWORK) {
         const svcm = new Svcm(env.nc);
         const service = await svcm.add({
           name: this.name,
           version: this.options.version ?? "0.0.1",
           description: serviceDescription(this.options),
-          queue: this.options.all ? randomId() : "0",
+          queue,
         });
         if (!this.subject) {
           return;
         }
         this.api = service.addEndpoint("api", { subject: this.subject });
       } else {
-        this.api = env.nc.subscribe(this.subject);
+        this.api = env.nc.subscribe(this.subject, { queue });
       }
       this.emit("running");
       await this.listen();

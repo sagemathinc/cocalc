@@ -143,7 +143,8 @@ function isWhitelisted({ error }): boolean {
     }
     if (
       error?.stack?.includes("xterm-addon-webgl") ||
-      error.stack?.include("reading 'loadCell'")
+      error?.stack?.includes("reading 'loadCell'") ||
+      error?.stack?.includes("renderRows") // xtermjs in general...
     ) {
       // ranodmly happens sometimes with webgl based terminal, but then it still works fine.
       return true;

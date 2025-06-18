@@ -1173,7 +1173,7 @@
   "project.explorer.file-listing.no-files.shift-return": "(albo <keyboard>Shift+Return</keyboard> w polu wyszukiwania)",
   "project.explorer.file-listing.stale-warning": "Pokazywanie przestarzałej listy katalogów {is_missing, select, true {<b>brakujące {missing} pliki</b>} other {}}. Aby zaktualizować listę katalogów <a>uruchom ten projekt</a>.",
   "project.explorer.misc-side-buttons.open_dir.tooltip": "Otwiera bieżący katalog w instancji serwera {name}, działającej w ramach tego projektu.",
-  "project.explorer.search-bar.placeholder": "Szukaj lub utwórz plik",
+  "project.explorer.search-bar.placeholder": "Filtruj pliki lub \"/\" dla terminala...",
   "project.explorer.start_project.warning": "Aby zobaczyć pliki w tym katalogu, musisz <a>uruchomić ten projekt</a>.",
   "project.history.log-entry.invited_user": "zaproszony użytkownik",
   "project.history.log-entry.invited_user_via": "zaproszono nowego użytkownika przez",

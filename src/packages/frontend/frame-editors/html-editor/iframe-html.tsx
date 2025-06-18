@@ -15,15 +15,29 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 // Some day in the future this might no longer be necessary ... (react 16.13.1)
 
 import $ from "jquery";
-import { Set } from "immutable";
+
+import { Spin, Switch, Tooltip } from "antd";
 import { delay } from "awaiting";
+import { Set } from "immutable";
+import { debounce } from "lodash";
+import { join } from "path";
+import { useEffect, useRef, useState } from "react";
+
 import {
   change_filename_extension,
   is_different,
   list_alternatives,
+  path_split,
 } from "@cocalc/util/misc";
-import { debounce } from "lodash";
-import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
+
+import { CSS, React, ReactDOM, Rendered } from "@cocalc/frontend/app-framework";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
 import { raw_url } from "../frame-tree/util";
@@ -36,12 +50,27 @@ interface Props {
   fullscreen_style?: any;
   project_id: string;
   path: string;
-  reload: number;
+  reload?: number;
   font_size: number;
   tab_is_visible: boolean;
   mode: "rmd" | undefined;
   style?: any; // style should be static; change does NOT cause update.
   derived_file_types: Set<string>;
+  value?: string;
+}
+
+function getKey({ project_id, path }) {
+  return `${project_id}:${path}:trust`;
+}
+function isTrusted(props): boolean {
+  return !!get_local_storage(getKey(props));
+}
+function setTrusted(props, trust: boolean) {
+  if (trust) {
+    set_local_storage(getKey(props), "true");
+  } else {
+    delete_local_storage(getKey(props));
+  }
 }
 
 function should_memoize(prev, next) {
@@ -73,15 +102,88 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     style,
     derived_file_types,
     tab_is_visible,
+    value,
   } = props;
 
-  const rootEl = React.useRef(null);
-  const iframe = React.useRef(null);
-  const mounted = React.useRef(false);
+  // during init definitely nothing available to show users; this
+  // is only needed for rmd mode where an aux file loaded from server.
+  const [init, setInit] = useState<boolean>(mode == "rmd");
+  const [srcDoc, setSrcDoc] = useState<string | null>(null);
+  const [trust, setTrust0] = useState<boolean>(isTrusted(props));
+  const setTrust = (trust) => {
+    setTrusted(props, trust);
+    setTrust0(trust);
+  };
+
+  useEffect(() => {
+    if (trust) {
+      return;
+    }
+    let actual_path = path;
+    if (mode == "rmd" && derived_file_types != undefined) {
+      if (derived_file_types.contains("html")) {
+        // keep path as it is; don't remove this case though because of the else
+      } else if (derived_file_types.contains("nb.html")) {
+        actual_path = change_filename_extension(path, "nb.html");
+      } else {
+        setSrcDoc(null);
+      }
+    }
+
+    // read actual_path and set srcDoc to it.
+    (async () => {
+      let buf;
+      try {
+        buf = await webapp_client.project_client.readFile({
+          project_id,
+          path: actual_path,
+        });
+      } catch (err) {
+        actions.set_error(`${err}`);
+        return;
+      } finally {
+        // done -- we tried
+        setInit(false);
+      }
+      let src = buf.toString("utf8");
+      if (trust) {
+        // extra security and pointed in the right direction.
+        // We can't just use <iframe src= since the backend 'raw files' server
+        // just always forces a download of that, for security reasons.
+        const base = join(
+          appBasePath,
+          project_id,
+          "files",
+          encodeURIComponent(path_split(actual_path).head) + "/",
+        );
+        const extraHead = `<base href="${base}">
+        <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval';
+  script-src * data: blob: 'unsafe-inline' 'unsafe-eval';
+  img-src * data: blob:;
+  style-src * data: blob: 'unsafe-inline';
+  font-src * data: blob: about:;
+  connect-src * data: blob:;
+  frame-src * data: blob:;
+  object-src * data: blob:;
+  media-src * data: blob:;">`;
+        const newSrc = src.replace(/\<head\>/i, `<head>${extraHead}`);
+        if (src != newSrc) {
+          src = newSrc;
+        } else {
+          src = `<head>\n${extraHead}\n</head>\n\n${src}`;
+        }
+      }
+      setSrcDoc(src);
+    })();
+  }, [reload, mode, path, derived_file_types, trust]);
+
+  const rootEl = useRef(null);
+  const iframe = useRef(null);
+  const mounted = useRef(false);
   const scaling = use_font_size_scaling(font_size);
 
   // once after mounting
-  React.useEffect(function () {
+  useEffect(function () {
     mounted.current = true;
     reload_iframe();
     set_iframe_style(scaling);
@@ -90,18 +192,18 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     };
   }, []);
 
-  React.useEffect(
+  useEffect(
     function () {
       if (tab_is_visible) restore_scroll();
     },
-    [tab_is_visible]
+    [tab_is_visible],
   );
 
-  React.useEffect(
+  useEffect(
     function () {
       set_iframe_style(scaling);
     },
-    [scaling]
+    [scaling],
   );
 
   function click_iframe(): void {
@@ -132,7 +234,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     if (node != null && node.contentDocument != null) {
       node.contentDocument.addEventListener(
         "scroll",
-        debounce(() => on_scroll(), 150)
+        debounce(() => on_scroll(), 150),
       );
     }
   }
@@ -156,28 +258,42 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_iframe() {
-    let actual_path = path;
-    if (mode == "rmd" && derived_file_types != undefined) {
-      if (derived_file_types.contains("html")) {
-        // keep path as it is; don't remove this case though because of the else
-      } else if (derived_file_types.contains("nb.html")) {
-        actual_path = change_filename_extension(path, "nb.html");
-      } else {
-        return render_no_html();
-      }
+    if (trust) {
+      const src = `${raw_url(project_id, path)}?param=${reload}`;
+      return (
+        <iframe
+          ref={iframe}
+          src={src}
+          width={"100%"}
+          height={"100%"}
+          style={{ border: 0, ...style }}
+          onLoad={iframe_loaded}
+        />
+      );
     }
-
-    // param below is just to avoid caching.
-    const src = `${raw_url(project_id, actual_path)}?param=${reload}`;
+    if (init) {
+      // in the init phase.
+      return (
+        <div style={{ margin: "15px auto" }}>
+          <Spin />
+        </div>
+      );
+    }
+    if (mode == "rmd" && srcDoc == null) {
+      return render_no_html();
+    }
 
     return (
       <iframe
         ref={iframe}
-        src={src}
+        srcDoc={!trust && mode != "rmd" ? value : (srcDoc ?? "")}
         width={"100%"}
         height={"100%"}
-        style={{ border: 0, opacity: 0, ...style }}
+        style={{ border: 0, ...style }}
         onLoad={iframe_loaded}
+        sandbox={
+          !trust ? "allow-forms allow-scripts allow-presentation" : undefined
+        }
       />
     );
   }
@@ -208,7 +324,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     return (
       <div>
         <p>There is no rendered HTML file available.</p>
-        {derived_file_types.size > 0 ? (
+        {(derived_file_types?.size ?? 0) > 0 ? (
           <p>
             Instead, you might want to switch to the{" "}
             {list_alternatives(derived_file_types)} view by selecting it via the
@@ -224,6 +340,23 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   // the cocalc-editor-div is needed for a safari hack only
   return (
     <div style={STYLE} className={"cocalc-editor-div smc-vfill"} ref={rootEl}>
+      {
+        <div>
+          <Tooltip
+            title={
+              "Arbitrary HTML is potentially dangerous.  If you trust this content, switch this to trusted."
+            }
+          >
+            <Switch
+              style={{ float: "right", marginTop: "5px", marginRight: "5px" }}
+              checked={trust}
+              onChange={(checked) => setTrust(checked)}
+              unCheckedChildren={"Untrusted"}
+              checkedChildren={"Trusted"}
+            />
+          </Tooltip>
+        </div>
+      }
       {render_iframe()}
     </div>
   );

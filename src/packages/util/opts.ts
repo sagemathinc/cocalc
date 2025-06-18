@@ -16,9 +16,12 @@ Handling of input opts to functions and type checking.
 */
 
 let DEBUG, TEST_MODE, val;
-const PropTypes = require("prop-types");
 
-const immutable_types = require("./immutable-types");
+import PropTypes from "prop-types";
+
+import * as immutable_types from "./immutable-types";
+
+import { trunc, to_json } from "./misc";
 
 /*
 Testing related env/DEVEL/DEBUG stuff
@@ -65,11 +68,7 @@ if (
 
 // Checks property types on a target object with checkers in a declaration.
 // Declarations should throw an Error for mismatches and undefined if OK.
-const types = (exports.types = function (
-  target,
-  declaration,
-  identifier = "check.types",
-) {
+export function types(target, declaration, identifier = "check.types") {
   if (identifier == null) {
     identifier = "check.types";
   }
@@ -89,7 +88,7 @@ const types = (exports.types = function (
     "checking a",
     identifier,
   );
-});
+}
 
 for (let key in PropTypes) {
   val = PropTypes[key];
@@ -100,13 +99,17 @@ for (let key in PropTypes) {
 
 types.immutable = immutable_types.immutable;
 
+types.number = PropTypes.number;
+
+types.string = PropTypes.string;
+
 // Returns a new object with properties determined by those of obj1 and
 // obj2.  The properties in obj1 *must* all also appear in obj2.  If an
 // obj2 property has value "defaults.required", then it must appear in
 // obj1.  For each property P of obj2 not specified in obj1, the
 // corresponding value obj1[P] is set (all in a new copy of obj1) to
 // be obj2[P].
-exports.defaults = function (obj1, obj2, allow_extra = false, strict = false) {
+export function defaults(obj1, obj2, allow_extra = false, strict = false) {
   let err;
   if (strict == null) {
     strict = false;
@@ -116,10 +119,10 @@ exports.defaults = function (obj1, obj2, allow_extra = false, strict = false) {
   }
   const error = function () {
     try {
-      return `(obj1=${exports.trunc(
-        exports.to_json(obj1),
+      return `(obj1=${trunc(to_json(obj1), 1024)}, obj2=${trunc(
+        to_json(obj2),
         1024,
-      )}, obj2=${exports.trunc(exports.to_json(obj2), 1024)})`;
+      )})`;
     } catch (err) {
       return "";
     }
@@ -143,8 +146,9 @@ exports.defaults = function (obj1, obj2, allow_extra = false, strict = false) {
   const r = {};
   for (var prop in obj2) {
     val = obj2[prop];
+
     if (obj1.hasOwnProperty(prop) && obj1[prop] != null) {
-      if (obj2[prop] === exports.defaults.required && obj1[prop] == null) {
+      if (obj2[prop] === required && obj1[prop] == null) {
         err = `misc.defaults -- TypeError: property '${prop}' must be specified: ${error()}`;
         if (strict || DEBUG || TEST_MODE) {
           throw new Error(err);
@@ -156,7 +160,7 @@ exports.defaults = function (obj1, obj2, allow_extra = false, strict = false) {
       r[prop] = obj1[prop];
     } else if (obj2[prop] != null) {
       // only record not undefined properties
-      if (obj2[prop] === exports.defaults.required) {
+      if (obj2[prop] === required) {
         err = `misc.defaults -- TypeError: property '${prop}' must be specified: ${error()}`;
         if (strict || DEBUG || TEST_MODE) {
           throw new Error(err);
@@ -169,6 +173,7 @@ exports.defaults = function (obj1, obj2, allow_extra = false, strict = false) {
       }
     }
   }
+
   if (!allow_extra) {
     for (prop in obj1) {
       val = obj1[prop];
@@ -184,13 +189,12 @@ exports.defaults = function (obj1, obj2, allow_extra = false, strict = false) {
     }
   }
   return r;
-};
+}
 
 // WARNING -- don't accidentally use this as a default:
-const required =
-  (exports.required =
-  exports.defaults.required =
-    "__!!!!!!this is a required property!!!!!!__");
+export const required = "__!!!!!!this is a required property!!!!!!__";
+
+defaults.required = required;
 
 function __guard__(value, transform) {
   return typeof value !== "undefined" && value !== null
