@@ -145,7 +145,7 @@ export async function runValkey(): Promise<{
     closed = true;
     if (!child?.pid) return;
     try {
-      process.kill(-child.pid, "SIGKILL");
+      process.kill(child.pid, "SIGKILL");
     } catch {
       // already dead or not found
     }
