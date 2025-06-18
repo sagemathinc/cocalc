@@ -40,7 +40,7 @@ const REQUIRED_SINGLE_SERVER_SEND_MESSAGES_PER_SECOND = 500;
 const REQUIRED_VALKEY_SERVER_RECV_MESSAGES_PER_SECOND = 200;
 const REQUIRED_VALKEY_SERVER_SEND_MESSAGES_PER_SECOND = 400;
 
-const VERBOSE = false;
+const VERBOSE = true;
 const log = VERBOSE ? console.log : (..._args) => {};
 
 beforeAll(before);

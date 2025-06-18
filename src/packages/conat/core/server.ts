@@ -43,7 +43,8 @@ import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/conat/util";
-import { createAdapter } from "@cocalc/redis-streams-adapter";
+import { createAdapter as createValkeyStreamsAdapter } from "@cocalc/redis-streams-adapter";
+import { createAdapter as createValkeyPubSubAdapter } from "@socket.io/redis-adapter";
 import Valkey from "iovalkey";
 import { Server } from "socket.io";
 import { callback } from "awaiting";
@@ -73,6 +74,7 @@ const INTEREST_STREAM = "interest";
 const STICKY_STREAM = "sticky";
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
+const USE_VALKEY_PUBSUB = true;
 
 const VALKEY_READ_COUNT = 100;
 
@@ -229,21 +231,32 @@ export class ConatServer {
       httpServer: httpServer ? "httpServer(...)" : undefined,
       valkey: !!valkey, // valkey has password in it so do not log
     });
+
     // NOTE: do NOT enable connectionStateRecovery; it seems to cause issues
     // when restarting the server.
+    let adapter: any = undefined;
+    if (valkey) {
+      this.log("using valkey");
+      const c = valkeyClient(valkey);
+      if (USE_VALKEY_PUBSUB) {
+        this.log("using the valkey pub/sub adapter");
+        adapter = createValkeyPubSubAdapter(c, c.duplicate());
+      } else {
+        this.log("using the valkey streams adapter with low-latency config");
+        adapter = createValkeyStreamsAdapter(c, {
+          readCount: VALKEY_READ_COUNT,
+          blockTime: 1,
+        });
+      }
+    }
+
     const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
       path,
-
-      adapter:
-        valkey != null
-          ? createAdapter(valkeyClient(valkey), {
-              readCount: VALKEY_READ_COUNT,
-              blockTime: 1,
-            })
-          : undefined,
-
-      // perMessageDeflate is disabled by default in socket.io due to FUD -- see https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
+      adapter,
+      // perMessageDeflate is disabled by default in socket.io, but it
+      // seems unclear exactly *why*:
+      //   https://github.com/socketio/socket.io/issues/3477#issuecomment-930503313
       perMessageDeflate: { threshold: 1024 },
     };
     this.log(socketioOptions);
