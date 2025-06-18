@@ -21,7 +21,7 @@ beforeAll(before);
 export async function waitForSubscription(server, subject) {
   await wait({
     until: () => {
-      return Object.keys(server.interest.patterns).includes(subject);
+      return server.interest.patterns[subject] !== undefined;
     },
   });
 }
@@ -29,12 +29,20 @@ export async function waitForSubscription(server, subject) {
 export async function waitForNonSubscription(server, subject) {
   await wait({
     until: () => {
-      return !Object.keys(server.interest.patterns).includes(subject);
+      return server.interest.patterns[subject] === undefined;
     },
   });
 }
 
-describe("create two conat socket servers NOT connected via a valkey stream, and observe this is totally broken", () => {
+export async function waitForSticky(server, subject) {
+  await wait({
+    until: () => {
+      return server.sticky[subject] !== undefined;
+    },
+  });
+}
+
+describe("create two conat socket servers NOT connected via a valkey stream, and observe communication is totally broken (of course)", () => {
   let server2;
   it("creates a second server", async () => {
     server2 = await initConatServer();
@@ -213,6 +221,7 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
       const y = await client1.request("sticky.io.foo", null);
       expect(y.data).toBe(stickyTarget);
     }
+    await waitForSticky(server2, "sticky.io.*");
     // another client requesting sticky.io.foo even though a different
     // socketio conat server must get the same target:
     const z = await client2.request("sticky.io.foo", null);

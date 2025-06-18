@@ -29,7 +29,7 @@ import {
   runValkey,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
-import { waitForSubscription } from "./valkey.test";
+import { waitForSubscription, waitForSticky } from "./valkey.test";
 
 // should be several thousand, so 250 seems reasonable as a cutoff to indicate
 // things are horribly wrong
@@ -40,13 +40,13 @@ const REQUIRED_SINGLE_SERVER_SEND_MESSAGES_PER_SECOND = 500;
 const REQUIRED_VALKEY_SERVER_RECV_MESSAGES_PER_SECOND = 200;
 const REQUIRED_VALKEY_SERVER_SEND_MESSAGES_PER_SECOND = 400;
 
-const VERBOSE = true;
+const VERBOSE = false;
 const log = VERBOSE ? console.log : (..._args) => {};
 
 beforeAll(before);
 
 jest.setTimeout(15000);
-// this is very important, since the sticky resolution needs to be consistent
+
 describe("create two servers connected via valkey and two clients and test messaging speed", () => {
   let server, client1, client2;
   it("one server and two clients connected to it", async () => {
