@@ -63,7 +63,8 @@
     "sidechat",
     "vertexai",
     "vfill",
-    "xsmall"
+    "xsmall",
+    "flyouts"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
