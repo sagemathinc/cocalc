@@ -33,3 +33,6 @@ export const PANEL_STYLE_TOP: CSS = {
 
 const PANEL_KEYS = ["selected", "terminal"];
 export type PanelKey = (typeof PANEL_KEYS)[number];
+
+// make sure two types of borders are of the same width
+export const BORDER_WIDTH_PX = "4px";

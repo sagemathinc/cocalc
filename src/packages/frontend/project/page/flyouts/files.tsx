@@ -28,6 +28,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/nats/listings";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
@@ -35,7 +36,6 @@ import {
   DirectoryListingEntry,
   FileMap,
 } from "@cocalc/frontend/project/explorer/types";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/nats/listings";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
@@ -55,9 +55,10 @@ import {
   FLYOUT_EXTRA_WIDTH_PX,
   FLYOUT_PADDING,
 } from "./consts";
-import { FileListItem, fileItemStyle } from "./file-list-item";
+import { FileListItem } from "./file-list-item";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
+import { fileItemStyle } from "./utils";
 
 type PartialClickEvent = Pick<
   React.MouseEvent | React.KeyboardEvent,
@@ -129,7 +130,7 @@ export function FilesFlyout({
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
-  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
+  const [scrollIdxHide, setScrollIdxHide] = useState<boolean>(false);
   const [selectionOnMouseDown, setSelectionOnMouseDown] = useState<string>("");
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -142,7 +143,7 @@ export function FilesFlyout({
     return tab_to_path(activeTab);
   }, [activeTab]);
 
-  // copied roughly from directoy-selector.tsx
+  // copied roughly from directory-selector.tsx
   useEffect(() => {
     // Run the loop below every 30s until project_id or current_path changes (or unmount)
     // in which case loop stops.  If not unmount, then get new loops for new values.
@@ -573,7 +574,7 @@ export function FilesFlyout({
     // either select by scrolling (and only scrolling!) or by clicks
     const isSelected =
       scrollIdx != null
-        ? !scollIdxHide && index === scrollIdx
+        ? !scrollIdxHide && index === scrollIdx
         : checked_files.includes(
             path_to_file(current_path, directoryFiles[index].name),
           );
