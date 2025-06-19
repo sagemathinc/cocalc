@@ -6,7 +6,7 @@ export const SUBJECT = "changefeeds.*";
 // If the user refreshes their browser, it is still about a minute
 // before all the changefeeds they had open are free (due to the
 // SERVER_KEEPALIVE time below).
-export const MAX_PER_ACCOUNT = 1000;
+export const MAX_PER_ACCOUNT = 500;
 export const MAX_GLOBAL = 10000;
 
 const DEBUG_DEVEL_MODE = false;
