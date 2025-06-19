@@ -56,6 +56,7 @@ import {
 import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
+import { remove } from "@cocalc/frontend/project-file";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -229,6 +230,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
     for (const id in this.listings) {
       this.listings[id].close();
       delete this.listings[id];
+    }
+    // close any open file tabs, properly cleaning up editor state:
+    const open = this.get("open_files")?.toJS();
+    if (open != null) {
+      for (const path in open) {
+        remove(path, redux, this.project_id, false);
+      }
     }
   };
 
@@ -778,7 +786,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
       redux.getTable(name);
       return;
     } catch {}
-    
+
     const q = queries[table_name];
     for (const k in q) {
       const v = q[k];

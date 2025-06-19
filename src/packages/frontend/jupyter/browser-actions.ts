@@ -184,7 +184,7 @@ export class JupyterActions extends JupyterActions0 {
           compute_server_id: this.getComputeServerIdSync(),
           path: this.path,
         });
-        if (this._state == "closed" as any) return;
+        if (this._state == ("closed" as any)) return;
         this.setState({ kernel_usage });
       } catch (err) {
         console.log(`WARNING: getUsageInfo -- ${err}`);

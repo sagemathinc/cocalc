@@ -282,7 +282,6 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
   },
 } as const;
 
-
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
   public project_id: string;
@@ -1387,7 +1386,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Closes the file and removes all references.
   // Does not update tabs
-  close_file(path: string): void {
+  close_file = (path: string): void => {
     path = normalize(path);
     const store = this.get_store();
     if (store == undefined) {
@@ -1404,10 +1403,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       component_data.is_public,
     );
     this.save_session();
-  }
+  };
 
   // Makes this project the active project tab
-  foreground_project(change_history = true): void {
+  foreground_project = (change_history = true): void => {
     this._ensure_project_is_open((err) => {
       if (err) {
         // TODO!

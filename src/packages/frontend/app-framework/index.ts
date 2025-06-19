@@ -210,9 +210,7 @@ export class AppRedux extends AppReduxBase {
     }
     const name = project_redux_name(project_id);
     const store = this.getStore(name);
-    if (store && typeof store.destroy == "function") {
-      store.destroy();
-    }
+    store?.destroy?.();
     this.removeActions(name);
     this.removeStore(name);
   }
