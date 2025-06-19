@@ -280,7 +280,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
         title={"The role of these processes in this project."}
         trigger={["hover", "click"]}
       >
-        <LabelQuestionmark text={"Project"} />
+        <LabelQuestionmark text={"Role of Process"} />
       </Tip>
     );
 
