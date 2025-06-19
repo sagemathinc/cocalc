@@ -316,8 +316,8 @@ interface SubscriptionOptions {
   queue?: string;
   // sticky: when a choice from a queue group is made, the same choice is always made
   // in the future for any message with subject matching subject with the last segment
-  // replaced by a *, until the target goes away. Setting this just sets the queue 
-  // option to STICKY_QUEUE_GROUP.  
+  // replaced by a *, until the target goes away. Setting this just sets the queue
+  // option to STICKY_QUEUE_GROUP.
   //
   // Examples of subjects matching except possibly last segment are
   //             foo.bar.lJcBSieLn and foo.bar.ZzsDC376ge
@@ -470,7 +470,16 @@ export class Client extends EventEmitter {
   };
 
   waitUntilSignedIn = reuseInFlight(async () => {
-    if (this.info == null || this.state != "connected") {
+    // not "signed in" if --
+    //   - not connected, or
+    //   - no info at all (which gets sent on sign in)
+    //   - or the user is {error:....}, which is what happens when sign in fails
+    //     e.g., do to an expired cookie
+    if (
+      this.info == null ||
+      this.state != "connected" ||
+      this.info?.user?.error
+    ) {
       await once(this, "info");
     }
   });
