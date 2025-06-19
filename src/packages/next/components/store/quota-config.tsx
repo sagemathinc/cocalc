@@ -17,7 +17,6 @@ import {
   Typography,
 } from "antd";
 import { useEffect, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
 import { plural } from "@cocalc/util/misc";
@@ -151,14 +150,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               You selected a RAM quota of {ramVal}G. If your use-case involves a
               lot of RAM, consider using a{" "}
               <A href="https://doc.cocalc.com/compute_server.html">
-                compute server
-              </A>{" "}
-              or{" "}
-              <A href={"/store/dedicated?type=vm"}>
-                dedicated virtual machines
+                compute server.
               </A>
-              . This will not only give you much more RAM, but also a far
-              superior experience!
             </>
           }
         />
@@ -199,7 +192,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             onChange();
           }}
           units={"GB RAM"}
-          presets={boost ? [0, 2, 4, 8, 10] : [1, 2, 4, 8, 16]}
+          presets={boost ? [0, 2, 4, 8, 10] : [4, 8, 16]}
         />
       </Form.Item>
     );
@@ -557,9 +550,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <Col xs={16} offset={6} style={{ marginBottom: "20px" }}>
               <Text type="secondary">
                 Configure the quotas you want to add on top of your existing
-                license. E.g. if your license provides a limit of 2 GB of RAM and
-                you add a matching boost license with 3 GB of RAM, you'll end up
-                with a total quota limit of 5 GB of RAM.
+                license. E.g. if your license provides a limit of 2 GB of RAM
+                and you add a matching boost license with 3 GB of RAM, you'll
+                end up with a total quota limit of 5 GB of RAM.
               </Text>
             </Col>
           </Row>

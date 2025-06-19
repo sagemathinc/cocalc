@@ -9,7 +9,7 @@ import { upgrades } from "@cocalc/util/upgrade-spec";
 
 // RAM
 export const MAX_RAM_GB = upgrades.max_per_project.memory / 1000;
-export const RAM_DEFAULT_GB = 2; // 2gb highly recommended
+export const RAM_DEFAULT_GB = 4; // 4gb highly recommended
 
 // CPU
 export const DEFAULT_CPU = 1;
@@ -39,7 +39,7 @@ export const REGULAR: Limits = {
     max: MAX_CPU,
   },
   ram: {
-    min: 1,
+    min: 4,
     dflt: RAM_DEFAULT_GB,
     max: MAX_RAM_GB,
   },
