@@ -174,6 +174,8 @@ export interface Client extends ProjectClient {
     path: string;
     doctype?;
   }) => Promise<void>;
+
+  touch_project?: (path: string) => void;
 }
 
 export interface DocType {

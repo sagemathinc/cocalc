@@ -3022,6 +3022,7 @@ export class SyncDoc extends EventEmitter {
     const time = this.next_patch_time();
     this.commit_patch(time, patch);
     this.save(); // so eventually also gets sent out.
+    this.touchProject();
     return true;
   };
 
@@ -3496,6 +3497,15 @@ export class SyncDoc extends EventEmitter {
       await this.syncstring_table.save();
     }
   };
+
+  // this keeps the project from idle timing out -- it happens
+  // whenever there is an edit to the file by a browser, and
+  // keeps the project from stopping.
+  private touchProject = throttle(() => {
+    if (this.client?.is_browser()) {
+      this.client.touch_project?.(this.path);
+    }
+  }, 60000);
 
   private initInterestLoop = async () => {
     if (!this.client.is_browser()) {
