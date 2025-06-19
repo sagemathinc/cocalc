@@ -151,7 +151,12 @@ export default async function init(opts: Options): Promise<{
   }
 
   if (opts.proxyServer) {
-    winston.info(`initializing the http proxy server`);
+    winston.info(`initializing the http proxy server`, {
+      conatClusterPort,
+      conatServer: !!opts.conatServer,
+      isPersonal: opts.isPersonal,
+      listenersHack: opts.listenersHack,
+    });
     initProxy({
       projectControl: opts.projectControl,
       isPersonal: opts.isPersonal,
@@ -160,7 +165,7 @@ export default async function init(opts: Options): Promise<{
       listenersHack: opts.listenersHack,
       // enable proxy server for /conat if:
       //  (1) we are not running conat at all from here, or
-      //  (2) we are running socketio in cluster mode, hence 
+      //  (2) we are running socketio in cluster mode, hence
       //      on a different port
       proxyConat: !opts.conatServer || !!conatClusterPort,
     });

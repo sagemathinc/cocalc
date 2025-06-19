@@ -9,6 +9,7 @@ import { getTarget } from "./target";
 import { stripBasePath } from "./util";
 import { versionCheckFails } from "./version";
 import { proxyConatWebsocket } from "./proxy-conat";
+import basePath from "@cocalc/backend/base-path";
 
 const logger = getLogger("proxy:handle-upgrade");
 
@@ -24,9 +25,16 @@ export default function init(
   const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
-    if (proxyConat && req.url.split("?")[0].endsWith("/conat/")) {
-      proxyConatWebsocket(req, socket, head);
-      return;
+    if (proxyConat) {
+      const u = new URL(req.url, "http://cocalc.com");
+      let pathname = u.pathname;
+      if (basePath.length > 1) {
+        pathname = pathname.slice(basePath.length);
+      }
+      if (pathname == "/conat/") {
+        proxyConatWebsocket(req, socket, head);
+        return;
+      }
     }
 
     if (!req.url.match(re)) {
