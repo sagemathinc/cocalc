@@ -11,7 +11,6 @@ export default function ProjectTourButton({ project_id }) {
   }
   return (
     <Button
-      type="primary"
       onClick={() => {
         redux.getProjectActions(project_id).setState({ explorerTour: true });
         track("tour", { name: "explorer" });
