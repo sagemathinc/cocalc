@@ -84,7 +84,7 @@ async function serve() {
     queue: "0",
   });
   const cn = await conat({ noCache: true });
-  const api = await cn.subscribe(subject);
+  const api = await cn.subscribe(subject, { queue: "0" });
   for await (const mesg of api) {
     (async () => {
       try {
