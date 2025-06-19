@@ -274,6 +274,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     if (
       key.startsWith("npm_") ||
       key.startsWith("COCALC_") ||
+      key.startsWith("CONAT_") ||
       key.startsWith("PNPM_") ||
       key.startsWith("__NEXT") ||
       key.startsWith("NODE_") ||
