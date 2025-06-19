@@ -251,7 +251,6 @@ export class Inventory {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
-    console.log({ noTrunc });
     const all = this.dkv.getAll();
     if (!noHelp) {
       log(
