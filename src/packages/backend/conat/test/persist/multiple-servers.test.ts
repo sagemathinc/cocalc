@@ -37,7 +37,10 @@ describe("multiple clients using multiple persist servers", () => {
   });
 
   let persistClients: any[] = [];
-  let count = 50;
+  
+  // NOTE: count must be below about 40 to avoid hitting the default
+  // per-user connection limit of 100.
+  let count = 30;
   const projects: string[] = [];
   it(`creates ${count} persist clients`, async () => {
     const ids = new Set<string>([]);
