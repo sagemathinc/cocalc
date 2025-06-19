@@ -244,6 +244,12 @@ export function setConatSocketioCount(count: number) {
   conatSocketioCount = count ? count : 1;
 }
 
+// number of persist servers (if configured to run)
+export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
+
+// number of api servers (if configured to run)
+export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
+
 // if configured, will create a socketio cluster using
 // the cluster adapter, listening on the given port.
 // It makes no sense to use both this *and* valkey. It's

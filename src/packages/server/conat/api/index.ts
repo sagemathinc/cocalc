@@ -83,7 +83,7 @@ async function serve() {
   logger.debug(`initAPI -- subject='${subject}', options=`, {
     queue: "0",
   });
-  const cn = await conat();
+  const cn = await conat({ noCache: true });
   const api = await cn.subscribe(subject);
   for await (const mesg of api) {
     (async () => {
