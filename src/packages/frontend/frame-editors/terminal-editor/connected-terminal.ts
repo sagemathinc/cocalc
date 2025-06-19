@@ -223,7 +223,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   close = (): void => {
-    this.assert_not_closed();
+    if (this.state === "closed") {
+      return;
+    }
     this.set_connection_status("disconnected");
     this.state = "closed";
     clearInterval(this.touch_interval);
@@ -284,7 +286,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
       this.ignore_terminal_data = true;
       this.set_connection_status("connecting");
-      await this.configureComputeServerId();
+      try {
+        await this.configureComputeServerId();
+      } catch {
+        // expected if the project tab closes right when the terminal is
+        // being created.
+        return;
+      }
       if (this.state == "closed") {
         return;
       }
@@ -423,6 +431,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     } finally {
       this.ignoreData = false;
     }
+    if (this.state == "done") return;
     // tell anyone who waited for output coming back about this
     while (this.render_done.length > 0) {
       this.render_done.pop()?.();
@@ -452,7 +461,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   touch = async () => {
+    if (this.state === "closed") return;
     if (Date.now() - this.last_active < 70000) {
+      if (this.project_actions.isTabClosed()) {
+        return;
+      }
       touch_project(this.project_id, await this.getComputeServerId());
     }
   };
@@ -644,6 +657,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     const project_actions: ProjectActions = this.actions._get_project_actions();
+    if (project_actions.isTabClosed()) {
+      return;
+    }
     let i = 0;
     let foreground = false;
     const compute_server_id = await this.getComputeServerId();
@@ -757,6 +773,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   refresh(): void {
+    if (this.state === "closed") {
+      return;
+    }
     this.terminal.refresh(0, this.terminal.rows - 1);
   }
 
