@@ -150,9 +150,10 @@ export class Session {
 
   init = async () => {
     const { head, tail } = path_split(this.termPath);
+    const HISTFILE = historyFile(this.options.path);
     const env = {
       PROMPT_COMMAND: "history -a",
-      HISTFILE: historyFile(this.options.path),
+      ...(HISTFILE ? { HISTFILE } : undefined),
       ...this.options.env,
       ...envForSpawn(),
       COCALC_TERMINAL_FILENAME: tail,
@@ -380,7 +381,13 @@ function getCWD(pathHead, cwd?): string {
   return pathHead;
 }
 
-function historyFile(path: string) {
+function historyFile(path: string): string | undefined {
+  if (path.startsWith("/")) {
+    // only set histFile for paths in the home directory i.e.,
+    // relative to HOME. Absolute paths -- we just leave it alone.
+    // E.g., the miniterminal uses /tmp/... for its path.
+    return undefined;
+  }
   const { head, tail } = path_split(path);
   return join(
     process.env.HOME ?? "",
