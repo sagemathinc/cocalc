@@ -97,7 +97,7 @@ import {
 } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { retry_until_success } from "@cocalc/util/async-utils";
+import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
@@ -110,7 +110,6 @@ import {
 } from "@cocalc/conat/compute/manager";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
-import { delay } from "awaiting";
 
 const { defaults, required } = misc;
 
@@ -283,30 +282,6 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
   },
 } as const;
 
-// isOpen should reliably return whether or not a vien project
-// is currently open in this client, in the sense that its actions
-// are defined.
-const openProjectIds = new Set<string>();
-
-async function syncOpenProjectTabsLoop(interval = 5000) {
-  while (true) {
-    await delay(interval);
-    const open_projects = redux.getStore("projects")?.get("open_projects");
-    if (open_projects == null) {
-      continue;
-    }
-    const openProjectTabs = new Set(open_projects?.toJS());
-    // console.log("syncOpenProjectTabs", { openProjectTabs, openProjectIds });
-    for (const project_id of openProjectIds) {
-      if (!openProjectTabs.has(project_id)) {
-        // console.log("syncOpenProjectTabs: removing ", project_id);
-        redux.removeProjectReferences(project_id);
-      }
-    }
-  }
-}
-
-syncOpenProjectTabsLoop();
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
@@ -316,33 +291,84 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _activity_indicator_timers: { [key: string]: number } = {};
   private _init_done = false;
   private new_filename_generator = new NewFilenames("", false);
-  public open_files?: OpenFiles;
   private modal?: ModalInfo;
+
+  // these are all potentially expensive
+  public open_files?: OpenFiles;
   private computeServerManager?: ComputeServerManager;
   private projectStatusSub?;
 
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
-    openProjectIds.add(this.project_id);
+    // console.log("create project actions", this.project_id);
     // console.trace("create project actions", this.project_id)
+    this.expensiveLoop();
+  }
+
+  // COST -- there's a lot of code all over that may create project actions,
+  // e.g., when configuring a course with 150 students, then 150 project actions
+  // get created to do various operations.   The big use of project actions
+  // though is when an actual tab is open in the UI with projects.
+  // So we put actions in two states: 'cheap' and 'expensive'.
+  // In the expensive state, there can be compute server changefeeds,
+  // etc.  In the cheap state we close all that.  When the tab is
+  // visibly open in the UI then expensive stuff automatically gets
+  // initialized, and when it is closed, it is destroyed.
+
+  // actually open in the UI?
+  private lastProjectTabs: List<string> = List([]);
+  private lastProjectTabOpenedState = false;
+  isTabOpened = () => {
+    const store = redux.getStore("projects");
+    if (store == null) {
+      return false;
+    }
+    const projectTabs = store.get("open_projects") as List<string> | undefined;
+    if (projectTabs == null) {
+      return false;
+    }
+    if (projectTabs.equals(this.lastProjectTabs)) {
+      return this.lastProjectTabOpenedState;
+    }
+    this.lastProjectTabs = projectTabs;
+    this.lastProjectTabOpenedState = projectTabs.includes(this.project_id);
+    return this.lastProjectTabOpenedState;
+  };
+  isTabClosed = () => !this.isTabOpened();
+
+  private expensiveLoop = async () => {
+    while (this.state != "closed") {
+      if (this.isTabOpened()) {
+        this.initExpensive();
+      } else {
+        this.closeExpensive();
+      }
+      const store = redux.getStore("projects");
+      if (store != null) {
+        await once(store, "change");
+      }
+    }
+  };
+
+  private initialized = false;
+  private initExpensive = () => {
+    if (this.initialized) return;
+    // console.log("initExpensive", this.project_id);
+    this.initialized = true;
     this.open_files = new OpenFiles(this);
     this.initComputeServerManager();
     this.initComputeServersTable();
     this.initProjectStatus();
-  }
+    const store = this.get_store();
+    store?.init_table("public_paths");
+  };
 
-  public async api(): Promise<API> {
-    return await webapp_client.project_client.api(this.project_id);
-  }
-
-  destroy = (): void => {
-    // console.log("destroy project actions", this.project_id)
-    if (this.state == "closed") {
-      return;
-    }
-    this.state = "closed";
-    openProjectIds.delete(this.project_id);
+  private closeExpensive = () => {
+    if (!this.initialized) return;
+    // console.log("closeExpensive", this.project_id);
+    this.initialized = false;
+    redux.removeProjectReferences(this.project_id);
     this.closeComputeServerManager();
     this.closeComputeServerTable();
     this.projectStatusSub?.close();
@@ -356,6 +382,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.open_files?.close();
     delete this.open_files;
     webapp_client.conat_client.closeOpenFiles(this.project_id);
+
+    const store = this.get_store();
+    store?.close_all_tables();
+  };
+
+  public async api(): Promise<API> {
+    return await webapp_client.project_client.api(this.project_id);
+  }
+
+  destroy = (): void => {
+    // console.log("destroy project actions", this.project_id);
+    if (this.state == "closed") {
+      return;
+    }
+    this.closeExpensive();
+    this.state = "closed";
   };
 
   private save_session(): void {

@@ -190,6 +190,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // is a little awkward, since I didn't want to change things too
   // much while making this optimization.
   public init_table: (table_name: string) => void;
+  public close_table: (table_name: string) => void;
+  public close_all_tables: () => void;
 
   //  name = 'project-[project-id]' = name of the store
   //  redux = global redux object
@@ -746,6 +748,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   store._init();
 
   const queries = misc.deep_copy(QUERIES);
+
   const create_table = function (table_name, q) {
     //console.log("create_table", table_name)
     return class P extends Table {
@@ -769,9 +772,14 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   };
 
   function init_table(table_name: string): void {
+    const name = project_redux_name(project_id, table_name);
+    try {
+      // throws error only if it does not exist already
+      redux.getTable(name);
+      return;
+    } catch {}
+    
     const q = queries[table_name];
-    if (q == null) return; // already done
-    delete queries[table_name]; // so we do not init again.
     for (const k in q) {
       const v = q[k];
       if (typeof v === "function") {
@@ -779,18 +787,20 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
       }
     }
     q.query.project_id = project_id;
-    redux.createTable(
-      project_redux_name(project_id, table_name),
-      create_table(table_name, q),
-    );
+    redux.createTable(name, create_table(table_name, q));
   }
 
-  // public_paths is needed to show file listing and show
-  // any individual file, so we just load it...
-  init_table("public_paths");
-  // project_log, on the other hand, is only loaded if needed.
-
   store.init_table = init_table;
+
+  store.close_table = (table_name: string) => {
+    redux.removeTable(project_redux_name(project_id, table_name));
+  };
+
+  store.close_all_tables = () => {
+    for (const table_name in queries) {
+      store.close_table(table_name);
+    }
+  };
 
   return store;
 }

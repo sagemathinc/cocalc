@@ -539,7 +539,9 @@ export class ProjectClient {
   computeServers = (project_id) => {
     const cs = redux.getProjectActions(project_id)?.computeServers();
     if (cs == null) {
-      throw Error("bug");
+      // this happens if something tries to access the compute server info after the project
+      // tab is closed.  It shouldn't do that.
+      throw Error("compute server information not available");
     }
     return cs;
   };
