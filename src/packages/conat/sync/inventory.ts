@@ -238,21 +238,26 @@ export class Inventory {
     filter,
     noTrunc,
     path: path0,
-    sort = "-last",
+    sort = "last",
+    noHelp,
   }: {
     log?: Function;
     filter?: string;
     noTrunc?: boolean;
     path?: string;
     sort?: Sort;
+    noHelp?: boolean;
   } = {}) => {
     if (this.dkv == null) {
       throw Error("not initialized");
     }
+    console.log({ noTrunc });
     const all = this.dkv.getAll();
-    log(
-      "ls(opts: {filter?: string; noTrunc?: boolean; path?: string; sort?: 'last'|'created'|'count'|'bytes'|'name'|'type'|'-last'|...})",
-    );
+    if (!noHelp) {
+      log(
+        "ls(opts: {filter?: string; noTrunc?: boolean; path?: string; sort?: 'last'|'created'|'count'|'bytes'|'name'|'type'|'-last'|...})",
+      );
+    }
 
     const rows: any[] = [];
     for (const key of this.sortedKeys(all, sort)) {
@@ -303,8 +308,10 @@ export class Inventory {
       )
       .addRowMatrix(rows);
     table.setStyle("unicode-round");
-    table.setWidth(7, 50).setWrapped(1);
-    table.setWidth(8, 30).setWrapped(1);
+    if (!noTrunc) {
+      table.setWidth(7, 50).setWrapped(1);
+      table.setWidth(8, 30).setWrapped(1);
+    }
     log(table.toString());
   };
 }

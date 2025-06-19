@@ -24,6 +24,7 @@
     "conat-server": "cd packages/server && pnpm conat-server",
     "conat-connections": "cd packages/backend && pnpm conat-connections",
     "conat-watch": "cd packages/backend && pnpm conat-watch"
+    "conat-inventory": "cd packages/backend && pnpm conat-inventory"
   },
   "repository": {
     "type": "git",
