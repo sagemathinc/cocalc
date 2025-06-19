@@ -240,9 +240,6 @@ try {
 export let conatSocketioCount = parseInt(
   process.env.CONAT_SOCKETIO_COUNT ?? "1",
 );
-export function setConatSocketioCount(count: number) {
-  conatSocketioCount = count ? count : 1;
-}
 
 // number of persist servers (if configured to run)
 export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
@@ -255,9 +252,6 @@ export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
 // It makes no sense to use both this *and* valkey. It's
 // one or the other.
 export let conatClusterPort = parseInt(process.env.CONAT_CLUSTER_PORT ?? "0");
-export function setConatClusterPort(port: number) {
-  conatClusterPort = port;
-}
 
 // API keys
 
