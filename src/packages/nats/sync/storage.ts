@@ -149,22 +149,26 @@ export async function write(
   }
 
   const insertMessage = db.prepare(
-    "INSERT INTO messages(time, compress, encoding, raw, headers, key, size) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO messages(time, compress, encoding, raw, headers, key, size, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   );
-
   let size = 0;
-  for (const msg of data.messages) {
-    insertMessage.run(
-      msg.time,
-      msg.compress,
-      msg.encoding,
-      msg.raw,
-      msg.headers ?? null,
-      msg.key ?? null,
-      msg.size,
-    );
-    size += msg.size;
-  }
+
+  const insertMany = db.transaction((messages: SqliteMessagesRow[]) => {
+    for (const msg of messages) {
+      size += msg.size;
+      insertMessage.run(
+        msg.time,
+        msg.compress,
+        msg.encoding,
+        msg.raw,
+        msg.headers ?? null,
+        msg.key ?? null,
+        msg.size,
+        null, // ttl
+      );
+    }
+  });
+  insertMany(data.messages);
 
   console.log(
     `wrote ${data.messages.length} messages (${humanReadableSize(size)} data) to ${path} in ${Date.now() - start}ms`,
