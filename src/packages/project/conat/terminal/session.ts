@@ -15,8 +15,16 @@ import { throttle } from "lodash";
 import { ThrottleString as Throttle } from "@cocalc/util/throttle";
 import { join } from "path";
 import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
+import { delay } from "awaiting";
 
 const logger = getLogger("project:conat:terminal:session");
+
+// truncated excessive INPUT is CRITICAL to avoid deadlocking the terminal
+// and completely crashing the project in case a user pastes in, e.g.,
+// a few hundred K, like this gist: https://gist.github.com/cheald/2905882
+// to a node session.   Note VS code also crashes.
+const MAX_INPUT_SIZE = 2048;
+const INPUT_CHUNK_SIZE = 128;
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
@@ -81,7 +89,26 @@ export class Session {
       // which you don't want to send except to start it.
       return;
     }
-    this.pty?.write(data);
+    let reject;
+    if (data.length > MAX_INPUT_SIZE) {
+      data = data.slice(0, MAX_INPUT_SIZE);
+      reject = true;
+    } else {
+      reject = false;
+    }
+    for (
+      let i = 0;
+      i < data.length && this.pty != null;
+      i += INPUT_CHUNK_SIZE
+    ) {
+      const chunk = data.slice(i, i + INPUT_CHUNK_SIZE);
+      this.pty.write(chunk);
+      logger.debug("wrote data to pty", chunk.length);
+      await delay(1000 / MAX_MSGS_PER_SECOND);
+    }
+    if (reject) {
+      this.stream?.publish(`\r\n[excessive input discarded]\r\n\r\n`);
+    }
   };
 
   restart = async () => {
@@ -176,6 +203,7 @@ export class Session {
       env,
       rows: this.size?.rows,
       cols: this.size?.cols,
+      handleFlowControl: true,
     });
     this.pid = this.pty.pid;
     if (command.endsWith("bash")) {
@@ -196,9 +224,11 @@ export class Session {
     }
     logger.debug("connect stream to pty");
 
-    // use a
-    const throttle = new Throttle(1000 / MAX_MSGS_PER_SECOND);
+    // use slighlty less than MAX_MSGS_PER_SECOND to avoid reject
+    // due to being *slightly* off.
+    const throttle = new Throttle(1000 / (MAX_MSGS_PER_SECOND - 3));
     throttle.on("data", (data: string) => {
+      logger.debug("got data out of pty");
       this.handleBackendMessages(data);
       this.stream?.publish(data);
     });
