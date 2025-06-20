@@ -56,11 +56,6 @@ const DEFAULT_COMPRESSION = {
   threshold: 1024,
 } as Compression;
 
-let compress: any = null;
-export function setCompress(compressFunction) {
-  compress = compressFunction;
-}
-
 export function compressRaw(raw) {
   if (
     compress == null ||
@@ -91,4 +86,71 @@ export interface StorageData {
   desc: JSONValue;
   project_id?: string;
   account_id?: string;
+}
+
+let compress: any = null;
+let betterSqlite3: any = null;
+let ensureContainingDirectoryExists: any = null;
+let rm: any = null;
+export function setContext(x) {
+  betterSqlite3 = x.betterSqlite3;
+  compress = x.compress;
+  ensureContainingDirectoryExists = x.ensureContainingDirectoryExists;
+  rm = x.rm;
+}
+
+import { join } from "path";
+export function storagePath({ account_id, project_id, name }: StorageData) {
+  let userPath;
+  if (account_id) {
+    userPath = `accounts/${account_id}`;
+  } else if (project_id) {
+    userPath = `projects/${project_id}`;
+  } else {
+    userPath = "hub";
+  }
+  return join(userPath, name);
+}
+
+export async function write(data: StorageData) {
+  const path = join(process.cwd(), storagePath(data) + ".db");
+  await ensureContainingDirectoryExists(path);
+  console.log({ path });
+  await rm(path, { force: true });
+  const db = new betterSqlite3(path);
+  db.prepare(
+    `CREATE TABLE messages ( 
+          seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL, size NUMBER NOT NULL, ttl NUMBER
+          )
+        `,
+  ).run();
+  db.prepare(
+    ` CREATE TABLE config (
+          field TEXT PRIMARY KEY, value TEXT NOT NULL
+        )`,
+  ).run();
+
+  if (data.desc != null) {
+    db.prepare("INSERT INTO config (field, value) VALUES(?, ?)").run(
+      "desc",
+      JSON.stringify(data.desc),
+    );
+  }
+
+  const insertMessage = db.prepare(
+    "INSERT INTO messages(time, compress, encoding, raw, headers, key, size, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  for (const msg of data.messages) {
+    insertMessage.run(
+      msg.time,
+      msg.compress,
+      msg.encoding,
+      msg.raw,
+      msg.headers ?? null,
+      msg.key ?? null,
+      msg.size,
+      null, // assuming ttl is not in SqliteMessagesRow
+    );
+  }
 }

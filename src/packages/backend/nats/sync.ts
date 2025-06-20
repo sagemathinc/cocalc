@@ -11,9 +11,12 @@ import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
 export { inventory } from "@cocalc/nats/sync/inventory";
 import "./index";
 
-import { setCompress } from "@cocalc/nats/sync/storage";
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import betterSqlite3 from "better-sqlite3";
+import { setContext } from "@cocalc/nats/sync/storage";
 import { compress } from "zstd-napi";
-setCompress(compress);
+import { rm } from "fs/promises";
+setContext({ compress, ensureContainingDirectoryExists, betterSqlite3, rm });
 
 export type { Stream, DStream, KV, DKV, DKO, AKV };
 

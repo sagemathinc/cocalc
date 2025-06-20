@@ -7,10 +7,11 @@ import abspath from "./abspath";
 // Make sure that that the directory containing the file indicated by
 // the path exists and has restrictive permissions.
 export default async function ensureContainingDirectoryExists(
-  path: string
+  path: string,
 ): Promise<void> {
   path = abspath(path);
   const containingDirectory = path_split(path).head; // containing path
+  console.log({ containingDirectory });
   if (!containingDirectory) return;
 
   try {

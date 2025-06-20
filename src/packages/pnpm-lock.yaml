@@ -95,6 +95,9 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
+      better-sqlite3:
+        specifier: ^11.9.1
+        version: 11.9.1
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
