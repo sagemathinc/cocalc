@@ -349,7 +349,12 @@ describe("test discard_policy 'new' where writes are rejected rather than old da
       name,
       // we can write at most 300 bytes and 3 messages.  beyond that we
       // get reject events.
-      config: { max_bytes: 300, max_msgs: 3, discard_policy: "new" },
+      config: {
+        max_bytes: 300,
+        max_msgs: 3,
+        discard_policy: "new",
+        desc: { example: "config" },
+      },
     });
     const rejects: any[] = [];
     s.on("reject", ({ mesg }) => {
@@ -380,8 +385,21 @@ describe("test discard_policy 'new' where writes are rejected rather than old da
     expect(rejects).toEqual(["foo", "x".repeat(299)]);
   });
 
+  it("check the config is persisted", async () => {
+    const lastConfig = await s.config();
+    s.close();
+    s = await createDstream({
+      client,
+      name,
+      noCache: true,
+    });
+    const config = await s.config();
+    expect(lastConfig).toEqual(config);
+    expect(lastConfig.desc).toEqual({ example: "config" });
+  });
+
   it("closes the stream", async () => {
-    await s.close();
+    s.close();
   });
 });
 

@@ -113,6 +113,9 @@ export interface Configuration {
   // If true (default: false), messages will be automatically deleted after their ttl
   // Use the option {ttl:number of MILLISECONDS} when publishing to set a ttl.
   allow_msg_ttl: boolean;
+
+  // description of this table
+  desc: JSONValue;
 }
 
 const CONFIGURATION = {
@@ -139,6 +142,11 @@ const CONFIGURATION = {
     def: false,
     fromDb: (x) => x == "true",
     toDb: (x) => `${!!x}`,
+  },
+  desc: {
+    def: null,
+    fromDb: JSON.parse,
+    toDb: JSON.stringify,
   },
 };
 
