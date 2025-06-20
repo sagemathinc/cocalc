@@ -197,7 +197,7 @@ export class Inventory {
         console.log(item.name);
         if (
           item.name.startsWith("ipywidgets:") ||
-          item.name.startsWith("termninal-") ||
+          item.name.startsWith("terminal-") ||
           item.name == "open-files" ||
           item.name.startsWith("listings")
         ) {
