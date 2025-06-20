@@ -188,8 +188,26 @@ export class Inventory {
     const start = Date.now();
     let size = 0,
       messages = 0;
-    const f = async (store) => await store.persist();
-    const v = await this.call({ f });
+    const f = async (store) => {
+      await store.persist();
+    };
+    const v = await this.call({
+      f,
+      condition: (item) => {
+        console.log(item.name);
+        if (
+          item.name.startsWith("ipywidgets:") ||
+          item.name.startsWith("termninal-") ||
+          item.name == "open-files" ||
+          item.name.startsWith("listings")
+        ) {
+          // do not bother with them -- ephemeral or format changed
+          return false;
+        } else {
+          return true;
+        }
+      },
+    });
     for (const key in v) {
       const value = v[key];
       if (value?.error) {
