@@ -45,8 +45,15 @@ import { waitUntilConnected } from "@cocalc/nats/util";
 import { type Msg } from "@nats-io/nats-core";
 import { headersFromRawMessages } from "./stream";
 import { COCALC_MESSAGE_ID_HEADER } from "./ephemeral-stream";
-
 const logger = getLogger("dstream");
+
+import {
+  encode,
+  DEFAULT_ENCODING,
+  SqliteMessagesRow,
+  StorageData,
+  compressRaw,
+} from "./storage";
 
 const MAX_PARALLEL = 250;
 
@@ -101,6 +108,63 @@ export class DStream<T = any> extends EventEmitter {
       },
     });
   }
+
+  storage = (): StorageData => {
+    const messages: SqliteMessagesRow[] = [];
+    let n = 0;
+    for (const x of this.raw) {
+      const date = this.stream?.time(n);
+      if (date == null) {
+        throw Error(
+          `invalid data -- this.stream.time(${n}) is null -- name='${name}'`,
+        );
+      }
+      // in sqlite, the standard convention is that time is seconds since epoch
+      const time = date.valueOf() / 1000;
+      const seq = last(x).seq;
+      const encoding = DEFAULT_ENCODING;
+      const raw = encode({ encoding, mesg: this.messages[n] });
+
+      let headers;
+      let headers0 = this.headers(n);
+      if (headers0 != null) {
+        for (const i in headers0) {
+          const j = i.toLowerCase();
+          if (j.startsWith("nats") || j.startsWith("cocalc")) {
+            delete headers0[i];
+          }
+        }
+        if (Object.keys(headers0).length > 0) {
+          headers = JSON.stringify(headers0);
+        } else {
+          headers = undefined;
+        }
+      } else {
+        headers = undefined;
+      }
+      const size = raw.length + (headers ?? "").length;
+      const message = {
+        seq,
+        time,
+        encoding,
+        ...compressRaw(raw),
+        size,
+      } as SqliteMessagesRow;
+      messages.push(message);
+      n += 1;
+    }
+    const data = {
+      name: this.name,
+      desc: this.opts.desc,
+      messages,
+    } as StorageData;
+    if (this.opts.jsname.startsWith("account-")) {
+      data.account_id = this.opts.jsname.slice("account-".length);
+    } else if (this.opts.jsname.startsWith("project-")) {
+      data.project_id = this.opts.jsname.slice("project-".length);
+    }
+    return data;
+  };
 
   init = reuseInFlight(async () => {
     if (this.stream == null) {

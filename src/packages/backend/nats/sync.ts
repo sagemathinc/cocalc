@@ -11,6 +11,10 @@ import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
 export { inventory } from "@cocalc/nats/sync/inventory";
 import "./index";
 
+import { setCompress } from "@cocalc/nats/sync/storage";
+import { compress } from "zstd-napi";
+setCompress(compress);
+
 export type { Stream, DStream, KV, DKV, DKO, AKV };
 
 export async function stream<T = any>(opts): Promise<Stream<T>> {
