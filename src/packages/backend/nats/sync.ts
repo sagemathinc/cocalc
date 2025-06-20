@@ -23,8 +23,14 @@ export async function main({ start, stop, ncpu }) {
     console.log("doing i=", i);
     const project_id = v[i].slice("project-".length);
     const t0 = Date.now();
-    await persist({ project_id });
     const path = `done/${i}`;
+    try {
+      await persist({ project_id });
+    } catch (err) {
+      fs.writeFileSync(path, `error:${err}`);
+      console.log("ERROR -- failed at ", project_id, err);
+      return;
+    }
     fs.writeFileSync(path, `${Date.now() - t0}`);
     console.log("finished i=", i, "time=", Date.now() - t0);
   };
