@@ -9,7 +9,38 @@ import { dko as createDKO, type DKO } from "@cocalc/nats/sync/dko";
 import { akv as createAKV, type AKV } from "@cocalc/nats/sync/akv";
 import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
 export { inventory, persist } from "@cocalc/nats/sync/inventory";
+import { persist } from "@cocalc/nats/sync/inventory";
 import "./index";
+
+import { map as asyncMap } from "awaiting";
+import * as fs from "fs";
+export async function main({ start, stop, ncpu }) {
+  const v = fs.readFileSync("all").toString().split("\n");
+  try {
+    fs.mkdirSync("done");
+  } catch {}
+  const f = async (i: number) => {
+    console.log("doing i=", i);
+    const project_id = v[i].slice("project-".length);
+    const t0 = Date.now();
+    await persist({ project_id });
+    const path = `done/${i}`;
+    fs.writeFileSync(path, `${Date.now() - t0}`);
+    console.log("finished i=", i, "time=", Date.now() - t0);
+  };
+
+  const work: number[] = [];
+  for (let i = start; i < Math.min(stop, v.length); i++) {
+    const path = `done/${i}`;
+    if (!fs.existsSync(path)) {
+      work.push(i);
+    }
+  }
+
+  await asyncMap(work, ncpu, f);
+
+  process.exit(0);
+}
 
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import betterSqlite3 from "better-sqlite3";
