@@ -209,7 +209,7 @@ export class PersistentStream extends EventEmitter {
     super();
     logger.debug("constructor ", options.path);
 
-    this.setMaxListeners(100);
+    this.setMaxListeners(1000);
     options = { compression: DEFAULT_COMPRESSION, ...options };
     this.options = options;
     const location = this.options.ephemeral

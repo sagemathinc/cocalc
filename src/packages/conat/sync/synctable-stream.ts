@@ -72,7 +72,7 @@ export class SyncTableStream extends EventEmitter {
     this.client = client;
     this.noInventory = noInventory;
     this.ephemeral = ephemeral;
-    this.setMaxListeners(100);
+    this.setMaxListeners(1000);
     this.getHook = immutable ? fromJS : (x) => x;
     this.config = config;
     this.start_seq = start_seq;

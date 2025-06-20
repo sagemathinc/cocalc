@@ -49,7 +49,7 @@ export class ClientWithState extends EventEmitter {
   constructor(client: Client) {
     super();
     // many things potentially listen for these events -- way more than 10 things.
-    this.setMaxListeners(100);
+    this.setMaxListeners(1000);
     // this.conat only ever returns *ONE* connection
     this.conat = () => {
       if (this.state == "closed") {

@@ -56,7 +56,7 @@ export class SyncTableKV extends EventEmitter {
     ephemeral?: boolean;
   }) {
     super();
-    this.setMaxListeners(100);
+    this.setMaxListeners(1000);
     this.atomic = !!atomic;
     this.getHook = immutable ? fromJS : (x) => x;
     this.query = query;
