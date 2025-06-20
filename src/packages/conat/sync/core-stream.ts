@@ -79,7 +79,6 @@ export const DEFAULT_TOMBSTONE_TTL = 7 * 24 * 60 * 60 * 1000; // 1 week
 export interface RawMsg extends Message {
   timestamp: number;
   seq: number;
-  sessionId: string;
   key?: string;
 }
 

@@ -41,10 +41,12 @@ export async function usage({ client, maxWait = 3000, maxMessages }: Options) {
   const sys = client.callMany("sys.conat.server", { maxWait, maxMessages });
   const data = await sys.usage();
   const rows: any[] = [];
+  const perServerRows: any[] = [];
   let total = 0;
   for await (const X of data) {
     for (const server in X) {
       const { perUser, total: total0 } = X[server];
+      perServerRows.push([server, total0]);
       total += total0;
 
       for (const user in perUser) {
@@ -56,12 +58,17 @@ export async function usage({ client, maxWait = 3000, maxMessages }: Options) {
   rows.push(["", "", ""]);
   rows.push(["TOTAL", "", total]);
 
-  const table = new AsciiTable3(`${total} Connections`)
+  const tablePerUser = new AsciiTable3(`${total} Connections`)
     .setHeading("Server", "User", "Connections")
     .addRowMatrix(rows);
+  const tablePerServer = new AsciiTable3(`Connections Per Server`)
+    .setHeading("Server", "Connections")
+    .addRowMatrix(perServerRows);
 
-  table.setStyle("unicode-round");
-  return table;
+  tablePerUser.setStyle("unicode-round");
+  tablePerServer.setStyle("unicode-round");
+
+  return [tablePerUser, tablePerServer];
 }
 
 export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
@@ -132,7 +139,7 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
     .addRowMatrix(rows);
 
   table.setStyle("unicode-round");
-  return table;
+  return [table];
 }
 
 export async function showUsersAndStats({
@@ -147,12 +154,15 @@ export async function showUsersAndStats({
     s = "";
   }
   console.log(`Gather data ${s}for up to ${maxWait / 1000} seconds...\n\n`);
-  const X = [usage, stats];
+  const X = [stats, usage];
   const tables: any[] = [];
   const f = async (i) => {
-    tables.push(await X[i]({ client, maxWait, maxMessages }));
+    for (const table of await X[i]({ client, maxWait, maxMessages })) {
+      tables.push(table);
+    }
   };
   await Promise.all([f(0), f(1)]);
-  console.log(tables[0].toString());
-  console.log(tables[1].toString());
+  for (const table of tables) {
+    console.log(table.toString());
+  }
 }

@@ -28,11 +28,15 @@ so this is worth it.
 COMPRESSION:
 
 I implemented *sync* lz4-napi compression here and it's very fast,
-but it LEAKS MEMORY HORRIBLY. The async functions in lz4-napi seem fine.
-Upstream report (by me): https://github.com/antoniomuso/lz4-napi/issues/678
+but it has to be run with async waits in a loop or it doesn't give back
+memory, and such throttling may significantly negatively impact performance
+and mean we don't get a 100% sync api (like we have now).
+The async functions in lz4-napi seem fine.  Upstream report (by me): 
+https://github.com/antoniomuso/lz4-napi/issues/678
 I also tried the rust sync snappy and it had a similar memory leak.  Finally,
 I tried zstd-napi and it has a very fast sync implementation that does *not*
-leak memory. So zstd-napi it is.  And I like zstandard anyways.
+need async pauses to not leak memory. So zstd-napi it is. 
+And I like zstandard anyways.
 
 NOTE:
 
