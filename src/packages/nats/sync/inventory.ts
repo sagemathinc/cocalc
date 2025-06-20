@@ -190,10 +190,15 @@ export class Inventory {
       messages = 0;
     const f = async (store) => await store.persist();
     const v = await this.call({ f });
-    for (const stats of v) {
-      if (stats != null) {
-        size += stats.size;
-        messages += stats.messages;
+    for (const key in v) {
+      const value = v[key];
+      if (value?.error) {
+        console.log("FAILED -- ", key);
+      } else {
+        if (value != null) {
+          size += value.size;
+          messages += value.messages;
+        }
       }
     }
     console.log(
@@ -204,38 +209,51 @@ export class Inventory {
   // call async function on every store
   call = async ({
     f,
+    condition,
     filter,
     sort = "-last",
   }: {
+    condition?: (item: FullItem) => boolean;
     f: (store: DKV | DStream | DKO) => Promise<any>;
     filter?: string;
     sort?: Sort;
-  }): Promise<any[]> => {
-    const v: any[] = [];
+  }): Promise<{ [key: string]: any }> => {
+    const v: { [key: string]: any } = {};
     const all = this.getAll({ filter });
     for (const key of this.sortedKeys(all, sort)) {
       const x = all[key];
+      if (condition != null && !condition(x)) {
+        continue;
+      }
       const { desc, name, type } = x;
       let store;
-      console.log("loading store from NATS", key, x);
-      if (type == "kv") {
-        if (name.startsWith(DKO_PREFIX)) {
-          store = await dko({
-            name: name.slice(DKO_PREFIX.length),
-            ...this.location,
-            desc,
-          });
+      try {
+        console.log("loading store from NATS", key, x);
+        if (type == "kv") {
+          if (name.startsWith(DKO_PREFIX)) {
+            store = await dko({
+              name: name.slice(DKO_PREFIX.length),
+              ...this.location,
+              desc,
+            });
+          } else {
+            store = await dkv({ name, ...this.location, desc });
+          }
+        } else if (type == "stream") {
+          store = await dstream({ name, ...this.location, desc });
         } else {
-          store = await dkv({ name, ...this.location, desc });
+          throw Error(`unknown store type '${type}'`);
         }
-      } else if (type == "stream") {
-        store = await dstream({ name, ...this.location, desc });
-      } else {
-        throw Error(`unknown store type '${type}'`);
+        console.log("calling function");
+        v[key] = await f(store);
+      } catch (err) {
+        console.log("ERROR getting", key, err);
+        v[key] = { error: `${err}` };
+      } finally {
+        try {
+          store?.close();
+        } catch {}
       }
-      console.log("calling function");
-      v.push(await f(store));
-      store.close();
     }
     return v;
   };
