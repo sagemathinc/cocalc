@@ -1,4 +1,5 @@
 import type { JSONValue } from "@cocalc/util/types";
+import { human_readable_size as humanReadableSize } from "@cocalc/util/misc";
 
 import * as msgpack from "@msgpack/msgpack";
 
@@ -56,7 +57,10 @@ const DEFAULT_COMPRESSION = {
   threshold: 1024,
 } as Compression;
 
-export function compressRaw(raw) {
+export function compressRaw(raw): {
+  raw: Buffer;
+  compress: CompressionAlgorithm;
+} {
   if (
     compress == null ||
     DEFAULT_COMPRESSION.algorithm == CompressionAlgorithm.None ||
@@ -67,10 +71,10 @@ export function compressRaw(raw) {
   if (DEFAULT_COMPRESSION.algorithm == CompressionAlgorithm.Zstd) {
     return { raw: compress(raw), compress: CompressionAlgorithm.Zstd };
   }
+  throw Error("invalid compression algorithm");
 }
 
 export interface SqliteMessagesRow {
-  seq: number;
   time: number;
   key?: string;
   encoding: DataEncoding;
@@ -112,10 +116,17 @@ export function storagePath({ account_id, project_id, name }: StorageData) {
   return join(userPath, name);
 }
 
-export async function write(data: StorageData) {
+export async function write(
+  data: StorageData,
+): Promise<{ size: number; messages: number }> {
+  if (data.messages.length == 0) {
+    console.log("skipping empty stream");
+    return { size: 0, messages: 0 };
+  }
+  const start = Date.now();
   const path = join(process.cwd(), storagePath(data) + ".db");
   await ensureContainingDirectoryExists(path);
-  console.log({ path });
+  console.log("writing", path);
   await rm(path, { force: true });
   const db = new betterSqlite3(path);
   db.prepare(
@@ -138,9 +149,10 @@ export async function write(data: StorageData) {
   }
 
   const insertMessage = db.prepare(
-    "INSERT INTO messages(time, compress, encoding, raw, headers, key, size, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO messages(time, compress, encoding, raw, headers, key, size) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
 
+  let size = 0;
   for (const msg of data.messages) {
     insertMessage.run(
       msg.time,
@@ -150,7 +162,12 @@ export async function write(data: StorageData) {
       msg.headers ?? null,
       msg.key ?? null,
       msg.size,
-      null, // assuming ttl is not in SqliteMessagesRow
     );
+    size += msg.size;
   }
+
+  console.log(
+    `wrote ${data.messages.length} messages (${humanReadableSize(size)} data) to ${path} in ${Date.now() - start}ms`,
+  );
+  return { size, messages: data.messages.length };
 }

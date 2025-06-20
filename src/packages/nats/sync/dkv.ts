@@ -106,6 +106,15 @@ import { delay } from "awaiting";
 import { decodeBase64, encodeBase64 } from "@cocalc/nats/util";
 import { getLogger } from "@cocalc/nats/client";
 import { waitUntilConnected } from "@cocalc/nats/util";
+import { is_date } from "@cocalc/util/misc";
+import {
+  encode,
+  DEFAULT_ENCODING,
+  SqliteMessagesRow,
+  StorageData,
+  compressRaw,
+  write as writeToStorage,
+} from "./storage";
 
 const logger = getLogger("dkv");
 
@@ -190,6 +199,78 @@ export class DKV<T = any> extends EventEmitter {
       },
     });
   }
+
+  storageData = (): StorageData => {
+    const messages: SqliteMessagesRow[] = [];
+    let n = 0;
+    const all = this.getAll();
+    for (const key in all) {
+      // in sqlite, the standard convention is that time is seconds since epoch
+      // @ts-ignore
+      const t = this.time(key);
+      if (t == null) {
+        throw Error(`time missing for name=${this.name}, key=${key}`);
+      }
+      let time;
+      if (is_date(t)) {
+        time = t.valueOf();
+      } else {
+        time = 0;
+        for (const a in t) {
+          time = Math.max(time, t[a].valueOf() / 1000);
+        }
+      }
+      if (!time) {
+        throw Error(`no time for name=${this.name}, key=${key}`);
+      }
+      const encoding = DEFAULT_ENCODING;
+      const raw = encode({ encoding, mesg: all[key] });
+
+      let headers;
+      let headers0 = this.headers(key);
+      if (headers0 != null) {
+        for (const i in headers0) {
+          const j = i.toLowerCase();
+          if (j.startsWith("nats") || j.startsWith("cocalc")) {
+            delete headers0[i];
+          }
+        }
+        if (Object.keys(headers0).length > 0) {
+          headers = JSON.stringify(headers0);
+        } else {
+          headers = undefined;
+        }
+      } else {
+        headers = undefined;
+      }
+      const size = raw.length + (headers ?? "").length;
+      const message = {
+        key,
+        time,
+        encoding,
+        ...compressRaw(raw),
+        size,
+      };
+      messages.push(message);
+      n += 1;
+    }
+    const data = {
+      name: this.name,
+      desc: this.opts.desc,
+      messages,
+    } as StorageData;
+    if (this.opts.name.startsWith("account-")) {
+      data.account_id = this.opts.name.slice("account-".length);
+    } else if (this.opts.name.startsWith("project-")) {
+      data.project_id = this.opts.name.slice("project-".length);
+    }
+    return data;
+  };
+
+  persist = async () => {
+    const data = this.storageData();
+    return await writeToStorage(data);
+  };
 
   init = reuseInFlight(async () => {
     if (this.generalDKV != null) {

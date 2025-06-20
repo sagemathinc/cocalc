@@ -11,7 +11,6 @@ export default async function ensureContainingDirectoryExists(
 ): Promise<void> {
   path = abspath(path);
   const containingDirectory = path_split(path).head; // containing path
-  console.log({ containingDirectory });
   if (!containingDirectory) return;
 
   try {

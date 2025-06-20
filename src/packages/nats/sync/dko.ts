@@ -55,6 +55,14 @@ export class DKO<T = any> extends EventEmitter {
     });
   }
 
+  storageData = () => {
+    return this.dkv?.storageData();
+  };
+
+  persist = async () => {
+    return await this.dkv?.persist();
+  };
+
   init = reuseInFlight(async () => {
     if (this.dkv != null) {
       throw Error("already initialized");

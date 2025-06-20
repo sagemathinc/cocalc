@@ -10,6 +10,7 @@ i.ls()
 */
 
 import { dkv, type DKV } from "./dkv";
+import { dko, type DKO } from "./dko";
 import { dstream, type DStream } from "./dstream";
 import getTime from "@cocalc/nats/time";
 import refCache from "@cocalc/util/refcache";
@@ -143,7 +144,7 @@ export class Inventory {
   }: {
     name: string;
     type: StoreType;
-    valueType: ValueType;
+    valueType?: ValueType;
   }) => {
     if (this.dkv == null) {
       throw Error("not initialized");
@@ -183,14 +184,87 @@ export class Inventory {
     return { ...cur, type, name };
   };
 
-  getStores = async ({ filter }: { filter?: string } = {}): Promise<
-    (DKV | DStream)[]
+  persist = async () => {
+    const start = Date.now();
+    let size = 0,
+      messages = 0;
+    const f = async (store) => await store.persist();
+    const v = await this.call({ f });
+    for (const stats of v) {
+      if (stats != null) {
+        size += stats.size;
+        messages += stats.messages;
+      }
+    }
+    console.log(
+      `${Date.now() - start}ms to persist ${JSON.stringify(this.location)}: ${humanReadableSize(size)} and ${messages} messages`,
+    );
+  };
+
+  // call async function on every store
+  call = async ({
+    f,
+    filter,
+    sort = "-last",
+  }: {
+    f: (store: DKV | DStream | DKO) => Promise<any>;
+    filter?: string;
+    sort?: Sort;
+  }): Promise<any[]> => {
+    const v: any[] = [];
+    const all = this.getAll({ filter });
+    for (const key of this.sortedKeys(all, sort)) {
+      const x = all[key];
+      const { desc, name, type } = x;
+      let store;
+      if (type == "kv") {
+        if (name.startsWith(DKO_PREFIX)) {
+          store = await dko({
+            name: name.slice(DKO_PREFIX.length),
+            ...this.location,
+            desc,
+          });
+        } else {
+          store = await dkv({ name, ...this.location, desc });
+        }
+      } else if (type == "stream") {
+        store = await dstream({ name, ...this.location, desc });
+      } else {
+        throw Error(`unknown store type '${type}'`);
+      }
+      v.push(await f(store));
+      store.close();
+    }
+    return v;
+  };
+
+  getStores = async ({
+    filter,
+    sort = "-last",
+  }: { filter?: string; sort?: Sort } = {}): Promise<
+    (DKV | DStream | DKO)[]
   > => {
-    const v: (DKV | DStream)[] = [];
-    for (const x of this.getAll({ filter })) {
+    const v: (DKV | DStream | DKO)[] = [];
+    const all = this.getAll({ filter });
+    for (const key of this.sortedKeys(all, sort)) {
+      const x = all[key];
       const { desc, name, type } = x;
       if (type == "kv") {
-        v.push(await dkv({ name, ...this.location, desc }));
+        if (name.startsWith(DKO_PREFIX)) {
+          if (name.startsWith(DKO_PREFIX + DKO_PREFIX)) {
+            this.delete({ name, type });
+            continue;
+          }
+          v.push(
+            await dko({
+              name: name.slice(DKO_PREFIX.length),
+              ...this.location,
+              desc,
+            }),
+          );
+        } else {
+          v.push(await dkv({ name, ...this.location, desc }));
+        }
       } else if (type == "stream") {
         v.push(await dstream({ name, ...this.location, desc }));
       } else {

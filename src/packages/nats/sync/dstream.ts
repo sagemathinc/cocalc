@@ -53,6 +53,7 @@ import {
   SqliteMessagesRow,
   StorageData,
   compressRaw,
+  write as writeToStorage,
 } from "./storage";
 
 const MAX_PARALLEL = 250;
@@ -109,19 +110,17 @@ export class DStream<T = any> extends EventEmitter {
     });
   }
 
-  storage = (): StorageData => {
+  storageData = (): StorageData => {
     const messages: SqliteMessagesRow[] = [];
-    let n = 0;
-    for (const x of this.raw) {
+    for (let n = 0; n < this.raw.length; n++) {
       const date = this.stream?.time(n);
       if (date == null) {
         throw Error(
-          `invalid data -- this.stream.time(${n}) is null -- name='${name}'`,
+          `invalid data -- this.stream.time(${n}) is null -- name='${this.name}'`,
         );
       }
       // in sqlite, the standard convention is that time is seconds since epoch
       const time = date.valueOf() / 1000;
-      const seq = last(x).seq;
       const encoding = DEFAULT_ENCODING;
       const raw = encode({ encoding, mesg: this.messages[n] });
 
@@ -144,7 +143,6 @@ export class DStream<T = any> extends EventEmitter {
       }
       const size = raw.length + (headers ?? "").length;
       const message = {
-        seq,
         time,
         encoding,
         ...compressRaw(raw),
@@ -164,6 +162,11 @@ export class DStream<T = any> extends EventEmitter {
       data.project_id = this.opts.jsname.slice("project-".length);
     }
     return data;
+  };
+
+  persist = async () => {
+    const data = this.storageData();
+    return await writeToStorage(data);
   };
 
   init = reuseInFlight(async () => {
