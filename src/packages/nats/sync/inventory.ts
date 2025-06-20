@@ -217,6 +217,7 @@ export class Inventory {
       const x = all[key];
       const { desc, name, type } = x;
       let store;
+      console.log("loading store from NATS", key, x);
       if (type == "kv") {
         if (name.startsWith(DKO_PREFIX)) {
           store = await dko({
@@ -232,6 +233,7 @@ export class Inventory {
       } else {
         throw Error(`unknown store type '${type}'`);
       }
+      console.log("calling function");
       v.push(await f(store));
       store.close();
     }
