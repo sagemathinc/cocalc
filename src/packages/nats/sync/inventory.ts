@@ -274,6 +274,8 @@ export class Inventory {
         } catch {}
       }
     }
+    // the inventory itself
+    v[INVENTORY_NAME] = await f(this.dkv!);
     return v;
   };
 
