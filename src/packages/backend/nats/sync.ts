@@ -8,7 +8,7 @@ import { dkv as createDKV, type DKV } from "@cocalc/nats/sync/dkv";
 import { dko as createDKO, type DKO } from "@cocalc/nats/sync/dko";
 import { akv as createAKV, type AKV } from "@cocalc/nats/sync/akv";
 import { createOpenFiles, type OpenFiles } from "@cocalc/nats/sync/open-files";
-export { inventory } from "@cocalc/nats/sync/inventory";
+export { inventory, persist } from "@cocalc/nats/sync/inventory";
 import "./index";
 
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";

@@ -446,3 +446,10 @@ export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
 export async function inventory(options: Location = {}): Promise<Inventory> {
   return await cache(options);
 }
+
+import { waitUntilReady } from "@cocalc/nats/tiered-storage/client";
+export async function persist(location: Location) {
+  waitUntilReady(location);
+  const i = await inventory(location);
+  await i.persist();
+}
