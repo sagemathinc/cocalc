@@ -37,7 +37,7 @@ Type ".help" for more information.
 
 */
 
-import { timeClient } from "@cocalc/nats/service/time";
+//import { timeClient } from "@cocalc/nats/service/time";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getClient } from "@cocalc/nats/client";
 import { delay } from "awaiting";
@@ -91,19 +91,8 @@ async function syncLoop() {
 export let skew: number | null = null;
 let rtt: number | null = null;
 export const getSkew = reuseInFlight(async (): Promise<number> => {
-  if (process.env.COCALC_TEST_MODE) {
-    skew = 0;
-    return skew;
-  }
   await waitUntilConnected();
-  const start = Date.now();
-  const client = getClient();
-  const tc = timeClient(client);
-  const serverTime = await tc.time();
-  const end = Date.now();
-  rtt = end - start;
-  skew = start + rtt / 2 - serverTime;
-  return skew;
+  return 0
 });
 
 export async function waitUntilTimeAvailable() {
