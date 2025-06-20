@@ -201,6 +201,7 @@ import {
 import { EventIterator } from "@cocalc/util/event-iterator";
 import type { ConnectionStats, ServerInfo } from "./types";
 import * as msgpack from "@msgpack/msgpack";
+import { Packr } from "msgpackr";
 import { randomId } from "@cocalc/conat/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
@@ -241,6 +242,8 @@ import {
 const MSGPACK_ENCODER_OPTIONS = {
   // ignoreUndefined is critical so database queries work properly, and
   // also we have a lot of api calls with tons of wasted undefined values.
+  // MsgPack otherwise turns undefined to null, which means something
+  // very different in cocalc.
   ignoreUndefined: true,
 };
 
@@ -305,11 +308,6 @@ export function setDefaultTimeouts({
   DEFAULT_PUBLISH_TIMEOUT = publish;
 }
 
-export enum DataEncoding {
-  MsgPack = 0,
-  JsonCodec = 1,
-}
-
 interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
@@ -338,8 +336,21 @@ interface SubscriptionOptions {
 // WARNING!  This is the default and you can't just change it!
 // Yes, for specific messages you can, but in general DO NOT.  The reason is because, e.g.,
 // JSON will turn Dates into strings, and we no longer fix that.  So unless you modify the
-// JsonCodec to handle Date's properly, don't change this!!
-const DEFAULT_ENCODING = DataEncoding.MsgPack;
+// JsonCodec to handle Date's properly, don't change this!!  I.e., there are assumptions
+// in the code about the encoding actually working.
+
+export enum DataEncoding {
+  // reference implementation of MsgPack -- safe and solid
+  MsgPack = 0,
+  // standard JSON, but can't be used in general because our code assumes Date's work
+  JsonCodec = 1,
+  // Faster implementation of MsgPack structure (especially on node), and
+  // we enable the moreTypes option, so Set, Map, Error and typed array serialize.
+  // Again, that's a reason that we can't just switch the default!
+  MsgPackR = 2,
+}
+
+const DEFAULT_ENCODING = DataEncoding.MsgPackR;
 
 function cocalcServerToSocketioAddress(url?: string): {
   address: string;
@@ -1395,6 +1406,10 @@ interface RequestManyOptions extends PublishOptions {
   maxMessages?: number;
 }
 
+// NOTE: packr leaves undefined as undefined by default, which
+// is important for cocalc.
+const packr = new Packr({ moreTypes: true });
+
 export function encode({
   encoding,
   mesg,
@@ -1402,7 +1417,9 @@ export function encode({
   encoding: DataEncoding;
   mesg: any;
 }) {
-  if (encoding == DataEncoding.MsgPack) {
+  if (encoding == DataEncoding.MsgPackR) {
+    return packr.pack(mesg);
+  } else if (encoding == DataEncoding.MsgPack) {
     return msgpack.encode(mesg, MSGPACK_ENCODER_OPTIONS);
   } else if (encoding == DataEncoding.JsonCodec) {
     return jsonEncoder(mesg);
@@ -1418,7 +1435,9 @@ export function decode({
   encoding: DataEncoding;
   data;
 }): any {
-  if (encoding == DataEncoding.MsgPack) {
+  if (encoding == DataEncoding.MsgPackR) {
+    return packr.unpack(data);
+  } else if (encoding == DataEncoding.MsgPack) {
     return msgpack.decode(data);
   } else if (encoding == DataEncoding.JsonCodec) {
     return jsonDecoder(data);
