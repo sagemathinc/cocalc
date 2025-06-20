@@ -149,7 +149,6 @@ export class DStream<T = any> extends EventEmitter {
         size,
       } as SqliteMessagesRow;
       messages.push(message);
-      n += 1;
     }
     const data = {
       name: this.name,
