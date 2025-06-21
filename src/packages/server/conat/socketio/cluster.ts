@@ -9,7 +9,7 @@ Run this to be able to use all the cores, since nodejs is (mostly) single thread
 
 import { init as createConatServer } from "@cocalc/conat/core/server";
 import cluster from "node:cluster";
-import { createServer } from "http";
+import * as http from "http";
 import { availableParallelism } from "os";
 import {
   setupMaster as setupPrimarySticky,
@@ -20,7 +20,11 @@ import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
-import { conatSocketioCount, conatClusterPort } from "@cocalc/backend/data";
+import {
+  conatSocketioCount,
+  conatClusterPort,
+  conatClusterHealthPort,
+} from "@cocalc/backend/data";
 import { loadConatConfiguration } from "../configuration";
 import { join } from "path";
 
@@ -34,7 +38,7 @@ async function primary() {
 
   await loadConatConfiguration();
 
-  const httpServer = createServer();
+  const httpServer = http.createServer();
   setupPrimarySticky(httpServer, {
     loadBalancingMethod: "least-connection",
   });
@@ -42,6 +46,18 @@ async function primary() {
   setupPrimary();
   cluster.setupPrimary({ serialization: "advanced" });
   httpServer.listen(getPort());
+
+  if (conatClusterHealthPort) {
+    console.log(
+      `starting /health socketio server on port ${conatClusterHealthPort}`,
+    );
+    const healthServer = http.createServer();
+    healthServer.listen(conatClusterHealthPort);
+    healthServer.on("request", (req, res) => {
+      // unhealthy if >3 deaths in 1 min
+      handleHealth(req, res, recentDeaths.length <= 3, "Too many worker exits");
+    });
+  }
 
   const numWorkers = conatSocketioCount
     ? conatSocketioCount
@@ -52,7 +68,16 @@ async function primary() {
   }
   console.log({ numWorkers, port, basePath });
 
+  const recentDeaths: number[] = [];
   cluster.on("exit", (worker) => {
+    if (conatClusterHealthPort) {
+      recentDeaths.push(Date.now());
+      // Remove entries older than X seconds (e.g. 60s)
+      while (recentDeaths.length && recentDeaths[0] < Date.now() - 60_000) {
+        recentDeaths.shift();
+      }
+    }
+
     console.log(`Worker ${worker.process.pid} died, so making a new one`);
     cluster.fork();
   });
@@ -65,7 +90,7 @@ async function worker() {
   const path = join(basePath, "conat");
   console.log(`Socketio Worker pid=${process.pid} started with path=${path}`);
 
-  const httpServer = createServer();
+  const httpServer = http.createServer();
   const id = `${cluster.worker?.id ?? ""}`;
   const systemAccountPassword = process.env.SYSTEM_ACCOUNT_PASSWORD;
   delete process.env.SYSTEM_ACCOUNT_PASSWORD;
@@ -93,4 +118,21 @@ if (cluster.isPrimary) {
   primary();
 } else {
   worker();
+}
+
+function handleHealth(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  status: boolean,
+  msg?: string,
+) {
+  if (req.method === "GET") {
+    if (status) {
+      res.statusCode = 200;
+      res.end("healthy");
+    } else {
+      res.statusCode = 500;
+      res.end(msg || "Unhealthy");
+    }
+  }
 }

@@ -252,6 +252,11 @@ export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
 // It makes no sense to use both this *and* valkey. It's
 // one or the other.
 export let conatClusterPort = parseInt(process.env.CONAT_CLUSTER_PORT ?? "0");
+// if set, a simple http server will be started listening on conatClusterHealthPort
+// which returns an error only if the socketio server is not "healthy".
+export let conatClusterHealthPort = parseInt(
+  process.env.CONAT_CLUSTER_HEALTH_PORT ?? "0",
+);
 
 // API keys
 
