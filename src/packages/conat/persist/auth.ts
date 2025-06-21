@@ -1,5 +1,6 @@
 import { SERVICE } from "./util";
 import { ConatError } from "@cocalc/conat/core/client";
+import { normalize } from "path";
 
 export const MAX_PATH_LENGTH = 4000;
 
@@ -33,18 +34,25 @@ export function assertHasWritePermission({
   //   accounts/[account_id]/any...thing
   //   projects/[project_id]/any...thing
   //   hub/any...thing  <- only hub can write to this.
+  // Also, we don't allow malicious paths, which means by definition that
+  //     normalize(path) != path.
+  // This is to avoid accidentally writing a file to different project, which
+  // would be very bad.
   subject: string;
   path: string;
 }) {
+  if (path != normalize(path)) {
+    throw Error(`permission denied: path '${path}' is not normalized`);
+  }
   if (path.length > MAX_PATH_LENGTH) {
     throw new ConatError(
       `permission denied: path (of length ${path.length}) is too long (limit is '${MAX_PATH_LENGTH}' characters)`,
       { code: 403 },
     );
   }
-  if (path.includes("..") || path.startsWith("/") || path.endsWith("/")) {
+  if (path.startsWith("/") || path.endsWith("/")) {
     throw new ConatError(
-      `permission denied: path '${path}' must not include .. or start or end with / `,
+      `permission denied: path '${path}' must not start or end with '/'`,
       { code: 403 },
     );
   }

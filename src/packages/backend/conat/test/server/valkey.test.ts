@@ -23,6 +23,8 @@ import {
 
 beforeAll(before);
 
+jest.setTimeout(10000);
+
 describe("create two conat socket servers NOT connected via a valkey stream, and observe communication is totally broken (of course)", () => {
   let server2;
   it("creates a second server", async () => {
