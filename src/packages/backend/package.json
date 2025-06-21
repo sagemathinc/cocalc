@@ -16,7 +16,7 @@
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest --forceExit --maxWorkers=50%",
+    "test": "pnpm exec jest --forceExit --maxWorkers=30%",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test",
     "conat-watch": "node ./bin/conat-watch.cjs",
