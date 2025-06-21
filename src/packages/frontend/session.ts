@@ -20,7 +20,7 @@ import { load_target } from "./history";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const log = (..._args) => {
-  // console.trace("session: ", ..._args);
+  // console.log("session: ", ..._args);
 };
 
 export function session_manager(name, redux): SessionManager | undefined {

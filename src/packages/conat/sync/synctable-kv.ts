@@ -117,10 +117,6 @@ export class SyncTableKV extends EventEmitter {
 
   init = async () => {
     const name = this.getName();
-    console.log("initializaing a synctable-kv", {
-      name,
-      spec: this.query[this.table][0],
-    });
     if (this.atomic) {
       this.dkv = await createDkv({
         client: this.client,

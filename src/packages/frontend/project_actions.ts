@@ -300,6 +300,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
+    this.open_files = new OpenFiles(this);
     // console.log("create project actions", this.project_id);
     // console.trace("create project actions", this.project_id)
     this.expensiveLoop();
@@ -355,7 +356,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (this.initialized) return;
     // console.log("initExpensive", this.project_id);
     this.initialized = true;
-    this.open_files = new OpenFiles(this);
     this.initComputeServerManager();
     this.initComputeServersTable();
     this.initProjectStatus();
@@ -378,8 +378,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.remove_table(table);
     }
 
-    this.open_files?.close();
-    delete this.open_files;
     webapp_client.conat_client.closeOpenFiles(this.project_id);
 
     const store = this.get_store();
@@ -396,6 +394,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.closeExpensive();
+    this.open_files?.close();
+    delete this.open_files;
     this.state = "closed";
   };
 
@@ -1422,7 +1422,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         );
       }
     });
-  }
+  };
 
   open_directory(path, change_history = true, show_files = true): void {
     path = normalize(path);

@@ -97,7 +97,8 @@ export async function open_file(
     return;
   }
 
-  // ensure the project is opened -- otherwise the modal to start the project won't appear.
+  // ensure the project is opened -- otherwise the modal to start
+  // the project won't appear.
   redux.getActions("projects").open_project({
     project_id: actions.project_id,
     switch_to: opts.foreground_project,
@@ -115,7 +116,10 @@ export async function open_file(
     // we have to resolve a symlink instead, then we *fix*
     // that below!  This makes things fast and predictable
     // usually.
-    if (!actions.open_files) return; // closed
+    if (!actions.open_files) {
+      return;
+      // closed
+    }
     actions.open_files.set(opts.path, "component", {});
   }
 

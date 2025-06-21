@@ -69,7 +69,11 @@ export class NotebookFrameActions {
     this.frame_id = frame_id;
     this.store = new NotebookFrameStore(frame_tree_actions, frame_id);
 
-    this.jupyter_actions.store.on("cell-list-recompute", this.update_cur_id);
+    // in prod, I observed "actions.ts:72 Uncaught (in promise)
+    // TypeError: Cannot read properties of undefined (reading 'store')"
+    // as a side effect of a problem loading TimeTravel history.
+    // Better to at least not crash:
+    this.jupyter_actions?.store.on("cell-list-recompute", this.update_cur_id);
 
     this.update_cur_id();
     this.init_syncdb_change_hook();
