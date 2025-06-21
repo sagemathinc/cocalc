@@ -176,11 +176,10 @@ export class ConatServer {
   private subscriptions: { [socketId: string]: Set<string> } = {};
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
   private sticky: {
-    // the target string is JSON.stringifh({ id: string; subject: string }), which is the
+    // the target string is JSON.stringify({ id: string; subject: string }), which is the
     // socket.io room to send the messages to.
     [pattern: string]: { [subject: string]: string };
   } = {};
-  private stickyUpdates: StickyUpdate[] = [];
 
   constructor(options: Options) {
     const {
@@ -460,15 +459,13 @@ export class ConatServer {
     await until(
       async () => {
         try {
-          const responses = (await callback(getStateFromCluster)).filter(
-            (x) => x.length > 0,
+          const responses = (await callback(getStateFromCluster)).filter((x) =>
+            isNonempty(x),
           );
           // console.log("initSticky got", responses);
           if (responses.length > 0) {
             for (const response of responses) {
-              for (const update of response) {
-                this._updateSticky(update);
-              }
+              this.mergeSticky(response);
             }
             return true;
           } else {
@@ -480,8 +477,16 @@ export class ConatServer {
           return false;
         }
       },
-      { start: 100, decay: 1.5, max: 5000 },
+      { start: 100, decay: 1.5, max: 10000 },
     );
+  };
+
+  private mergeSticky = (sticky: {
+    [pattern: string]: { [subject: string]: string };
+  }) => {
+    for (const pattern in sticky) {
+      this.sticky[pattern] = { ...sticky[pattern], ...this.sticky[pattern] };
+    }
   };
 
   private initStickySubscription = async () => {
@@ -495,7 +500,7 @@ export class ConatServer {
         this._updateSticky(args);
       } else if (action == "init") {
         // console.log("sending stickyUpdates", this.stickyUpdates);
-        args(this.stickyUpdates);
+        args(this.sticky);
       }
     });
   };
@@ -509,7 +514,6 @@ export class ConatServer {
   };
 
   private _updateSticky = (update: StickyUpdate) => {
-    this.stickyUpdates.push(update);
     const { pattern, subject, target } = update;
     if (this.sticky[pattern] === undefined) {
       this.sticky[pattern] = {};
