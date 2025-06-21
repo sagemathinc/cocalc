@@ -17,7 +17,7 @@ cd packages/server
    s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000}); 0
 
 
-For valkey clustering:
+For valkey clustering -- run "valkey-server" in a terminal, then:
 
    s0 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'valkey://localhost:6379', port:3000, getUser:()=>{return {hub_id:'hub'}}})
 
@@ -35,6 +35,12 @@ Corresponding clients:
 Or from cocalc/src
 
    pnpm conat-server
+   
+   
+WARNING/TODO: I did not yet implement anything to expire interest
+when a server terminates!!  This basically isn't needed when using
+the cluster adapter since there's no scaling up or down happening 
+(unless a worker keeps crashing),  but with valkey it would be a good idea.
 
 */
 
@@ -169,7 +175,6 @@ export class ConatServer {
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
-  private interestUpdates: InterestUpdate[] = [];
   private sticky: {
     // the target string is JSON.stringifh({ id: string; subject: string }), which is the
     // socket.io room to send the messages to.
@@ -346,15 +351,11 @@ export class ConatServer {
       async () => {
         try {
           const responses = (await callback(getStateFromCluster)).filter(
-            (x) => x.length > 0,
+            (state) => isNonempty(state.patterns),
           );
           // console.log("initInterest got", responses);
           if (responses.length > 0) {
-            for (const response of responses) {
-              for (const update of response) {
-                this._updateInterest(update);
-              }
-            }
+            this.deserializeInterest(responses[0]);
             return true;
           } else {
             // console.log(`init interest state -- waiting for other nodes...`);
@@ -377,17 +378,42 @@ export class ConatServer {
     this.io.of("cluster").on(INTEREST_STREAM, (action, args) => {
       // console.log("INTEREST_STREAM received", { action, args });
       if (action == "update") {
+        // another server telling us about subscription interest
         // console.log("applying interest update", args);
         this._updateInterest(args);
       } else if (action == "init") {
-        args(this.interestUpdates);
+        // console.log("another server requesting state");
+        args(this.serializableInterest());
       }
     });
   };
 
+  private serializableInterest = () => {
+    const fromT = (x: { [queue: string]: Set<string> }) => {
+      const y: { [queue: string]: string[] } = {};
+      for (const queue in x) {
+        y[queue] = Array.from(x[queue]);
+      }
+      return y;
+    };
+    return this.interest.serialize(fromT);
+  };
+
+  private deserializeInterest = (state) => {
+    const interest = new Patterns<{ [queue: string]: Set<string> }>();
+    interest.deserialize(state, (x: any) => {
+      for (const key in x) {
+        x[key] = new Set<string>(x[key]);
+      }
+      return x;
+    });
+    const i = this.interest;
+    this.interest = interest;
+    this.interest.merge(i);
+  };
+
   private _updateInterest = (update: InterestUpdate) => {
     if (this.state != "ready") return;
-    this.interestUpdates.push(update);
     const { op, subject, queue, room } = update;
     const groups = this.interest.get(subject);
     if (op == "add") {
@@ -895,4 +921,11 @@ function getAddress(socket) {
   }
 
   return socket.handshake.address;
+}
+
+function isNonempty(obj) {
+  for (const _ in obj) {
+    return true;
+  }
+  return false;
 }

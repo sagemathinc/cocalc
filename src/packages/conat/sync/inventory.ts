@@ -11,6 +11,7 @@ i.ls()
 
 import { dkv, type DKV } from "./dkv";
 import { dstream, type DStream } from "./dstream";
+import { dko, type DKO } from "./dko";
 import getTime from "@cocalc/conat/time";
 import refCache from "@cocalc/util/refcache";
 import type { JSONValue } from "@cocalc/util/types";
@@ -156,14 +157,23 @@ export class Inventory {
     return { ...cur, type, name };
   };
 
-  getStores = async ({ filter }: { filter?: string } = {}): Promise<
-    (DKV | DStream)[]
+  getStores = async ({
+    filter,
+    sort = "-last",
+  }: { filter?: string; sort?: Sort } = {}): Promise<
+    (DKV | DStream | DKO)[]
   > => {
-    const v: (DKV | DStream)[] = [];
-    for (const x of this.getAll({ filter })) {
+    const v: (DKV | DStream | DKO)[] = [];
+    const all = this.getAll({ filter });
+    for (const key of this.sortedKeys(all, sort)) {
+      const x = all[key];
       const { desc, name, type } = x;
       if (type == "kv") {
-        v.push(await dkv({ name, ...this.location, desc }));
+        if (name.startsWith(DKO_PREFIX)) {
+          v.push(await dko<any>({ name, ...this.location, desc }));
+        } else {
+          v.push(await dkv({ name, ...this.location, desc }));
+        }
       } else if (type == "stream") {
         v.push(await dstream({ name, ...this.location, desc }));
       } else {

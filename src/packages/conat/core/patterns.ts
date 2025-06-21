@@ -10,6 +10,41 @@ export class Patterns<T> {
   private index: Index = {};
   constructor() {}
 
+  serialize = (fromT?: (x: T) => any) => {
+    let patterns: { [pattern: string]: any };
+    if (fromT != null) {
+      patterns = {};
+      for (const pattern in this.patterns) {
+        patterns[pattern] = fromT(this.patterns[pattern]);
+      }
+    } else {
+      patterns = this.patterns;
+    }
+
+    return { patterns, index: this.index };
+  };
+
+  deserialize = (
+    { patterns, index }: { patterns: { [pattern: string]: any }; index: Index },
+    toT?: (x: any) => T,
+  ) => {
+    if (toT != null) {
+      for (const pattern in patterns) {
+        patterns[pattern] = toT(patterns[pattern]); // make it of type T
+      }
+    }
+    this.patterns = patterns;
+    this.index = index;
+  };
+
+  // mutate this by merging in data from p.
+  merge = (p: Patterns<T>) => {
+    for (const pattern in p.patterns) {
+      const t = p.patterns[pattern];
+      this.set(pattern, t);
+    }
+  };
+
   matches = (subject: string): string[] => {
     return matchUsingIndex(this.index, subject.split("."));
   };

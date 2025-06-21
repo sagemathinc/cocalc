@@ -23,8 +23,8 @@ const logger = getLogger("project:conat:terminal:session");
 // and completely crashing the project in case a user pastes in, e.g.,
 // a few hundred K, like this gist: https://gist.github.com/cheald/2905882
 // to a node session.   Note VS code also crashes.
-const MAX_INPUT_SIZE = 2048;
-const INPUT_CHUNK_SIZE = 128;
+const MAX_INPUT_SIZE = 10000;
+const INPUT_CHUNK_SIZE = 50;
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
