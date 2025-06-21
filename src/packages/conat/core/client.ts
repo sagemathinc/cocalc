@@ -238,6 +238,8 @@ import {
   createSyncTable,
 } from "@cocalc/conat/sync/synctable";
 
+export const MAX_INTEREST_TIMEOUT = 90000;
+
 const MSGPACK_ENCODER_OPTIONS = {
   // ignoreUndefined is critical so database queries work properly, and
   // also we have a lot of api calls with tons of wasted undefined values.
@@ -501,6 +503,42 @@ export class Client extends EventEmitter {
       },
       { start: STATS_LOOP, max: STATS_LOOP },
     );
+  };
+
+  interest = async (subject: string): Promise<boolean> => {
+    return await this.waitForInterest(subject, { timeout: 0 });
+  };
+
+  waitForInterest = async (
+    subject: string,
+    {
+      timeout = MAX_INTEREST_TIMEOUT,
+    }: {
+      timeout?: number;
+    } = {},
+  ) => {
+    if (!isValidSubjectWithoutWildcards(subject)) {
+      throw Error(
+        `subject ${subject} must be a valid subject without wildcards`,
+      );
+    }
+    if (timeout > MAX_INTEREST_TIMEOUT) {
+      throw Error(`timeout must be at most ${MAX_INTEREST_TIMEOUT}`);
+    }
+    const f = (cb) => {
+      this.conn
+        .timeout(timeout ? timeout : 10000)
+        .emit("wait-for-interest", { subject, timeout }, (err, response) => {
+          if (err) {
+            cb(err);
+          } else if (response.error) {
+            cb(new ConatError(response.error, { code: response.code }));
+          } else {
+            cb(undefined, response);
+          }
+        });
+    };
+    return await callback(f);
   };
 
   recvStats = (bytes: number) => {

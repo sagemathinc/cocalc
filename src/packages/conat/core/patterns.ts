@@ -1,14 +1,25 @@
 import { isEqual } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
+import { EventEmitter } from "events";
 
 type Index = { [pattern: string]: Index | string };
 
 const logger = getLogger("pattern");
 
-export class Patterns<T> {
+export class Patterns<T> extends EventEmitter {
   private patterns: { [pattern: string]: T } = {};
   private index: Index = {};
-  constructor() {}
+
+  constructor() {
+    super();
+    this.setMaxListeners(1000);
+  }
+
+  close = () => {
+    this.emit("closed");
+    this.patterns = {};
+    this.index = {};
+  };
 
   serialize = (fromT?: (x: T) => any) => {
     let patterns: { [pattern: string]: any };
@@ -35,6 +46,7 @@ export class Patterns<T> {
     }
     this.patterns = patterns;
     this.index = index;
+    this.emit("change");
   };
 
   // mutate this by merging in data from p.
@@ -43,6 +55,7 @@ export class Patterns<T> {
       const t = p.patterns[pattern];
       this.set(pattern, t);
     }
+    this.emit("change");
   };
 
   matches = (subject: string): string[] => {
@@ -83,6 +96,7 @@ export class Patterns<T> {
   set = (pattern: string, t: T) => {
     this.patterns[pattern] = t;
     setIndex(this.index, pattern.split("."), pattern);
+    this.emit("change");
   };
 
   delete = (pattern: string) => {

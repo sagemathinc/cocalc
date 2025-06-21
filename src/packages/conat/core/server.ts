@@ -59,6 +59,7 @@ import {
   connect,
   type Client,
   type ClientOptions,
+  MAX_INTEREST_TIMEOUT,
   STICKY_QUEUE_GROUP,
 } from "./client";
 import {
@@ -74,7 +75,7 @@ import { Patterns } from "./patterns";
 import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
-import { until } from "@cocalc/util/async-utils";
+import { once, until } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:server");
@@ -309,6 +310,11 @@ export class ConatServer {
       delete this[prop];
     }
     this.usage?.close();
+    this.interest.close();
+    this.sticky = {};
+    this.subscriptions = {};
+    this.stats = {};
+    this.sockets = {};
   };
 
   private info = (): ServerInfo => {
@@ -692,6 +698,49 @@ export class ConatServer {
       if (s == null) return;
       s.recv = recv0;
     });
+
+    socket.on(
+      "wait-for-interest",
+      async ({ subject, timeout = MAX_INTEREST_TIMEOUT }, respond) => {
+        if (respond == null) {
+          return;
+        }
+        if (!isValidSubjectWithoutWildcards(subject)) {
+          respond({ error: "invalid subject" });
+          return;
+        }
+        if (!(await this.isAllowed({ user, subject, type: "pub" }))) {
+          const message = `permission denied waiting for interest in '${subject}' from ${JSON.stringify(user)}`;
+          this.log(message);
+          respond({ error: message, code: 403 });
+        }
+        const matches = this.interest.matches(subject);
+        if (matches.length > 0 || !timeout) {
+          // NOTE: we never return the actual matches, since this is a potential security vulnerability.
+          // it could make it very easy to figure out private inboxes, etc.
+          respond(matches.length > 0);
+        }
+        if (timeout > MAX_INTEREST_TIMEOUT) {
+          timeout = MAX_INTEREST_TIMEOUT;
+        }
+        const start = Date.now();
+        while (this.state != "closed" && this.sockets[socket.id]) {
+          if (Date.now() - start >= timeout) {
+            respond({ error: "timeout" });
+            return;
+          }
+          await once(this.interest, "change");
+          if ((this.state as any) == "closed" || !this.sockets[socket.id]) {
+            return;
+          }
+          const matches = this.interest.matches(subject);
+          if (matches.length > 0) {
+            respond(true);
+            return;
+          }
+        }
+      },
+    );
 
     socket.on("publish", async ([subject, ...data], respond) => {
       if (data?.[2]) {
