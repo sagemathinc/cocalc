@@ -11,7 +11,6 @@ an error too.
 */
 
 import { type Location } from "@cocalc/conat/types";
-import { trunc_middle } from "@cocalc/util/misc";
 import { conat, getLogger } from "@cocalc/conat/client";
 import { randomId } from "@cocalc/conat/names";
 import { EventEmitter } from "events";
@@ -44,6 +43,7 @@ export interface ServiceCall extends ServiceDescription {
   // if it fails with error.code 503, we wait for service to be ready and try again,
   // unless this is set -- e.g., when waiting for the service in the first
   // place we set this to avoid an infinite loop.
+  // This now just uses the waitForInterest option to request.
   noRetry?: boolean;
 
   client?: Client;
@@ -61,6 +61,7 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
   const doRequest = async () => {
     resp = await cn.request(subject, data, {
       timeout,
+      waitForInterest: !opts.noRetry,
     });
     const result = resp.data;
     if (result?.error) {
@@ -68,37 +69,7 @@ export async function callConatService(opts: ServiceCall): Promise<any> {
     }
     return result;
   };
-
-  try {
-    // try to call the service:
-    return await doRequest();
-  } catch (err) {
-    // console.log(`request to '${subject}' failed -- ${err}`);
-    // it failed.
-    if (opts.noRetry) {
-      throw err;
-    }
-    const p = opts.path ? `${trunc_middle(opts.path, 64)}:` : "";
-    if (err.code == 503) {
-      // it's actually just not ready, so
-      // wait for the service to be ready, then try again
-      await waitForConatService({ options: opts, maxWait: timeout });
-      try {
-        return await doRequest();
-      } catch (err) {
-        if (err.code == 503) {
-          err.message = `Not Available: service ${p}${opts.service} is not available`;
-        }
-        throw err;
-      }
-    } else if (err.code == 408) {
-      throw Error(
-        `Timeout: service '${p}${opts.service}' did not respond for ${Math.round(timeout / 1000)} seconds`,
-      );
-    } else {
-      throw err;
-    }
-  }
+  return await doRequest();
 }
 
 export type CallConatServiceFunction = typeof callConatService;
