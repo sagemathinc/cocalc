@@ -366,6 +366,7 @@ export class SyncDoc extends EventEmitter {
           log("initAll succeeded");
           return true;
         } catch (err) {
+          console.trace(err);
           const m = `WARNING: problem initializing ${this.path} -- ${err}`;
           log(m);
           // log always:
@@ -2751,10 +2752,14 @@ export class SyncDoc extends EventEmitter {
     this.last_seq = x.last_seq;
     this.snapshot_interval = x.snapshot_interval ?? DEFAULT_SNAPSHOT_INTERVAL;
     this.users = x.users ?? [];
-    // @ts-ignore
-    this.project_id = x.project_id;
-    // @ts-ignore
-    this.path = x.path;
+    if (x.project_id) {
+      // @ts-ignore
+      this.project_id = x.project_id;
+    }
+    if (x.path) {
+      // @ts-ignore
+      this.path = x.path;
+    }
 
     const settings = data.get("settings", Map());
     if (settings !== this.settings) {
