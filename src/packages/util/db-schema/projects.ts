@@ -720,6 +720,9 @@ export interface CreateProjectOptions {
   noPool?: boolean;
   // start running the moment the project is created -- uses more resources, but possibly better user experience
   start?: boolean;
+
+  // admins can specify the project_id - nobody else can -- useful for debugging.
+  project_id?: string;
 }
 
 interface BaseCopyOptions {

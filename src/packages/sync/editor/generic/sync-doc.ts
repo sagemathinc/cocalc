@@ -1273,6 +1273,46 @@ export class SyncDoc extends EventEmitter {
         start_seq: this.last_seq,
         ephemeral,
       });
+      if (this.last_seq && !synctable.dstream[0]?.is_snapshot) {
+        // this.last_seq is wrong, so we load everything and fix it.  This happened
+        // for data moving to conat when the seq numbers changed.
+
+        synctable.close();
+        synctable = await this.client.synctable_conat(query, {
+          obj: {
+            project_id: this.project_id,
+            path: this.path,
+          },
+          stream: true,
+          atomic: true,
+          desc: { path: this.path },
+          ephemeral,
+        });
+
+        // also find the correct last_seq:
+        let n = synctable.dstream.length - 1;
+        for (; n >= 0; n--) {
+          const x = synctable.dstream[n];
+          if (x?.is_snapshot) {
+            const last_seq = synctable.dstream.seq(n);
+            this.last_seq = last_seq;
+            const time = x.time;
+            await this.set_syncstring_table({
+              last_snapshot: time,
+              last_seq,
+            });
+            this.setLastSnapshot(time);
+            break;
+          }
+        }
+        if (n == -1) {
+          // no snapshot?  should never happen, but just in case.
+          delete this.last_seq;
+          await this.set_syncstring_table({
+            last_seq: undefined,
+          });
+        }
+      }
     } else if (this.useConat && query.syncstrings) {
       synctable = await this.client.synctable_conat(query, {
         obj: {
