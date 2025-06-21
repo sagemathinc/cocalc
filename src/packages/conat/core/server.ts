@@ -310,7 +310,7 @@ export class ConatServer {
       delete this[prop];
     }
     this.usage?.close();
-    this.interest.close();
+    this.interest?.close();
     this.sticky = {};
     this.subscriptions = {};
     this.stats = {};
