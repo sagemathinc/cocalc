@@ -522,9 +522,7 @@ export class Client extends EventEmitter {
         `subject ${subject} must be a valid subject without wildcards`,
       );
     }
-    if (timeout > MAX_INTEREST_TIMEOUT) {
-      throw Error(`timeout must be at most ${MAX_INTEREST_TIMEOUT}`);
-    }
+    timeout = Math.min(timeout, MAX_INTEREST_TIMEOUT);
     const f = (cb) => {
       this.conn
         .timeout(timeout ? timeout : 10000)
