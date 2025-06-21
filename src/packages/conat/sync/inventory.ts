@@ -298,7 +298,9 @@ export class Inventory {
         count,
         dateToString(new Date(last)),
         desc ? JSON.stringify(desc) : "",
-        Object.keys(limits).length > 0 ? JSON.stringify(limits) : "--",
+        limits != null && Object.keys(limits).length > 0
+          ? JSON.stringify(limits)
+          : "--",
       ]);
     }
 
