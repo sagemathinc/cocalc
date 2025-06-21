@@ -257,6 +257,7 @@ export class ConatClient extends EventEmitter {
     });
     const resp = await cn.request(subject, mesg, {
       timeout,
+      waitForInterest: true,
     });
     return resp.data;
   };
@@ -343,7 +344,13 @@ export class ConatClient extends EventEmitter {
   }) => {
     const cn = this.conat();
     const subject = projectSubject({ project_id, compute_server_id, service });
-    const resp = await cn.request(subject, { name, args }, { timeout });
+    const resp = await cn.request(
+      subject,
+      { name, args },
+      // we use waitForInterest because often the project hasn't
+      // quite fully started.
+      { timeout, waitForInterest: true },
+    );
     return resp.data;
   };
 

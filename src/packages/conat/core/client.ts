@@ -1226,12 +1226,17 @@ export class Client extends EventEmitter {
     mesg: any,
     {
       timeout = DEFAULT_REQUEST_TIMEOUT,
+      // waitForInterest -- if publish fails due to no receivers and
+      // waitForInterest is true, will wait until there is a receiver
+      // and publish again:
+      waitForInterest = false,
       ...options
-    }: PublishOptions & { timeout?: number } = {},
+    }: PublishOptions & { timeout?: number; waitForInterest?: boolean } = {},
   ): Promise<Message> => {
     if (timeout <= 0) {
       throw Error("timeout must be positive");
     }
+    const start = Date.now();
     const inbox = await this.getInbox();
     const inboxSubject = this.temporaryInboxSubject();
     const sub = new EventIterator<Message>(inbox, inboxSubject, {
@@ -1240,16 +1245,43 @@ export class Client extends EventEmitter {
       map: (args) => args[0],
     });
 
-    const { count } = await this.publish(subject, mesg, {
+    const opts = {
       ...options,
       timeout,
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
-    });
+    };
+    const { count } = await this.publish(subject, mesg, opts);
+
     if (!count) {
-      sub.stop();
-      throw new ConatError(`request -- no subscribers matching '${subject}'`, {
-        code: 503,
-      });
+      const giveUp = () => {
+        sub.stop();
+        throw new ConatError(
+          `request -- no subscribers matching '${subject}'`,
+          {
+            code: 503,
+          },
+        );
+      };
+      if (waitForInterest) {
+        await this.waitForInterest(subject, { timeout });
+        if (this.state == "closed") {
+          throw Error("closed");
+        }
+        const remaining = timeout - (Date.now() - start);
+        if (remaining <= 1000) {
+          throw new ConatError("timeout", { code: 408 });
+        }
+        // no error so there is very likely now interest, so we publish again:
+        const { count } = await this.publish(subject, mesg, {
+          ...opts,
+          timeout: remaining,
+        });
+        if (!count) {
+          giveUp();
+        }
+      } else {
+        giveUp();
+      }
     }
 
     for await (const resp of sub) {
