@@ -2552,7 +2552,7 @@ export class SyncDoc extends EventEmitter {
     }
     // @ts-ignore - cheating here
     const first = this.patch_list.patches[0];
-    if ((first.parents ?? []).length > 0) {
+    if ((first?.parents ?? []).length > 0) {
       throw Error("first patch should have no parents");
     }
     for (const patch of patches) {
@@ -2588,10 +2588,12 @@ export class SyncDoc extends EventEmitter {
       i += 1;
       v.push(p);
     }
-    // @ts-ignore
-    first.parents = [patches[patches.length - 1].time];
-    first.is_snapshot = true;
-    first.snapshot = this.patch_list.value({ time: first.time }).to_str();
+    if (first != null) {
+      // @ts-ignore
+      first.parents = [patches[patches.length - 1].time];
+      first.is_snapshot = true;
+      first.snapshot = this.patch_list.value({ time: first.time }).to_str();
+    }
     this.patch_list.add(v);
     this.emit("change");
   });
