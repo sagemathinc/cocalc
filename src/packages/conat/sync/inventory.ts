@@ -27,8 +27,7 @@ import {
 } from "@cocalc/conat/persist/storage";
 import { AsciiTable3 } from "ascii-table3";
 
-export const INVENTORY_UPDATE_INTERVAL = 30000;
-export const THROTTLE_MS = 10000;
+export const INVENTORY_UPDATE_INTERVAL = 90000;
 export const INVENTORY_NAME = "CoCalc-Inventory";
 
 type Sort =
