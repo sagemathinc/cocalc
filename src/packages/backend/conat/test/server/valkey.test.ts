@@ -175,6 +175,7 @@ describe("create two servers connected via valkey, and verify that *sticky* subs
     client1 = server1.client();
     server2 = await initConatServer({ valkey });
     client2 = server2.client();
+    await delay(500);
   });
 
   let s1, s2, stickyTarget;

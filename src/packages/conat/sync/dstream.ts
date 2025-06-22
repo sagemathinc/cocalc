@@ -287,9 +287,9 @@ export class DStream<T = any> extends EventEmitter {
           await this.attemptToSave();
           //console.log("successfully saved");
         } catch (err) {
-          if (!process.env.COCALC_TEST_MODE) {
+          if (false && !process.env.COCALC_TEST_MODE) {
             console.log(
-              `WARNING: stream attemptToSave failed - ${err}`,
+              `WARNING: dstream attemptToSave failed - ${err}`,
               this.name,
             );
           }

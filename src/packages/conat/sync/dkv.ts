@@ -480,7 +480,7 @@ export class DKV<T = any> extends EventEmitter {
           status = await this.attemptToSave();
           //console.log("successfully saved");
         } catch (err) {
-          if (!process.env.COCALC_TEST_MODE) {
+          if (false && !process.env.COCALC_TEST_MODE) {
             console.log(
               "WARNING: dkv attemptToSave failed -- ",
               this.name,

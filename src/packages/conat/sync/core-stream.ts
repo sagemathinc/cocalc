@@ -172,7 +172,7 @@ export class CoreStream<T = any> extends EventEmitter {
     client,
   }: CoreStreamOptions) {
     super();
-    logger.debug("constructor", name)
+    logger.debug("constructor", name);
     if (client == null) {
       throw Error("client must be specified");
     }
@@ -252,7 +252,7 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   close = () => {
-    logger.debug("close", this.name)
+    logger.debug("close", this.name);
     delete this.client;
     this.removeAllListeners();
     this.persistClient?.close();
@@ -294,7 +294,7 @@ export class CoreStream<T = any> extends EventEmitter {
           const sub = await this.persistClient.getAll({
             start_seq,
           });
-          // console.log("got sub");
+          // console.log("got sub", { noEmit });
           while (true) {
             const { value, done } = await sub.next();
             if (done) {
@@ -456,6 +456,7 @@ export class CoreStream<T = any> extends EventEmitter {
     }
 
     const mesg = decode({ encoding, data });
+    // console.log("processPersistentSet", seq, mesg)
     const raw = {
       timestamp: time,
       headers,
@@ -518,7 +519,9 @@ export class CoreStream<T = any> extends EventEmitter {
         try {
           log("core-stream: START listening on changefeed", this.storage);
           const changefeed = await this.persistClient.changefeed();
-          for await (const { updates } of changefeed) {
+          // console.log("listening on the changefeed...", this.storage);
+          for await (const updates of changefeed) {
+            // console.log("changefeed", this.storage, updates);
             log("core-stream: process updates", updates, this.storage);
             if (this.client == null) return true;
             this.processPersistentMessages(updates, {
@@ -526,7 +529,9 @@ export class CoreStream<T = any> extends EventEmitter {
               noSeqCheck: false,
             });
           }
+          // console.log("DONE listening on the changefeed...", this.storage);
         } catch (err) {
+          // console.log("error listening on the changefeed...");
           // This normally doesn't happen but could if a persist server is being restarted
           // frequently or things are seriously broken.  We cause this in
           //    backend/conat/test/core/core-stream-break.test.ts

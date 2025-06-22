@@ -127,7 +127,7 @@ export class AStream<T = any> {
     unknown
   > {
     const cf = await this.stream.changefeed();
-    for await (const { updates } of cf) {
+    for await (const updates of cf) {
       for (const event of updates) {
         if (event.op == "delete") {
           yield event;

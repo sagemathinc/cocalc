@@ -311,6 +311,7 @@ async function getAll({ stream, mesg, request, messagesThresh }) {
 
 function startChangefeed({ socket, stream, messagesThresh }) {
   logger.debug("startChangefeed", { subject: socket.subject });
+  // this seq here has nothing to do with the seq of the StoredMessage!
   let seq = 0;
   const respond = (error?, messages?: StoredMessage[]) => {
     if (socket.state == "closed") {

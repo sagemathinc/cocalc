@@ -186,12 +186,12 @@ export class JupyterActions extends JupyterActions0 {
         });
         if (this._state == ("closed" as any)) return;
         this.setState({ kernel_usage });
-      } catch (err) {
-        console.log(`WARNING: getUsageInfo -- ${err}`);
+      } catch {
+        // console.log(`WARNING: getUsageInfo -- ${err}`);
       }
       // Backend actually updates state every 2 seconds, but the
       // main cost is network traffic.
-      await delay(3000);
+      await delay(3500);
     }
   };
 

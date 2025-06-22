@@ -379,7 +379,6 @@ export class PersistentStream extends EventEmitter {
     const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
     this.emit("change", {
-      op: "set",
       seq,
       time,
       key,

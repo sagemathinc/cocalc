@@ -183,18 +183,24 @@ describe("create a service with specified client, stop and start the server, and
     ).toBe("hellohello");
   });
 
-  it.skip("disconnect both clients and check service still works on reconnect", async () => {
+  it("disconnect both clients and check service still works on reconnect", async () => {
     // cause a disconnect -- client will connect again in 50ms soon
     // and handle the request below:
     client.conn.io.engine.close();
     client2.conn.io.engine.close();
-    expect(
-      await callConatService({
-        client: client2,
-        service: "double",
-        mesg: "hello",
-      }),
-    ).toBe("hellohello");
+    let x;
+    await wait({
+      until: async () => {
+        x = await callConatService({
+          client: client2,
+          service: "double",
+          mesg: "hello",
+          timeout: 500,
+        });
+        return true;
+      },
+    });
+    expect(x).toBe("hellohello");
   });
 
   it("kills the server, then makes another server serving on the same port", async () => {
