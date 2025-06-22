@@ -10,44 +10,58 @@ In particular, set global.x = ..., etc.
 */
 
 import { createConatJupyterService } from "@cocalc/conat/service/jupyter";
-import { get_existing_kernel as getKernel } from "@cocalc/jupyter/kernel";
+import { kernels } from "./kernels";
 import { bufferToBase64 } from "@cocalc/util/base64";
+import { once } from "@cocalc/util/async-utils";
+import { type JupyterKernel } from "./kernel";
 
 export async function initConatService({
   path,
   project_id,
+  timeout = 15000, // used for getKernel right now
 }: {
   path: string;
   project_id: string;
+  timeout?: number;
 }) {
-  const getExistingKernel = () => {
-    const kernel = getKernel(path);
-    if (kernel == null) {
-      throw Error(`no Jupyter kernel with path '${path}'`);
+  const getExistingKernel = async (): Promise<JupyterKernel> => {
+    let kernel = kernels.get(path);
+    if (kernel != null) {
+      return kernel;
     }
-    return kernel;
+    try {
+      [kernel] = await once(kernels, path, timeout);
+      return kernel!;
+    } catch {}
+    // timeout
+    // it doesn't exist right now, but it probably will in a few seconds, so wait
+    // in an event driven way for it to get opened.
+
+    throw Error(`no Jupyter kernel with path '${path}'`);
   };
 
   const impl = {
     // Signal should be a string like "SIGINT", "SIGKILL".
     signal: async (signal: string) => {
-      getKernel(path)?.signal(signal);
+      kernels.get(path)?.signal(signal);
     },
 
     save_ipynb_file: async (opts?) => {
-      await getExistingKernel().save_ipynb_file(opts);
+      await (await getExistingKernel()).save_ipynb_file(opts);
     },
 
     kernel_info: async () => {
-      return await getExistingKernel().kernel_info();
+      return await (await getExistingKernel()).kernel_info();
     },
 
     more_output: async (id) => {
-      return getExistingKernel().more_output(id);
+      return (await getExistingKernel()).more_output(id);
     },
 
     complete: async (opts) => {
-      return await getExistingKernel().complete(get_code_and_cursor_pos(opts));
+      return await (
+        await getExistingKernel()
+      ).complete(get_code_and_cursor_pos(opts));
     },
 
     introspect: async (opts) => {
@@ -63,7 +77,9 @@ export async function initConatService({
           }
         } catch (err) {}
       }
-      return await getExistingKernel().introspect({
+      return await (
+        await getExistingKernel()
+      ).introspect({
         code,
         cursor_pos,
         detail_level,
@@ -76,7 +92,7 @@ export async function initConatService({
       key: string;
       value?: any;
     }): Promise<any> => {
-      const kernel = getExistingKernel();
+      const kernel = await getExistingKernel();
       if (value === undefined) {
         // undefined when getting the value
         return kernel.store.get(key);
@@ -90,11 +106,11 @@ export async function initConatService({
       }
     },
     comm: async (opts) => {
-      getExistingKernel().send_comm_message_to_kernel(opts);
+      (await getExistingKernel()).send_comm_message_to_kernel(opts);
     },
 
     ipywidgetsGetBuffer: async ({ model_id, buffer_path }) => {
-      const buffer = getExistingKernel().ipywidgetsGetBuffer(
+      const buffer = (await getExistingKernel()).ipywidgetsGetBuffer(
         model_id,
         buffer_path,
       );
@@ -108,7 +124,7 @@ export async function initConatService({
       return { buffer64: bufferToBase64(buffer) };
     },
   };
-   return await createConatJupyterService({
+  return await createConatJupyterService({
     project_id,
     path,
     impl,

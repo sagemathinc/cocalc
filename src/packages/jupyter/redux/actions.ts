@@ -803,9 +803,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // Make sure syncdb content is all sent to the project.
       // This does not actually save the syncdb file to disk.
       // This "save" means save state to backend.
+      // We save two things -- first the syncdb state:
       await this.syncdb.save();
       if (this._state === "closed") return;
 
+      // Second the .ipynb file state:
       // Export the ipynb file to disk, being careful not to actually
       // save it until the backend actually gets the given version and
       // has processed it!
@@ -813,7 +815,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       try {
         await this.api({ timeout: 5 * 60 * 1000 }).save_ipynb_file({ version });
       } catch (err) {
-        console.log(err);
+        console.log(`WARNING: ${err}`);
         throw Error(
           `There was a problem writing the ipynb file to disk -- ${err}`,
         );

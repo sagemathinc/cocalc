@@ -77,7 +77,7 @@ import launchJupyterKernel, {
 } from "@cocalc/jupyter/pool/pool";
 // non-pool version
 import launchJupyterKernelNoPool from "@cocalc/jupyter/kernel/launch-kernel";
-
+import { kernels } from "./kernels";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import { redux_name } from "@cocalc/util/redux/name";
@@ -181,7 +181,7 @@ export async function removeJupyterRedux(
   logger.debug("removeJupyterRedux", path);
   // if there is a kernel, close it
   try {
-    await get_existing_kernel(path)?.close();
+    await kernels.get(path)?.close();
   } catch (_err) {
     // ignore
   }
@@ -214,14 +214,13 @@ The kernel does *NOT* start up until either spawn is explicitly called, or
 code execution is explicitly requested.  This makes it possible to
 call process_output without spawning an actual kernel.
 */
-const _jupyter_kernels: { [path: string]: JupyterKernel } = {};
 
 // Ensure that the kernels all get killed when the process exits.
 nodeCleanup(() => {
-  for (const kernelPath in _jupyter_kernels) {
+  for (const kernelPath in kernels.kernels) {
     // We do NOT await the close since that's not really
     // supported or possible in general.
-    const { _kernel } = _jupyter_kernels[kernelPath] as any;
+    const { _kernel } = kernels.kernels[kernelPath];
     if (_kernel) {
       killKernel(_kernel);
     }
@@ -251,7 +250,7 @@ export class JupyterKernel
   private _state: State;
   private _directory: string;
   private _filename: string;
-  private _kernel?: SpawnedKernel;
+  public _kernel?: SpawnedKernel;
   private _kernel_info?: KernelInfo;
   public _execute_code_queue: CodeExecutionEmitter[] = [];
   public channel?: Channels;
@@ -278,12 +277,13 @@ export class JupyterKernel
     this._filename = tail;
     this.setState("off");
     this._execute_code_queue = [];
-    if (_jupyter_kernels[this._path] !== undefined) {
-      // This happens when we change the kernel for a given file, e.g., from python2 to python3.
+    if (kernels.get(this._path) !== undefined) {
+      // This happens when we change the kernel for a given file, e.g.,
+      // from python2 to python3.
       // Obviously, it is important to clean up after the old kernel.
-      _jupyter_kernels[this._path].close();
+      kernels.get(this._path)?.close();
     }
-    _jupyter_kernels[this._path] = this;
+    kernels.set(this._path, this);
     this.setMaxListeners(100);
     const dbg = this.dbg("constructor");
     dbg("done");
@@ -592,9 +592,9 @@ export class JupyterKernel
       this.store.close();
       delete this.store;
     }
-    const kernel = _jupyter_kernels[this._path];
+    const kernel = kernels.get(this._path);
     if (kernel != null && kernel.identity === this.identity) {
-      delete _jupyter_kernels[this._path];
+      kernels.delete(this._path);
     }
     this.removeAllListeners();
     if (this._kernel != null) {
@@ -1156,12 +1156,8 @@ export class JupyterKernel
   };
 }
 
-export function get_existing_kernel(path: string): JupyterKernel | undefined {
-  return _jupyter_kernels[path];
-}
-
 export function get_kernel_by_pid(pid: number): JupyterKernel | undefined {
-  for (const kernel of Object.values(_jupyter_kernels)) {
+  for (const kernel of Object.values(kernels.kernels)) {
     if (kernel.get_spawned_kernel()?.spawn.pid === pid) {
       return kernel;
     }
