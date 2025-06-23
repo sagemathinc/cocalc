@@ -103,7 +103,7 @@ export class Session {
     ) {
       const chunk = data.slice(i, i + INPUT_CHUNK_SIZE);
       this.pty.write(chunk);
-      logger.debug("wrote data to pty", chunk.length);
+      // logger.debug("wrote data to pty", chunk.length);
       await delay(1000 / MAX_MSGS_PER_SECOND);
     }
     if (reject) {
@@ -228,7 +228,7 @@ export class Session {
     // due to being *slightly* off.
     const throttle = new Throttle(1000 / (MAX_MSGS_PER_SECOND - 3));
     throttle.on("data", (data: string) => {
-      logger.debug("got data out of pty");
+      // logger.debug("got data out of pty");
       this.handleBackendMessages(data);
       this.stream?.publish(data);
     });

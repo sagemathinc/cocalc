@@ -116,7 +116,7 @@ export class TerminalManager {
         },
 
         write: async (data: string): Promise<void> => {
-          logger.debug("received data", data.length);
+          // logger.debug("received data", data.length);
           if (typeof data != "string") {
             throw Error(`data must be a string -- ${JSON.stringify(data)}`);
           }
