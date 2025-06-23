@@ -731,9 +731,16 @@ export class CoreStream<T = any> extends EventEmitter {
   getAllKv = (): { [key: string]: T } => {
     const all: { [key: string]: T } = {};
     for (const key in this.kv) {
+      // potentially expensive -- this decode mesg
       all[key] = this.kv[key].mesg;
     }
     return all;
+  };
+
+  // efficient way to get just the keys -- use this instead of
+  // getAllKv if you just need the keys.
+  keysKv = (): string[] => {
+    return Object.keys(this.kv);
   };
 
   seqKv = (key: string): number | undefined => {
