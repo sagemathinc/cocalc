@@ -4,7 +4,6 @@
  */
 
 import { Table } from "antd";
-
 import { HistoricCounts } from "@cocalc/util/db-schema/stats";
 import { Paragraph, Title } from "components/misc";
 import { ZEROS } from "./misc";
@@ -24,32 +23,30 @@ const columns = [
   { title: "Month", dataIndex: "30d", key: "30d" },
 ];
 
-function connectedUsers(hubServers): number {
-  if (hubServers == null || hubServers.length === 0) {
-    return 0;
-  } else {
-    return hubServers.map((x) => x.clients).reduce((s, t) => s + t);
-  }
-}
+// Data collection got not implemented right now, so disabling "connection" and replacing by
+// active during the last hour, which is probably more meaningful, since people can just
+// leave browsers connected.
 
-export default function ActiveUsers({
-  created,
-  active,
-  hubServers,
-  style,
-}: Props) {
+// function connectedUsers(hubServers): number {
+//   if (hubServers == null || hubServers.length === 0) {
+//     return 0;
+//   } else {
+//     return hubServers.map((x) => x.clients).reduce((s, t) => s + t);
+//   }
+// }
+
+export default function ActiveUsers({ created, active, style }: Props) {
   const rows = [
     { type: "In use", ...ZEROS, ...active },
     { type: "Created", ...ZEROS, ...created },
   ];
   return (
     <div style={style}>
-      <Title level={2}>Connected Users: {connectedUsers(hubServers)}</Title>
+      <Title level={2}>Active Users: {active["1h"]}</Title>
       <Paragraph>
-        There are {connectedUsers(hubServers)} users connected right now; of
-        these {active["5min"]} actively edited a file in the last 5 minutes.
         Track the number of users that were recently active or created new
-        accounts below.
+        accounts below. There were {active["5min"]} users who edited a file
+        during the last 5 minutes.
       </Paragraph>
 
       <Table
