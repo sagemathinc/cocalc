@@ -736,6 +736,12 @@ export class CoreStream<T = any> extends EventEmitter {
     return all;
   };
 
+  // efficient way to get just the keys -- use this instead of
+  // getAllKv if you just need the keys.
+  keysKv = (): string[] => {
+    return Object.keys(this.kv);
+  };
+
   seqKv = (key: string): number | undefined => {
     return this.kv[key]?.raw.seq;
   };
