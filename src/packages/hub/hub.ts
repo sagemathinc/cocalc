@@ -16,7 +16,7 @@ import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
-  pguser as DEFAULT_DB_USER,  
+  pguser as DEFAULT_DB_USER,
 } from "@cocalc/backend/data";
 import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
@@ -346,12 +346,21 @@ const errorReportCache = new TTLCache({ ttl: 60 * 1000 });
 // note -- we show the error twice in these, one in backticks, since sometimes
 // that works better.
 function addErrorListeners(uncaught_exception_total) {
-  process.addListener("uncaughtException", function (err) {
+  process.addListener("uncaughtException", (err) => {
+    const e = `${err}`;
+    if (e.includes("ECONNRESET")) {
+      // we whitelist these, since I've audited everything I can and just
+      // cannot find what's causing them in hub-conat-api
+      logger.debug(`WARNING -- ${e}`, err, err.stack);
+      console.error(err);
+      return;
+    }
+
     logger.error(
       "BUG ****************************************************************************",
     );
     logger.error("Uncaught exception: " + err, ` ${err}`);
-    console.error(err.stack);
+    console.error(err);
     logger.error(err.stack);
     logger.error(
       "BUG ****************************************************************************",
@@ -365,7 +374,7 @@ function addErrorListeners(uncaught_exception_total) {
     uncaught_exception_total.inc(1);
   });
 
-  return process.on("unhandledRejection", function (reason, p) {
+  return process.on("unhandledRejection", (reason, p) => {
     logger.error(
       "BUG UNHANDLED REJECTION *********************************************************",
     );
