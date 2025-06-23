@@ -3,13 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Checkbox, Input } from "antd";
+import { Alert, Button, Checkbox, Divider, Input } from "antd";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import {
   CONTACT_TAG,
   CONTACT_THESE_TAGS,
@@ -22,6 +24,7 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Strategy } from "@cocalc/util/types/sso";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
@@ -99,7 +102,7 @@ function SignUp0({
 
   const submittable = useRef<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
-  const { strategies } = useCustomize();
+  const { strategies, supportVideoCall } = useCustomize();
 
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
@@ -263,13 +266,21 @@ function SignUp0({
       minimal={minimal}
       title={`Create a free account with ${siteName}`}
     >
-      <div>
+      <Paragraph>
         By creating an account, you agree to the{" "}
         <A external={true} href="/policies/terms">
           Terms of Service
         </A>
         .
-      </div>
+      </Paragraph>
+      {onCoCalcCom && supportVideoCall ? (
+        <Paragraph>
+          Do you need more information how {siteName} can be useful for you?{" "}
+          <A href={supportVideoCall}>Book a video call</A> and we'll help you
+          decide.
+        </Paragraph>
+      ) : undefined}
+      <Divider />
       {!minimal && onCoCalcCom ? (
         <Tags
           setTags={setTags}
@@ -351,6 +362,7 @@ function SignUp0({
               autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
               onPressEnter={signUp}
+              maxLength={MAX_PASSWORD_LENGTH}
             />
           </div>
         )}

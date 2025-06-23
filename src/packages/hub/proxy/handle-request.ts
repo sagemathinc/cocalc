@@ -1,20 +1,22 @@
 /* Handle a proxy request */
 
-import { createProxyServer } from "http-proxy-node16";
+import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import LRU from "lru-cache";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
-import { getTarget, invalidateTargetCache } from "./target";
+import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
 import { parseReq } from "./parse";
-import { readFile as readProjectFile } from "@cocalc/nats/files/read";
+import { readFile as readProjectFile } from "@cocalc/conat/files/read";
 import { path_split } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import hasAccess from "./check-for-access-to-project";
 import mime from "mime-types";
+
+const DANGEROUS_CONTENT_TYPE = new Set(["image/svg+xml" /*, "text/html"*/]);
 
 const logger = getLogger("proxy:handle-request");
 
@@ -34,14 +36,9 @@ export default function init({ projectControl, isPersonal }: Options) {
    a permissions and security point of view.
 */
 
-  const cache = new LRU({
+  const cache = new LRU<string, ProxyServer>({
     max: 5000,
     ttl: 1000 * 60 * 3,
-    dispose: (proxy) => {
-      // important to close the proxy whenever it gets removed
-      // from the cache, to avoid wasting resources.
-      (proxy as any)?.close();
-    },
   });
 
   async function handleProxyRequest(req, res): Promise<void> {
@@ -87,7 +84,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     // TODO: parseReq is called again in getTarget so need to refactor...
     const { type, project_id } = parsed;
     if (type == "files") {
-      dbg("handling the request via nats");
+      dbg("handling the request via conat file streaming");
       if (
         !(await hasAccess({
           project_id,
@@ -106,9 +103,13 @@ export default function init({ projectControl, isPersonal }: Options) {
         j = url.length;
       }
       const path = decodeURIComponent(url.slice(i + "files/".length, j));
-      dbg("NATs: get", { project_id, path, compute_server_id, url });
+      dbg("conat: get file", { project_id, path, compute_server_id, url });
       const fileName = path_split(path).tail;
-      if (req.query.download != null) {
+      const contentType = mime.lookup(fileName);
+      if (
+        req.query.download != null ||
+        DANGEROUS_CONTENT_TYPE.has(contentType)
+      ) {
         const fileNameEncoded = encodeURIComponent(fileName)
           .replace(/['()]/g, escape)
           .replace(/\*/g, "%2A");
@@ -117,7 +118,7 @@ export default function init({ projectControl, isPersonal }: Options) {
           `attachment; filename*=UTF-8''${fileNameEncoded}`,
         );
       }
-      res.setHeader("Content-type", mime.lookup(fileName));
+      res.setHeader("Content-type", contentType);
       for await (const chunk of await readProjectFile({
         project_id,
         compute_server_id,
@@ -158,26 +159,13 @@ export default function init({ projectControl, isPersonal }: Options) {
       proxy = createProxyServer({
         ws: false,
         target,
-        timeout: 60000,
       });
       // and cache it.
       cache.set(target, proxy);
       logger.debug("created new proxy");
-      // setup error handler, so that if something goes wrong with this proxy (it will,
-      // e.g., on project restart), we properly invalidate it.
-      const remove_from_cache = () => {
-        cache.delete(target); // this also closes the proxy.
-        invalidateTargetCache(remember_me, url);
-      };
 
-      proxy.on("error", (e) => {
-        logger.debug("http proxy error event (ending proxy)", e);
-        remove_from_cache();
-      });
-
-      proxy.on("close", () => {
-        logger.debug("http proxy close event (ending proxy)");
-        remove_from_cache();
+      proxy.on("error", (err) => {
+        logger.debug(`http proxy error -- ${err}`);
       });
     }
 

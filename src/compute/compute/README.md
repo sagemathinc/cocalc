@@ -1,5 +1,7 @@
 # @cocalc/compute
 
+NOTE: a lot of this is out of date with the NATS, then Conat rewrites.  In most cases now a compute server is exactly the same as a project.  It just has a compute_server_id that is positive instead of 0. That's it.
+
 ## Goal
 
 The minimal goal of this package is to connect from a nodejs process to a cocalc project, open a Jupyter notebook sync session, and provide the output. I.e., instead of the project itself running a kernel and providing output, the kernel will be provided by whatever client is running this `@cocalc/compute` package!
@@ -107,18 +109,3 @@ await require("@cocalc/compute").jupyter({
 });
 0;
 ```
-
-### Terminal
-
-You should open the notebook Untitled.ipynb on [cocalc.com](http://cocalc.com).
-Then set all the above env variables in another terminal and run the following code in node.js. **Running of that first \(if you split frame\) command line terminal will then switch to your local machine.**
-
-```js
-await require("@cocalc/compute").terminal({
-  project_id: process.env.PROJECT_ID,
-  path: "term.term",
-  cwd: "/tmp/project",
-});
-0;
-```
-

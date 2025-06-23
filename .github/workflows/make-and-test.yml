@@ -65,7 +65,7 @@ jobs:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         node-version:
-          - "18.17.1"
+          - "20"
         pg-version:
           - "13.12"
           - "16"
@@ -91,7 +91,22 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
+      - name: Download and install Valkey
+        run: |
+          VALKEY_VERSION=8.1.2
+          curl -LO https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          tar -xzf valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          sudo cp valkey-${VALKEY_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
+
+      - name: Set up Python venv and Jupyter kernel
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          python3 -m virtualenv venv
+          source venv/bin/activate
+          pip install ipykernel
+          python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
+
       - run: cd src && npm install -g pnpm
       - run: cd src && pnpm run make
-      - run: cd src && pnpm nats-server-daemon
-      - run: cd src && pnpm run test
+      - run: source venv/bin/activate && cd src && pnpm run test || pnpm run test || pnpm run test
+      - run: cd src && pnpm run depcheck

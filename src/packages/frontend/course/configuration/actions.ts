@@ -7,6 +7,8 @@
 Actions involving configuration of the course.
 */
 
+// cSpell:ignore collabs
+
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   derive_project_img_name,
@@ -518,8 +520,8 @@ async function configureGroup({
 }) {
   switch (group) {
     case "collaborator-policy":
-      const allow_colabs = !!settings.get("allow_collabs");
-      actions.configuration.set_allow_collabs(allow_colabs);
+      const allow_collabs = !!settings.get("allow_collabs");
+      actions.configuration.set_allow_collabs(allow_collabs);
       return;
     case "email-invitation":
       actions.configuration.set_email_invite(settings.get("email_invite"));

@@ -5,5 +5,5 @@
     "outDir": "dist"
   },
   "exclude": ["node_modules", "dist", "test"],
-  "references": [{ "path": "../util", "path": "../nats", "path": "../backend" }]
+  "references": [{ "path": "../util", "path": "../conat", "path": "../backend" }]
 }

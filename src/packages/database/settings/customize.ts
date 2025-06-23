@@ -77,6 +77,7 @@ export default async function getCustomize(
       imprint: settings.imprint,
       policies: settings.policies,
       support: settings.support,
+      supportVideoCall: settings.support_video_call,
 
       // Is important for invite emails, password reset, etc. (e.g., so we can construct a url to our site).
       // This *can* start with http:// to explicitly use http instead of https, and can end
@@ -126,6 +127,16 @@ export default async function getCustomize(
       strategies,
 
       verifyEmailAddresses: settings.verify_emails && settings.email_enabled,
+
+      version: {
+        min_project: parseInt(settings.version_min_project),
+        min_compute_server: parseInt(settings.version_min_compute_server),
+        min_browser: parseInt(settings.version_min_browser),
+        recommended_browser: parseInt(settings.version_recommended_browser),
+        compute_server_min_project: parseInt(
+          settings.version_compute_server_min_project,
+        ),
+      },
     };
   }
   return fields ? copy_with(cachedCustomize, fields) : cachedCustomize;

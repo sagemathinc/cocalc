@@ -1,9 +1,9 @@
 import type { EventEmitter } from "events";
 import type { CB } from "@cocalc/util/types/callback";
 import type {
-  CallNatsServiceFunction,
-  CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
+  CallConatServiceFunction,
+  CreateConatServiceFunction,
+} from "@cocalc/conat/service";
 
 // What we need the client to implement so we can use
 // it to support a table.
@@ -21,8 +21,8 @@ export interface Client extends EventEmitter {
   touch_project: (project_id: string, compute_server_id?: number) => void;
   set_connected?: Function;
   is_deleted: (path: string, project_id: string) => true | false | undefined;
-  callNatsService?: CallNatsServiceFunction;
-  createNatsService?: CreateNatsServiceFunction;
+  callConatService?: CallConatServiceFunction;
+  createConatService?: CreateConatServiceFunction;
   client_id?: () => string | undefined;
 }
 
@@ -92,11 +92,6 @@ export interface ProjectWebsocket extends EventEmitter {
 }
 
 export interface API {
-  symmetric_channel(name: string): Promise<Channel>;
-  synctable_channel(
-    query: { [field: string]: any },
-    options: { [field: string]: any }[],
-  ): Promise<Channel>;
   version(): Promise<number>;
 }
 

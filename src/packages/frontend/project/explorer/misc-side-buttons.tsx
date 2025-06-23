@@ -7,7 +7,6 @@ import { Space } from "antd";
 import { join } from "path";
 import React from "react";
 import { defineMessage, useIntl } from "react-intl";
-
 import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
@@ -18,6 +17,8 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+
+const SHOW_SERVER_LAUNCHERS = false;
 
 import TourButton from "./tour/button";
 
@@ -208,10 +209,12 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       style={{ whiteSpace: "nowrap", padding: "0" }}
       className="pull-right"
     >
-      <Space.Compact>
-        {render_jupyterlab_button()}
-        {render_vscode_button()}
-      </Space.Compact>
+      {SHOW_SERVER_LAUNCHERS && (
+        <Space.Compact>
+          {render_jupyterlab_button()}
+          {render_vscode_button()}
+        </Space.Compact>
+      )}
       <Space.Compact>
         {render_upload_button()}
         {render_library_button()}

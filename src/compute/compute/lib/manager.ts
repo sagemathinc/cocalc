@@ -7,7 +7,7 @@ The manager does the following:
 */
 
 import debug from "debug";
-import startProjectServers from "@cocalc/project/nats";
+import startProjectServers from "@cocalc/project/conat";
 import { pingProjectUntilSuccess, waitUntilFilesystemIsOfType } from "./util";
 import { apiCall, project } from "@cocalc/api-client";
 

@@ -5,6 +5,8 @@
 
 import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
+import { FormattedMessage } from "react-intl";
+
 import { ButtonGroup, Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -18,16 +20,16 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
-import { FormattedMessage } from "react-intl";
-import type { ChatActions } from "./actions";
-import type { ChatState } from "./store";
+import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import { ChatLog } from "./chat-log";
+import Filter from "./filter";
+import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
+import type { ChatState } from "./store";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
-import Filter from "./filter";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -63,15 +65,6 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
   position: "relative",
 } as const;
 
-interface Props {
-  actions: ChatActions;
-  project_id: string;
-  path: string;
-  is_visible?: boolean;
-  font_size: number;
-  desc?;
-}
-
 export function ChatRoom({
   actions,
   project_id,
@@ -79,7 +72,7 @@ export function ChatRoom({
   is_visible,
   font_size,
   desc,
-}: Props) {
+}: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const [input, setInput] = useState("");
   const search = desc?.get("data-search") ?? "";
@@ -261,6 +254,7 @@ export function ChatRoom({
         <ButtonGroup style={{ marginLeft: "5px" }}>
           {render_video_chat_button()}
         </ButtonGroup>
+        <FoldAllThreads actions={actions} shortLabel={false} />
       </Space>
     );
   }

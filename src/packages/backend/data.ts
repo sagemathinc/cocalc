@@ -28,7 +28,8 @@ import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
-import { hostname } from "os";
+import basePath from "@cocalc/backend/base-path";
+import port from "@cocalc/backend/port";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -179,6 +180,15 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+
+export const syncFiles = {
+  // Persistent local storage of streams and kv's as sqlite3 files
+  local: process.env.COCALC_SYNC ?? join(data, "sync"),
+  // Archived storage of streams and kv's as sqlite3 files, if set.
+  // This could be a gcsfuse mountpoint.
+  archive: process.env.COCALC_SYNC_ARCHIVE ?? "",
+};
+
 // if the directory secrets doesn't exist, create it (sync, during this load):
 if (!existsSync(secrets)) {
   try {
@@ -191,110 +201,67 @@ if (!existsSync(secrets)) {
 
 export const logs: string = process.env.LOGS ?? join(data, "logs");
 
-// NATS
-export const nats: string = process.env.COCALC_NATS ?? join(data, "nats");
-if (!existsSync(nats)) {
-  try {
-    mkdirSync(nats, { recursive: true, mode: 0o700 });
-  } catch {
-    // nonfatal -- there are other ways to auth to nats
-  }
-}
-export const natsPorts = {
-  server: parseInt(process.env.COCALC_NATS_PORT ?? "4222"),
-  ws: parseInt(process.env.COCALC_NATS_WS_PORT ?? "8443"),
-  cluster: parseInt(process.env.COCALC_NATS_CLUSTER_PORT ?? "4248"),
-};
-
-export const natsServerName = process.env.COCALC_NATS_SERVER_NAME ?? hostname();
-export const natsClusterName =
-  process.env.COCALC_NATS_CLUSTER_NAME ?? "default";
-
-export let natsServer = process.env.COCALC_NATS_SERVER ?? "localhost";
-// note: natsWebsocketServer will be changed below if API_KEY and API_SERVER
-// are set, but COCALC_NATS_SERVER is not set.
-export let natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
-
-export function setNatsPort(port) {
-  natsPorts.server = parseInt(port);
-}
-export function setNatsWebsocketPort(port) {
-  natsPorts.ws = parseInt(port);
-  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
-}
-export function setNatsServer(server) {
-  natsServer = server;
-  natsWebsocketServer = `ws://${natsServer}:${natsPorts.ws}`;
+// CONAT server and password
+export let conatServer =
+  process.env.CONAT_SERVER ??
+  `http://localhost:${port}${basePath.length > 1 ? basePath : ""}`;
+if (conatServer.split("//").length > 2) {
+  // i make this mistake too much
+  throw Error(
+    `env variable CONAT_SERVER invalid -- too many /s' --'${process.env.CONAT_SERVER}'`,
+  );
 }
 
-// Password used to connect to the nats server
-export let natsPassword = "";
-export const natsPasswordPath = join(secrets, "nats_password");
+export function setConatServer(server: string) {
+  conatServer = server;
+}
+
+// Password used by hub (not users or projects) to connect to a Conat server:
+export let conatPassword = "";
+export const conatPasswordPath = join(secrets, "conat-password");
 try {
-  natsPassword = readFileSync(natsPasswordPath).toString().trim();
+  conatPassword = readFileSync(conatPasswordPath).toString().trim();
 } catch {}
-export function setNatsPassword(password: string) {
-  natsPassword = password;
+export function setConatPassword(password: string) {
+  conatPassword = password;
 }
 
-export const natsBackup =
-  process.env.COCALC_NATS_BACKUP ?? join(nats, "backup");
+export let conatValkey: string = process.env.CONAT_VALKEY ?? "";
+export function setConatValkey(valkey: string) {
+  conatValkey = valkey;
+}
 
-export const natsUser = "cocalc";
-
-// Secrets used for cryptography between the auth callout service and
-// and the nats server.   The *secret keys* are only needed by
-// the auth callout service, and the corresponding public keys are
-// only needed by the nats server, but right now (and since password is already
-// known to both), we are just making the private keys available to both.
-// These keys make it so if somebody tries to listen in on nats traffic
-// between the server and auth callout, they can't impersonate users, etc.
-// In particular:
-//      - nseed = account key - used by server to sign message to the auth callout
-//      - xseed = curve key - used by auth callout to encrypt response
-// These are both arbitrary elliptic curve ed25519 secrets (nkeys),
-// which are the "seed" generated using https://www.npmjs.com/package/@nats-io/nkeys
-// or https://github.com/nats-io/nkeys?tab=readme-ov-file#installation
-// E.g.,
-//    ~/cocalc/src/data/secrets$ go get github.com/nats-io/nkeys
-//    ~/cocalc/src/data/secrets$ nk -gen account > nats_auth_nseed
-//    ~/cocalc/src/data/secrets$ nk -gen curve > nats_auth_xseed
-
-export let natsAuthCalloutNSeed = "";
-export const natsAuthCalloutNSeedPath = join(secrets, "nats_auth_nseed");
+export let valkeyPassword = "";
+const valkeyPasswordPath = join(secrets, "valkey-password");
 try {
-  natsAuthCalloutNSeed = readFileSync(natsAuthCalloutNSeedPath)
-    .toString()
-    .trim();
+  valkeyPassword = readFileSync(valkeyPasswordPath).toString().trim();
 } catch {}
-export function setNatsAuthCalloutNSeed(auth_callout: string) {
-  natsAuthCalloutNSeed = auth_callout;
-}
-export let natsAuthCalloutXSeed = "";
-export const natsAuthCalloutXSeedPath = join(secrets, "nats_auth_xseed");
-try {
-  natsAuthCalloutXSeed = readFileSync(natsAuthCalloutXSeedPath)
-    .toString()
-    .trim();
-} catch {}
-export function setNatsAuthCalloutXSeed(auth_callout: string) {
-  natsAuthCalloutXSeed = auth_callout;
-}
+
+export let conatSocketioCount = parseInt(
+  process.env.CONAT_SOCKETIO_COUNT ?? "1",
+);
+
+// number of persist servers (if configured to run)
+export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
+
+// number of api servers (if configured to run)
+export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
+
+// if configured, will create a socketio cluster using
+// the cluster adapter, listening on the given port.
+// It makes no sense to use both this *and* valkey. It's
+// one or the other.
+export let conatClusterPort = parseInt(process.env.CONAT_CLUSTER_PORT ?? "0");
+// if set, a simple http server will be started listening on conatClusterHealthPort
+// which returns an error only if the socketio server is not "healthy".
+export let conatClusterHealthPort = parseInt(
+  process.env.CONAT_CLUSTER_HEALTH_PORT ?? "0",
+);
 
 // API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";
-if (
-  process.env.API_KEY &&
-  process.env.API_SERVER &&
-  !process.env.COCALC_NATS_SERVER
-) {
-  // the nats server was not set via env variables, but the api server is set,
-  // along with the api key. This happens for compute servers, and in this case
-  // we also set the nats server by default to the same as the api server.
-  natsWebsocketServer = "ws" + apiServer.slice(4) + "/nats";
-}
 
 // Delete API_KEY from environment to reduce chances of it leaking, e.g., to
 // spawned terminal subprocess.

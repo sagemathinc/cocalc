@@ -26,7 +26,7 @@ Running 'find' as a subcommand seems optimal, taking a few KB memory and about
 - TODO: This sync protocol does NOT deal with file permissions, e.g., changing a file to be executable when it wasn't, since that doesn't update the mtime.  See https://github.com/sagemathinc/cocalc/issues/7342
 
 - Dependencies: this doesn't depend on @cocalc/project, but you do need to import
-say @cocalc/project/nats before using this code, so that the client process knows
+say @cocalc/project/conat before using this code, so that the client process knows
 how to connect to NATS.
 
 ## ALGORITHM

@@ -4,7 +4,6 @@
  */
 
 import { WebappClient } from "./client";
-import * as message from "@cocalc/util/message";
 import { redux } from "@cocalc/frontend/app-framework";
 
 export class TrackingClient {
@@ -23,7 +22,7 @@ export class TrackingClient {
         ?.get("user_tracking");
     }
     if (this.userTrackingEnabled == "yes") {
-      await this.client.nats_client.hub.system.userTracking({ event, value });
+      await this.client.conat_client.hub.system.userTracking({ event, value });
     }
   };
 
@@ -36,12 +35,19 @@ export class TrackingClient {
       return;
     }
     this.log_error_cache[error] = Date.now();
-    this.client.call({
-      message: message.log_client_error({ error }),
-    });
+    (async () => {
+      try {
+        await this.client.conat_client.hub.system.logClientError({
+          event: "error",
+          error,
+        });
+      } catch (err) {
+        console.log(`WARNING -- issue reporting error -- ${err}`);
+      }
+    })();
   };
 
   webapp_error = async (opts: object): Promise<void> => {
-    await this.client.async_call({ message: message.webapp_error(opts) });
+    await this.client.conat_client.hub.system.webappError(opts);
   };
 }

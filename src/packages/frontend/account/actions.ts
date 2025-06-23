@@ -3,14 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { fromJS } from "immutable";
 import { join } from "path";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { AccountClient } from "@cocalc/frontend/client/account";
 import api from "@cocalc/frontend/client/api";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { set_url } from "@cocalc/frontend/history";
-import { track_conversion } from "@cocalc/frontend/misc";
 import { deleteRememberMe } from "@cocalc/frontend/misc/remember-me";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -31,10 +29,6 @@ export class AccountActions extends Actions<AccountState> {
     store.on("change", this.derive_show_global_info);
     store.on("change", this.update_unread_news);
     this.processSignUpTags();
-  }
-
-  private help(): string {
-    return this.redux.getStore("customize").get("help_email");
   }
 
   derive_show_global_info(store: AccountStore): void {
@@ -82,111 +76,8 @@ export class AccountActions extends Actions<AccountState> {
     });
   }
 
-  public async sign_in(email: string, password: string): Promise<void> {
-    const doc_conn =
-      "[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)";
-    const err_help = `\
-Please try again.
-
-If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.help()}.\
-`;
-
-    this.setState({ signing_in: true });
-    let mesg;
-    try {
-      mesg = await this.account_client.sign_in({
-        email_address: email,
-        password,
-        remember_me: true,
-        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
-      });
-    } catch (err) {
-      this.setState({
-        sign_in_error: `There was an error signing you in -- (${err.message}). ${err_help}`,
-      });
-      return;
-    }
-    this.setState({ signing_in: false });
-    switch (mesg.event) {
-      case "sign_in_failed":
-        this.setState({ sign_in_error: mesg.reason });
-        return;
-      case "signed_in":
-        break;
-      case "error":
-        this.setState({ sign_in_error: mesg.reason });
-        return;
-      default:
-        // should never ever happen
-        this.setState({
-          sign_in_error: `The server responded with invalid message when signing in: ${JSON.stringify(
-            mesg,
-          )}`,
-        });
-        return;
-    }
-  }
-
-  public async create_account(
-    first_name: string,
-    last_name: string,
-    email_address: string,
-    password: string,
-    token?: string,
-    usage_intent?: string,
-  ): Promise<void> {
-    this.setState({ signing_up: true });
-    let mesg;
-    try {
-      mesg = await this.account_client.create_account({
-        first_name,
-        last_name,
-        email_address,
-        password,
-        usage_intent,
-        agreed_to_terms: true, // since never gets called if not set in UI
-        token,
-        get_api_key: !!this.redux.getStore("page").get("get_api_key"),
-      });
-    } catch (err) {
-      // generic error.
-      this.setState(
-        fromJS({ sign_up_error: { generic: JSON.stringify(err) } }) as any,
-      );
-      return;
-    } finally {
-      this.setState({ signing_up: false });
-    }
-    switch (mesg.event) {
-      case "account_creation_failed":
-        this.setState({ sign_up_error: mesg.reason });
-        return;
-      case "signed_in":
-        this.redux.getActions("page").set_active_tab("projects");
-        track_conversion("create_account");
-        return;
-      default:
-        // should never ever happen
-        alert_message({
-          type: "error",
-          message: `The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}`,
-        });
-    }
-  }
-
   // deletes the account and then signs out everywhere
   public async delete_account(): Promise<void> {
-    // cancel any subscriptions
-    try {
-      await this.redux.getActions("billing").cancel_everything();
-    } catch (err) {
-      if (this.redux.getStore("billing").get("no_stripe")) {
-        // stripe not configured on backend, so this err is expected
-      } else {
-        throw err;
-      }
-    }
-
     try {
       // actually request to delete the account
       // this should return {status: "success"}
@@ -198,40 +89,6 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       return;
     }
     this.sign_out(true);
-  }
-
-  public async forgot_password(email_address: string): Promise<void> {
-    try {
-      await this.account_client.forgot_password(email_address);
-    } catch (err) {
-      this.setState({
-        forgot_password_error: `Error sending password reset message to ${email_address} -- ${err}. Write to ${this.help()} for help.`,
-        forgot_password_success: "",
-      });
-      return;
-    }
-    this.setState({
-      forgot_password_success: `Password reset message sent to ${email_address}; if you don't receive it, check your spam folder; if you have further trouble, write to ${this.help()}.`,
-      forgot_password_error: "",
-    });
-  }
-
-  public async reset_password(
-    reset_code: string,
-    new_password: string,
-  ): Promise<void> {
-    try {
-      await this.account_client.reset_forgot_password(reset_code, new_password);
-    } catch (err) {
-      this.setState({
-        reset_password_error: err.message,
-      });
-      return;
-    }
-    // success
-    // TODO: can we automatically log them in?  Should we?  Seems dangerous.
-    history.pushState({}, "", location.href);
-    this.setState({ reset_key: "", reset_password_error: "" });
   }
 
   public async sign_out(

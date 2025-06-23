@@ -20,27 +20,32 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "test": "pnpm exec jest",
+    "clean": "rm -rf node_modules dist",
+    "test": "pnpm exec jest --forceExit --maxWorkers=2",
+    "depcheck": "pnpx depcheck",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
-    "@cocalc/nats": "workspace:*",
     "@cocalc/sync": "workspace:*",
-    "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@nteract/messaging": "^7.0.20",
-    "@types/json-stable-stringify": "^1.0.32",
-    "@types/node-cleanup": "^2.1.2",
     "awaiting": "^3.0.0",
     "debug": "^4.4.0",
-    "enchannel-zmq-backend": "^9.1.23",
-    "execa": "^8.0.1",
     "expect": "^26.6.2",
     "he": "^1.2.0",
     "immutable": "^4.3.0",
@@ -52,13 +57,15 @@
     "lru-cache": "^7.18.3",
     "mkdirp": "^1.0.4",
     "node-cleanup": "^2.1.2",
-    "portfinder": "^1.0.32",
+    "rxjs": "^6.6.7",
     "shell-escape": "^0.2.0",
-    "tsimportlib": "^0.0.5",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "zeromq": "^6.4.2"
   },
   "devDependencies": {
-    "@types/node": "^18.16.14"
+    "@types/json-stable-stringify": "^1.0.32",
+    "@types/node": "^18.16.14",
+    "@types/node-cleanup": "^2.1.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/jupyter",
   "repository": {

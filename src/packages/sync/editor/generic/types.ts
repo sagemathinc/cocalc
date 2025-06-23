@@ -13,12 +13,19 @@ import { SyncTable } from "@cocalc/sync/table/synctable";
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import type {
-  CallNatsServiceFunction,
-  CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
+  CallConatServiceFunction,
+  CreateConatServiceFunction,
+} from "@cocalc/conat/service";
 
 export interface Patch {
-  time: number; // timestamp of when patch made -- ms since the epoch
+  // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just
+  // has to an increasing sequence of numbers.  It does distinguish between different users
+  // by the congruence class of the number.
+  time: number;
+  // wall = wallclock time of when patch made; plays no role at all in the algorithm and
+  // is purely to **display to the user**.  For backward compat and display, if wall is
+  // not defined in then this should fall back to the time field.
+  wall?: number;
   patch?: CompressedPatch /* compressed format patch -- an array/object (not JSON string) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
@@ -113,7 +120,7 @@ export interface ProjectClient extends EventEmitter {
 
   watch_file: (opts: { path: string }) => FileWatcher;
 
-  synctable_project: (
+  synctable_ephemeral?: (
     project_id: string,
     query: any,
     options: any,
@@ -121,10 +128,10 @@ export interface ProjectClient extends EventEmitter {
     id?: string,
   ) => Promise<SyncTable>;
 
-  synctable_nats: (query: any, obj?) => Promise<any>;
-  pubsub_nats: (query: any, obj?) => Promise<any>;
-  callNatsService?: CallNatsServiceFunction;
-  createNatsService?: CreateNatsServiceFunction;
+  synctable_conat: (query: any, obj?) => Promise<any>;
+  pubsub_conat: (query: any, obj?) => Promise<any>;
+  callConatService?: CallConatServiceFunction;
+  createConatService?: CreateConatServiceFunction;
 
   // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
@@ -158,17 +165,17 @@ export interface Client extends ProjectClient {
     ttl: number;
   }) => void;
 
-  synctable_database?: (
-    query: any,
-    options: any,
-    throttle_changes?: number,
-  ) => Promise<SyncTable>;
-
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
 
   sage_session: (opts: { path: string }) => any;
 
-  touchOpenFile?: (opts: { project_id: string; path: string }) => Promise<void>;
+  touchOpenFile?: (opts: {
+    project_id: string;
+    path: string;
+    doctype?;
+  }) => Promise<void>;
+
+  touch_project?: (path: string) => void;
 }
 
 export interface DocType {

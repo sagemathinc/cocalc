@@ -21,7 +21,7 @@ possible, so it is manageable, especially as we adapt CoCalc to new
 environments.
 */
 
-import { callback2 } from "@cocalc/util/async-utils";
+import { callback2, until } from "@cocalc/util/async-utils";
 import { db } from "@cocalc/database";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
@@ -31,7 +31,6 @@ import {
   ProjectStatus,
 } from "@cocalc/util/db-schema/projects";
 import { Quota, quota } from "@cocalc/util/upgrades/quota";
-import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
@@ -39,6 +38,7 @@ import getPool from "@cocalc/database/pool";
 import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quotas";
 import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
 import { query } from "@cocalc/database/postgres/query";
+import { getProjectSecretToken } from "./secret-token";
 
 export type { CopyOptions };
 export type { ProjectState, ProjectStatus };
@@ -148,20 +148,21 @@ export abstract class BaseProject extends EventEmitter {
     until: () => Promise<boolean>;
     maxTime: number;
   }): Promise<void> {
-    const { until, maxTime } = opts;
-    const t0 = Date.now();
-    let d = 250;
-    while (Date.now() - t0 <= maxTime) {
-      if (await until()) {
-        logger.debug(`wait ${this.project_id} -- satisfied`);
-        return;
-      }
-      await delay(d);
-      d *= 1.2;
-    }
-    const err = `wait ${this.project_id} -- FAILED`;
-    logger.debug(err);
-    throw Error(err);
+    await until(
+      async () => {
+        if (await opts.until()) {
+          logger.debug(`wait ${this.project_id} -- satisfied`);
+          return true;
+        }
+        return false;
+      },
+      {
+        start: 250,
+        decay: 1.25,
+        max: opts.maxTime,
+        log: (...args) => logger.debug("wait", this.project_id, ...args),
+      },
+    );
   }
 
   // Everything the hub needs to know to connect to the project
@@ -180,9 +181,6 @@ export abstract class BaseProject extends EventEmitter {
     if (!status["hub-server.port"]) {
       throw Error("unable to determine project port");
     }
-    if (!status["secret_token"]) {
-      throw Error("unable to determine secret_token");
-    }
     const state = await this.state();
     const host = state.ip;
     if (!host) {
@@ -191,7 +189,7 @@ export abstract class BaseProject extends EventEmitter {
     return {
       host,
       port: status["hub-server.port"],
-      secret_token: status.secret_token,
+      secret_token: await getProjectSecretToken(this.project_id),
     };
   }
 

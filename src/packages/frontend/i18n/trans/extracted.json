@@ -1381,10 +1381,10 @@
     "description": "Button label or menu entry for the 'Jupyter Kernel'. Keep its name 'Kernel' in all languages."
   },
   "menu.generic.kick_other_users_out.button": {
-    "defaultMessage": "Kick"
+    "defaultMessage": "Resize"
   },
   "menu.generic.kick_other_users_out.label": {
-    "defaultMessage": "Kick Other Users Out"
+    "defaultMessage": "Force Resize"
   },
   "menu.generic.kick_other_users_out.title": {
     "defaultMessage": "Kick all other users out from this document. It will close in all other browsers."

@@ -115,7 +115,7 @@ function initTransports() {
         transports.console ? " and console.log" : ""
       } via the debug module\nwith  DEBUG='${
         process.env.DEBUG
-      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
+      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing e.g., something like DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
       console.log(announce);
       if (transports.file) {
         // the file transport

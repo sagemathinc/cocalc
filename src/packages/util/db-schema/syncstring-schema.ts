@@ -284,7 +284,11 @@ Table({
     },
     time: {
       type: "timestamp",
-      desc: "the timestamp of the patch",
+      desc: "the logical timestamp of the patch",
+    },
+    wall: {
+      type: "timestamp",
+      desc: "the timestamp that we show to the user",
     },
     user_id: {
       type: "integer",
@@ -306,7 +310,7 @@ Table({
     },
     seq_info: {
       type: "map",
-      desc: "nats info about snapshot -- {seq:number; prev_seq?:number; index:number}",
+      desc: "conat-assigned info about snapshot -- {seq:number; prev_seq?:number; index:number}",
     },
     sent: {
       type: "timestamp",
@@ -340,6 +344,7 @@ Table({
         fields: {
           string_id: null,
           time: null,
+          wall: null,
           patch: null,
           user_id: null,
           snapshot: null,
@@ -365,6 +370,7 @@ Table({
         fields: {
           string_id: true,
           time: true,
+          wall: true,
           patch: true,
           user_id: true,
           snapshot: true,

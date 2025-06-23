@@ -17,18 +17,6 @@ import { ensure_project_running } from "@cocalc/frontend/project/project-start-w
 import { API } from "@cocalc/frontend/project/websocket/api";
 import { connection_to_project } from "@cocalc/frontend/project/websocket/connect";
 import {
-  ProjectInfo,
-  project_info,
-} from "@cocalc/frontend/project/websocket/project-info";
-import {
-  ProjectStatus,
-  project_status,
-} from "@cocalc/frontend/project/websocket/project-status";
-import {
-  UsageInfoWS,
-  get_usage_info,
-} from "@cocalc/frontend/project/websocket/usage-info";
-import {
   Configuration,
   ConfigurationAspect,
 } from "@cocalc/frontend/project_configuration";
@@ -39,7 +27,6 @@ import {
   type ExecOpts,
   type ExecOutput,
 } from "@cocalc/util/db-schema/projects";
-import * as message from "@cocalc/util/message";
 import {
   coerce_codomain_to_numbers,
   copy_without,
@@ -50,10 +37,10 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import httpApi from "./api";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
-import { writeFile, type WriteFileOptions } from "@cocalc/nats/files/write";
+import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
+import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -63,29 +50,14 @@ export class ProjectClient {
     this.client = client;
   }
 
-  private async call(message: object): Promise<any> {
-    return await this.client.async_call({ message });
-  }
-
-  private natsApi = (project_id: string) => {
-    return this.client.nats_client.projectApi({ project_id });
+  private conatApi = (project_id: string) => {
+    return this.client.conat_client.projectApi({ project_id });
   };
 
   // This can write small text files in one message.
-  public async write_text_file({
-    project_id,
-    path,
-    content,
-  }: {
-    project_id: string;
-    path: string;
-    content: string;
-  }): Promise<void> {
-    await this.natsApi(project_id).system.writeTextFileToProject({
-      path,
-      content,
-    });
-  }
+  write_text_file = async (opts): Promise<void> => {
+    await this.writeFile(opts);
+  };
 
   // writeFile -- easily write **arbitrarily large text or binary files**
   // to a project from a readable stream or a string!
@@ -99,26 +71,38 @@ export class ProjectClient {
     return await writeFile(opts);
   };
 
-  public async read_text_file({
+  // readFile -- read **arbitrarily large text or binary files**
+  // from a project via a readable stream.
+  // Look at the code below if you want to stream a file for memory
+  // efficiency...
+  readFile = async (opts: ReadFileOptions): Promise<Buffer> => {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of await readFile(opts)) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  };
+
+  read_text_file = async ({
     project_id,
     path,
   }: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
-  }): Promise<string> {
-    return await this.natsApi(project_id).system.readTextFileFromProject({
+  }): Promise<string> => {
+    return await this.conatApi(project_id).system.readTextFileFromProject({
       path,
     });
-  }
+  };
 
   // Like "read_text_file" above, except the callback
   // message gives a url from which the file can be
   // downloaded using standard AJAX.
-  public read_file(opts: {
+  read_file = (opts: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
     compute_server_id?: number;
-  }): string {
+  }): string => {
     const base_path = appBasePath;
     if (opts.path[0] === "/") {
       // absolute path to the root
@@ -132,10 +116,9 @@ export class ProjectClient {
       url += `?id=${opts.compute_server_id}`;
     }
     return url;
-  }
+  };
 
-  public async copy_path_between_projects(opts: {
-    public?: boolean; // used e.g., by share server landing page action.
+  copy_path_between_projects = async (opts: {
     src_project_id: string; // id of source project
     src_path: string; // relative path of director or file in the source project
     target_project_id: string; // if of target project
@@ -143,36 +126,17 @@ export class ProjectClient {
     overwrite_newer?: boolean; // overwrite newer versions of file at destination (destructive)
     delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
     backup?: boolean; // make ~ backup files instead of overwriting changed files
-    timeout?: number; // **timeout in seconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+    timeout?: number; // **timeout in milliseconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
     exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
-  }): Promise<void> {
-    const is_public = opts.public;
-    delete opts.public;
-
-    if (opts.target_path == null) {
-      opts.target_path = opts.src_path;
-    }
-
-    const mesg = is_public
-      ? message.copy_public_path_between_projects(opts)
-      : message.copy_path_between_projects(opts);
-    mesg.wait_until_done = true; // TODO: our UI only supports this for now.
-
-    // THIS CAN BE USEFUL FOR DEBUGGING!
-    // mesg.debug_delay_s = 10;
-
-    await this.client.async_call({
-      timeout: opts.timeout,
-      message: mesg,
-      allow_post: false, // since it may take too long
-    });
-  }
+  }): Promise<void> => {
+    await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
+  };
 
   // Set a quota parameter for a given project.
   // As of now, only user in the admin group can make these changes.
-  public async set_quotas(opts: {
+  set_quotas = async (opts: {
     project_id: string;
-    memory?: number; // see message.js for the units, etc., for all these settings
+    memory?: number;
     memory_request?: number;
     cpu_shares?: number;
     cores?: number;
@@ -181,16 +145,17 @@ export class ProjectClient {
     network?: number;
     member_host?: number;
     always_running?: number;
-  }): Promise<void> {
+  }): Promise<void> => {
     // we do some extra work to ensure all the quotas are numbers (typescript isn't
     // enough; sometimes client code provides strings, which can cause lots of trouble).
     const x = coerce_codomain_to_numbers(copy_without(opts, ["project_id"]));
-    await this.call(
-      message.project_set_quotas({ ...x, ...{ project_id: opts.project_id } }),
-    );
-  }
+    await this.client.conat_client.hub.projects.setQuotas({
+      ...x,
+      project_id: opts.project_id,
+    });
+  };
 
-  public async websocket(project_id: string): Promise<any> {
+  websocket = async (project_id: string): Promise<any> => {
     const store = redux.getStore("projects");
     // Wait until project is running (or admin and not on project)
     await store.async_wait({
@@ -217,7 +182,7 @@ export class ProjectClient {
       throw Error("no access to project websocket");
     }
     return await connection_to_project(project_id);
-  }
+  };
 
   api = async (project_id: string): Promise<API> => {
     return (await this.websocket(project_id)).api;
@@ -238,7 +203,7 @@ export class ProjectClient {
     time" (which is stored in the db), which they client will know.  This is used, e.g.,
     for operations like "run rst2html on this file whenever it is saved."
     */
-  public async exec(opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> {
+  exec = async (opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> => {
     if ("async_get" in opts) {
       opts = defaults(opts, {
         project_id: required,
@@ -286,19 +251,10 @@ export class ProjectClient {
       };
     }
 
-    const { post } = opts;
-    delete opts.post;
-
     try {
-      let msg;
-      if (post) {
-        // use post API
-        msg = await httpApi("exec", opts);
-      } else {
-        const ws = await this.websocket(opts.project_id);
-        const exec_opts = copy_without(opts, ["project_id"]);
-        msg = await ws.api.exec(exec_opts);
-      }
+      const ws = await this.websocket(opts.project_id);
+      const exec_opts = copy_without(opts, ["project_id", "cb"]);
+      const msg = await ws.api.exec(exec_opts);
       if (msg.status && msg.status == "error") {
         throw new Error(msg.error);
       }
@@ -331,18 +287,18 @@ export class ProjectClient {
         };
       }
     }
-  }
+  };
 
   // Directly compute the directory listing.  No caching or other information
   // is used -- this just sends a message over the websocket requesting
   // the backend node.js project process to compute the listing.
-  public async directory_listing(opts: {
+  directory_listing = async (opts: {
     project_id: string;
     path: string;
     compute_server_id: number;
     timeout?: number;
     hidden?: boolean;
-  }): Promise<{ files: DirectoryListingEntry[] }> {
+  }): Promise<{ files: DirectoryListingEntry[] }> => {
     if (opts.timeout == null) opts.timeout = 15;
     const api = await this.api(opts.project_id);
     const listing = await api.listing(
@@ -352,9 +308,9 @@ export class ProjectClient {
       opts.compute_server_id,
     );
     return { files: listing };
-  }
+  };
 
-  public async find_directories(opts: {
+  find_directories = async (opts: {
     project_id: string;
     query?: string; // see the -iwholename option to the UNIX find command.
     path?: string; // Root path to find directories from
@@ -365,7 +321,7 @@ export class ProjectClient {
     path: string;
     project_id: string;
     directories: string[];
-  }> {
+  }> => {
     opts = defaults(opts, {
       project_id: required,
       query: "*", // see the -iwholename option to the UNIX find command.
@@ -421,11 +377,11 @@ export class ProjectClient {
       project_id: opts.project_id,
       directories: v,
     };
-  }
+  };
 
   // This is async, so do "await smc_webapp.configuration(...project_id...)".
   // for reuseInFlight, see https://github.com/sagemathinc/cocalc/issues/7806
-  public configuration = reuseInFlight(
+  configuration = reuseInFlight(
     async (
       project_id: string,
       aspect: ConfigurationAspect,
@@ -437,11 +393,6 @@ export class ProjectClient {
       return (await this.api(project_id)).configuration(aspect, no_cache);
     },
   );
-
-  // Remove all upgrades from all projects that this user collaborates on.
-  public async remove_all_upgrades(projects?: string[]): Promise<void> {
-    await this.call(message.remove_all_upgrades({ projects }));
-  }
 
   touch_project = async (
     // project_id where activity occured
@@ -485,7 +436,7 @@ export class ProjectClient {
     }
     this.touch_throttle[project_id] = Date.now();
     try {
-      await this.client.nats_client.hub.db.touch({ project_id });
+      await this.client.conat_client.hub.db.touch({ project_id });
     } catch (err) {
       // silently ignore; this happens, e.g., if you touch too frequently,
       // and shouldn't be fatal and break other things.
@@ -496,36 +447,27 @@ export class ProjectClient {
     }
   };
 
-  // Print file to pdf
+  // Print sagews to pdf
   // The printed version of the file will be created in the same directory
   // as path, but with extension replaced by ".pdf".
-  // Only used for sagews, and would be better done with websocket api anyways...
-  public async print_to_pdf(opts: {
+  // Only used for sagews.
+  print_to_pdf = async ({
+    project_id,
+    path,
+    options,
+    timeout,
+  }: {
     project_id: string;
     path: string;
-    options?: any; // optional options that get passed to the specific backend for this file type
     timeout?: number; // client timeout -- some things can take a long time to print!
-  }): Promise<string> {
-    // returns path to pdf file
-    if (opts.options == null) opts.options = {};
-    opts.options.timeout = opts.timeout; // timeout on backend
+    options?: any; // optional options that get passed to the specific backend for this file type
+  }): Promise<string> => {
+    return await this.client.conat_client
+      .projectApi({ project_id })
+      .editor.printSageWS({ path, timeout, options });
+  };
 
-    return (
-      await this.client.async_call({
-        message: message.local_hub({
-          project_id: opts.project_id,
-          message: message.print_to_pdf({
-            path: opts.path,
-            options: opts.options,
-          }),
-        }),
-        timeout: opts.timeout,
-        allow_post: false,
-      })
-    ).path;
-  }
-
-  public async create(opts: {
+  create = async (opts: {
     title: string;
     description: string;
     image?: string;
@@ -534,37 +476,30 @@ export class ProjectClient {
     license?: string;
     // never use pool
     noPool?: boolean;
-  }): Promise<string> {
+  }): Promise<string> => {
     const project_id =
-      await this.client.nats_client.hub.projects.createProject(opts);
+      await this.client.conat_client.hub.projects.createProject(opts);
     this.client.tracking_client.user_tracking("create_project", {
       project_id,
       title: opts.title,
     });
     return project_id;
-  }
+  };
 
-  // Disconnect whatever hub we are connected to from the project
-  // Adding this right now only for debugging/dev purposes!
-  public async disconnect_hub_from_project(project_id: string): Promise<void> {
-    await this.call(message.disconnect_from_project({ project_id }));
-  }
-
-  public async realpath(opts: {
+  realpath = async (opts: {
     project_id: string;
     path: string;
-  }): Promise<string> {
-    const real = (await this.api(opts.project_id)).realpath(opts.path);
-    return real;
-  }
+  }): Promise<string> => {
+    return (await this.api(opts.project_id)).realpath(opts.path);
+  };
 
-  async isdir({
+  isdir = async ({
     project_id,
     path,
   }: {
     project_id: string;
     path: string;
-  }): Promise<boolean> {
+  }): Promise<boolean> => {
     const { stdout, exit_code } = await this.exec({
       project_id,
       command: "file",
@@ -572,40 +507,9 @@ export class ProjectClient {
       err_on_exit: false,
     });
     return !exit_code && stdout.trim() == "directory";
-  }
+  };
 
-  // Add and remove a license from a project.  Note that these
-  // might not be used to implement anything in the client frontend, but
-  // are used via the API, and this is a convenient way to test them.
-  public async add_license_to_project(
-    project_id: string,
-    license_id: string,
-  ): Promise<void> {
-    await this.call(message.add_license_to_project({ project_id, license_id }));
-  }
-
-  public async remove_license_from_project(
-    project_id: string,
-    license_id: string,
-  ): Promise<void> {
-    await this.call(
-      message.remove_license_from_project({ project_id, license_id }),
-    );
-  }
-
-  public project_info(project_id: string): ProjectInfo {
-    return project_info(this.client, project_id);
-  }
-
-  public project_status(project_id: string): ProjectStatus {
-    return project_status(this.client, project_id);
-  }
-
-  public usage_info(project_id: string): UsageInfoWS {
-    return get_usage_info(project_id);
-  }
-
-  public ipywidgetsGetBuffer = reuseInFlight(
+  ipywidgetsGetBuffer = reuseInFlight(
     async (
       project_id: string,
       path: string,
@@ -621,21 +525,23 @@ export class ProjectClient {
   );
 
   // getting, setting, editing, deleting, etc., the  api keys for a project
-  public async api_keys(opts: {
+  api_keys = async (opts: {
     project_id: string;
     action: "get" | "delete" | "create" | "edit";
     password?: string;
     name?: string;
     id?: number;
     expire?: Date;
-  }): Promise<ApiKey[] | undefined> {
-    return await this.client.nats_client.hub.system.manageApiKeys(opts);
-  }
+  }): Promise<ApiKey[] | undefined> => {
+    return await this.client.conat_client.hub.system.manageApiKeys(opts);
+  };
 
   computeServers = (project_id) => {
     const cs = redux.getProjectActions(project_id)?.computeServers();
     if (cs == null) {
-      throw Error("bug");
+      // this happens if something tries to access the compute server info after the project
+      // tab is closed.  It shouldn't do that.
+      throw Error("compute server information not available");
     }
     return cs;
   };
@@ -647,9 +553,13 @@ export class ProjectClient {
     return await this.computeServers(project_id)?.getServerIdForPath(path);
   };
 
-  // will throw exception if compute servers dkv not yet initialized
+  // will return undefined if compute servers not yet initialized
   getServerIdForPathSync = ({ project_id, path }): number | undefined => {
-    return this.computeServers(project_id).get(path);
+    const cs = this.computeServers(project_id);
+    if (cs?.state != "connected") {
+      return undefined;
+    }
+    return cs.get(path);
   };
 }
 
@@ -681,3 +591,31 @@ const touchComputeServer = throttle(
   },
   30000,
 );
+
+// Polyfill for Safari: Add async iterator support to ReadableStream if missing.
+// E.g., this is missing in all versions of Safari as of May 2025 according to
+//           https://caniuse.com/?search=ReadableStream%20async
+// This breaks reading and writing files to projects, which is why this
+// is here (e.g., the writeFile and readFile functions above).
+// This might also matter for Jupyter.
+// https://chatgpt.com/share/6827a476-dbe8-800e-9156-3326eb41baae
+if (
+  typeof ReadableStream !== "undefined" &&
+  !ReadableStream.prototype[Symbol.asyncIterator]
+) {
+  ReadableStream.prototype[Symbol.asyncIterator] = function () {
+    const reader = this.getReader();
+    return {
+      async next() {
+        return reader.read();
+      },
+      async return() {
+        reader.releaseLock();
+        return { done: true };
+      },
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+    };
+  };
+}

@@ -35,10 +35,16 @@ import {
   redux,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
+import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
 import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
+import {
+  chat,
+  getSideChatActions,
+} from "@cocalc/frontend/frame-editors/generic/chat";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   delete_local_storage,
@@ -59,7 +65,7 @@ import {
   syntax2tool,
 } from "@cocalc/util/code-formatter";
 import {
-  TIMEOUT_CALLING_PROJECT,
+  IS_TIMEOUT_CALLING_PROJECT,
   TIMEOUT_CALLING_PROJECT_MSG,
 } from "@cocalc/util/consts/project";
 import {
@@ -103,12 +109,7 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import {
-  chat,
-  getSideChatActions,
-} from "@cocalc/frontend/frame-editors/generic/chat";
+import { log_opened_time } from "@cocalc/frontend/project/open-file";
 
 interface gutterMarkerParams {
   line: number;
@@ -348,6 +349,11 @@ export class Actions<
     }
 
     this._syncstring.once("ready", (err) => {
+      if (this.doctype != "none") {
+        // doctype = 'none' must be handled elsewhere, e.g., terminals.
+        log_opened_time(this.project_id, this.path);
+      }
+
       if (err) {
         this.set_error(`${err}\nFix this, then try opening the file again.`);
         return;
@@ -356,6 +362,7 @@ export class Actions<
         // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
         return;
       }
+
       this._syncstring_init = true;
       this._syncstring_metadata();
       this._init_settings();
@@ -388,7 +395,7 @@ export class Actions<
     });
 
     this._syncstring.on("save-to-disk", () => {
-      // incremenet save_to_disk counter, so that react components can
+      // increment save_to_disk counter, so that react components can
       // react to save_to_disk event happening.
       this.set_reload("save_to_disk");
     });
@@ -1134,7 +1141,7 @@ export class Actions<
     // need to check since this can get called by the close.
     if (!this._syncstring) return;
     // TODO: for now, just for the one syncstring obviously
-    // TOOD: this is probably naive and slow too...
+    // TODO: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring
       .get_cursors({
@@ -1157,7 +1164,7 @@ export class Actions<
   }
 
   // Set the location of all of OUR cursors.  This serves many purposes:
-  //  -- propogate to other users via the syncstring.
+  //  -- propagate to other users via the syncstring.
   //  -- setting uri fragment page= at top of browser, so URL link is useful
   //  -- don't delete trailing whitespace in lines with cursors
   set_cursor_locs(locs: any[]): void {
@@ -1220,7 +1227,8 @@ export class Actions<
     if (
       this.is_public ||
       !this.store.get("is_loaded") ||
-      this._syncstring == null
+      this._syncstring == null ||
+      this._syncstring.get_state() != "ready"
     ) {
       return;
     }
@@ -1765,7 +1773,7 @@ export class Actions<
       return;
     }
 
-    // This implentation of goto_line only supports integer line numbers.
+    // This implementation of goto_line only supports integer line numbers.
     // However, derived classes may support id's or other types of more general "lines".
     try {
       if (typeof line == "string") {
@@ -1912,7 +1920,7 @@ export class Actions<
         if (typeof e != "string") throw Error("bug"); // make typescript happy
         error = e;
       }
-      if (error === TIMEOUT_CALLING_PROJECT) {
+      if (IS_TIMEOUT_CALLING_PROJECT(error)) {
         error = TIMEOUT_CALLING_PROJECT_MSG;
       }
       this.setState({ error });
@@ -2100,7 +2108,7 @@ export class Actions<
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
       if (info !== undefined && info.get("gutter_id") === gutter_id && id) {
-        /* && id is to satify typescript */
+        /* && id is to satisfy typescript */
         gutter_markers = gutter_markers.delete(id);
       }
     });
@@ -2249,7 +2257,7 @@ export class Actions<
       }
       this.setFormatError("");
     } catch (err) {
-      this.setFormatError(`${err}`, this._syncstring.to_str());
+      this.setFormatError(`${err}`, this._syncstring?.to_str());
     } finally {
       this.set_status("");
     }
@@ -2622,7 +2630,7 @@ export class Actions<
     if (type == "terminal") {
       this.clear_terminal_command(id);
       if (node.get("command") == "jupyter") {
-        // not reseting jupyter
+        // not resetting jupyter
         return;
       }
       // we also wait until it is "back again with a prompt"

@@ -39,12 +39,12 @@ export default function PopconfirmModal({}) {
     }
   }, [popconfirm.open]);
 
-  // destroyOnClose so values in quota input, etc. get updated
+  // destroyOnHidden so values in quota input, etc. get updated
   return (
     <Modal
       key="app-modal"
       width={"600px"}
-      destroyOnClose
+      destroyOnHidden
       open={popconfirm.open}
       title={popconfirm.title}
       onCancel={handleCancel}

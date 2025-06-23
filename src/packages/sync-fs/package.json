@@ -8,29 +8,36 @@
     "./*": "./dist/*.js",
     "./lib/*": "./dist/lib/*.js"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "clean": "rm -rf node_modules dist",
-    "test": "pnpm exec jest --forceExit --runInBand"
+    "test": "pnpm exec jest --forceExit --runInBand",
+    "depcheck": "pnpx depcheck"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/comm": "workspace:*",
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "execa": "^8.0.1",
     "lodash": "^4.17.21",
     "lz4-napi": "^2.8.0",
-    "mkdirp": "^1.0.4",
-    "tsimportlib": "^0.0.5"
+    "mkdirp": "^1.0.4"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-fs",
   "repository": {

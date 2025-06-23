@@ -214,11 +214,11 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
   shouldMemoize,
 );
 
-interface Options {
+interface Options<T = EditorSpec> {
   display_name: string;
   format_bar?: boolean;
   format_bar_exclude?: SetMap;
-  editor_spec: EditorSpec;
+  editor_spec: T;
 }
 
 export interface EditorProps {
@@ -231,7 +231,9 @@ export interface EditorProps {
 
 // this returns a function that creates a FrameTreeEditor for given Options.
 // memoization happens in FrameTreeEditor
-export function createEditor(opts: Options): React.FC<EditorProps> {
+export function createEditor<T = EditorSpec>(
+  opts: Options<T>,
+): React.FC<EditorProps> {
   const Editor = (props: EditorProps) => {
     const { actions, name, path, project_id, is_visible } = props;
     return (

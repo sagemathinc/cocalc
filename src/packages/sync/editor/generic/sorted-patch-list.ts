@@ -11,7 +11,6 @@ import { EventEmitter } from "events";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
 import { close, deep_copy, trunc_middle } from "@cocalc/util/misc";
-// import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
 
 const MAX_PATCHLIST_CACHE_SIZE = 100;
@@ -35,6 +34,9 @@ export class SortedPatchList extends EventEmitter {
   // This property ensures that it is possible to meaningfully define
   // an immutable value at every key of this.live.
   private live: { [time: number]: Patch } = {};
+
+  // max of all times that have been adding to this patch list, even those in staging.
+  private maxTime = 0;
 
   private versions_cache: number[] | undefined;
 
@@ -100,16 +102,35 @@ export class SortedPatchList extends EventEmitter {
   };
 
   /* Choose the next available time in ms that is congruent to
-     m modulo n.  The congruence condition is so that any time
-     collision will have to be with a single person editing a
+     m modulo n and is larger than any current times.  
+     This is a LOGICAL TIME; it does not have to equal the
+     actual wall clock.  The key is that it is increasing.
+     The congruence condition is so that any time
+     collision would be with a single user editing a
      document with themselves -- two different users are
      guaranteed to not collide.  Note: even if there is a
-     collision, it will automatically fix itself very quickly. */
+     collision, it will automatically fix itself very quickly
+     and just means that how a merge conflict gets resolved
+     is ambiguous. */
   next_available_time = (
+    // the target logical time we want to use; if this works
+    // we use it.
     time: number,
+    // congruence class
     m: number = 0,
+    // the modulus (e.g., number of distinct users)
     n: number = 1,
   ): number => {
+    if (time <= this.maxTime) {
+      // somebody stuck a time in the future (hence maxTime is large), so
+      // we just switch to operating as a logical clock where now time
+      // has nothing to do with the wall time.  That's fine -- we show
+      // the user the actual walltime everywhere in the UI.
+      // We also randomize things to reduce the change of a single user
+      // conflicting with themselves in different branches.
+      time = this.maxTime + Math.ceil(1000 * Math.random()) + 1;
+    }
+    // Ensure the congruence condition modulo n is satisfied.
     if (n <= 0) {
       n = 1;
     }
@@ -118,9 +139,8 @@ export class SortedPatchList extends EventEmitter {
       a += n;
     }
     time += a; // now time = m (mod n)
-    while (this.live[time] != null) {
-      time += n;
-    }
+    // There is also no possibility of a conflict with a known time
+    // since we made time bigger than this.maxTime.
     return time;
   };
 
@@ -129,6 +149,16 @@ export class SortedPatchList extends EventEmitter {
   // with any new information they contain merged in.  Snapshot info
   // also is handled properly.
   add = (patches: Patch[]): void => {
+    //    console.log("add", patches);
+    //     for (let i = 0; i < patches.length; i++) {
+    //       const patch = patches[i];
+    //       if (patch.parents != null && patch.parents.length == 0 && patch.patch) {
+    //         patches = patches.slice(0, i);
+    //         break;
+    //       }
+    //     }
+    //     (window as any).x = { patches };
+
     if (patches.length === 0) {
       // nothing to do
       return;
@@ -143,6 +173,7 @@ export class SortedPatchList extends EventEmitter {
       // may shallow mutate it, e.g., filling in the snapshot info, and
       // we want to avoid any surprises/bugs (mainly with unit tests)
       const t: number = originalPatch.time;
+      this.maxTime = Math.max(this.maxTime, t);
       if (
         !originalPatch.is_snapshot &&
         (this.staging[t] != null || this.live[t] != null)
@@ -232,6 +263,7 @@ export class SortedPatchList extends EventEmitter {
         delete this.versions_cache;
         this.patches = this.patches.concat(newPatches);
         this.patches.sort(patch_cmp);
+        this.emit("change");
       } else {
         // nothing moved from staging to live, so **converged**.
         return;
@@ -464,6 +496,18 @@ export class SortedPatchList extends EventEmitter {
       this.versions_cache = this.patches.map((x) => x.time);
     }
     return this.versions_cache;
+  };
+
+  // Walltime of patch created at a given point in time.
+  wallTime = (version: number): number | undefined => {
+    const p = this.live[version];
+    if (p != null) {
+      return p.wall ?? p.time;
+    }
+    const s = this.staging[version];
+    if (s != null) {
+      return s.wall ?? s.time;
+    }
   };
 
   hasVersion = (time: number): boolean => {

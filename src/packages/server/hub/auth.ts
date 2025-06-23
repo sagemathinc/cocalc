@@ -57,6 +57,7 @@ import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-prof
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
   InitPassport,
+  LoginInfo,
   PassportManagerOpts,
   StrategyConf,
   StrategyInstanceOpts,
@@ -144,7 +145,7 @@ interface HandleReturnOpts {
   type: PassportTypes;
   update_on_login: boolean;
   cookie_ttl_s: number | undefined;
-  login_info;
+  login_info: LoginInfo;
 }
 
 export class PassportManager {
@@ -656,9 +657,11 @@ export class PassportManager {
         site_url: this.site_url,
       };
 
-      const dotInstance = this.getDot(login_info);
+      const dotInstance =
+        typeof login_info._sep === "string" ? new dot(login_info._sep) : dot;
 
       for (const k in login_info) {
+        if (k === "_sep") continue; // used above, not useful here
         const v = login_info[k];
         const param: string | string[] =
           typeof v == "function"
@@ -688,18 +691,6 @@ export class PassportManager {
         res.send(err_msg);
       }
     };
-  }
-
-  private getDot(login_info): DotObject.Dot {
-    // if login_info contains a key "_delimiter", take it from that object and remove it
-    // then instantiate dot with that delimiter and use it to pick the values
-    if (typeof login_info._sep === "string") {
-      const sep = login_info._sep;
-      delete login_info._sep;
-      return new dot(sep);
-    } else {
-      return dot;
-    }
   }
 
   // right now, we only set this for OAauth2 (SAML knows what to do on its own)

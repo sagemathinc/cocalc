@@ -66,6 +66,8 @@ const WHITELIST = [
   "a whole package of antd",
   // we can't do anything about bokeh crashes in their own code
   "cdn.bokeh.org",
+  // xtermjs
+  "renderRows",
 ];
 const isWhitelisted = function (opts) {
   const s = JSON.stringify(opts);
@@ -137,7 +139,7 @@ const sendError = async function (opts) {
       // As an added bonus, by try/catching and retrying once at least,
       // we are more likely to get the error report in case of a temporary
       // network or other glitch....
-      console.log("sendError: import webapp_client");
+      // console.log("sendError: import webapp_client");
 
       ({ webapp_client } = require("@cocalc/frontend/webapp-client")); // can possibly be undefined
       // console.log 'sendError: sending error'

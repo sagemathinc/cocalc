@@ -10,12 +10,12 @@ import {
   ExecOpts,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
+import { IS_TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
-// import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
-import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
-import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
+import { delay } from "awaiting";
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562
@@ -77,7 +77,7 @@ async function gatherJobInfo(
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
   path: string,
 ): Promise<void> {
-  await new Promise((done) => setTimeout(done, 100));
+  await delay(100);
   let wait_s = 1;
   try {
     while (true) {
@@ -98,7 +98,7 @@ async function gatherJobInfo(
       } else {
         return;
       }
-      await new Promise((done) => setTimeout(done, 1000 * wait_s));
+      await delay(1000 * wait_s);
       wait_s = Math.min(5, wait_s + 1);
     }
   } catch {
@@ -112,7 +112,7 @@ interface RunJobOpts {
   command: string;
   env?: { [key: string]: string };
   project_id: string;
-  rundir: string; // a directory! (output_directory if in /tmp, or the directory of the file's path)
+  runDir: string; // a directory! (output_directory if in /tmp, or the directory of the file's path)
   set_job_info: (info: ExecuteCodeOutputAsync) => void;
   timeout?: number;
   path: string;
@@ -125,7 +125,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     command,
     env,
     project_id,
-    rundir,
+    runDir,
     set_job_info,
     path,
   } = opts;
@@ -140,7 +140,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     command,
     env,
     err_on_exit: false,
-    path: rundir,
+    path: runDir,
     project_id,
     timeout: TIMEOUT_LATEX_JOB_S,
   };
@@ -177,12 +177,12 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
       set_job_info(output);
       return output;
     } catch (err) {
-      if (err === TIMEOUT_CALLING_PROJECT) {
+      if (IS_TIMEOUT_CALLING_PROJECT(err)) {
         // This will eventually be fine, hopefully. We continue trying to get a reply.
-        await new Promise((done) => setTimeout(done, 100));
+        await delay(100);
       } else {
         throw new Error(
-          "Unable to complete compilation. Check the project and try again...",
+          "Unable to run the compilation. Please check up on the project.",
         );
       }
     }

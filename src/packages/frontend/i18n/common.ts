@@ -926,11 +926,11 @@ export const menu = defineMessages({
   },
   kick_other_users_out_label: {
     id: "menu.generic.kick_other_users_out.label",
-    defaultMessage: "Kick Other Users Out",
+    defaultMessage: "Force Resize",
   },
   kick_other_users_out_button: {
     id: "menu.generic.kick_other_users_out.button",
-    defaultMessage: "Kick",
+    defaultMessage: "Resize",
   },
   kick_other_users_out_title: {
     id: "menu.generic.kick_other_users_out.title",

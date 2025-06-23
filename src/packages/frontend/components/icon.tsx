@@ -200,6 +200,7 @@ import {
   TagsFilled,
   TagsOutlined,
   TagsTwoTone,
+  ToTopOutlined,
   TeamOutlined,
   ThunderboltOutlined,
   ToolOutlined,
@@ -631,6 +632,7 @@ const IconSpec = {
   "down-square-outlined": DownSquareOutlined,
   "merge-cells-outlined": MergeCellsOutlined,
   "fork-outlined": ForkOutlined,
+  "to-top-outlined": ToTopOutlined,
 } as const;
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us

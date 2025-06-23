@@ -6,6 +6,8 @@
 /*
 Project information server, doing the heavy lifting of telling the client
 about what's going on in a project.
+
+This is an event emitter that emits a ProjectInfo object periodically when running.
 */
 
 import { delay } from "awaiting";
@@ -14,8 +16,8 @@ import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
 import { ProcessStats } from "@cocalc/backend/process-stats";
-import { pidToPath as terminalPidToPath } from "@cocalc/terminal";
-import {
+import { pidToPath as terminalPidToPath } from "@cocalc/project/conat/terminal/manager";
+import type {
   CGroup,
   CoCalcInfo,
   DiskUsage,
@@ -24,14 +26,9 @@ import {
   ProjectInfo,
 } from "@cocalc/util/types/project-info/types";
 import { get_path_for_pid as x11_pid2path } from "../x11/server";
-//import { get_sage_path } from "../sage_session"
 import { getLogger } from "../logger";
 
 const L = getLogger("project-info:server").debug;
-
-// function is_in_dev_project() {
-//   return process.env.SMC_LOCAL_HUB_HOME != null;
-// }
 
 const bytes2MiB = (bytes) => bytes / (1024 * 1024);
 
@@ -225,6 +222,10 @@ export class ProjectInfoServer extends EventEmitter {
   public stop() {
     this.running = false;
   }
+
+  close = () => {
+    this.stop();
+  };
 
   public async start(): Promise<void> {
     if (this.running) {

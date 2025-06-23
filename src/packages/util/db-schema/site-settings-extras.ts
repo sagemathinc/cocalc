@@ -184,14 +184,12 @@ function custom_llm_display(value: string): string {
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
-  | "nats_heading"
-  | "nats_server"
-  | "nats_port"
-  | "nats_ws_port"
-  | "nats_password"
-  | "nats_auth_nseed"
-  | "nats_auth_xseed"
-  | "nats_project_server"
+  | "conat_heading"
+  | "conat_server"
+  | "conat_password"
+  | "conat_valkey"
+  //   | "conat_socketio_count"
+  //   | "conat_cluster_port"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -276,64 +274,49 @@ const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
-  nats_heading: {
-    name: "NATS Configuration",
-    desc: "Configuration of [NATS server](https://nats.io/), which CoCalc uses extensively for communication.",
+  conat_heading: {
+    name: "Conat Configuration",
+    desc: "Conat is a [NATS](https://nats.io/)-like [socketio](https://socket.io/) websocket server and persistence layer that CoCalc uses extensively for communication.",
     default: "",
     type: "header",
-    tags: ["Nats"],
+    tags: ["Conat"],
   },
-  // Nats config is loaded in packages/server/nats/credentials.ts
-  nats_server: {
-    name: "Nats Server",
-    desc: "Hostname of server where NATS is running.  Defaults to localhost or `$COCALC_NATS_SERVER` if not specified here.  (TODO: support multiple servers for high availability.)",
-    default: "localhost",
-    password: false,
-    tags: ["Nats"],
-  },
-  nats_port: {
-    name: "Nats TCP Port",
-    desc: "Port that NATS is serving on.  Defaults to 4222 or `$COCALC_NATS_PORT` if not specified here.",
-    default: "4222",
-    password: false,
-    tags: ["Nats"],
-  },
-  nats_ws_port: {
-    name: "Nats Websocket Port",
-    desc: "Port that NATS websocket server is serving on.  Defaults to 8443 or `$COCALC_NATS_WS_PORT` if not specified here.  This gets proxied to browser clients.",
-    default: "8443",
-    password: false,
-    tags: ["Nats"],
-  },
-  nats_project_server: {
-    name: "Nats Project Server",
-    desc: "Name of the NATS server that projects should connect to.  This should be either `hostname:port` for TCP or one of `ws://hostname:port` or `wss://hostname:port` for a WebSocket.  Do not include the basepath for the websocket address.  If not given, the tcp NATS server and port specified above is used.",
+  // Conat config may be loaded from via code in packages/server/conat/configuration.ts
+  conat_server: {
+    name: "Conat Server URL",
+    desc: "URL of server where Conat is available.  Defaults to `$CONAT_SERVER` env variable if that is given.  This URL should include the base path. Examples:  https://cocalc.com,   https://localhoast:4043/3fa218e5-7196-4020-8b30-e2127847cc4f/port/5002/",
     default: "",
     password: false,
-    tags: ["Nats"],
+    tags: ["Conat"],
   },
-  nats_password: {
-    name: "Nats Password",
-    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file `$SECRETS/nats_password` (or `$COCALC_ROOT/data/secrets/nats_password`) is used, if it exists. IMPORTANT: the nseed and xseed secrets must also exist in order for the authentication microservice to communicate with nats-server and authenticate users.",
+  conat_password: {
+    name: "Conat Password",
+    desc: "Password for conat *hub* admin account. If not given, then the contents of the file `$SECRETS/conat_password` (or `$COCALC_ROOT/data/secrets/conat_password`) is used, if it exists.",
     default: "",
     password: true,
-    tags: ["Nats"],
+    tags: ["Conat"],
   },
-  nats_auth_nseed: {
-    name: "Nats Authentication Callout - Signing Private Key",
-    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SECRETS/nats_auth_nseed` (or `$COCALC_ROOT/data/secrets/nats_auth_nseed`) is used, if it exists.  This is an *account* private nkey used by the server to digitally sign messages to the auth callout service: `nk -gen account`",
+  //   conat_socketio_count: {
+  //     name: "Number of Conat Socketio Servers to Run",
+  //     desc: "The number of conat [Socketio](https://socket.io/) servers to create.  When running CoCalc on a single server, you can run a single socketio websocket server in the same nodejs process as everything else.  Alternatively, if you set this value to a number $n$ bigger than 1 and enable valkey or the Conat cluster port below, then $n$ separate socket.io servers will be spawned.  The main hub server will proxy connections to these servers.  This allows you to scale the traffic load beyond a single CPU.",
+  //     default: "1",
+  //     valid: only_pos_int,
+  //     tags: ["Conat"],
+  //   },
+  //   conat_cluster_port: {
+  //     name: "Conat Socketio Cluster Adapter Port",
+  //     desc: "If set, the [Socketio cluster adapter](https://github.com/socketio/socket.io-cluster-adapter) is used, listening on this port.  Set to 0 to disable.",
+  //     default: "0",
+  //     valid: only_nonneg_int,
+  //     tags: ["Conat"],
+  //   },
+  conat_valkey: {
+    name: "Valkey Connection String",
+    desc: "[Valkey](https://valkey.io/) is required to run multiple Conat socketio servers, which is required to scale to thousands of simultaneous connections. This is the connection URL, which is of the form [valkey://user:password@host:port/dbnum](https://valkey.io/topics/cli/).  E.g., `valkey://127.0.0.1:6379`.   For HA with sentinels, use something like 'sentinel://valkey-sentinel-0[:port],valkey-sentinel-1[:port],valkey-sentinel-2[:port]' as the connection string instead of 'valkey:// ..'",
     default: "",
-    password: true,
-    tags: ["Nats"],
+    password: false,
+    tags: ["Conat"],
   },
-  nats_auth_xseed: {
-    name: "Nats Authentication Callout - Encryption Private Key",
-    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SCRETS/nats_auth_xseed` (or `$COCALC_ROOT/data/secrets/nats_auth_xseed`) is used, if it exists.  This is a *curve* private nkey used by the auth callout service to encrypt responses to the server: `nk -gen curve`",
-    default: "",
-    password: true,
-    tags: ["Nats"],
-  },
-
   openai_section: {
     name: "Language Model Configuration",
     desc: "",

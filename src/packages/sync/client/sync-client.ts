@@ -8,7 +8,7 @@ Functionality related to Sync.
 */
 
 import { once } from "@cocalc/util/async-utils";
-import { defaults, is_valid_uuid_string, required } from "@cocalc/util/misc";
+import { defaults, required } from "@cocalc/util/misc";
 import { SyncDoc, SyncOpts0 } from "@cocalc/sync/editor/generic/sync-doc";
 import { SyncDB, SyncDBOpts0 } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -19,11 +19,8 @@ import {
   QueryOptions,
   synctable_no_changefeed,
 } from "@cocalc/sync/table";
-import synctable_project from "./synctable-project";
-import type { Channel, AppClient } from "./types";
-import { getSyncDocType } from "@cocalc/nats/sync/syncdoc-info";
-
-import { refCacheSync } from "@cocalc/util/refcache";
+import type { AppClient } from "./types";
+import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {
   noCache?: boolean;
@@ -74,42 +71,59 @@ export class SyncClient {
     );
   }
 
-  public async synctable_project(
-    project_id: string,
-    query: Query,
-    options?: QueryOptions,
-    throttle_changes?: number,
-    id: string = "",
-  ): Promise<SyncTable> {
-    return await synctable_project({
-      project_id,
-      query,
-      options: options ?? [],
-      client: this.client,
-      throttle_changes,
-      id,
-    });
-  }
+  // These are not working properly, e.g., if you close and open
+  // a LARGE jupyter notebook quickly (so save to disk takes a while),
+  // then it gets broken until browser refresh.  The problem is that
+  // the doc is still closing right when a new one starts being created.
+  // So for now we just revert to the non-cached-here approach.
+  // There is other caching elsewhere.
 
-  // NOT currently used.
-  public async symmetric_channel(
-    name: string,
-    project_id: string,
-  ): Promise<Channel> {
-    if (!is_valid_uuid_string(project_id) || typeof name !== "string") {
-      throw Error("project_id must be a valid uuid and name must be a string");
-    }
-    return (await this.client.project_client.api(project_id)).symmetric_channel(
-      name,
-    );
-  }
+  //   public sync_string(opts: SyncOpts): SyncString {
+  //     return syncstringCache({ ...opts, client: this.client });
+  //   }
+
+  //   public sync_db(opts: SyncDBOpts): SyncDB {
+  //     return syncdbCache({ ...opts, client: this.client });
+  //   }
 
   public sync_string(opts: SyncOpts): SyncString {
-    return syncstringCache({ ...opts, client: this.client });
+    const opts0: SyncOpts0 = defaults(opts, {
+      id: undefined,
+      project_id: required,
+      path: required,
+      file_use_interval: "default",
+      cursors: false,
+      patch_interval: 1000,
+      save_interval: 2000,
+      persistent: false,
+      data_server: undefined,
+      client: this.client,
+      ephemeral: false,
+    });
+    return new SyncString(opts0);
   }
 
-  public sync_db(opts: SyncDBOpts): SyncDB {
-    return syncdbCache({ ...opts, client: this.client });
+  public sync_db(opts: SyncDBOpts): SyncDoc {
+    const opts0: SyncDBOpts0 = defaults(opts, {
+      id: undefined,
+      project_id: required,
+      path: required,
+      file_use_interval: "default",
+      cursors: false,
+      patch_interval: 1000,
+      save_interval: 2000,
+      change_throttle: undefined,
+      persistent: false,
+      data_server: undefined,
+
+      primary_keys: required,
+      string_cols: [],
+
+      client: this.client,
+
+      ephemeral: false,
+    });
+    return new SyncDB(opts0);
   }
 
   public async open_existing_sync_document({
@@ -140,6 +154,7 @@ export class SyncClient {
   }
 }
 
+/*
 const syncdbCache = refCacheSync<SyncDBOpts, SyncDB>({
   name: "syncdb",
 
@@ -195,3 +210,4 @@ const syncstringCache = refCacheSync<SyncOpts, SyncString>({
     return new SyncString(opts0);
   },
 });
+*/

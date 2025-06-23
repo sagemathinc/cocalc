@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { initChat } from "@cocalc/frontend/chat/register";
@@ -11,17 +12,13 @@ import SideChat from "@cocalc/frontend/chat/side-chat";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { labels } from "@cocalc/frontend/i18n";
 import { hidden_meta_file, set } from "@cocalc/util/misc";
-import { EditorDescription } from "../frame-tree/types";
+import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
 
 export function chatFile(path: string): string {
   return hidden_meta_file(path, "sage-chat");
 }
-interface Props {
-  font_size: number;
-  desc;
-}
 
-function Chat({ font_size, desc }: Props) {
+function Chat({ font_size, desc }: EditorComponentProps) {
   const { project_id, path: path0, actions, id: frameId } = useFrameContext();
   const path = chatFile(path0);
   const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(

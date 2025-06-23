@@ -16,7 +16,7 @@ import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
-  pguser as DEFAULT_DB_USER,
+  pguser as DEFAULT_DB_USER,  
 } from "@cocalc/backend/data";
 import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
@@ -35,22 +35,20 @@ import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import { getClients } from "./clients";
 import { set_agent_endpoint } from "./health-checks";
 import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import {
-  loadNatsConfiguration,
-  initNatsDatabaseServer,
-  initNatsChangefeedServer,
-  initNatsTieredStorage,
-  initNatsServer,
-} from "@cocalc/server/nats";
+  loadConatConfiguration,
+  initConatChangefeedServer,
+  initConatApi,
+  initConatPersist,
+} from "@cocalc/server/conat";
+import { initConatServer } from "@cocalc/server/conat/socketio";
+
 import initHttpRedirect from "./servers/http-redirect";
-import initPrimus from "./servers/primus";
-import initVersionServer from "./servers/version";
 
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
@@ -61,12 +59,7 @@ const logger = getLogger("hub");
 let program: { [option: string]: any } = {};
 export { program };
 
-// How frequently to register with the database that this hub is up and running,
-// and also report number of connected clients.
 const REGISTER_INTERVAL_S = 20;
-
-// the jsmap of connected clients
-const clients = getClients();
 
 async function reset_password(email_address: string): Promise<void> {
   try {
@@ -177,7 +170,7 @@ async function startServer(): Promise<void> {
   // used for nextjs hot module reloading dev server
   process.env["COCALC_MODE"] = program.mode;
 
-  if (program.mode != "kucalc" && program.websocketServer) {
+  if (program.mode != "kucalc" && program.conatServer) {
     // We handle idle timeout of projects.
     // This can be disabled via COCALC_NO_IDLE_TIMEOUT.
     // This only uses the admin-configurable settings field of projects
@@ -185,31 +178,24 @@ async function startServer(): Promise<void> {
     initIdleTimeout(projectControl);
   }
 
-  // all configuration MUST load nats configuration.  This loads
-  // credentials to use nats from the database, and is needed
-  // by many things.
-  await loadNatsConfiguration();
+  // This loads from the database credentials to use Conat.
+  await loadConatConfiguration();
 
-  if (program.natsServer) {
-    await initNatsServer();
-  }
-  if (program.natsDatabaseServer) {
-    await initNatsDatabaseServer();
-  }
-  if (program.natsChangefeedServer) {
-    await initNatsChangefeedServer();
-  }
-  if (program.natsTieredStorage) {
-    // currently there must be exactly ONE of these, running on the same
-    // node as the nats-server.  E.g., for development it's just part of the server.
-    await initNatsTieredStorage();
+  if (program.conatCore) {
+    // launch standalone socketio websocket server (no http server)
+    await initConatServer();
   }
 
-  if (program.websocketServer) {
-    // Initialize the version server -- must happen after updating schema
-    // (for first ever run).
-    await initVersionServer();
+  if (program.conatApi || program.conatServer) {
+    await initConatApi();
+    await initConatChangefeedServer();
+  }
 
+  if (program.conatPersist || program.conatServer) {
+    await initConatPersist();
+  }
+
+  if (program.conatServer) {
     if (program.mode == "single-user" && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com in a project, so we kill
       // all the running projects when starting the hub:
@@ -240,53 +226,43 @@ async function startServer(): Promise<void> {
     }
   }
 
-  const { router, httpServer } = await initExpressApp({
-    isPersonal: program.personal,
-    projectControl,
-    proxyServer: !!program.proxyServer,
-    nextServer: !!program.nextServer,
-    cert: program.httpsCert,
-    key: program.httpsKey,
-    listenersHack:
-      program.mode == "single-user" &&
-      program.proxyServer &&
-      program.nextServer &&
-      program.websocketServer &&
-      process.env["NODE_ENV"] == "development",
-  });
-
-  //initNatsServer();
-
-  // The express app create via initExpressApp above **assumes** that init_passport is done
-  // or complains a lot. This is obviously not really necessary, but we leave it for now.
-  await callback2(init_passport, {
-    router,
-    database,
-    host: program.hostname,
-  });
-
-  logger.info(`starting webserver listening on ${program.hostname}:${port}`);
-  await callback(httpServer.listen.bind(httpServer), port, program.hostname);
-
-  if (port == 443 && program.httpsCert && program.httpsKey) {
-    // also start a redirect from port 80 to port 443.
-    await initHttpRedirect(program.hostname);
-  }
-
-  if (program.websocketServer) {
-    logger.info("initializing primus websocket server");
-    initPrimus({
-      httpServer,
-      router,
-      projectControl,
-      clients,
-      host: program.hostname,
-      port,
+  if (
+    program.conatServer ||
+    program.proxyServer ||
+    program.nextServer ||
+    program.conatApi
+  ) {
+    const { router, httpServer } = await initExpressApp({
       isPersonal: program.personal,
+      projectControl,
+      conatServer: !!program.conatServer,
+      proxyServer: true, // always
+      nextServer: !!program.nextServer,
+      cert: program.httpsCert,
+      key: program.httpsKey,
+      listenersHack:
+        program.mode == "single-user" &&
+        program.proxyServer &&
+        program.nextServer &&
+        process.env["NODE_ENV"] == "development",
     });
-  }
 
-  if (program.websocketServer || program.proxyServer || program.nextServer) {
+    // The express app create via initExpressApp above **assumes** that init_passport is done
+    // or complains a lot. This is obviously not really necessary, but we leave it for now.
+    await callback2(init_passport, {
+      router,
+      database,
+      host: program.hostname,
+    });
+
+    logger.info(`starting webserver listening on ${program.hostname}:${port}`);
+    await callback(httpServer.listen.bind(httpServer), port, program.hostname);
+
+    if (port == 443 && program.httpsCert && program.httpsKey) {
+      // also start a redirect from port 80 to port 443.
+      await initHttpRedirect(program.hostname);
+    }
+
     logger.info(
       "Starting registering periodically with the database and updating a health check...",
     );
@@ -295,7 +271,6 @@ async function startServer(): Promise<void> {
     // also confirms that database is working.
     await callback2(startHubRegister, {
       database,
-      clients,
       host: program.hostname,
       port,
       interval_s: REGISTER_INTERVAL_S,
@@ -315,7 +290,7 @@ async function startServer(): Promise<void> {
     console.log(msg);
 
     if (
-      program.websocketServer &&
+      program.conatServer &&
       program.nextServer &&
       process.env["NODE_ENV"] != "production"
     ) {
@@ -368,12 +343,14 @@ async function startServer(): Promise<void> {
 // more than once per minute.
 const errorReportCache = new TTLCache({ ttl: 60 * 1000 });
 
+// note -- we show the error twice in these, one in backticks, since sometimes
+// that works better.
 function addErrorListeners(uncaught_exception_total) {
   process.addListener("uncaughtException", function (err) {
     logger.error(
       "BUG ****************************************************************************",
     );
-    logger.error("Uncaught exception: " + err);
+    logger.error("Uncaught exception: " + err, ` ${err}`);
     console.error(err.stack);
     logger.error(err.stack);
     logger.error(
@@ -393,7 +370,13 @@ function addErrorListeners(uncaught_exception_total) {
       "BUG UNHANDLED REJECTION *********************************************************",
     );
     console.error(p, reason); // strangely sometimes logger.error can't actually show the traceback...
-    logger.error("Unhandled Rejection at:", p, "reason:", reason);
+    logger.error(
+      "Unhandled Rejection at:",
+      p,
+      "reason:",
+      reason,
+      ` : ${p} -- ${reason}`,
+    );
     logger.error(
       "BUG UNHANDLED REJECTION *********************************************************",
     );
@@ -426,18 +409,21 @@ async function main(): Promise<void> {
       "--all",
       "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)",
     )
-    .option("--websocket-server", "run a websocket server in this process")
     .option(
-      "--nats-server",
-      "run a hub that servers standard nats microservices, e.g., LLM's, authentication, etc.  There should be at least one of these.",
+      "--conat-server",
+      "run a hub that provides a single-core conat server (socketio), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
     )
     .option(
-      "--nats-database-server",
-      "run NATS microservice to provide access (including changefeeds) to the database",
+      "--conat-core",
+      "run a hub that provides the core conat communication layer server over a websocket (but not http server).  If you run more than one of these at once they MUST be configured to use valkey, or messages won't get transmitted between them.",
     )
     .option(
-      "--nats-changefeed-server",
-      "run NATS microservice to provide postgres based changefeeds; there must be AT LEAST one of these.",
+      "--conat-api",
+      "run a hub that connect to conat-core and provides the standard conat API services, e.g., basic api, LLM's, changefeeds, http file upload/download, etc.  There must be at least one of these.   You can increase or decrease the number of these servers with no coordination needed.",
+    )
+    .option(
+      "--conat-persist",
+      "run a hub that connects to conat-core and provides persistence for streams (e.g., key for sync editing).  There must be at least one of these, and they need access to common shared disk to store sqlite files.  Only one server uses a given sqlite file at a time.  You can increase or decrease the number of these servers with no coordination needed.",
     )
     .option("--proxy-server", "run a proxy server in this process")
     .option(
@@ -536,10 +522,7 @@ async function main(): Promise<void> {
     }
   }
   if (program.all) {
-    program.websocketServer =
-      program.natsServer =
-      program.natsChangefeedServer =
-      program.natsTieredStorage =
+    program.conatServer =
       program.proxyServer =
       program.nextServer =
       program.mentions =

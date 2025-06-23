@@ -3,25 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-declare let DEBUG;
-
 import { Alert } from "antd";
-import { delay } from "awaiting";
-
 import {
   React,
   Rendered,
   redux,
   useActions,
-  useIsMountedRef,
-  useRef,
+  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
-import type { Channel } from "@cocalc/comm/websocket/types";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
@@ -32,29 +24,9 @@ import { CoCalcFile, render_cocalc_btn } from "./components";
 import { Flyout } from "./flyout";
 import { Full } from "./full";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
-import {
-  connect_ws,
-  grid_warning,
-  linearList,
-  process_tree,
-  sum_children,
-} from "./utils";
-
-// DEV: DEBUG is true, add some generic static values about CGroups, such that these elements show up in the UI
-const DEV = DEBUG
-  ? {
-      cgroup: {
-        mem_stat: {
-          hierarchical_memory_limit: 1000,
-          total_rss: 550,
-        },
-        cpu_usage: 12, // seconds
-        cpu_usage_rate: 0.8, // seconds / second
-        oom_kills: 1,
-        cpu_cores_limit: 1,
-      } as ProjectInfoType["cgroup"],
-    }
-  : undefined;
+import { grid_warning, linearList, process_tree, sum_children } from "./utils";
+import useProjectInfo from "./use-project-info";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
   project_id: string;
@@ -87,10 +59,18 @@ const pt_stats_init = {
 
 export const ProjectInfo: React.FC<Props> = React.memo(
   ({ mode = "full", wrap }: Props) => {
-    const isMountedRef = useIsMountedRef();
     const { project_id } = useProjectContext();
+    const { disconnected, info, error, setError } = useProjectInfo({
+      project_id,
+    });
+    const loading = info == null;
+    const status = disconnected ? "Connecting..." : "Connected";
     const project_actions = useActions({ project_id });
-    const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
+
+    const idle_timeout = useMemo(() => {
+      return redux.getStore("projects").get_idle_timeout(project_id);
+    }, []);
+
     const show_explanation =
       useTypedRedux({ project_id }, "show_project_info_explanation") ?? false;
     // this is @cocalc/conn/project-status/types::ProjectStatus
@@ -99,24 +79,13 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [project, set_project] = useState(project_map?.get(project_id));
     const [project_state, set_project_state] = useState<string | undefined>();
     const [start_ts, set_start_ts] = useState<number | undefined>(undefined);
-    const [info, set_info] = useState<ProjectInfoType | undefined>(undefined);
     const [ptree, set_ptree] = useState<ProcessRow[] | undefined>(undefined);
     const [pt_stats, set_pt_stats] = useState<PTStats>(pt_stats_init);
-    // chan: websocket channel to send commands to the project (for now)
-    const [chan, set_chan] = useState<Channel | null>(null);
-    const chanRef = useRef<Channel | null>(null);
-    // sync-object sending us the real-time data about the project
-    const [sync, set_sync] = useState<WSProjectInfo | null>(null);
-    const syncRef = useRef<WSProjectInfo | null>(null);
-    const [status, set_status] = useState<string>("initializing…");
-    const [loading, set_loading] = useState<boolean>(true);
-    const [disconnected, set_disconnected] = useState<boolean>(true);
     const [selected, set_selected] = useState<number[]>([]);
     const [expanded, set_expanded] = useState<React.ReactText[]>([]);
     const [have_children, set_have_children] = useState<string[]>([]);
     const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
     const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
-    const [error, set_error] = useState<JSX.Element | null>(null);
     const [modal, set_modal] = useState<string | Process | undefined>(
       undefined,
     );
@@ -139,111 +108,11 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       }
     }, [project]);
 
-    React.useEffect(() => {
-      chanRef.current = chan;
-    }, [chan]);
-
-    React.useEffect(() => {
-      syncRef.current = sync;
-    }, [sync]);
-
-    React.useEffect(() => {
-      set_disconnected(chan == null || sync == null);
-    }, [sync, chan]);
-
     // used in render_not_loading_info()
     React.useEffect(() => {
       const timer = setTimeout(() => set_show_long_loading(true), 30000);
       return () => clearTimeout(timer);
     }, []);
-
-    async function connect() {
-      set_status("connecting…");
-      try {
-        // the synctable for the project info
-        const info_sync = webapp_client.project_client.project_info(project_id);
-
-        // this might fail if the project is not updated
-        const chan = await connect_ws(project_id);
-        if (!isMountedRef.current) return;
-
-        const update = () => {
-          if (!isMountedRef.current) return;
-          const data = info_sync.get();
-          if (data != null) {
-            set_info({ ...data.toJS(), ...DEV } as ProjectInfoType);
-          }
-        };
-
-        info_sync.once("change", function () {
-          if (!isMountedRef.current) return;
-          set_loading(false);
-          set_status("receiving…");
-        });
-
-        info_sync.on("change", update);
-        info_sync.once("ready", update);
-
-        chan.on("close", async function () {
-          if (!isMountedRef.current) return;
-          set_status("websocket closed: reconnecting in 3 seconds…");
-          set_chan(null);
-          await delay(3000);
-          if (!isMountedRef.current) return;
-          set_status("websocket closed: reconnecting now…");
-          const new_chan = await connect_ws(project_id);
-          if (!isMountedRef.current) {
-            // well, we got one but now we don't need it
-            new_chan.end();
-            return;
-          }
-          set_status("websocket closed: got new connection…");
-          set_chan(new_chan);
-        });
-
-        set_chan(chan);
-        set_sync(info_sync);
-      } catch (err) {
-        set_error(
-          <>
-            <strong>Project information setup problem:</strong> {`${err}`}
-          </>,
-        );
-        return;
-      }
-    }
-
-    // once when mounted
-    function get_idle_timeout() {
-      const ito = redux.getStore("projects").get_idle_timeout(project_id);
-      set_idle_timeout(ito);
-    }
-
-    // each time the project state changes (including when mounted) we connect/reconnect
-    React.useEffect(() => {
-      if (project_state !== "running") return;
-      try {
-        connect();
-        get_idle_timeout();
-        return () => {
-          if (isMountedRef.current) {
-            set_status("closing connection");
-          }
-          if (chanRef.current != null) {
-            if (chanRef.current.readyState === chanRef.current.OPEN) {
-              chanRef.current.end();
-            }
-          }
-          if (syncRef.current != null) {
-            syncRef.current.close();
-          }
-        };
-      } catch (err) {
-        if (isMountedRef.current) {
-          set_status(`ERROR: ${err}`);
-        }
-      }
-    }, [project_state]);
 
     function update_top(info: ProjectInfoType) {
       // this shouldn't be the case, but somehow I saw this happening once
@@ -426,14 +295,17 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       }
     }
 
+    const showError = (
+      <ShowError style={{ margin: "15px 0" }} error={error} setError={setError} />
+    );
+
     switch (mode) {
       case "flyout":
         return (
           <Flyout
             wrap={wrap}
-            error={error}
+            error={showError}
             cg_info={cg_info}
-            chan={chan}
             disconnected={disconnected}
             disk_usage={disk_usage}
             info={info}
@@ -452,7 +324,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             show_long_loading={show_long_loading}
             start_ts={start_ts}
             status={status}
-            sync={sync}
             render_disconnected={render_disconnected}
             render_cocalc={render_cocalc}
             onCellProps={onCellProps}
@@ -463,10 +334,9 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           <Full
             any_alerts={any_alerts}
             cg_info={cg_info}
-            chan={chan}
             disconnected={disconnected}
             disk_usage={disk_usage}
-            error={error}
+            error={showError}
             info={info}
             loading={loading}
             modal={modal}
@@ -485,7 +355,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             show_long_loading={show_long_loading}
             start_ts={start_ts}
             status={status}
-            sync={sync}
             render_disconnected={render_disconnected}
             render_cocalc={render_cocalc}
             onCellProps={onCellProps}

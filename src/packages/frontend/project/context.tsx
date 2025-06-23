@@ -25,7 +25,6 @@ import {
   init as INIT_PROJECT_STATE,
   useProjectState,
 } from "./page/project-state-hook";
-import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
 
@@ -100,7 +99,6 @@ export function useProjectContextProvider({
   const actions = useActions({ project_id });
   const { project, group, compute_image } = useProject(project_id);
   const status: ProjectStatus = useProjectState(project_id);
-  useProjectStatus(actions);
   const hasInternet = useProjectHasInternetAccess(project_id);
   const isRunning = useMemo(
     () => status.get("state") === "running",

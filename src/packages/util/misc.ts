@@ -501,7 +501,7 @@ export function trunc_left<T>(
   sArg: T,
   max_length = 1024,
   ellipsis = ELLIPSIS,
-): T | string {
+): T | string  {
   if (sArg == null) {
     return sArg;
   }
@@ -1194,7 +1194,7 @@ export function to_safe_str(x: any): string {
 //   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 const reISO =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
-export function date_parser(_key: string, value) {
+export function date_parser(_key: string | undefined, value: any) {
   if (typeof value === "string" && value.length >= 20 && reISO.exec(value)) {
     return ISO_to_Date(value);
   } else {
@@ -1581,6 +1581,14 @@ export class StringCharMapping {
   public to_array(x: string): string[] {
     return Array.from(x).map((s) => this.to_string[s]);
   }
+
+  // for testing
+  public _debug_get_to_char() {
+    return this._to_char;
+  }
+  public _debug_get_next_char() {
+    return this._next_char;
+  }
 }
 
 // Used in the database, etc., for different types of users of a project
@@ -1629,7 +1637,7 @@ export function hash_string(s: string): number {
   return hash;
 }
 
-export function parse_hashtags(t: string): [number, number][] {
+export function parse_hashtags(t?: string): [number, number][] {
   // return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
   const v: [number, number][] = [];
   if (typeof t != "string") {
@@ -1682,8 +1690,8 @@ export function parse_hashtags(t: string): [number, number][] {
 // Always returns false if path is undefined/null (since
 // that might be dangerous, right)?
 export function path_is_in_public_paths(
-  path: string,
-  paths: string[] | Set<string> | object | undefined,
+  path: string | undefined | null,
+  paths: string[] | Set<string> | object | undefined | null,
 ): boolean {
   return containing_public_path(path, paths) != null;
 }
@@ -1693,8 +1701,8 @@ export function path_is_in_public_paths(
 // IMPORTANT: a possible returned string is "", which is falsey but defined!
 // paths can be an array or object (with keys the paths) or a Set
 export function containing_public_path(
-  path: string,
-  paths: string[] | Set<string> | object | undefined,
+  path: string | undefined | null,
+  paths: string[] | Set<string> | object | undefined | null,
 ): undefined | string {
   if (paths == null || path == null) {
     // just in case of non-typescript clients
@@ -1990,6 +1998,20 @@ export function has_null_leaf(obj: object): boolean {
   return false;
 }
 
+// mutate obj and delete any undefined leafs.
+// was used for MsgPack -- but the ignoreUndefined:true option
+// to the encoder is a much better fix.
+// export function removeUndefinedLeafs(obj: object) {
+//   for (const k in obj) {
+//     const v = obj[k];
+//     if (v === undefined) {
+//       delete obj[k];
+//     } else if (is_object(v)) {
+//       removeUndefinedLeafs(v);
+//     }
+//   }
+// }
+
 // Peer Grading
 // This function takes a list of student_ids,
 // and a number N of the desired number of peers per student.
@@ -2052,7 +2074,7 @@ export function path_to_tab(name: string): string {
 
 // assumes a valid editor tab name...
 // If invalid or undefined, returns undefined
-export function tab_to_path(name: string): string | undefined {
+export function tab_to_path(name?: string): string | undefined {
   if (name?.substring(0, 7) === EDITOR_PREFIX) {
     return name.substring(7);
   }
@@ -2215,7 +2237,7 @@ export function top_sort(
 //    \|/               |
 //   func_name3 <-------|
 export function create_dependency_graph(obj: {
-  [name: string]: Function & { dependency_names?: string };
+  [name: string]: Function & { dependency_names?: string[] };
 }): { [name: string]: string[] } {
   const DAG = {};
   for (const name in obj) {
@@ -2299,12 +2321,12 @@ export function jupyter_language_to_name(lang: string): string {
 // Find the kernel whose name is closest to the given name.
 export function closest_kernel_match(
   name: string,
-  kernel_list: immutable.List<immutable.Map<string, string>>,
-): immutable.Map<string, string> {
+  kernel_list: immutable.List<immutable.Map<string, any>>,
+): immutable.Map<string, any> {
   name = name.toLowerCase().replace("matlab", "octave");
   name = name === "python" ? "python3" : name;
   let bestValue = -1;
-  let bestMatch: immutable.Map<string, string> | undefined = undefined;
+  let bestMatch: immutable.Map<string, any> | undefined = undefined;
   for (let i = 0; i < kernel_list.size; i++) {
     const k = kernel_list.get(i);
     if (k == null) {

@@ -2,7 +2,7 @@
 Mostly static markdown, but with some minimal dynamic editable content, e.g., checkboxes,
 and maybe some other nice features, but much less than a full slate editor!
 
-This is used a lot in the fronend app, whereas the fully static one is used a lot in the next.js app.
+This is used a lot in the frontend app, whereas the fully static one is used a lot in the next.js app.
 
 Extras include:
 
@@ -59,7 +59,7 @@ interface Props {
   onChange?: (string) => void; // if given support some very minimal amount of editing, e.g., checkboxes; onChange is called with modified markdown.
   selectedHashtags?: Set<string>; // assumed lower case!
   toggleHashtag?: (string) => void;
-  searchWords?: Set<string> | string[]; // higlight text that matches anything in here
+  searchWords?: Set<string> | string[]; // highlight text that matches anything in here
 }
 
 export default function MostlyStaticMarkdown({

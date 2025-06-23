@@ -40,7 +40,6 @@ read = require('read')
 
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
-{syncdoc_history} = require('./postgres/syncdoc-history')
 # TODO is set_account_info_if_possible used here?!
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 {getStripeCustomerId, syncCustomer} = require('./postgres/stripe')
@@ -2401,19 +2400,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         timeout_s: 300
                         cb    : cb
         ], opts.cb)
-
-    syncdoc_history: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            patches   : false      # if true, include actual patches
-            cb        : required
-        try
-            opts.cb(undefined, await syncdoc_history(@, opts.string_id, opts.patches))
-        catch err
-            opts.cb(err)
-
-    syncdoc_history_async : (string_id, patches) =>
-        return await syncdoc_history(@, string_id, patches)
 
     # async function
     site_license_usage_stats: () =>

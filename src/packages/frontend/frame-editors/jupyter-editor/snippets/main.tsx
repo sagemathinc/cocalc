@@ -13,6 +13,7 @@ declare var require: {
   ) => void;
 };
 
+import { Map } from "immutable";
 import {
   CaretRightOutlined,
   LeftSquareOutlined,
@@ -257,8 +258,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       doc[0] === ""
         ? undefined
         : typeof doc[0] === "string"
-          ? [doc[0]]
-          : doc[0];
+        ? [doc[0]]
+        : doc[0];
     if (code != null && insertSetup) {
       const setup = generateSetupCode({ code, data });
       if (setup != "") code.unshift(setup);
@@ -348,7 +349,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         className="cc-jupyter-snippets"
         showArrow={activeSearch == null}
       >
-        <Collapse ghost={true} destroyInactivePanel {...activeSearch}>
+        <Collapse ghost={true} destroyOnHidden {...activeSearch}>
           {lvl2.map(level2)}
         </Collapse>
       </Collapse.Panel>

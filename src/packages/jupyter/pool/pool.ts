@@ -216,10 +216,7 @@ async function fillWhenEmpty() {
       // this can definitely throw, e.g., change image and then available kernels change.  No need to crash the entire project in that case!
       await replenishPool(key);
     }
-  } catch (error) {
-    console.log("fillWhenEmpty -- A non-fatal error occurred:", error);
-    log.error("fillWhenEmpty -- A non-fatal error occurred:", error);
-  }
+  } catch {}
 }
 
 async function maintainPool() {

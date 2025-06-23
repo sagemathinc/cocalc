@@ -1,7 +1,7 @@
 import { join } from "path";
 import { context } from "./config";
 import { primaryKey, type PrimaryKey } from "./types";
-import { randomId } from "@cocalc/nats/names";
+import { randomId } from "@cocalc/conat/names";
 
 export function databaseFilename(data: string) {
   return join(data, "database.sqlite3");

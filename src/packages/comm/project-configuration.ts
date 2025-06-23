@@ -10,7 +10,7 @@ export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
 export interface MainConfiguration {
   capabilities: MainCapabilities;
-  timestamp: string;
+  timestamp: Date;
   // disabled extensions, for opening/creating files
   disabled_ext: string[];
 }
@@ -18,7 +18,7 @@ export interface MainConfiguration {
 export type Capabilities = { [key: string]: boolean };
 
 export interface X11Configuration {
-  timestamp: string;
+  timestamp: Date;
   capabilities: Capabilities;
 }
 

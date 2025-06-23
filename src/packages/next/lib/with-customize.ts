@@ -105,7 +105,7 @@ export default async function withCustomize(
     systemActivity: true,
     status: customize.onCoCalcCom,
     termsOfService: !customize.landingPages && !!customize.termsOfServiceURL,
-    liveDemo: customize.isCommercial,
+    liveDemo: !!customize.supportVideoCall && customize.isCommercial,
   };
 
   if (obj == null) {

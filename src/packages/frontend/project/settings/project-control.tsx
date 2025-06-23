@@ -26,9 +26,11 @@ import {
   TimeAgo,
   TimeElapsed,
 } from "@cocalc/frontend/components";
+import { ComputeImageTypes } from "@cocalc/frontend/custom-software/init";
 import {
-  CUSTOM_IMG_PREFIX,
+  custom_image_name,
   CUSTOM_SOFTWARE_HELP_URL,
+  is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { labels } from "@cocalc/frontend/i18n";
 import {
@@ -170,9 +172,9 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   function render_uptime() {
-    // start_ts is e.g. 1508576664416
+    // start_ts is a timestamp, e.g. 1508576664416
     const start_ts = project.getIn(["status", "start_ts"]);
-    if (start_ts == undefined) return;
+    if (typeof start_ts !== "number") return;
     if (project.getIn(["state", "state"]) !== "running") {
       return;
     }
@@ -180,7 +182,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <LabeledRow
         key="uptime"
-        label="Uptime"
+        label={intl.formatMessage(labels.uptime)}
         style={rowStyle()}
         vertical={isFlyout}
       >
@@ -188,9 +190,9 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <Icon name="clock" />{" "}
           <FormattedMessage
             id="project.settings.control.uptime.info"
-            defaultMessage={"Project started"}
-          />{" "}
-          <b>{<TimeElapsed start_ts={start_ts} />}</b> ago
+            defaultMessage={`Project started <b>{ago}</b> ago`}
+            values={{ ago: <TimeElapsed start_ts={start_ts} /> }}
+          />
         </span>
       </LabeledRow>
     );
@@ -227,11 +229,19 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  async function saveSelectedComputeImage(new_image: string) {
+  async function saveSelectedComputeImage({
+    id,
+    type,
+  }: {
+    id: string;
+    type: ComputeImageTypes;
+  }) {
     const actions = redux.getProjectActions(project_id);
     try {
       setComputeImgChanging(true);
-      await actions.set_compute_image(new_image);
+      await actions.set_compute_image(
+        type === "standard" ? id : custom_image_name(id),
+      );
       await restart_project();
     } catch (err) {
       alert_message({ type: "error", message: err });
@@ -289,7 +299,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       return <Loading />;
     }
 
-    if (compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
+    if (is_custom_image(compute_image)) {
       return render_custom_compute_image();
     }
 
@@ -299,6 +309,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         layout={"dialog"}
         onSelect={saveSelectedComputeImage}
         changing={computeImgChanging}
+        hideCustomImages={true}
         label={intl.formatMessage({
           id: "project.settings.compute-image-selector.button.save-restart",
           defaultMessage: "Save and Restart",
@@ -318,6 +329,31 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     };
   }
 
+  function render_project_id() {
+    return (
+      <LabeledRow key="project_id" label="Project ID" vertical={isFlyout}>
+        {!isFlyout ? (
+          <CopyToClipBoard
+            inputWidth={"330px"}
+            value={project_id}
+            style={{ display: "inline-block", width: "100%", margin: 0 }}
+          />
+        ) : (
+          <Paragraph
+            copyable={{
+              text: project_id,
+              tooltips: ["Copy Project ID", "Copied!"],
+            }}
+            code
+            style={{ marginBottom: 0 }}
+          >
+            {project_id}
+          </Paragraph>
+        )}
+      </LabeledRow>
+    );
+  }
+
   function renderBody() {
     return (
       <>
@@ -335,26 +371,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         {render_idle_timeout_row()}
         {render_uptime()}
         {render_cpu_usage()}
-        <LabeledRow key="project_id" label="Project ID" vertical={isFlyout}>
-          {!isFlyout ? (
-            <CopyToClipBoard
-              inputWidth={"330px"}
-              value={project_id}
-              style={{ display: "inline-block", width: "100%", margin: 0 }}
-            />
-          ) : (
-            <Paragraph
-              copyable={{
-                text: project_id,
-                tooltips: ["Copy Project ID", "Copied!"],
-              }}
-              code
-              style={{ marginBottom: 0 }}
-            >
-              {project_id}
-            </Paragraph>
-          )}
-        </LabeledRow>
+        {render_project_id()}
         {render_select_compute_image_row()}
       </>
     );

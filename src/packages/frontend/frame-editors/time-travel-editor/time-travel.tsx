@@ -5,38 +5,40 @@
 
 // Time travel editor react component
 
-import { useEffect, useState } from "react";
 import { Button, Checkbox, Space, Tooltip } from "antd";
 import { Map } from "immutable";
+import { debounce } from "lodash";
+import { useEffect, useMemo, useState } from "react";
+
+import { AccountState } from "@cocalc/frontend/account/types";
 import {
   redux,
-  useTypedRedux,
   useAsyncEffect,
   useEditorRedux,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { TimeTravelActions, TimeTravelState } from "./actions";
-import { Diff } from "./diff";
-import { NavigationButtons } from "./navigation-buttons";
-import { NavigationSlider } from "./navigation-slider";
-import { RangeSlider } from "./range-slider";
-import { Version, VersionRange } from "./version";
-import { GitAuthors, TimeTravelAuthors } from "./authors";
-import { LoadMoreHistory } from "./load-more-history";
-import { OpenFile } from "./open-file";
-import { RevertFile } from "./revert-file";
-import { ChangesMode } from "./changes-mode";
-import { OpenSnapshots } from "./open-snapshots";
-import { Export } from "./export";
+import ShowError from "@cocalc/frontend/components/error";
+import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
+import useLicenses from "@cocalc/frontend/site-licenses/use-licenses";
+import type { Document } from "@cocalc/sync/editor/generic/types";
 import json_stable from "json-stable-stringify";
 import { to_ipynb } from "../../jupyter/history-viewer";
+import { TimeTravelActions, TimeTravelState } from "./actions";
+import { GitAuthors, TimeTravelAuthors } from "./authors";
+import { ChangesMode } from "./changes-mode";
+import { Diff } from "./diff";
+import { Export } from "./export";
+import { LoadMoreHistory } from "./load-more-history";
+import { NavigationButtons } from "./navigation-buttons";
+import { NavigationSlider } from "./navigation-slider";
+import { OpenFile } from "./open-file";
+import { OpenSnapshots } from "./open-snapshots";
+import { RangeSlider } from "./range-slider";
+import { RevertFile } from "./revert-file";
 import { SagewsDiff } from "./sagews-diff";
+import { Version, VersionRange } from "./version";
 import { HAS_SPECIAL_VIEWER, Viewer } from "./viewer";
-import type { Document } from "@cocalc/sync/editor/generic/types";
-import useLicenses from "@cocalc/frontend/site-licenses/use-licenses";
-import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
-import ShowError from "@cocalc/frontend/components/error";
-import { debounce } from "lodash";
 
 interface Props {
   actions: TimeTravelActions;
@@ -45,7 +47,7 @@ interface Props {
   project_id: string;
   desc: Map<string, any>;
   font_size: number;
-  editor_settings: Map<string, any>;
+  editor_settings: AccountState["editor_settings"];
   resize: number;
   is_current: boolean;
   is_subframe: boolean;
@@ -160,6 +162,10 @@ export function TimeTravel(props: Props) {
     }
   }, [version, version0, version1, gitMode, changesMode]);
 
+  const wallTime = useMemo(() => {
+    return gitMode ? (version) => version : props.actions.wallTime;
+  }, [gitMode, props.actions]);
+
   useEffect(() => {
     saveState(props.actions, {
       id: props.id,
@@ -253,9 +259,13 @@ export function TimeTravel(props: Props) {
       if (i == -1) {
         return null;
       }
+      const t = props.actions.wallTime(version);
+      if (t == null) {
+        return null;
+      }
       return (
         <Version
-          date={new Date(version)}
+          date={new Date(t)}
           number={props.actions.versionNumber(version) ?? i + firstVersion}
           user={props.actions.getUser(version)}
         />
@@ -324,6 +334,7 @@ export function TimeTravel(props: Props) {
         setVersion={setVersion}
         versions={gitMode ? gitVersions : versions}
         marks={marks}
+        wallTime={wallTime}
       />
     );
   };
@@ -340,6 +351,7 @@ export function TimeTravel(props: Props) {
         version1={version1}
         setVersion1={setVersion1}
         marks={marks}
+        wallTime={wallTime}
       />
     );
   };

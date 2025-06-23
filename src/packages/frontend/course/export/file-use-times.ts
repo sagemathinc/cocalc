@@ -37,7 +37,7 @@ async function one_student_file_use_times(
   const times: { [path: string]: PathUseTimes } = {};
   for (const path of paths) {
     const { edit_times, access_times } =
-      await webapp_client.nats_client.hub.db.fileUseTimes({
+      await webapp_client.conat_client.hub.db.fileUseTimes({
         project_id,
         path,
         target_account_id: account_id,

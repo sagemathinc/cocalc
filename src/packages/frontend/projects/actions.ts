@@ -58,13 +58,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return the_table;
   };
 
-  private async projects_table_set(
+  private projects_table_set = async (
     obj: object,
     merge: "deep" | "shallow" | "none" | undefined = "deep",
-  ): Promise<void> {
+  ): Promise<void> => {
     const table = await this.getProjectTable();
     await table?.set(obj, merge);
-  }
+  };
 
   // Set something in the projects table of the database directly
   // using a query, instead of using sync'd table mechanism, which
@@ -688,7 +688,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const email = markdown_to_html(body);
 
     try {
-      const resp = await webapp_client.project_collaborators.invite_noncloud({
+      await webapp_client.project_collaborators.invite_noncloud({
         project_id,
         title,
         link2proj,
@@ -699,7 +699,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         subject,
       });
       if (!silent) {
-        alert_message({ message: resp.mesg });
+        alert_message({
+          message: `Invited ${to} to collaborate on project.`,
+        });
       }
     } catch (err) {
       if (!silent) {
