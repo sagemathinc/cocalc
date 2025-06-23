@@ -209,9 +209,6 @@ export function create(
     affinity?: string;
   },
 ) {
-  if (!obj.pool.startsWith(context.PREFIX)) {
-    throw Error(`pool must start with ${context.PREFIX} - ${obj.pool}`);
-  }
   getDb()
     .prepare(
       "INSERT INTO filesystems(namespace, owner_type, owner_id, name, pool, affinity, last_edited) VALUES(?,?,?,?,?,?,?)",

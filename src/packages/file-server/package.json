@@ -4,7 +4,11 @@
   "description": "CoCalc File Server",
   "exports": {
     "./zfs": "./dist/zfs/index.js",
-    "./zfs/*": "./dist/zfs/*.js"
+    "./zfs/*": "./dist/zfs/*.js",
+    "./storage-zfs": "./dist/storage-zfs/index.js",
+    "./storage-zfs/*": "./dist/storage-zfs/*.js",
+    "./storage-btrfs": "./dist/storage-btrfs/index.js",
+    "./storage-btrfs/*": "./dist/storage-btrfs/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
