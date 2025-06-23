@@ -397,7 +397,7 @@ export class SyncDoc extends EventEmitter {
   // changes. See the function handleComputeServerManagerChange.
   private isFileServer = reuseInFlight(async () => {
     if (this.state == "closed") return;
-    if (this.client.is_browser()) {
+    if (this.client == null || this.client.is_browser()) {
       // browser is never the file server (yet), and doesn't need to do
       // anything related to watching for changes in state.
       // Someday via webassembly or browsers making users files availabl,
@@ -2743,6 +2743,9 @@ export class SyncDoc extends EventEmitter {
     x: any,
     data: Map<string, any>,
   ): Promise<void> => {
+    if (this.state === "closed") {
+      return;
+    }
     // Existing document.
 
     if (this.path == null) {
@@ -2769,17 +2772,18 @@ export class SyncDoc extends EventEmitter {
       this.emit("settings-change", settings);
     }
 
-    // Ensure that this client is in the list of clients
-    const client_id: string = this.client_id();
-    this.my_user_id = this.users.indexOf(client_id);
-    if (this.my_user_id === -1) {
-      this.my_user_id = this.users.length;
-      this.users.push(client_id);
-      await this.set_syncstring_table({
-        users: this.users,
-      });
+    if (this.client != null) {
+      // Ensure that this client is in the list of clients
+      const client_id: string = this.client_id();
+      this.my_user_id = this.users.indexOf(client_id);
+      if (this.my_user_id === -1) {
+        this.my_user_id = this.users.length;
+        this.users.push(client_id);
+        await this.set_syncstring_table({
+          users: this.users,
+        });
+      }
     }
-
     this.emit("metadata-change");
   };
 
