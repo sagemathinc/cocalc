@@ -4,7 +4,7 @@ import { join } from "path";
 import { filesystem } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
 import { executeCode } from "@cocalc/backend/execute-code";
-import { randomId } from "@cocalc/nats/names";
+import { randomId } from "@cocalc/conat/names";
 
 const logger = getLogger("file-server:storage:pool");
 
