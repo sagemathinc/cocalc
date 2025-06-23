@@ -10,27 +10,8 @@ https://github.com/sagemathinc/cocalc/tree/master/src/packages/project/jupyter/t
 */
 
 import expect from "expect";
-import { kernel, type JupyterKernel } from "./kernel";
-import { getPythonKernelName } from "./kernel-data";
-
-const usedNames = new Set<string>();
-const kernels: JupyterKernel[] = [];
-export async function getPythonKernel(
-  path: string,
-  noCheck = false,
-): Promise<JupyterKernel> {
-  if (!noCheck && usedNames.has(path)) {
-    throw Error(`do not reuse names as that is very confusing -- ${path}`);
-  }
-  usedNames.add(path);
-  const k = kernel({ name: await getPythonKernelName(), path });
-  kernels.push(k);
-  return k;
-}
-
-export function closeKernels() {
-  kernels.map((k) => k.close());
-}
+import { getPythonKernel, closeKernels } from "./util";
+import { kernel } from "../kernel";
 
 describe("test trying to use a kernel that doesn't exist", () => {
   it("fails to start", async () => {
@@ -118,7 +99,6 @@ describe("compute 2+3 using a python kernel", () => {
     k.close();
   });
 });
-
 
 describe("start computation then immediately close the kernel should not crash", () => {
   let k;

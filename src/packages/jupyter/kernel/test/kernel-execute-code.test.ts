@@ -1,17 +1,11 @@
 /*
-I'm a little hesistant about testing this since we'll need to make sure that a kernel is
-installed, e.g., to test on Github actions.
-Probably, the way to go would be to install https://www.npmjs.com/package/ijavascript
-and just test that a lot, since it would be the minimal dependency.
-
 There are a lot of ideas for tests in this bitrotted place:
 
 https://github.com/sagemathinc/cocalc/tree/master/src/packages/project/jupyter/test
 */
 
 import expect from "expect";
-import { getPythonKernel, closeKernels } from "./kernel.test";
-
+import { getPythonKernel, closeKernels } from "./util";
 
 describe("a kernel implicitly spawns when you execute code", () => {
   let k;
