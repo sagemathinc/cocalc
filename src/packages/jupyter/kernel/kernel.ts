@@ -393,7 +393,7 @@ export class JupyterKernel
       if (this._state == "closed") {
         throw Error("closed");
       }
-      console.trace(err);
+      // console.trace(err);
       this.setFailed(
         `**Unable to Spawn Jupyter Kernel:**\n\n${err} \n\nTry this in a terminal to help debug this (or contact support): \`jupyter console --kernel=${this.name}\`\n\nOnce you fix the problem, explicitly restart this kernel to test here.`,
       );
@@ -449,8 +449,10 @@ export class JupyterKernel
 
     dbg("create main channel...", this._kernel.config);
 
-    // This horrible code is becacuse createMainChannel will just "hang
+    // This horrible code is because jupyterSockets will just "hang
     // forever" if the kernel doesn't get spawned for some reason.
+    // (TODO: now that I completely rewrote jupytersockets, we could
+    // just put a timeout there or better checks? not sure.)
     // Thus we do some tests, waiting for at least 2 seconds for there
     // to be a pid.  This is complicated and ugly, and I'm sorry about that,
     // but sometimes that's life.

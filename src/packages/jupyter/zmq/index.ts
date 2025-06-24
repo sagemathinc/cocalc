@@ -55,7 +55,9 @@ export class JupyterSockets extends EventEmitter {
   close = () => {
     if (this.sockets != null) {
       for (const name in this.sockets) {
-        this.sockets[name].close();
+        // close doesn't work and shouldn't be used according to the
+        // zmq docs: https://zeromq.github.io/zeromq.js/classes/Dealer.html#close
+        delete this.sockets[name];
       }
       delete this.sockets;
     }
@@ -77,7 +79,10 @@ export class JupyterSockets extends EventEmitter {
     logger.debug("send message", message);
     const jMessage = new Message(message);
     socket.send(
-      jMessage._encode(this.config.signature_scheme, this.config.key),
+      jMessage._encode(
+        this.config.signature_scheme.slice("hmac-".length),
+        this.config.key,
+      ),
     );
   };
 
@@ -106,14 +111,24 @@ export class JupyterSockets extends EventEmitter {
       throw Error(`bug -- invalid zmqType ${zmqType}`);
     }
     const url = connectionString(this.config, name);
-    await socket.bind(url);
-    console.log("connected to", url);
+    await socket.connect(url);
+    // console.log("connected to", url);
     this.listen(name, socket);
     return socket;
   };
 
   private listen = async (name: JupyterSocketName, socket) => {
-    for await (const [mesg] of socket) {
+    if (ZMQ_TYPE[name] == "sub") {
+      // subscribe to everything -- 
+      //   https://zeromq.github.io/zeromq.js/classes/Subscriber.html#subscribe
+      socket.subscribe(); 
+    }
+    for await (const data of socket) {
+      const mesg = Message._decode(
+        data,
+        this.config.signature_scheme.slice("hmac-".length),
+        this.config.key,
+      );
       this.emit(name, mesg);
     }
   };

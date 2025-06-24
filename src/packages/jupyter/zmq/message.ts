@@ -87,8 +87,8 @@ export class Message {
   idents: Buffer[];
   header: JupyterHeader;
   parent_header: JupyterHeader;
-  metadata: object;
-  content: object;
+  metadata: { [key: string]: any };
+  content: { [key: string]: any };
   buffers: Buffer[];
 
   constructor(properties?: MessageProps) {

@@ -24,6 +24,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { once } from "@cocalc/util/async-utils";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { Message } from "@cocalc/jupyter/zmq/message";
 
 const log = getLogger("jupyter:execute-code");
 
@@ -153,7 +154,7 @@ export class CodeExecutionEmitter
     this.close();
   };
 
-  private handleStdin = async (mesg: any): Promise<void> => {
+  private handleStdin = async (mesg: Message): Promise<void> => {
     if (!this.stdin) {
       throw Error("BUG -- stdin handling not supported");
     }
@@ -197,7 +198,7 @@ export class CodeExecutionEmitter
     this.kernel.sockets?.send(m);
   };
 
-  private handleShell = (mesg: any): void => {
+  private handleShell = (mesg: Message): void => {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       log.silly(
         `handleShell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`,
@@ -239,7 +240,7 @@ export class CodeExecutionEmitter
     }
   };
 
-  handleIOPub = (mesg: any): void => {
+  handleIOPub = (mesg: Message): void => {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       // iopub message for a different execute request so ignore it.
       return;

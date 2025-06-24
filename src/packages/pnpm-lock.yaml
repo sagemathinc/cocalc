@@ -871,9 +871,6 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
-      '@nteract/messaging':
-        specifier: ^7.0.20
-        version: 7.0.20
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -3273,9 +3270,6 @@ packages:
 
   '@nteract/commutable@7.5.0':
     resolution: {integrity: sha512-rOUkWJdPif/1wbBEAJa4hHxLhhZRJ2/9xWt4RletIcWoAhPCJZkvUDYcS5ZIWUJ2nZoUyLiUhAD2qx5+PAS4CA==}
-
-  '@nteract/messaging@7.0.20':
-    resolution: {integrity: sha512-dl8WFvk+pkOzZowMV4SIJC+Kx52LSy0GZr9UQ/te+RJqiUD/nsEl2fbvcqdTV6SZBT4H2WyZRWIUedBtH3zmvw==}
 
   '@nteract/types@7.1.9':
     resolution: {integrity: sha512-a7lGMWdjfz2QGlZbAiFHifU9Nhk9ntwg/iKUTMIMRPY1Wfs5UreHSMt+vZ8OY5HGjxicfHozBatGDKXeKXFHMQ==}
@@ -13258,14 +13252,7 @@ snapshots:
     dependencies:
       immutable: 4.3.7
       uuid: 8.3.2
-
-  '@nteract/messaging@7.0.20':
-    dependencies:
-      '@nteract/types': 7.1.9
-      '@types/uuid': 8.3.4
-      lodash.clonedeep: 4.5.0
-      rxjs: 6.6.7
-      uuid: 8.3.2
+    optional: true
 
   '@nteract/types@7.1.9':
     dependencies:
@@ -13273,6 +13260,7 @@ snapshots:
       immutable: 4.3.7
       rxjs: 6.6.7
       uuid: 8.3.2
+    optional: true
 
   '@nuxt/opencollective@0.4.1':
     dependencies:
