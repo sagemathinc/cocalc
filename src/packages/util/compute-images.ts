@@ -37,6 +37,7 @@ export const UBUNTU2004_DEV = "ubuntu2004-dev";
 export const UBUNTU2204_DEV = "ubuntu2204-dev";
 // new Ubuntu 24.04 image, for development
 export const UBUNTU2404_DEV = "ubuntu2404-dev";
+export const UBUNTU2204 = "ubuntu2204";
 
 export interface ComputeImage {
   id: string; // the key under which it is stored in the database
@@ -63,10 +64,17 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
   // 2022: DEFAULT_COMPUTE_IMAGE is now "ubuntu2204" and "ubuntu2004" became EOL.
   [DEFAULT_COMPUTE_IMAGE]: {
     order: 0,
-    title: "Ubuntu 22.04 (Default)",
-    short: "Ubuntu 22.04 (Default)",
-    descr: "Ubuntu 22.04 based software stack, regularly updated",
+    title: "Ubuntu 24.04 (Default)",
+    short: "Ubuntu 24.04 (Default)",
+    descr: "Ubuntu 24.04 based software stack, regularly updated",
     group: "Main",
+  },
+  [UBUNTU2204]: {
+    title: "Ubuntu 22.04",
+    short: "Ubuntu 22.04",
+    descr:
+      "Ubuntu 22.04 based software stack, superseeded by 24.04 in summer of 2025",
+    group: "Ubuntu 22.04",
   },
   [UBUNTU2404_DEV]: {
     title: "Ubuntu 24.04 (Testing)",
@@ -114,6 +122,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     group: "Main",
     hidden: true, // any project that is set to "ubuntu2004" will be shown a banner → either update to ubuntu2204 or keep ubuntu2004-eol
   },
+  "ubuntu2404-2025-06-26": {
+    title: "Ubuntu 24.04 (2025-06-26)",
+    short: "2025-06-26",
+    descr: "Frozen on 2025-06-26 and no longer updated",
+    group: "Ubuntu 24.04",
+  },
   "ubuntu2204-previous": {
     title: "Ubuntu 22.04 (Previous)",
     short: "Previous",
@@ -126,6 +140,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     descr: "Slightly behind 20.04 (Current)",
     group: "Ubuntu 20.04",
     hidden: true,
+  },
+  "ubuntu2204-2025-04-07": {
+    title: "Ubuntu 22.04 (2025-04-07)",
+    short: "2025-04-07",
+    descr: "Frozen on 2025-04-07 and no longer updated",
+    group: "Ubuntu 22.04",
   },
   "ubuntu2204-2024-11-25": {
     title: "Ubuntu 22.04 (2024-11-25)",
