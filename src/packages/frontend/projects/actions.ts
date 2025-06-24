@@ -612,13 +612,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
   ): Promise<void> {
     const removed_name = redux.getStore("users").get_name(account_id);
     try {
+      await this.redux
+        .getProjectActions(project_id)
+        .async_log({ event: "remove_collaborator", removed_name });
       await webapp_client.project_collaborators.remove({
         project_id,
         account_id,
       });
-      await this.redux
-        .getProjectActions(project_id)
-        .async_log({ event: "remove_collaborator", removed_name });
     } catch (err) {
       const message = `Error removing ${removed_name} from project ${project_id} -- ${err}`;
       alert_message({ type: "error", message });
