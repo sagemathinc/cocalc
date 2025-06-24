@@ -40,6 +40,7 @@ import { init as initMarkdown } from "./markdown/markdown-input/main";
 import { init as initIframeComm } from "./iframe-communication";
 import { init as initCrashBanner } from "./crash-banner";
 import { init as initCustomize } from "./customize";
+import { init as initProjectInviteToken } from "./collaborators/handle-project-invite";
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
@@ -64,6 +65,7 @@ export async function init() {
   }
   initMarkdown();
   initCustomize();
+  initProjectInviteToken();
   if (COCALC_MINIMAL) {
     initIframeComm();
   }

@@ -81,7 +81,7 @@ export async function addCollaborator({
   } else {
     project_id = projects;
   }
-  return project_id;
+  return { project_id };
 }
 
 async function allowUrlsInEmails({
