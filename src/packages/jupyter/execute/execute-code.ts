@@ -12,7 +12,7 @@ import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
-import type { MessageType } from "@nteract/messaging";
+import type { MessageType } from "@cocalc/jupyter/zmq/types";
 import { copy_with, deep_copy, uuid } from "@cocalc/util/misc";
 import type {
   CodeExecutionEmitterInterface,
@@ -194,7 +194,7 @@ export class CodeExecutionEmitter
       },
     };
     log.silly("handleStdin: STDIN server --> kernel:", m);
-    this.kernel.channel?.next(m);
+    this.kernel.sockets?.send(m);
   };
 
   private handleShell = (mesg: any): void => {
@@ -348,10 +348,10 @@ export class CodeExecutionEmitter
     }
 
     log.debug("_execute_code: send the message to get things rolling");
-    if (this.kernel.channel == null) {
-      throw Error("bug -- channel must be defined");
+    if (this.kernel.sockets == null) {
+      throw Error("bug -- sockets must be defined");
     }
-    this.kernel.channel.next(this._message);
+    this.kernel.sockets.send(this._message);
   };
 
   private timeout = async (): Promise<void> => {

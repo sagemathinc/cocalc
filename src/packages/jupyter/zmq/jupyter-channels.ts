@@ -83,6 +83,7 @@ async function createSocket(
   const socket = new moduleJMP.Socket(zmqType, scheme, config.key, identity);
   //socket["identity"] = identity;
   //socket._socket["routingId"] = identity;
+  // @ts-ignore
   console.log(channel, identity, socket._socket.routingId);
   const url = formConnectionString(config, channel);
   const connected = once(socket, "connect");

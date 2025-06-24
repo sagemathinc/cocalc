@@ -11,7 +11,7 @@ same code as the frontend (e.g., actions.ts), so we use an interface
 so that Typescript can meaningfully type check everything.
 */
 
-import type { Channels } from "@nteract/messaging";
+import type { JupyterSockets } from "@cocalc/jupyter/zmq";
 import type { KernelInfo } from "@cocalc/util/jupyter/types";
 export type { KernelInfo };
 import type { EventIterator } from "@cocalc/util/event-iterator";
@@ -93,7 +93,7 @@ interface JupyterKernelInterfaceSpawnOpts {
 }
 
 export interface JupyterKernelInterface extends EventEmitterInterface {
-  channel?: Channels;
+  sockets?: JupyterSockets;
   name: string | undefined; // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
   store: any;
   readonly identity: string;

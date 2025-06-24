@@ -7,6 +7,8 @@
     "./execute/*": "./dist/execute/*.js",
     "./kernel": "./dist/kernel/index.js",
     "./kernel/*": "./dist/kernel/*.js",
+    "./zmq": "./dist/zmq/index.js",
+    "./zmq/*": "./dist/zmq/*.js",
     "./nbgrader": "./dist/nbgrader/index.js",
     "./nbgrader/*": "./dist/nbgrader/*.js",
     "./pool/*": "./dist/pool/*.js",
@@ -25,17 +27,9 @@
     "depcheck": "pnpx depcheck",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",

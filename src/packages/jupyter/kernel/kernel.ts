@@ -29,13 +29,10 @@ if (DEBUG) {
 // https://github.com/jtlapp/node-cleanup/issues/16
 // Also exit-hook is hard to import from commonjs.
 import nodeCleanup from "node-cleanup";
-import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback } from "awaiting";
-import {
-  createMainChannel,
-  closeSockets,
-} from "@cocalc/jupyter/zmq/jupyter-channels";
+import type { MessageType } from "@cocalc/jupyter/zmq/types";
+import { jupyterSockets, type JupyterSockets } from "@cocalc/jupyter/zmq";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
@@ -253,7 +250,7 @@ export class JupyterKernel
   public _kernel?: SpawnedKernel;
   private _kernel_info?: KernelInfo;
   public _execute_code_queue: CodeExecutionEmitter[] = [];
-  public channel?: Channels;
+  public sockets?: JupyterSockets;
   private has_ensured_running: boolean = false;
   private failedError: string = "";
 
@@ -431,7 +428,7 @@ export class JupyterKernel
     // Track stderr from the subprocess itself (the kernel).
     // This is useful for debugging broken kernels, etc., and is especially
     // useful since it exists even if the kernel sends nothing over any
-    // zmq channels (e.g., due to being very broken).
+    // zmq sockets (e.g., due to being very broken).
     this.stderr = "";
     this._kernel.spawn.stderr.on("data", (data) => {
       const s = data.toString();
@@ -499,45 +496,34 @@ export class JupyterKernel
         // I did rewrite that -- so let's revisit this!
       }
     }, MAX_KERNEL_SPAWN_TIME);
-    const channel = await createMainChannel(this._kernel.config, this.identity);
+    const sockets = await jupyterSockets(this._kernel.config, this.identity);
     if (gaveUp) {
       process.kill(-pid, 9);
       return;
     }
-    this.channel = channel;
+    this.sockets = sockets;
     success = true;
     dbg("created main channel");
-
-    this.channel?.subscribe((mesg) => {
-      switch (mesg.channel) {
-        case "shell":
-          this.setState("running");
-          this.emit("shell", mesg);
-          break;
-        case "stdin":
-          console.log("GOT stdin message!", mesg);
-          this.emit("stdin", mesg);
-          break;
-        case "iopub":
-          this.setState("running");
-          if (mesg.content != null && mesg.content.execution_state != null) {
-            this.emit("execution_state", mesg.content.execution_state);
-          }
-
-          if (mesg.content?.comm_id != null) {
-            // A comm message, which gets handled directly.
-            this.process_comm_message_from_kernel(mesg);
-            break;
-          }
-
-          if (this._actions?.capture_output_message(mesg)) {
-            // captured an output message -- do not process further
-            break;
-          }
-
-          this.emit("iopub", mesg);
-          break;
+    sockets.on("shell", (mesg) => this.emit("shell", mesg));
+    sockets.on("stdin", (mesg) => this.emit("stdin", mesg));
+    sockets.on("iopub", (mesg) => {
+      this.setState("running");
+      if (mesg.content != null && mesg.content.execution_state != null) {
+        this.emit("execution_state", mesg.content.execution_state);
       }
+
+      if (mesg.content?.comm_id != null) {
+        // A comm message, which gets handled directly.
+        this.process_comm_message_from_kernel(mesg);
+        return;
+      }
+
+      if (this._actions?.capture_output_message(mesg)) {
+        // captured an output message -- do not process further
+        return;
+      }
+
+      this.emit("iopub", mesg);
     });
 
     this._kernel.spawn.once("exit", (exit_code, signal) => {
@@ -588,7 +574,10 @@ export class JupyterKernel
     if (this._state === "closed") {
       return;
     }
-    closeSockets(this.identity);
+    if (this.sockets != null) {
+      this.sockets.close();
+      delete this.sockets;
+    }
     this.setState("closed");
     if (this.store != null) {
       this.store.close();
@@ -602,7 +591,7 @@ export class JupyterKernel
     if (this._kernel != null) {
       killKernel(this._kernel);
       delete this._kernel;
-      delete this.channel;
+      delete this.sockets;
     }
     if (this._execute_code_queue != null) {
       for (const runningCode of this._execute_code_queue) {
@@ -633,10 +622,6 @@ export class JupyterKernel
         dbg("STDIO", data.toString()),
       );
     }
-    // for low level debugging only...
-    this.channel?.subscribe((mesg) => {
-      dbg(mesg);
-    });
   };
 
   ensure_running = reuseInFlight(async (): Promise<void> => {
@@ -871,7 +856,7 @@ export class JupyterKernel
       await this.ensure_running();
     }
     // Do a paranoid double check anyways...
-    if (this.channel == null || this._state == "closed") {
+    if (this.sockets == null || this._state == "closed") {
       throw Error("not running, so can't call");
     }
 
@@ -891,7 +876,7 @@ export class JupyterKernel
     };
 
     // Send the message
-    this.channel?.next(message);
+    this.sockets.send(message);
 
     // Wait for the response that has the right msg_id.
     let the_mesg: any = undefined;
@@ -1093,6 +1078,9 @@ export class JupyterKernel
     buffers64?: string[];
     buffers?: Buffer[];
   }): void => {
+    if (this.sockets == null) {
+      throw Error("sockets not initialized");
+    }
     const dbg = this.dbg("send_comm_message_to_kernel");
     // this is HUGE
     // dbg({ msg_id, comm_id, target_name, data, buffers64 });
@@ -1132,7 +1120,7 @@ export class JupyterKernel
     // dbg(message);
     // "The Kernel listens for these messages on the Shell channel,
     // and the Frontend listens for them on the IOPub channel." -- docs
-    this.channel?.next(message);
+    this.sockets.send(message);
   };
 
   chdir = async (path: string): Promise<void> => {

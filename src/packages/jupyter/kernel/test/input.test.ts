@@ -9,7 +9,7 @@ pnpm test `pwd`/input.test.ts
 
 import { getPythonKernel, closeKernels } from "./util";
 
-describe("test that interactive input throws an error if we do not provide a stdin function", () => {
+describe.only("test that interactive input throws an error if we do not provide a stdin function", () => {
   let k;
   it("get a python kernel", async () => {
     k = await getPythonKernel("python-nostdin.ipynb");
@@ -31,7 +31,7 @@ describe("test that interactive input throws an error if we do not provide a std
   });
 });
 
-describe.only("test interactive input", () => {
+describe("test interactive input", () => {
   let k;
   it("get a python kernel", async () => {
     k = await getPythonKernel("python-stdin.ipynb");
