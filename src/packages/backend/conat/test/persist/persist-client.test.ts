@@ -262,7 +262,7 @@ describe.only("test a changefeed", () => {
     if (updates0.length >= 3) {
       expect(updates0[2].seq).toBe(4);
     } else {
-      const { value: updates1, done: done1 } = await cf.next();
+      const { value: updates1 } = await cf.next();
       expect(updates1[0].seq).toBe(4);
     }
   });
