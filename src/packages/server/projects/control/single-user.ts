@@ -123,6 +123,7 @@ class Project extends BaseProject {
 
       // Fork and launch project server
       await launchProjectDaemon(env);
+      await this.touch(undefined, { noStart: true });
 
       await this.wait({
         until: async () => {
