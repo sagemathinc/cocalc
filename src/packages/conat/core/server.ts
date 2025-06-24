@@ -367,7 +367,9 @@ export class ConatServer {
             return false;
           }
         } catch (err) {
-          console.log(`initInterest: WARNING -- ${err}`);
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(`initInterest: WARNING -- ${err}`);
+          }
           return false;
         }
       },
@@ -479,7 +481,9 @@ export class ConatServer {
             return false;
           }
         } catch (err) {
-          console.log(`initInterest: WARNING -- ${err}`);
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(`initInterest: WARNING -- ${err}`);
+          }
           return false;
         }
       },

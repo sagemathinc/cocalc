@@ -210,7 +210,7 @@ export class ServerSocket extends EventEmitter {
 
   // use request reply where the client responds
   request = async (data, options?) => {
-    this.waitUntilReady(options?.timeout);
+    await this.waitUntilReady(options?.timeout);
     logger.silly("server sending request to ", this.clientSubject);
     return await this.conatSocket.client.request(
       this.clientSubject,

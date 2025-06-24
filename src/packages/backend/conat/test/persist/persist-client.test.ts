@@ -172,7 +172,7 @@ describe("restarting the network but not the persist server", () => {
   });
 });
 
-describe.only("test a changefeed", () => {
+describe("test a changefeed", () => {
   let client, s1, cf;
 
   it("creates a client, stream and changefeed", async () => {
@@ -224,6 +224,8 @@ describe.only("test a changefeed", () => {
         headers: { foo: "bar2" },
       }),
     );
+    expect(updates[0].seq).toBe(2);
+    expect(updates.length).toBe(1);
   });
 
   // this takes a while due to it having to deal with the network restart
@@ -241,7 +243,7 @@ describe.only("test a changefeed", () => {
           await s1.set({
             key: "test4",
             messageData: messageData("data4", { headers: { foo: "bar4" } }),
-            timeout: 250,
+            timeout: 1000,
           });
           return true;
         } catch {
@@ -254,13 +256,12 @@ describe.only("test a changefeed", () => {
     // all three updates must get through, and in the correct order
     const { value: updates0, done: done0 } = await cf.next();
     expect(done0).toBe(false);
-    expect(updates0[0].seq).toBe(2);
-    expect(updates0[1].seq).toBe(3);
+    expect(updates0[0].seq).toBe(3);
     // its random whether or not test4 comes through as part of the
     // first group or not.  The ones sent when offline always come
     // together in a group.
-    if (updates0.length >= 3) {
-      expect(updates0[2].seq).toBe(4);
+    if (updates0.length >= 2) {
+      expect(updates0[1].seq).toBe(4);
     } else {
       const { value: updates1 } = await cf.next();
       expect(updates1[0].seq).toBe(4);
