@@ -172,7 +172,7 @@ describe("restarting the network but not the persist server", () => {
   });
 });
 
-describe("test a changefeed", () => {
+describe.only("test a changefeed", () => {
   let client, s1, cf;
 
   it("creates a client, stream and changefeed", async () => {
@@ -228,14 +228,19 @@ describe("test a changefeed", () => {
 
   // this takes a while due to it having to deal with the network restart
   it("restart conat socketio server, and verify changefeed still works", async () => {
+    // send one more
+    await s2.set({
+      key: "test3",
+      messageData: messageData("data3", { headers: { foo: "bar3" } }),
+    });
     await restartServer();
     await wait({
       until: async () => {
         // this set is expected to fail while networking is restarting
         try {
           await s1.set({
-            key: "test3",
-            messageData: messageData("data3", { headers: { foo: "bar3" } }),
+            key: "test4",
+            messageData: messageData("data4", { headers: { foo: "bar4" } }),
             timeout: 250,
           });
           return true;
@@ -246,13 +251,20 @@ describe("test a changefeed", () => {
       start: 500,
     });
 
-    // both udpates must get through, the possibly in the wrong order.
+    // all three updates must get through, and in the correct order
     const { value: updates0, done: done0 } = await cf.next();
-    const { value: updates1, done: done1 } = await cf.next();
     expect(done0).toBe(false);
-    expect(done1).toBe(false);
-    expect(updates0[0].seq == 2 || updates0[0].seq == 3).toBe(true);
-    expect(updates1[0].seq == 2 || updates1[0].seq == 3).toBe(true);
+    expect(updates0[0].seq).toBe(2);
+    expect(updates0[1].seq).toBe(3);
+    // its random whether or not test4 comes through as part of the
+    // first group or not.  The ones sent when offline always come
+    // together in a group.
+    if (updates0.length >= 3) {
+      expect(updates0[2].seq).toBe(4);
+    } else {
+      const { value: updates1 } = await cf.next();
+      expect(updates1[0].seq).toBe(4);
+    }
   });
 
   it("restart the persist server -- this is pretty brutal", async () => {

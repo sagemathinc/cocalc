@@ -74,7 +74,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Ubuntu 22.04",
     descr:
       "Ubuntu 22.04 based software stack, superseeded by 24.04 in summer of 2025",
-    group: "Ubuntu 22.04",
+    group: "Main",
   },
   [UBUNTU2404_DEV]: {
     title: "Ubuntu 24.04 (Testing)",

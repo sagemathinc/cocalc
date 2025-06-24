@@ -158,7 +158,10 @@ export class Session {
       config: {
         max_bytes: HISTORY_LIMIT_BYTES,
         max_bytes_per_second: MAX_BYTES_PER_SECOND,
-        max_msgs_per_second: MAX_MSGS_PER_SECOND,
+        // we throttle to less than MAX_MSGS_PER_SECOND client side, and
+        // have server impose a much higher limit, since messages can arrive
+        // in a group.
+        max_msgs_per_second: 5 * MAX_MSGS_PER_SECOND,
       },
     });
     this.stream.publish("\r\n".repeat((this.size?.rows ?? 40) + 40));

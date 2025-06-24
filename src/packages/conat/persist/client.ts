@@ -37,6 +37,8 @@ class PersistStreamClient extends EventEmitter {
   private state: "ready" | "closed" = "ready";
   private lastSeq?: number;
   private reconnecting = false;
+  private gettingMissed = false;
+  private changesWhenGettingMissed: ChangefeedEvent[] = [];
 
   constructor(
     private client: Client,
@@ -106,53 +108,78 @@ class PersistStreamClient extends EventEmitter {
         );
         this.close();
       }
-      const seq = updates[updates.length - 1].seq;
-      this.lastSeq = seq;
-      this.emit("changefeed", updates);
+      if (this.gettingMissed) {
+        this.changesWhenGettingMissed.push(updates);
+      } else {
+        const seq = updates[updates.length - 1].seq;
+        this.lastSeq = seq;
+        this.emit("changefeed", updates);
+      }
     });
   };
 
   private getMissed = async () => {
-    while (this.state == "ready") {
-      try {
-        await this.socket.waitUntilReady(90000);
-        break;
-      } catch {
-        // timeout
-        await delay(1000);
+    try {
+      this.gettingMissed = true;
+      this.changesWhenGettingMissed.length = 0;
+      while (this.state == "ready") {
+        try {
+          await this.socket.waitUntilReady(90000);
+          break;
+        } catch {
+          // timeout
+          await delay(1000);
+        }
       }
-    }
-    //     console.log("getMissed", {
-    //       path: this.storage.path,
-    //       lastSeq: this.lastSeq,
-    //       changefeeds: this.changefeeds.length,
-    //     });
-    if (this.changefeeds.length == 0) {
-      return;
-    }
-    // we are resuming after a disconnect when we had some data up to lastSeq.
-    // let's grab anything we missed.
-    const sub = await this.socket.requestMany(null, {
-      headers: {
-        cmd: "getAll",
-        start_seq: this.lastSeq,
+      //     console.log("getMissed", {
+      //       path: this.storage.path,
+      //       lastSeq: this.lastSeq,
+      //       changefeeds: this.changefeeds.length,
+      //     });
+      if (this.changefeeds.length == 0) {
+        return;
+      }
+      // we are resuming after a disconnect when we had some data up to lastSeq.
+      // let's grab anything we missed.
+      const sub = await this.socket.requestMany(null, {
+        headers: {
+          cmd: "getAll",
+          start_seq: this.lastSeq,
+          timeout: 15000,
+        } as any,
         timeout: 15000,
-      } as any,
-      timeout: 15000,
-      maxWait: 15000,
-    });
-    for await (const { data: updates, headers } of sub) {
-      if (headers?.error) {
-        // give up
-        return;
+        maxWait: 15000,
+      });
+      for await (const { data: updates, headers } of sub) {
+        if (headers?.error) {
+          // give up
+          return;
+        }
+        if (updates == null || this.socket.state == "closed") {
+          // done
+          return;
+        }
+        const seq = updates[updates.length - 1].seq;
+        this.lastSeq = Math.max(this.lastSeq ?? 0, seq);
+        this.emit("changefeed", updates);
       }
-      if (updates == null || this.socket.state == "closed") {
-        // done
-        return;
+    } finally {
+      this.gettingMissed = false;
+      const updatesWhileGettingMissed: ChangefeedEvent = [];
+      for (const updates of this.changesWhenGettingMissed) {
+        for (const update of updates) {
+          if (update.op == "delete") {
+            updatesWhileGettingMissed.push(update);
+          } else if (update.seq > (this.lastSeq ?? 0)) {
+            updatesWhileGettingMissed.push(update);
+            this.lastSeq = update.seq;
+          }
+        }
       }
-      const seq = updates[updates.length - 1].seq;
-      this.lastSeq = Math.max(this.lastSeq ?? 0, seq);
-      this.emit("changefeed", updates);
+      if (updatesWhileGettingMissed.length > 0) {
+        this.emit("changefeed", updatesWhileGettingMissed);
+      }
+      this.changesWhenGettingMissed.length = 0;
     }
   };
 
