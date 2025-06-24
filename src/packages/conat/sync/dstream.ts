@@ -419,7 +419,7 @@ export class DStream<T = any> extends EventEmitter {
 
   // this is not synchronous -- it makes sure everything is saved out,
   // then delete the persistent stream
-  // NOTE: for ephemeral streams, other clients will NOT see the result of a purge (unless they reconnect).
+  // NOTE: for ephemeral streams, other clients will NOT see the result of a delete (unless they reconnect).
   delete = async (opts?) => {
     await this.save();
     if (this.isClosed()) {

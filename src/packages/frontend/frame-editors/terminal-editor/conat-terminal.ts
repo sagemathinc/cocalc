@@ -124,6 +124,7 @@ export class ConatTerminal extends EventEmitter {
         } catch {}
       } else if (data.cmd == "kill") {
         try {
+          this.stream?.delete({ all: true });
           await this.api.kill();
         } catch {}
       } else {

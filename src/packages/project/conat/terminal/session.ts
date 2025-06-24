@@ -82,6 +82,10 @@ export class Session {
     this.streamName = `terminal-${termPath}`;
   }
 
+  kill = () => {
+    this.stream?.delete({ all: true });
+  };
+
   write = async (data) => {
     if (this.state == "off") {
       await this.restart();
