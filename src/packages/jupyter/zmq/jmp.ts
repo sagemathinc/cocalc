@@ -43,6 +43,7 @@ are: * BSD 3-Clause License *
 import crypto from "crypto";
 import { v4 as uuid } from "uuid";
 import * as zmq from "zeromq/v5-compat";
+import * as zmq6 from "zeromq";
 
 const DEBUG = (global as any).DEBUG || false;
 
@@ -245,13 +246,25 @@ export class Socket extends zmq.Socket {
     }[];
   };
 
-  constructor(socketType: zmq.SocketType, scheme = "sha256", key = "") {
+  constructor(
+    socketType: zmq.SocketType,
+    scheme = "sha256",
+    key = "",
+    identity,
+  ) {
     super(socketType);
     this._jmp = {
       scheme,
       key,
       _listeners: [],
     };
+    if (socketType == "dealer") {
+      this._socket = new zmq6.Dealer({ routingId: identity });
+    } else if (socketType == "sub") {
+      this._socket = new zmq6.Subscriber();
+    } else {
+      throw Error(`unsupported socket type ${socketType}`);
+    }
   }
 
   // @ts-ignore

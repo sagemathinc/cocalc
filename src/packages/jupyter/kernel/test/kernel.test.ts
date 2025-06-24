@@ -9,7 +9,6 @@ There are a lot of ideas for tests in this bitrotted place:
 https://github.com/sagemathinc/cocalc/tree/master/src/packages/project/jupyter/test
 */
 
-import expect from "expect";
 import { getPythonKernel, closeKernels } from "./util";
 import { kernel } from "../kernel";
 

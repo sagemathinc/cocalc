@@ -153,14 +153,14 @@ export class CodeExecutionEmitter
     this.close();
   };
 
-  private _handle_stdin = async (mesg: any): Promise<void> => {
+  private handleStdin = async (mesg: any): Promise<void> => {
     if (!this.stdin) {
       throw Error("BUG -- stdin handling not supported");
     }
-    log.silly("_handle_stdin: STDIN kernel --> server: ", mesg);
+    log.silly("handleStdin: STDIN kernel --> server: ", mesg);
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       log.warn(
-        "_handle_stdin: STDIN msg_id mismatch:",
+        "handleStdin: STDIN msg_id mismatch:",
         mesg.parent_header.msg_id,
         this._message.header.msg_id,
       );
@@ -176,7 +176,7 @@ export class CodeExecutionEmitter
     } catch (err) {
       response = `ERROR -- ${err}`;
     }
-    log.silly("_handle_stdin: STDIN client --> server", response);
+    log.silly("handleStdin: STDIN client --> server", response);
     const m = {
       channel: "stdin",
       parent_header: this._message.header,
@@ -193,24 +193,24 @@ export class CodeExecutionEmitter
         value: response,
       },
     };
-    log.silly("_handle_stdin: STDIN server --> kernel:", m);
+    log.silly("handleStdin: STDIN server --> kernel:", m);
     this.kernel.channel?.next(m);
   };
 
-  private _handle_shell = (mesg: any): void => {
+  private handleShell = (mesg: any): void => {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       log.silly(
-        `_handle_shell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`,
+        `handleShell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`,
       );
       return;
     }
-    log.silly("_handle_shell: got SHELL message -- ", mesg);
+    log.silly("handleShell: got SHELL message -- ", mesg);
 
     if (mesg.content?.status == "ok") {
       this._push_mesg(mesg);
       this.set_shell_done(true);
     } else {
-      log.warn(`_handle_shell: status != ok: ${mesg.content?.status}`);
+      log.warn(`handleShell: status != ok: ${mesg.content?.status}`);
       // NOTE: I'm adding support for "abort" status, since I was just reading
       // the kernel docs and it exists but is deprecated.  Some old kernels
       // might use it and we should thus properly support it:
@@ -239,13 +239,13 @@ export class CodeExecutionEmitter
     }
   };
 
-  _handle_iopub = (mesg: any): void => {
+  handleIOPub = (mesg: any): void => {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       // iopub message for a different execute request so ignore it.
       return;
     }
     // these can be huge -- do not uncomment except for low level debugging!
-    // log.silly("_handle_iopub: got IOPUB message -- ", mesg);
+    // log.silly("handleIOPub: got IOPUB message -- ", mesg);
 
     if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
@@ -273,11 +273,11 @@ export class CodeExecutionEmitter
     if (this.state == "closed") {
       return;
     }
-    this.kernel.removeListener("iopub", this._handle_iopub);
+    this.kernel.removeListener("iopub", this.handleIOPub);
     if (this.stdin != null) {
-      this.kernel.removeListener("stdin", this._handle_stdin);
+      this.kernel.removeListener("stdin", this.handleStdin);
     }
-    this.kernel.removeListener("shell", this._handle_shell);
+    this.kernel.removeListener("shell", this.handleShell);
     if (this.kernel._execute_code_queue != null) {
       this.kernel._execute_code_queue.shift(); // finished
       this.kernel._process_execute_code_queue(); // start next exec
@@ -334,10 +334,10 @@ export class CodeExecutionEmitter
     this._go_cb = cb; // this._finish will call this.
 
     if (this.stdin != null) {
-      this.kernel.on("stdin", this._handle_stdin);
+      this.kernel.on("stdin", this.handleStdin);
     }
-    this.kernel.on("shell", this._handle_shell);
-    this.kernel.on("iopub", this._handle_iopub);
+    this.kernel.on("shell", this.handleShell);
+    this.kernel.on("iopub", this.handleIOPub);
 
     this.kernel.once("closed", this.handleClosed);
     this.kernel.once("failed", this.handleClosed);

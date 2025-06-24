@@ -76,11 +76,14 @@ export const formConnectionString = (
 async function createSocket(
   channel: ChannelName,
   config: JupyterConnectionInfo,
-  jmp = moduleJMP,
+  identity: string,
 ): Promise<moduleJMP.Socket> {
   const zmqType = ZMQType.frontend[channel];
   const scheme = config.signature_scheme.slice("hmac-".length);
-  const socket = new jmp.Socket(zmqType, scheme, config.key);
+  const socket = new moduleJMP.Socket(zmqType, scheme, config.key, identity);
+  //socket["identity"] = identity;
+  //socket._socket["routingId"] = identity;
+  console.log(channel, identity, socket._socket.routingId);
   const url = formConnectionString(config, channel);
   const connected = once(socket, "connect");
   socket.monitor();
@@ -116,11 +119,10 @@ export const createMainChannel = async (
     session: uuid(),
     username: getUsername(),
   },
-  jmp = moduleJMP,
 ): Promise<Channels> => {
-  const sockets = await createSockets(config, subscription, jmp);
+  const sockets = await createSockets(config, subscription, identity);
   allSockets[identity] = sockets;
-  const main = createMainChannelFromSockets(sockets, header, jmp);
+  const main = createMainChannelFromSockets(sockets, header);
   return main;
 };
 
@@ -148,17 +150,21 @@ export function closeSockets(identity: string) {
 export const createSockets = async (
   config: JupyterConnectionInfo,
   subscription: string = "",
-  jmp = moduleJMP,
+  identity: string,
 ) => {
   const [shell, control, stdin, iopub] = await Promise.all([
-    createSocket("shell", config, jmp),
-    createSocket("control", config, jmp),
-    createSocket("stdin", config, jmp),
-    createSocket("iopub", config, jmp),
+    createSocket("shell", config, identity),
+    createSocket("control", config, identity),
+    createSocket("stdin", config, identity),
+    createSocket("iopub", config, identity),
   ]);
 
   // NOTE: ZMQ PUB/SUB subscription (not an Rx subscription)
   iopub.subscribe(subscription);
+
+  stdin.on("message", (mesg) => {
+    console.log("got stdin message", mesg);
+  });
 
   return {
     shell,
@@ -186,7 +192,6 @@ export const createMainChannelFromSockets = (
     session: uuid(),
     username: getUsername(),
   },
-  jmp = moduleJMP,
 ): Channels => {
   // The mega subject that encapsulates all the sockets as one multiplexed
   // stream
@@ -207,7 +212,7 @@ export const createMainChannelFromSockets = (
         return;
       }
       try {
-        const jMessage = new jmp.Message({
+        const jMessage = new moduleJMP.Message({
           // Fold in the setup header to ease usage of messages on channels
           header: { ...message.header, ...header },
           parent_header: message.parent_header,

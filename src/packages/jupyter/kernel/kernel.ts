@@ -396,6 +396,7 @@ export class JupyterKernel
       if (this._state == "closed") {
         throw Error("closed");
       }
+      console.trace(err);
       this.setFailed(
         `**Unable to Spawn Jupyter Kernel:**\n\n${err} \n\nTry this in a terminal to help debug this (or contact support): \`jupyter console --kernel=${this.name}\`\n\nOnce you fix the problem, explicitly restart this kernel to test here.`,
       );
@@ -514,6 +515,7 @@ export class JupyterKernel
           this.emit("shell", mesg);
           break;
         case "stdin":
+          console.log("GOT stdin message!", mesg);
           this.emit("stdin", mesg);
           break;
         case "iopub":

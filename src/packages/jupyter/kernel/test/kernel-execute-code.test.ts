@@ -2,9 +2,10 @@
 There are a lot of ideas for tests in this bitrotted place:
 
 https://github.com/sagemathinc/cocalc/tree/master/src/packages/project/jupyter/test
+
+pnpm test `pwd`/kernel-execute-code.test.ts
 */
 
-import expect from "expect";
 import { getPythonKernel, closeKernels } from "./util";
 
 describe("a kernel implicitly spawns when you execute code", () => {
@@ -13,7 +14,7 @@ describe("a kernel implicitly spawns when you execute code", () => {
     k = await getPythonKernel("python-spawn.ipynb");
   });
 
-  it.skip("start some code running and see spawning is automatic", async () => {
+  it("start some code running and see spawning is automatic", async () => {
     const code = "import os; os.getpid()";
     const output = k.execute_code({ code });
     for await (const out of output.iter()) {
