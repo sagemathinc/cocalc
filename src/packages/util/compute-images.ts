@@ -66,14 +66,15 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     order: 0,
     title: "Ubuntu 24.04 (Default)",
     short: "Ubuntu 24.04 (Default)",
-    descr: "Ubuntu 24.04 based software stack, regularly updated",
+    descr:
+      "Ubuntu 24.04-based software stack, regularly updated, newest software",
     group: "Main",
   },
   [UBUNTU2204]: {
-    title: "Ubuntu 22.04",
-    short: "Ubuntu 22.04",
+    title: "Ubuntu 22.04 (until June 2025)",
+    short: "Ubuntu 22.04 (until June 2025)",
     descr:
-      "Ubuntu 22.04 based software stack, superseeded by 24.04 in summer of 2025",
+      "Ubuntu 22.04-based software stack, superseded by 24.04 in June 2025",
     group: "Main",
   },
   [UBUNTU2404_DEV]: {
@@ -91,8 +92,8 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
   },
   default: {
     order: 1,
-    title: "Ubuntu 18.04 (Deprecated)",
-    short: "Ubuntu 18.04 (Deprecated)",
+    title: "Ubuntu 18.04 (EndOfLife)",
+    short: "Ubuntu 18.04 (EndOfLife)",
     descr: "Reached end of life in August 2020",
     group: "Main",
     hidden: true,
@@ -109,15 +110,15 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
   },
   [DISMISS_IMG_2004]: {
     order: 1,
-    title: "Ubuntu 20.04 (Deprecated)",
-    short: "Ubuntu 20.04 (Deprecated)",
+    title: "Ubuntu 20.04 (EndOfLife)",
+    short: "Ubuntu 20.04 (EndOfLife)",
     descr: "Reached end of life in May 2023",
     group: "Main",
   },
   [UBUNTU2004_DEPRECATED]: {
     order: 1,
-    title: "Ubuntu 20.04 (Deprecated)",
-    short: "Ubuntu 20.04 (Deprecated)",
+    title: "Ubuntu 20.04 (EndOfLife)",
+    short: "Ubuntu 20.04 (EndOfLife)",
     descr: "Reached end of life in May 2023",
     group: "Main",
     hidden: true, // any project that is set to "ubuntu2004" will be shown a banner → either update to ubuntu2204 or keep ubuntu2004-eol
