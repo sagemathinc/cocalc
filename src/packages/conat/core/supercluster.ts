@@ -7,15 +7,27 @@ import type { Client } from "./client";
 import { Patterns } from "./patterns";
 import {
   randomChoice,
-  SUPERCLUSTER_INTEREST_STREAM_NAME,
   updateInterest,
   type InterestUpdate,
 } from "@cocalc/conat/core/server";
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import { once } from "@cocalc/util/async-utils";
 
-export async function superclusterLink(client: Client) {
-  const link = new SuperclusterLink(client);
+export function superclusterStreamNames(clusterName: string) {
+  return {
+    interest: `cluster/${clusterName}/interest`,
+    sticky: `cluster/${clusterName}/sticky`,
+  };
+}
+
+export async function superclusterLink({
+  client,
+  clusterName,
+}: {
+  client: Client;
+  clusterName: string;
+}) {
+  const link = new SuperclusterLink(client, clusterName);
   await link.init();
   return link;
 }
@@ -26,15 +38,21 @@ export class SuperclusterLink {
   private stream: DStream<InterestUpdate>;
   private state: "init" | "ready" | "closed" = "init";
 
-  constructor(private client: Client) {
+  constructor(
+    private client: Client,
+    private clusterName: string,
+  ) {
     if (!client) {
       throw Error("client must be specified");
+    }
+    if (!clusterName) {
+      throw Error("clusterName must be specified");
     }
   }
 
   init = async () => {
     this.stream = await this.client.sync.dstream({
-      name: SUPERCLUSTER_INTEREST_STREAM_NAME,
+      name: superclusterStreamNames(this.clusterName).interest,
       noCache: true,
     });
     for (const update of this.stream.getAll()) {

@@ -14,8 +14,11 @@ import {
   wait,
 } from "@cocalc/backend/conat/test/setup";
 import { server as createPersistServer } from "@cocalc/backend/conat/persist";
-import { SUPERCLUSTER_INTEREST_STREAM_NAME } from "@cocalc/conat/core/server";
-import { superclusterLink } from "@cocalc/conat/core/supercluster";
+import {
+  superclusterLink,
+  superclusterStreamNames,
+} from "@cocalc/conat/core/supercluster";
+import { isEqual } from "lodash";
 
 beforeAll(before);
 
@@ -43,7 +46,7 @@ describe("create a supercluster enabled socketio server and test that the stream
   let stream;
   it("get the interest stream via our client. There MUST be at least two persist subjects in there, since they were needed to even create the interest stream.", async () => {
     stream = await client.sync.dstream({
-      name: SUPERCLUSTER_INTEREST_STREAM_NAME,
+      name: superclusterStreamNames(server.clusterName).interest,
     });
     await wait({
       until: () => {
@@ -88,7 +91,7 @@ describe("create a supercluster enabled socketio server and test that the stream
 
   let link;
   it("get access to the same stream, but via a supercluster link, and note that it is identical to the one in the server -- keeping these pattern objects sync'd is the point of the link", async () => {
-    link = await superclusterLink(client);
+    link = await superclusterLink({ client, clusterName: server.clusterName });
     await wait({
       until: () => {
         return (
@@ -151,7 +154,10 @@ describe("create a supercluster enabled socketio server and test that the stream
 
   it("a new link has correct state, despite the activity", async () => {
     const client2 = server.client({ noCache: true });
-    const link2 = await superclusterLink(client2);
+    const link2 = await superclusterLink({
+      client: client2,
+      clusterName: server.clusterName,
+    });
     await wait({
       until: () => {
         return (
@@ -217,22 +223,32 @@ describe("create a supercluster with two distinct servers and send a message fro
     const req = client2.request("rsa", N);
     const { value } = await sub.next();
     expect(value.data).toBe(N);
-    value.respond(
-      "3490529510847650949147849619903898133417764638493387843990820577 × 32769132993266709549961988190834461413177642967992942539798288533",
-    );
+    await wait({
+      until: async () => {
+        // ensure respons gets received -- it's possible for sub to be visible to client2
+        // slightly before the inbox for client2 is visible, in which case client2
+        // would never get a response and timeout.
+        const { count } = await value.respond(
+          "3490529510847650949147849619903898133417764638493387843990820577 × 32769132993266709549961988190834461413177642967992942539798288533",
+        );
+        return count > 0;
+      },
+    });
     const response = await req;
     expect(response.data).toContain("×");
   });
 });
 
 // This is basically identical to the previous one, but for a bigger supercluster:
-const superClusterSize = 3;
+const superClusterSize = 10;
 describe(`a supercluster joining ${superClusterSize} different clusters`, () => {
   const servers: any[] = [],
     clients: any[] = [];
   it("create two distinct servers with supercluster support enabled", async () => {
     for (let i = 0; i < superClusterSize; i++) {
-      const { server, client } = await createCluster();
+      const { server, client } = await createCluster({
+        clusterName: `cluster-${i}`,
+      });
       servers.push(server);
       clients.push(client);
     }
@@ -266,18 +282,27 @@ describe(`a supercluster joining ${superClusterSize} different clusters`, () => 
     }
   });
 
-  //   it("check that interest data is consistent", async () => {
-  //     for (let i = 0; i < superClusterSize; i++) {
-  //       const interest = servers[i].interest.serialize();
-  //       for (let j = i + 1; j < superClusterSize; j++) {
-  //         const interest2 = servers[j].superclusterLinks[i].interest.serialize();
-  //       }
-  //     }
-  //   });
+  it("check that interest data is *eventually* consistent", async () => {
+    for (let i = 0; i < superClusterSize; i++) {
+      // now look at everybody else's view of cluster i.
+      for (let j = 0; j < superClusterSize; j++) {
+        if (i != j) {
+          wait({
+            until: () => {
+              const link =
+                servers[j].superclusterLinks[
+                  `cluster-${i}`
+                ].interest.serialize().patterns;
+              const orig = servers[i].interest.serialize().patterns;
+              return isEqual(orig, link);
+            },
+          });
+        }
+      }
+    }
+  });
 
-  it.skip("test request/reply", async () => {
-    clients[1].watch(">");
-    clients[2].watch(">");
+  it("test request/reply from all participants", async () => {
     const v: any[] = [];
     for (let i = 0; i < superClusterSize; i++) {
       const req = clients[i].request("rsa", i);
@@ -291,10 +316,8 @@ describe(`a supercluster joining ${superClusterSize} different clusters`, () => 
     }
 
     for (let i = 0; i < superClusterSize; i++) {
-      console.log("waiting for ", i, clients[i].inboxSubject);
       const r = (await v[i]).data;
       expect(r).toBe(i + 1);
-      console.log("got ", r);
     }
   });
 });

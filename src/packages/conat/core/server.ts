@@ -85,13 +85,16 @@ import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { once, until } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/conat/client";
 import type { DStream } from "@cocalc/conat/sync/dstream";
-import { superclusterLink, type SuperclusterLink } from "./supercluster";
+import {
+  superclusterLink,
+  type SuperclusterLink,
+  superclusterStreamNames,
+} from "./supercluster";
 
 const logger = getLogger("conat:core:server");
 
 const INTEREST_STREAM = "interest";
 const STICKY_STREAM = "sticky";
-export const SUPERCLUSTER_INTEREST_STREAM_NAME = "cluster:interest";
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
 const USE_VALKEY_PUBSUB = true;
@@ -900,7 +903,8 @@ export class ConatServer {
     // - Route messages from another cluster to subscribers in this cluster.
 
     const stream = await client.sync.dstream<InterestUpdate>({
-      name: SUPERCLUSTER_INTEREST_STREAM_NAME,
+      name: superclusterStreamNames(this.clusterName).interest,
+      noCache: true,
     });
     // clean slate
     await stream.delete({ all: true });
@@ -921,7 +925,7 @@ export class ConatServer {
     if (this.superclusterLinks[clusterName] != null) {
       throw Error(`there is already a link to ${clusterName}`);
     }
-    const link = await superclusterLink(client);
+    const link = await superclusterLink({ client, clusterName });
     this.superclusterLinks[clusterName] = link;
     return link;
   };
