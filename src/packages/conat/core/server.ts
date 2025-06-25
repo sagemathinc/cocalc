@@ -42,6 +42,13 @@ when a server terminates!!  This basically isn't needed when using
 the cluster adapter since there's no scaling up or down happening 
 (unless a worker keeps crashing),  but with valkey it would be a good idea.
 
+
+---
+
+Supercluster
+
+ s = require('@cocalc/conat/core/server').init({id:'0', supercluster: true, systemAccountPassword:'x', port:4567, getUser:()=>{return {hub_id:'hub'}}})
+ 
 */
 
 import type { ConnectionStats, ServerInfo } from "./types";
@@ -77,11 +84,13 @@ import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { once, until } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/conat/client";
+import type { DStream } from "@cocalc/conat/sync/dstream";
 
 const logger = getLogger("conat:core:server");
 
 const INTEREST_STREAM = "interest";
 const STICKY_STREAM = "sticky";
+export const SUPERCLUSTER_INTEREST_STREAM_NAME = "cluster:interest";
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
 const USE_VALKEY_PUBSUB = true;
@@ -152,6 +161,9 @@ export interface Options {
   systemAccountPassword?: string;
   // if true, use https when creating an internal client.
   ssl?: boolean;
+  // if true, enable use in a supercluster; systemAccountPassword
+  // must also be set.  This also only has an impact when the id is '0'.
+  supercluster?: boolean;
 }
 
 type State = "ready" | "closed";
@@ -182,6 +194,8 @@ export class ConatServer {
     [pattern: string]: { [subject: string]: string };
   } = {};
 
+  private superclusterStream?: DStream<InterestUpdate>;
+
   constructor(options: Options) {
     const {
       httpServer,
@@ -196,6 +210,7 @@ export class ConatServer {
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
       maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
       systemAccountPassword,
+      supercluster,
     } = options;
     this.options = {
       port,
@@ -206,6 +221,7 @@ export class ConatServer {
       maxSubscriptionsPerClient,
       maxSubscriptionsPerHub,
       systemAccountPassword,
+      supercluster,
     };
     this.cluster = cluster || !!valkey;
     this.getUser = async (socket) => {
@@ -276,6 +292,9 @@ export class ConatServer {
     if (this.options.systemAccountPassword) {
       this.initSystemService();
     }
+    if (this.options.supercluster) {
+      this.initSupercluster();
+    }
   }
 
   private init = async () => {
@@ -305,6 +324,8 @@ export class ConatServer {
       return;
     }
     this.state = "closed";
+    this.superclusterStream?.close();
+    delete this.superclusterStream;
     await this.io.close();
     for (const prop of ["interest", "subscriptions", "sockets", "services"]) {
       delete this[prop];
@@ -421,6 +442,7 @@ export class ConatServer {
 
   private _updateInterest = (update: InterestUpdate) => {
     if (this.state != "ready") return;
+    this.superclusterStream?.publish(update);
     const { op, subject, queue, room } = update;
     const groups = this.interest.get(subject);
     if (op == "add") {
@@ -871,6 +893,26 @@ export class ConatServer {
       noCache: true,
       ...options,
     });
+  };
+
+  initSupercluster = async () => {
+    if (this.id != "0" || !this.options.supercluster) {
+      return;
+    }
+    this.log("enabling supercluster support");
+    const client = this.client({
+      extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
+    });
+    // What this does:
+    // - Publish interest updates to a dstream.
+    // - Route messages from another cluster to subscribers in this cluster.
+
+    this.superclusterStream = await client.sync.dstream<InterestUpdate>({
+      name: SUPERCLUSTER_INTEREST_STREAM_NAME,
+    });
+    // clean slate
+    this.superclusterStream.delete({ all: true });
+    // add in everything so far in interest (TODO)
   };
 
   initSystemService = async () => {

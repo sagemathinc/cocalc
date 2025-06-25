@@ -1347,16 +1347,16 @@ export class Client extends EventEmitter {
   };
 
   sync = {
-    dkv: async (opts: DKVOptions): Promise<DKV> =>
-      await dkv({ ...opts, client: this }),
-    akv: async (opts: DKVOptions): Promise<AKV> =>
-      await akv({ ...opts, client: this }),
-    dko: async (opts: DKVOptions): Promise<DKO> =>
-      await dko({ ...opts, client: this }),
-    dstream: async (opts: DStreamOptions): Promise<DStream> =>
-      await dstream({ ...opts, client: this }),
-    astream: async (opts: DStreamOptions): Promise<AStream> =>
-      await astream({ ...opts, client: this }),
+    dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
+      await dkv<T>({ ...opts, client: this }),
+    akv: async <T,>(opts: DKVOptions): Promise<AKV<T>> =>
+      await akv<T>({ ...opts, client: this }),
+    dko: async <T,>(opts: DKVOptions): Promise<DKO<T>> =>
+      await dko<T>({ ...opts, client: this }),
+    dstream: async <T,>(opts: DStreamOptions): Promise<DStream<T>> =>
+      await dstream<T>({ ...opts, client: this }),
+    astream: async <T,>(opts: DStreamOptions): Promise<AStream<T>> =>
+      await astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
   };
