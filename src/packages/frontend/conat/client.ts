@@ -193,7 +193,7 @@ export class ConatClient extends EventEmitter {
       this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
       this.client.alert_message({
         type: "error",
-        message: client.info?.user?.error,
+        message: "You must sign in.",
         block: true,
       });
       this.standby();

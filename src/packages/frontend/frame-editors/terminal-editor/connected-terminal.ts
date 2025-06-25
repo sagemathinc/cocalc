@@ -742,6 +742,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   kill = async () => {
+    this.terminal?.clear();
     this.conn_write({ cmd: "kill" });
     await this.connect();
   };

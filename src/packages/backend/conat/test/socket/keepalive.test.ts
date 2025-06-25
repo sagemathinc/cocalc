@@ -51,7 +51,7 @@ describe("test a server with a short keepalive time", () => {
   });
 });
 
-describe.only("test a client with a short keepalive time", () => {
+describe("test a client with a short keepalive time", () => {
   let client,
     server,
     cn1,

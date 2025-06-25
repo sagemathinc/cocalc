@@ -118,6 +118,8 @@ class Project extends BaseProject {
         this.uid,
       );
 
+      await this.touch(undefined, { noStart: true });
+
       // Fork and launch project server daemon
       await launchProjectDaemon(env, this.uid);
 

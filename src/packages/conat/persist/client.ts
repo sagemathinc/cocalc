@@ -111,9 +111,7 @@ class PersistStreamClient extends EventEmitter {
       if (this.gettingMissed) {
         this.changesWhenGettingMissed.push(updates);
       } else {
-        const seq = updates[updates.length - 1].seq;
-        this.lastSeq = seq;
-        this.emit("changefeed", updates);
+        this.changefeedEmit(updates);
       }
     });
   };
@@ -159,28 +157,33 @@ class PersistStreamClient extends EventEmitter {
           // done
           return;
         }
-        const seq = updates[updates.length - 1].seq;
-        this.lastSeq = Math.max(this.lastSeq ?? 0, seq);
-        this.emit("changefeed", updates);
+        this.changefeedEmit(updates);
       }
     } finally {
       this.gettingMissed = false;
-      const updatesWhileGettingMissed: ChangefeedEvent = [];
       for (const updates of this.changesWhenGettingMissed) {
-        for (const update of updates) {
-          if (update.op == "delete") {
-            updatesWhileGettingMissed.push(update);
-          } else if (update.seq > (this.lastSeq ?? 0)) {
-            updatesWhileGettingMissed.push(update);
-            this.lastSeq = update.seq;
-          }
-        }
-      }
-      if (updatesWhileGettingMissed.length > 0) {
-        this.emit("changefeed", updatesWhileGettingMissed);
+        this.changefeedEmit(updates);
       }
       this.changesWhenGettingMissed.length = 0;
     }
+  };
+
+  private changefeedEmit = (updates: ChangefeedEvent) => {
+    updates = updates.filter((update) => {
+      if (update.op == "delete") {
+        return true;
+      } else {
+        if (update.seq > (this.lastSeq ?? 0)) {
+          this.lastSeq = update.seq;
+          return true;
+        }
+      }
+      return false;
+    });
+    if (updates.length == 0) {
+      return;
+    }
+    this.emit("changefeed", updates);
   };
 
   close = () => {
@@ -196,12 +199,10 @@ class PersistStreamClient extends EventEmitter {
     this.socket.close();
   };
 
-  // The changefeed is **NOT** guaranteed to deliver every message
-  // in the stream exactly once and in order. It tries, but there
-  // are cases involving disconnects, etc., where it could be out
-  // of order or something could be missed, or there might be a
-  // duplicate.  The stream elements themselves have seq numbers
-  // that can be helpful.
+  // The changefeed is *guaranteed* to deliver every message
+  // in the stream **exactly once and in order**, even if there
+  // are disconnects, failovers, etc.  Dealing with dropped messages,
+  // duplicates, etc., is NOT the responsibility of clients.
   changefeed = async (): Promise<Changefeed> => {
     // activate changefeed mode (so server publishes updates -- this is idempotent)
     const resp = await this.socket.request(null, {
