@@ -12,7 +12,7 @@ import {
   type InterestUpdate,
 } from "@cocalc/conat/core/server";
 import type { DStream } from "@cocalc/conat/sync/dstream";
-import { once } from "awaiting";
+import { once } from "@cocalc/util/async-utils";
 
 export async function superclusterLink(client: Client) {
   const link = new SuperclusterLink(client);
@@ -92,6 +92,7 @@ export class SuperclusterLink {
 
   waitForInterest = async (subject: string, timeout: number) => {
     const matches = this.interest.matches(subject);
+
     if (matches.length > 0 || !timeout) {
       // NOTE: we never return the actual matches, since this is a
       // potential security vulnerability.
@@ -105,13 +106,15 @@ export class SuperclusterLink {
       }
       await once(this.interest, "change");
       if ((this.state as any) == "closed") {
-        return;
+        return false;
       }
       // todo: implement this.interest.hasMatch that just checks if there is at least one match
       const matches = this.interest.matches(subject);
       if (matches.length > 0) {
-        return;
+        return true;
       }
     }
+
+    return false;
   };
 }

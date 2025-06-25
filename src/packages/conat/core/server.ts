@@ -956,17 +956,52 @@ export class ConatServer {
     socketId: string,
   ): Promise<boolean> => {
     if (this.superclusterLinks.length == 0) {
-      return await this.waitForInterestLocal(subject, timeout, socketId);
+      return await this.waitForInterestInThisCluster(
+        subject,
+        timeout,
+        socketId,
+      );
     } else {
       const v: any[] = [];
-      v.push(this.waitForInterestLocal(subject, timeout, socketId));
-      for(const link of this.superclusterLinks) {
-        link.waitForInterest(subject,timeout);
+      let done = false;
+      try {
+        const nothrow = async (f) => {
+          try {
+            return await f;
+          } catch (err) {
+            if (!done) {
+              console.trace("ERROR", err);
+            }
+          }
+          return false;
+        };
+        v.push(
+          nothrow(
+            this.waitForInterestInThisCluster(subject, timeout, socketId),
+          ),
+        );
+        for (const link of this.superclusterLinks) {
+          v.push(nothrow(link.waitForInterest(subject, timeout)));
+        }
+        if (!timeout) {
+          const w = await Promise.all(v);
+          for (const x of w) {
+            if (x) {
+              return true;
+            }
+          }
+          return false;
+        }
+        const w = await Promise.race(v);
+        // [ ] todo: cancel all the others.
+        return w;
+      } finally {
+        done = true;
       }
     }
   };
 
-  private waitForInterestLocal = async (
+  private waitForInterestInThisCluster = async (
     subject: string,
     timeout: number,
     socketId: string,
