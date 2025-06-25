@@ -19,7 +19,7 @@ import { superclusterLink } from "@cocalc/conat/core/supercluster";
 beforeAll(before);
 
 describe("create a supercluster enabled socketio server and test that the streams update as they should", () => {
-  let server, client, persist;
+  let server, client;
   it("create a server with supercluster support enabled", async () => {
     server = await initConatServer({
       supercluster: true,
@@ -28,7 +28,7 @@ describe("create a supercluster enabled socketio server and test that the stream
     });
     client = server.client();
     // critical to also have a persistence server, since that's needed for seeing the supercluster info.
-    persist = await createPersistServer({ client });
+    await createPersistServer({ client });
   });
 
   let stream;
@@ -160,12 +160,12 @@ describe("create a supercluster enabled socketio server and test that the stream
     client2.close();
   });
 
-  // closing this breaks tests below...?
-  it.skip("cleans up", async () => {
-    client.close();
-    persist.close();
-    server.close();
-  });
+  //   // closing this breaks tests below...?
+  //   it("cleans up", async () => {
+  //     client.close();
+  //     persist.close();
+  //     await server.close();
+  //   });
 });
 
 describe("create a supercluster with two distinct servers and send a message from one client to another via a link", () => {

@@ -1,6 +1,6 @@
 /*
 
-pnpm test ./connect.test.ts
+pnpm test `pwd`/connect.test.ts
 
 */
 
@@ -90,8 +90,8 @@ describe("create server *after* client and ensure connects properly", () => {
     await connected; // verify connected event fired
   });
 
-  it("clean up", () => {
-    server.close();
+  it("clean up", async () => {
+    await server.close();
     cn.close();
   });
 });
@@ -129,10 +129,10 @@ describe("create server after sync creating a subscription and publishing a mess
     expect(mesg1.data).toBe("more");
   });
 
-  it("clean up", () => {
-    server.close();
+  it("clean up", async () => {
     cn.close();
     sub.close();
+    await server.close();
   });
 });
 
@@ -169,10 +169,10 @@ describe("create server after async creating a subscription and async publishing
     expect(recv).toEqual(["hello", "conat"]);
   });
 
-  it("clean up", () => {
-    server.close();
+  it("clean up", async () => {
     cn.close();
     sub.close();
+    await server.close();
   });
 });
 
