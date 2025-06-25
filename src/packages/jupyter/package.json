@@ -58,7 +58,6 @@
     "lru-cache": "^7.18.3",
     "mkdirp": "^1.0.4",
     "node-cleanup": "^2.1.2",
-    "rxjs": "^6.6.7",
     "shell-escape": "^0.2.0",
     "uuid": "^8.3.2",
     "zeromq": "^6.4.2"
