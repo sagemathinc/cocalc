@@ -393,7 +393,7 @@ export class Client extends EventEmitter {
     // all client connections created using this Client.
     clients: { [subject: string]: { [id: string]: ConatSocketClient } };
   } = { servers: {}, clients: {} };
-  private readonly options: ClientOptions;
+  public readonly options: ClientOptions;
   private inboxSubject: string;
   private inbox?: EventEmitter;
   private permissionError = {
