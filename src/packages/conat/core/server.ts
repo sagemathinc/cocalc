@@ -188,11 +188,9 @@ export class ConatServer {
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
-  private sticky: {
-    // the target string is JSON.stringify({ id: string; subject: string }), which is the
-    // socket.io room to send the messages to.
-    [pattern: string]: { [subject: string]: string };
-  } = {};
+  // the target string is JSON.stringify({ id: string; subject: string }),
+  // which is the socket.io room to send the messages to.
+  private sticky: { [pattern: string]: { [subject: string]: string } } = {};
 
   private superclusterStream?: DStream<InterestUpdate>;
 
@@ -464,40 +462,7 @@ export class ConatServer {
     if (this.state != "ready") return;
 
     this.updateSuperclusterStream(update);
-
-    const { op, subject, queue, room } = update;
-    const groups = this.interest.get(subject);
-    if (op == "add") {
-      if (typeof queue != "string") {
-        throw Error("queue must not be null for add");
-      }
-      if (groups === undefined) {
-        this.interest.set(subject, { [queue]: new Set([room]) });
-      } else if (groups[queue] == null) {
-        groups[queue] = new Set([room]);
-      } else {
-        groups[queue].add(room);
-      }
-    } else if (op == "delete") {
-      if (groups != null) {
-        let nonempty = false;
-        for (const queue in groups) {
-          groups[queue].delete(room);
-          if (groups[queue].size == 0) {
-            delete groups[queue];
-          } else {
-            nonempty = true;
-          }
-        }
-        if (!nonempty) {
-          // no interest anymore
-          this.interest.delete(subject);
-          delete this.sticky[subject];
-        }
-      }
-    } else {
-      throw Error(`invalid op ${op}`);
-    }
+    updateInterest(update, this.interest, this.sticky);
   };
 
   // STICKY
@@ -929,11 +894,12 @@ export class ConatServer {
     // - Publish interest updates to a dstream.
     // - Route messages from another cluster to subscribers in this cluster.
 
-    this.superclusterStream = await client.sync.dstream<InterestUpdate>({
+    const stream = await client.sync.dstream<InterestUpdate>({
       name: SUPERCLUSTER_INTEREST_STREAM_NAME,
     });
     // clean slate
-    this.superclusterStream.delete({ all: true });
+    await stream.delete({ all: true });
+    this.superclusterStream = stream;
     // add in everything so far in interest (TODO)
     if (this.queuedSuperclusterUpdates.length > 0) {
       for (const update0 of this.queuedSuperclusterUpdates) {
@@ -1055,4 +1021,46 @@ function isNonempty(obj) {
     return true;
   }
   return false;
+}
+
+export function updateInterest(
+  update: InterestUpdate,
+  interest: Patterns<{ [queue: string]: Set<string> }>,
+  sticky: {
+    [pattern: string]: { [subject: string]: string };
+  },
+) {
+  const { op, subject, queue, room } = update;
+  const groups = interest.get(subject);
+  if (op == "add") {
+    if (typeof queue != "string") {
+      throw Error("queue must not be null for add");
+    }
+    if (groups === undefined) {
+      interest.set(subject, { [queue]: new Set([room]) });
+    } else if (groups[queue] == null) {
+      groups[queue] = new Set([room]);
+    } else {
+      groups[queue].add(room);
+    }
+  } else if (op == "delete") {
+    if (groups != null) {
+      let nonempty = false;
+      for (const queue in groups) {
+        groups[queue].delete(room);
+        if (groups[queue].size == 0) {
+          delete groups[queue];
+        } else {
+          nonempty = true;
+        }
+      }
+      if (!nonempty) {
+        // no interest anymore
+        interest.delete(subject);
+        delete sticky[subject];
+      }
+    }
+  } else {
+    throw Error(`invalid op ${op}`);
+  }
 }
