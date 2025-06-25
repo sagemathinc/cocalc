@@ -26,7 +26,11 @@ export class SuperclusterLink {
   private stream: DStream<InterestUpdate>;
   private state: "init" | "ready" | "closed" = "init";
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) {
+    if (!client) {
+      throw Error("client must be specified");
+    }
+  }
 
   init = async () => {
     this.stream = await this.client.sync.dstream({
