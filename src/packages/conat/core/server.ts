@@ -212,6 +212,15 @@ export class ConatServer {
       systemAccountPassword,
       supercluster,
     } = options;
+    if (supercluster) {
+      if (id != "0") {
+        throw Error("supercluster node must have id='0'");
+      }
+      if (!systemAccountPassword) {
+        throw Error("supercluster node must have systemAccountPassword set");
+      }
+    }
+
     this.options = {
       port,
       ssl,
@@ -326,6 +335,7 @@ export class ConatServer {
     this.state = "closed";
     this.superclusterStream?.close();
     delete this.superclusterStream;
+    await delay(100);
     await this.io.close();
     for (const prop of ["interest", "subscriptions", "sockets", "services"]) {
       delete this[prop];
@@ -440,9 +450,21 @@ export class ConatServer {
     this.interest.merge(i);
   };
 
+  private queuedSuperclusterUpdates: InterestUpdate[] = [];
+  private updateSuperclusterStream = (update: InterestUpdate) => {
+    if (!this.options.supercluster) return;
+    if (this.superclusterStream !== undefined) {
+      this.superclusterStream.publish(update);
+    } else {
+      this.queuedSuperclusterUpdates.push(update);
+    }
+  };
+
   private _updateInterest = (update: InterestUpdate) => {
     if (this.state != "ready") return;
-    this.superclusterStream?.publish(update);
+
+    this.updateSuperclusterStream(update);
+
     const { op, subject, queue, room } = update;
     const groups = this.interest.get(subject);
     if (op == "add") {
@@ -913,6 +935,12 @@ export class ConatServer {
     // clean slate
     this.superclusterStream.delete({ all: true });
     // add in everything so far in interest (TODO)
+    if (this.queuedSuperclusterUpdates.length > 0) {
+      for (const update0 of this.queuedSuperclusterUpdates) {
+        this.superclusterStream.publish(update0);
+      }
+      this.queuedSuperclusterUpdates.length = 0;
+    }
   };
 
   initSystemService = async () => {
