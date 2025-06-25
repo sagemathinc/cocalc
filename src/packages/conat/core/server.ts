@@ -85,6 +85,7 @@ import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { once, until } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/conat/client";
 import type { DStream } from "@cocalc/conat/sync/dstream";
+import { superclusterLink, type SuperclusterLink } from "./supercluster";
 
 const logger = getLogger("conat:core:server");
 
@@ -111,14 +112,14 @@ export function valkeyClient(valkey) {
 
 const DEBUG = false;
 
-interface InterestUpdate {
+export interface InterestUpdate {
   op: "add" | "delete";
   subject: string;
   queue?: string;
   room: string;
 }
 
-interface StickyUpdate {
+export interface StickyUpdate {
   pattern: string;
   subject: string;
   target: string;
@@ -193,6 +194,7 @@ export class ConatServer {
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
 
   private superclusterStream?: DStream<InterestUpdate>;
+  private superclusterLinks: SuperclusterLink[] = [];
 
   constructor(options: Options) {
     const {
@@ -333,6 +335,8 @@ export class ConatServer {
     this.state = "closed";
     this.superclusterStream?.close();
     delete this.superclusterStream;
+    this.superclusterLinks.map((link) => link.close());
+    this.superclusterLinks.length = 0;
     await delay(100);
     await this.io.close();
     for (const prop of ["interest", "subscriptions", "sockets", "services"]) {
@@ -622,6 +626,19 @@ export class ConatServer {
         }
       }
     }
+    if (count == 0 && !data[6] && this.superclusterLinks.length > 0) {
+      // note -- position 6 of data is a no-forward flag, to avoid
+      // a message bouncing back and forth in case the interest stream
+      // were slightly out of sync.
+      for (const link of this.superclusterLinks) {
+        const count2 = link.publish({ subject, data });
+        if (count2 > 0) {
+          count += count2;
+          break;
+        }
+      }
+    }
+
     return count;
   };
 
@@ -727,30 +744,10 @@ export class ConatServer {
           this.log(message);
           respond({ error: message, code: 403 });
         }
-        const matches = this.interest.matches(subject);
-        if (matches.length > 0 || !timeout) {
-          // NOTE: we never return the actual matches, since this is a potential security vulnerability.
-          // it could make it very easy to figure out private inboxes, etc.
-          respond(matches.length > 0);
-        }
-        if (timeout > MAX_INTEREST_TIMEOUT) {
-          timeout = MAX_INTEREST_TIMEOUT;
-        }
-        const start = Date.now();
-        while (this.state != "closed" && this.sockets[socket.id]) {
-          if (Date.now() - start >= timeout) {
-            respond({ error: "timeout" });
-            return;
-          }
-          await once(this.interest, "change");
-          if ((this.state as any) == "closed" || !this.sockets[socket.id]) {
-            return;
-          }
-          const matches = this.interest.matches(subject);
-          if (matches.length > 0) {
-            respond(true);
-            return;
-          }
+        try {
+          respond(await this.waitForInterest(subject, timeout, socket.id));
+        } catch (err) {
+          respond({ error: `${err}` });
         }
       },
     );
@@ -882,7 +879,7 @@ export class ConatServer {
     });
   };
 
-  initSupercluster = async () => {
+  private initSupercluster = async () => {
     if (this.id != "0" || !this.options.supercluster) {
       return;
     }
@@ -909,7 +906,14 @@ export class ConatServer {
     }
   };
 
-  initSystemService = async () => {
+  addSuperclusterLink = async (client): Promise<SuperclusterLink> => {
+    const link = await superclusterLink(client);
+    this.superclusterLinks.push(link);
+    // TODO: will want to sort these periodically by RTT
+    return link;
+  };
+
+  private initSystemService = async () => {
     if (!this.options.systemAccountPassword) {
       throw Error("system service requires system account");
     }
@@ -944,6 +948,54 @@ export class ConatServer {
     } catch (err) {
       this.log(`WARNING: unable to start sys.conat.server service -- ${err}`);
     }
+  };
+
+  private waitForInterest = async (
+    subject: string,
+    timeout: number,
+    socketId: string,
+  ): Promise<boolean> => {
+    if (this.superclusterLinks.length == 0) {
+      return await this.waitForInterestLocal(subject, timeout, socketId);
+    } else {
+      const v: any[] = [];
+      v.push(this.waitForInterestLocal(subject, timeout, socketId));
+      for(const link of this.superclusterLinks) {
+        link.waitForInterest(subject,timeout);
+      }
+    }
+  };
+
+  private waitForInterestLocal = async (
+    subject: string,
+    timeout: number,
+    socketId: string,
+  ) => {
+    const matches = this.interest.matches(subject);
+    if (matches.length > 0 || !timeout) {
+      // NOTE: we never return the actual matches, since this is a
+      // potential security vulnerability.
+      // it could make it very easy to figure out private inboxes, etc.
+      return matches.length > 0;
+    }
+    if (timeout > MAX_INTEREST_TIMEOUT) {
+      timeout = MAX_INTEREST_TIMEOUT;
+    }
+    const start = Date.now();
+    while (this.state != "closed" && this.sockets[socketId]) {
+      if (Date.now() - start >= timeout) {
+        throw Error("timeout");
+      }
+      await once(this.interest, "change");
+      if ((this.state as any) == "closed" || !this.sockets[socketId]) {
+        return false;
+      }
+      const matches = this.interest.matches(subject);
+      if (matches.length > 0) {
+        return true;
+      }
+    }
+    return false;
   };
 }
 

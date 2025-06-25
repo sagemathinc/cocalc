@@ -6,10 +6,13 @@ internally be a cluster using the socketio cluster module, or redis streams or p
 import type { Client } from "./client";
 import { Patterns } from "./patterns";
 import {
+  randomChoice,
   SUPERCLUSTER_INTEREST_STREAM_NAME,
   updateInterest,
+  type InterestUpdate,
 } from "@cocalc/conat/core/server";
 import type { DStream } from "@cocalc/conat/sync/dstream";
+import { once } from "awaiting";
 
 export async function superclusterLink(client: Client) {
   const link = new SuperclusterLink(client);
@@ -21,6 +24,7 @@ export class SuperclusterLink {
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
   private stream: DStream<InterestUpdate>;
+  private state: "init" | "ready" | "closed" = "init";
 
   constructor(private client: Client) {}
 
@@ -33,6 +37,7 @@ export class SuperclusterLink {
       updateInterest(update, this.interest, this.sticky);
     }
     this.stream.on("change", this.handleUpdate);
+    this.state = "ready";
   };
 
   handleUpdate = (update) => {
@@ -40,8 +45,73 @@ export class SuperclusterLink {
   };
 
   close = () => {
+    this.state = "closed";
     this.stream?.removeListener("change", this.handleUpdate);
     this.stream?.close();
-    delete this.stream;
+  };
+
+  publish = ({ subject, data }) => {
+    let count = 0;
+    for (const pattern of this.interest.matches(subject)) {
+      const g = this.interest.get(pattern)!;
+      // send to exactly one in each queue group
+      for (const queue in g) {
+        const target = this.loadBalance({
+          pattern,
+          subject,
+          queue,
+          targets: g[queue],
+        });
+        if (target !== undefined) {
+          // worry about from field?
+          this.client.conn.emit("publish", [subject, ...data, true]);
+          count += 1;
+        }
+      }
+    }
+    return count;
+  };
+
+  private loadBalance = ({
+    //     pattern,
+    //     subject,
+    //     queue,
+    targets,
+  }: {
+    pattern: string;
+    subject: string;
+    queue: string;
+    targets: Set<string>;
+  }): string | undefined => {
+    if (targets.size == 0) {
+      return undefined;
+    }
+    // TODO: deal with sticky queue groups!
+    return randomChoice(targets);
+  };
+
+  waitForInterest = async (subject: string, timeout: number) => {
+    const matches = this.interest.matches(subject);
+    if (matches.length > 0 || !timeout) {
+      // NOTE: we never return the actual matches, since this is a
+      // potential security vulnerability.
+      // it could make it very easy to figure out private inboxes, etc.
+      return matches.length > 0;
+    }
+    const start = Date.now();
+    while (this.state != "closed") {
+      if (Date.now() - start >= timeout) {
+        throw Error("timeout");
+      }
+      await once(this.interest, "change");
+      if ((this.state as any) == "closed") {
+        return;
+      }
+      // todo: implement this.interest.hasMatch that just checks if there is at least one match
+      const matches = this.interest.matches(subject);
+      if (matches.length > 0) {
+        return;
+      }
+    }
   };
 }

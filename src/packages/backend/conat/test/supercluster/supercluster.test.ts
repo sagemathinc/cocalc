@@ -8,8 +8,8 @@ import {
   after,
   initConatServer,
   once,
-  delay,
   wait,
+  delay,
 } from "@cocalc/backend/conat/test/setup";
 import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import { SUPERCLUSTER_INTEREST_STREAM_NAME } from "@cocalc/conat/core/server";
@@ -146,11 +146,13 @@ describe("create a supercluster enabled socketio server and test that the stream
       until: () => {
         return (
           Object.keys(server.interest.serialize().patterns).length ==
+          // @ts-ignore
           Object.keys(link2.interest.serialize().patterns).length
         );
       },
     });
     expect(server.interest.serialize().patterns).toEqual(
+      // @ts-ignore
       link2.interest.serialize().patterns,
     );
     link2.close();
@@ -161,6 +163,64 @@ describe("create a supercluster enabled socketio server and test that the stream
     client.close();
     persist.close();
     server.close();
+  });
+});
+
+describe("create a supercluster with two distinct servers and send a message from one client to another via a link", () => {
+  let server1, server2, client1, client2;
+  it("create two distinct servers with supercluster support enabled", async () => {
+    server1 = await initConatServer({
+      supercluster: true,
+      id: "0",
+      systemAccountPassword: "squeamish",
+    });
+    client1 = server1.client();
+    await createPersistServer({ client: client1 });
+
+    server2 = await initConatServer({
+      supercluster: true,
+      id: "0",
+      systemAccountPassword: "ossifrage",
+    });
+    client2 = server2.client();
+    await createPersistServer({ client: client2 });
+  });
+
+  it("link them", async () => {
+    await server1.addSuperclusterLink(client2);
+    await server2.addSuperclusterLink(client1);
+  });
+
+  const N =
+    "114381625757888867669235779976146612010218296721242362562561842935706935245733897830597123563958705058989075147599290026879543541";
+
+  let sub;
+
+  it("create a subscription on client1, then publish to it from client2, thus using routing over the link", async () => {
+    sub = await client1.subscribe("rsa");
+
+    const x = await client2.publish("rsa", N);
+    // interest hasn't propogated from one cluster to another yet:
+    expect(x.count).toBe(0);
+
+    await client2.waitForInterest("rsa");
+
+    const y = await client2.publish("rsa", N);
+    expect(y.count).toBe(1);
+
+    const { value } = await sub.next();
+    expect(value.data).toBe(N);
+  });
+
+  it("test request/reply between clusters", async () => {
+    const req = client2.request("rsa", N);
+    const { value } = await sub.next();
+    expect(value.data).toBe(N);
+    value.respond(
+      "3490529510847650949147849619903898133417764638493387843990820577 × 32769132993266709549961988190834461413177642967992942539798288533",
+    );
+    const response = await req;
+    expect(response.data).toContain("×");
   });
 });
 

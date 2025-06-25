@@ -1161,6 +1161,7 @@ export class Client extends EventEmitter {
         done,
         encoding,
         raw.slice(i, i + chunkSize),
+        // position v[6] is used as a no-forward flag for superclusters
       ];
       if (done && headers) {
         v.push(headers);
