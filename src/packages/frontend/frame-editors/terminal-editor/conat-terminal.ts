@@ -261,35 +261,8 @@ export class ConatTerminal extends EventEmitter {
     await this.setReady();
   });
 
-  private seq: number = 0;
-  private incoming: { [seq: number]: string } | null = null;
-  private handleStreamData = (data, seq) => {
-    if (!this.seq || this.seq + 1 == seq) {
-      // got the correct seq
-      this.seq = seq;
-      if (this.incoming == null) {
-        // easy case -- nothing out of order queued up
-        this.emit("data", data);
-        return;
-      }
-      // broadcast seq and anything next after it that we
-      // have in our incoming queue.
-      this.incoming[seq] = data;
-      let s = seq;
-      while (this.incoming[s] !== undefined) {
-        this.emit("data", this.incoming[s]);
-        this.seq = s;
-        delete this.incoming[s];
-        s += 1;
-      }
-      return;
-    } else {
-      // got something out of order -- save it to incoming queue
-      if (this.incoming == null) {
-        this.incoming = {};
-      }
-      this.incoming[seq] = data;
-    }
+  private handleStreamData = (data) => {
+    this.emit("data", data);
   };
 
   private consumeDataStream = async () => {
