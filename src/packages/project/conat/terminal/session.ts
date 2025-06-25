@@ -86,8 +86,7 @@ export class Session {
     if (this.stream == null) {
       return;
     }
-    this.stream.delete({ all: true });
-    await this.stream.save();
+    await this.stream.delete({ all: true });
   };
 
   write = async (data) => {
