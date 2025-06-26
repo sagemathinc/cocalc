@@ -431,9 +431,6 @@ importers:
       '@xterm/xterm':
         specifier: ^5.5.0
         version: 5.5.0
-      '@zippytech/react-notify-resize':
-        specifier: ^4.0.4
-        version: 4.0.4(prop-types@15.8.1)(react@19.1.0)
       anser:
         specifier: ^2.1.1
         version: 2.3.2
@@ -4490,12 +4487,6 @@ packages:
 
   '@xtuc/long@4.2.2':
     resolution: {integrity: sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==}
-
-  '@zippytech/react-notify-resize@4.0.4':
-    resolution: {integrity: sha512-A9eHwmRd6/FqgEtv2KqGVwPmO97Q1I/+kV6n8oJUwoUQ+zhUO6MYzwaQXYbdxE0WC8vHffpJMUMRYjQLrYKHaA==}
-    peerDependencies:
-      prop-types: '>=15.0.0'
-      react: ^0.14.3 || >=15.0.0 || >=16.0.0
 
   '@zxcvbn-ts/core@3.0.4':
     resolution: {integrity: sha512-aQeiT0F09FuJaAqNrxynlAwZ2mW/1MdXakKWNmGM1Qp/VaY6CnB/GfnMS2T8gB2231Esp1/maCWd8vTG4OuShw==}
@@ -14791,11 +14782,6 @@ snapshots:
   '@xtuc/ieee754@1.2.0': {}
 
   '@xtuc/long@4.2.2': {}
-
-  '@zippytech/react-notify-resize@4.0.4(prop-types@15.8.1)(react@19.1.0)':
-    dependencies:
-      prop-types: 15.8.1
-      react: 19.1.0
 
   '@zxcvbn-ts/core@3.0.4':
     dependencies:

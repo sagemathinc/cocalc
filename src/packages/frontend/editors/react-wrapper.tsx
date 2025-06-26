@@ -12,26 +12,30 @@
 
 import { debounce } from "lodash";
 import { delay } from "awaiting";
-import { NotifyResize } from "@zippytech/react-notify-resize";
-
-import { React, useAsyncEffect, useEffect, useRef } from "../app-framework";
+import { React, useAsyncEffect } from "../app-framework";
+import { useEffect, useMemo, useRef } from "react";
 import { copy } from "@cocalc/util/misc";
-
-// Once we get rid of all editor.coffee:
-//import { register_file_editor } from "../project-file";
-//import { file_options } from "../editor-tmp";
+import useResizeObserver from "use-resize-observer";
 
 const WrappedEditor: React.FC<{ editor: any }> = ({ editor }) => {
   const ref = useRef<any>(null);
+  const divRef = useRef<any>(null);
+  useResizeObserver({ ref: divRef });
 
-  // Refreshes -- cause the editor to resize itself
-  function refresh() {
-    if (editor.show == null) {
-      typeof editor._show === "function" ? editor._show() : undefined;
-    } else {
-      editor.show();
-    }
-  }
+  const refresh = useMemo(() => {
+    // Refreshes -- cause the editor to resize itself
+    return debounce(
+      () => {
+        if (editor.show == null) {
+          typeof editor._show === "function" ? editor._show() : undefined;
+        } else {
+          editor.show();
+        }
+      },
+      350,
+      { leading: true, trailing: true },
+    );
+  }, [editor]);
 
   useAsyncEffect(
     // setup
@@ -73,8 +77,7 @@ const WrappedEditor: React.FC<{ editor: any }> = ({ editor }) => {
 
   // position relative is required by NotifyResize
   return (
-    <div className="smc-vfill" style={{ position: "relative" }}>
-      <NotifyResize onResize={debounce(refresh, 350)} />
+    <div ref={divRef} className="smc-vfill" style={{ position: "relative" }}>
       <span className="smc-editor-react-wrapper" ref={ref}></span>
     </div>
   );

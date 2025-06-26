@@ -70,7 +70,6 @@
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/addon-webgl": "^0.18.0",
     "@xterm/xterm": "^5.5.0",
-    "@zippytech/react-notify-resize": "^4.0.4",
     "anser": "^2.1.1",
     "antd": "^5.24.7",
     "antd-img-crop": "^4.21.0",
