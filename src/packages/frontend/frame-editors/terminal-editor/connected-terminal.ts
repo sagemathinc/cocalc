@@ -318,15 +318,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.actions.set_terminal_cwd(this.id, cwd);
       });
       conn.on("data", this.handleDataFromProject);
-      conn.on("init", async (data) => {
-        // during init we write a bunch of data to the terminal (everything
-        // so far), and the terminal would respond to some of that data with
-        // control codes.  We thus set ignoreData:true, so that during the
-        // parsing of this data by the browser terminal, those control codes
-        // are ignored.   Not doing this properly was the longterm source of
-        // control code corruption in the terminal.
-        await this.render(data, { ignoreData: true });
-      });
+      conn.on("init", this.render);
       conn.once("ready", () => {
         delete this.last_geom;
         this.ignore_terminal_data = false;
@@ -403,10 +395,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.project_actions.flag_file_activity(this.path);
   };
 
-  private render = async (
-    data: string,
-    { ignoreData = false }: { ignoreData?: boolean } = {},
-  ): Promise<void> => {
+  private render = async (data: string): Promise<void> => {
     if (data == null) {
       return;
     }
@@ -418,9 +407,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       );
     }
     try {
-      this.ignoreData = ignoreData;
+      this.ignoreData = true;
       // NOTE: terminal.write takes a cb but not in the way callback expects.
-      // Also, terminal.write is NOT async, which was a bug in this code for a while.
+      // Also, terminal.write is NOT await-able
       await callback((cb) => {
         this.terminal.write(data, () => {
           cb();
