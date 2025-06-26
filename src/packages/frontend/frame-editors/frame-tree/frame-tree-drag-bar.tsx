@@ -114,8 +114,11 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  const nodeRef = React.useRef<any>(null);
+
   return (
     <Draggable
+      nodeRef={nodeRef}
       ref={dragBarRef}
       position={{ x: 0, y: 0 }}
       axis={axis}
@@ -123,6 +126,7 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
       onStart={onStart}
     >
       <div
+        ref={nodeRef}
         style={style()}
         onMouseEnter={() => set_drag_hover(true)}
         onMouseLeave={() => set_drag_hover(false)}

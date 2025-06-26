@@ -12,6 +12,7 @@ import {
   ReactNode,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -161,7 +162,7 @@ export default function Navigation({
   }, [width, height, whiteboardResize]);
 
   const [zoomSlider, setZoomSlider] = useState<number>(
-    Math.round(100 * fontSizeToZoom(fontSize))
+    Math.round(100 * fontSizeToZoom(fontSize)),
   );
   useEffect(() => {
     setZoomSlider(Math.round(100 * fontSizeToZoom(fontSize)));
@@ -172,14 +173,14 @@ export default function Navigation({
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     v.push(
-      <Tool key={tool} tool={tool} zoomSlider={zoomSlider} navMap={navMap} />
+      <Tool key={tool} tool={tool} zoomSlider={zoomSlider} navMap={navMap} />,
     );
   }
   const setFontSize = useCallback(
     throttle((value) => {
       actions.set_font_size(id, Math.round((DEFAULT_FONT_SIZE * value) / 100));
     }, 50),
-    [id]
+    [id],
   );
 
   v.push(
@@ -193,7 +194,7 @@ export default function Navigation({
         setZoomSlider(value);
         setFontSize(value);
       }}
-    />
+    />,
   );
   const showMap = navMap != "hide" && elements != null;
   return (
@@ -297,6 +298,7 @@ export function Overview({
   maxScale,
   presentation,
 }: MapProps) {
+  const nodeRef = useRef<any>(null);
   const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1, presentation);
   const xDiff = xMax - xMin + 2 * margin;
@@ -348,6 +350,7 @@ export function Overview({
       />
       {setResize != null && (
         <Draggable
+          ref={nodeRef}
           disabled={resize == null}
           position={{ x: 0, y: 0 }}
           bounds={{
@@ -368,20 +371,22 @@ export function Overview({
             }, 0);
           }}
         >
-          <Icon
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              zIndex: 1011,
-              cursor: "nwse-resize",
-              background: "white",
-              color: "#888",
-              visibility:
-                resize == null || resize.x || resize.y ? "hidden" : undefined,
-            }}
-            name="square"
-          />
+          <span ref={nodeRef}>
+            <Icon
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                zIndex: 1011,
+                cursor: "nwse-resize",
+                background: "white",
+                color: "#888",
+                visibility:
+                  resize == null || resize.x || resize.y ? "hidden" : undefined,
+              }}
+              name="square"
+            />
+          </span>
         </Draggable>
       )}
     </div>

@@ -7,10 +7,7 @@ import "react-dropzone-component/styles/filepicker.css";
 import Dropzone from "dropzone";
 Dropzone.autoDiscover = false;
 
-import {
-  DropzoneComponent,
-  DropzoneComponentHandlers,
-} from "react-dropzone-component";
+
 export { Dropzone };
 import ReactDOMServer from "react-dom/server"; // for dropzone below
 import { Button } from "antd";
@@ -151,7 +148,7 @@ function postUrl(
 interface FileUploadProps {
   project_id: string;
   current_path: string;
-  dropzone_handler?: DropzoneComponentHandlers;
+  dropzone_handler?;
   close_button_onclick?: (event) => void;
   show_header: boolean;
   config?: object; // All supported dropzone.js config options
@@ -201,7 +198,7 @@ export function FileUpload({
       {close_button_onclick != null ? render_close_button() : undefined}
       {show_header ? <Header /> : undefined}
       <div style={DROPSTYLE}>
-        <DropzoneComponent
+        {/*<DropzoneComponent
           config={{
             postUrl: postUrl(project_id, current_path),
             ...config,
@@ -212,7 +209,7 @@ export function FileUpload({
               ReactDOMServer.renderToStaticMarkup(dropzone_template()),
             ...UPLOAD_OPTIONS,
           }}
-        />
+        />*/}
       </div>
     </div>
   );

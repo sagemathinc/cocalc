@@ -87,6 +87,7 @@ export default function Focused({
     dragging || offset.x || offset.y || offset.w || offset.h || rotating;
   const locked = isLocked(selectedElements);
   const hidden = isHidden(selectedElements);
+  const nodeRef = useRef<any>(null);
 
   // Make it so the selected element can handle it's own mouse wheel events.
   const divRef = useRef<any>(null);
@@ -97,7 +98,7 @@ export default function Focused({
     {
       target: divRef,
       eventOptions: { passive: false, capture: true },
-    }
+    },
   );
 
   const resizeHandles = useMemo(() => {
@@ -121,7 +122,7 @@ export default function Focused({
             element={element}
             selectedElements={selectedElements}
             setOffset={setOffset}
-          />
+          />,
         );
       }
     }
@@ -139,7 +140,7 @@ export default function Focused({
           canvasScale={canvasScale}
           element={element}
         />
-      )
+      ),
     );
   }, [element, canvasScale]);
 
@@ -177,6 +178,7 @@ export default function Focused({
     }
     return (
       <Draggable
+        nodeRef={nodeRef}
         key="rotate"
         position={{ x: 0, y: 0 }}
         scale={canvasScale}
@@ -202,21 +204,23 @@ export default function Focused({
           }, 0);
         }}
       >
-        <Tooltip title="Rotate">
-          <Icon
-            className="nodrag"
-            style={{
-              ...ICON_STYLE,
-              cursor: locked || readOnly ? undefined : "grab",
-              position: "absolute",
-              bottom: `-${OFFSET / canvasScale}px`,
-              left: `-${OFFSET / canvasScale}px`,
-              transform: `scale(${1 / canvasScale})`,
-              pointerEvents: "all",
-            }}
-            name="reload"
-          />
-        </Tooltip>
+        <span ref={nodeRef}>
+          <Tooltip title="Rotate">
+            <Icon
+              className="nodrag"
+              style={{
+                ...ICON_STYLE,
+                cursor: locked || readOnly ? undefined : "grab",
+                position: "absolute",
+                bottom: `-${OFFSET / canvasScale}px`,
+                left: `-${OFFSET / canvasScale}px`,
+                transform: `scale(${1 / canvasScale})`,
+                pointerEvents: "all",
+              }}
+              name="reload"
+            />
+          </Tooltip>
+        </span>
       </Draggable>
     );
   }, [locked, element.rotate, canvasScale, selectedElements.length, multi]);
@@ -305,6 +309,7 @@ export default function Focused({
         </div>
       </div>
       <Draggable
+        nodeRef={rectRef}
         disabled={locked || readOnly}
         cancel={".nodrag"}
         position={{ x: 0, y: 0 }}

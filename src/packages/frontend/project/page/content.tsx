@@ -327,7 +327,7 @@ interface DragBarProps {
 
 const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
   const { project_id, path, editor_container_ref } = props;
-
+  const nodeRef = useRef<any>(null);
   const draggable_ref = useRef<any>(null);
 
   const reset = () => {
@@ -359,6 +359,7 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
 
   return (
     <Draggable
+      nodeRef={nodeRef}
       position={{ x: 0, y: 0 }}
       ref={draggable_ref}
       axis="x"
@@ -367,6 +368,7 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
       defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
     >
       <div
+        ref={nodeRef}
         className="cc-vertical-drag-bar"
         style={IS_TOUCH ? { width: "12px" } : undefined}
       >

@@ -15,7 +15,7 @@ import useAppContext, { AppContext, calcStyle } from "./use-context";
 export { AppContext, useAppContext };
 
 export function useAppContextProvider() {
-  const intl = useIntl();
+  //const intl = useIntl();
 
   const [pageWidthPx, setPageWidthPx] = useState<number>(window.innerWidth);
 

@@ -6,7 +6,7 @@ Supporting component for making focused element(s) resizable.
 import { Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "./types";
-import { CSSProperties, useState } from "react";
+import { CSSProperties, useRef, useState } from "react";
 import { useFrameContext } from "./hooks";
 import Draggable from "react-draggable";
 import { getPosition, MAX_ELEMENTS } from "./math";
@@ -42,6 +42,7 @@ export default function DragHandle({
   element: Element;
   selectedElements: Element[];
 }) {
+  const nodeRef = useRef<any>(null);
   const [position, setPosition] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -100,6 +101,7 @@ export default function DragHandle({
 
   return (
     <Draggable
+      nodeRef={nodeRef}
       scale={canvasScale}
       position={position}
       onDrag={(_, data) => {
@@ -158,9 +160,11 @@ export default function DragHandle({
         }, 0);
       }}
     >
-      <Tooltip title="Resize">
-        <Icon className="nodrag" style={style} name="square" />
-      </Tooltip>
+      <span ref={nodeRef}>
+        <Tooltip title="Resize">
+          <Icon className="nodrag" style={style} name="square" />
+        </Tooltip>
+      </span>
     </Draggable>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useTags } from "../querydb/tags";
 import { Tag } from "./tags";
 
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export function TagById({ id, onClose, confirm, Draggable }: Props) {
+  const nodeRef = useRef<any>(null);
   const tags = useTags();
   const tag = useMemo(() => {
     return tags?.[id];
@@ -28,7 +29,13 @@ export function TagById({ id, onClose, confirm, Draggable }: Props) {
       onClose={onClose}
       confirm={confirm}
     >
-      {Draggable != null ? <Draggable>{name}</Draggable> : name}
+      {Draggable != null ? (
+        <Draggable nodeRef={nodeRef}>
+          <span ref={nodeRef}>{name}</span>
+        </Draggable>
+      ) : (
+        name
+      )}
     </Tag>
   );
 }
