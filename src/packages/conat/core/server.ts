@@ -971,6 +971,7 @@ export class ConatServer {
     subject: string,
     timeout: number,
     socketId: string,
+    signal?: AbortSignal,
   ): Promise<boolean> => {
     const links = Object.values(this.superclusterLinks);
     if (links.length == 0) {
@@ -978,6 +979,7 @@ export class ConatServer {
         subject,
         timeout,
         socketId,
+        signal,
       );
     } else {
       const v: any[] = [];
@@ -993,15 +995,23 @@ export class ConatServer {
           }
           return false;
         };
+        const controller = new AbortController();
+        const signal2 = controller.signal;
         v.push(
           nothrow(
-            this.waitForInterestInThisCluster(subject, timeout, socketId),
+            this.waitForInterestInThisCluster(
+              subject,
+              timeout,
+              socketId,
+              signal2,
+            ),
           ),
         );
         for (const link of links) {
-          v.push(nothrow(link.waitForInterest(subject, timeout)));
+          v.push(nothrow(link.waitForInterest(subject, timeout, signal2)));
         }
         if (!timeout) {
+          // with timeout=0 they all immediately answer (so no need to worry about abort/pormise)
           const w = await Promise.all(v);
           for (const x of w) {
             if (x) {
@@ -1010,8 +1020,13 @@ export class ConatServer {
           }
           return false;
         }
+
+        signal?.addEventListener("abort", () => {
+          controller.abort();
+        });
         const w = await Promise.race(v);
-        // [ ] todo: cancel all the others.
+        // cancel all the others.
+        controller.abort();
         return w;
       } finally {
         done = true;
@@ -1023,6 +1038,7 @@ export class ConatServer {
     subject: string,
     timeout: number,
     socketId: string,
+    signal?: AbortSignal,
   ) => {
     const matches = this.interest.matches(subject);
     if (matches.length > 0 || !timeout) {
@@ -1035,12 +1051,20 @@ export class ConatServer {
       timeout = MAX_INTEREST_TIMEOUT;
     }
     const start = Date.now();
-    while (this.state != "closed" && this.sockets[socketId]) {
+    while (
+      this.state != "closed" &&
+      this.sockets[socketId] &&
+      !signal?.aborted
+    ) {
       if (Date.now() - start >= timeout) {
         throw Error("timeout");
       }
       await once(this.interest, "change");
-      if ((this.state as any) == "closed" || !this.sockets[socketId]) {
+      if (
+        (this.state as any) == "closed" ||
+        !this.sockets[socketId] ||
+        signal?.aborted
+      ) {
         return false;
       }
       const matches = this.interest.matches(subject);

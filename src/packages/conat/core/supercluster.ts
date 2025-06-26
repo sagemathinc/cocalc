@@ -112,7 +112,11 @@ export class SuperclusterLink {
     return randomChoice(targets);
   };
 
-  waitForInterest = async (subject: string, timeout: number) => {
+  waitForInterest = async (
+    subject: string,
+    timeout: number,
+    signal?: AbortSignal,
+  ) => {
     const matches = this.interest.matches(subject);
 
     if (matches.length > 0 || !timeout) {
@@ -122,12 +126,12 @@ export class SuperclusterLink {
       return matches.length > 0;
     }
     const start = Date.now();
-    while (this.state != "closed") {
+    while (this.state != "closed" && !signal?.aborted) {
       if (Date.now() - start >= timeout) {
         throw Error("timeout");
       }
       await once(this.interest, "change");
-      if ((this.state as any) == "closed") {
+      if ((this.state as any) == "closed" || signal?.aborted) {
         return false;
       }
       // todo: implement this.interest.hasMatch that just checks if there is at least one match

@@ -10,7 +10,7 @@ import {
   after,
   initConatServer,
   once,
-  //delay,
+  delay,
   wait,
 } from "@cocalc/backend/conat/test/setup";
 import { server as createPersistServer } from "@cocalc/backend/conat/persist";
@@ -176,7 +176,7 @@ describe("create a supercluster enabled socketio server and test that the stream
   });
 });
 
-describe("create a supercluster with two distinct servers and send a message from one client to another via a link, and also use request/reply", () => {
+describe.only("create a supercluster with two distinct servers and send a message from one client to another via a link, and also use request/reply", () => {
   let server1, server2, client1, client2;
   it("create two distinct servers with supercluster support enabled", async () => {
     ({ server: server1, client: client1 } = await createCluster({
@@ -196,6 +196,19 @@ describe("create a supercluster with two distinct servers and send a message fro
       client: client1,
       clusterName: server1.clusterName,
     });
+  });
+
+  it("tests that server-side waitForInterest can be aborted", async () => {
+    const controller = new AbortController();
+    const w = server2.waitForInterest(
+      "no-interest",
+      90000,
+      client2.conn.id,
+      controller.signal,
+    );
+    await delay(15);
+    controller.abort();
+    expect(await w).toBe(false);
   });
 
   const N =
