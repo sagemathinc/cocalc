@@ -27,7 +27,7 @@ export default function NotFocused({
   onDrag,
 }: Props) {
   const { id } = element;
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
 
   // Right after dragging, we ignore the onClick so the object doesn't get selected:
   const ignoreNextClickRef = useRef<boolean>(false);

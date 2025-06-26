@@ -114,7 +114,7 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const nodeRef = React.useRef<any>(null);
+  const nodeRef = React.useRef<any>({});
 
   return (
     <Draggable

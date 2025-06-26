@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function TagById({ id, onClose, confirm, Draggable }: Props) {
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
   const tags = useTags();
   const tag = useMemo(() => {
     return tags?.[id];

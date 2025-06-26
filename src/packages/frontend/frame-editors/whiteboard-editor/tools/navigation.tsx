@@ -298,7 +298,7 @@ export function Overview({
   maxScale,
   presentation,
 }: MapProps) {
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
   const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1, presentation);
   const xDiff = xMax - xMin + 2 * margin;

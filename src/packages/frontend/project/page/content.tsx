@@ -327,7 +327,7 @@ interface DragBarProps {
 
 const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
   const { project_id, path, editor_container_ref } = props;
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
   const draggable_ref = useRef<any>(null);
 
   const reset = () => {

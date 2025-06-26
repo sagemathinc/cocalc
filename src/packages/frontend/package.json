@@ -116,7 +116,7 @@
     "markdown-it-front-matter": "^0.2.3",
     "md5": "^2",
     "memoize-one": "^5.1.1",
-    "mermaid": "^11.4.1",
+    "mermaid": "^11.7.0",
     "node-forge": "^1.0.0",
     "onecolor": "^3.1.0",
     "pdfjs-dist": "^4.6.82",

@@ -61,14 +61,15 @@ export default function Mermaid({ value, style }: Props) {
   );
 }
 
-let initialized = false;
-async function getMermaid() {
-  const mermaid = (await import("mermaid")).default;
-  if (!initialized) {
-    mermaid.initialize({
-      startOnLoad: false,
-    });
-    initialized = true;
-  }
-  return mermaid;
+//let initialized = false;
+async function getMermaid() : Promise<any> {
+  throw Error("mermaid js support disabled");
+//   //const mermaid = (await import("mermaid")).default;
+//   if (!initialized) {
+//     mermaid.initialize({
+//       startOnLoad: false,
+//     });
+//     initialized = true;
+//   }
+//   return mermaid;
 }

@@ -42,7 +42,7 @@ export default function DragHandle({
   element: Element;
   selectedElements: Element[];
 }) {
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
   const [position, setPosition] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,

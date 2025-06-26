@@ -81,7 +81,7 @@ export function ColumnHeading({
 
 function ResizeHandle({ setWidth, width, ignoreClick }) {
   const [pos, setPos] = useState<any>(undefined);
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
   return (
     <Draggable
       nodeRef={nodeRef}

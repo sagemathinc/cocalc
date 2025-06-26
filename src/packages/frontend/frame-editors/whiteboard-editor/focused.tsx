@@ -87,7 +87,7 @@ export default function Focused({
     dragging || offset.x || offset.y || offset.w || offset.h || rotating;
   const locked = isLocked(selectedElements);
   const hidden = isHidden(selectedElements);
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
 
   // Make it so the selected element can handle it's own mouse wheel events.
   const divRef = useRef<any>(null);

@@ -346,7 +346,7 @@ export default function Canvas({
     },
   );
 
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
   const innerCanvasRef = useRef<any>(null);
 
   const transformsRef = useRef<Transforms>(

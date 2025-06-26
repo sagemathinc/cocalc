@@ -304,7 +304,7 @@ export default function Views({ table, style }: Props) {
 }
 
 function ResizeBar({ setWidth, width }) {
-  const nodeRef = useRef<any>(null);
+  const nodeRef = useRef<any>({});
   return (
     <Draggable
       nodeRef={nodeRef}
