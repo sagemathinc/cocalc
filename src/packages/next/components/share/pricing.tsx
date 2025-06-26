@@ -6,6 +6,8 @@
 import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 
+import type { JSX } from "react";
+
 export function listedPrices(): JSX.Element {
   return (
     <Paragraph>

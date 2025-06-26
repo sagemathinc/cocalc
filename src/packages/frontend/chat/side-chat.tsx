@@ -59,7 +59,7 @@ export default function SideChat({
   const project_map = useTypedRedux("projects", "project_map");
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
-  const submitMentionsRef = useRef<SubmitMentionsFn>();
+  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const markAsRead = useCallback(() => {
     markChatAsReadIfUnseen(project_id, path);

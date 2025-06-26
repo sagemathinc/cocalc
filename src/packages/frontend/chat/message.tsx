@@ -236,7 +236,7 @@ export default function Message({
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
-  const replyMentionsRef = useRef<SubmitMentionsFn>();
+  const replyMentionsRef = useRef<SubmitMentionsFn|undefined>(undefined);
 
   const is_viewers_message = sender_is_viewer(account_id, message);
   const verb = show_history ? "Hide" : "Show";

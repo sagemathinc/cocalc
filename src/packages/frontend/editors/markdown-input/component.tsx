@@ -154,8 +154,8 @@ export function MarkdownInput(props: Props) {
     value,
   } = props;
   const { actions, isVisible } = useFrameContext();
-  const cm = useRef<CodeMirror.Editor>();
-  const textarea_ref = useRef<HTMLTextAreaElement>(null);
+  const cm = useRef<CodeMirror.Editor | undefined>(undefined);
+  const textarea_ref = useRef<HTMLTextAreaElement | null>(null);
   const editor_settings = useRedux(["account", "editor_settings"]);
   const options = useMemo(() => {
     return {

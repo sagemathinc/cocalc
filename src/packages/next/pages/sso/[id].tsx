@@ -19,6 +19,8 @@ import Link from "next/link";
 import { join } from "path";
 import { SSO_SUBTITLE } from ".";
 
+import type { JSX } from "react";
+
 const { Paragraph, Text } = Typography;
 
 interface Props {

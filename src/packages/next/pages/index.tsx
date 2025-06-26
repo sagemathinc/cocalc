@@ -27,6 +27,8 @@ import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
+import type { JSX } from "react";
+
 const TOP_LINK_STYLE: CSS = { marginRight: "20px" } as const;
 
 interface Props {

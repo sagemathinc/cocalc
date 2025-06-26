@@ -101,8 +101,8 @@ export function FilesFlyout({
     actions,
   } = useProjectContext();
   const isMountedRef = useIsMountedRef();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const refInput = useRef<InputRef>(null);
+  const rootRef = useRef<HTMLDivElement>(null as any);
+  const refInput = useRef<InputRef>(null as any);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
     null,
@@ -135,7 +135,7 @@ export function FilesFlyout({
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const disableUploads = student_project_functionality.disableUploads ?? false;
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null as any);
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::files::${current_path}`,
   });

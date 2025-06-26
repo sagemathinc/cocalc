@@ -85,7 +85,7 @@ export function Complete({
   const llm_ref = useRef<boolean>(llm);
   const selected_user_ref = useRef<number>(selectedUser);
   const selected_llm_ref = useRef<number>(selectedLLM);
-  const selected_key_ref = useRef<string>();
+  const selected_key_ref = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     selected_user_ref.current = selectedUser;

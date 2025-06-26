@@ -5,6 +5,8 @@ import {
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 
+import type { JSX } from "react";
+
 export function LLMServiceStatusCheck({
   service,
 }: {

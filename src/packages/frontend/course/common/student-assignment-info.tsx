@@ -95,7 +95,7 @@ export function StudentAssignmentInfo({
   nbgrader_run_info,
 }: StudentAssignmentInfoProps) {
   const intl = useIntl();
-  const clicked_nbgrader = useRef<Date>();
+  const clicked_nbgrader = useRef<Date|undefined>(undefined);
   const actions = useActions<CourseActions>({ name });
   const size = useButtonSize();
   const [recopy, set_recopy] = useRecopy();

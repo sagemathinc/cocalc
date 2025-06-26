@@ -5,7 +5,7 @@
 
 import { Divider } from "antd";
 import { isEmpty } from "lodash";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";

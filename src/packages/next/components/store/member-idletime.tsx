@@ -9,6 +9,7 @@ import {
 } from "@cocalc/util/consts/site-license";
 import { Divider, Form, Radio, Typography } from "antd";
 import A from "components/misc/A";
+import type { JSX } from "react";
 const { Text } = Typography;
 
 interface Props {
