@@ -42,7 +42,7 @@ export default function useKernelUsage(name: string): {
   // state of UI, derived from usage, timing stats, etc.
   const [cpu_start, set_cpu_start] = useState<number | undefined>();
   const [cpu_runtime, set_cpu_runtime] = useState<number>(0);
-  const timer1 = useRef<ReturnType<typeof setInterval> | undefined>();
+  const timer1 = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   // reset cpu_start time when state changes
   useEffect(() => {

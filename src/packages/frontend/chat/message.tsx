@@ -204,7 +204,7 @@ export default function Message({
   const reverseRowOrdering =
     !is_thread_body && sender_is_viewer(account_id, message);
 
-  const submitMentionsRef = useRef<SubmitMentionsFn>();
+  const submitMentionsRef = useRef<SubmitMentionsFn>(null as any);
 
   const [replying, setReplying] = useState<boolean>(() => {
     if (!allowReply) {
@@ -236,7 +236,7 @@ export default function Message({
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
-  const replyMentionsRef = useRef<SubmitMentionsFn>();
+  const replyMentionsRef = useRef<SubmitMentionsFn|undefined>(undefined);
 
   const is_viewers_message = sender_is_viewer(account_id, message);
   const verb = show_history ? "Hide" : "Show";
@@ -1060,7 +1060,7 @@ export default function Message({
     }
   }
 
-  function renderCols(): JSX.Element[] | JSX.Element {
+  function renderCols(): React.JSX.Element[] | React.JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
     if (is_folded || (is_thread && is_folded && is_thread_body)) {
       return <></>;

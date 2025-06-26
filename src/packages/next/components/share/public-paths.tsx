@@ -16,6 +16,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { trunc_middle } from "@cocalc/util/misc";
 import { SHARE_AUTHENTICATED_ICON } from "@cocalc/util/consts/ui";
 
+import type { JSX } from "react";
+
 function Description({
   description,
   maxWidth,

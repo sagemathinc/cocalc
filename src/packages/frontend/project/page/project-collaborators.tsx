@@ -25,7 +25,7 @@ import { ICON_USERS, ROOT_STYLE } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { useProject } from "./common";
 
-export function ProjectCollaboratorsPage(): JSX.Element {
+export function ProjectCollaboratorsPage(): React.JSX.Element {
   const intl = useIntl();
   const { project_id } = useProjectContext();
   const user_map = useTypedRedux("users", "user_map");

@@ -45,7 +45,7 @@ export const UnpublishEverything: React.FC<Props> = React.memo(
       return n;
     }, [data]);
 
-    function render_confirm(): JSX.Element {
+    function render_confirm(): React.JSX.Element {
       const goal = "YES, UNPUBLISH EVERYTHING!";
       const body = (
         <div>

@@ -199,7 +199,7 @@ export function Handout({
 
   function render_copy_all(status) {
     const steps = STEPS;
-    const result: (JSX.Element | undefined)[] = [];
+    const result: (React.JSX.Element | undefined)[] = [];
     for (const step of steps) {
       if (copy_confirm_handout) {
         result.push(render_copy_confirm(step, status));

@@ -21,7 +21,7 @@ import {
 import dayjs from "dayjs";
 import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 
 import { getNewsItem } from "@cocalc/database/postgres/news";
 import { Icon } from "@cocalc/frontend/components/icon";

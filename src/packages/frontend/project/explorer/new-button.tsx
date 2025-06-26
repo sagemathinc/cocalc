@@ -52,7 +52,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     return ALL_FILE_BUTTON_TYPES;
   }
 
-  function file_dropdown_icon(): JSX.Element {
+  function file_dropdown_icon(): React.JSX.Element {
     return (
       <span style={{ whiteSpace: "nowrap" }}>
         <Icon name="plus-circle" /> {intl.formatMessage(labels.new)}

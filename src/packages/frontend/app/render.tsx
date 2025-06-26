@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
 import {
   redux,
@@ -107,15 +106,6 @@ export async function render(): Promise<void> {
   const root = createRoot(container!);
   const { Page } = await import("./page");
   root.render(<Root Page={Page} />);
-}
-
-export async function xxx_render(): Promise<void> {
-  finishedLoading(); // comment this out to leave the loading/startup banner visible
-  const { Page } = await import("./page");
-  ReactDOM.render(
-    <Root Page={Page} />,
-    document.getElementById("cocalc-webapp-container"),
-  );
 }
 
 // When loading is done, remove any visible artifacts.

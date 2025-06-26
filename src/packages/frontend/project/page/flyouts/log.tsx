@@ -222,7 +222,7 @@ function deriveHistory(
 interface Props {
   project_id: string;
   max?: number;
-  wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  wrap: (list: React.JSX.Element, style?: CSS) => React.JSX.Element;
   flyoutWidth: number;
 }
 
@@ -231,7 +231,7 @@ export function LogFlyout({
   project_id,
   wrap,
   flyoutWidth,
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const intl = useIntl();
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
@@ -457,7 +457,7 @@ export function LogFlyout({
     }
   }
 
-  function list(): JSX.Element {
+  function list(): React.JSX.Element {
     return (
       <Virtuoso
         ref={virtuosoRef}

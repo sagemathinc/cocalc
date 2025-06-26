@@ -121,8 +121,8 @@ interface FileListItemProps {
   // we only set this from the "files" flyout, not "log", since in the log you can't select multiple files
   checked_files?: immutable.Set<string>;
   displayedNameOverride?: string; // override the name
-  extra?: JSX.Element | string | null; // null means don't show anything
-  extra2?: JSX.Element | string | null; // null means don't show anything
+  extra?: React.JSX.Element | string | null; // null means don't show anything
+  extra2?: React.JSX.Element | string | null; // null means don't show anything
   iconNameOverride?: IconName;
   index?: number;
   isStarred?: boolean;
@@ -140,7 +140,7 @@ interface FileListItemProps {
   setShowCheckboxIndex?: (index: number | null) => void;
   showCheckbox?: boolean;
   style?: CSS;
-  tooltip?: JSX.Element | string;
+  tooltip?: React.JSX.Element | string;
   noPublish?: boolean; // for layout only – indicate that there is never a publish indicator button
 }
 
@@ -183,7 +183,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  function renderCloseItem(item: Item): JSX.Element | null {
+  function renderCloseItem(item: Item): React.JSX.Element | null {
     if (onClose == null || !item.isopen) return null;
 
     const { name } = item;
@@ -199,7 +199,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderPublishedIcon(): JSX.Element | undefined {
+  function renderPublishedIcon(): React.JSX.Element | undefined {
     if (!showPublish || !item.is_public) return undefined;
     return (
       <Tooltip title="File is published" placement="right">
@@ -217,7 +217,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderName(): JSX.Element {
+  function renderName(): React.JSX.Element {
     const name = item.name;
 
     const path = isActive ? path_split(name).tail : name;
@@ -271,7 +271,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     setShowCheckboxIndex?.(null);
   }
 
-  function renderBodyLeft(): JSX.Element {
+  function renderBodyLeft(): React.JSX.Element {
     const iconName =
       iconNameOverride ??
       (selectable && showCheckbox && item.name !== ".."
@@ -300,7 +300,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderStarred(): JSX.Element | undefined {
+  function renderStarred(): React.JSX.Element | undefined {
     if (isStarred == null) return;
 
     const icon: IconName = isStarred ? "star-filled" : "star";
@@ -320,7 +320,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderExtra(type: 1 | 2): JSX.Element | undefined {
+  function renderExtra(type: 1 | 2): React.JSX.Element | undefined {
     const currentExtra = type === 1 ? extra : extra2;
     if (currentExtra == null) return;
     // calculate extra margin to align the columns. if there is no "onClose", no margin
@@ -364,7 +364,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderBody(): JSX.Element {
+  function renderBody(): React.JSX.Element {
     const el = (
       <div
         ref={bodyRef}

@@ -132,7 +132,7 @@ export class ManageCommands {
     if (cmd == null) {
       return v;
     }
-    const process = (cmd, name, parentLabel: JSX.Element | string) => {
+    const process = (cmd, name, parentLabel: React.JSX.Element | string) => {
       if (cmd.children) {
         const newParentLabel = (
           <div style={{ display: "flex" }}>
@@ -211,7 +211,7 @@ export class ManageCommands {
     );
   };
 
-  getParentLabel = (cmd: Partial<Command>): JSX.Element | string => {
+  getParentLabel = (cmd: Partial<Command>): React.JSX.Element | string => {
     const { group } = cmd;
     if (!group) {
       return "Menu";

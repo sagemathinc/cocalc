@@ -131,7 +131,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_check_all_button(): JSX.Element | undefined {
+  function render_check_all_button(): React.JSX.Element | undefined {
     if (props.listing.length === 0) {
       return;
     }
@@ -177,7 +177,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_select_entire_directory(): JSX.Element | undefined {
+  function render_select_entire_directory(): React.JSX.Element | undefined {
     switch (select_entire_directory) {
       case "check":
         return (
@@ -194,7 +194,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_currently_selected(): JSX.Element | undefined {
+  function render_currently_selected(): React.JSX.Element | undefined {
     if (props.listing.length === 0) {
       return;
     }
@@ -243,7 +243,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_action_button(name: string): JSX.Element {
+  function render_action_button(name: string): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
       (props.current_path != null
@@ -262,7 +262,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_action_buttons(): JSX.Element | undefined {
+  function render_action_buttons(): React.JSX.Element | undefined {
     let action_buttons: (
       | "download"
       | "compress"
@@ -305,7 +305,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_button_area(): JSX.Element | undefined {
+  function render_button_area(): React.JSX.Element | undefined {
     if (props.checked_files.size === 0) {
       if (
         props.project_id == null ||

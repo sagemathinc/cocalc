@@ -27,7 +27,7 @@ function renderImage({
   width?;
   height?;
   on_error?;
-}): JSX.Element {
+}): React.JSX.Element {
   const props = {
     src,
     width,

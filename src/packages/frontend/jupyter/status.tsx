@@ -364,7 +364,7 @@ export function Kernel({
     );
   }
 
-  function get_kernel_name(): JSX.Element {
+  function get_kernel_name(): React.JSX.Element {
     if (kernel_info != null) {
       const name = kernel_info.get(
         "display_name",

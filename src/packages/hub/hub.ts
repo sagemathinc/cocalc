@@ -288,36 +288,6 @@ async function startServer(): Promise<void> {
     }\n\n-----------\n\n`;
     logger.info(msg);
     console.log(msg);
-
-    if (
-      program.conatServer &&
-      program.nextServer &&
-      process.env["NODE_ENV"] != "production"
-    ) {
-      // This is mostly to deal with conflicts between both nextjs and webpack when doing
-      // hot module reloading.  They fight with each other, and the we -- the developers --
-      // win only AFTER the fight is done. So we force the fight automatically, rather than
-      // manually, which is confusing.
-      // It also allows us to ensure super insanely slow nextjs is built.
-      console.log(
-        `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
-      );
-      const childProcess = spawn(
-        "chromium-browser",
-        ["--no-sandbox", "--headless", target],
-        { detached: true, stdio: "ignore" },
-      );
-      childProcess.unref();
-
-      // Schedule the process to be killed after 120 seconds (120,000 milliseconds)
-      setTimeout(() => {
-        if (childProcess.pid) {
-          try {
-            process.kill(-childProcess.pid, "SIGKILL");
-          } catch (_err) {}
-        }
-      }, 120000);
-    }
   }
 
   if (program.all || program.mentions) {

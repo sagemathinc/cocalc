@@ -106,7 +106,7 @@ export default function ComputeServer({
     return <Spin />;
   }
 
-  let actions: JSX.Element[] | undefined = undefined;
+  let actions: React.JSX.Element[] | undefined = undefined;
   if (id != null) {
     actions = getActions({
       id,

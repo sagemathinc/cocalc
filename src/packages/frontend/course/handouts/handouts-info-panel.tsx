@@ -128,10 +128,14 @@ export function StudentHandoutInfo({
     if (typeof error !== "string") {
       error = `${error}`;
     }
+    if (error.includes("[object Object]")) {
+      // already too late to know the actual error -- it got mangled/reported incorrectly
+      error = "";
+    }
     if (error.indexOf("No such file or directory") !== -1) {
-      error = `Somebody may have moved the folder that should have contained the handout.\n${error}`;
+      error = `Somebody may have moved the folder that should have contained the handout -- \n${error}`;
     } else {
-      error = `Try to ${name.toLowerCase()} again:\n${error}`;
+      error = `Try to ${name.toLowerCase()} again -- \n${error}`;
     }
     return (
       <ShowError

@@ -27,6 +27,7 @@ export default function NotFocused({
   onDrag,
 }: Props) {
   const { id } = element;
+  const nodeRef = useRef<any>({});
 
   // Right after dragging, we ignore the onClick so the object doesn't get selected:
   const ignoreNextClickRef = useRef<boolean>(false);
@@ -53,7 +54,7 @@ export default function NotFocused({
         edge(id, frame);
       }
     },
-    [selectable, edgeCreate, id, frame, readOnly]
+    [selectable, edgeCreate, id, frame, readOnly],
   );
 
   const disableDrag =
@@ -61,6 +62,7 @@ export default function NotFocused({
 
   const body = (
     <div
+      ref={nodeRef}
       className={
         edgeCreate
           ? `cocalc-whiteboard-edge-select${edgeStart ? "ed" : ""}`
@@ -87,6 +89,7 @@ export default function NotFocused({
 
   return (
     <Draggable
+      nodeRef={nodeRef}
       position={{ x: 0, y: 0 }}
       cancel={".nodrag"}
       scale={canvasScale}
@@ -130,7 +133,7 @@ async function select(id, e, frame) {
   frame.actions.setSelection(
     frame.id,
     id,
-    e && (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) ? "toggle" : "only"
+    e && (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) ? "toggle" : "only",
   );
 }
 

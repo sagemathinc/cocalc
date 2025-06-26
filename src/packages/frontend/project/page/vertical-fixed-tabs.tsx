@@ -335,7 +335,7 @@ function LayoutSelector({ vbar }) {
   );
 }
 
-function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
+function ChatIndicatorTab({ activeTab, project_id }): React.JSX.Element | null {
   const openFileInfo = useTypedRedux({ project_id }, "open_files");
   if (!activeTab?.startsWith("editor-")) {
     // TODO: This is the place in the code where we could support project-wide

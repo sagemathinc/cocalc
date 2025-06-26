@@ -16,7 +16,7 @@ import "@cocalc/frontend/billing/actions";
 
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");
-  const saveRef = useRef<any>();
+  const saveRef = useRef<any>(undefined);
 
   const storeState: {
     showModal?: boolean;

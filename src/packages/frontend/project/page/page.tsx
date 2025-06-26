@@ -178,7 +178,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }
 
   function renderEditorContent() {
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
 
     open_files_order.map((path) => {
       if (!path) {

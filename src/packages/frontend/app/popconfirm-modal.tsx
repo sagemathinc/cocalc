@@ -31,7 +31,7 @@ export default function PopconfirmModal({}) {
     actions.setState({ popconfirm: { open: false, ok: true } });
   };
 
-  const okButtonRef = useRef();
+  const okButtonRef = useRef(undefined);
   useEffect(() => {
     if (popconfirm.open) {
       // @ts-ignore

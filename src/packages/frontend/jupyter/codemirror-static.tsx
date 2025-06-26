@@ -80,7 +80,7 @@ export function CodeMirrorStatic(props: Props) {
   const render_lines = (width: number) => {
     // python3 is a reasonable fallback, given it's CoCalc.
     const mode = props.options?.mode ?? "python3";
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     const lineNumbers = !!props.options?.lineNumbers;
     let line = 1;
     if (lineNumbers) {

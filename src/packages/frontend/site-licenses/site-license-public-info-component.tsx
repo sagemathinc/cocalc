@@ -272,7 +272,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_id(): JSX.Element | undefined {
+  function render_id(): React.JSX.Element | undefined {
     if (!license_id) return;
     // dumb minimal security -- only show this for now to managers.
     // Of course, somebody could
@@ -308,7 +308,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_license(): JSX.Element | undefined {
+  function render_license(): React.JSX.Element | undefined {
     if (!info) {
       if (!loading && !err) {
         return <span>Unknown license key.</span>;
@@ -318,7 +318,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     return <span>{render_title()}</span>;
   }
 
-  function render_run_limit(): JSX.Element | undefined {
+  function render_run_limit(): React.JSX.Element | undefined {
     if (!info) return;
     if (!info.run_limit) {
       return (
@@ -332,7 +332,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_running(): JSX.Element | undefined {
+  function render_running(): React.JSX.Element | undefined {
     if (info?.running == null) return;
     return (
       <li>
@@ -342,7 +342,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_applied(): JSX.Element | undefined {
+  function render_applied(): React.JSX.Element | undefined {
     if (info?.applied == null) return;
     return (
       <li>
@@ -351,7 +351,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_overall_limit(): JSX.Element | undefined {
+  function render_overall_limit(): React.JSX.Element | undefined {
     if (!info) return;
     if (!info.run_limit) {
       return (
@@ -361,7 +361,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     return <span>to up to {info.run_limit} simultaneous running projects</span>;
   }
 
-  function render_what_license_provides_overall(): JSX.Element | undefined {
+  function render_what_license_provides_overall(): React.JSX.Element | undefined {
     if (info == null) return;
     if (info.quota != null) {
       return render_quota(info.quota);
@@ -385,7 +385,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_quota(quota): JSX.Element {
+  function render_quota(quota): React.JSX.Element {
     return <div>{describe_quota(quota)}</div>;
   }
 
@@ -403,7 +403,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_why(): JSX.Element {
+  function render_why(): React.JSX.Element {
     return (
       <Popover
         content={LICENSE_ACTIVATION_RULES}
@@ -416,7 +416,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_upgrades(): JSX.Element | undefined {
+  function render_upgrades(): React.JSX.Element | undefined {
     if (!project_id) {
       // component not being used in the context of a specific project.
       return (
@@ -434,7 +434,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       );
     }
 
-    let provides: JSX.Element | undefined;
+    let provides: React.JSX.Element | undefined;
     let show_run: boolean = true;
     if (info == null) {
       if (loading) {
@@ -528,7 +528,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_body(): JSX.Element | undefined {
+  function render_body(): React.JSX.Element | undefined {
     if (loading) {
       return <Loading style={{ display: "inline" }} />;
     } else {
@@ -557,7 +557,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_refresh_button(): JSX.Element {
+  function render_refresh_button(): React.JSX.Element {
     return (
       <Button onClick={() => fetch_info(true)}>
         <Icon name="redo" />
@@ -584,7 +584,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_remove_button(): JSX.Element | undefined {
+  function render_remove_button(): React.JSX.Element | undefined {
     if (!project_id && onRemove == null) return;
     if (tableMode) return;
     const extra = render_remove_button_extra();
@@ -609,7 +609,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
   }
 
   // render information about when the license was activated
-  function render_activated(): JSX.Element | undefined {
+  function render_activated(): React.JSX.Element | undefined {
     const activates = info?.activates;
     if (activates == null) return;
     if (activates > new Date()) {
@@ -627,7 +627,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_title(): JSX.Element | undefined {
+  function render_title(): React.JSX.Element | undefined {
     if (is_editing_title) {
       return (
         <DebounceInput
@@ -694,7 +694,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_description(): JSX.Element | undefined {
+  function render_description(): React.JSX.Element | undefined {
     if (is_editing_description) {
       return (
         <DebounceInput
@@ -759,7 +759,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_err(): JSX.Element | undefined {
+  function render_err(): React.JSX.Element | undefined {
     if (err) {
       return (
         <div>
@@ -770,7 +770,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_warning(): JSX.Element | undefined {
+  function render_warning(): React.JSX.Element | undefined {
     if (warn_if == null || info == null) return;
     const s = warn_if(info);
     if (!s) return;
@@ -782,7 +782,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_add_search_result(): JSX.Element | undefined {
+  function render_add_search_result(): React.JSX.Element | undefined {
     if (manager_search_result === false) {
       return;
     }
@@ -831,7 +831,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_add_manager(): JSX.Element {
+  function render_add_manager(): React.JSX.Element {
     if (is_adding_manager) {
       return (
         <span>
@@ -867,7 +867,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     }
   }
 
-  function render_manager(account_id: string): JSX.Element | null {
+  function render_manager(account_id: string): React.JSX.Element | null {
     if (account_id == redux.getStore("account").get("account_id")) return null;
     return (
       <span key={account_id}>
@@ -898,7 +898,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     );
   }
 
-  function render_managers(): JSX.Element | undefined {
+  function render_managers(): React.JSX.Element | undefined {
     if (!info?.is_manager || !info.managers) return; // only show info about managers to managers
     return (
       <li key="managers">

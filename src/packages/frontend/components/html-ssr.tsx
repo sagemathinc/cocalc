@@ -140,7 +140,7 @@ export default function HTML({
     if (AnchorTagComponent != null && name == "a") {
       return (
         <AnchorTagComponent {...attribs}>
-          {domToReact(children, options)}
+          {domToReact(children as any, options)}
         </AnchorTagComponent>
       );
     }
@@ -180,7 +180,7 @@ export default function HTML({
               name,
               props,
               children && children?.length > 0
-                ? domToReact(children, options)
+                ? domToReact(children as any, options)
                 : undefined,
             );
           }

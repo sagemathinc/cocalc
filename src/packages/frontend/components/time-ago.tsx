@@ -51,7 +51,7 @@ export function is_different_date(
 
 interface TimeAgoElementProps {
   placement?;
-  tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
+  tip?: string | React.JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   date;
   time_ago_absolute?: boolean;
@@ -80,14 +80,15 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   function render_timeago_element(d) {
     // See this bug -- https://github.com/nmn/react-timeago/issues/181
     return (
-      <UpstreamTimeAgo
-        key={d}
-        title=""
-        date={d}
-        style={{ cursor: "pointer", ...style }}
-        formatter={timeago_formatter}
-        live={live}
-      />
+      <span style={{ cursor: "pointer", ...style }}>
+        <UpstreamTimeAgo
+          key={d}
+          title=""
+          date={d}
+          formatter={timeago_formatter}
+          live={live}
+        />
+      </span>
     );
   }
 
@@ -182,7 +183,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 
 interface TimeAgoProps {
   placement?;
-  tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
+  tip?: string | React.JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   style?: CSS;
   date?;

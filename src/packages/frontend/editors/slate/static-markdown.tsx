@@ -63,7 +63,7 @@ export default function StaticMarkdown({ value, style, className }: Props) {
 }
 
 function RenderElement({ element }) {
-  let children: JSX.Element[] = [];
+  let children: React.JSX.Element[] = [];
   if (element["children"]) {
     let n = 0;
     for (const child of element["children"]) {

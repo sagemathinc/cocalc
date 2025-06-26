@@ -28,7 +28,7 @@ export type RunQuotaType = Partial<Quota>;
 export type Value = string | boolean | number;
 export type DisplayQuota = { [key in keyof Quota]: Value };
 export type Usage =
-  | { display: string | undefined; element: JSX.Element | boolean }
+  | { display: string | undefined; element: React.JSX.Element | boolean }
   | undefined;
 export type CurrentUsage = { [key in keyof RunQuotaType]: Usage };
 

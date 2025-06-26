@@ -63,7 +63,7 @@ export function NewFlyout({
   project_id: string;
   wrap: Function;
   defaultExt?: string;
-}): JSX.Element {
+}): React.JSX.Element {
   const intl = useIntl();
   const other_settings = useTypedRedux("account", "other_settings");
   const rfn = other_settings.get(NEW_FILENAMES);
@@ -281,7 +281,7 @@ export function NewFlyout({
     setExt(nextExt);
   }
 
-  function renderExtAddon(): JSX.Element {
+  function renderExtAddon(): React.JSX.Element {
     const title = ext === "/" ? `/` : ext === "" ? "" : `.${ext}`;
     return (
       <NewFileDropdown
@@ -498,7 +498,7 @@ export function NewFlyout({
     );
   }
 
-  function renderBottom(): JSX.Element {
+  function renderBottom(): React.JSX.Element {
     return (
       <Space
         style={{

@@ -490,13 +490,6 @@ function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
 }
 export { UNSAFE_NONNULLABLE };
 
-// I'm explicitly disabling using typing with ReactDOM on purpose,
-// because it's basically impossibly to use, and I'll probably get
-// rid of all uses of ReactDOM.findDOMNode anyways.
-//import ReactDOM from "react-dom";
-//export { ReactDOM };
-export const ReactDOM = require("react-dom");
-
 declare var cc;
 if (DEBUG) {
   if (typeof cc !== "undefined" && cc !== null) {

@@ -96,7 +96,7 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
 
   // first time message is different from later ones
   let style: undefined | "info" | "danger";
-  let msg: JSX.Element;
+  let msg: React.JSX.Element;
   if (cur_oom_dismissed === 0) {
     if (cur_oom_kills > 1) {
       msg = (

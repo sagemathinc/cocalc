@@ -95,7 +95,7 @@ export function StudentAssignmentInfo({
   nbgrader_run_info,
 }: StudentAssignmentInfoProps) {
   const intl = useIntl();
-  const clicked_nbgrader = useRef<Date>();
+  const clicked_nbgrader = useRef<Date|undefined>(undefined);
   const actions = useActions<CourseActions>({ name });
   const size = useButtonSize();
   const [recopy, set_recopy] = useRecopy();
@@ -243,7 +243,7 @@ export function StudentAssignmentInfo({
     );
   }
 
-  function render_run_nbgrader(label: JSX.Element | string) {
+  function render_run_nbgrader(label: React.JSX.Element | string) {
     let running = false;
     if (nbgrader_run_info != null) {
       const t = nbgrader_run_info.get(
@@ -331,7 +331,7 @@ export function StudentAssignmentInfo({
     placement,
   ) {
     if (recopy[step]) {
-      const v: JSX.Element[] = [];
+      const v: React.JSX.Element[] = [];
       v.push(
         <Button
           key="copy_cancel"
@@ -470,15 +470,19 @@ export function StudentAssignmentInfo({
     if (typeof error !== "string") {
       error = `${error}`;
     }
+    if (error.includes("[object Object]")) {
+      // already too late to know the actual error -- it got mangled/reported incorrectly
+      error = "";
+    }
     // We search for two different error messages, since different errors happen in
     // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
     if (
       error.indexOf("No such file or directory") !== -1 ||
       error.indexOf("ENOENT") != -1
     ) {
-      error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
+      error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again -- \n${error}`;
     } else {
-      error = `Try to ${step.toLowerCase()} again:\n${error}`;
+      error = `Try to ${step.toLowerCase()} again -- \n${error}`;
     }
     return (
       <ShowError
@@ -502,11 +506,11 @@ export function StudentAssignmentInfo({
     copy_tip = "",
     open_tip = "",
     omit_errors = false,
-  }: RenderLastProps): JSX.Element {
+  }: RenderLastProps): React.JSX.Element {
     const do_open = () => open(type, info.assignment_id, info.student_id);
     const do_copy = () => copy(type, info.assignment_id, info.student_id);
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     if (enable_copy) {
       if (webapp_client.server_time() - (data.start ?? 0) < COPY_TIMEOUT_MS) {
         v.push(render_open_copying(step, do_open, do_stop));

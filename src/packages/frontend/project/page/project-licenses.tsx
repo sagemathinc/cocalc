@@ -17,7 +17,7 @@ import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
 import { useProject } from "./common";
 
-export function ProjectLicenses({ project_id }): JSX.Element {
+export function ProjectLicenses({ project_id }): React.JSX.Element {
   const intl = useIntl();
   const { project, group } = useProject(project_id);
   const all_projects_have_been_loaded = useTypedRedux(
@@ -45,7 +45,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
   const dedicated_resources =
     store.get_total_site_license_dedicated(project_id);
 
-  function renderBody(): JSX.Element {
+  function renderBody(): React.JSX.Element {
     if (project == null) {
       return <Loading theme="medium" />;
     }

@@ -1,4 +1,3 @@
-import ReactDOM from "react-dom";
 import { CSSProperties, FC, ReactNode, useEffect, useRef } from "react";
 import { getStyle } from "./text-static";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -50,11 +49,11 @@ export function ChatLog({
   style: CSSProperties;
   Message: FC<{ element: Element; messageId: number | string }>;
 }) {
-  const divRef = useRef(null);
+  const divRef = useRef<any>(null);
   useWheel(divRef);
 
   useEffect(() => {
-    const elt = ReactDOM.findDOMNode(divRef.current) as any;
+    const elt = divRef.current as any;
     if (elt) {
       elt.scrollTop = elt.scrollHeight;
     }

@@ -4,7 +4,7 @@
  */
 
 import { Col, Row, Space } from "antd";
-import { CSSProperties, ReactNode } from "react";
+import { CSSProperties, ReactNode, type JSX } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";

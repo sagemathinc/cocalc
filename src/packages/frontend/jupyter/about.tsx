@@ -29,7 +29,7 @@ export function About(props: AboutProps) {
     actions.focus(true);
   }
 
-  function render_server_info(): JSX.Element {
+  function render_server_info(): React.JSX.Element {
     const version =
       backend_kernel_info != null
         ? backend_kernel_info.get("nodejs_version")
@@ -50,7 +50,7 @@ export function About(props: AboutProps) {
     return <pre>Node.js Version {version}</pre>;
   }
 
-  function render_kernel_info(): JSX.Element {
+  function render_kernel_info(): React.JSX.Element {
     const banner =
       backend_kernel_info != null
         ? backend_kernel_info.get("banner")
@@ -75,7 +75,7 @@ export function About(props: AboutProps) {
     );
   }
 
-  function render_faq(): JSX.Element {
+  function render_faq(): React.JSX.Element {
     return (
       <Paragraph>
         Read <A href="https://doc.cocalc.com/jupyter.html">documentation</A>
@@ -85,7 +85,7 @@ export function About(props: AboutProps) {
     );
   }
 
-  function render_features(): JSX.Element {
+  function render_features(): React.JSX.Element {
     return (
       <Paragraph
         style={{

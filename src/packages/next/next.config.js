@@ -53,11 +53,11 @@ module.exports = removeImports({
     // Important: return the modified config
     return config;
   },
-  // This is because the debug module color support would otherwise log this warning constantly:
-  // Module not found: ESM packages (supports-color) need to be imported. Use 'import' to
-  // reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
   experimental: {
-    esmExternals: "loose",
+    // This is because the debug module color support would otherwise log this warning constantly:
+    // Module not found: ESM packages (supports-color) need to be imported. Use 'import' to
+    // reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
+    // esmExternals: "loose", // not supported by turbopack
     // We raise largePageDataBytes since this was recently added, and breaks a lot of SSR rendering
     // for cocalc share server.  By default this is 128 * 1000 = "128KB", and we are changing it to
     // 128 * 1000 * 15 = "1MB" for now.  TODO: Obviously, it would be nice to fix the root causes of this

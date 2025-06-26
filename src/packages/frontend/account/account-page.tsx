@@ -235,7 +235,7 @@ export const AccountPage: React.FC = () => {
     );
   }
 
-  function render_logged_in_view(): JSX.Element {
+  function render_logged_in_view(): React.JSX.Element {
     if (!account_id) {
       return (
         <div style={{ textAlign: "center", paddingTop: "15px" }}>

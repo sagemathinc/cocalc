@@ -73,7 +73,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     track("snapshots", { action: "open", where: "explorer" });
   };
 
-  function render_hidden_toggle(): JSX.Element {
+  function render_hidden_toggle(): React.JSX.Element {
     const icon = show_hidden ? "eye" : "eye-slash";
     return (
       <Button bsSize="small" onClick={handle_hidden_toggle}>
@@ -89,7 +89,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_masked_toggle(): JSX.Element {
+  function render_masked_toggle(): React.JSX.Element {
     return (
       <Button
         onClick={handle_masked_toggle}
@@ -108,7 +108,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_backup(): JSX.Element | undefined {
+  function render_backup(): React.JSX.Element | undefined {
     // NOTE -- snapshots aren't available except in "kucalc" version
     // -- they are complicated nontrivial thing that isn't usually setup...
     if (kucalc !== KUCALC_COCALC_COM) {
@@ -129,7 +129,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     actions.toggle_library();
   };
 
-  function render_library_button(): JSX.Element | undefined {
+  function render_library_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableLibrary) {
       return;
     }
@@ -143,7 +143,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_vscode_button(): JSX.Element | undefined {
+  function render_vscode_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableVSCodeServer) {
       return;
     }
@@ -165,7 +165,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_jupyterlab_button(): JSX.Element | undefined {
+  function render_jupyterlab_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableJupyterLabServer) {
       return;
     }
@@ -188,7 +188,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_upload_button(): JSX.Element | undefined {
+  function render_upload_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableUploads) {
       return;
     }

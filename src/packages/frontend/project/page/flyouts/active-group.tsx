@@ -38,7 +38,7 @@ export function Group({
   setStarredPath,
   showStarred,
   isLast = false,
-}: GroupProps): JSX.Element {
+}: GroupProps): React.JSX.Element {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const openFiles = useTypedRedux({ project_id }, "open_files_order");

@@ -94,15 +94,15 @@ export function FilesFlyout({
   flyoutWidth,
 }: {
   flyoutWidth: number;
-}): JSX.Element {
+}): React.JSX.Element {
   const {
     isRunning: projectIsRunning,
     project_id,
     actions,
   } = useProjectContext();
   const isMountedRef = useIsMountedRef();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const refInput = useRef<InputRef>(null);
+  const rootRef = useRef<HTMLDivElement>(null as any);
+  const refInput = useRef<InputRef>(null as any);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
     null,
@@ -135,7 +135,7 @@ export function FilesFlyout({
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const disableUploads = student_project_functionality.disableUploads ?? false;
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null as any);
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::files::${current_path}`,
   });
@@ -610,7 +610,7 @@ export function FilesFlyout({
     );
   }
 
-  function renderLoadingOrStartProject(): JSX.Element {
+  function renderLoadingOrStartProject(): React.JSX.Element {
     if (projectIsRunning) {
       return <Loading theme="medium" transparent />;
     } else {
@@ -638,7 +638,7 @@ export function FilesFlyout({
     }
   }
 
-  function renderListing(): JSX.Element {
+  function renderListing(): React.JSX.Element {
     const files = directoryListings?.get(current_path);
     if (files == null) {
       return renderLoadingOrStartProject();

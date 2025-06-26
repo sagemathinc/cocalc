@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { Alert, Divider, Radio, Input, Select, Space } from "antd";
 import useDatabase from "lib/hooks/database";
 import useCustomize from "lib/use-customize";

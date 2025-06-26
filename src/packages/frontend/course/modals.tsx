@@ -101,7 +101,7 @@ export default function Modals(props: Props) {
 }
 
 function getModal(modal: string): {
-  Body: (props) => JSX.Element;
+  Body: (props) => React.JSX.Element;
   title?: string | IntlMessage;
   icon?: IconName;
 } {

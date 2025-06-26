@@ -20,7 +20,7 @@ interface Props {
   font_size?: number;
 }
 
-export function EditorSettingsColorScheme(props: Props): JSX.Element {
+export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
   const intl = useIntl();
 
   return (

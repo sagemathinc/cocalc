@@ -21,9 +21,13 @@ test("consistent naming", () => {
     expect(short).toBeDefined();
     switch (group) {
       case "Main":
-        expect(["default", "ubuntu2004", "ubuntu2204", "ubuntu1804"]).toContain(
-          base,
-        );
+        expect([
+          "default",
+          "ubuntu1804",
+          "ubuntu2004",
+          "ubuntu2204",
+          "ubuntu2404",
+        ]).toContain(base);
         break;
 
       case "Ubuntu 20.04":

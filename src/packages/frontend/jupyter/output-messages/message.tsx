@@ -118,7 +118,7 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       [output],
     );
 
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     // NOTE: hasIframes -- we do not switch the output mode to "scrolled" if there are iframes in the output,
     // due to it being too difficult to handle them combined with windowing/virtualization.
     // It's likely that if there are iframes, the output is just one big iframe and scrolled mode is

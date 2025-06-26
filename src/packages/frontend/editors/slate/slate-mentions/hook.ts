@@ -24,14 +24,14 @@ import { debounce } from "lodash";
 interface Options {
   editor: ReactEditor;
   insertMention: (Editor, string) => void;
-  matchingUsers: (search: string) => (string | JSX.Element)[];
+  matchingUsers: (search: string) => (string | React.JSX.Element)[];
   isVisible?: boolean;
 }
 
 interface MentionsControl {
   onChange: () => void;
   onKeyDown: (event) => void;
-  Mentions: JSX.Element | undefined;
+  Mentions: React.JSX.Element | undefined;
 }
 
 export const useMentions: (Options) => MentionsControl = ({

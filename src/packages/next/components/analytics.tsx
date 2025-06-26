@@ -7,6 +7,8 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import useCustomize from "lib/use-customize";
 
+import type { JSX } from "react";
+
 function GoogleAnalytics() {
   const { googleAnalytics } = useCustomize();
 

@@ -44,7 +44,7 @@ export default function AddStudents({
 }: Props) {
   const intl = useIntl();
   const addSelectRef = useRef<HTMLSelectElement>(null);
-  const studentAddInputRef = useRef(null);
+  const studentAddInputRef = useRef<any>(null);
   const actions = useActions<CourseActions>({ name });
   const [studentInputFocused, setStudentInputFocused] =
     useState<boolean>(false);

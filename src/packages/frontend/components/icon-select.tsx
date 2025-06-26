@@ -79,7 +79,7 @@ export default function IconSelect({
 
 function icons(search, fontSize, onClick) {
   search = search.trim().toLowerCase();
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const name of iconNames) {
     if (!name.includes(search)) continue;
     v.push(

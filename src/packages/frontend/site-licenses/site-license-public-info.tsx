@@ -254,7 +254,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }, [site_licenses, infos]);
 
-  function rowInfo(rec: TableRow): JSX.Element {
+  function rowInfo(rec: TableRow): React.JSX.Element {
     return (
       <SiteLicensePublicInfo
         license_id={rec.license_id}
@@ -309,7 +309,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function runLimitAndExpiration(rec: TableRow): JSX.Element {
+  function runLimitAndExpiration(rec: TableRow): React.JSX.Element {
     const delimiter = isFlyout ? <br /> : " ";
     const runLimit = infos?.[rec.license_id]?.run_limit ?? 1;
 
@@ -363,7 +363,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     }
   }
 
-  function renderStatusText(rec: TableRow): JSX.Element {
+  function renderStatusText(rec: TableRow): React.JSX.Element {
     const licenseInfo = infos?.[rec.license_id];
     if (!licenseInfo) return <></>;
     const quota: SiteLicenseQuota | undefined = licenseInfo.quota;
@@ -384,7 +384,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     return <>{rec.status}</>;
   }
 
-  function renderLicense(rec: TableRow): JSX.Element {
+  function renderLicense(rec: TableRow): React.JSX.Element {
     // as a fallback, we show the truncated license id
     const title = rec.title ? rec.title : trunc_license_id(rec.license_id);
     return (
@@ -461,7 +461,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemoveButton(license_id: string): JSX.Element {
+  function renderRemoveButton(license_id: string): React.JSX.Element {
     return (
       <Popconfirm
         title={
@@ -487,7 +487,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemove(license_id: string): JSX.Element | undefined {
+  function renderRemove(license_id: string): React.JSX.Element | undefined {
     // we can only remove from within a project
     if (!project_id && onRemove == null) return;
     // div hack: https://github.com/ant-design/ant-design/issues/7233#issuecomment-356894956
@@ -514,7 +514,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     ));
   }
 
-  function renderButtons(): JSX.Element {
+  function renderButtons(): React.JSX.Element {
     return (
       <div style={{ display: "flex" }}>
         <Tooltip placement="bottom" title={"Reload license information"}>

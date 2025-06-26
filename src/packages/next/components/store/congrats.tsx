@@ -22,6 +22,8 @@ import useAPI from "lib/hooks/api";
 import bella from "public/shopping/bella.png";
 import TimeAgo from "timeago-react";
 
+import type { JSX } from "react";
+
 export default function Congrats() {
   const purchases = useAPI("/shopping/cart/recent-purchases", {
     recent: "2 day",

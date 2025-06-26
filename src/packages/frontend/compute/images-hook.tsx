@@ -59,10 +59,10 @@ function useImages0(name: Name) {
   }
 }
 
-export function useImages(): [Images | null, JSX.Element | null] {
+export function useImages(): [Images | null, React.JSX.Element | null] {
   const [images, error] = useImages0("compute_servers_images");
   if (error != null) {
-    return [null, error as JSX.Element];
+    return [null, error as React.JSX.Element];
   } else if (images == null) {
     return [images as null, error as null];
   } else {
@@ -77,10 +77,10 @@ type GoogleImages = {
   };
 };
 
-export function useGoogleImages(): [GoogleImages | null, JSX.Element | null] {
+export function useGoogleImages(): [GoogleImages | null, React.JSX.Element | null] {
   const [images, error] = useImages0("compute_servers_images_google");
   if (error != null) {
-    return [null, error as JSX.Element];
+    return [null, error as React.JSX.Element];
   } else if (images == null) {
     return [images as null, error as null];
   } else {

@@ -535,7 +535,7 @@ function MessageFull({
 function getTag({ message, threads, folder, intl }) {
   // set deleted false so still see the tag even when message in the trash,
   // which helps when undeleting.
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   if (
     isDraft(message) ||
     isInFolderThreaded({

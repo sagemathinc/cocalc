@@ -123,7 +123,7 @@ export const Page: React.FC = () => {
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
 
-  function account_tab_icon(): IconName | JSX.Element {
+  function account_tab_icon(): IconName | React.JSX.Element {
     if (is_anonymous) {
       return <></>;
     } else if (account_id) {
@@ -140,7 +140,7 @@ export const Page: React.FC = () => {
     }
   }
 
-  function render_account_tab(): JSX.Element {
+  function render_account_tab(): React.JSX.Element {
     if (!accountIsReady) {
       return (
         <div>
@@ -197,7 +197,7 @@ export const Page: React.FC = () => {
     return <BalanceButton minimal topBar />;
   }
 
-  function render_admin_tab(): JSX.Element | undefined {
+  function render_admin_tab(): React.JSX.Element | undefined {
     if (is_logged_in && groups?.includes("admin")) {
       return (
         <NavTab
@@ -212,7 +212,7 @@ export const Page: React.FC = () => {
     }
   }
 
-  function render_sign_in_tab(): JSX.Element | null {
+  function render_sign_in_tab(): React.JSX.Element | null {
     if (is_logged_in || !showSignInTab) return null;
 
     return (
@@ -235,7 +235,7 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_support(): JSX.Element | undefined {
+  function render_support(): React.JSX.Element | undefined {
     if (!is_commercial) {
       return;
     }
@@ -259,14 +259,14 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_bell(): JSX.Element | undefined {
+  function render_bell(): React.JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return (
       <Notification type="bell" active={show_file_use} pageStyle={pageStyle} />
     );
   }
 
-  function render_notification(): JSX.Element | undefined {
+  function render_notification(): React.JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return (
       <Notification
@@ -277,13 +277,13 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_fullscreen(): JSX.Element | undefined {
+  function render_fullscreen(): React.JSX.Element | undefined {
     if (isNarrow || is_anonymous) return;
 
     return <FullscreenButton pageStyle={pageStyle} />;
   }
 
-  function render_right_nav(): JSX.Element {
+  function render_right_nav(): React.JSX.Element {
     return (
       <div
         className="smc-right-tabs-fixed"
@@ -314,7 +314,7 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_project_nav_button(): JSX.Element {
+  function render_project_nav_button(): React.JSX.Element {
     return (
       <NavTab
         style={{

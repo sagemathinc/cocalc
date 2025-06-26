@@ -227,7 +227,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   // usually, one job is running at a time
   function render_jobs(): Rendered {
     if (!build_logs) return;
-    const infos: JSX.Element[] = [];
+    const infos: React.JSX.Element[] = [];
     let isLongRunning = false;
     let logTail = "";
     build_logs.forEach((infoI, key) => {

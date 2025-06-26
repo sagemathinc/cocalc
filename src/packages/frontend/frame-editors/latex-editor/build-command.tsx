@@ -110,7 +110,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     });
   }
 
-  function render_engines(): JSX.Element {
+  function render_engines(): React.JSX.Element {
     return (
       <Dropdown
         placement={"bottomRight"}

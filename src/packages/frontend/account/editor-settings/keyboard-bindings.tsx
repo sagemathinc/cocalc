@@ -13,7 +13,7 @@ interface Props {
   on_change: (selected: string) => void;
 }
 
-export function EditorSettingsKeyboardBindings(props: Props): JSX.Element {
+export function EditorSettingsKeyboardBindings(props: Props): React.JSX.Element {
   const intl = useIntl();
 
   const label = intl.formatMessage({

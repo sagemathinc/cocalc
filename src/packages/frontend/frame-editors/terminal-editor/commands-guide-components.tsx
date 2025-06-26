@@ -64,8 +64,8 @@ export const SelectFile: React.FC<SelectFileProps> = React.memo(
 // ------------------------
 
 interface RowLayoutProps {
-  left: JSX.Element | string;
-  right: JSX.Element | string;
+  left: React.JSX.Element | string;
+  right: React.JSX.Element | string;
 }
 
 const RowLayout: React.FC<RowLayoutProps> = React.memo(

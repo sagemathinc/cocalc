@@ -70,7 +70,7 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
       );
     }
 
-    function renderDescription(): JSX.Element {
+    function renderDescription(): React.JSX.Element {
       return (
         <div style={{ display: "flex", flexDirection: "row" }}>
           <div style={{ flex: "1 1 auto" }}>

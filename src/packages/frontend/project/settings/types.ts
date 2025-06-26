@@ -54,6 +54,6 @@ export type Project = TypedMap<{
 export type SoftwareInfo = {
   title: string;
   desc: string;
-  registryInfo?: JSX.Element;
-  extra?: ReactNode | JSX.Element | null;
+  registryInfo?: React.JSX.Element;
+  extra?: ReactNode | React.JSX.Element | null;
 };

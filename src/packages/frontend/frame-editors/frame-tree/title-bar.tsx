@@ -12,7 +12,6 @@ import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -638,7 +637,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   function renderSaveTimetravelGroup(): Rendered {
     const noLabel = IS_MOBILE || !(props.is_only || props.is_full);
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     let x;
     if ((x = renderSaveButton(noLabel))) v.push(x);
     if ((x = renderTimeTravel(noLabel))) v.push(x);
@@ -721,7 +720,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   function renderMenus() {
     if (!is_active) return;
 
-    const v: { menu: JSX.Element; pos: number }[] = [];
+    const v: { menu: React.JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
       const x = renderMenu(name);
       if (x != null) {
@@ -775,7 +774,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         disableTourRefs.current = true;
       }
 
-      const v: (JSX.Element | undefined | null)[] = [];
+      const v: (React.JSX.Element | undefined | null)[] = [];
       v.push(renderSaveTimetravelGroup());
       if (props.title != null) {
         v.push(renderTitle());
@@ -1088,7 +1087,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return null;
     }
     const w = manageCommands.getToolbarButtons();
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     for (const name of w) {
       const b = renderButtonBarButton(name);
       if (b != null) {

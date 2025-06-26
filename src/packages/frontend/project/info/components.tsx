@@ -227,7 +227,7 @@ interface CGroupTipProps {
 const CGroupTip: React.FC<CGroupTipProps> = React.memo(
   (props: CGroupTipProps) => {
     const { children, type, cg_info, disk_usage } = props;
-    function render_text(): JSX.Element {
+    function render_text(): React.JSX.Element {
       switch (type) {
         case "mem":
           return (

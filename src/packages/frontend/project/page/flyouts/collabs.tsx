@@ -21,7 +21,7 @@ interface CollabsProps {
   wrap: Function;
 }
 
-export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
+export function CollabsFlyout({ project_id, wrap }: CollabsProps): React.JSX.Element {
   const intl = useIntl();
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
