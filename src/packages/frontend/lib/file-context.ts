@@ -76,6 +76,9 @@ export interface IFileContext {
   client?;
 
   is_visible?: boolean;
+
+  // mermaid is only available in the app because it is ESM only and I can't load it into nextjs anymore.
+  getMermaid?: () => Promise<any>;
 }
 
 export const FileContext = createContext<IFileContext>({});

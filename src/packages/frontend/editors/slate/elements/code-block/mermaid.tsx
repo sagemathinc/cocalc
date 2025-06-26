@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
 import { uuid, replace_all } from "@cocalc/util/misc";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
   value: string;
@@ -18,6 +19,11 @@ export default function Mermaid({ value, style }: Props) {
   const [mermaidError, setMermaidError] = useState<string>("");
   const processingRef = useRef<boolean>(false);
   const [id] = useState<string>("a" + replace_all(uuid(), "-", ""));
+  const { getMermaid } = useFileContext();
+
+  if (getMermaid == null) {
+    return <div style={style}>Mermaid not available</div>;
+  }
 
   const waitUntilNotProcessing = async () => {
     let d = 1;
@@ -59,17 +65,4 @@ export default function Mermaid({ value, style }: Props) {
       <ShowError error={mermaidError} setError={setMermaidError} />
     </div>
   );
-}
-
-//let initialized = false;
-async function getMermaid() : Promise<any> {
-  throw Error("mermaid js support disabled");
-//   //const mermaid = (await import("mermaid")).default;
-//   if (!initialized) {
-//     mermaid.initialize({
-//       startOnLoad: false,
-//     });
-//     initialized = true;
-//   }
-//   return mermaid;
 }

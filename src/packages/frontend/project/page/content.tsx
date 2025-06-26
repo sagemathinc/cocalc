@@ -46,6 +46,7 @@ import { ProjectCollaboratorsPage } from "./project-collaborators";
 import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import getMermaid from "@cocalc/frontend/editors/slate/elements/code-block/get-mermaid";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -170,6 +171,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           path,
           is_visible,
           client: webapp_client,
+          getMermaid,
         };
         return (
           <FileContext.Provider value={value}>
