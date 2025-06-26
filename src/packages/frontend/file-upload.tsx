@@ -7,7 +7,6 @@ import "react-dropzone-component/styles/filepicker.css";
 import Dropzone from "dropzone";
 Dropzone.autoDiscover = false;
 
-
 export { Dropzone };
 import ReactDOMServer from "react-dom/server"; // for dropzone below
 import { Button } from "antd";
@@ -162,6 +161,7 @@ export function FileUpload({
   show_header,
   config,
 }: FileUploadProps) {
+  console.log("todo: dropzone", { current_path, dropzone_handler, config });
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
 
@@ -173,9 +173,9 @@ export function FileUpload({
     );
   }
 
-  function dropzone_template() {
-    return <DropzonePreview project_id={project_id} />;
-  }
+//   function dropzone_template() {
+//     return <DropzonePreview project_id={project_id} />;
+//   }
 
   function render_close_button() {
     return (
