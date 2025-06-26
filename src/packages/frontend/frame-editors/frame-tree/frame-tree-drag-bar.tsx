@@ -10,8 +10,7 @@
 
 import { Map } from "immutable";
 import React from "react";
-
-import { CSS, ReactDOM, useState } from "@cocalc/frontend/app-framework";
+import { CSS, useState } from "@cocalc/frontend/app-framework";
 import * as feature from "@cocalc/frontend/feature";
 import {
   drag_start_iframe_disable,
@@ -73,14 +72,14 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
   function reset() {
     if (dragBarRef.current != null) {
       (dragBarRef.current as any).state[axis] = 0;
-      $(ReactDOM.findDOMNode(dragBarRef.current)).css("transform", "");
+      $(dragBarRef.current).css("transform", "");
     }
   }
 
   function calcPosition(_, ui) {
     const offsetNode = dir === "col" ? ui.node.offsetLeft : ui.node.offsetTop;
     const offset = offsetNode + ui[axis] + DRAG_OFFSET;
-    const elt = ReactDOM.findDOMNode(containerRef.current);
+    const elt = containerRef.current;
     const pos =
       dir === "col"
         ? (offset - elt.offsetLeft) / elt.offsetWidth

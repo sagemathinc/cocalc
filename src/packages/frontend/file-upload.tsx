@@ -263,9 +263,9 @@ export function FileUploadWrapper({
     useStudentProjectFunctionality(project_id);
   const disabled = disabled0 || student_project_functionality.disableUploads;
   const [files, set_files] = useState<string[]>([]);
-  const preview_ref = useRef(null);
-  const zone_ref = useRef(null);
-  const dropzone = useRef<Dropzone | null>(null);
+  const preview_ref = useRef<any>(null);
+  const zone_ref = useRef<any>(null);
+  const dropzone = useRef<Dropzone>(null);
   const mouseEvt = useRef<any>(null);
 
   function get_djs_config() {

@@ -13,7 +13,8 @@ rewrote this to use the Antd dropdown, which is more dynamic.
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { CSS, ReactDOM } from "@cocalc/frontend/app-framework";
+import { CSS } from "@cocalc/frontend/app-framework";
+import ReactDOM from "react-dom";
 import type { MenuItems } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { strictMod } from "@cocalc/util/misc";

@@ -140,7 +140,7 @@ function EditText({
   }, []);
 
   // Automatic resizing:
-  const divRef = useRef<HTMLDivElement>(null);
+  const divRef = useRef<HTMLDivElement>(null as any);
   const resize = useResizeObserver({
     // only listen if editable -- otherwise we might create tons of these, which is wasteful
     ref: readOnly || !editFocus ? undefined : divRef,

@@ -65,7 +65,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   );
   const [license_id, set_license_id] = useState<string>("");
   const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
-  const new_project_title_ref = useRef(null);
+  const new_project_title_ref = useRef<any>(null);
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const compute_servers_enabled = useTypedRedux(

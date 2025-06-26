@@ -107,7 +107,7 @@ export interface EditorDescription {
   short: string | IntlMessage; // short description of the editor
   name: string | IntlMessage; // slightly longer description
   icon: IconName;
-  component: (props: EditorComponentProps) => ReactNode;
+  component: (props: EditorComponentProps) => ReactNode | Promise<ReactNode>;
 
   // commands that will be displayed in the menu (if they exist)
   commands?: { [commandName: string]: boolean };

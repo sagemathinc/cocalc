@@ -14,11 +14,9 @@ codemirror editor instance mainly for use in a frame tree.
 
 import * as CodeMirror from "codemirror";
 import { Map, Set } from "immutable";
-
 import {
   CSS,
   React,
-  ReactDOM,
   Rendered,
   useEffect,
   useIsMountedRef,
@@ -217,7 +215,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   async function init_codemirror(props: Props): Promise<void> {
-    const node: HTMLTextAreaElement = ReactDOM.findDOMNode(textareaRef.current);
+    const node: HTMLTextAreaElement = textareaRef.current;
     if (node == null) {
       return;
     }

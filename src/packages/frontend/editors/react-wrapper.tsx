@@ -12,15 +12,9 @@
 
 import { debounce } from "lodash";
 import { delay } from "awaiting";
-import { NotifyResize } from '@zippytech/react-notify-resize'
+import { NotifyResize } from "@zippytech/react-notify-resize";
 
-import {
-  React,
-  ReactDOM,
-  useAsyncEffect,
-  useEffect,
-  useRef,
-} from "../app-framework";
+import { React, useAsyncEffect, useEffect, useRef } from "../app-framework";
 import { copy } from "@cocalc/util/misc";
 
 // Once we get rid of all editor.coffee:
@@ -28,7 +22,7 @@ import { copy } from "@cocalc/util/misc";
 //import { file_options } from "../editor-tmp";
 
 const WrappedEditor: React.FC<{ editor: any }> = ({ editor }) => {
-  const ref = useRef(null);
+  const ref = useRef<any>(null);
 
   // Refreshes -- cause the editor to resize itself
   function refresh() {
@@ -47,7 +41,7 @@ const WrappedEditor: React.FC<{ editor: any }> = ({ editor }) => {
       // trickiness.
       await delay(0);
       if (!is_mounted()) return;
-      const elt = $(ReactDOM.findDOMNode(ref.current));
+      const elt = $(ref.current);
       if (elt.length > 0) {
         elt.replaceWith(editor.element[0]);
       }
@@ -72,7 +66,7 @@ const WrappedEditor: React.FC<{ editor: any }> = ({ editor }) => {
       }
       editor.hide();
     },
-    []
+    [],
   );
 
   useEffect(refresh);
@@ -134,7 +128,7 @@ export function register_nonreact_editor(opts: {
     generator(
       path: string,
       _redux,
-      project_id: string
+      project_id: string,
     ): Function | JSX.Element {
       const key = get_key(project_id, path);
       const wrapper_generator = function () {

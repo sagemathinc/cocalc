@@ -16,7 +16,7 @@ import { delay } from "awaiting";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { is_different } from "@cocalc/util/misc";
 import { debounce } from "lodash";
-import { React, ReactDOM, CSS } from "../../app-framework";
+import { React, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
 import { Actions } from "./actions";
@@ -64,7 +64,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   const fileContext = useFileContext();
 
-  const scroll = React.useRef<HTMLDivElement>(null);
+  const scroll = React.useRef<HTMLDivElement>(null as any);
 
   const scaling = use_font_size_scaling(font_size);
 
@@ -74,17 +74,18 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, []);
 
   function on_scroll(): void {
-    const elt = ReactDOM.findDOMNode(scroll.current);
+    const elt = scroll.current;
     if (elt == null) {
       return;
     }
+    // @ts-ignore
     const scroll_val = $(elt).scrollTop();
     actions.save_editor_state(id, { scroll: scroll_val });
   }
 
   async function restore_scroll(): Promise<void> {
     const scroll_val = editor_state.get("scroll");
-    const elt = $(ReactDOM.findDOMNode(scroll.current));
+    const elt = $(scroll.current) as any;
     try {
       if (elt.length === 0) {
         return;

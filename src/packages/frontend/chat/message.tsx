@@ -204,7 +204,7 @@ export default function Message({
   const reverseRowOrdering =
     !is_thread_body && sender_is_viewer(account_id, message);
 
-  const submitMentionsRef = useRef<SubmitMentionsFn>();
+  const submitMentionsRef = useRef<SubmitMentionsFn>(null as any);
 
   const [replying, setReplying] = useState<boolean>(() => {
     if (!allowReply) {

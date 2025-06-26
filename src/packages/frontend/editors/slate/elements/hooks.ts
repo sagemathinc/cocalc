@@ -6,7 +6,6 @@
 export { useFocused, useSelected } from "../slate-react";
 
 import {
-  ReactDOM,
   useEffect,
   useFrameContext,
   useRef,
@@ -46,7 +45,7 @@ export const useProcessLinks = (
   const { project_id, path } = useFrameContext();
   useEffect(() => {
     if (ref.current == null) return;
-    const elt = $(ReactDOM.findDOMNode(ref.current));
+    const elt = $(ref.current);
     (elt as any).process_smc_links({
       project_id,
       file_path: path_split(path).head, // TODO: inefficient to compute this every time.

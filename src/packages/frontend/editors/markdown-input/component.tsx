@@ -21,12 +21,7 @@ import {
   useState,
 } from "react";
 import { alert_message } from "@cocalc/frontend/alerts";
-import {
-  ReactDOM,
-  redux,
-  useRedux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { A } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -188,7 +183,7 @@ export function MarkdownInput(props: Props) {
     cursor: EventHandlerFunction;
     change: EventHandlerFunction;
     from: { line: number; ch: number };
-  }>();
+  } | undefined>(undefined);
 
   const mentionableUsers = useMentionableUsers();
 
@@ -222,7 +217,7 @@ export function MarkdownInput(props: Props) {
 
   useEffect(() => {
     // initialize the codemirror editor
-    const node = ReactDOM.findDOMNode(textarea_ref.current);
+    const node = textarea_ref.current;
     if (node == null) {
       // maybe unmounted right as this happened.
       return;

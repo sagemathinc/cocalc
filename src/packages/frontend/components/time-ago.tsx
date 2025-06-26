@@ -80,14 +80,15 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   function render_timeago_element(d) {
     // See this bug -- https://github.com/nmn/react-timeago/issues/181
     return (
-      <UpstreamTimeAgo
-        key={d}
-        title=""
-        date={d}
-        style={{ cursor: "pointer", ...style }}
-        formatter={timeago_formatter}
-        live={live}
-      />
+      <span style={{ cursor: "pointer", ...style }}>
+        <UpstreamTimeAgo
+          key={d}
+          title=""
+          date={d}
+          formatter={timeago_formatter}
+          live={live}
+        />
+      </span>
     );
   }
 

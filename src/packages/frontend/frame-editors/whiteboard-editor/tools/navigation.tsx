@@ -120,7 +120,7 @@ interface Props {
   fontSize?: number;
   elements: Element[];
   elementsMap?: ElementsMap;
-  whiteboardDivRef: MutableRefObject<HTMLDivElement | null>;
+  whiteboardDivRef: MutableRefObject<HTMLDivElement>;
   mainFrameType?: MainFrameType;
 }
 

@@ -152,9 +152,9 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       value,
     } = props;
 
-    const elementRef = React.useRef<HTMLDivElement>(null);
-    const cols_container_ref = React.useRef<HTMLDivElement>(null);
-    const rows_container_ref = React.useRef<HTMLDivElement>(null);
+    const elementRef = React.useRef<HTMLDivElement>(null as any);
+    const cols_container_ref = React.useRef<HTMLDivElement>(null as any);
+    const rows_container_ref = React.useRef<HTMLDivElement>(null as any);
 
     const [forceReload, setForceReload] = useState<number>(0);
 

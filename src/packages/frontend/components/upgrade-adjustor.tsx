@@ -65,6 +65,13 @@ interface Props {
 }
 
 export const UpgradeAdjustor: React.FC<Props> = (props) => {
+  props = {
+    upgrades_you_can_use: {},
+    upgrades_you_applied_to_all_projects: {},
+    upgrades_you_applied_to_this_project: {},
+    omit_header: false,
+    ...props,
+  };
   const force_update = useForceUpdate();
   const [upgrade_state, set_upgrade_state] = useState<UpgradeQuotas>(() => {
     const state: UpgradeQuotas = {};
@@ -515,11 +522,4 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
       />
     );
   }
-};
-
-UpgradeAdjustor.defaultProps = {
-  upgrades_you_can_use: {},
-  upgrades_you_applied_to_all_projects: {},
-  upgrades_you_applied_to_this_project: {},
-  omit_header: false,
 };
