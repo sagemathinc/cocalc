@@ -6,7 +6,7 @@
 import { theme, ThemeConfig } from "antd";
 import { debounce } from "lodash";
 import { ReactNode, useEffect, useMemo, useState } from "react";
-//import { useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
@@ -15,7 +15,7 @@ import useAppContext, { AppContext, calcStyle } from "./use-context";
 export { AppContext, useAppContext };
 
 export function useAppContextProvider() {
-  //const intl = useIntl();
+  const intl = useIntl();
 
   const [pageWidthPx, setPageWidthPx] = useState<number>(window.innerWidth);
 
@@ -47,8 +47,7 @@ export function useAppContextProvider() {
     msg: IntlMessage | ReactNode | string,
   ): ReactNode | string {
     if (isIntlMessage(msg)) {
-      return "intl todo!";
-      //return intl.formatMessage(msg);
+      return intl.formatMessage(msg);
     } else {
       return msg;
     }
