@@ -61,8 +61,8 @@ import { remove } from "@cocalc/frontend/project-file";
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
 export type ModalInfo = TypedMap<{
-  title: string | JSX.Element;
-  content: string | JSX.Element;
+  title: string | React.JSX.Element;
+  content: string | React.JSX.Element;
   onOk?: any;
   onCancel?: any;
 }>;

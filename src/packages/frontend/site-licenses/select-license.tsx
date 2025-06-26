@@ -75,8 +75,8 @@ export default function SelectLicense(props: Props) {
   }, [managedLicenses, showAll]);
   const [showCall, setShowCall] = useState<boolean>(false);
 
-  const options: JSX.Element[] = useMemo(() => {
-    const v: JSX.Element[] = [];
+  const options: React.JSX.Element[] = useMemo(() => {
+    const v: React.JSX.Element[] = [];
     for (const id of licenseIds) {
       if (exclude?.includes(id)) continue;
       const { title, quota, expires } = managedLicenses[id] ?? {};
@@ -113,7 +113,7 @@ export default function SelectLicense(props: Props) {
 
   const valid = isValidUUID(licenseId);
 
-  function wrapConfirm(button: JSX.Element): JSX.Element {
+  function wrapConfirm(button: React.JSX.Element): React.JSX.Element {
     if (extra == null || onSave == null) return button;
 
     return (

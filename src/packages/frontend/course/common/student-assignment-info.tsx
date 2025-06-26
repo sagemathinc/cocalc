@@ -243,7 +243,7 @@ export function StudentAssignmentInfo({
     );
   }
 
-  function render_run_nbgrader(label: JSX.Element | string) {
+  function render_run_nbgrader(label: React.JSX.Element | string) {
     let running = false;
     if (nbgrader_run_info != null) {
       const t = nbgrader_run_info.get(
@@ -331,7 +331,7 @@ export function StudentAssignmentInfo({
     placement,
   ) {
     if (recopy[step]) {
-      const v: JSX.Element[] = [];
+      const v: React.JSX.Element[] = [];
       v.push(
         <Button
           key="copy_cancel"
@@ -506,11 +506,11 @@ export function StudentAssignmentInfo({
     copy_tip = "",
     open_tip = "",
     omit_errors = false,
-  }: RenderLastProps): JSX.Element {
+  }: RenderLastProps): React.JSX.Element {
     const do_open = () => open(type, info.assignment_id, info.student_id);
     const do_copy = () => copy(type, info.assignment_id, info.student_id);
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     if (enable_copy) {
       if (webapp_client.server_time() - (data.start ?? 0) < COPY_TIMEOUT_MS) {
         v.push(render_open_copying(step, do_open, do_stop));

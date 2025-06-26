@@ -297,7 +297,7 @@ const Explorer0 = rclass(
       this.props.actions.setState({ file_search: "", page_number: 0 });
     };
 
-    render_paging_buttons(num_pages: number): JSX.Element | undefined {
+    render_paging_buttons(num_pages: number): React.JSX.Element | undefined {
       if (num_pages > 1) {
         return (
           <Row>
@@ -556,7 +556,7 @@ const Explorer0 = rclass(
 
     render_control_row(
       visible_listing: ListingItem[] | undefined,
-    ): JSX.Element {
+    ): React.JSX.Element {
       return (
         <div
           style={{
@@ -639,7 +639,7 @@ const Explorer0 = rclass(
       );
     }
 
-    render_project_files_buttons(): JSX.Element {
+    render_project_files_buttons(): React.JSX.Element {
       return (
         <div
           ref={this.miscButtonsRef}

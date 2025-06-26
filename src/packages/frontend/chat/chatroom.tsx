@@ -104,7 +104,7 @@ export function ChatRoom({
     on_send();
   }
 
-  function render_preview_message(): JSX.Element | undefined {
+  function render_preview_message(): React.JSX.Element | undefined {
     if (!showPreview) {
       return;
     }
@@ -268,7 +268,7 @@ export function ChatRoom({
     setInput("");
   }
 
-  function render_body(): JSX.Element {
+  function render_body(): React.JSX.Element {
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
         {render_button_row()}

@@ -177,7 +177,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     cancel_editing();
   }
 
-  function render_error(): JSX.Element | undefined {
+  function render_error(): React.JSX.Element | undefined {
     if (!error) return;
 
     return (
@@ -193,7 +193,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     redux.getActions("page").set_active_tab("account");
   }
 
-  function render_new_project_button(): JSX.Element | undefined {
+  function render_new_project_button(): React.JSX.Element | undefined {
     if (is_anonymous) {
       // anonymous users can't create projects...
       return (
@@ -330,7 +330,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     }
   }
 
-  function render_input_section(): JSX.Element | undefined {
+  function render_input_section(): React.JSX.Element | undefined {
     const helpTxt = intl.formatMessage({
       id: "projects.create-project.helpTxt",
       defaultMessage: "Pick a title. You can easily change it later!",
@@ -430,7 +430,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
     );
   }
 
-  function render_project_creation(): JSX.Element | undefined {
+  function render_project_creation(): React.JSX.Element | undefined {
     if (state === "view") return;
     // if user has no projects yet, show the create dialog directly – otherwise its a modal
     if (noProjects) {

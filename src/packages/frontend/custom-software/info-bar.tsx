@@ -67,7 +67,7 @@ export const CustomSoftwareInfo: React.FC<Props> = (props: Props) => {
     actions.toggle_custom_software_reset(!show_custom_software_reset);
   }
 
-  function render_jupyter(): JSX.Element | null {
+  function render_jupyter(): React.JSX.Element | null {
     if (available_features == null) return null;
 
     const href_jupyterlab = serverURL(project_id, "jupyterlab");

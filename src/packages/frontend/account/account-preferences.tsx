@@ -43,7 +43,7 @@ export const AccountPreferences: React.FC = () => {
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
 
-  function render_account_settings(): JSX.Element {
+  function render_account_settings(): React.JSX.Element {
     return (
       <AccountSettings
         account_id={account_id}
@@ -65,7 +65,7 @@ export const AccountPreferences: React.FC = () => {
     );
   }
 
-  function render_other_settings(): JSX.Element {
+  function render_other_settings(): React.JSX.Element {
     if (other_settings == null) return <Loading />;
     return (
       <OtherSettings
@@ -78,7 +78,7 @@ export const AccountPreferences: React.FC = () => {
     );
   }
 
-  function renderDarkMode(): JSX.Element {
+  function renderDarkMode(): React.JSX.Element {
     return (
       <Tooltip title="Enable dark mode across the entire user interface. See further dark mode configuration below.">
         <Form style={{ height: "37px" }}>
@@ -120,7 +120,7 @@ export const AccountPreferences: React.FC = () => {
     );
   }
 
-  function render_all_settings(): JSX.Element {
+  function render_all_settings(): React.JSX.Element {
     return (
       <>
         <Flex>

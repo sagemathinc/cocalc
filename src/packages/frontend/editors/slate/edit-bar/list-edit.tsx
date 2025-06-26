@@ -20,7 +20,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
   if (listProperties == null) {
     return <></>;
   }
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
 
   v.push(
     <Checkbox

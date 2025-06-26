@@ -142,7 +142,7 @@ function RenderElement({
   toggleHashtag,
   searchWords,
 }) {
-  let children: JSX.Element[] = [];
+  let children: React.JSX.Element[] = [];
   if (element["children"]) {
     let n = 0;
     for (const child of element["children"]) {

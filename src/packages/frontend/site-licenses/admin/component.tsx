@@ -204,7 +204,7 @@ export const SiteLicenses: React.FC<{}> = () => {
     set_exporting(false);
   }
 
-  function render_export(): JSX.Element {
+  function render_export(): React.JSX.Element {
     return (
       <span>
         <Button disabled={show_export} onClick={() => set_show_export(true)}>

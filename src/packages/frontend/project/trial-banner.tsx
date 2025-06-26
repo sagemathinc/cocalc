@@ -161,7 +161,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     //   );
     // }
 
-    function renderBuyAndUpgrade(text: string = "with a license"): JSX.Element {
+    function renderBuyAndUpgrade(text: string = "with a license"): React.JSX.Element {
       return (
         <>
           <BuyLicenseForProject
@@ -180,7 +180,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       );
     }
 
-    function renderMessage(): JSX.Element | undefined {
+    function renderMessage(): React.JSX.Element | undefined {
       if (allow_run === false) {
         return (
           <span>
@@ -236,7 +236,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       }
     }
 
-    function renderLearnMore(color): JSX.Element {
+    function renderLearnMore(color): React.JSX.Element {
       const a_style_more = {
         ...a_style,
         ...{ fontWeight: "bold" as "bold", color: color },

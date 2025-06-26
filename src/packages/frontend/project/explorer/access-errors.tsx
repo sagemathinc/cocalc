@@ -10,7 +10,7 @@ interface Props {
   is_logged_in: boolean;
 }
 
-export function AccessErrors({ is_logged_in }: Props): JSX.Element {
+export function AccessErrors({ is_logged_in }: Props): React.JSX.Element {
   if (is_logged_in) {
     return (
       <ErrorDisplay

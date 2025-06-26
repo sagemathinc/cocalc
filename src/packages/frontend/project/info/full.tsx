@@ -33,10 +33,10 @@ import { ROOT_STYLE } from "../servers/consts";
 interface Props {
   any_alerts: () => boolean;
   cg_info: CGroupInfo;
-  render_disconnected: () => JSX.Element | undefined;
+  render_disconnected: () => React.JSX.Element | undefined;
   disconnected: boolean;
   disk_usage: DUState;
-  error: JSX.Element | null;
+  error: React.JSX.Element | null;
   status: string;
   info: ProjectInfoType | null;
   loading: boolean;
@@ -55,11 +55,11 @@ interface Props {
   show_explanation: boolean;
   show_long_loading: boolean;
   start_ts: number | undefined;
-  render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
+  render_cocalc: (proc: ProcessRow) => React.JSX.Element | undefined;
   onCellProps;
 }
 
-export function Full(props: Readonly<Props>): JSX.Element {
+export function Full(props: Readonly<Props>): React.JSX.Element {
   const {
     any_alerts,
     cg_info,

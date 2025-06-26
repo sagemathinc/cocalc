@@ -186,7 +186,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
 
   // the max button will set the upgrade input box to the number given as max
   // This looks a little crappy but this whole component is deprecated anyways.
-  function render_max_button(name, max): JSX.Element {
+  function render_max_button(name, max): React.JSX.Element {
     return (
       <AntdButton
         size="small"

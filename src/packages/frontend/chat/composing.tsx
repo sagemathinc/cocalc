@@ -10,7 +10,7 @@ export default function Composing({ projectId, path, accountId, userMap }) {
     return null;
   }
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   const cutoff = Date.now() - 1000 * 30; // 30s
   for (const [senderId] of drafts) {
     if (accountId == senderId) {

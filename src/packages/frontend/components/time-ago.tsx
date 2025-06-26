@@ -51,7 +51,7 @@ export function is_different_date(
 
 interface TimeAgoElementProps {
   placement?;
-  tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
+  tip?: string | React.JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   date;
   time_ago_absolute?: boolean;
@@ -183,7 +183,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 
 interface TimeAgoProps {
   placement?;
-  tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
+  tip?: string | React.JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   style?: CSS;
   date?;

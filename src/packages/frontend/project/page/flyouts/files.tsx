@@ -94,7 +94,7 @@ export function FilesFlyout({
   flyoutWidth,
 }: {
   flyoutWidth: number;
-}): JSX.Element {
+}): React.JSX.Element {
   const {
     isRunning: projectIsRunning,
     project_id,
@@ -610,7 +610,7 @@ export function FilesFlyout({
     );
   }
 
-  function renderLoadingOrStartProject(): JSX.Element {
+  function renderLoadingOrStartProject(): React.JSX.Element {
     if (projectIsRunning) {
       return <Loading theme="medium" transparent />;
     } else {
@@ -638,7 +638,7 @@ export function FilesFlyout({
     }
   }
 
-  function renderListing(): JSX.Element {
+  function renderListing(): React.JSX.Element {
     const files = directoryListings?.get(current_path);
     if (files == null) {
       return renderLoadingOrStartProject();

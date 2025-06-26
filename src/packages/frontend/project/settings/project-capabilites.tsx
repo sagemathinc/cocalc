@@ -56,7 +56,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         ["julia", "Julia programming language"],
         ["rserver", R_IDE],
       ];
-      const features: JSX.Element[] = [];
+      const features: React.JSX.Element[] = [];
       let any_nonavail = false;
       for (const [key, display] of Array.from(
         sortBy(feature_map, (f) => f[1]),
@@ -103,7 +103,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         return [<div>All code formatters are available</div>, false];
       }
 
-      const r_formatters: JSX.Element[] = [];
+      const r_formatters: React.JSX.Element[] = [];
       let any_nonavail = false;
       for (const tool of sortBy(keys(formatter), (x) => x)) {
         const available = formatter[tool];

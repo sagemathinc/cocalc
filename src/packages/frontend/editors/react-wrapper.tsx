@@ -129,7 +129,7 @@ export function register_nonreact_editor(opts: {
       path: string,
       _redux,
       project_id: string,
-    ): Function | JSX.Element {
+    ): Function | React.JSX.Element {
       const key = get_key(project_id, path);
       const wrapper_generator = function () {
         if (editors[key] != null) {

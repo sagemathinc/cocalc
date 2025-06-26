@@ -43,7 +43,7 @@ export function HomeRecentFiles({
   project_id,
   style,
   mode = "box",
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -134,7 +134,7 @@ export function HomeRecentFiles({
     }
   }
 
-  function renderHeader(): JSX.Element | undefined {
+  function renderHeader(): React.JSX.Element | undefined {
     return (
       <Flex
         justify="space-between"

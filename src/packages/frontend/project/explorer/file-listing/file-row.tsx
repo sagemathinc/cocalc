@@ -69,7 +69,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       color: props.mask ? "#bbbbbb" : COLORS.FILE_ICON,
       verticalAlign: "sub",
     } as const;
-    let body: JSX.Element;
+    let body: React.JSX.Element;
     if (props.isdir) {
       body = (
         <>

@@ -60,7 +60,7 @@ interface Props {
   kucalc: string;
 }
 
-export function OtherSettings(props: Readonly<Props>): JSX.Element {
+export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   const intl = useIntl();
   const { locale } = useLocalizationCtx();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");

@@ -258,7 +258,7 @@ export function Complete({
     },
   };
 
-  function renderDropdown(): JSX.Element {
+  function renderDropdown(): React.JSX.Element {
     return (
       <Dropdown
         menu={menu}

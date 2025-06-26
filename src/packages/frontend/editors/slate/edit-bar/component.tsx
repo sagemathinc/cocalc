@@ -13,7 +13,7 @@ import { Marks } from "./marks";
 import { MarksBar } from "./marks-bar";
 
 interface Props {
-  Search: JSX.Element;
+  Search: React.JSX.Element;
   isCurrent?: boolean;
   marks: Marks;
   linkURL: string | undefined;

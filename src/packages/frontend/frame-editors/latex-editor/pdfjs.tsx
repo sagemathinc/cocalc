@@ -199,7 +199,7 @@ export function PDFJS({
     }
   }, [is_current, is_visible, pageActions != null]);
 
-  function renderStatus(): JSX.Element {
+  function renderStatus(): React.JSX.Element {
     if (status) {
       return <Loading text="Building..." />;
     } else {
@@ -211,7 +211,7 @@ export function PDFJS({
     }
   }
 
-  function renderMissing(): JSX.Element {
+  function renderMissing(): React.JSX.Element {
     return (
       <div
         style={{
@@ -224,7 +224,7 @@ export function PDFJS({
     );
   }
 
-  function renderLoading(): JSX.Element {
+  function renderLoading(): React.JSX.Element {
     return <Loading theme="medium" />;
   }
 
@@ -512,7 +512,7 @@ export function PDFJS({
     );
   }
 
-  function renderContent(): JSX.Element | JSX.Element[] {
+  function renderContent(): React.JSX.Element | React.JSX.Element[] {
     if (!loaded) {
       if (missing) {
         return renderMissing();
@@ -553,7 +553,7 @@ export function PDFJS({
     );
   }
 
-  function renderNoPdf(): JSX.Element {
+  function renderNoPdf(): React.JSX.Element {
     return (
       <div
         style={{

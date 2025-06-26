@@ -83,7 +83,7 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
   }
 
   private render_upgrades_to_project(project_id: string, upgrades) {
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     for (let param in upgrades) {
       const val = upgrades[param];
       if (!val) {
@@ -151,9 +151,9 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
     );
   }
 
-  private render_upgraded_projects_rows(upgraded_projects): JSX.Element[] {
+  private render_upgraded_projects_rows(upgraded_projects): React.JSX.Element[] {
     let i = -1;
-    const result: JSX.Element[] = [];
+    const result: React.JSX.Element[] = [];
     for (let project_id in upgraded_projects) {
       const upgrades = upgraded_projects[project_id];
       i += 1;

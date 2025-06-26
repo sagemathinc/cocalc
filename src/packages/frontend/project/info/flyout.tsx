@@ -25,10 +25,10 @@ import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 interface Props {
   wrap?: Function;
   cg_info: CGroupInfo;
-  render_disconnected: () => JSX.Element | undefined;
+  render_disconnected: () => React.JSX.Element | undefined;
   disconnected: boolean;
   disk_usage: DUState;
-  error: JSX.Element | null;
+  error: React.JSX.Element | null;
   status: string;
   info: ProjectInfoType | null;
   loading: boolean;
@@ -45,11 +45,11 @@ interface Props {
   show_explanation: boolean;
   show_long_loading: boolean;
   start_ts: number | undefined;
-  render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
+  render_cocalc: (proc: ProcessRow) => React.JSX.Element | undefined;
   onCellProps;
 }
 
-export function Flyout(_: Readonly<Props>): JSX.Element {
+export function Flyout(_: Readonly<Props>): React.JSX.Element {
   const {
     wrap,
     cg_info,

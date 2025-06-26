@@ -42,7 +42,7 @@ class UpgradesPage extends Component<reduxProps> {
     };
   }
 
-  private render_no_upgrades(): JSX.Element {
+  private render_no_upgrades(): React.JSX.Element {
     return (
       <div>
         <h3>Upgrades are no longer available</h3>
@@ -56,7 +56,7 @@ class UpgradesPage extends Component<reduxProps> {
     );
   }
 
-  private render_have_upgrades(): JSX.Element {
+  private render_have_upgrades(): React.JSX.Element {
     return (
       <div style={{ margin: "10px 0" }}>
         <h3>
@@ -81,7 +81,7 @@ class UpgradesPage extends Component<reduxProps> {
     );
   }
 
-  private render_upgrade(param, amount, used, darker): JSX.Element {
+  private render_upgrade(param, amount, used, darker): React.JSX.Element {
     const info = PROJECT_UPGRADES.params[param];
     const n = round1(amount != null ? info.display_factor * amount : 0);
     let u = round1(used != null ? info.display_factor * used : 0);
@@ -120,9 +120,9 @@ class UpgradesPage extends Component<reduxProps> {
     );
   }
 
-  private render_upgrade_rows(upgrades, used): JSX.Element[] {
+  private render_upgrade_rows(upgrades, used): React.JSX.Element[] {
     let i = 1;
-    const result: JSX.Element[] = [];
+    const result: React.JSX.Element[] = [];
     for (let prop of PROJECT_UPGRADES.field_order) {
       const amount = upgrades[prop];
       i += 1;
@@ -131,7 +131,7 @@ class UpgradesPage extends Component<reduxProps> {
     return result;
   }
 
-  private render_upgrades(): JSX.Element {
+  private render_upgrades(): React.JSX.Element {
     const upgrades = redux.getStore("account").get_total_upgrades();
     const used = redux
       .getStore("projects")
@@ -173,7 +173,7 @@ class UpgradesPage extends Component<reduxProps> {
     );
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (this.props.project_map == null) {
       return <Loading theme={"medium"} />;
     }

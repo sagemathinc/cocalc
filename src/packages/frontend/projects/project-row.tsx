@@ -62,7 +62,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
 
   const actions = useActions("projects");
 
-  function render_add_collab(): JSX.Element | undefined {
+  function render_add_collab(): React.JSX.Element | undefined {
     if (!add_collab) {
       return;
     }
@@ -75,7 +75,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     );
   }
 
-  function render_collab(): JSX.Element {
+  function render_collab(): React.JSX.Element {
     return (
       <div>
         <div
@@ -104,7 +104,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   }
 
   // transforms the compute image ID to a human readable string
-  function render_image_name(): JSX.Element | undefined {
+  function render_image_name(): React.JSX.Element | undefined {
     const ci = project.get("compute_image");
     if (ci == null || images == null) return;
     if (is_custom_image(ci)) {
@@ -270,7 +270,7 @@ export function ProjectAvatarImage(props: ProjectAvatarImageProps) {
     })();
   }, []);
 
-  function renderAdd(): JSX.Element {
+  function renderAdd(): React.JSX.Element {
     if (!askToAddAvatar || onClick == null) return <></>;
     return (
       <Paragraph type="secondary" style={style} onClick={(e) => onClick(e)}>

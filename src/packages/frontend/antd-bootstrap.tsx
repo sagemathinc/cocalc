@@ -139,7 +139,7 @@ export const Button = (props: {
   className?: string;
   href?: string;
   target?: string;
-  title?: string | JSX.Element;
+  title?: string | React.JSX.Element;
   tabIndex?: number;
   active?: boolean;
   id?: string;
@@ -355,7 +355,7 @@ export function Tab(props: {
   id?: string;
   key?: string;
   eventKey: string;
-  title: string | JSX.Element;
+  title: string | React.JSX.Element;
   children?: any;
   style?: React.CSSProperties;
 }): AntdTabItem {
@@ -402,7 +402,7 @@ interface AlertProps {
   style?: React.CSSProperties;
   banner?: boolean;
   children?: any;
-  icon?: JSX.Element;
+  icon?: React.JSX.Element;
 }
 
 export function Alert(props: AlertProps) {

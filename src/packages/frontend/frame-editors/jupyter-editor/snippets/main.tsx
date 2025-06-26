@@ -294,7 +294,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // this iterates over all subheaders to render each snippet
-  function level2([titleLevel2, data]): JSX.Element {
+  function level2([titleLevel2, data]): React.JSX.Element {
     // when searching, limit to the first 10 hits, otherwise all this might get too large
     const entries = search === "" ? data.entries : data.entries.slice(0, 10);
     const activeSearch =
@@ -324,7 +324,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   function level1([titleLevel1, entries]: [
     string,
     SnippetEntries,
-  ]): JSX.Element {
+  ]): React.JSX.Element {
     const lvl2 = sortBy(Object.entries(entries), [
       ([_, v]) => v.sortweight,
       HEADER_SORTER,
@@ -427,7 +427,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function noKernel(): JSX.Element {
+  function noKernel(): React.JSX.Element {
     return (
       <Alert
         message="No kernel"
@@ -437,7 +437,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function noSnippet(): JSX.Element {
+  function noSnippet(): React.JSX.Element {
     return (
       <Alert
         message="No Snippets"
@@ -452,7 +452,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function loading(): JSX.Element {
+  function loading(): React.JSX.Element {
     return (
       <div style={{ textAlign: "center", marginTop: "5rem" }}>
         <Loading />
@@ -460,7 +460,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function noSearchResult(): JSX.Element {
+  function noSearchResult(): React.JSX.Element {
     return (
       <Alert
         message="No search results"
@@ -478,7 +478,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // memoizes the actually rendered snippet (depends only on a few details, in particular the search text)
-  const allSnippets = React.useCallback((): JSX.Element => {
+  const allSnippets = React.useCallback((): React.JSX.Element => {
     if (data == null) return loading();
     if (lang == null) return noKernel();
     if (snippets == null) return noSnippet();
@@ -526,7 +526,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   ]);
 
   // introduction at the top
-  function help(): JSX.Element {
+  function help(): React.JSX.Element {
     return (
       <Typography.Paragraph
         type="secondary"
@@ -544,7 +544,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // search box and if user also wants to insert the setup cells
-  function controls(): JSX.Element {
+  function controls(): React.JSX.Element {
     const onChange = (e) => {
       const txt = e.target.value;
       setSearchText(txt);

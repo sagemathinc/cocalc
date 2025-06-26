@@ -58,7 +58,7 @@ export default function VideoChatButton({
 
   function render_num_chatting(
     num_users_chatting: number,
-  ): JSX.Element | undefined {
+  ): React.JSX.Element | undefined {
     if (num_users_chatting > 0) {
       return (
         <span>
@@ -71,7 +71,7 @@ export default function VideoChatButton({
     }
   }
 
-  function render_join(num_users_chatting: number): JSX.Element {
+  function render_join(num_users_chatting: number): React.JSX.Element {
     if (videoChat?.weAreChatting()) {
       return (
         <span>

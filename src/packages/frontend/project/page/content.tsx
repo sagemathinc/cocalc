@@ -262,7 +262,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
     />
   );
 
-  let content: JSX.Element;
+  let content: React.JSX.Element;
   if (chatState == "external") {
     // 2-column layout with chat
     content = (

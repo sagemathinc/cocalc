@@ -636,7 +636,7 @@ export function MarkdownInput(props: Props) {
     }
   }
 
-  function render_mention_email(): JSX.Element | undefined {
+  function render_mention_email(): React.JSX.Element | undefined {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
@@ -698,7 +698,7 @@ export function MarkdownInput(props: Props) {
     // appears like with github... Emoticons: {emoticons}.
   }
 
-  function render_mention_instructions(): JSX.Element | undefined {
+  function render_mention_instructions(): React.JSX.Element | undefined {
     if (!enableMentions) return;
     return (
       <>
@@ -709,7 +709,7 @@ export function MarkdownInput(props: Props) {
     );
   }
 
-  function render_upload_instructions(): JSX.Element | undefined {
+  function render_upload_instructions(): React.JSX.Element | undefined {
     if (!enableUpload) return;
     const text = IS_MOBILE ? (
       <a>Tap here to upload images.</a>
@@ -866,7 +866,7 @@ export function MarkdownInput(props: Props) {
 
   const showInstructions = !!value?.trim();
 
-  let body: JSX.Element = (
+  let body: React.JSX.Element = (
     <div style={{ height: showInstructions ? "calc(100% - 22px)" : "100%" }}>
       {showInstructions ? render_instructions() : undefined}
       <div

@@ -153,7 +153,7 @@ export const SearchBar = React.memo((props: Props) => {
     set_cmd({ input, id: _id.current });
   }
 
-  function render_help_info(): JSX.Element | undefined {
+  function render_help_info(): React.JSX.Element | undefined {
     if (
       file_search.length > 0 &&
       num_files_displayed > 0 &&
@@ -181,7 +181,7 @@ export const SearchBar = React.memo((props: Props) => {
     }
   }
 
-  function render_file_creation_error(): JSX.Element | undefined {
+  function render_file_creation_error(): React.JSX.Element | undefined {
     if (file_creation_error) {
       return (
         <Alert
@@ -199,7 +199,7 @@ export const SearchBar = React.memo((props: Props) => {
   function render_output(
     x: string | undefined,
     style: CSS,
-  ): JSX.Element | undefined {
+  ): React.JSX.Element | undefined {
     if (x) {
       return (
         <pre style={style}>

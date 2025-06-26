@@ -12,8 +12,8 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 
 export default function useUpload(
   editor: SlateEditor,
-  body: JSX.Element,
-): JSX.Element {
+  body: React.JSX.Element,
+): React.JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
   const { actions, project_id, path } = useFrameContext();
   const actionsRef = useRef<any>(actions);

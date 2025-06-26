@@ -24,7 +24,7 @@ export const PDFEmbed: React.FC<Props> = React.memo((props: Props) => {
 
   const embedRef = React.useRef<any>(null);
 
-  function render_embed(): JSX.Element {
+  function render_embed(): React.JSX.Element {
     const src: string = `${raw_url(project_id, path)}?param=${reload}`;
     return (
       <embed
@@ -42,7 +42,7 @@ export const PDFEmbed: React.FC<Props> = React.memo((props: Props) => {
     $(embedRef.current).focus();
   }
 
-  function render_clickable(): JSX.Element {
+  function render_clickable(): React.JSX.Element {
     return (
       <>
         <div

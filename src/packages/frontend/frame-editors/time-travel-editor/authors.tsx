@@ -42,7 +42,7 @@ export function GitAuthors({ actions, version0, version1 }: Props) {
   }
   const w = Array.from(new Set(people));
   w.sort();
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const person of w) {
     v.push(
       <Popover
@@ -126,7 +126,7 @@ export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
     if (userMap == null) {
       return <Loading />;
     }
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     for (const account_id of actions.get_account_ids(version0, version1)) {
       v.push(renderAuthor(account_id));
     }

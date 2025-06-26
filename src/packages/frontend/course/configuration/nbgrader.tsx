@@ -40,7 +40,7 @@ export function Nbgrader({ name }: Props) {
     throw Error("bug");
   }
 
-  function render_grade_project(): JSX.Element {
+  function render_grade_project(): React.JSX.Element {
     const location = settings?.get("nbgrader_grade_project")
       ? "project"
       : "student";
@@ -116,7 +116,7 @@ export function Nbgrader({ name }: Props) {
     );
   }
 
-  function render_include_hidden_tests(): JSX.Element {
+  function render_include_hidden_tests(): React.JSX.Element {
     return (
       <div
         style={{
@@ -148,7 +148,7 @@ export function Nbgrader({ name }: Props) {
     );
   }
 
-  function render_timeouts(): JSX.Element {
+  function render_timeouts(): React.JSX.Element {
     const timeout = Math.round(
       settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000,
     );
@@ -195,7 +195,7 @@ export function Nbgrader({ name }: Props) {
     );
   }
 
-  function render_limits(): JSX.Element {
+  function render_limits(): React.JSX.Element {
     const max_output = Math.round(
       settings.get("nbgrader_max_output", NBGRADER_MAX_OUTPUT),
     );
@@ -244,7 +244,7 @@ export function Nbgrader({ name }: Props) {
     );
   }
 
-  function render_parallel(): JSX.Element {
+  function render_parallel(): React.JSX.Element {
     const parallel = Math.round(
       settings.get("nbgrader_parallel") ??
         actions.get_store().get_nbgrader_parallel(),

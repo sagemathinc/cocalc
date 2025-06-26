@@ -71,9 +71,9 @@ type FixedTabs = {
     icon: IconName;
     flyout: (props: {
       project_id: string;
-      wrap: (content: JSX.Element, style?: CSS) => JSX.Element;
+      wrap: (content: React.JSX.Element, style?: CSS) => React.JSX.Element;
       flyoutWidth: number;
-    }) => JSX.Element;
+    }) => React.JSX.Element;
     flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page

@@ -1060,7 +1060,7 @@ export default function Message({
     }
   }
 
-  function renderCols(): JSX.Element[] | JSX.Element {
+  function renderCols(): React.JSX.Element[] | React.JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
     if (is_folded || (is_thread && is_folded && is_thread_body)) {
       return <></>;
