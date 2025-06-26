@@ -350,7 +350,7 @@ export function Overview({
       />
       {setResize != null && (
         <Draggable
-          ref={nodeRef}
+          nodeRef={nodeRef}
           disabled={resize == null}
           position={{ x: 0, y: 0 }}
           bounds={{
