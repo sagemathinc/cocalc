@@ -361,8 +361,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           }}
           key={"control-buttons"}
         >
-          {!props.is_full ? render_split_row() : undefined}
-          {!props.is_full ? render_split_col() : undefined}
+          {is_active && !props.is_full ? render_split_row() : undefined}
+          {is_active && !props.is_full ? render_split_col() : undefined}
           {!props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
@@ -748,7 +748,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (!is_active) {
       return (
         <div style={{ display: "flex", width: "100%" }}>
-          {renderSaveTimetravelGroup()}
           <div style={{ flex: 1, textAlign: "center" }}>{renderTitle()}</div>
         </div>
       );
@@ -827,6 +826,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function allButtonsPopover() {
+    if (!is_active) {
+      return null;
+    }
     return (
       <Popover
         overlayStyle={{ zIndex: 990 }}
@@ -1102,6 +1104,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         style={{
           borderBottom: popup ? undefined : "1px solid #ccc",
           background: "#fafafa",
+          height: "36px",
+          opacity: is_active ? undefined : 0.5,
         }}
       >
         <div style={{ margin: "-1px 0 -1px 0" }}>{v}</div>
@@ -1252,8 +1256,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           className={"cc-frame-tree-title-bar"}
         >
           {renderMainMenusAndButtons()}
-          {renderConnectionStatus()}
-          {allButtonsPopover()}
+          {is_active && renderConnectionStatus()}
+          {is_active && allButtonsPopover()}
           {renderFrameControls()}
         </div>
         {renderButtonBar()}
