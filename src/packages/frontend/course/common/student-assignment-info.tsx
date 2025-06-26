@@ -470,15 +470,19 @@ export function StudentAssignmentInfo({
     if (typeof error !== "string") {
       error = `${error}`;
     }
+    if (error.includes("[object Object]")) {
+      // already too late to know the actual error -- it got mangled/reported incorrectly
+      error = "";
+    }
     // We search for two different error messages, since different errors happen in
     // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
     if (
       error.indexOf("No such file or directory") !== -1 ||
       error.indexOf("ENOENT") != -1
     ) {
-      error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
+      error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again -- \n${error}`;
     } else {
-      error = `Try to ${step.toLowerCase()} again:\n${error}`;
+      error = `Try to ${step.toLowerCase()} again -- \n${error}`;
     }
     return (
       <ShowError

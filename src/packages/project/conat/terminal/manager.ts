@@ -137,7 +137,7 @@ export class TerminalManager {
         kill: async () => {
           try {
             const session = await getSession(options, true);
-            session.kill();
+            await session.kill();
             session.close();
           } catch {
             return;

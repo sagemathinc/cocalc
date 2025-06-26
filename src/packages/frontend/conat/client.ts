@@ -40,7 +40,7 @@ import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
 import type { ConnectionStats } from "@cocalc/conat/core/types";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { once } from "@cocalc/util/async-utils";
+import { once, until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import {
   deleteRememberMe,
@@ -95,6 +95,10 @@ export class ConatClient extends EventEmitter {
       this._conatClient = connectToConat({
         address,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
+        // it is necessary to manually managed reconnects due to a bugs
+        // in socketio that has stumped their devs
+        //   -- https://github.com/socketio/socket.io/issues/5197
+        reconnection: false,
       });
       this._conatClient.on("connected", () => {
         this.setConnectionStatus({
@@ -113,6 +117,7 @@ export class ConatClient extends EventEmitter {
           stats: this._conatClient?.stats,
         });
         this.client.emit("disconnected", "offline");
+        setTimeout(this.connect, 1000);
       });
       this._conatClient.conn.io.on("reconnect_attempt", (attempt) => {
         this.numConnectionAttempts = attempt;
@@ -226,14 +231,39 @@ export class ConatClient extends EventEmitter {
 
   // if there is a connection, resume it
   resume = () => {
-    if (this.permanentlyDisconnected) {
-      console.log(
-        "Not connecting -- client is permanently disconnected and must refresh their browser",
-      );
-      return;
-    }
-    this._conatClient?.conn.io.connect();
+    this.connect();
   };
+
+  // keep trying until connected.
+  connect = reuseInFlight(async () => {
+    let attempts = 0;
+    await until(
+      async () => {
+        if (this.permanentlyDisconnected) {
+          console.log(
+            "Not connecting -- client is permanently disconnected and must refresh their browser",
+          );
+          return true;
+        }
+        if (this._conatClient == null) {
+          this.conat();
+        }
+        if (this._conatClient?.conn?.connected) {
+          return true;
+        }
+        this._conatClient?.disconnect();
+        await delay(750);
+        await waitForOnline();
+        attempts += 1;
+        console.log(
+          `Connecting to ${this._conatClient?.options.address}: attempts ${attempts}`,
+        );
+        this._conatClient?.conn.io.connect();
+        return false;
+      },
+      { min: 3000, max: 15000 },
+    );
+  });
 
   callConatService: CallConatServiceFunction = async (options) => {
     return await callConatService(options);
@@ -497,4 +527,15 @@ function setNotDeleted({ project_id, path }) {
   }
   const actions = redux.getProjectActions(project_id);
   actions?.setRecentlyDeleted(path, 0);
+}
+
+async function waitForOnline(): Promise<void> {
+  if (navigator.onLine) return;
+  await new Promise<void>((resolve) => {
+    const handler = () => {
+      window.removeEventListener("online", handler);
+      resolve();
+    };
+    window.addEventListener("online", handler);
+  });
 }

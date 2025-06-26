@@ -39,7 +39,7 @@ const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
-  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "2000000",
+  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "1000000",
 );
 
 // Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
@@ -82,8 +82,11 @@ export class Session {
     this.streamName = `terminal-${termPath}`;
   }
 
-  kill = () => {
-    this.stream?.delete({ all: true });
+  kill = async () => {
+    if (this.stream == null) {
+      return;
+    }
+    await this.stream.delete({ all: true });
   };
 
   write = async (data) => {
