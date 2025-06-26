@@ -251,6 +251,8 @@ export class ConatClient extends EventEmitter {
         if (this._conatClient?.conn?.connected) {
           return true;
         }
+        this._conatClient?.disconnect();
+        await delay(750);
         await waitForOnline();
         attempts += 1;
         console.log(
