@@ -80,6 +80,9 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
     const offsetNode = dir === "col" ? ui.node.offsetLeft : ui.node.offsetTop;
     const offset = offsetNode + ui[axis] + DRAG_OFFSET;
     const elt = containerRef.current;
+    if (elt == null) {
+      return;
+    }
     const pos =
       dir === "col"
         ? (offset - elt.offsetLeft) / elt.offsetWidth
