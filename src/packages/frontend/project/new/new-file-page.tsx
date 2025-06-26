@@ -229,7 +229,7 @@ export default function NewFilePage(props: Props) {
               <Icon name="cloud-upload" />{" "}
               <FormattedMessage
                 id="project.new.new-file-page.upload.title"
-                defaultMessage={"Upload Files Into Your Project"}
+                defaultMessage={"Upload Files"}
               />
             </h4>
           </Col>

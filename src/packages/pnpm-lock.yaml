@@ -611,9 +611,6 @@ importers:
       react-draggable:
         specifier: ^4.5.0
         version: 4.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      react-dropzone-component:
-        specifier: ^3.2.0
-        version: 3.2.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react-highlight-words:
         specifier: ^0.21.0
         version: 0.21.0(react@19.1.0)
@@ -9862,12 +9859,6 @@ packages:
     peerDependencies:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
-
-  react-dropzone-component@3.2.0:
-    resolution: {integrity: sha512-QwopN2GgzHCKcMyJvBZuYCeqnU9F/Uiq1hD94/JmFdLmkzU1rw7SbNjLNUad864YoAEvcx93uHUItv0NUwlTxw==}
-    peerDependencies:
-      react: '>15.0.1'
-      react-dom: '>15.0.1'
 
   react-easy-crop@5.4.1:
     resolution: {integrity: sha512-Djtsi7bWO75vkKYkVxNRrJWY69pXLahIAkUN0mmt9cXNnaq2tpG59ctSY6P7ipJgBc7COJDRMRuwb2lYwtACNQ==}
@@ -21388,13 +21379,6 @@ snapshots:
     dependencies:
       clsx: 2.1.1
       prop-types: 15.8.1
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
-
-  react-dropzone-component@3.2.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
-    dependencies:
-      dropzone: 5.9.3
-      extend: 3.0.2
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 

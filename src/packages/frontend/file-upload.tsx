@@ -2,11 +2,8 @@
 Drag'n'Drop file upload area
 */
 
-import "react-dropzone-component/styles/filepicker.css";
-
 import Dropzone from "dropzone";
 Dropzone.autoDiscover = false;
-
 export { Dropzone };
 import ReactDOMServer from "react-dom/server"; // for dropzone below
 import { Button } from "antd";
@@ -157,61 +154,33 @@ export function FileUpload({
   project_id,
   current_path,
   dropzone_handler,
-  close_button_onclick,
-  show_header,
   config,
 }: FileUploadProps) {
-  console.log("todo: dropzone", { current_path, dropzone_handler, config });
-  const student_project_functionality =
-    useStudentProjectFunctionality(project_id);
-
-  if (student_project_functionality.disableUploads) {
-    return (
-      <div>
-        File upload is disabled; if you need this, contact your instructor.
-      </div>
-    );
-  }
-
-//   function dropzone_template() {
-//     return <DropzonePreview project_id={project_id} />;
-//   }
-
-  function render_close_button() {
-    return (
-      <div style={{ position: "relative" }}>
-        <div className="close-button" style={CLOSE_BUTTON_STYLE}>
-          <span
-            onClick={close_button_onclick}
-            className="close-button-x"
-            style={{ cursor: "pointer", fontSize: "18px", color: "gray" }}
-          >
-            <Icon name={"times"} />
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      {close_button_onclick != null ? render_close_button() : undefined}
-      {show_header ? <Header /> : undefined}
-      <div style={DROPSTYLE}>
-        {/*<DropzoneComponent
-          config={{
-            postUrl: postUrl(project_id, current_path),
-            ...config,
-          }}
-          eventHandlers={dropzone_handler}
-          djsConfig={{
-            previewTemplate:
-              ReactDOMServer.renderToStaticMarkup(dropzone_template()),
-            ...UPLOAD_OPTIONS,
-          }}
-        />*/}
+    <FileUploadWrapper
+      project_id={project_id}
+      dest_path={current_path}
+      event_handlers={dropzone_handler}
+      config={{ clickable: ".dropzone-upload", ...config }}
+    >
+      <div
+        style={{
+          height: "200px",
+          width: "100%",
+          background: "#eee",
+          fontSize: "18pt",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          cursor: "pointer",
+          borderRadius: "5px",
+          border: "1px solid #ddd",
+        }}
+        className="dropzone-upload"
+      >
+        Drop Files Here (or click to upload)
       </div>
-    </div>
+    </FileUploadWrapper>
   );
 }
 
