@@ -256,8 +256,14 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   }
 
   function onChangeHandler(obj: SoftwareEnvironmentState): void {
-    if (obj.title_text != null && (!title_manually || !title_text)) {
-      set_title_text(obj.title_text);
+    // only change the project title, if the user has not manually set it or it is empty – or if it is a custom image
+    // by default, this contains a generic date-based title.
+    if (obj.title_text != null) {
+      if (!title_text) {
+        set_title_text(obj.title_text);
+      } else if (!title_manually && obj.image_type === "custom") {
+        set_title_text(obj.title_text);
+      }
     }
     setSelected(obj);
   }
