@@ -33,7 +33,7 @@ export default async function update(
   { model, start, stop, period, dataEnd = new Date() }: Retention,
   setCancelRef,
   onProgress: (string, percentDone) => void,
-  cacheOnly?: boolean
+  cacheOnly?: boolean,
 ): Promise<Data[] | null> {
   start = startOfDayUTC(start);
   stop = startOfDayUTC(dayjs(stop).add(1, "day"));
@@ -70,11 +70,12 @@ export default async function update(
       `${
         last ? "Got " + last + ". " : ""
       }Processing cohort interval ${interval}...`,
-      progress
+      progress,
     );
 
     // Query the database for the current cohort interval
     const result = await webapp_client.async_query({
+      timeout: 2 * 60000, // it can take a while when there is a lot of data.
       query: {
         crm_retention: {
           start: intervalStart,
@@ -90,14 +91,14 @@ export default async function update(
     last = JSON.stringify(result.query.crm_retention);
     if (FAKE_DATA) {
       const size = (result.query.crm_retention.size = Math.round(
-        Math.random() * 1000
+        Math.random() * 1000,
       ));
       let n = size * Math.random();
       result.query.crm_retention.active = result.query.crm_retention.active.map(
         (_) => {
           n = Math.min(size, Math.round(n * 1.3 * Math.random()));
           return n;
-        }
+        },
       );
     }
     data.push(result.query.crm_retention);

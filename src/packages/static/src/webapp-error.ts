@@ -91,10 +91,16 @@ export function startedUp() {
 
 function isWhitelisted({ error }): boolean {
   try {
+    const stack = `${error?.stack ?? error}`;
+    
+    if (stack.toLowerCase().includes("minified react error")) {
+      // these are not useful to report to the user at all
+      return true;
+    }
     if (
-      error?.stack?.includes("jupyter/output-messages") ||
-      error?.stack?.includes("jupyterGetElt") ||
-      error?.stack?.includes("run_inline_js")
+      stack.includes("jupyter/output-messages") ||
+      stack.includes("jupyterGetElt") ||
+      stack.includes("run_inline_js")
     ) {
       // see https://github.com/sagemathinc/cocalc/issues/7993
       // we should never show a popup cocalc crash when a jupyter message results
@@ -102,18 +108,18 @@ function isWhitelisted({ error }): boolean {
       // "jupyter/output-messages" only works in dev mode, whereas jupyterGetElt works in prod.
       return true;
     }
-    if (error?.stack?.includes("TypeError: $(...).")) {
+    if (stack.includes("TypeError: $(...).")) {
       // see https://github.com/sagemathinc/cocalc/issues/7993
       // Getting Application Error: Uncaught TypeError: $(...).popover is not a function when opening old plotly
       // notebook used elsewhere.  It's somehow assuming jquery?  Just running it will then work.
       return true;
     }
-    if (error?.stack?.includes("Bokeh")) {
+    if (stack.includes("Bokeh")) {
       // see https://github.com/sagemathinc/cocalc/issues/6507
       return true;
     }
 
-    if (error?.stack?.includes("modifySheet")) {
+    if (stack.includes("modifySheet")) {
       // darkreader causes errors sometimes when editing PDF files previewed using PDFjs, and often when
       // trying to mess with MathJax. The error on both Firefox and Chrome includes "modifySheet" in the
       // stacktrace, since that's the function that causes the problem, and fortunately the name isn't
@@ -121,14 +127,14 @@ function isWhitelisted({ error }): boolean {
       // Whitelisting this is fine, since darkreader is cosmetic.
       return true;
     }
-    if (error?.stack?.includes("codemirror/addon/edit/closetag")) {
+    if (stack.includes("codemirror/addon/edit/closetag")) {
       // This closetag codemirror addon sometimes crashes; it's harmless, but scary.  This will probably
       // get automatically fixed when we upgrade to codemirror 6.
       return true;
     }
     if (
-      error?.stack?.includes("jquery.js") ||
-      error?.stack?.includes("N.slice is not a function")
+      stack.includes("jquery.js") ||
+      stack.includes("N.slice is not a function")
     ) {
       // we can't do anything about errors deep in jquery...
       // e.g., one thing that causes this: https://sagemathcloud.zendesk.com/agent/tickets/17324
@@ -142,9 +148,9 @@ function isWhitelisted({ error }): boolean {
       return true;
     }
     if (
-      error?.stack?.includes("xterm-addon-webgl") ||
-      error?.stack?.includes("reading 'loadCell'") ||
-      error?.stack?.includes("renderRows") // xtermjs in general...
+      stack.includes("xterm-addon-webgl") ||
+      stack.includes("reading 'loadCell'") ||
+      stack.includes("renderRows") // xtermjs in general...
     ) {
       // ranodmly happens sometimes with webgl based terminal, but then it still works fine.
       return true;
