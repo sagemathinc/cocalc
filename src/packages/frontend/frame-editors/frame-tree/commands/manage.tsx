@@ -26,6 +26,8 @@ const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
 const ICON_WIDTH = "28px";
 
+const BUTTON_LABELS = false;
+
 export class ManageCommands {
   // TODO: setting this to FrameTitleBarProps causes type issues in frame-editors/jupyter-editor/editor.ts
   // So, there is probably a fundamental problem with that mapping into "AllActions"
@@ -480,19 +482,21 @@ export class ManageCommands {
       label = (
         <>
           {icon ?? <Icon name="square" />}
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#666",
-              marginTop: "-10px",
-              // special case: button='' explicitly means no label
-              width: cmd.button === "" ? undefined : "50px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {buttonLabel}
-          </div>
+          {BUTTON_LABELS && (
+            <div
+              style={{
+                fontSize: "11px",
+                color: "#666",
+                marginTop: "-10px",
+                // special case: button='' explicitly means no label
+                width: cmd.button === "" ? undefined : "50px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {buttonLabel}
+            </div>
+          )}
         </>
       );
     } else {
