@@ -1460,8 +1460,8 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 
-    await this.init_syncstring_table(),
-      this.assert_not_closed("initAll -- successful init_syncstring_table");
+    await this.init_syncstring_table();
+    this.assert_not_closed("initAll -- successful init_syncstring_table");
 
     log("patch_list, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
@@ -1504,7 +1504,7 @@ export class SyncDoc extends EventEmitter {
       // this will finish.
       //       if (!this.client.is_browser() && !this.client.is_project()) {
       //         // FAKE DELAY!!!  Just to simulate flakiness / slow network!!!!
-      //         await delay(10000);
+      // await delay(3000);
       //       }
       await retry_until_success({
         f: this.init_load_from_disk,
@@ -1563,6 +1563,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
+    let init;
     const is_init = (t: SyncTable) => {
       this.assert_not_closed("is_init");
       const tbl = t.get_one();
@@ -1570,15 +1571,20 @@ export class SyncDoc extends EventEmitter {
         dbg("null");
         return false;
       }
-      return tbl.get("init") != null;
+      init = tbl.get("init")?.toJS();
+      return init != null;
     };
     dbg("waiting for init...");
-    const init = await this.syncstring_table.wait(is_init, 0);
+    await this.syncstring_table.wait(is_init, 0);
     dbg("init done");
     if (init.error) {
       throw Error(init.error);
     }
     assertDefined(this.patch_list);
+    if (init.size == null) {
+      // don't crash but warn at least.  
+      console.warn("SYNC BUG -- init.size must be defined", { init });
+    }
     if (
       !this.client.is_project() &&
       this.patch_list.count() === 0 &&
@@ -2937,8 +2943,8 @@ export class SyncDoc extends EventEmitter {
       size = data.length;
       dbg(`got it -- length=${size}`);
       this.from_str(data);
-      // we also know that this is the version on disk, so we update the hash
       this.commit();
+      // we also know that this is the version on disk, so we update the hash
       await this.set_save({
         state: "done",
         error: "",
