@@ -9,6 +9,7 @@ import {
   randomChoice,
   updateInterest,
   type InterestUpdate,
+  type StickyUpdate,
 } from "@cocalc/conat/core/server";
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import { once } from "@cocalc/util/async-utils";
@@ -32,7 +33,7 @@ export async function superclusterLink({
 export class SuperclusterLink {
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
-  private stream: DStream<InterestUpdate>;
+  private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
 
   constructor(
@@ -48,25 +49,33 @@ export class SuperclusterLink {
   }
 
   init = async () => {
-    this.stream = await superclusterStream({
+    this.streams = await superclusterStreams({
       client: this.client,
       clusterName: this.clusterName,
     });
-    for (const update of this.stream.getAll()) {
+    for (const update of this.streams.interest.getAll()) {
       updateInterest(update, this.interest, this.sticky);
     }
-    this.stream.on("change", this.handleUpdate);
+    this.streams.interest.on("change", this.handleInterestUpdate);
     this.state = "ready";
   };
 
-  handleUpdate = (update) => {
+  handleInterestUpdate = (update) => {
     updateInterest(update, this.interest, this.sticky);
   };
 
   close = () => {
+    if (this.state == "closed") {
+      return;
+    }
     this.state = "closed";
-    this.stream?.removeListener("change", this.handleUpdate);
-    this.stream?.close();
+    if (this.streams != null) {
+      this.streams.interest.removeListener("change", this.handleInterestUpdate);
+      this.streams.interest.close();
+      this.streams.sticky.close();
+      // @ts-ignore
+      delete this.streams;
+    }
   };
 
   publish = ({ subject, data }) => {
@@ -164,56 +173,74 @@ export async function createSuperclusterPersistServer({
   return await createPersistServer({ client, service });
 }
 
-export async function superclusterStream({
+export interface ClusterStreams {
+  interest: DStream<InterestUpdate>;
+  sticky: DStream<StickyUpdate>;
+}
+
+export async function superclusterStreams({
   client,
   clusterName,
 }: {
   client: Client;
   clusterName: string;
-}): Promise<DStream<InterestUpdate>> {
+}): Promise<ClusterStreams> {
   logger.debug("superclusterStream: ", { clusterName });
   if (!clusterName) {
     throw Error("clusterName must be set");
   }
-  const stream = await client.sync.dstream<InterestUpdate>({
-    name: superclusterStreamNames(clusterName).interest,
+  const names = superclusterStreamNames(clusterName);
+  const opts = {
     service: superclusterService(clusterName),
     noCache: true,
+    ephemeral: true,
+  };
+  const interest = await client.sync.dstream<InterestUpdate>({
+    name: names.interest,
+    ...opts,
   });
-  logger.debug("superclusterStream: GOT IT", { clusterName });
-  return stream;
+  const sticky = await client.sync.dstream<StickyUpdate>({
+    name: names.sticky,
+    ...opts,
+  });
+  logger.debug("superclusterStreams: got them", { clusterName });
+  return { interest, sticky };
 }
 
 // Periodically delete not-necessary updates from the interest stream
-export async function trimSuperclusterStream(
-  stream: DStream<InterestUpdate>,
-  interest: Patterns<{ [queue: string]: Set<string> }>,
+export async function trimSuperclusterStreams(
+  streams: ClusterStreams,
+  data: {
+    interest: Patterns<{ [queue: string]: Set<string> }>;
+    sticky: { [pattern: string]: { [subject: string]: string } };
+  },
   // don't delete anything that isn't at lest minAge ms old.
   minAge: number,
 ): Promise<number[]> {
-  // we simply iterate over the stream checking for subjects
+  const { interest } = streams;
+  // we iterate over the interest stream checking for subjects
   // with no current interest at all; in such cases it is safe
   // to purge them entirely from the stream.
   const seqs: number[] = [];
   const now = Date.now();
-  for (let n = 0; n < stream.length; n++) {
-    const time = stream.time(n);
+  for (let n = 0; n < interest.length; n++) {
+    const time = interest.time(n);
     if (time == null || now - time.valueOf() <= minAge) {
       break;
     }
-    const update = stream.get(n) as InterestUpdate;
-    if (!interest.hasPattern(update.subject)) {
-      const seq = stream.seq(n);
+    const update = interest.get(n) as InterestUpdate;
+    if (!data.interest.hasPattern(update.subject)) {
+      const seq = interest.seq(n);
       if (seq != null) {
         seqs.push(seq);
       }
     }
   }
   if (seqs.length > 0) {
-    // [ ] todo -- add to stream.delete a version where it takes an array of sequence numbers
+    // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
     logger.debug("trimSuperclusterStream: trimming", { seqs });
     for (const seq of seqs) {
-      await stream.delete({ seq });
+      await interest.delete({ seq });
     }
   }
   return seqs;

@@ -15,9 +15,9 @@ import {
 } from "@cocalc/backend/conat/test/setup";
 import {
   superclusterLink,
-  superclusterStream,
+  superclusterStreams,
   superclusterService,
-  trimSuperclusterStream,
+  trimSuperclusterStreams,
 } from "@cocalc/conat/core/supercluster";
 import { isEqual } from "lodash";
 
@@ -42,16 +42,16 @@ describe("create a supercluster enabled socketio server and test that the stream
     ({ server, client } = await createCluster());
   });
 
-  let stream;
+  let streams;
   it("get the interest stream via our client. There MUST be at least two persist subjects in there, since they were needed to even create the interest stream.", async () => {
-    stream = await superclusterStream({
+    streams = await superclusterStreams({
       client,
       clusterName: server.options.clusterName,
     });
     const service = superclusterService(server.options.clusterName);
     await wait({
       until: () => {
-        const v = stream.getAll();
+        const v = streams.interest.getAll();
         expect(service).toContain(server.options.clusterName);
         const persistUpdates = v.filter((update) =>
           update.subject.startsWith(service),
@@ -68,25 +68,25 @@ describe("create a supercluster enabled socketio server and test that the stream
   it("subscribe and see update appear in the stream; close sub and see delete appear", async () => {
     const sub = await client.subscribe("foo");
     while (true) {
-      const v = stream.getAll().filter((x) => x.subject == "foo");
+      const v = streams.interest.getAll().filter((x) => x.subject == "foo");
       if (v.length == 1) {
         expect(v[0]).toEqual(
           expect.objectContaining({ op: "add", subject: "foo" }),
         );
         break;
       }
-      await once(stream, "change");
+      await once(streams.interest, "change");
     }
     sub.close();
     while (true) {
-      const v = stream.getAll().filter((x) => x.subject == "foo");
+      const v = streams.interest.getAll().filter((x) => x.subject == "foo");
       if (v.length == 2) {
         expect(v[1]).toEqual(
           expect.objectContaining({ op: "delete", subject: "foo" }),
         );
         break;
       }
-      await once(stream, "change");
+      await once(streams.interest, "change");
     }
   });
 
@@ -341,15 +341,15 @@ describe("test trimming the interest stream", () => {
   let server, client;
   it("create a supercluster server", async () => {
     ({ server, client } = await createCluster());
-    await wait({ until: () => server.superclusterStream != null });
+    await wait({ until: () => server.superclusterStreams != null });
   });
 
   let sub;
   it("subscribes and verifies that trimming does nothing", async () => {
     sub = await client.sub("389");
-    const seqs = await trimSuperclusterStream(
-      server.superclusterStream,
-      server.interest,
+    const seqs = await trimSuperclusterStreams(
+      server.superclusterStreams,
+      server,
       0,
     );
     expect(seqs).toEqual([]);
@@ -358,9 +358,9 @@ describe("test trimming the interest stream", () => {
   it("unsubscribes and verifies that trimming with a 5s maxAge does nothing", async () => {
     sub.close();
     await delay(100);
-    const seqs = await trimSuperclusterStream(
-      server.superclusterStream,
-      server.interest,
+    const seqs = await trimSuperclusterStreams(
+      server.superclusterStreams,
+      server,
       5000,
     );
     expect(seqs).toEqual([]);
@@ -372,9 +372,9 @@ describe("test trimming the interest stream", () => {
     let seqs;
     await wait({
       until: async () => {
-        seqs = await trimSuperclusterStream(
-          server.superclusterStream,
-          server.interest,
+        seqs = await trimSuperclusterStreams(
+          server.superclusterStreams,
+          server,
           0,
         );
         return seqs.length >= 2;
@@ -382,7 +382,7 @@ describe("test trimming the interest stream", () => {
     });
     expect(seqs.length).toBe(2);
     await delay(1);
-    for (const update of server.superclusterStream.getAll()) {
+    for (const update of server.superclusterStreams.interest.getAll()) {
       if (update.subject == "389" && update.op == "add") {
         throw Error("adding 389 should have been removed");
       }

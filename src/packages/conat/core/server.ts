@@ -83,12 +83,12 @@ import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { once, until } from "@cocalc/util/async-utils";
-import type { DStream } from "@cocalc/conat/sync/dstream";
 import {
   superclusterLink,
   type SuperclusterLink,
-  superclusterStream,
-  trimSuperclusterStream,
+  superclusterStreams,
+  type ClusterStreams,
+  trimSuperclusterStreams,
   createSuperclusterPersistServer,
 } from "./supercluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
@@ -202,7 +202,7 @@ export class ConatServer {
   // which is the socket.io room to send the messages to.
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
 
-  private superclusterStream?: DStream<InterestUpdate>;
+  private superclusterStreams?: ClusterStreams;
   private superclusterLinks: { [clusterName: string]: SuperclusterLink } = {};
   private superclusterPersistServer?: ConatSocketServer;
   private clusterName?: string;
@@ -348,8 +348,12 @@ export class ConatServer {
     }
     this.state = "closed";
 
-    this.superclusterStream?.close();
-    delete this.superclusterStream;
+    if (this.superclusterStreams != null) {
+      for (const name in this.superclusterStreams) {
+        this.superclusterStreams[name].close();
+      }
+      delete this.superclusterStreams;
+    }
     for (const name in this.superclusterLinks) {
       this.superclusterLinks[name].close();
       delete this.superclusterLinks[name];
@@ -475,8 +479,8 @@ export class ConatServer {
   private queuedSuperclusterUpdates: InterestUpdate[] = [];
   private updateSuperclusterStream = (update: InterestUpdate) => {
     if (!this.clusterName) return;
-    if (this.superclusterStream !== undefined) {
-      this.superclusterStream.publish(update);
+    if (this.superclusterStreams !== undefined) {
+      this.superclusterStreams.interest.publish(update);
       this.trimSuperclusterStream();
     } else {
       this.queuedSuperclusterUpdates.push(update);
@@ -490,12 +494,13 @@ export class ConatServer {
   private trimSuperclusterStream = throttle(
     async () => {
       if (
-        this.superclusterStream !== undefined &&
-        this.interest !== undefined
+        this.superclusterStreams !== undefined &&
+        this.interest !== undefined &&
+        this.sticky !== undefined
       ) {
-        await trimSuperclusterStream(
-          this.superclusterStream,
-          this.interest,
+        await trimSuperclusterStreams(
+          this.superclusterStreams,
+          { interest: this.interest, sticky: this.sticky },
           5 * 60000,
         );
       }
@@ -942,20 +947,15 @@ export class ConatServer {
       client,
       clusterName: this.clusterName,
     });
-    this.log("creating interest stream");
-    const stream = await superclusterStream({
+    this.log("creating cluster streams");
+    this.superclusterStreams = await superclusterStreams({
       client,
       clusterName: this.clusterName,
     });
-    this.log("initializing interest stream");
-    if (stream.length > 0) {
-      await stream.delete({ all: true });
-    }
-    this.superclusterStream = stream;
     // add in everything so far in interest (TODO)
     if (this.queuedSuperclusterUpdates.length > 0) {
       for (const update0 of this.queuedSuperclusterUpdates) {
-        this.superclusterStream.publish(update0);
+        this.superclusterStreams.interest.publish(update0);
       }
       this.queuedSuperclusterUpdates.length = 0;
     }
