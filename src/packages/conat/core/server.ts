@@ -88,9 +88,11 @@ import {
   superclusterLink,
   type SuperclusterLink,
   superclusterStream,
+  trimSuperclusterStream,
   createSuperclusterPersistServer,
 } from "./supercluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
+import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:server");
@@ -475,10 +477,32 @@ export class ConatServer {
     if (!this.clusterName) return;
     if (this.superclusterStream !== undefined) {
       this.superclusterStream.publish(update);
+      this.trimSuperclusterStream();
     } else {
       this.queuedSuperclusterUpdates.push(update);
     }
   };
+
+  // throttled because could be expensive -- once a minute it trims
+  // operations that are definitely no longer relevant and are at least
+  // 5 minutes old.  These are ops involving a pattern where
+  // there is no interest in that pattern.
+  private trimSuperclusterStream = throttle(
+    async () => {
+      if (
+        this.superclusterStream !== undefined &&
+        this.interest !== undefined
+      ) {
+        await trimSuperclusterStream(
+          this.superclusterStream,
+          this.interest,
+          5 * 60000,
+        );
+      }
+    },
+    60000,
+    { leading: false, trailing: true },
+  );
 
   private _updateInterest = (update: InterestUpdate) => {
     if (this.state != "ready") return;
@@ -1087,8 +1111,8 @@ export class ConatServer {
       ) {
         return false;
       }
-      const matches = this.interest.matches(subject);
-      if (matches.length > 0) {
+      const hasMatch = this.interest.hasMatch(subject);
+      if (hasMatch) {
         return true;
       }
     }

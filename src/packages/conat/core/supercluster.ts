@@ -114,13 +114,13 @@ export class SuperclusterLink {
     timeout: number,
     signal?: AbortSignal,
   ) => {
-    const matches = this.interest.matches(subject);
+    const hasMatch = this.interest.hasMatch(subject);
 
-    if (matches.length > 0 || !timeout) {
+    if (hasMatch || !timeout) {
       // NOTE: we never return the actual matches, since this is a
       // potential security vulnerability.
       // it could make it very easy to figure out private inboxes, etc.
-      return matches.length > 0;
+      return hasMatch;
     }
     const start = Date.now();
     while (this.state != "closed" && !signal?.aborted) {
@@ -131,9 +131,8 @@ export class SuperclusterLink {
       if ((this.state as any) == "closed" || signal?.aborted) {
         return false;
       }
-      // todo: implement this.interest.hasMatch that just checks if there is at least one match
-      const matches = this.interest.matches(subject);
-      if (matches.length > 0) {
+      const hasMatch = this.interest.hasMatch(subject);
+      if (hasMatch) {
         return true;
       }
     }
@@ -183,4 +182,39 @@ export async function superclusterStream({
   });
   logger.debug("superclusterStream: GOT IT", { clusterName });
   return stream;
+}
+
+// Periodically delete not-necessary updates from the interest stream
+export async function trimSuperclusterStream(
+  stream: DStream<InterestUpdate>,
+  interest: Patterns<{ [queue: string]: Set<string> }>,
+  // don't delete anything that isn't at lest minAge ms old.
+  minAge: number,
+): Promise<number[]> {
+  // we simply iterate over the stream checking for subjects
+  // with no current interest at all; in such cases it is safe
+  // to purge them entirely from the stream.
+  const seqs: number[] = [];
+  const now = Date.now();
+  for (let n = 0; n < stream.length; n++) {
+    const time = stream.time(n);
+    if (time == null || now - time.valueOf() <= minAge) {
+      break;
+    }
+    const update = stream.get(n) as InterestUpdate;
+    if (!interest.hasPattern(update.subject)) {
+      const seq = stream.seq(n);
+      if (seq != null) {
+        seqs.push(seq);
+      }
+    }
+  }
+  if (seqs.length > 0) {
+    // [ ] todo -- add to stream.delete a version where it takes an array of sequence numbers
+    logger.debug("trimSuperclusterStream: trimming", { seqs });
+    for (const seq of seqs) {
+      await stream.delete({ seq });
+    }
+  }
+  return seqs;
 }

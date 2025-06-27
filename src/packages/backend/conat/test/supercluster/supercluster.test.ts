@@ -17,6 +17,7 @@ import {
   superclusterLink,
   superclusterStream,
   superclusterService,
+  trimSuperclusterStream,
 } from "@cocalc/conat/core/supercluster";
 import { isEqual } from "lodash";
 
@@ -331,6 +332,59 @@ describe(`a supercluster joining ${superClusterSize} different clusters`, () => 
     for (let i = 0; i < superClusterSize; i++) {
       const r = (await v[i]).data;
       expect(r).toBe(i + 1);
+    }
+  });
+});
+
+describe("test trimming the interest stream", () => {
+  let server, client;
+  it("create a supercluster server", async () => {
+    ({ server, client } = await createCluster());
+    await wait({ until: () => server.superclusterStream != null });
+  });
+
+  let sub;
+  it("subscribes and verifies that trimming does nothing", async () => {
+    sub = await client.sub("389");
+    const seqs = await trimSuperclusterStream(
+      server.superclusterStream,
+      server.interest,
+      0,
+    );
+    expect(seqs).toEqual([]);
+  });
+
+  it("unsubscribes and verifies that trimming with a 5s maxAge does nothing", async () => {
+    sub.close();
+    await delay(100);
+    const seqs = await trimSuperclusterStream(
+      server.superclusterStream,
+      server.interest,
+      5000,
+    );
+    expect(seqs).toEqual([]);
+  });
+
+  it(" see that two updates are trimmed when maxAge is 0s", async () => {
+    // have to use wait since don't know how long until
+    // stream actually updated after unsub.
+    let seqs;
+    await wait({
+      until: async () => {
+        seqs = await trimSuperclusterStream(
+          server.superclusterStream,
+          server.interest,
+          0,
+        );
+        return seqs.length >= 2;
+      },
+    });
+    expect(seqs.length).toBe(2);
+    await delay(1);
+    for (const update of server.superclusterStream.getAll()) {
+      if (update.subject == "389" && update.op == "add") {
+        throw Error("adding 389 should have been removed");
+      }
     }
   });
 });

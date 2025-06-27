@@ -62,6 +62,15 @@ export class Patterns<T> extends EventEmitter {
     return matchUsingIndex(this.index, subject.split("."));
   };
 
+  // return true if there is at least one match
+  hasMatch = (subject: string): boolean => {
+    return matchUsingIndex(this.index, subject.split("."), true).length > 0;
+  };
+
+  hasPattern = (pattern: string): boolean => {
+    return this.patterns[pattern] !== undefined;
+  };
+
   matchesTest = (subject: string): string[] => {
     const a = this.matches(subject);
     const b = this.matchNaive(subject);
@@ -148,7 +157,11 @@ function deleteIndex(index: Index, segments: string[]) {
 }
 
 // todo deal with >
-function matchUsingIndex(index: Index, segments: string[]): string[] {
+function matchUsingIndex(
+  index: Index,
+  segments: string[],
+  atMostOne = false,
+): string[] {
   if (segments.length == 0) {
     const p = index[""];
     if (p === undefined) {
@@ -169,12 +182,21 @@ function matchUsingIndex(index: Index, segments: string[]): string[] {
         // stops *or* this pattern is >
         if (segments.length == 1) {
           matches.push(p);
+          if (atMostOne) {
+            return matches;
+          }
         } else if (pattern == ">") {
           matches.push(p);
+          if (atMostOne) {
+            return matches;
+          }
         }
       } else {
-        for (const s of matchUsingIndex(p, segments.slice(1))) {
+        for (const s of matchUsingIndex(p, segments.slice(1), atMostOne)) {
           matches.push(s);
+          if (atMostOne) {
+            return matches;
+          }
         }
       }
     }
