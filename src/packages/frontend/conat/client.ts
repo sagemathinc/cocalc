@@ -303,6 +303,7 @@ export class ConatClient extends EventEmitter {
     args: any[];
     timeout?: number;
   }) => {
+    console.log("callHub", { name, args, timeout });
     const cn = this.conat();
     const subject = `hub.account.${this.client.account_id}.${service}`;
     try {

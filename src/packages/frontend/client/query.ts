@@ -23,14 +23,15 @@ export class QueryClient {
   // opts.cb is NOT specified.  When opts.cb is specified,
   // it works like a cb and returns nothing.    For changefeeds
   // you MUST specify opts.cb, but can always optionally do so.
-  public async query(opts: {
+  query = async (opts: {
     query: object;
     options?: object[]; // if given must be an array of objects, e.g., [{limit:5}]
     changes?: boolean;
+    timeout?: number; // ms
     cb?: CB; // support old cb interface
-  }): Promise<any> {
+  }): Promise<any> => {
     // Deprecation warnings:
-    for (const field of ["standby", "timeout", "no_post", "ignore_response"]) {
+    for (const field of ["standby", "no_post", "ignore_response"]) {
       if (opts[field] != null) {
         console.trace(`WARNING: passing '${field}' to query is deprecated`);
       }
@@ -75,6 +76,7 @@ export class QueryClient {
         const query = await this.client.conat_client.hub.db.userQuery({
           query: opts.query,
           options: opts.options,
+          timeout: opts.timeout,
         });
 
         if (opts.cb == null) {
@@ -90,12 +92,12 @@ export class QueryClient {
         }
       }
     }
-  }
+  };
 
   // cancel a changefeed created above.  This is ONLY used
   // right now by the CRM code.
-  public async cancel(id: string): Promise<void> {
+  cancel = async (id: string): Promise<void> => {
     this.changefeeds[id]?.close();
     delete this.changefeeds[id];
-  }
+  };
 }
