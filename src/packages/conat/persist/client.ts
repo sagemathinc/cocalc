@@ -15,7 +15,7 @@ import type {
   PartialInventory,
 } from "./storage";
 export { StoredMessage, StorageOptions };
-import { persistSubject, type User } from "./util";
+import { persistSubject, SERVICE, type User } from "./util";
 import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { EventEmitter } from "events";
@@ -44,6 +44,7 @@ class PersistStreamClient extends EventEmitter {
     private client: Client,
     private storage: StorageOptions,
     private user: User,
+    private service = SERVICE,
   ) {
     super();
     // paths.add(this.storage.path);
@@ -61,23 +62,12 @@ class PersistStreamClient extends EventEmitter {
     }
     this.socket?.close();
     // console.log("making a socket connection to ", persistSubject(this.user));
-    this.socket = this.client.socket.connect(persistSubject(this.user), {
+    const subject = persistSubject({ ...this.user, service: this.service });
+    this.socket = this.client.socket.connect(subject, {
       desc: `persist: ${this.storage.path}`,
       reconnection: false,
     });
-    logger.debug(
-      "init",
-      this.storage.path,
-      "connecting to ",
-      persistSubject(this.user),
-    );
-    //     console.log(
-    //       "persist -- create",
-    //       this.storage.path,
-    //       paths,
-    //       "with id=",
-    //       this.socket.id,
-    //     );
+    logger.debug("init", this.storage.path, "connecting to ", subject);
     this.socket.write({
       storage: this.storage,
       changefeed: this.changefeeds.length > 0,
@@ -447,17 +437,18 @@ interface Options {
   // what storage they are accessing
   storage: StorageOptions;
   noCache?: boolean;
+  service?: string;
 }
 
 export const stream = refCacheSync<Options, PersistStreamClient>({
   name: "persistent-stream-client",
-  createKey: ({ user, storage, client }: Options) => {
-    return JSON.stringify([user, storage, client.id]);
+  createKey: ({ user, storage, client, service = SERVICE }: Options) => {
+    return JSON.stringify([user, storage, client.id, service]);
   },
-  createObject: ({ client, user, storage }: Options) => {
+  createObject: ({ client, user, storage, service = SERVICE }: Options) => {
     // avoid wasting server resources, etc., by always checking permissions client side first
-    assertHasWritePermission({ user, storage });
-    return new PersistStreamClient(client, storage, user);
+    assertHasWritePermission({ user, storage, service });
+    return new PersistStreamClient(client, storage, user, service);
   },
 });
 
@@ -469,12 +460,12 @@ export function disablePermissionCheck() {
   permissionChecks = false;
 }
 
-const assertHasWritePermission = ({ user, storage }) => {
+const assertHasWritePermission = ({ user, storage, service }) => {
   if (!permissionChecks) {
     // should only be used for unit testing, since otherwise would
     // make clients slower and possibly increase server load.
     return;
   }
-  const subject = persistSubject(user);
-  assertHasWritePermission0({ subject, path: storage.path });
+  const subject = persistSubject({ ...user, service });
+  assertHasWritePermission0({ subject, path: storage.path, service });
 };

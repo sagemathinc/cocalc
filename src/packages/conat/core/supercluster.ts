@@ -12,13 +12,10 @@ import {
 } from "@cocalc/conat/core/server";
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import { once } from "@cocalc/util/async-utils";
+import { server as createPersistServer } from "@cocalc/conat/persist/server";
+import { getLogger } from "@cocalc/conat/client";
 
-export function superclusterStreamNames(clusterName: string) {
-  return {
-    interest: `cluster/${clusterName}/interest`,
-    sticky: `cluster/${clusterName}/sticky`,
-  };
-}
+const logger = getLogger("conat:core:supercluster");
 
 export async function superclusterLink({
   client,
@@ -51,9 +48,9 @@ export class SuperclusterLink {
   }
 
   init = async () => {
-    this.stream = await this.client.sync.dstream({
-      name: superclusterStreamNames(this.clusterName).interest,
-      noCache: true,
+    this.stream = await superclusterStream({
+      client: this.client,
+      clusterName: this.clusterName,
     });
     for (const update of this.stream.getAll()) {
       updateInterest(update, this.interest, this.sticky);
@@ -143,4 +140,47 @@ export class SuperclusterLink {
 
     return false;
   };
+}
+
+export function superclusterStreamNames(clusterName: string) {
+  return {
+    interest: `cluster/${clusterName}/interest`,
+    sticky: `cluster/${clusterName}/sticky`,
+  };
+}
+
+export function superclusterService(clusterName: string) {
+  return `persist-${clusterName}`;
+}
+
+export async function createSuperclusterPersistServer({
+  client,
+  clusterName,
+}: {
+  client: Client;
+  clusterName: string;
+}) {
+  const service = superclusterService(clusterName);
+  logger.debug("createSuperclusterPersistServer: ", { service });
+  return await createPersistServer({ client, service });
+}
+
+export async function superclusterStream({
+  client,
+  clusterName,
+}: {
+  client: Client;
+  clusterName: string;
+}): Promise<DStream<InterestUpdate>> {
+  logger.debug("superclusterStream: ", { clusterName });
+  if (!clusterName) {
+    throw Error("clusterName must be set");
+  }
+  const stream = await client.sync.dstream<InterestUpdate>({
+    name: superclusterStreamNames(clusterName).interest,
+    service: superclusterService(clusterName),
+    noCache: true,
+  });
+  logger.debug("superclusterStream: GOT IT", { clusterName });
+  return stream;
 }

@@ -60,6 +60,8 @@ export interface DStreamOptions {
 
   noCache?: boolean;
   noInventory?: boolean;
+  
+  service?: string;
 }
 
 export class DStream<T = any> extends EventEmitter {

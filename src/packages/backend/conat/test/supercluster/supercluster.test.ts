@@ -13,10 +13,10 @@ import {
   delay,
   wait,
 } from "@cocalc/backend/conat/test/setup";
-import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import {
   superclusterLink,
-  superclusterStreamNames,
+  superclusterStream,
+  superclusterService,
 } from "@cocalc/conat/core/supercluster";
 import { isEqual } from "lodash";
 
@@ -32,8 +32,6 @@ async function createCluster(opts?) {
     ...opts,
   });
   const client = server.client();
-  // critical to also have a persistence server, since that's needed for seeing the supercluster info.
-  await createPersistServer({ client });
   return { server, client };
 }
 
@@ -45,15 +43,17 @@ describe("create a supercluster enabled socketio server and test that the stream
 
   let stream;
   it("get the interest stream via our client. There MUST be at least two persist subjects in there, since they were needed to even create the interest stream.", async () => {
-    stream = await client.sync.dstream({
-      name: superclusterStreamNames(server.clusterName).interest,
+    stream = await superclusterStream({
+      client,
+      clusterName: server.options.clusterName,
     });
+    const service = superclusterService(server.options.clusterName);
     await wait({
       until: () => {
         const v = stream.getAll();
-
+        expect(service).toContain(server.options.clusterName);
         const persistUpdates = v.filter((update) =>
-          update.subject.startsWith("persist."),
+          update.subject.startsWith(service),
         );
         if (persistUpdates.length <= 1) {
           return false;
@@ -176,7 +176,7 @@ describe("create a supercluster enabled socketio server and test that the stream
   });
 });
 
-describe.only("create a supercluster with two distinct servers and send a message from one client to another via a link, and also use request/reply", () => {
+describe("create a supercluster with two distinct servers and send a message from one client to another via a link, and also use request/reply", () => {
   let server1, server2, client1, client2;
   it("create two distinct servers with supercluster support enabled", async () => {
     ({ server: server1, client: client1 } = await createCluster({

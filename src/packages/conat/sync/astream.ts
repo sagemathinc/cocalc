@@ -60,6 +60,7 @@ export class AStream<T = any> {
       client: this.client,
       user: this.user,
       storage: this.storage,
+      service: options.service,
     });
   }
 

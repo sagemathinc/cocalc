@@ -4,15 +4,15 @@ import { normalize } from "path";
 
 export const MAX_PATH_LENGTH = 4000;
 
-export function getUserId(subject: string): string {
+export function getUserId(subject: string, service = SERVICE): string {
   if (
-    subject.startsWith(`${SERVICE}.account-`) ||
-    subject.startsWith(`${SERVICE}.project-`)
+    subject.startsWith(`${service}.account-`) ||
+    subject.startsWith(`${service}.project-`)
   ) {
     // note that project and account have the same number of letters
     return subject.slice(
-      `${SERVICE}.account-`.length,
-      `${SERVICE}.account-`.length + 36,
+      `${service}.account-`.length,
+      `${service}.account-`.length + 36,
     );
   }
   return "";
@@ -21,13 +21,14 @@ export function getUserId(subject: string): string {
 export function assertHasWritePermission({
   subject,
   path,
+  service = SERVICE,
 }: {
   // Subject definitely has one of the following forms, or we would never
   // see this message:
-  //   ${SERVICE}.account-${account_id}.> or
-  //   ${SERVICE}.project-${project_id}.> or
-  //   ${SERVICE}.hub.>
-  //   ${SERVICE}.SOMETHING-WRONG
+  //   ${service}.account-${account_id}.> or
+  //   ${service}.project-${project_id}.> or
+  //   ${service}.hub.>
+  //   ${service}.SOMETHING-WRONG
   // A user is only allowed to write to a subject if they have rights
   // to the given project, account or are a hub.
   // The path can a priori be any string.  However, here's what's allowed
@@ -40,6 +41,7 @@ export function assertHasWritePermission({
   // would be very bad.
   subject: string;
   path: string;
+  service?: string;
 }) {
   if (path != normalize(path)) {
     throw Error(`permission denied: path '${path}' is not normalized`);
@@ -57,9 +59,9 @@ export function assertHasWritePermission({
     );
   }
   const v = subject.split(".");
-  if (v[0] != SERVICE) {
+  if (v[0] != service) {
     throw Error(
-      `bug -- first segment of subject must be ${SERVICE} -- subject=${subject}`,
+      `bug -- first segment of subject must be '${service}' -- subject='${subject}'`,
     );
   }
   const s = v[1];
@@ -69,7 +71,7 @@ export function assertHasWritePermission({
   }
   for (const cls of ["account", "project"]) {
     if (s.startsWith(cls + "-")) {
-      const user_id = getUserId(subject);
+      const user_id = getUserId(subject, service);
       const base = cls + "s/" + user_id + "/";
       if (path.startsWith(base)) {
         // permissions granted

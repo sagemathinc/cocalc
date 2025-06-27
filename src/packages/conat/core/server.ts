@@ -83,13 +83,15 @@ import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { once, until } from "@cocalc/util/async-utils";
-import { getLogger } from "@cocalc/conat/client";
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import {
   superclusterLink,
   type SuperclusterLink,
-  superclusterStreamNames,
+  superclusterStream,
+  createSuperclusterPersistServer,
 } from "./supercluster";
+import { type ConatSocketServer } from "@cocalc/conat/socket";
+import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:server");
 
@@ -180,7 +182,7 @@ export class ConatServer {
 
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
-  readonly options: Partial<Options>;
+  public readonly options: Partial<Options>;
   private cluster?: boolean;
 
   private sockets: { [id: string]: any } = {};
@@ -200,6 +202,7 @@ export class ConatServer {
 
   private superclusterStream?: DStream<InterestUpdate>;
   private superclusterLinks: { [clusterName: string]: SuperclusterLink } = {};
+  private superclusterPersistServer?: ConatSocketServer;
   private clusterName?: string;
 
   constructor(options: Options) {
@@ -239,6 +242,7 @@ export class ConatServer {
       maxSubscriptionsPerClient,
       maxSubscriptionsPerHub,
       systemAccountPassword,
+      clusterName,
     };
     this.cluster = cluster || !!valkey;
     this.getUser = async (socket) => {
@@ -341,12 +345,16 @@ export class ConatServer {
       return;
     }
     this.state = "closed";
+
     this.superclusterStream?.close();
     delete this.superclusterStream;
     for (const name in this.superclusterLinks) {
       this.superclusterLinks[name].close();
       delete this.superclusterLinks[name];
     }
+    this.superclusterPersistServer?.close();
+    delete this.superclusterPersistServer;
+
     await delay(100);
     await this.io.close();
     for (const prop of ["interest", "subscriptions", "sockets", "services"]) {
@@ -898,16 +906,27 @@ export class ConatServer {
     const client = this.client({
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
+    await client.waitUntilSignedIn();
     // What this does:
+    // - Start a persist server that runs in same process but is just for
+    //   use for coordinator cluster nodes.
     // - Publish interest updates to a dstream.
     // - Route messages from another cluster to subscribers in this cluster.
 
-    const stream = await client.sync.dstream<InterestUpdate>({
-      name: superclusterStreamNames(this.clusterName).interest,
-      noCache: true,
+    this.log("creating persist server");
+    this.superclusterPersistServer = await createSuperclusterPersistServer({
+      client,
+      clusterName: this.clusterName,
     });
-    // clean slate
-    await stream.delete({ all: true });
+    this.log("creating interest stream");
+    const stream = await superclusterStream({
+      client,
+      clusterName: this.clusterName,
+    });
+    this.log("initializing interest stream");
+    if (stream.length > 0) {
+      await stream.delete({ all: true });
+    }
     this.superclusterStream = stream;
     // add in everything so far in interest (TODO)
     if (this.queuedSuperclusterUpdates.length > 0) {
@@ -916,6 +935,7 @@ export class ConatServer {
       }
       this.queuedSuperclusterUpdates.length = 0;
     }
+    this.log("supercluster successfully initialized");
   };
 
   addSuperclusterLink = async ({

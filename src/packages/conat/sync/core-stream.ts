@@ -112,6 +112,13 @@ export interface CoreStreamOptions {
   client?: Client;
 
   noCache?: boolean;
+
+  // the name of the cluster of persistence servers to use -- this is
+  // by default SERVICE from conat/persist/util.ts.  Set it to something
+  // else to use special different servers, e.g., we use a different service
+  // for sharing cluster state date, where the servers are ephemeral and
+  // there is one for each node.
+  service?: string;
 }
 
 export interface User {
@@ -161,6 +168,7 @@ export class CoreStream<T = any> extends EventEmitter {
   private storage: StorageOptions;
   private client?: Client;
   private persistClient: PersistStreamClient;
+  private service?: string;
 
   constructor({
     name,
@@ -170,6 +178,7 @@ export class CoreStream<T = any> extends EventEmitter {
     start_seq,
     ephemeral = false,
     client,
+    service,
   }: CoreStreamOptions) {
     super();
     logger.debug("constructor", name);
@@ -177,6 +186,7 @@ export class CoreStream<T = any> extends EventEmitter {
       throw Error("client must be specified");
     }
     this.client = client;
+    this.service = service;
     this.user = { account_id, project_id };
     this.name = name;
     this.storage = {
@@ -207,6 +217,7 @@ export class CoreStream<T = any> extends EventEmitter {
       client: this.client,
       user: this.user,
       storage: this.storage,
+      service: this.service,
     });
     this.persistClient.on("error", (err) => {
       if (!process.env.COCALC_TEST_MODE) {
