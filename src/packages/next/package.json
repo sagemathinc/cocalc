@@ -101,6 +101,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@uiw/react-textarea-code-editor": "^3.1.1",
+    "next-rspack": "^15.3.4",
     "node-mocks-http": "^1.14.1",
     "react-test-renderer": "^19.1.0"
   },
