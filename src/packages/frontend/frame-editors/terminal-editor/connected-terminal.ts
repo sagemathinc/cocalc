@@ -104,7 +104,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private webLinksAddon: WebLinksAddon;
 
   private render_done: Function[] = [];
-  private ignoreData: boolean = false;
+  private ignoreData: number = 0;
 
   private firstOpen = true;
 
@@ -407,7 +407,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       );
     }
     try {
-      this.ignoreData = true;
+      this.ignoreData++;
       // NOTE: terminal.write takes a cb but not in the way callback expects.
       // Also, terminal.write is NOT await-able
       await callback((cb) => {
@@ -418,7 +418,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     } catch (err) {
       console.warn(`issue writing data to terminal: ${data}`);
     } finally {
-      this.ignoreData = false;
+      await delay(0);
+      this.ignoreData--;
     }
     if (this.state == "done") return;
     // tell anyone who waited for output coming back about this
