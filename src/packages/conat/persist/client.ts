@@ -47,6 +47,7 @@ class PersistStreamClient extends EventEmitter {
     private service = SERVICE,
   ) {
     super();
+     this.setMaxListeners(100);
     // paths.add(this.storage.path);
     logger.debug("constructor", this.storage);
     this.init();

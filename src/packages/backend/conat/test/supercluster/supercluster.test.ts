@@ -317,6 +317,7 @@ describe(`a supercluster joining ${superClusterSize} different clusters`, () => 
   });
 
   it("test request/reply from all participants", async () => {
+    await delay(500);
     const v: any[] = [];
     for (let i = 0; i < superClusterSize; i++) {
       const req = clients[i].request("rsa", i);
