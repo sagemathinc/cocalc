@@ -25,7 +25,7 @@ export class VideoChat {
   }
 
   close = () => {
-    this.closeVideoChatWindow();
+    // this.closeVideoChatWindow();
     delete this.intervalId;
   };
 
