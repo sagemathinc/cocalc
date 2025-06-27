@@ -1065,7 +1065,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           title={label}
           items={children}
           button={false}
-          style={{ color: "#333", padding: 0, height: "36px" }}
+          style={{ color: "#333", padding: 0 }}
         />
       );
     } else {
@@ -1076,7 +1076,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           key={key}
           disabled={disabled}
           onClick={onClick}
-          style={{ color: "#333", padding: 0, height: "36px" }}
+          style={{ color: "#333", padding: 0 }}
         >
           {label}
         </Button>
@@ -1104,11 +1104,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         style={{
           borderBottom: popup ? undefined : "1px solid #ccc",
           background: "#fafafa",
-          height: "36px",
-          opacity: is_active ? undefined : 0.5,
+          opacity: is_active ? undefined : 0.3,
         }}
       >
-        <div style={{ margin: "-1px 0 -1px 0" }}>{v}</div>
+        <div style={{ marginBottom: "-2px", paddingTop:'4px' }}>{v}</div>
       </div>
     );
   }
