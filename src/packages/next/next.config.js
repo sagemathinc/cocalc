@@ -49,7 +49,7 @@ const withRspack = require("next-rspack");
 // to refresh after making changes).
 
 if (process.env.NO_RSPACK) {
-  module.exports = withRspack(config);
-} else {
   module.exports = config;
+} else {
+  module.exports = withRspack(config);
 }
