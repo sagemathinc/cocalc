@@ -12,7 +12,7 @@ both all changefeeds and a small interval of time.
 const THROTTLE: boolean = true;
 
 // 10ms when running unit tests, still throttle, but make it quick.
-// Otherwise, we default to 250ms, which is enough to be massively
+// Otherwise, we default to 500ms, which is enough to be massively
 // useful, but also not noticed by user.
 let THROTTLE_MS: number = process.env.SMC_TEST ? 10 : 500;
 
