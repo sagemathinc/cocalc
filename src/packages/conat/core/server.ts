@@ -45,10 +45,6 @@ the cluster adapter since there's no scaling up or down happening
 
 ---
 
-Supercluster
-
- s = require('@cocalc/conat/core/server').init({id:'0', supercluster: true, systemAccountPassword:'x', port:4567, getUser:()=>{return {hub_id:'hub'}}})
- 
 */
 
 import type { ConnectionStats, ServerInfo } from "./types";
@@ -84,13 +80,13 @@ import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { once, until } from "@cocalc/util/async-utils";
 import {
-  superclusterLink,
-  type SuperclusterLink,
-  superclusterStreams,
+  clusterLink,
+  type ClusterLink,
+  clusterStreams,
   type ClusterStreams,
-  trimSuperclusterStreams,
-  createSuperclusterPersistServer,
-} from "./supercluster";
+  trimClusterStreams,
+  createClusterPersistServer,
+} from "./cluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
@@ -174,8 +170,8 @@ export interface Options {
   systemAccountPassword?: string;
   // if true, use https when creating an internal client.
   ssl?: boolean;
-  // if clusterName is set, enable use in a supercluster. Each cluster
-  // in the supercluster must have a different name. systemAccountPassword
+  // if clusterName is set, enable use in a cluster. Each cluster
+  // in the cluster must have a different name. systemAccountPassword
   // must also be set.  This only has an impact when the id is '0'.
   // This publishes interest state in a stream, so uses more resources.
   clusterName?: string;
@@ -207,9 +203,9 @@ export class ConatServer {
   // which is the socket.io room to send the messages to.
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
 
-  private superclusterStreams?: ClusterStreams;
-  private superclusterLinks: { [clusterName: string]: SuperclusterLink } = {};
-  private superclusterPersistServer?: ConatSocketServer;
+  private clusterStreams?: ClusterStreams;
+  private clusterLinks: { [clusterName: string]: ClusterLink } = {};
+  private clusterPersistServer?: ConatSocketServer;
   private clusterName?: string;
 
   constructor(options: Options) {
@@ -230,11 +226,11 @@ export class ConatServer {
     } = options;
     if (clusterName) {
       if (id != "0") {
-        throw Error("the supercluster coordinator node must have id='0'");
+        throw Error("the cluster coordinator node must have id='0'");
       }
       if (!systemAccountPassword) {
         throw Error(
-          "supercluster coordinator node must have systemAccountPassword set",
+          "cluster coordinator node must have systemAccountPassword set",
         );
       }
       this.clusterName = clusterName;
@@ -321,7 +317,7 @@ export class ConatServer {
       this.initSystemService();
     }
     if (this.clusterName) {
-      this.initSupercluster();
+      this.initCluster();
     }
   }
 
@@ -353,18 +349,18 @@ export class ConatServer {
     }
     this.state = "closed";
 
-    if (this.superclusterStreams != null) {
-      for (const name in this.superclusterStreams) {
-        this.superclusterStreams[name].close();
+    if (this.clusterStreams != null) {
+      for (const name in this.clusterStreams) {
+        this.clusterStreams[name].close();
       }
-      delete this.superclusterStreams;
+      delete this.clusterStreams;
     }
-    for (const name in this.superclusterLinks) {
-      this.superclusterLinks[name].close();
-      delete this.superclusterLinks[name];
+    for (const name in this.clusterLinks) {
+      this.clusterLinks[name].close();
+      delete this.clusterLinks[name];
     }
-    this.superclusterPersistServer?.close();
-    delete this.superclusterPersistServer;
+    this.clusterPersistServer?.close();
+    delete this.clusterPersistServer;
 
     await delay(100);
     await this.io.close();
@@ -481,29 +477,29 @@ export class ConatServer {
     this.interest.merge(i);
   };
 
-  private queuedSuperclusterUpdates: Update[] = [];
+  private queuedClusterUpdates: Update[] = [];
 
   private publishUpdate = (update: Update) => {
-    if (this.superclusterStreams == null) {
+    if (this.clusterStreams == null) {
       throw Error("streams must be initialized");
     }
     const { interest, sticky } = update;
     if (interest !== undefined) {
-      this.superclusterStreams.interest.publish(interest);
+      this.clusterStreams.interest.publish(interest);
     }
     if (sticky !== undefined) {
-      this.superclusterStreams.sticky.publish(sticky);
+      this.clusterStreams.sticky.publish(sticky);
     }
-    this.trimSuperclusterStream();
+    this.trimClusterStream();
   };
 
-  private updateSuperclusterStream = (update: Update) => {
+  private updateClusterStream = (update: Update) => {
     if (!this.clusterName) return;
 
-    if (this.superclusterStreams !== undefined) {
+    if (this.clusterStreams !== undefined) {
       this.publishUpdate(update);
     } else {
-      this.queuedSuperclusterUpdates.push(update);
+      this.queuedClusterUpdates.push(update);
     }
   };
 
@@ -511,15 +507,15 @@ export class ConatServer {
   // operations that are definitely no longer relevant and are at least
   // 5 minutes old.  These are ops involving a pattern where
   // there is no interest in that pattern.
-  private trimSuperclusterStream = throttle(
+  private trimClusterStream = throttle(
     async () => {
       if (
-        this.superclusterStreams !== undefined &&
+        this.clusterStreams !== undefined &&
         this.interest !== undefined &&
         this.sticky !== undefined
       ) {
-        await trimSuperclusterStreams(
-          this.superclusterStreams,
+        await trimClusterStreams(
+          this.clusterStreams,
           { interest: this.interest, sticky: this.sticky },
           5 * 60000,
         );
@@ -532,7 +528,7 @@ export class ConatServer {
   private _updateInterest = (interest: InterestUpdate) => {
     if (this.state != "ready") return;
 
-    this.updateSuperclusterStream({ interest });
+    this.updateClusterStream({ interest });
     updateInterest(interest, this.interest, this.sticky);
   };
 
@@ -604,7 +600,7 @@ export class ConatServer {
   };
 
   private _updateSticky = (sticky: StickyUpdate) => {
-    this.updateSuperclusterStream({ sticky });
+    this.updateClusterStream({ sticky });
     updateSticky(sticky, this.sticky);
   };
 
@@ -689,11 +685,11 @@ export class ConatServer {
       }
     }
     if (count == 0 && !data[6] && this.clusterName) {
-      for (const clusterName in this.superclusterLinks) {
+      for (const clusterName in this.clusterLinks) {
         // note -- position 6 of data is a no-forward flag, to avoid
         // a message bouncing back and forth in case the interest stream
         // were slightly out of sync.
-        const link = this.superclusterLinks[clusterName];
+        const link = this.clusterLinks[clusterName];
         const count2 = link.publish({ subject, data });
         if (count2 > 0) {
           count += count2;
@@ -942,11 +938,11 @@ export class ConatServer {
     });
   };
 
-  private initSupercluster = async () => {
+  private initCluster = async () => {
     if (this.id != "0" || !this.clusterName) {
       return;
     }
-    this.log("enabling supercluster support");
+    this.log("enabling cluster support");
     const client = this.client({
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
@@ -958,32 +954,32 @@ export class ConatServer {
     // - Route messages from another cluster to subscribers in this cluster.
 
     this.log("creating persist server");
-    this.superclusterPersistServer = await createSuperclusterPersistServer({
+    this.clusterPersistServer = await createClusterPersistServer({
       client,
       clusterName: this.clusterName,
     });
     this.log("creating cluster streams");
-    this.superclusterStreams = await superclusterStreams({
+    this.clusterStreams = await clusterStreams({
       client,
       clusterName: this.clusterName,
     });
     // add in everything so far in interest (TODO)
-    if (this.queuedSuperclusterUpdates.length > 0) {
-      this.queuedSuperclusterUpdates.map(this.publishUpdate);
-      this.queuedSuperclusterUpdates.length = 0;
+    if (this.queuedClusterUpdates.length > 0) {
+      this.queuedClusterUpdates.map(this.publishUpdate);
+      this.queuedClusterUpdates.length = 0;
     }
-    this.log("supercluster successfully initialized");
+    this.log("cluster successfully initialized");
   };
 
-  addSuperclusterLink = async ({
+  addClusterLink = async ({
     clusterName,
     client,
-  }): Promise<SuperclusterLink> => {
-    if (this.superclusterLinks[clusterName] != null) {
+  }): Promise<ClusterLink> => {
+    if (this.clusterLinks[clusterName] != null) {
       throw Error(`there is already a link to ${clusterName}`);
     }
-    const link = await superclusterLink({ client, clusterName });
-    this.superclusterLinks[clusterName] = link;
+    const link = await clusterLink({ client, clusterName });
+    this.clusterLinks[clusterName] = link;
     return link;
   };
 
@@ -1030,7 +1026,7 @@ export class ConatServer {
     socketId: string,
     signal?: AbortSignal,
   ): Promise<boolean> => {
-    const links = Object.values(this.superclusterLinks);
+    const links = Object.values(this.clusterLinks);
     if (links.length == 0) {
       return await this.waitForInterestInThisCluster(
         subject,

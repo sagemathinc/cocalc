@@ -14,11 +14,11 @@ describe("create cluster of two nodes, and verify that *sticky* subs properly wo
     ({ server: server2, client: client2 } = await createCluster({
       systemAccountPassword: "ossifrage",
     }));
-    await server1.addSuperclusterLink({
+    await server1.addClusterLink({
       client: client2,
       clusterName: server2.clusterName,
     });
-    await server2.addSuperclusterLink({
+    await server2.addClusterLink({
       client: client1,
       clusterName: server1.clusterName,
     });

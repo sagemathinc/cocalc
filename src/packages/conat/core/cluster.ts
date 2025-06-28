@@ -1,8 +1,3 @@
-/*
-A supercluster is a cluster of 2 or more Conat servers.  Each conat server may itself 
-internally be a cluster using the socketio cluster module, or redis streams or pub/sub.
-*/
-
 import type { Client } from "./client";
 import { Patterns } from "./patterns";
 import {
@@ -17,21 +12,21 @@ import { once } from "@cocalc/util/async-utils";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
 
-const logger = getLogger("conat:core:supercluster");
+const logger = getLogger("conat:core:cluster");
 
-export async function superclusterLink({
+export async function clusterLink({
   client,
   clusterName,
 }: {
   client: Client;
   clusterName: string;
 }) {
-  const link = new SuperclusterLink(client, clusterName);
+  const link = new ClusterLink(client, clusterName);
   await link.init();
   return link;
 }
 
-export class SuperclusterLink {
+export class ClusterLink {
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
   private streams: ClusterStreams;
@@ -50,7 +45,7 @@ export class SuperclusterLink {
   }
 
   init = async () => {
-    this.streams = await superclusterStreams({
+    this.streams = await clusterStreams({
       client: this.client,
       clusterName: this.clusterName,
     });
@@ -156,26 +151,26 @@ export class SuperclusterLink {
   };
 }
 
-export function superclusterStreamNames(clusterName: string) {
+export function clusterStreamNames(clusterName: string) {
   return {
     interest: `cluster/${clusterName}/interest`,
     sticky: `cluster/${clusterName}/sticky`,
   };
 }
 
-export function superclusterService(clusterName: string) {
+export function clusterService(clusterName: string) {
   return `persist-${clusterName}`;
 }
 
-export async function createSuperclusterPersistServer({
+export async function createClusterPersistServer({
   client,
   clusterName,
 }: {
   client: Client;
   clusterName: string;
 }) {
-  const service = superclusterService(clusterName);
-  logger.debug("createSuperclusterPersistServer: ", { service });
+  const service = clusterService(clusterName);
+  logger.debug("createClusterPersistServer: ", { service });
   return await createPersistServer({ client, service });
 }
 
@@ -184,20 +179,20 @@ export interface ClusterStreams {
   sticky: DStream<StickyUpdate>;
 }
 
-export async function superclusterStreams({
+export async function clusterStreams({
   client,
   clusterName,
 }: {
   client: Client;
   clusterName: string;
 }): Promise<ClusterStreams> {
-  logger.debug("superclusterStream: ", { clusterName });
+  logger.debug("clusterStream: ", { clusterName });
   if (!clusterName) {
     throw Error("clusterName must be set");
   }
-  const names = superclusterStreamNames(clusterName);
+  const names = clusterStreamNames(clusterName);
   const opts = {
-    service: superclusterService(clusterName),
+    service: clusterService(clusterName),
     noCache: true,
     ephemeral: true,
   };
@@ -209,12 +204,12 @@ export async function superclusterStreams({
     name: names.sticky,
     ...opts,
   });
-  logger.debug("superclusterStreams: got them", { clusterName });
+  logger.debug("clusterStreams: got them", { clusterName });
   return { interest, sticky };
 }
 
 // Periodically delete not-necessary updates from the interest stream
-export async function trimSuperclusterStreams(
+export async function trimClusterStreams(
   streams: ClusterStreams,
   data: {
     interest: Patterns<{ [queue: string]: Set<string> }>;
@@ -244,7 +239,7 @@ export async function trimSuperclusterStreams(
   }
   if (seqs.length > 0) {
     // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
-    logger.debug("trimSuperclusterStream: trimming", { seqs });
+    logger.debug("trimClusterStream: trimming", { seqs });
     for (const seq of seqs) {
       await interest.delete({ seq });
     }

@@ -346,7 +346,8 @@ interface SubscriptionOptions {
   // connection could get created then destroyed a few seconds laters, due to the sticky
   // assignment changing.
   //
-  // The following isn't implemented yet:
+  // The following isn't implemented yet -- one idea.  Another idea would be the stickiness
+  // is local to a cluster. Not sure!
   // Regarding a *supercluster*, if no choice has already been made in any cluster for
   // a given subject (except last segment), then a choice is made using consistent hashing
   // from the subscribers in the *nearest* cluster that has at least one subscriber.
@@ -1184,7 +1185,7 @@ export class Client extends EventEmitter {
         done,
         encoding,
         raw.slice(i, i + chunkSize),
-        // position v[6] is used as a no-forward flag for superclusters
+        // position v[6] is used for clusters
       ];
       if (done && headers) {
         v.push(headers);
