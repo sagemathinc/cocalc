@@ -170,7 +170,7 @@ export interface Options {
   systemAccountPassword?: string;
   // if true, use https when creating an internal client.
   ssl?: boolean;
-  // if clusterName is set, enable use in a cluster. Each cluster
+  // if clusterName is set, enable clustering. Each node
   // in the cluster must have a different name. systemAccountPassword
   // must also be set.  This only has an impact when the id is '0'.
   // This publishes interest state in a stream, so uses more resources.
@@ -383,7 +383,7 @@ export class ConatServer {
   };
 
   private log = (...args) => {
-    logger.debug(this.id, ":", ...args);
+    logger.debug("id", this.id, ":", ...args);
   };
 
   private unsubscribe = async ({ socket, subject }) => {
@@ -971,10 +971,7 @@ export class ConatServer {
     this.log("cluster successfully initialized");
   };
 
-  addClusterLink = async ({
-    clusterName,
-    client,
-  }): Promise<ClusterLink> => {
+  addClusterLink = async ({ clusterName, client }): Promise<ClusterLink> => {
     if (this.clusterLinks[clusterName] != null) {
       throw Error(`there is already a link to ${clusterName}`);
     }

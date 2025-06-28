@@ -391,6 +391,7 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
+  console.trace("connect", opts);
   if (!opts.address) {
     const x = cache.one();
     if (x != null) {
