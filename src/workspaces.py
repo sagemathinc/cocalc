@@ -261,7 +261,7 @@ def install(args) -> None:
         # much faster special case
         # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
         # for the package-import-method, needed on zfs!, see https://github.com/pnpm/pnpm/issues/7024
-        c = "cd packages && pnpm install --config.confirmModulesPurge=false --package-import-method=clone-or-copy"
+        c = "cd packages && pnpm install --config.confirmModulesPurge=false --package-import-method=hardlink"
         if args.prod:
             args.dist_only = False
             args.node_modules_only = True
