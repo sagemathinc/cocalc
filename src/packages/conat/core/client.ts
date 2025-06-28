@@ -293,6 +293,9 @@ const MAX_HEADER_SIZE = 100000;
 
 const STATS_LOOP = 5000;
 
+// fairly long since this is to avoid leaks, not for responsiveness in the UI.
+export const DEFAULT_SUBSCRIPTION_TIMEOUT = 60000;
+
 export let DEFAULT_REQUEST_TIMEOUT = 7500;
 export let DEFAULT_PUBLISH_TIMEOUT = 7500;
 
@@ -358,6 +361,8 @@ interface SubscriptionOptions {
 
   sticky?: boolean;
   respond?: Function;
+  // timeout to create the subscription -- this may wait *until* you connect before
+  // it starts ticking.
   timeout?: number;
 }
 
@@ -646,7 +651,9 @@ export class Client extends EventEmitter {
           }
           // this should only fail due to permissions issues, at which point
           // request can't work, but pub/sub can.
-          console.log(`WARNING: inbox not available -- ${err}`);
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(`WARNING: inbox not available -- ${err}`);
+          }
         }
         return false;
       },
@@ -837,10 +844,17 @@ export class Client extends EventEmitter {
       confirm?: boolean;
 
       // how long to wait to confirm creation of the subscription;
-      // only used when confirm=true.
+      // only explicitly *used* when confirm=true, but always must be set.
       timeout?: number;
     } = {},
   ): { sub: SubscriptionEmitter; promise? } => {
+    // Having timeout set at all is absolutely critical because if the connection
+    // goes down while making the subscription, having some timeout causes
+    // socketio to throw an error, which avoids a huge potential subscription
+    // leak.  We set this by default to DEFAULT_SUBSCRIPTION_TIMEOUT.
+    if (!timeout) {
+      timeout = DEFAULT_SUBSCRIPTION_TIMEOUT;
+    }
     if (this.isClosed()) {
       throw Error("closed");
     }
@@ -908,6 +922,7 @@ export class Client extends EventEmitter {
               }
             });
         } else {
+          // this should never be used -- see above
           this.conn.emit("subscribe", { subject, queue }, handle);
         }
       };
@@ -968,7 +983,12 @@ export class Client extends EventEmitter {
       sticky: opts?.sticky,
       timeout: opts?.timeout,
     });
-    await promise;
+    try {
+      await promise;
+    } catch (err) {
+      sub.close();
+      throw err;
+    }
     return this.subscriptionIterator(sub, opts);
   };
 

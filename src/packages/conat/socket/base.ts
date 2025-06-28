@@ -127,6 +127,7 @@ export abstract class ConatSocketBase extends EventEmitter {
       return;
     }
     this.setState("connecting");
+    await this.client.waitUntilConnected();
     try {
       await this.run();
     } catch (err) {

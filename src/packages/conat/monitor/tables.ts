@@ -68,7 +68,7 @@ export async function usage({ client, maxWait = 3000, maxMessages }: Options) {
   tablePerUser.setStyle("unicode-round");
   tablePerServer.setStyle("unicode-round");
 
-  return [tablePerUser, tablePerServer];
+  return [tablePerServer, tablePerUser];
 }
 
 export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
