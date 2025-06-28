@@ -396,7 +396,7 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
-  console.trace("connect", opts);
+  //console.trace("connect", opts);
   if (!opts.address) {
     const x = cache.one();
     if (x != null) {
@@ -1490,6 +1490,43 @@ export class Client extends EventEmitter {
   };
 
   message = (mesg, options?) => messageData(mesg, options);
+
+  bench = {
+    publish: async (n: number = 1000, subject = "bench"): Promise<number> => {
+      const t0 = Date.now();
+      console.log(`publishing ${n} messages to`, { subject });
+      for (let i = 0; i < n - 1; i++) {
+        this.publishSync(subject, null);
+      }
+      // then send one final message and wait for an ack.
+      // since messages are in order, we know that all other
+      // messages were delivered to the server.
+      const { count } = await this.publish(subject, null);
+      console.log("listeners: ", count);
+      const t1 = Date.now();
+      const rate = Math.round((n / (t1 - t0)) * 1000);
+      console.log(rate, "messages per second delivered");
+      return rate;
+    },
+
+    subscribe: async (n: number = 1000, subject = "bench"): Promise<number> => {
+      const sub = await this.subscribe(subject);
+      // send the data
+      for (let i = 0; i < n; i++) {
+        this.publishSync(subject, null);
+      }
+      const t0 = Date.now();
+      let i = 0;
+      for await (const _ of sub) {
+        i += 1;
+        if (i >= n) {
+          break;
+        }
+      }
+      const t1 = Date.now();
+      return Math.round((n / (t1 - t0)) * 1000);
+    },
+  };
 }
 
 interface PublishOptions {

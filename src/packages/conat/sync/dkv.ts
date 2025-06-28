@@ -790,7 +790,11 @@ export class DKV<T = any> extends EventEmitter {
       let inv: Inventory | undefined = undefined;
       try {
         const { account_id, project_id, desc } = this.opts;
-        const inv = await inventory({ account_id, project_id });
+        const inv = await inventory({
+          account_id,
+          project_id,
+          service: this.opts.service,
+        });
         if (this.isClosed()) {
           return;
         }

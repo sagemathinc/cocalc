@@ -332,7 +332,7 @@ export class CoreStream<T = any> extends EventEmitter {
           }
           if (!process.env.COCALC_TEST_MODE) {
             console.log(
-              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}`,
+              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}, service=${this.service}, storage=${JSON.stringify(this.storage)}`,
             );
           }
         }

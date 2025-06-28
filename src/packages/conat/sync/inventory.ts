@@ -44,9 +44,10 @@ type Sort =
   | "-name"
   | "-type";
 
-interface Location {
+interface Options {
   account_id?: string;
   project_id?: string;
+  service?: string;
 }
 
 type StoreType = "stream" | "kv";
@@ -66,17 +67,21 @@ interface FullItem extends InventoryItem {
 }
 
 export class Inventory {
-  public location: Location;
+  public options: Options;
   private dkv?: DKV<InventoryItem>;
 
-  constructor(location: { account_id?: string; project_id?: string }) {
-    this.location = location;
+  constructor(options: {
+    account_id?: string;
+    project_id?: string;
+    service?: string;
+  }) {
+    this.options = options;
   }
 
   init = async () => {
     this.dkv = await dkv({
       name: INVENTORY_NAME,
-      ...this.location,
+      ...this.options,
     });
     await waitUntilTimeAvailable();
   };
@@ -169,12 +174,12 @@ export class Inventory {
       const { desc, name, type } = x;
       if (type == "kv") {
         if (name.startsWith(DKO_PREFIX)) {
-          v.push(await dko<any>({ name, ...this.location, desc }));
+          v.push(await dko<any>({ name, ...this.options, desc }));
         } else {
-          v.push(await dkv({ name, ...this.location, desc }));
+          v.push(await dkv({ name, ...this.options, desc }));
         }
       } else if (type == "stream") {
-        v.push(await dstream({ name, ...this.location, desc }));
+        v.push(await dstream({ name, ...this.options, desc }));
       } else {
         throw Error(`unknown store type '${type}'`);
       }
@@ -304,7 +309,7 @@ export class Inventory {
     }
 
     const table = new AsciiTable3(
-      `Inventory for ${JSON.stringify(this.location)}`,
+      `Inventory for ${JSON.stringify(this.options)}`,
     )
       .setHeading(
         "Type",
@@ -330,7 +335,7 @@ function dateToString(d: Date) {
   return d.toISOString().replace("T", " ").replace("Z", "").split(".")[0];
 }
 
-export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
+export const cache = refCache<Options & { noCache?: boolean }, Inventory>({
   name: "inventory",
   createObject: async (loc) => {
     const k = new Inventory(loc);
@@ -339,6 +344,6 @@ export const cache = refCache<Location & { noCache?: boolean }, Inventory>({
   },
 });
 
-export async function inventory(options: Location = {}): Promise<Inventory> {
+export async function inventory(options: Options = {}): Promise<Inventory> {
   return await cache(options);
 }
