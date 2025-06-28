@@ -66,6 +66,7 @@ export class ConatClient extends EventEmitter {
   private clientWithState: ClientWithState;
   private _conatClient: null | ReturnType<typeof connectToConat>;
   public numConnectionAttempts = 0;
+  private automaticallyReconnect;
 
   constructor(client: WebappClient) {
     super();
@@ -108,6 +109,7 @@ export class ConatClient extends EventEmitter {
           stats: this._conatClient?.stats,
         });
         this.client.emit("connected");
+        this.automaticallyReconnect = true;
       });
       this._conatClient.on("disconnected", (reason, details) => {
         this.setConnectionStatus({
@@ -117,7 +119,9 @@ export class ConatClient extends EventEmitter {
           stats: this._conatClient?.stats,
         });
         this.client.emit("disconnected", "offline");
-        setTimeout(this.connect, 1000);
+        if (this.automaticallyReconnect) {
+          setTimeout(this.connect, 1000);
+        }
       });
       this._conatClient.conn.io.on("reconnect_attempt", (attempt) => {
         this.numConnectionAttempts = attempt;
@@ -226,6 +230,7 @@ export class ConatClient extends EventEmitter {
   // if there is a connection, put it in standby
   standby = () => {
     // @ts-ignore
+    this.automaticallyReconnect = false;
     this._conatClient?.disconnect();
   };
 

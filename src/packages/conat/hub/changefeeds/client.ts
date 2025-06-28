@@ -33,7 +33,6 @@ export function changefeed({
     desc: `postgresql-changefeed-${table}`,
   });
   logger.debug("creating changefeed", { table, options });
-  // console.log("creating changefeed", { query, options });
   socket.write({ query, options });
   const cf = new EventIterator<{ error?: string; update: Update }>(
     socket,
@@ -55,11 +54,10 @@ export function changefeed({
     },
   );
   socket.on("closed", () => {
-    // console.log("changefeed: closed", query);
     cf.throw(Error("closed"));
   });
   socket.on("disconnected", () => {
-    //    console.log("changefeed: disconnected", query);
+    // console.log("changefeed: disconnected", query, socket.subject, socket.id);
     cf.throw(Error("disconnected"));
   });
   return cf;

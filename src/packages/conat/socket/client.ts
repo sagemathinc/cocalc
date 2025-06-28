@@ -128,13 +128,15 @@ export class ConatSocketClient extends ConatSocketBase {
     //     );
     try {
       logger.silly("run: getting subscription");
-      this.sub = await this.client.subscribe(
+      const sub = await this.client.subscribe(
         `${this.subject}.client.${this.id}`,
       );
       // @ts-ignore
       if (this.state == "closed") {
+        sub.close();
         return;
       }
+      this.sub = sub;
       let resp: any = undefined;
       await until(
         async () => {
