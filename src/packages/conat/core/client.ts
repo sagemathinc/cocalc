@@ -318,11 +318,13 @@ interface SubscriptionOptions {
   queue?: string;
   // sticky: when a choice from a queue group is made, the same choice is always made
   // in the future for any message with subject matching subject with the last segment
-  // replaced by a *, until the target goes away. Setting this just sets the queue
-  // option to STICKY_QUEUE_GROUP.
+  // replaced by a *, until the target for the choice goes away. Setting this just
+  // sets the queue option to the constant string STICKY_QUEUE_GROUP.
   //
-  // Examples of subjects matching except possibly last segment are
-  //             foo.bar.lJcBSieLn and foo.bar.ZzsDC376ge
+  // Examples of two subjects matching "except possibly last segments" are
+  //          - foo.bar.lJcBSieLn
+  //          - foo.bar.ZzsDC376ge
+  //
   // You can put anything random in the last segment and all messages
   // that match foo.bar.* get the same choice from the queue group.
   // The idea is that *when* the message with subject foo.bar.lJcBSieLn gets
@@ -330,8 +332,29 @@ interface SubscriptionOptions {
   // that message.  It remembers the choice, and so long as that target is subscribed,
   // it sends any message matching foo.bar.* to that same target.
   // This is used in our implementation of persistent socket connections that
-  // are built on pub/sub.  The underlying implementation uses consistent
-  // hashing and messages to sync state of the servers.
+  // are built on pub/sub.
+
+  // The underlying implementation uses (1) consistent hashing and (2) a stream
+  // to sync state of the servers.
+  //
+  // If the members of the sticky queue group have been stable for a while (e.g., a minute)
+  // then all servers in a local cluster have the same list of subscribers in the sticky
+  // queue group, and using consistent hashing any server will make the same choice of
+  // where to route messages.  If the members of the sticky queue group are dynamically changing,
+  // it is possible for an inconsistent choice to be made.  If this happens, it will be fixed
+  // within a few seconds. During that time, it's possible a virtual conat socket
+  // connection could get created then destroyed a few seconds laters, due to the sticky
+  // assignment changing.
+  //
+  // The following isn't implemented yet:
+  // Regarding a *supercluster*, if no choice has already been made in any cluster for
+  // a given subject (except last segment), then a choice is made using consistent hashing
+  // from the subscribers in the *nearest* cluster that has at least one subscriber.
+  // If choices are made simultaneously across the supercluster, then it is likely that
+  // they are inconsistent.  As soon as these choices are visible, they are resolved, with
+  // the tie broken using lexicographic sort of the "socketio room" (this is a
+  // random string that is used to send messages to a subscriber).
+
   sticky?: boolean;
   respond?: Function;
   timeout?: number;
