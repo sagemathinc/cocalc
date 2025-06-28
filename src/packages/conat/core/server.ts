@@ -132,6 +132,11 @@ export interface StickyUpdate {
   target: string;
 }
 
+interface Update {
+  interest?: InterestUpdate;
+  sticky?: StickyUpdate;
+}
+
 export function init(opts: Options) {
   return new ConatServer(opts);
 }
@@ -476,12 +481,27 @@ export class ConatServer {
     this.interest.merge(i);
   };
 
-  private queuedSuperclusterUpdates: InterestUpdate[] = [];
-  private updateSuperclusterStream = (update: InterestUpdate) => {
+  private queuedSuperclusterUpdates: Update[] = [];
+
+  private publishUpdate = (update: Update) => {
+    if (this.superclusterStreams == null) {
+      throw Error("streams must be initialized");
+    }
+    const { interest, sticky } = update;
+    if (interest !== undefined) {
+      this.superclusterStreams.interest.publish(interest);
+    }
+    if (sticky !== undefined) {
+      this.superclusterStreams.sticky.publish(sticky);
+    }
+    this.trimSuperclusterStream();
+  };
+
+  private updateSuperclusterStream = (update: Update) => {
     if (!this.clusterName) return;
+
     if (this.superclusterStreams !== undefined) {
-      this.superclusterStreams.interest.publish(update);
-      this.trimSuperclusterStream();
+      this.publishUpdate(update);
     } else {
       this.queuedSuperclusterUpdates.push(update);
     }
@@ -509,11 +529,11 @@ export class ConatServer {
     { leading: false, trailing: true },
   );
 
-  private _updateInterest = (update: InterestUpdate) => {
+  private _updateInterest = (interest: InterestUpdate) => {
     if (this.state != "ready") return;
 
-    this.updateSuperclusterStream(update);
-    updateInterest(update, this.interest, this.sticky);
+    this.updateSuperclusterStream({ interest });
+    updateInterest(interest, this.interest, this.sticky);
   };
 
   // STICKY
@@ -583,19 +603,14 @@ export class ConatServer {
     this.io.of("cluster").serverSideEmit(STICKY_STREAM, "update", update);
   };
 
-  private _updateSticky = (update: StickyUpdate) => {
-    const { pattern, subject, target } = update;
-    if (this.sticky[pattern] === undefined) {
-      this.sticky[pattern] = {};
-    }
-    this.sticky[pattern][subject] = target;
+  private _updateSticky = (sticky: StickyUpdate) => {
+    this.updateSuperclusterStream({ sticky });
+    updateSticky(sticky, this.sticky);
   };
 
   private getStickyTarget = ({ pattern, subject }) => {
     return this.sticky[pattern]?.[subject];
   };
-
-  //
 
   private subscribe = async ({ socket, subject, queue, user }) => {
     if (DEBUG) {
@@ -954,9 +969,7 @@ export class ConatServer {
     });
     // add in everything so far in interest (TODO)
     if (this.queuedSuperclusterUpdates.length > 0) {
-      for (const update0 of this.queuedSuperclusterUpdates) {
-        this.superclusterStreams.interest.publish(update0);
-      }
+      this.queuedSuperclusterUpdates.map(this.publishUpdate);
       this.queuedSuperclusterUpdates.length = 0;
     }
     this.log("supercluster successfully initialized");
@@ -1236,4 +1249,17 @@ export function updateInterest(
   } else {
     throw Error(`invalid op ${op}`);
   }
+}
+
+export function updateSticky(
+  update: StickyUpdate,
+  sticky: {
+    [pattern: string]: { [subject: string]: string };
+  },
+) {
+  const { pattern, subject, target } = update;
+  if (sticky[pattern] === undefined) {
+    sticky[pattern] = {};
+  }
+  sticky[pattern][subject] = target;
 }

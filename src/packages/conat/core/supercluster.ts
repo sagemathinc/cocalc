@@ -8,6 +8,7 @@ import { Patterns } from "./patterns";
 import {
   randomChoice,
   updateInterest,
+  updateSticky,
   type InterestUpdate,
   type StickyUpdate,
 } from "@cocalc/conat/core/server";
@@ -57,11 +58,16 @@ export class SuperclusterLink {
       updateInterest(update, this.interest, this.sticky);
     }
     this.streams.interest.on("change", this.handleInterestUpdate);
+    this.streams.sticky.on("change", this.handleStickyUpdate);
     this.state = "ready";
   };
 
   handleInterestUpdate = (update) => {
     updateInterest(update, this.interest, this.sticky);
+  };
+
+  handleStickyUpdate = (update) => {
+    updateSticky(update, this.sticky);
   };
 
   close = () => {
