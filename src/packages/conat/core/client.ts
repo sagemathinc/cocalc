@@ -626,7 +626,9 @@ export class Client extends EventEmitter {
           }
           // this should only fail due to permissions issues, at which point
           // request can't work, but pub/sub can.
-          console.log(`WARNING: inbox not available -- ${err}`);
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(`WARNING: inbox not available -- ${err}`);
+          }
         }
         return false;
       },
