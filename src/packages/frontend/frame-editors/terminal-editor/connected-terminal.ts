@@ -744,11 +744,17 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_terminal_data(): void {
-    this.terminal.onData((data) => {
+    this.terminal.onKey(({ key }) => {
       if (this.ignoreData) {
-        return;
+        console.log("onKey", { key });
+        this.conn_write(key);
       }
-      this.conn_write(data);
+    });
+    this.terminal.onData((data) => {
+      if (!this.ignoreData) {
+        console.log("onData", { data });
+        this.conn_write(data);
+      }
     });
   }
 
