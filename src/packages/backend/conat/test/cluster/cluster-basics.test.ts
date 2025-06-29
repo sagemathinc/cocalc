@@ -236,6 +236,17 @@ describe("create a cluster with two distinct servers and send a message from one
     const response = await req;
     expect(response.data).toContain("×");
   });
+
+  it("remove the links", async () => {
+    const sub = await client1.subscribe("x");
+    await server1.unjoin({ id: "2" });
+    await server2.unjoin({ id: "1" });
+    const { count } = await client1.publish("x", "hello");
+    expect(count).toBe(1);
+    const { count: count2 } = await client2.publish("x", "hello");
+    expect(count2).toBe(0);
+    sub.close();
+  });
 });
 
 // This is basically identical to the previous one, but for a bigger cluster:
@@ -360,6 +371,56 @@ describe("test trimming the interest stream", () => {
         throw Error("adding 389 should have been removed");
       }
     }
+  });
+});
+
+describe("join two servers in a cluster using the sys api instead of directly calling join on the server", () => {
+  let server1, server2, client1, client2;
+  it("create two distinct servers with cluster support enabled", async () => {
+    ({ server: server1, client: client1 } = await createClusterNode({
+      clusterName: "cluster-sys",
+      systemAccountPassword: "squeamish",
+      id: "1",
+    }));
+    ({ server: server2, client: client2 } = await createClusterNode({
+      clusterName: "cluster-sys",
+      systemAccountPassword: "ossifrage",
+      id: "2",
+    }));
+  });
+
+  let sys1, sys2;
+  it("link them using the sys api", async () => {
+    sys1 = client1.call("sys.conat.server");
+    await sys1.join({
+      address: server2.address(),
+      systemAccountPassword: "ossifrage",
+    });
+    sys2 = client2.call("sys.conat.server");
+    await sys2.join({
+      address: server1.address(),
+      systemAccountPassword: "squeamish",
+    });
+  });
+
+  let sub;
+  it("verify link worked", async () => {
+    sub = await client1.subscribe("x");
+    await client2.waitForInterest("x");
+    const { count } = await client2.publish("x", "hello");
+    expect(count).toBe(1);
+    const { value } = await sub.next();
+    expect(value.data).toBe("hello");
+  });
+
+  it("remove the links", async () => {
+    await sys1.unjoin({ id: "2" });
+    await sys2.unjoin({ id: "1" });
+    const { count } = await client1.publish("x", "hello");
+    expect(count).toBe(1);
+    const { count: count2 } = await client2.publish("x", "hello");
+    expect(count2).toBe(0);
+    sub.close();
   });
 });
 

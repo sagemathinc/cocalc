@@ -796,8 +796,7 @@ export class ConatServer {
   };
 
   join = async (client0: Client | ClientOptions): Promise<ClusterLink> => {
-    const client =
-      client0 instanceof Client ? client0 : connect(client0);
+    const client = client0 instanceof Client ? client0 : connect(client0);
     if (client.info == null) {
       await client.waitUntilSignedIn();
       if (client.info == null) throw Error("bug");
@@ -812,12 +811,28 @@ export class ConatServer {
     if (this.clusterLinks[clusterName] == null) {
       this.clusterLinks[clusterName] = {};
     }
-    if (this.clusterLinks[clusterName][id] != null) {
-      throw Error(`there is already a link to server ${id} of ${clusterName}`);
+    let link = this.clusterLinks[clusterName][id];
+    if (link != null) {
+      this.log(`there is already a link to server ${id} of ${clusterName}`);
+      return link;
     }
-    const link = await clusterLink(client);
+    link = await clusterLink(client);
     this.clusterLinks[clusterName][id] = link;
     return link;
+  };
+
+  unjoin = ({ id, clusterName }: { clusterName?: string; id: string }) => {
+    const cluster: string = clusterName ?? this.clusterName;
+    const link = this.clusterLinks[cluster]?.[id];
+    if (link === undefined) {
+      // already gone
+      return;
+    }
+    link.close();
+    delete this.clusterLinks[cluster][id];
+    if (Object.keys(this.clusterLinks[cluster]).length == 0) {
+      delete this.clusterLinks[cluster];
+    }
   };
 
   private initSystemService = async () => {
@@ -847,6 +862,12 @@ export class ConatServer {
             for (const id of ids) {
               this.io.in(id).disconnectSockets();
             }
+          },
+          join: async (client: ClientOptions) => {
+            await this.join(client);
+          },
+          unjoin: async (opts: { clusterName?: string; id: string }) => {
+            await this.unjoin(opts);
           },
         },
         { queue: this.id },
