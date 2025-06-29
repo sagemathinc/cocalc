@@ -18,6 +18,7 @@ import {
   clusterService,
   trimClusterStreams,
 } from "@cocalc/conat/core/cluster";
+import { type SysConatServer } from "@cocalc/conat/core/server";
 import { isEqual } from "lodash";
 import { createClusterNode } from "./util";
 
@@ -391,12 +392,12 @@ describe("join two servers in a cluster using the sys api instead of directly ca
 
   let sys1, sys2;
   it("link them using the sys api", async () => {
-    sys1 = client1.call("sys.conat.server");
+    sys1 = client1.call<SysConatServer>("sys.conat.server");
     await sys1.join({
       address: server2.address(),
       systemAccountPassword: "ossifrage",
     });
-    sys2 = client2.call("sys.conat.server");
+    sys2 = client2.call<SysConatServer>("sys.conat.server");
     await sys2.join({
       address: server1.address(),
       systemAccountPassword: "squeamish",

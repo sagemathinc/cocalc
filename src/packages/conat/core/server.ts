@@ -822,7 +822,10 @@ export class ConatServer {
   };
 
   unjoin = ({ id, clusterName }: { clusterName?: string; id: string }) => {
-    const cluster: string = clusterName ?? this.clusterName;
+    const cluster = clusterName ?? this.clusterName;
+    if (!cluster) {
+      throw "clusterName must be set";
+    }
     const link = this.clusterLinks[cluster]?.[id];
     if (link === undefined) {
       // already gone
@@ -844,18 +847,18 @@ export class ConatServer {
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
     try {
-      await client.service(
+      await client.service<SysConatServer>(
         "sys.conat.server",
         {
-          stats: () => {
+          stats: async () => {
             return { [this.id]: this.stats };
           },
-          usage: () => {
+          usage: async () => {
             return { [this.id]: this.usage.stats() };
           },
           // user has to explicitly refresh there browser after
           // being disconnected this way
-          disconnect: (ids: string | string[]) => {
+          disconnect: async (ids: string | string[]) => {
             if (typeof ids == "string") {
               ids = [ids];
             }
@@ -869,6 +872,10 @@ export class ConatServer {
           unjoin: async (opts: { clusterName?: string; id: string }) => {
             await this.unjoin(opts);
           },
+          // returns addresses of the nodes in the local cluster
+          clusterAddresses: async (): Promise<string[]> => {
+            return await this.clusterAddresses();
+          },
         },
         { queue: this.id },
       );
@@ -876,6 +883,11 @@ export class ConatServer {
     } catch (err) {
       this.log(`WARNING: unable to start sys.conat.server service -- ${err}`);
     }
+  };
+
+  clusterAddresses = (): string[] => {
+    // todo
+    return [];
   };
 
   private waitForInterest = async (
@@ -1138,4 +1150,22 @@ export function updateSticky(
     sticky[pattern] = {};
   }
   sticky[pattern][subject] = target;
+}
+
+export interface SysConatServer {
+  stats: () => Promise<{ [id: string]: { [id: string]: ConnectionStats } }>;
+  usage: any;
+  disconnect: any;
+  join: any;
+  unjoin: any;
+  clusterAddresses: any;
+}
+
+export interface SysConatServerCallMany {
+  stats: () => Promise<{ [id: string]: { [id: string]: ConnectionStats } }[]>;
+  usage: any;
+  disconnect: any;
+  join: any;
+  unjoin: any;
+  clusterAddresses: any;
 }
