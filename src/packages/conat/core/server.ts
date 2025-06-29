@@ -1154,18 +1154,20 @@ export function updateSticky(
 
 export interface SysConatServer {
   stats: () => Promise<{ [id: string]: { [id: string]: ConnectionStats } }>;
-  usage: any;
-  disconnect: any;
-  join: any;
-  unjoin: any;
-  clusterAddresses: any;
+  usage: () => Promise<{
+    [id: string]: { total: number; perUser: { [user: string]: number } };
+  }>;
+  disconnect: (ids: string | string[]) => Promise<void>;
+  join: (client: ClientOptions) => Promise<void>;
+  unjoin: (opts: { clusterName?: string; id: string }) => Promise<void>;
+  clusterAddresses: () => Promise<string[]>;
 }
 
 export interface SysConatServerCallMany {
   stats: () => Promise<{ [id: string]: { [id: string]: ConnectionStats } }[]>;
-  usage: any;
-  disconnect: any;
-  join: any;
-  unjoin: any;
-  clusterAddresses: any;
+  usage: () => Promise<
+    {
+      [id: string]: { total: number; perUser: { [user: string]: number } };
+    }[]
+  >;
 }

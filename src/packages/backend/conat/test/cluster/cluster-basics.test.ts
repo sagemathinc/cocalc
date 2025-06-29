@@ -21,6 +21,7 @@ import {
 import { type SysConatServer } from "@cocalc/conat/core/server";
 import { isEqual } from "lodash";
 import { createClusterNode } from "./util";
+import type { Client } from "@cocalc/conat/core/client";
 
 beforeAll(before);
 
@@ -376,7 +377,7 @@ describe("test trimming the interest stream", () => {
 });
 
 describe("join two servers in a cluster using the sys api instead of directly calling join on the server", () => {
-  let server1, server2, client1, client2;
+  let server1, server2, client1: Client, client2: Client;
   it("create two distinct servers with cluster support enabled", async () => {
     ({ server: server1, client: client1 } = await createClusterNode({
       clusterName: "cluster-sys",
