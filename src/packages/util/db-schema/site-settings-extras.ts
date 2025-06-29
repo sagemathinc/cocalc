@@ -187,9 +187,6 @@ export type SiteSettingsExtrasKeys =
   | "conat_heading"
   | "conat_server"
   | "conat_password"
-  | "conat_valkey"
-  //   | "conat_socketio_count"
-  //   | "conat_cluster_port"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -294,27 +291,6 @@ export const EXTRAS: SettingsExtras = {
     desc: "Password for conat *hub* admin account. If not given, then the contents of the file `$SECRETS/conat_password` (or `$COCALC_ROOT/data/secrets/conat_password`) is used, if it exists.",
     default: "",
     password: true,
-    tags: ["Conat"],
-  },
-  //   conat_socketio_count: {
-  //     name: "Number of Conat Socketio Servers to Run",
-  //     desc: "The number of conat [Socketio](https://socket.io/) servers to create.  When running CoCalc on a single server, you can run a single socketio websocket server in the same nodejs process as everything else.  Alternatively, if you set this value to a number $n$ bigger than 1 and enable valkey or the Conat cluster port below, then $n$ separate socket.io servers will be spawned.  The main hub server will proxy connections to these servers.  This allows you to scale the traffic load beyond a single CPU.",
-  //     default: "1",
-  //     valid: only_pos_int,
-  //     tags: ["Conat"],
-  //   },
-  //   conat_cluster_port: {
-  //     name: "Conat Socketio Cluster Adapter Port",
-  //     desc: "If set, the [Socketio cluster adapter](https://github.com/socketio/socket.io-cluster-adapter) is used, listening on this port.  Set to 0 to disable.",
-  //     default: "0",
-  //     valid: only_nonneg_int,
-  //     tags: ["Conat"],
-  //   },
-  conat_valkey: {
-    name: "Valkey Connection String",
-    desc: "[Valkey](https://valkey.io/) is required to run multiple Conat socketio servers, which is required to scale to thousands of simultaneous connections. This is the connection URL, which is of the form [valkey://user:password@host:port/dbnum](https://valkey.io/topics/cli/).  E.g., `valkey://127.0.0.1:6379`.   For HA with sentinels, use something like 'sentinel://valkey-sentinel-0[:port],valkey-sentinel-1[:port],valkey-sentinel-2[:port]' as the connection string instead of 'valkey:// ..'",
-    default: "",
-    password: false,
     tags: ["Conat"],
   },
   openai_section: {

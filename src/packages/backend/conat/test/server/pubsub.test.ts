@@ -2,21 +2,13 @@
 Stress test pub/sub in various settings:
 
 - single server
-- multiple servers connected via valkey
-- multiple servers connected via valkey with a sticky subscription
-- multiple servers connected via valkey with 800 existing subscriptions
+- multiple servers 
+- multiple servers with a sticky subscription
+- multiple servers with 800 existing subscriptions
 
 The goal is just to make sure there are no ridiculous performance regressions.
 Also, this is a useful file to play around with to understand the speed
 we should expect sending simple messages. It's basically
-
-- sending sync is about 30K/second
-    - receiving and processing on the client is about 3K/second
-
-The speed doesn't depend much on the situation above, though it goes down to 
-about 2K/second with valkey.   It seems like we will need at least one socket.io
-server per say 100 clients.
-
 
 t ./pubsub-stress.test.ts
 
@@ -26,7 +18,7 @@ import {
   before,
   after,
   initConatServer,
-  runValkey,
+  createConatCluster,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 import { waitForSubscription } from "./util";
@@ -37,17 +29,17 @@ const REQUIRED_SINGLE_SERVER_RECV_MESSAGES_PER_SECOND = 250;
 // should be tens of thousands
 const REQUIRED_SINGLE_SERVER_SEND_MESSAGES_PER_SECOND = 500;
 
-const REQUIRED_VALKEY_SERVER_RECV_MESSAGES_PER_SECOND = 200;
-const REQUIRED_VALKEY_SERVER_SEND_MESSAGES_PER_SECOND = 400;
+const REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND = 200;
+const REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND = 400;
 
 const VERBOSE = false;
 const log = VERBOSE ? console.log : (..._args) => {};
 
 beforeAll(before);
 
-jest.setTimeout(15000);
+jest.setTimeout(10000);
 
-describe("create two servers connected via valkey and two clients and test messaging speed", () => {
+describe("create two connected servers and two clients and test messaging speed", () => {
   let server, client1, client2;
   it("one server and two clients connected to it", async () => {
     server = await initConatServer();
@@ -56,7 +48,7 @@ describe("create two servers connected via valkey and two clients and test messa
   });
 
   const count1 = 1000;
-  it(`do a benchmark without valkey of send/receiving ${count1} messages`, async () => {
+  it(`do a benchmark with a single server of send/receiving ${count1} messages`, async () => {
     const sub = await client1.subscribe("bench");
     await waitForSubscription(server, "bench");
     const f = async () => {
@@ -86,11 +78,9 @@ describe("create two servers connected via valkey and two clients and test messa
   });
 
   const count2 = 1000;
-  it(`do a benchmark with valkey of send/receiving ${count2} messages`, async () => {
-    const valkeyServer = await runValkey();
-    const valkey = valkeyServer.address;
-    const server1 = await initConatServer({ valkey });
-    const server2 = await initConatServer({ valkey });
+  it(`do a benchmark of cluster send/receiving ${count2} messages`, async () => {
+    const servers = await createConatCluster(2);
+    const [server1, server2] = Object.values(servers);
     const client1 = server1.client();
     const client2 = server2.client();
     const sub = await client1.subscribe("bench");
@@ -111,22 +101,20 @@ describe("create two servers connected via valkey and two clients and test messa
       client2.publishSync("bench", null);
     }
     const sendRate = Math.ceil((count1 / (Date.now() - start)) * 1000);
-    log("valkey: sent", sendRate, "messages per second");
+    log("sent", sendRate, "messages per second");
     expect(sendRate).toBeGreaterThan(
-      REQUIRED_VALKEY_SERVER_SEND_MESSAGES_PER_SECOND,
+      REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
     );
     const recvRate = await f();
-    log("valkey: received ", recvRate, "messages per second");
+    log("received ", recvRate, "messages per second");
     expect(recvRate).toBeGreaterThan(
-      REQUIRED_VALKEY_SERVER_RECV_MESSAGES_PER_SECOND,
+      REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
     );
   });
 
-  it(`do a benchmark with valkey of send/receiving and STICKY SUB and ${count2} messages`, async () => {
-    const valkeyServer = await runValkey();
-    const valkey = valkeyServer.address;
-    const server1 = await initConatServer({ valkey });
-    const server2 = await initConatServer({ valkey });
+  it(`do a benchmark of send/receiving and STICKY SUB involving ${count2} messages`, async () => {
+    const servers = await createConatCluster(2);
+    const [server1, server2] = Object.values(servers);
     const client1 = server1.client();
     const client2 = server2.client();
     const sub = await client1.subscribe("bench", { queue: STICKY_QUEUE_GROUP });
@@ -147,23 +135,21 @@ describe("create two servers connected via valkey and two clients and test messa
       client2.publishSync("bench", null);
     }
     const sendRate = Math.ceil((count1 / (Date.now() - start)) * 1000);
-    log("sticky valkey: sent", sendRate, "messages per second");
+    log("sticky cluster: sent", sendRate, "messages per second");
     expect(sendRate).toBeGreaterThan(
-      REQUIRED_VALKEY_SERVER_SEND_MESSAGES_PER_SECOND,
+      REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
     );
     const recvRate = await f();
-    log("sticky valkey: received ", recvRate, "messages per second");
+    log("sticky cluster: received ", recvRate, "messages per second");
     expect(recvRate).toBeGreaterThan(
-      REQUIRED_VALKEY_SERVER_RECV_MESSAGES_PER_SECOND,
+      REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
     );
   });
 
   const subcount = 400;
-  it(`do a benchmark with valkey of send/receiving and ${count2} messages after adding ${subcount} random subscriptions per client`, async () => {
-    const valkeyServer = await runValkey();
-    const valkey = valkeyServer.address;
-    const server1 = await initConatServer({ valkey });
-    const server2 = await initConatServer({ valkey });
+  it(`do a benchmark with cluster of send/receiving and ${count2} messages after adding ${subcount} random subscriptions per client`, async () => {
+    const servers = await createConatCluster(2);
+    const [server1, server2] = Object.values(servers);
     const client1 = server1.client();
     const client2 = server2.client();
 
@@ -193,14 +179,14 @@ describe("create two servers connected via valkey and two clients and test messa
       client2.publishSync("bench", null);
     }
     const sendRate = Math.ceil((count1 / (Date.now() - start)) * 1000);
-    log("many subs + valkey: sent", sendRate, "messages per second");
+    log("many subs + cluster: sent", sendRate, "messages per second");
     expect(sendRate).toBeGreaterThan(
-      REQUIRED_VALKEY_SERVER_SEND_MESSAGES_PER_SECOND,
+      REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
     );
     const recvRate = await f();
-    log("many subs + valkey: received ", recvRate, "messages per second");
+    log("many subs + cluster: received ", recvRate, "messages per second");
     expect(recvRate).toBeGreaterThan(
-      REQUIRED_VALKEY_SERVER_RECV_MESSAGES_PER_SECOND,
+      REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
     );
   });
 });

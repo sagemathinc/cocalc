@@ -8,7 +8,6 @@ export async function createClusterNode(
   } & Options,
 ) {
   const server = await initConatServer({
-    cluster: true,
     systemAccountPassword: "foo",
     ...opts,
   });

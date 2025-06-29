@@ -203,7 +203,7 @@ export function clusterService({
   id: string;
   clusterName: string;
 }) {
-  return `persist-${clusterName}-${id}`;
+  return `persist:${clusterName}:${id}`;
 }
 
 export async function createClusterPersistServer({
@@ -245,10 +245,12 @@ export async function clusterStreams({
     ephemeral: true,
   };
   const interest = await client.sync.dstream<InterestUpdate>({
+    noInventory: true,
     name: names.interest,
     ...opts,
   });
   const sticky = await client.sync.dstream<StickyUpdate>({
+    noInventory: true,
     name: names.sticky,
     ...opts,
   });

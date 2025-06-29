@@ -180,8 +180,8 @@ describe("create a cluster with two distinct servers and send a message from one
   });
 
   it("link them", async () => {
-    await server1.addClusterLink(client2);
-    await server2.addClusterLink(client1);
+    await server1.join(client2);
+    await server2.join(client1);
   });
 
   it("tests that server-side waitForInterest can be aborted", async () => {
@@ -259,8 +259,8 @@ describe(`a cluster with ${clusterSize} nodes`, () => {
   it("link them all together in a complete digraph", async () => {
     for (let i = 0; i < servers.length; i++) {
       for (let j = i + 1; j < servers.length; j++) {
-        await servers[i].addClusterLink(clients[j]);
-        await servers[j].addClusterLink(clients[i]);
+        await servers[i].join(clients[j]);
+        await servers[j].join(clients[i]);
       }
     }
   });

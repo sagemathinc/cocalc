@@ -31,8 +31,8 @@ same, but it is close).  It's basically a symmetrical pub/sub/reqest/respond mod
 for messaging on which you can build distributed systems.  The tricky part, which
 NATS.js gets wrong (in my opinion), is implementing  this in a way that is robust
 and scalable, in terms for authentication, real world browser connectivity and
-so on.  Our approach is to use proven mature technology like socket.io, sqlite
-and valkey, instead of writing everything from scratch.
+so on.  Our approach is to use proven mature technology like socket.io and sqlite, 
+instead of writing everything from scratch.
 
 Clients: We view all clients as plugged into a common "dial tone",
 except for optional permissions that are configured when starting the server.
@@ -114,13 +114,10 @@ MUST NEVER throw an error or silently end when the connection is dropped
 then resumed, or the server is restarted, or the client connects to
 a different server!  These situations can, of course, result in missing
 some messages, but that's understood.  There are no guarantees at all with
-a subscription that every message is received.  That said, we have enabled
-connectionStateRecovery (and added special conat support for it) so no messages
-are dropped for temporary disconnects, even up to several minutes,
-and even in valkey cluster mode!  Finally, any time a client disconnects
-and reconnects, the client ensures that all subscriptions exist for it on the server
-via a sync process.
-
+a subscription that every message is received.  Finally, any time a client
+disconnects and reconnects, the client ensures that all subscriptions 
+exist for it on the server via a sync process.
+ 
 Subscription robustness is a major difference with NATS.js, which would
 mysteriously terminate subscriptions for a variety of reasons, meaning that any
 code using subscriptions had to be wrapped in ugly complexity to be
@@ -280,6 +277,7 @@ interface Options {
   //
   address?: string;
   inboxPrefix?: string;
+  systemAccountPassword?: string;
 }
 
 export type ClientOptions = Options & {
@@ -461,6 +459,14 @@ export class Client extends EventEmitter {
     this.conn = connectToSocketIO(address, {
       ...DEFAULT_SOCKETIO_CLIENT_OPTIONS,
       ...options,
+      ...(options.systemAccountPassword
+        ? {
+            extraHeaders: {
+              ...options.extraHeaders,
+              Cookie: `sys=${options.systemAccountPassword}`,
+            },
+          }
+        : undefined),
       path,
     });
 

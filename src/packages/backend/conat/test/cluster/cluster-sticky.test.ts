@@ -18,8 +18,8 @@ describe("create cluster of two nodes, and verify that *sticky* subs properly wo
       id: "2",
       systemAccountPassword: "ossifrage",
     }));
-    await server1.addClusterLink(client2);
-    await server2.addClusterLink(client1);
+    await server1.join(client2);
+    await server2.join(client1);
   });
 
   let sub1, sub1b;

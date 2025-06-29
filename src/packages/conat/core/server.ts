@@ -16,33 +16,7 @@ cd packages/server
 
    s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000}); 0
 
-
-For valkey clustering -- run "valkey-server" in a terminal, then:
-
-   s0 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'valkey://localhost:6379', port:3000, getUser:()=>{return {hub_id:'hub'}}})
-
-   s1 = await require('@cocalc/server/conat/socketio').initConatServer({valkey:'valkey://localhost:6379', port:3001, getUser:()=>{return {hub_id:'hub'}}})
-
-Corresponding clients:
-
-   c0 = require('@cocalc/conat/core/client').connect('http://localhost:3000')
-
-   c1 = require('@cocalc/conat/core/client').connect('http://localhost:3001')
-
-
----
-
-Or from cocalc/src
-
-   pnpm conat-server
    
-   
-WARNING/TODO: I did not yet implement anything to expire interest
-when a server terminates!!  This basically isn't needed when using
-the cluster adapter since there's no scaling up or down happening 
-(unless a worker keeps crashing),  but with valkey it would be a good idea.
-
-
 ---
 
 */
@@ -52,15 +26,12 @@ import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/conat/util";
-import { createAdapter as createValkeyStreamsAdapter } from "@cocalc/redis-streams-adapter";
-import { createAdapter as createValkeyPubSubAdapter } from "@socket.io/redis-adapter";
-import Valkey from "iovalkey";
 import { Server } from "socket.io";
 import { delay } from "awaiting";
 import {
   ConatError,
   connect,
-  type Client,
+  Client,
   type ClientOptions,
   MAX_INTEREST_TIMEOUT,
   STICKY_QUEUE_GROUP,
@@ -91,23 +62,6 @@ import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:server");
-
-const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
-const USE_VALKEY_PUBSUB = true;
-
-const VALKEY_READ_COUNT = 100;
-
-export function valkeyClient(valkey) {
-  if (typeof valkey == "string") {
-    if (valkey.startsWith("{") && valkey.endsWith("}")) {
-      return new Valkey({ ...VALKEY_OPTIONS, ...JSON.parse(valkey) });
-    } else {
-      return new Valkey(valkey, VALKEY_OPTIONS);
-    }
-  } else {
-    return new Valkey({ ...VALKEY_OPTIONS, ...valkey });
-  }
-}
 
 const DEBUG = false;
 
@@ -151,22 +105,12 @@ export interface Options {
   path?: string;
   getUser?: UserFunction;
   isAllowed?: AllowFunction;
-  valkey?:
-    | string
-    | {
-        port?: number;
-        host?: string;
-        username?: string;
-        password?: string;
-        db?: number;
-      };
   maxSubscriptionsPerClient?: number;
   maxSubscriptionsPerHub?: number;
   systemAccountPassword?: string;
   // if true, use https when creating an internal client.
   ssl?: boolean;
 
-  cluster?: boolean;
   // if clusterName is set, enable clustering. Each node
   // in the cluster must have a different name. systemAccountPassword
   // must also be set.  This only has an impact when the id is '0'.
@@ -217,8 +161,6 @@ export class ConatServer {
       path = "/conat",
       getUser,
       isAllowed,
-      valkey,
-      cluster,
       maxSubscriptionsPerClient = MAX_SUBSCRIPTIONS_PER_CLIENT,
       maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
       systemAccountPassword,
@@ -230,13 +172,12 @@ export class ConatServer {
       ssl,
       id,
       path,
-      valkey,
       maxSubscriptionsPerClient,
       maxSubscriptionsPerHub,
       systemAccountPassword,
       clusterName,
     };
-    this.cluster = cluster || !!valkey;
+    this.cluster = !!id && !!clusterName;
     this.getUser = async (socket) => {
       if (getUser == null) {
         // no auth at all
@@ -263,26 +204,11 @@ export class ConatServer {
       path,
       port: this.options.port,
       httpServer: httpServer ? "httpServer(...)" : undefined,
-      valkey: !!valkey, // valkey has password in it so do not log
     });
 
     // NOTE: do NOT enable connectionStateRecovery; it seems to cause issues
     // when restarting the server.
     let adapter: any = undefined;
-    if (valkey) {
-      this.log("using valkey");
-      const c = valkeyClient(valkey);
-      if (USE_VALKEY_PUBSUB) {
-        this.log("using the valkey pub/sub adapter");
-        adapter = createValkeyPubSubAdapter(c, c.duplicate());
-      } else {
-        this.log("using the valkey streams adapter with low-latency config");
-        adapter = createValkeyStreamsAdapter(c, {
-          readCount: VALKEY_READ_COUNT,
-          blockTime: 1,
-        });
-      }
-    }
 
     const socketioOptions = {
       maxHttpBufferSize: MAX_PAYLOAD,
@@ -602,8 +528,8 @@ export class ConatServer {
         // we use consistent hashing instead of random to make the choice, because if
         // choice is being made by two different socketio servers at the same time,
         // and they make different choices, it would be (temporarily) bad since a
-        // couple messages could get routed inconsistently (valkey sync would quickly
-        // resolve this).  It's actually very highly likely to have such parallel choices
+        // couple messages could get routed inconsistently.
+        // It's actually very highly likely to have such parallel choices
         // happening in cocalc, since when a file is opened a persistent stream is opened
         // in the browser and the project at the exact same time, and those are likely
         // to be connected to different socketio servers.  By using consistent hashing,
@@ -840,7 +766,7 @@ export class ConatServer {
       clusterName: this.clusterName,
     });
     const client = this.client({
-      extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
+      systemAccountPassword: this.options.systemAccountPassword,
     });
     await client.waitUntilSignedIn();
     // What this does:
@@ -869,7 +795,9 @@ export class ConatServer {
     this.log("cluster successfully initialized");
   };
 
-  addClusterLink = async (client: Client): Promise<ClusterLink> => {
+  join = async (client0: Client | ClientOptions): Promise<ClusterLink> => {
+    const client =
+      client0 instanceof Client ? client0 : connect(client0);
     if (client.info == null) {
       await client.waitUntilSignedIn();
       if (client.info == null) throw Error("bug");

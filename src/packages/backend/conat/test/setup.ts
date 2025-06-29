@@ -16,7 +16,6 @@ export { wait } from "@cocalc/backend/conat/test/util";
 export { delay } from "awaiting";
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
-import { spawn, ChildProcess } from "node:child_process";
 
 const logger = getLogger("conat:test:setup");
 
@@ -42,6 +41,38 @@ export async function createServer(opts?) {
   const port = await getPort();
   server = await initConatServer({ port, path, ...opts });
   return server;
+}
+
+export async function createConatCluster(n: number, opts?) {
+  const clusterName = opts?.clusterName ?? "cluster";
+  const systemAccountPassword = opts?.systemAccountPassword ?? "secret";
+  const servers: { [id: string]: ConatServer } = {};
+  for (let i = 0; i < n; i++) {
+    const id = `node-${i}`;
+    servers[id] = await createServer({
+      systemAccountPassword,
+      clusterName,
+      id,
+      ...opts,
+    });
+  }
+  // join every server to every other server
+  const v: any[] = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i != j) {
+        v.push(
+          servers[`node-${i}`].join({
+            address: `http://localhost:${servers[`node-${j}`].options.port}`,
+            systemAccountPassword,
+            path: "/",
+          }),
+        );
+      }
+    }
+  }
+  await Promise.all(v);
+  return servers;
 }
 
 export async function restartServer() {
@@ -73,7 +104,7 @@ export async function before() {
 
 const clients: Client[] = [];
 export function connect(opts?): Client {
-  const cn = server.client({ noCache: true, ...opts });
+  const cn = server.client({ noCache: true, path: "/", ...opts });
   clients.push(cn);
   return cn;
 }
@@ -85,76 +116,14 @@ export async function after() {
   for (const cn of clients) {
     cn.close();
   }
-  for (const { close } of valkeys) {
-    close();
-  }
 }
 
 process.once("exit", () => {
-  for (const { close } of valkeys) {
-    try {
-      close();
-    } catch {}
-  }
+  after();
 });
+
 ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
   process.once(sig, () => {
     process.exit();
   });
 });
-
-// runs a new ephemeral valkey server on an available port,
-// returning that port.
-const valkeys: any[] = [];
-export async function runValkey(): Promise<{
-  port: number;
-  address: string;
-  close: () => void;
-  password: string;
-}> {
-  const port = await getPort();
-  const password = "testpass";
-
-  // sapwn valkey-server listening on port running in a mode where
-  // data is never saved to disk using the nodejs spawn command:
-  // // Start valkey-server with in-memory only, no persistence
-  const child: ChildProcess = spawn(
-    "valkey-server",
-    [
-      "--port",
-      String(port),
-      "--save",
-      "",
-      "--appendonly",
-      "no",
-      "--requirepass",
-      password,
-    ],
-    {
-      stdio: "ignore", // or "inherit" for debugging
-      detached: false,
-    },
-  );
-
-  let closed = false;
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    if (!child?.pid) return;
-    try {
-      process.kill(child.pid, "SIGKILL");
-    } catch {
-      // already dead or not found
-    }
-  };
-
-  const server = {
-    port,
-    close,
-    address: `valkey://:${password}@localhost:${port}`,
-    password,
-  };
-  valkeys.push(server);
-
-  return server;
-}

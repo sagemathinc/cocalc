@@ -1,11 +1,7 @@
 import { wait } from "@cocalc/backend/conat/test/setup";
 
 export async function waitForSubscription(server, subject) {
-  await wait({
-    until: () => {
-      return server.interest.patterns[subject] !== undefined;
-    },
-  });
+  await wait({ until: async () => await server.waitForInterest(subject) });
 }
 
 export async function waitForNonSubscription(server, subject) {

@@ -226,17 +226,6 @@ export function setConatPassword(password: string) {
   conatPassword = password;
 }
 
-export let conatValkey: string = process.env.CONAT_VALKEY ?? "";
-export function setConatValkey(valkey: string) {
-  conatValkey = valkey;
-}
-
-export let valkeyPassword = "";
-const valkeyPasswordPath = join(secrets, "valkey-password");
-try {
-  valkeyPassword = readFileSync(valkeyPasswordPath).toString().trim();
-} catch {}
-
 export let conatSocketioCount = parseInt(
   process.env.CONAT_SOCKETIO_COUNT ?? "1",
 );
@@ -249,8 +238,6 @@ export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
 
 // if configured, will create a socketio cluster using
 // the cluster adapter, listening on the given port.
-// It makes no sense to use both this *and* valkey. It's
-// one or the other.
 export let conatClusterPort = parseInt(process.env.CONAT_CLUSTER_PORT ?? "0");
 // if set, a simple http server will be started listening on conatClusterHealthPort
 // which returns an error only if the socketio server is not "healthy".
