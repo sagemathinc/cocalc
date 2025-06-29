@@ -1816,7 +1816,13 @@ export class Message<T = any> extends MessageData<T> {
     if (!subject) {
       return { bytes: 0, count: 0 };
     }
-    return await this.client.publish(subject, mesg, opts);
+    let { bytes, count } = await this.client.publish(subject, mesg, opts);
+    if (count == 0) {
+      // nobody listening but they just made a request -- give it a second try
+      await this.client.waitForInterest(subject, { timeout: 15000 });
+      ({ bytes, count } = await this.client.publish(subject, mesg, opts));
+    }
+    return { bytes, count };
   };
 }
 

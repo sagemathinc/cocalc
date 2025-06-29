@@ -7,7 +7,8 @@ interface User {
 
 export interface ServerInfo {
   max_payload: number;
-  id: string;
+  id?: string;
+  clusterName?: string;
   user?: User;
 }
 

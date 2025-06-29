@@ -1,6 +1,6 @@
 /*
 
-pnpm test `pwd`/cluster.test.ts
+pnpm test `pwd`/cluster-basics.test.ts
 
 
 */
@@ -19,23 +19,26 @@ import {
   trimClusterStreams,
 } from "@cocalc/conat/core/cluster";
 import { isEqual } from "lodash";
-import { createCluster } from "./util";
+import { createClusterNode } from "./util";
 
 beforeAll(before);
 
 describe("create a cluster enabled socketio server and test that the streams update as they should", () => {
   let server, client;
   it("create a server with cluster support enabled", async () => {
-    ({ server, client } = await createCluster());
+    ({ server, client } = await createClusterNode({
+      clusterName: "cluster0",
+      id: "0",
+    }));
   });
 
   let streams;
   it("get the interest stream via our client. There MUST be at least two persist subjects in there, since they were needed to even create the interest stream.", async () => {
     streams = await clusterStreams({
+      ...server.options,
       client,
-      clusterName: server.options.clusterName,
     });
-    const service = clusterService(server.options.clusterName);
+    const service = clusterService(server.options);
     await wait({
       until: () => {
         const v = streams.interest.getAll();
@@ -79,7 +82,7 @@ describe("create a cluster enabled socketio server and test that the streams upd
 
   let link;
   it("get access to the same stream, but via a cluster link, and note that it is identical to the one in the server -- keeping these pattern objects sync'd is the point of the link", async () => {
-    link = await clusterLink({ client, clusterName: server.clusterName });
+    link = await clusterLink(client);
     await wait({
       until: () => {
         return (
@@ -142,10 +145,7 @@ describe("create a cluster enabled socketio server and test that the streams upd
 
   it("a new link has correct state, despite the activity", async () => {
     const client2 = server.client({ noCache: true });
-    const link2 = await clusterLink({
-      client: client2,
-      clusterName: server.clusterName,
-    });
+    const link2 = await clusterLink(client2);
     await wait({
       until: () => {
         return (
@@ -167,23 +167,21 @@ describe("create a cluster enabled socketio server and test that the streams upd
 describe("create a cluster with two distinct servers and send a message from one client to another via a link, and also use request/reply", () => {
   let server1, server2, client1, client2;
   it("create two distinct servers with cluster support enabled", async () => {
-    ({ server: server1, client: client1 } = await createCluster({
+    ({ server: server1, client: client1 } = await createClusterNode({
+      clusterName: "cluster1",
       systemAccountPassword: "squeamish",
+      id: "1",
     }));
-    ({ server: server2, client: client2 } = await createCluster({
+    ({ server: server2, client: client2 } = await createClusterNode({
+      clusterName: "cluster1",
       systemAccountPassword: "ossifrage",
+      id: "2",
     }));
   });
 
   it("link them", async () => {
-    await server1.addClusterLink({
-      client: client2,
-      clusterName: server2.clusterName,
-    });
-    await server2.addClusterLink({
-      client: client1,
-      clusterName: server1.clusterName,
-    });
+    await server1.addClusterLink(client2);
+    await server2.addClusterLink(client1);
   });
 
   it("tests that server-side waitForInterest can be aborted", async () => {
@@ -241,15 +239,18 @@ describe("create a cluster with two distinct servers and send a message from one
 });
 
 // This is basically identical to the previous one, but for a bigger cluster:
-const clusterSize = 10;
-describe(`a cluster joining ${clusterSize} different clusters`, () => {
+const clusterSize = 3;
+describe(`a cluster with ${clusterSize} nodes`, () => {
   const servers: any[] = [],
     clients: any[] = [];
-  it("create two distinct servers with cluster support enabled", async () => {
+  it(`create ${clusterSize} distinct servers with cluster support enabled`, async () => {
     for (let i = 0; i < clusterSize; i++) {
-      const { server, client } = await createCluster({
-        clusterName: `cluster-${i}`,
+      const { server, client } = await createClusterNode({
+        clusterName: "my-cluster",
+        id: `node-${i}`,
       });
+      expect(server.options.id).toBe(`node-${i}`);
+      expect(server.options.clusterName).toBe("my-cluster");
       servers.push(server);
       clients.push(client);
     }
@@ -258,14 +259,8 @@ describe(`a cluster joining ${clusterSize} different clusters`, () => {
   it("link them all together in a complete digraph", async () => {
     for (let i = 0; i < servers.length; i++) {
       for (let j = i + 1; j < servers.length; j++) {
-        await servers[i].addClusterLink({
-          client: clients[j],
-          clusterName: servers[j].clusterName,
-        });
-        await servers[j].addClusterLink({
-          client: clients[i],
-          clusterName: servers[i].clusterName,
-        });
+        await servers[i].addClusterLink(clients[j]);
+        await servers[j].addClusterLink(clients[i]);
       }
     }
   });
@@ -288,11 +283,12 @@ describe(`a cluster joining ${clusterSize} different clusters`, () => {
       // now look at everybody else's view of cluster i.
       for (let j = 0; j < clusterSize; j++) {
         if (i != j) {
-          wait({
+          await wait({
             until: () => {
               const link =
-                servers[j].clusterLinks[`cluster-${i}`].interest.serialize()
-                  .patterns;
+                servers[j].clusterLinks["my-cluster"][
+                  `node-${i}`
+                ].interest.serialize().patterns;
               const orig = servers[i].interest.serialize().patterns;
               return isEqual(orig, link);
             },
@@ -302,7 +298,7 @@ describe(`a cluster joining ${clusterSize} different clusters`, () => {
     }
   });
 
-  it("test request/reply from all participants", async () => {
+  it("test request/respond from all participants", async () => {
     await delay(500);
     const v: any[] = [];
     for (let i = 0; i < clusterSize; i++) {
@@ -326,7 +322,10 @@ describe(`a cluster joining ${clusterSize} different clusters`, () => {
 describe("test trimming the interest stream", () => {
   let server, client;
   it("create a cluster server", async () => {
-    ({ server, client } = await createCluster());
+    ({ server, client } = await createClusterNode({
+      id: "0",
+      clusterName: "trim",
+    }));
     await wait({ until: () => server.clusterStreams != null });
   });
 

@@ -56,7 +56,7 @@ import { createAdapter as createValkeyStreamsAdapter } from "@cocalc/redis-strea
 import { createAdapter as createValkeyPubSubAdapter } from "@socket.io/redis-adapter";
 import Valkey from "iovalkey";
 import { Server } from "socket.io";
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 import {
   ConatError,
   connect,
@@ -73,12 +73,11 @@ import {
   MAX_SUBSCRIPTIONS_PER_CLIENT,
   MAX_SUBSCRIPTIONS_PER_HUB,
 } from "./constants";
-import { randomId } from "@cocalc/conat/names";
 import { Patterns } from "./patterns";
 import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
-import { once, until } from "@cocalc/util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 import {
   clusterLink,
   type ClusterLink,
@@ -92,9 +91,6 @@ import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:server");
-
-const INTEREST_STREAM = "interest";
-const STICKY_STREAM = "sticky";
 
 const VALKEY_OPTIONS = { maxRetriesPerRequest: null };
 const USE_VALKEY_PUBSUB = true;
@@ -149,9 +145,9 @@ export type AllowFunction = (opts: {
 }) => Promise<boolean>;
 
 export interface Options {
+  id?: string;
   httpServer?;
   port?: number;
-  id?: string;
   path?: string;
   getUser?: UserFunction;
   isAllowed?: AllowFunction;
@@ -164,12 +160,13 @@ export interface Options {
         password?: string;
         db?: number;
       };
-  cluster?: boolean;
   maxSubscriptionsPerClient?: number;
   maxSubscriptionsPerHub?: number;
   systemAccountPassword?: string;
   // if true, use https when creating an internal client.
   ssl?: boolean;
+
+  cluster?: boolean;
   // if clusterName is set, enable clustering. Each node
   // in the cluster must have a different name. systemAccountPassword
   // must also be set.  This only has an impact when the id is '0'.
@@ -204,16 +201,19 @@ export class ConatServer {
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
 
   private clusterStreams?: ClusterStreams;
-  private clusterLinks: { [clusterName: string]: ClusterLink } = {};
+  private clusterLinks: {
+    [clusterName: string]: { [id: string]: ClusterLink };
+  } = {};
   private clusterPersistServer?: ConatSocketServer;
   private clusterName?: string;
+  private queuedClusterUpdates: Update[] = [];
 
   constructor(options: Options) {
     const {
       httpServer,
       port = 3000,
       ssl = false,
-      id = randomId(),
+      id = "0",
       path = "/conat",
       getUser,
       isAllowed,
@@ -224,18 +224,7 @@ export class ConatServer {
       systemAccountPassword,
       clusterName,
     } = options;
-    if (clusterName) {
-      if (id != "0") {
-        throw Error("the cluster coordinator node must have id='0'");
-      }
-      if (!systemAccountPassword) {
-        throw Error(
-          "cluster coordinator node must have systemAccountPassword set",
-        );
-      }
-      this.clusterName = clusterName;
-    }
-
+    this.clusterName = clusterName;
     this.options = {
       port,
       ssl,
@@ -312,7 +301,7 @@ export class ConatServer {
       this.log(`listening on port ${port}`);
     }
     this.initUsage();
-    this.init();
+    this.io.on("connection", this.handleSocket);
     if (this.options.systemAccountPassword) {
       this.initSystemService();
     }
@@ -320,19 +309,6 @@ export class ConatServer {
       this.initCluster();
     }
   }
-
-  private init = async () => {
-    this.io.on("connection", this.handleSocket);
-    if (this.cluster) {
-      if (this.options.valkey == null) {
-        // the cluster adapter doesn't get configured until after the constructor,
-        // so we wait a moment before configuring these.
-        await delay(1);
-      }
-      this.initInterestSubscription();
-      this.initStickySubscription();
-    }
-  };
 
   private initUsage = () => {
     this.usage = new UsageMonitor({
@@ -355,9 +331,13 @@ export class ConatServer {
       }
       delete this.clusterStreams;
     }
-    for (const name in this.clusterLinks) {
-      this.clusterLinks[name].close();
-      delete this.clusterLinks[name];
+    for (const clusterName in this.clusterLinks) {
+      const link = this.clusterLinks[clusterName];
+      for (const id in link) {
+        link[id].close();
+        delete link[id];
+      }
+      delete this.clusterLinks[clusterName];
     }
     this.clusterPersistServer?.close();
     delete this.clusterPersistServer;
@@ -379,6 +359,7 @@ export class ConatServer {
     return {
       max_payload: MAX_PAYLOAD,
       id: this.id,
+      clusterName: this.clusterName,
     };
   };
 
@@ -395,89 +376,9 @@ export class ConatServer {
     await this.updateInterest({ op: "delete", subject, room });
   };
 
-  // INTEREST
-
-  private updateInterest = async (update: InterestUpdate) => {
-    this._updateInterest(update);
-    if (!this.cluster) return;
-    // console.log(this.options.port, "cluster: publish interest change", update);
-    this.io.of("cluster").serverSideEmit(INTEREST_STREAM, "update", update);
-  };
-
-  private initInterest = async () => {
-    if (!this.cluster) return;
-    const getStateFromCluster = (cb) => {
-      this.io.of("cluster").serverSideEmit(INTEREST_STREAM, "init", cb);
-    };
-
-    await until(
-      async () => {
-        try {
-          const responses = (await callback(getStateFromCluster)).filter(
-            (state) => isNonempty(state.patterns),
-          );
-          // console.log("initInterest got", responses);
-          if (responses.length > 0) {
-            this.deserializeInterest(responses[0]);
-            return true;
-          } else {
-            // console.log(`init interest state -- waiting for other nodes...`);
-            return false;
-          }
-        } catch (err) {
-          if (!process.env.COCALC_TEST_MODE) {
-            console.log(`initInterest: WARNING -- ${err}`);
-          }
-          return false;
-        }
-      },
-      { start: 100, decay: 1.5, max: 5000 },
-    );
-  };
-
-  private initInterestSubscription = async () => {
-    if (!this.cluster) return;
-
-    this.initInterest();
-
-    this.io.of("cluster").on(INTEREST_STREAM, (action, args) => {
-      // console.log("INTEREST_STREAM received", { action, args });
-      if (action == "update") {
-        // another server telling us about subscription interest
-        // console.log("applying interest update", args);
-        this._updateInterest(args);
-      } else if (action == "init") {
-        // console.log("another server requesting state");
-        args(this.serializableInterest());
-      }
-    });
-  };
-
-  private serializableInterest = () => {
-    const fromT = (x: { [queue: string]: Set<string> }) => {
-      const y: { [queue: string]: string[] } = {};
-      for (const queue in x) {
-        y[queue] = Array.from(x[queue]);
-      }
-      return y;
-    };
-    return this.interest.serialize(fromT);
-  };
-
-  private deserializeInterest = (state) => {
-    const interest = new Patterns<{ [queue: string]: Set<string> }>();
-    interest.deserialize(state, (x: any) => {
-      for (const key in x) {
-        x[key] = new Set<string>(x[key]);
-      }
-      return x;
-    });
-    const i = this.interest;
-    this.interest = interest;
-    this.interest.merge(i);
-  };
-
-  private queuedClusterUpdates: Update[] = [];
+  ////////////////////////////////////
+  // CLUSTER STREAM
+  ////////////////////////////////////
 
   private publishUpdate = (update: Update) => {
     if (this.clusterStreams == null) {
@@ -525,81 +426,23 @@ export class ConatServer {
     { leading: false, trailing: true },
   );
 
-  private _updateInterest = (interest: InterestUpdate) => {
-    if (this.state != "ready") return;
+  ///////////////////////////////////////
+  // INTEREST - PATTERNS USERS ARE SUBSCRIBED TO
+  ///////////////////////////////////////
 
+  private updateInterest = async (interest: InterestUpdate) => {
+    if (this.state != "ready") return;
+    // publish to the stream
     this.updateClusterStream({ interest });
+    // update our local state
     updateInterest(interest, this.interest, this.sticky);
   };
 
-  // STICKY
+  ///////////////////////////////////////
+  // STICKY QUEUE GROUPS
+  ///////////////////////////////////////
 
-  private initSticky = async () => {
-    if (!this.cluster) return;
-    const getStateFromCluster = (cb) => {
-      this.io.of("cluster").serverSideEmit(STICKY_STREAM, "init", cb);
-    };
-
-    await until(
-      async () => {
-        try {
-          const responses = (await callback(getStateFromCluster)).filter((x) =>
-            isNonempty(x),
-          );
-          // console.log("initSticky got", responses);
-          if (responses.length > 0) {
-            for (const response of responses) {
-              this.mergeSticky(response);
-            }
-            return true;
-          } else {
-            // console.log(`init sticky state -- waiting for other nodes...`);
-            return false;
-          }
-        } catch (err) {
-          if (!process.env.COCALC_TEST_MODE) {
-            console.log(`initInterest: WARNING -- ${err}`);
-          }
-          return false;
-        }
-      },
-      { start: 100, decay: 1.5, max: 10000 },
-    );
-  };
-
-  private mergeSticky = (sticky: {
-    [pattern: string]: { [subject: string]: string };
-  }) => {
-    for (const pattern in sticky) {
-      this.sticky[pattern] = { ...sticky[pattern], ...this.sticky[pattern] };
-    }
-  };
-
-  private initStickySubscription = async () => {
-    if (!this.cluster) return;
-
-    this.initSticky();
-
-    this.io.of("cluster").on(STICKY_STREAM, (action, args) => {
-      // console.log("STICKY_STREAM received", { action, args });
-      if (action == "update") {
-        this._updateSticky(args);
-      } else if (action == "init") {
-        // console.log("sending stickyUpdates", this.stickyUpdates);
-        args(this.sticky);
-      }
-    });
-  };
-
-  private updateSticky = async (update: StickyUpdate) => {
-    this._updateSticky(update);
-    if (!this.cluster) return;
-
-    // console.log(this.options.port, "cluster: publish sticky update", update);
-    this.io.of("cluster").serverSideEmit(STICKY_STREAM, "update", update);
-  };
-
-  private _updateSticky = (sticky: StickyUpdate) => {
+  private updateSticky = (sticky: StickyUpdate) => {
     this.updateClusterStream({ sticky });
     updateSticky(sticky, this.sticky);
   };
@@ -607,6 +450,10 @@ export class ConatServer {
   private getStickyTarget = ({ pattern, subject }) => {
     return this.sticky[pattern]?.[subject];
   };
+
+  ///////////////////////////////////////
+  // SUBSCRIBE and PUBLISH
+  ///////////////////////////////////////
 
   private subscribe = async ({ socket, subject, queue, user }) => {
     if (DEBUG) {
@@ -665,6 +512,7 @@ export class ConatServer {
       });
     }
     let count = 0;
+    const queueGroups: { [pattern: string]: Set<string> } = {};
     for (const pattern of this.interest.matches(subject)) {
       const g = this.interest.get(pattern)!;
       if (DEBUG) {
@@ -679,21 +527,49 @@ export class ConatServer {
           targets: g[queue],
         });
         if (target !== undefined) {
+          if (queueGroups[pattern] == null) {
+            queueGroups[pattern] = new Set();
+          }
+          queueGroups[pattern].add(queue);
           this.io.to(target).emit(pattern, { subject, data });
           count += 1;
         }
       }
     }
-    if (count == 0 && !data[6] && this.clusterName) {
-      for (const clusterName in this.clusterLinks) {
-        // note -- position 6 of data is a no-forward flag, to avoid
-        // a message bouncing back and forth in case the interest stream
-        // were slightly out of sync.
-        const link = this.clusterLinks[clusterName];
-        const count2 = link.publish({ subject, data });
+
+    // note -- position 6 of data is a no-forward flag, to avoid
+    // a message bouncing back and forth in case the interest stream
+    // were slightly out of sync.
+    const noForward = data[6];
+    if (noForward || !this.cluster || !this.clusterName) {
+      return count;
+    }
+
+    // publish to any other nodes in the same cluster
+    const thisCluster = this.clusterLinks[this.clusterName];
+    if (thisCluster) {
+      for (const id in thisCluster) {
+        const link = thisCluster[id];
+        const count2 = link.publish({ subject, data, queueGroups });
         if (count2 > 0) {
           count += count2;
-          break;
+        }
+      }
+    }
+    // if no matches in local cluster, try the supercluster (if there is one)
+    if (count == 0) {
+      // nothing in this cluster, so try other clusters
+      for (const clusterName in this.clusterLinks) {
+        if (clusterName == this.clusterName) continue;
+        const links = this.clusterLinks[clusterName];
+        for (const id in links) {
+          const link = links[id];
+          const count2 = link.publish({ subject, data, queueGroups });
+          if (count2 > 0) {
+            count += count2;
+            // once we publish to any other cluster, we are done.
+            break;
+          }
         }
       }
     }
@@ -701,6 +577,9 @@ export class ConatServer {
     return count;
   };
 
+  ///////////////////////////////////////
+  // WHO GETS PUBLISHED MESSAGE:
+  ///////////////////////////////////////
   private loadBalance = ({
     pattern,
     subject,
@@ -741,6 +620,9 @@ export class ConatServer {
     }
   };
 
+  ///////////////////////////////////////
+  // MANAGING A CONNECTION FROM A CLIENT SOCKET
+  ///////////////////////////////////////
   private handleSocket = async (socket) => {
     this.sockets[socket.id] = socket;
     socket.once("closed", () => {
@@ -940,10 +822,23 @@ export class ConatServer {
   };
 
   private initCluster = async () => {
-    if (this.id != "0" || !this.clusterName) {
+    if (!this.cluster) {
       return;
     }
-    this.log("enabling cluster support");
+    if (!this.id) {
+      throw Error("if cluster is enabled, then the id must be set");
+    }
+    if (!this.clusterName) {
+      throw Error("if cluster is enabled, then the clusterName must be set");
+    }
+    if (!this.options.systemAccountPassword) {
+      throw Error("cluster must have systemAccountPassword set");
+    }
+
+    this.log("enabling cluster support", {
+      id: this.id,
+      clusterName: this.clusterName,
+    });
     const client = this.client({
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
@@ -957,11 +852,13 @@ export class ConatServer {
     this.log("creating persist server");
     this.clusterPersistServer = await createClusterPersistServer({
       client,
+      id: this.id,
       clusterName: this.clusterName,
     });
     this.log("creating cluster streams");
     this.clusterStreams = await clusterStreams({
       client,
+      id: this.id,
       clusterName: this.clusterName,
     });
     // add in everything so far in interest (TODO)
@@ -972,12 +869,26 @@ export class ConatServer {
     this.log("cluster successfully initialized");
   };
 
-  addClusterLink = async ({ clusterName, client }): Promise<ClusterLink> => {
-    if (this.clusterLinks[clusterName] != null) {
-      throw Error(`there is already a link to ${clusterName}`);
+  addClusterLink = async (client: Client): Promise<ClusterLink> => {
+    if (client.info == null) {
+      await client.waitUntilSignedIn();
+      if (client.info == null) throw Error("bug");
     }
-    const link = await clusterLink({ client, clusterName });
-    this.clusterLinks[clusterName] = link;
+    const { id, clusterName } = client.info;
+    if (!id || !clusterName) {
+      throw Error("id and clusterName must be set");
+    }
+    if (id == this.id) {
+      throw Error(`must be a different id than this ${id}`);
+    }
+    if (this.clusterLinks[clusterName] == null) {
+      this.clusterLinks[clusterName] = {};
+    }
+    if (this.clusterLinks[clusterName][id] != null) {
+      throw Error(`there is already a link to server ${id} of ${clusterName}`);
+    }
+    const link = await clusterLink(client);
+    this.clusterLinks[clusterName][id] = link;
     return link;
   };
 
@@ -1024,68 +935,97 @@ export class ConatServer {
     socketId: string,
     signal?: AbortSignal,
   ): Promise<boolean> => {
-    const links = Object.values(this.clusterLinks);
-    if (links.length == 0) {
-      return await this.waitForInterestInThisCluster(
+    if (!this.cluster) {
+      // not a cluster
+      return await this.waitForInterestOnThisNode(
         subject,
         timeout,
         socketId,
         signal,
       );
-    } else {
-      const v: any[] = [];
-      let done = false;
-      try {
-        const nothrow = async (f) => {
-          try {
-            return await f;
-          } catch (err) {
-            if (!done) {
-              console.trace("ERROR", err);
-            }
-          }
-          return false;
-        };
-        const controller = new AbortController();
-        const signal2 = controller.signal;
-        v.push(
-          nothrow(
-            this.waitForInterestInThisCluster(
-              subject,
-              timeout,
-              socketId,
-              signal2,
-            ),
-          ),
-        );
-        for (const link of links) {
-          v.push(nothrow(link.waitForInterest(subject, timeout, signal2)));
-        }
-        if (!timeout) {
-          // with timeout=0 they all immediately answer (so no need to worry about abort/pormise)
-          const w = await Promise.all(v);
-          for (const x of w) {
-            if (x) {
-              return true;
-            }
-          }
-          return false;
-        }
-
-        signal?.addEventListener("abort", () => {
-          controller.abort();
-        });
-        const w = await Promise.race(v);
-        // cancel all the others.
-        controller.abort();
-        return w;
-      } finally {
-        done = true;
+    }
+    // check if there is already interest in the local cluster
+    const links = this.superclusterLinks();
+    for (const link of links) {
+      if (link.hasInterest(subject)) {
+        return true;
       }
+    }
+
+    // wait for interest in any node on any cluster
+    return await this.waitForInterestInLinks(
+      subject,
+      timeout,
+      socketId,
+      signal,
+      links,
+    );
+  };
+
+  private superclusterLinks = (): ClusterLink[] => {
+    let links: ClusterLink[] = [];
+    for (const clusterName in this.clusterLinks) {
+      links = links.concat(Object.values(this.clusterLinks[clusterName]));
+    }
+    return links;
+  };
+
+  private waitForInterestInLinks = async (
+    subject,
+    timeout,
+    socketId,
+    signal,
+    links: ClusterLink[],
+  ): Promise<boolean> => {
+    const v: any[] = [];
+    let done = false;
+    try {
+      // we use AbortController etc below so we can cancel waiting once
+      // we get any interest.
+      const nothrow = async (f) => {
+        try {
+          return await f;
+        } catch (err) {
+          if (!done) {
+            console.trace("ERROR", err);
+          }
+        }
+        return false;
+      };
+      const controller = new AbortController();
+      const signal2 = controller.signal;
+      v.push(
+        nothrow(
+          this.waitForInterestOnThisNode(subject, timeout, socketId, signal2),
+        ),
+      );
+      for (const link of links) {
+        v.push(nothrow(link.waitForInterest(subject, timeout, signal2)));
+      }
+      if (!timeout) {
+        // with timeout=0 they all immediately answer (so no need to worry about abort/pormise)
+        const w = await Promise.all(v);
+        for (const x of w) {
+          if (x) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      signal?.addEventListener("abort", () => {
+        controller.abort();
+      });
+      const w = await Promise.race(v);
+      // cancel all the others.
+      controller.abort();
+      return w;
+    } finally {
+      done = true;
     }
   };
 
-  private waitForInterestInThisCluster = async (
+  private waitForInterestOnThisNode = async (
     subject: string,
     timeout: number,
     socketId: string,
@@ -1194,13 +1134,6 @@ function getAddress(socket) {
   }
 
   return socket.handshake.address;
-}
-
-function isNonempty(obj) {
-  for (const _ in obj) {
-    return true;
-  }
-  return false;
 }
 
 export function updateInterest(

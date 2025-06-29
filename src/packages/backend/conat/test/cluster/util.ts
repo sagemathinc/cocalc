@@ -1,11 +1,14 @@
 import { initConatServer } from "@cocalc/backend/conat/test/setup";
+import type { Options } from "@cocalc/conat/core/server";
 
-let clusterName = 0;
-export async function createCluster(opts?) {
-  clusterName += 1;
+export async function createClusterNode(
+  opts: {
+    clusterName: string;
+    id: string;
+  } & Options,
+) {
   const server = await initConatServer({
-    clusterName: `${clusterName}`,
-    id: "0",
+    cluster: true,
     systemAccountPassword: "foo",
     ...opts,
   });

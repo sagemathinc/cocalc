@@ -14,14 +14,19 @@ import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:cluster");
 
-export async function clusterLink({
-  client,
-  clusterName,
-}: {
-  client: Client;
-  clusterName: string;
-}) {
-  const link = new ClusterLink(client, clusterName);
+export async function clusterLink(client: Client) {
+  if (client.info == null) {
+    await client.waitUntilSignedIn();
+    if (client.info == null) throw Error("bug");
+  }
+  const { id, clusterName } = client.info;
+  if (!id) {
+    throw Error("id must be specified");
+  }
+  if (!clusterName) {
+    throw Error("clusterName must be specified");
+  }
+  const link = new ClusterLink(client, id, clusterName);
   await link.init();
   return link;
 }
@@ -34,6 +39,7 @@ export class ClusterLink {
 
   constructor(
     private client: Client,
+    private id: string,
     private clusterName: string,
   ) {
     if (!client) {
@@ -42,11 +48,15 @@ export class ClusterLink {
     if (!clusterName) {
       throw Error("clusterName must be specified");
     }
+    if (!id) {
+      throw Error("id must be specified");
+    }
   }
 
   init = async () => {
     this.streams = await clusterStreams({
       client: this.client,
+      id: this.id,
       clusterName: this.clusterName,
     });
     for (const update of this.streams.interest.getAll()) {
@@ -79,12 +89,25 @@ export class ClusterLink {
     }
   };
 
-  publish = ({ subject, data }) => {
+  publish = ({
+    subject,
+    data,
+    queueGroups,
+  }: {
+    subject: string;
+    data: any;
+    // these are already used queueGroups, possibly from other links
+    queueGroups: { [pattern: string]: Set<string> };
+  }) => {
     let count = 0;
     for (const pattern of this.interest.matches(subject)) {
       const g = this.interest.get(pattern)!;
-      // send to exactly one in each queue group
+      // send to exactly one in each queue group.
       for (const queue in g) {
+        if (queueGroups[pattern]?.has(queue)) {
+          // already published to same queue group elsewhere in the (super-)cluster.
+          continue;
+        }
         const target = this.loadBalance({
           pattern,
           subject,
@@ -92,6 +115,11 @@ export class ClusterLink {
           targets: g[queue],
         });
         if (target !== undefined) {
+          if (queueGroups[pattern] == null) {
+            queueGroups[pattern] = new Set();
+          }
+          queueGroups[pattern].add(queue);
+
           // worry about from field?
           this.client.conn.emit("publish", [subject, ...data, true]);
           count += 1;
@@ -117,6 +145,10 @@ export class ClusterLink {
     }
     // TODO: deal with sticky queue groups!
     return randomChoice(targets);
+  };
+
+  hasInterest = (subject) => {
+    return this.interest.hasMatch(subject);
   };
 
   waitForInterest = async (
@@ -151,25 +183,39 @@ export class ClusterLink {
   };
 }
 
-export function clusterStreamNames(clusterName: string) {
+function clusterStreamNames({
+  clusterName,
+  id,
+}: {
+  clusterName: string;
+  id: string;
+}) {
   return {
-    interest: `cluster/${clusterName}/interest`,
-    sticky: `cluster/${clusterName}/sticky`,
+    interest: `cluster/${clusterName}/${id}/interest`,
+    sticky: `cluster/${clusterName}/${id}/sticky`,
   };
 }
 
-export function clusterService(clusterName: string) {
-  return `persist-${clusterName}`;
+export function clusterService({
+  id,
+  clusterName,
+}: {
+  id: string;
+  clusterName: string;
+}) {
+  return `persist-${clusterName}-${id}`;
 }
 
 export async function createClusterPersistServer({
   client,
+  id,
   clusterName,
 }: {
   client: Client;
+  id: string;
   clusterName: string;
 }) {
-  const service = clusterService(clusterName);
+  const service = clusterService({ clusterName, id });
   logger.debug("createClusterPersistServer: ", { service });
   return await createPersistServer({ client, service });
 }
@@ -182,17 +228,19 @@ export interface ClusterStreams {
 export async function clusterStreams({
   client,
   clusterName,
+  id,
 }: {
   client: Client;
   clusterName: string;
+  id: string;
 }): Promise<ClusterStreams> {
-  logger.debug("clusterStream: ", { clusterName });
+  logger.debug("clusterStream: ", { clusterName, id });
   if (!clusterName) {
     throw Error("clusterName must be set");
   }
-  const names = clusterStreamNames(clusterName);
+  const names = clusterStreamNames({ clusterName, id });
   const opts = {
-    service: clusterService(clusterName),
+    service: clusterService({ clusterName, id }),
     noCache: true,
     ephemeral: true,
   };

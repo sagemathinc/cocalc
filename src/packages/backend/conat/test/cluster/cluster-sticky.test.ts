@@ -1,27 +1,25 @@
 import { before, after, wait } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
-import { createCluster } from "./util";
+import { createClusterNode } from "./util";
 
 beforeAll(before);
 
 describe("create cluster of two nodes, and verify that *sticky* subs properly work", () => {
   let server1, server2, client1, client1b, client2;
   it("create two distinct servers and link them", async () => {
-    ({ server: server1, client: client1 } = await createCluster({
+    ({ server: server1, client: client1 } = await createClusterNode({
+      clusterName: "cluster0",
+      id: "1",
       systemAccountPassword: "squeamish",
     }));
     client1b = server1.client();
-    ({ server: server2, client: client2 } = await createCluster({
+    ({ server: server2, client: client2 } = await createClusterNode({
+      clusterName: "cluster0",
+      id: "2",
       systemAccountPassword: "ossifrage",
     }));
-    await server1.addClusterLink({
-      client: client2,
-      clusterName: server2.clusterName,
-    });
-    await server2.addClusterLink({
-      client: client1,
-      clusterName: server1.clusterName,
-    });
+    await server1.addClusterLink(client2);
+    await server2.addClusterLink(client1);
   });
 
   let sub1, sub1b;
