@@ -50,6 +50,7 @@ const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 const Modes = ["markdown", "editor"] as const;
 export type Mode = (typeof Modes)[number];
 
+
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
 
 function getLocalStorageMode(): Mode | undefined {
