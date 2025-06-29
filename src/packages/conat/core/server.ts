@@ -61,7 +61,7 @@ import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { type SysConatServer, SYS_API_SUBJECT } from "./sys";
+import { type SysConatServer, SYS_API_SUBJECT, sysApi } from "./sys";
 
 const logger = getLogger("conat:core:server");
 
@@ -806,6 +806,7 @@ export class ConatServer {
   // - the systemAccountPassword of this node and the one with the given
   //   address must be the same.
   join = reuseInFlight(async (address: string): Promise<ClusterLink> => {
+    console.log(this.address(), " --> ", address);
     if (!this.options.systemAccountPassword) {
       throw Error("systemAccountPassword must be set");
     }
@@ -904,8 +905,8 @@ export class ConatServer {
           }> => this.clusterTopology(),
 
           // addresses of all nodes in the (super-)cluster
-          clusterAddresses: async (): Promise<string[]> =>
-            this.clusterAddresses(),
+          clusterAddresses: async (clusterName?: string): Promise<string[]> =>
+            this.clusterAddresses(clusterName),
         },
         { queue: this.id },
       );
@@ -915,10 +916,21 @@ export class ConatServer {
     }
   };
 
-  clusterAddresses = () => [
-    this.address(),
-    ...Object.keys(this.clusterLinksByAddress),
-  ];
+  clusterAddresses = (clusterName?: string) => {
+    if (!clusterName) {
+      return [this.address(), ...Object.keys(this.clusterLinksByAddress)];
+    }
+    const v: string[] = [];
+    if (clusterName == this.clusterName) {
+      v.push(this.address());
+    }
+    for (const address in this.clusterLinksByAddress) {
+      if (this.clusterLinksByAddress[address].clusterName == clusterName) {
+        v.push(address);
+      }
+    }
+    return v;
+  };
 
   clusterTopology = (): {
     // map from id to address
@@ -940,6 +952,83 @@ export class ConatServer {
     }
     addresses[this.clusterName][this.id] = this.address();
     return addresses;
+  };
+
+  // scan via any nodes we're connected to for other known nodes in the cluster
+  // that we're NOT connected to.  If every node does this periodically (and the
+  // cluster isn't constantly changing, then each component of the digraph
+  // will eventually be a complete graph.  In particular, this function returns
+  // the number of links created (count), so if it returns 0 when called on all nodes, then
+  // we're done until new nodes are added.
+  scan = async (): Promise<{ count: number; errors: any[] }> => {
+    const knownByUs = new Set(this.clusterAddresses(this.clusterName));
+    const unknownToUs = new Set<string>([]);
+    const errors: { err: any; desc: string }[] = [];
+
+    // in parallel, we use the sys api to call all nodes we know about
+    // and ask them "heh, what nodes in this cluster do *YOU* know about"?
+    // if any come back that we don't know about, we add them to unknownToUs.
+    let count = 0;
+
+    const f = async (client) => {
+      const sys = sysApi(client);
+      console.log("getting info from ", client.options.address);
+      const knownByRemoteNode = new Set(
+        await sys.clusterAddresses(this.clusterName),
+      );
+      for (const address of knownByRemoteNode) {
+        if (!knownByUs.has(address)) {
+          unknownToUs.add(address);
+        }
+      }
+      if (!knownByRemoteNode.has(this.address())) {
+        // we know about them, but they don't know about us, so ask them to link to us.
+        try {
+          console.log(
+            `asking ${client.options.address} to join ${this.address()}`,
+          );
+          await sys.join(this.address());
+          count += 1;
+        } catch (err) {
+          errors.push({
+            err,
+            desc: `requesting remote ${client.options.address} join us`,
+          });
+        }
+      }
+    };
+
+    if (!this.clusterName) {
+      throw Error("if cluster is enabled, then the clusterName must be set");
+    }
+
+    await Promise.all(
+      Object.values(this.clusterLinks[this.clusterName]).map((link) =>
+        f(link.client),
+      ),
+    );
+    return;
+
+    console.log(unknownToUs);
+    if (unknownToUs.size == 0) {
+      return { count, errors };
+    }
+
+    // Now (in parallel), join with all unknownToUs nodes.
+    const g = async (address: string) => {
+      try {
+        console.log("joining to ", address);
+        await this.join(address);
+        count += 1;
+      } catch (err) {
+        errors.push({ err, desc: `joining to ${address}` });
+      }
+    };
+    const v = Array.from(unknownToUs).map(g);
+
+    await Promise.all(v);
+
+    return { count, errors };
   };
 
   private waitForInterest = async (
