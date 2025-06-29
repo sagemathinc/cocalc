@@ -18,10 +18,10 @@ import {
   clusterService,
   trimClusterStreams,
 } from "@cocalc/conat/core/cluster";
-import { type SysConatServer } from "@cocalc/conat/core/server";
 import { isEqual } from "lodash";
 import { createClusterNode } from "./util";
 import type { Client } from "@cocalc/conat/core/client";
+import { sysApi } from "@cocalc/conat/core/sys";
 
 beforeAll(before);
 
@@ -84,7 +84,10 @@ describe("create a cluster enabled socketio server and test that the streams upd
 
   let link;
   it("get access to the same stream, but via a cluster link, and note that it is identical to the one in the server -- keeping these pattern objects sync'd is the point of the link", async () => {
-    link = await clusterLink(client);
+    link = await clusterLink(
+      server.address(),
+      server.options.systemAccountPassword,
+    );
     await wait({
       until: () => {
         return (
@@ -146,8 +149,10 @@ describe("create a cluster enabled socketio server and test that the streams upd
   });
 
   it("a new link has correct state, despite the activity", async () => {
-    const client2 = server.client({ noCache: true });
-    const link2 = await clusterLink(client2);
+    const link2 = await clusterLink(
+      server.address(),
+      server.options.systemAccountPassword,
+    );
     await wait({
       until: () => {
         return (
@@ -162,7 +167,6 @@ describe("create a cluster enabled socketio server and test that the streams upd
       link2.interest.serialize().patterns,
     );
     link2.close();
-    client2.close();
   });
 });
 
@@ -182,8 +186,8 @@ describe("create a cluster with two distinct servers and send a message from one
   });
 
   it("link them", async () => {
-    await server1.join(client2);
-    await server2.join(client1);
+    await server1.join(server2.address());
+    await server2.join(server1.address());
   });
 
   it("tests that server-side waitForInterest can be aborted", async () => {
@@ -252,7 +256,7 @@ describe("create a cluster with two distinct servers and send a message from one
 });
 
 // This is basically identical to the previous one, but for a bigger cluster:
-const clusterSize = 3;
+const clusterSize = 5;
 describe(`a cluster with ${clusterSize} nodes`, () => {
   const servers: any[] = [],
     clients: any[] = [];
@@ -272,10 +276,23 @@ describe(`a cluster with ${clusterSize} nodes`, () => {
   it("link them all together in a complete digraph", async () => {
     for (let i = 0; i < servers.length; i++) {
       for (let j = i + 1; j < servers.length; j++) {
-        await servers[i].join(clients[j]);
-        await servers[j].join(clients[i]);
+        await servers[i].join(servers[j].address());
+        await servers[j].join(servers[i].address());
       }
     }
+  });
+
+  it("get addresses and topology", async () => {
+    for (let i = 0; i < clusterSize; i++) {
+      const sys = sysApi(clients[i]);
+      expect(new Set(await sys.clusterAddresses()).size).toBe(clusterSize);
+    }
+    const t = await sysApi(clients[0]).clusterTopology();
+    expect(Object.keys(t)).toEqual(["my-cluster"]);
+    const v = Object.values(t["my-cluster"]);
+    expect(new Set(v)).toEqual(
+      new Set(servers.map((server) => server.address())),
+    );
   });
 
   let sub;
@@ -376,33 +393,46 @@ describe("test trimming the interest stream", () => {
   });
 });
 
-describe("join two servers in a cluster using the sys api instead of directly calling join on the server", () => {
+describe("join two servers in a cluster using the sys api instead of directly calling join on the server objects", () => {
   let server1, server2, client1: Client, client2: Client;
+  const systemAccountPassword = "squeamish ossifrage";
   it("create two distinct servers with cluster support enabled", async () => {
     ({ server: server1, client: client1 } = await createClusterNode({
       clusterName: "cluster-sys",
-      systemAccountPassword: "squeamish",
+      systemAccountPassword,
       id: "1",
     }));
     ({ server: server2, client: client2 } = await createClusterNode({
       clusterName: "cluster-sys",
-      systemAccountPassword: "ossifrage",
+      systemAccountPassword,
       id: "2",
     }));
   });
 
   let sys1, sys2;
   it("link them using the sys api", async () => {
-    sys1 = client1.call<SysConatServer>("sys.conat.server");
-    await sys1.join({
-      address: server2.address(),
-      systemAccountPassword: "ossifrage",
+    sys1 = sysApi(client1);
+    expect(await sys1.clusterAddresses()).toEqual([server1.address()]);
+    await sys1.join(server2.address());
+    expect(await sys1.clusterAddresses()).toEqual([
+      server1.address(),
+      server2.address(),
+    ]);
+    expect(await sys1.clusterTopology()).toEqual({
+      "cluster-sys": {
+        "1": server1.address(),
+        "2": server2.address(),
+      },
     });
-    sys2 = client2.call<SysConatServer>("sys.conat.server");
-    await sys2.join({
-      address: server1.address(),
-      systemAccountPassword: "squeamish",
-    });
+
+    sys2 = sysApi(client2);
+    expect(await sys2.clusterAddresses()).toEqual([server2.address()]);
+    await sys2.join(server1.address());
+    expect(await sys2.clusterAddresses()).toEqual([
+      server2.address(),
+      server1.address(),
+    ]);
+    expect(await sys1.clusterTopology()).toEqual(await sys2.clusterTopology());
   });
 
   let sub;
@@ -423,6 +453,19 @@ describe("join two servers in a cluster using the sys api instead of directly ca
     const { count: count2 } = await client2.publish("x", "hello");
     expect(count2).toBe(0);
     sub.close();
+
+    expect(await sys1.clusterAddresses()).toEqual([server1.address()]);
+    expect(await sys2.clusterAddresses()).toEqual([server2.address()]);
+    expect(await sys1.clusterTopology()).toEqual({
+      "cluster-sys": {
+        "1": server1.address(),
+      },
+    });
+    expect(await sys2.clusterTopology()).toEqual({
+      "cluster-sys": {
+        "2": server2.address(),
+      },
+    });
   });
 });
 

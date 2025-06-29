@@ -60,6 +60,8 @@ import {
 import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { type SysConatServer, SYS_API_SUBJECT } from "./sys";
 
 const logger = getLogger("conat:core:server");
 
@@ -148,6 +150,7 @@ export class ConatServer {
   private clusterLinks: {
     [clusterName: string]: { [id: string]: ClusterLink };
   } = {};
+  private clusterLinksByAddress: { [address: string]: ClusterLink } = {};
   private clusterPersistServer?: ConatSocketServer;
   private clusterName?: string;
   private queuedClusterUpdates: Update[] = [];
@@ -264,6 +267,9 @@ export class ConatServer {
         delete link[id];
       }
       delete this.clusterLinks[clusterName];
+    }
+    for (const address in this.clusterLinksByAddress) {
+      delete this.clusterLinksByAddress[address];
     }
     this.clusterPersistServer?.close();
     delete this.clusterPersistServer;
@@ -729,9 +735,9 @@ export class ConatServer {
   };
 
   // create new client in the same process connected to this server.
-  // This is useful for unit testing and is not cached by default (i.e., multiple
+  // This is especially useful for unit testing and is not cached by default (i.e., multiple
   // calls return distinct clients).
-  private address = () => {
+  address = () => {
     const port = this.options.port;
     const path = this.options.path?.slice(0, -"/conat".length) ?? "";
     return `http${this.options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
@@ -795,46 +801,64 @@ export class ConatServer {
     this.log("cluster successfully initialized");
   };
 
-  join = async (client0: Client | ClientOptions): Promise<ClusterLink> => {
-    const client = client0 instanceof Client ? client0 : connect(client0);
-    if (client.info == null) {
-      await client.waitUntilSignedIn();
-      if (client.info == null) throw Error("bug");
+  // Join this node to the cluster that contains a node with the given address.
+  // - the address obviously must be reachable over the network
+  // - the systemAccountPassword of this node and the one with the given
+  //   address must be the same.
+  join = reuseInFlight(async (address: string): Promise<ClusterLink> => {
+    if (!this.options.systemAccountPassword) {
+      throw Error("systemAccountPassword must be set");
     }
-    const { id, clusterName } = client.info;
-    if (!id || !clusterName) {
-      throw Error("id and clusterName must be set");
+    const link0 = this.clusterLinksByAddress[address];
+    if (link0 != null) {
+      return link0;
     }
-    if (id == this.id) {
-      throw Error(`must be a different id than this ${id}`);
-    }
+    const link = await clusterLink(address, this.options.systemAccountPassword);
+    const { clusterName, id } = link;
     if (this.clusterLinks[clusterName] == null) {
       this.clusterLinks[clusterName] = {};
     }
-    let link = this.clusterLinks[clusterName][id];
-    if (link != null) {
-      this.log(`there is already a link to server ${id} of ${clusterName}`);
-      return link;
-    }
-    link = await clusterLink(client);
     this.clusterLinks[clusterName][id] = link;
+    this.clusterLinksByAddress[address] = link;
     return link;
-  };
+  });
 
-  unjoin = ({ id, clusterName }: { clusterName?: string; id: string }) => {
-    const cluster = clusterName ?? this.clusterName;
-    if (!cluster) {
-      throw "clusterName must be set";
+  unjoin = ({
+    id,
+    clusterName,
+    address,
+  }: {
+    clusterName?: string;
+    id?: string;
+    address?: string;
+  }) => {
+    if (!clusterName && !id && !address) {
+      throw Error(
+        "at least one of clusterName, id or address must be specified",
+      );
     }
-    const link = this.clusterLinks[cluster]?.[id];
+    let link;
+    if (address) {
+      link = this.clusterLinksByAddress[address];
+    } else {
+      if (!id) {
+        throw Error("if address is not given then id must be given");
+      }
+      const cluster = clusterName ?? this.clusterName;
+      if (!cluster) {
+        throw "clusterName must be set";
+      }
+      link = this.clusterLinks[cluster]?.[id];
+    }
     if (link === undefined) {
       // already gone
       return;
     }
     link.close();
-    delete this.clusterLinks[cluster][id];
-    if (Object.keys(this.clusterLinks[cluster]).length == 0) {
-      delete this.clusterLinks[cluster];
+    delete this.clusterLinks[link.clusterName][link.id];
+    delete this.clusterLinksByAddress[link.address];
+    if (Object.keys(this.clusterLinks[link.clusterName]).length == 0) {
+      delete this.clusterLinks[link.clusterName];
     }
   };
 
@@ -848,7 +872,7 @@ export class ConatServer {
     });
     try {
       await client.service<SysConatServer>(
-        "sys.conat.server",
+        SYS_API_SUBJECT,
         {
           stats: async () => {
             return { [this.id]: this.stats };
@@ -866,28 +890,56 @@ export class ConatServer {
               this.io.in(id).disconnectSockets();
             }
           },
-          join: async (client: ClientOptions) => {
-            await this.join(client);
+          join: async (address: string) => {
+            await this.join(address);
           },
           unjoin: async (opts: { clusterName?: string; id: string }) => {
             await this.unjoin(opts);
           },
-          // returns addresses of the nodes in the local cluster
-          clusterAddresses: async (): Promise<string[]> => {
-            return await this.clusterAddresses();
-          },
+
+          // topology of the nodes in the (super-)cluster
+          clusterTopology: async (): Promise<{
+            // map from id to address
+            [clusterName: string]: { [id: string]: string };
+          }> => this.clusterTopology(),
+
+          // addresses of all nodes in the (super-)cluster
+          clusterAddresses: async (): Promise<string[]> =>
+            this.clusterAddresses(),
         },
         { queue: this.id },
       );
-      this.log(`successfully started sys.conat.server service`);
+      this.log(`successfully started ${SYS_API_SUBJECT} service`);
     } catch (err) {
-      this.log(`WARNING: unable to start sys.conat.server service -- ${err}`);
+      this.log(`WARNING: unable to start ${SYS_API_SUBJECT} service -- ${err}`);
     }
   };
 
-  clusterAddresses = (): string[] => {
-    // todo
-    return [];
+  clusterAddresses = () => [
+    this.address(),
+    ...Object.keys(this.clusterLinksByAddress),
+  ];
+
+  clusterTopology = (): {
+    // map from id to address
+    [clusterName: string]: { [id: string]: string };
+  } => {
+    if (!this.clusterName || !this.id) {
+      throw Error("not in cluster mode");
+    }
+    const addresses: { [clusterName: string]: { [id: string]: string } } = {};
+    for (const clusterName in this.clusterLinks) {
+      addresses[clusterName] = {};
+      const C = this.clusterLinks[clusterName];
+      for (const id in C) {
+        addresses[clusterName][id] = C[id].address;
+      }
+    }
+    if (addresses[this.clusterName] == null) {
+      addresses[this.clusterName] = {};
+    }
+    addresses[this.clusterName][this.id] = this.address();
+    return addresses;
   };
 
   private waitForInterest = async (
@@ -1150,24 +1202,4 @@ export function updateSticky(
     sticky[pattern] = {};
   }
   sticky[pattern][subject] = target;
-}
-
-export interface SysConatServer {
-  stats: () => Promise<{ [id: string]: { [id: string]: ConnectionStats } }>;
-  usage: () => Promise<{
-    [id: string]: { total: number; perUser: { [user: string]: number } };
-  }>;
-  disconnect: (ids: string | string[]) => Promise<void>;
-  join: (client: ClientOptions) => Promise<void>;
-  unjoin: (opts: { clusterName?: string; id: string }) => Promise<void>;
-  clusterAddresses: () => Promise<string[]>;
-}
-
-export interface SysConatServerCallMany {
-  stats: () => Promise<{ [id: string]: { [id: string]: ConnectionStats } }[]>;
-  usage: () => Promise<
-    {
-      [id: string]: { total: number; perUser: { [user: string]: number } };
-    }[]
-  >;
 }

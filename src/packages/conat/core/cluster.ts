@@ -1,4 +1,4 @@
-import type { Client } from "./client";
+import { type Client, connect } from "./client";
 import { Patterns } from "./patterns";
 import {
   randomChoice,
@@ -14,7 +14,11 @@ import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:cluster");
 
-export async function clusterLink(client: Client) {
+export async function clusterLink(
+  address: string,
+  systemAccountPassword: string,
+) {
+  const client = connect({ address, systemAccountPassword });
   if (client.info == null) {
     await client.waitUntilSignedIn();
     if (client.info == null) throw Error("bug");
@@ -26,21 +30,24 @@ export async function clusterLink(client: Client) {
   if (!clusterName) {
     throw Error("clusterName must be specified");
   }
-  const link = new ClusterLink(client, id, clusterName);
+  const link = new ClusterLink(client, id, clusterName, address);
   await link.init();
   return link;
 }
 
-export class ClusterLink {
+export { type ClusterLink };
+
+class ClusterLink {
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
   private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
 
   constructor(
-    private client: Client,
-    private id: string,
-    private clusterName: string,
+    public readonly client: Client,
+    public readonly id: string,
+    public readonly clusterName: string,
+    public readonly address: string,
   ) {
     if (!client) {
       throw Error("client must be specified");
