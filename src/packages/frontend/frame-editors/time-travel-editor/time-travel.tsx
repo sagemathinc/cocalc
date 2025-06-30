@@ -605,8 +605,6 @@ function beyondTheLimit({
   version,
   versions,
 }) {
-  console.log({ unlicensedLimit, gitMode, licenses, version, versions });
-  window.x = { unlicensedLimit, gitMode, licenses, version, versions };
   if (gitMode || (unlicensedLimit ?? 0) <= 0 || licenses.size > 0) {
     return false;
   }
