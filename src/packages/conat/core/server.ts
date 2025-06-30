@@ -747,6 +747,10 @@ export class ConatServer {
       },
     );
 
+    socket.on("cluster", (respond) => {
+      respond?.(this.clusterAddresses(this.clusterName));
+    });
+
     socket.on("disconnecting", async () => {
       this.log("disconnecting", { id, user });
       delete this.stats[socket.id];

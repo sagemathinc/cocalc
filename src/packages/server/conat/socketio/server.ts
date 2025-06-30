@@ -72,6 +72,12 @@ export async function init(options: Partial<Options> = {}) {
   if (!conatSocketioCount || conatSocketioCount <= 1) {
     return createConatServer(opts);
   } else {
+    return createConatServer({
+      ...opts,
+      localClusterSize: conatSocketioCount,
+      clusterName: "default",
+      id: "node",
+    });
     throw Error(`not implemented -- socket count = ${conatSocketioCount}`);
   }
 }

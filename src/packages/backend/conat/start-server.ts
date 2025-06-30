@@ -3,8 +3,13 @@ import { init, type Options } from "@cocalc/conat/core/server";
 
 function main() {
   console.log("main");
-  process.on("message", (opts) => {
-    console.log("got message:", opts);
+  process.on("message", (opts: Options) => {
+    console.log("starting server", {
+      ...opts,
+      systemAccountPassword: "•".repeat(
+        opts.systemAccountPassword?.length ?? 0,
+      ),
+    });
     init(opts as Options);
   });
 }

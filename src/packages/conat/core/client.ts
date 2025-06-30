@@ -501,6 +501,13 @@ export class Client extends EventEmitter {
     this.statsLoop();
   }
 
+  cluster = async () => {
+    return await callback(
+      this.conn.timeout(10000).emit.bind(this.conn),
+      "cluster",
+    );
+  };
+
   disconnect = () => {
     this.disconnectAllSockets();
     // @ts-ignore
