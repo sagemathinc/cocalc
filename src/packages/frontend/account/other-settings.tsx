@@ -107,7 +107,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.global_banner"
-          defaultMessage={`<strong>Show announcement banner</strong>: only shows up if there is a
+          defaultMessage={`<strong>Show Announcement Banner</strong>: only shows up if there is a
         message`}
         />
       </Checkbox>
@@ -122,7 +122,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.time_ago_absolute"
-          defaultMessage={`Display <strong>timestamps as absolute points in time</strong>
+          defaultMessage={`<strong>Display Timestamps as absolute points in time</strong>
             instead of relative to the current time`}
         />
       </Checkbox>
@@ -195,7 +195,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.mask_files"
-          defaultMessage={`<strong>Mask files:</strong> grey out files in the files viewer
+          defaultMessage={`<strong>Mask Files:</strong> grey out files in the files viewer
             that you probably do not want to open`}
         />
       </Checkbox>
@@ -666,6 +666,15 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {render_hide_project_popovers()}
         {render_hide_file_popovers()}
         {render_hide_button_tooltips()}
+        <Checkbox
+          checked={!!props.other_settings.get("hide_navbar_balance")}
+          onChange={(e) => on_change("hide_navbar_balance", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.hide_navbar_balance"
+            defaultMessage={`<strong>Hide Account Balance</strong> in navigation bar`}
+          />
+        </Checkbox>
         {render_no_free_warnings()}
         <Checkbox
           checked={!!props.other_settings.get("disable_markdown_codebar")}

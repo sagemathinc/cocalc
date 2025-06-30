@@ -508,6 +508,7 @@ Table({
             no_email_new_messages: false,
             [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:
               USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
+            hide_navbar_balance: false,
           },
           name: null,
           first_name: "",
