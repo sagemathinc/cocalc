@@ -92,15 +92,17 @@ const SEND_THROTTLE = 30;
 export function server({
   client,
   messagesThresh = DEFAULT_MESSAGES_THRESH,
+  service = SERVICE,
 }: {
   client: Client;
   messagesThresh?: number;
-}) {
-  logger.debug("server: creating...");
+  service?: string;
+}): ConatSocketServer {
+  logger.debug("server: creating persist server");
   if (client == null) {
     throw Error("client must be specified");
   }
-  const subject = `${SERVICE}.*`;
+  const subject = `${service}.*`;
   const server: ConatSocketServer = client.socket.listen(subject);
   logger.debug("server: listening on ", { subject });
   const usage = new UsageMonitor({
@@ -139,6 +141,7 @@ export function server({
           stream = await getStream({
             subject: socket.subject,
             storage,
+            service,
           });
           if (changefeed) {
             startChangefeed({ socket, stream, messagesThresh });

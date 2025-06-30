@@ -8,7 +8,6 @@ import {
   conatPasswordPath,
   setConatServer,
   setConatPassword,
-  setConatValkey,
 } from "@cocalc/backend/data";
 import { secureRandomString } from "@cocalc/backend/misc";
 import { writeFile } from "fs/promises";
@@ -21,7 +20,7 @@ export async function loadConatConfiguration() {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT name, value FROM server_settings WHERE name=ANY($1)",
-    [["conat_server", "conat_password", "conat_valkey"]],
+    [["conat_server", "conat_password"]],
   );
   let passworkConfigured = !!conatPassword;
   for (const { name, value } of rows) {
@@ -36,8 +35,6 @@ export async function loadConatConfiguration() {
       setConatPassword(value.trim());
     } else if (name == "conat_server") {
       setConatServer(value.trim());
-    } else if (name == "conat_valkey") {
-      setConatValkey(value.trim());
     } else {
       throw Error("bug");
     }

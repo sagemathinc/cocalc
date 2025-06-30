@@ -23,7 +23,8 @@
     "conat-connections": "node ./bin/conat-connections.cjs",
     "conat-disconnect": "node ./bin/conat-disconnect.cjs",
     "conat-inventory": "node ./bin/conat-inventory.cjs",
-    "conat-persist": "DEBUG=cocalc:*  node ./bin/conat-persist.cjs"
+    "conat-persist": "DEBUG=cocalc:*  node ./bin/conat-persist.cjs",
+    "conat-test-server": "node ./bin/conat-test-server.cjs"
   },
   "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",

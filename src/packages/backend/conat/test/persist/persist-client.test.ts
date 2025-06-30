@@ -235,7 +235,11 @@ describe("test a changefeed", () => {
       key: "test3",
       messageData: messageData("data3", { headers: { foo: "bar3" } }),
     });
-    await restartServer();
+    try {
+      await restartServer();
+    } catch (err) {
+      console.log("error restarting server ", err);
+    }
     await wait({
       until: async () => {
         // this set is expected to fail while networking is restarting

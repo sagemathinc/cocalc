@@ -394,7 +394,7 @@ async function main(): Promise<void> {
     )
     .option(
       "--conat-core",
-      "run a hub that provides the core conat communication layer server over a websocket (but not http server).  If you run more than one of these at once they MUST be configured to use valkey, or messages won't get transmitted between them.",
+      "run a hub that provides the core conat communication layer server over a websocket (but not http server).",
     )
     .option(
       "--conat-api",

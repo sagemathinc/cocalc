@@ -130,6 +130,7 @@ export interface DKVOptions {
 
   noCache?: boolean;
   noInventory?: boolean;
+  service?: string;
 }
 
 export class DKV<T = any> extends EventEmitter {
@@ -162,6 +163,7 @@ export class DKV<T = any> extends EventEmitter {
       config,
       noAutosave,
       ephemeral = false,
+      service,
     } = opts;
     this.name = name;
     this.desc = desc;
@@ -174,6 +176,7 @@ export class DKV<T = any> extends EventEmitter {
       client,
       config,
       ephemeral,
+      service,
     });
 
     return new Proxy(this, {
@@ -787,7 +790,11 @@ export class DKV<T = any> extends EventEmitter {
       let inv: Inventory | undefined = undefined;
       try {
         const { account_id, project_id, desc } = this.opts;
-        const inv = await inventory({ account_id, project_id });
+        const inv = await inventory({
+          account_id,
+          project_id,
+          service: this.opts.service,
+        });
         if (this.isClosed()) {
           return;
         }

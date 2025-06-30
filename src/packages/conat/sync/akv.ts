@@ -56,6 +56,7 @@ export class AKV<T = any> {
       client,
       user: this.user,
       storage: this.storage,
+      service: options.service,
     });
   }
 
