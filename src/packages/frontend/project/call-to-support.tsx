@@ -1,10 +1,8 @@
 import { Alert, Typography } from "antd";
 import { join } from "path";
-
 import { A } from "@cocalc/frontend/components/A";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-
-const { Paragraph, Text } = Typography;
+const { Paragraph } = Typography;
 export const BUY_A_LICENSE_URL = join(appBasePath, "/store/site-license");
 
 export function CallToSupport({ onClose }: { onClose? }) {

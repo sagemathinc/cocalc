@@ -6,7 +6,6 @@
 import { Alert, Flex } from "antd";
 import React from "react";
 import { useIntl } from "react-intl";
-
 import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
@@ -15,6 +14,18 @@ import { path_to_file } from "@cocalc/util/misc";
 import { useProjectContext } from "../context";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { ListingItem } from "./types";
+import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
+
+const HelpStyle = {
+  wordWrap: "break-word",
+  top: "40px",
+  position: "absolute",
+  width: "100%",
+  height: "38",
+  boxShadow: "#999 6px 6px 6px",
+  zIndex: 100,
+  borderRadius: "15px",
+} as const;
 
 export const outputMinitermStyle: React.CSSProperties = {
   background: "white",
@@ -154,11 +165,10 @@ export const SearchBar = React.memo((props: Props) => {
   }
 
   function render_help_info(): React.JSX.Element | undefined {
-    if (
-      file_search.length > 0 &&
-      num_files_displayed > 0 &&
-      file_search[0] !== TERM_MODE_CHAR
-    ) {
+    if (file_search[0] == TERM_MODE_CHAR) {
+      return <TerminalModeDisplay style={HelpStyle} />;
+    }
+    if (file_search.length > 0 && num_files_displayed > 0) {
       let text;
       const firstFolderPosition = file_search.indexOf("/");
       if (file_search === " /") {
@@ -171,13 +181,7 @@ export const SearchBar = React.memo((props: Props) => {
       } else {
         text = `Showing files matching "${file_search}"`;
       }
-      return (
-        <Alert
-          style={{ wordWrap: "break-word", marginBottom: "10px" }}
-          type="info"
-          message={text}
-        />
-      );
+      return <Alert style={HelpStyle} type="info" message={text} />;
     }
   }
 
@@ -294,7 +298,7 @@ export const SearchBar = React.memo((props: Props) => {
   }
 
   return (
-    <Flex style={{ flex: "1 0 auto" }} vertical={true}>
+    <Flex style={{ flex: "1 0 auto", position: "relative" }} vertical={true}>
       <SearchInput
         autoFocus
         autoSelect
