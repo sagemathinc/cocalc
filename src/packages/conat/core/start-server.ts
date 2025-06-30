@@ -11,10 +11,11 @@ export function forkedConatServer(opts: Options) {
       "..",
       "..",
       "..",
-      "backend",
+      "server",
       "dist",
       "conat",
-      "start-server.js",
+      "socketio",
+      "start-cluster-node.js",
     ),
   );
   children.push(child);

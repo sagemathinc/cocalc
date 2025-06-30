@@ -41,7 +41,6 @@ import { conatSocketioCount, conatClusterPort } from "@cocalc/backend/data";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { join } from "path";
-import startCluster from "./start-cluster";
 import { getLogger } from "@cocalc/backend/logger";
 import "@cocalc/backend/conat";
 import "@cocalc/backend/conat/persist"; // initializes context
@@ -50,14 +49,6 @@ const logger = getLogger("conat-server");
 
 export async function init(options: Partial<Options> = {}) {
   logger.debug("init");
-
-  if (conatClusterPort) {
-    const mesg = `Conat cluster port is set so we spawn a cluster listening on port ${conatClusterPort}, instead of an in-process conat server`;
-    console.log(mesg);
-    logger.debug(mesg);
-    startCluster();
-    return;
-  }
 
   const opts = {
     getUser,
@@ -74,6 +65,8 @@ export async function init(options: Partial<Options> = {}) {
   } else {
     return createConatServer({
       ...opts,
+      httpServer: undefined,
+      port: conatClusterPort,
       localClusterSize: conatSocketioCount,
       clusterName: "default",
       id: "node",
