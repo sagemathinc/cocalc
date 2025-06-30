@@ -499,7 +499,6 @@ export function TimeTravel(props: Props) {
           {renderRevertFile()}
           {renderOpenSnapshots()}
           {renderExport()}
-          {renderLoadMoreHistory()}
         </Space.Compact>
         {(versions?.size ?? 0) > 0 && (
           <>
@@ -513,10 +512,21 @@ export function TimeTravel(props: Props) {
 
   const renderTimeSelect = () => {
     return (
-      <>
-        {renderNavigationSlider()}
-        {renderRangeSlider()}
-      </>
+      <div style={{ display: "flex" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {renderLoadMoreHistory()}
+        </div>
+        <div style={{ flex: 1 }}>
+          {renderNavigationSlider()}
+          {renderRangeSlider()}
+        </div>
+      </div>
     );
   };
 
@@ -534,6 +544,7 @@ export function TimeTravel(props: Props) {
           padding: "5px 0 5px 15px",
           borderTop: "1px solid #ddd",
           background: "#fafafa",
+          marginLeft: "5px",
         }}
       >
         {subject}
