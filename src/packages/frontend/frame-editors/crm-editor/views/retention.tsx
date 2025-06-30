@@ -33,17 +33,21 @@ interface Props {
 export default function RetentionView({ retention, setRetention }: Props) {
   const all = useMemo(
     () => retention.model.endsWith(":all"),
-    [retention.model]
+    [retention.model],
   );
   const [retentionData, setRetentionData] = useState<RetentionData[] | null>(
-    null
+    null,
   );
   const { size, period, startTimes } = useMemo(() => {
     let size = 0;
     for (const x of retentionData ?? []) {
       size += x?.size ?? 0;
     }
-    if (retentionData == null || retentionData.length == 0) {
+    if (
+      retentionData == null ||
+      retentionData.length == 0 ||
+      retentionData[0] == null
+    ) {
       return { size: 0, period: 0, startTimes: [] };
     }
     const { start, active, last_start_time } = retentionData[0];
@@ -132,7 +136,7 @@ function Header({ size, period, startTimes, all }) {
             <>
               {dayjs(t[0]).format("dd MMM D, YYYY h:mm A")} -{" "}
               {dayjs(t[0].add(period, "milliseconds")).format(
-                "dd MMM D, YYYY h:mm A"
+                "dd MMM D, YYYY h:mm A",
               )}{" "}
               {all ? "all active users" : "first cohort active users"}
             </>
@@ -188,7 +192,7 @@ function Row({ start, stop, size, active, period, all }) {
               {n} active {plural(n, "user")}
             </>
           )}
-        />
+        />,
       );
     }
   }

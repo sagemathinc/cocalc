@@ -18,7 +18,7 @@ Table({
     //db_standby: "unsafe",
     durability: "soft", // dropping a log entry (e.g., "foo opened a file") wouldn't matter much
 
-    pg_indexes: ["project_id", "time"],
+    pg_indexes: ["project_id", "time", "account_id"],
 
     user_query: {
       get: {
