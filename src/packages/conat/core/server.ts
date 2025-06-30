@@ -61,7 +61,7 @@ import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { type SysConatServer, SYS_API_SUBJECT, sysApi } from "./sys";
+import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 
 const logger = getLogger("conat:core:server");
 
@@ -806,7 +806,6 @@ export class ConatServer {
   // - the systemAccountPassword of this node and the one with the given
   //   address must be the same.
   join = reuseInFlight(async (address: string): Promise<ClusterLink> => {
-    console.log(this.address(), " --> ", address);
     if (!this.options.systemAccountPassword) {
       throw Error("systemAccountPassword must be set");
     }
@@ -871,49 +870,90 @@ export class ConatServer {
     const client = this.client({
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
-    try {
-      await client.service<SysConatServer>(
-        SYS_API_SUBJECT,
-        {
-          stats: async () => {
-            return { [this.id]: this.stats };
-          },
-          usage: async () => {
-            return { [this.id]: this.usage.stats() };
-          },
-          // user has to explicitly refresh there browser after
-          // being disconnected this way
-          disconnect: async (ids: string | string[]) => {
-            if (typeof ids == "string") {
-              ids = [ids];
-            }
-            for (const id of ids) {
-              this.io.in(id).disconnectSockets();
-            }
-          },
-          join: async (address: string) => {
-            await this.join(address);
-          },
-          unjoin: async (opts: { clusterName?: string; id: string }) => {
-            await this.unjoin(opts);
-          },
 
-          // topology of the nodes in the (super-)cluster
-          clusterTopology: async (): Promise<{
-            // map from id to address
-            [clusterName: string]: { [id: string]: string };
-          }> => this.clusterTopology(),
-
-          // addresses of all nodes in the (super-)cluster
-          clusterAddresses: async (clusterName?: string): Promise<string[]> =>
-            this.clusterAddresses(clusterName),
+    const subject = sysApiSubject({ clusterName: this.clusterName });
+    // services that ALL servers answer, i.e., a single request gets
+    // answers from all members of the cluster.
+    await client.service<SysConatServer>(
+      subject,
+      {
+        stats: async () => {
+          return { [this.id]: this.stats };
         },
-        { queue: this.id },
-      );
-      this.log(`successfully started ${SYS_API_SUBJECT} service`);
-    } catch (err) {
-      this.log(`WARNING: unable to start ${SYS_API_SUBJECT} service -- ${err}`);
-    }
+        usage: async () => {
+          return { [this.id]: this.usage.stats() };
+        },
+        // user has to explicitly refresh there browser after
+        // being disconnected this way
+        disconnect: async (ids: string | string[]) => {
+          if (typeof ids == "string") {
+            ids = [ids];
+          }
+          for (const id of ids) {
+            this.io.in(id).disconnectSockets();
+          }
+        },
+        join: () => {
+          throw Error("wrong service");
+        },
+        unjoin: () => {
+          throw Error("wrong service");
+        },
+        clusterTopology: () => {
+          throw Error("wrong service");
+        },
+        clusterAddresses: () => {
+          throw Error("wrong service");
+        },
+      },
+      { queue: this.id },
+    );
+    this.log(`successfully started ${subject} service`);
+
+    const subject2 = sysApiSubject({
+      clusterName: this.clusterName,
+      id: this.id,
+    });
+
+    await client.service<SysConatServer>(
+      subject2,
+      {
+        stats: async () => {
+          return { [this.id]: this.stats };
+        },
+        usage: async () => {
+          return { [this.id]: this.usage.stats() };
+        },
+        // user has to explicitly refresh there browser after
+        // being disconnected this way
+        disconnect: async (ids: string | string[]) => {
+          if (typeof ids == "string") {
+            ids = [ids];
+          }
+          for (const id of ids) {
+            this.io.in(id).disconnectSockets();
+          }
+        },
+        join: async (address: string) => {
+          await this.join(address);
+        },
+        unjoin: async (opts: { clusterName?: string; id: string }) => {
+          await this.unjoin(opts);
+        },
+
+        // topology of the nodes in the (super-)cluster
+        clusterTopology: async (): Promise<{
+          // map from id to address
+          [clusterName: string]: { [id: string]: string };
+        }> => this.clusterTopology(),
+
+        // addresses of all nodes in the (super-)cluster
+        clusterAddresses: async (clusterName?: string): Promise<string[]> =>
+          this.clusterAddresses(clusterName),
+      },
+      { queue: this.id },
+    );
+    this.log(`successfully started ${subject2} service`);
   };
 
   clusterAddresses = (clusterName?: string) => {
@@ -972,7 +1012,6 @@ export class ConatServer {
 
     const f = async (client) => {
       const sys = sysApi(client);
-      console.log("getting info from ", client.options.address);
       const knownByRemoteNode = new Set(
         await sys.clusterAddresses(this.clusterName),
       );
@@ -984,9 +1023,6 @@ export class ConatServer {
       if (!knownByRemoteNode.has(this.address())) {
         // we know about them, but they don't know about us, so ask them to link to us.
         try {
-          console.log(
-            `asking ${client.options.address} to join ${this.address()}`,
-          );
           await sys.join(this.address());
           count += 1;
         } catch (err) {
@@ -1007,9 +1043,6 @@ export class ConatServer {
         f(link.client),
       ),
     );
-    return;
-
-    console.log(unknownToUs);
     if (unknownToUs.size == 0) {
       return { count, errors };
     }
@@ -1017,7 +1050,6 @@ export class ConatServer {
     // Now (in parallel), join with all unknownToUs nodes.
     const g = async (address: string) => {
       try {
-        console.log("joining to ", address);
         await this.join(address);
         count += 1;
       } catch (err) {

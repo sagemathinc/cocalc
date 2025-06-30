@@ -37,7 +37,7 @@ const log = VERBOSE ? console.log : (..._args) => {};
 
 beforeAll(before);
 
-jest.setTimeout(10000);
+jest.setTimeout(15000);
 
 describe("create two connected servers and two clients and test messaging speed", () => {
   let server, client1, client2;

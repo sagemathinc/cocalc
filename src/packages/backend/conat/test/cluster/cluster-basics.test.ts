@@ -494,45 +494,51 @@ describe.only("test automatic node discovery", () => {
     // plus one to the other cluster
     await nodes[0].server.join(nodes[3].server.address());
 
-    expect((await nodes[0].server.clusterAddresses("discovery")).length).toBe(
-      2,
-    );
-    expect((await nodes[1].server.clusterAddresses("discovery")).length).toBe(
-      2,
-    );
-    expect((await nodes[2].server.clusterAddresses("discovery")).length).toBe(
-      1,
-    );
+    expect(nodes[0].server.clusterAddresses("discovery").length).toBe(2);
+    expect(nodes[1].server.clusterAddresses("discovery").length).toBe(2);
+    expect(nodes[2].server.clusterAddresses("discovery").length).toBe(1);
   });
 
   it("run scan from node0. this results in the following new connections:  1->0, 0->2", async () => {
-    console.log("doing a scan from ", nodes[0].server.address());
-    await nodes[0].server.scan();
-//     const { count, errors } = await nodes[0].server.scan();
-//     expect(count).toBe(2);
-//     expect(errors.length).toBe(0);
-    expect((await nodes[0].server.clusterAddresses("discovery")).length).toBe(
-      3,
-    );
-    expect((await nodes[1].server.clusterAddresses("discovery")).length).toBe(
-      3,
-    );
-    console.log(await nodes[2].server.clusterAddresses("discovery"));
-    //     expect((await nodes[2].server.clusterAddresses("discovery")).length).toBe(
-    //       2,
-    //     );
+    const { count, errors } = await nodes[0].server.scan();
+    expect(count).toBe(2);
+    expect(errors.length).toBe(0);
+    expect(nodes[0].server.clusterAddresses("discovery").length).toBe(3);
+    expect(nodes[1].server.clusterAddresses("discovery").length).toBe(3);
+    expect(nodes[2].server.clusterAddresses("discovery").length).toBe(1);
   });
 
-  it("run scan from node1. this should:  ", async () => {
-    //     const { count, errors } = await nodes[1].server.scan();
-    //     expect(count).toBe(2);
-    //     expect(errors.length).toBe(0);
-    //     expect((await nodes[0].server.clusterAddresses("discovery")).length).toBe(
-    //       3,
-    //     );
-    //     expect((await nodes[1].server.clusterAddresses("discovery")).length).toBe(
-    //       3,
-    //     );
+  it("run scan from node1. this should result in the following new connections: 2->1 ", async () => {
+    const { count, errors } = await nodes[1].server.scan();
+    expect(count).toBe(1);
+    expect(errors.length).toBe(0);
+    expect(nodes[2].server.clusterAddresses("discovery").length).toBe(2);
+  });
+
+  it("run scan from node2. this should result in the following new connections: 2->0.  We now have the complete graph.", async () => {
+    const { count, errors } = await nodes[2].server.scan();
+    expect(count).toBe(1);
+    expect(errors.length).toBe(0);
+    expect(nodes[2].server.clusterAddresses("discovery").length).toBe(3);
+  });
+
+  it("join a new node3 (=nodes[4] due to other cluster node) to node2 and do a scan", async () => {
+    nodes.push(
+      await createClusterNode({ id: "node3", clusterName: "discovery" }),
+    );
+    await nodes[4].server.join(nodes[2].server.address());
+    // only knows about self and node2 initially
+    expect(nodes[4].server.clusterAddresses("discovery").length).toBe(2);
+
+    // new node scans and now it knows about ALL nodes in the cluster
+    expect((await nodes[4].server.scan()).count).toBe(3);
+    expect(nodes[4].server.clusterAddresses("discovery").length).toBe(4);
+
+    // have the other 3 nodes scan so they know all nodes:
+    for (let i = 0; i < 3; i++) {
+      await nodes[i].server.scan();
+      expect(nodes[i].server.clusterAddresses("discovery").length).toBe(4);
+    }
   });
 });
 

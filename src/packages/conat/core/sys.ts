@@ -4,11 +4,11 @@ import type { ConnectionStats } from "./types";
 // requests go to *all* nodes in the cluster
 //   sys.conat.[clusterName]
 // or sys.conat.default if there is no cluster.
-export function getSubject({
+export function sysApiSubject({
   clusterName,
   id,
 }: {
-  clusterName: string?;
+  clusterName?: string;
   id?: string;
 }) {
   if (!id) {
@@ -17,11 +17,6 @@ export function getSubject({
     return `sys.conat.${clusterName ?? "default"}.${id}`;
   }
 }
-
-// requests go to only one specific node in the local cluster,
-// where * is the name of the server node.
-//   sys.conat.[clusterName].[serverId]
-export const SYS_API_NODE_PATTERN = "sys.conat.*.*";
 
 export interface SysConatServer {
   stats: () => Promise<{ [id: string]: { [id: string]: ConnectionStats } }>;
@@ -44,12 +39,21 @@ export interface SysConatServerCallMany {
       [id: string]: { total: number; perUser: { [user: string]: number } };
     }[]
   >;
+  disconnect: (ids: string | string[]) => Promise<void>;
 }
 
 export function sysApi(client: Client, opts?): SysConatServer {
-  return client.call<SysConatServer>(SYS_API_SUBJECT, opts);
+  if (client.info == null) {
+    throw Error("client must be signed in");
+  }
+  const subject = sysApiSubject(client.info);
+  return client.call<SysConatServer>(subject, opts);
 }
 
 export function sysApiMany(client: Client, opts?): SysConatServerCallMany {
-  return client.callMany<SysConatServerCallMany>(SYS_API_SUBJECT, opts);
+  if (client.info == null) {
+    throw Error("client must be signed in");
+  }
+  const subject = sysApiSubject({ clusterName: client.info.clusterName });
+  return client.callMany<SysConatServerCallMany>(subject, opts);
 }
