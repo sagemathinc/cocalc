@@ -12,7 +12,12 @@ How to make a cluster of two servers:
 and in another session:
 
     s2 = await require('@cocalc/server/conat/socketio').initConatServer({port:3001,  clusterName:'my-cluster', id:'s2', systemAccountPassword:'x', path:'/'}); 0
-    await s2.join({address:'http://localhost:3000', systemAccountPassword:'x'})
+    
+    await s2.join('http://localhost:3000')
+    
+    s2.clusterTopology()
+    
+        // { 'my-cluster': { s1: 'http://localhost:3000', s2: 'http://localhost:3001' }}
     
 Then in another terminal, make a client connected to each:
 
@@ -22,7 +27,7 @@ Then in another terminal, make a client connected to each:
      systemAccountPassword:'x'});
      
     c1.watch('foo')
-    c2.publishSync('bar')
+    c2.publishSync('foo', 'hi')
     
 */
 

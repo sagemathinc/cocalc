@@ -7,6 +7,12 @@ Just try it out, start up node.js in this directory and:
     c.watch('foo')
     c2 = s.client();
     c2.pub('foo', 'bar')
+    
+To connect from another terminal:
+
+    c = require('@cocalc/conat/core/client').connect({address:"http://localhost:4567"})
+    c.state
+      // 'connected'
 
 
 cd packages/server
@@ -62,6 +68,7 @@ import { throttle } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
+import { forkedConatServer } from "./start-server";
 
 const logger = getLogger("conat:core:server");
 
@@ -128,6 +135,8 @@ export interface Options {
   // Defaults to 10_000 = 10 seconds.
   autoscanInterval?: number;
   longAutoscanInterval?: number;
+
+  clusterNodes?: Options[];
 }
 
 type State = "ready" | "closed";
@@ -180,6 +189,7 @@ export class ConatServer {
       clusterName,
       autoscanInterval = DEFAULT_AUTOSCAN_INTERVAL,
       longAutoscanInterval = DEFAULT_LONG_AUTOSCAN_INTERVAL,
+      clusterNodes,
     } = options;
     this.clusterName = clusterName;
     this.options = {
@@ -193,6 +203,7 @@ export class ConatServer {
       clusterName,
       autoscanInterval,
       longAutoscanInterval,
+      clusterNodes,
     };
     this.cluster = !!id && !!clusterName;
     this.getUser = async (socket) => {
@@ -748,15 +759,11 @@ export class ConatServer {
     });
   };
 
-  // create new client in the same process connected to this server.
-  // This is especially useful for unit testing and is not cached by default (i.e., multiple
-  // calls return distinct clients).
-  address = () => {
-    const port = this.options.port;
-    const path = this.options.path?.slice(0, -"/conat".length) ?? "";
-    return `http${this.options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
-  };
+  address = () => getServerAddress(this.options);
 
+  // create new client in the same process connected to this server.
+  // This is especially useful for unit testing and is not cached
+  // by default (i.e., multiple calls return distinct clients).
   client = (options?: ClientOptions): Client => {
     const address = this.address();
     this.log("client: connecting to - ", { address });
@@ -813,7 +820,44 @@ export class ConatServer {
       this.queuedClusterUpdates.length = 0;
     }
     this.initAutoscan();
+    await this.initClusterNodes();
     this.log("cluster successfully initialized");
+  };
+
+  private initClusterNodes = async () => {
+    if (
+      this.options.clusterNodes == null ||
+      this.options.clusterNodes.length == 0
+    ) {
+      return;
+    }
+    // spawn additional servers as separate processes to form a cluster
+    let i = 0;
+    const port = this.options.port;
+    if(!port) {
+      throw Error("bug -- port must be set");
+    }
+    for (const options of this.options.clusterNodes) {
+      i += 1;
+      const opts = {
+        ...options,
+        path: this.options.path,
+        ssl: this.options.ssl,
+        systemAccountPassword: this.options.systemAccountPassword,
+        clusterName: this.options.clusterName,
+        autoscanInterval: this.options.autoscanInterval,
+        longAutoscanInterval: this.options.longAutoscanInterval,
+        clusterNodes: undefined,
+      };
+      if (!opts.port) {
+        opts.port = port + i;
+      }
+      if (!opts.id || opts.id == this.options.id) {
+        opts.id = `${this.options.id}-${i}`;
+      }
+      await forkedConatServer(opts);
+      await this.join(getServerAddress(opts));
+    }
   };
 
   private initAutoscan = async () => {
@@ -1397,4 +1441,10 @@ export function updateSticky(
     sticky[pattern] = {};
   }
   sticky[pattern][subject] = target;
+}
+
+function getServerAddress(options: Options) {
+  const port = options.port;
+  const path = options.path?.slice(0, -"/conat".length) ?? "";
+  return `http${options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
 }
