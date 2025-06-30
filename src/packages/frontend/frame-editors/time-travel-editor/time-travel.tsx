@@ -9,7 +9,7 @@ import { Button, Checkbox, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import { debounce } from "lodash";
 import { useEffect, useMemo, useState } from "react";
-
+import { ALWAYS_ALLOWED_TIMETRAVEL } from "@cocalc/util/db-schema/site-defaults";
 import { AccountState } from "@cocalc/frontend/account/types";
 import {
   redux,
@@ -547,18 +547,13 @@ export function TimeTravel(props: Props) {
 
   let body;
   if (
-    unlicensedLimit &&
-    !gitMode &&
-    licenses != null &&
-    version != null &&
-    licenses.size == 0 &&
-    versions.size - unlicensedLimit > version
+    beyondTheLimit({ unlicensedLimit, gitMode, licenses, version, versions })
   ) {
     // need license to view this
     body = (
       <RequireLicense
         project_id={project_id}
-        message={`A license is required to view more than ${unlicensedLimit} versions of this file.`}
+        message={`Upgrade to view more than the last ${unlicensedLimit} days (or ${ALWAYS_ALLOWED_TIMETRAVEL} versions) of TimeTravel history.`}
       />
     );
   } else if (doc != null && docpath != null && docext != null && !changesMode) {
@@ -602,3 +597,27 @@ const saveState = debounce((actions, obj) => {
     a.set_frame_tree(obj);
   }
 }, 2000);
+
+function beyondTheLimit({
+  unlicensedLimit,
+  gitMode,
+  licenses,
+  version,
+  versions,
+}) {
+  console.log({ unlicensedLimit, gitMode, licenses, version, versions });
+  window.x = { unlicensedLimit, gitMode, licenses, version, versions };
+  if (gitMode || (unlicensedLimit ?? 0) <= 0 || licenses.size > 0) {
+    return false;
+  }
+  const cutoff = Date.now() - unlicensedLimit * 24 * 60 * 60 * 1000;
+  if (version >= cutoff) {
+    return false;
+  }
+  // beyond the limit unless one of the last few
+  const n = versions.indexOf(version);
+  if (n >= versions.size - ALWAYS_ALLOWED_TIMETRAVEL) {
+    return false;
+  }
+  return true;
+}
