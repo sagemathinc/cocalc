@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { createRoot } from "react-dom/client";
 import {
   redux,
   Redux,
@@ -16,6 +15,7 @@ import {
   OTHER_SETTINGS_LOCALE_KEY,
 } from "@cocalc/frontend/i18n";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
 import { Localize, useLocalizationCtx } from "./localize";
 
@@ -25,7 +25,7 @@ function App({ children }) {
   const { setLocale } = useLocalizationCtx();
   const other_settings = useTypedRedux("account", "other_settings");
 
-  // setting via ?lang=[locale] takes precedece over account settings
+  // setting via ?lang=[locale] takes precedence over account settings
   // additionally ?lang_temp=[locale] temporarily changes it, used by these impersonation admin links
   useAsyncEffect(async () => {
     const lang_set = QueryParams.get("lang");
@@ -80,9 +80,7 @@ function App({ children }) {
   };
 
   return (
-    <AppContext.Provider
-      value={{ ...appState, ...timeAgo }}
-    >
+    <AppContext.Provider value={{ ...appState, ...timeAgo }}>
       {children}
     </AppContext.Provider>
   );

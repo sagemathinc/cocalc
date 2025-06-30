@@ -14,22 +14,25 @@ import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import useAppContext from "@cocalc/frontend/app/use-context";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import track from "@cocalc/frontend/user-tracking";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useProjectContext } from "../context";
 import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
+import { getValidVBAROption } from "./vbar";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
+  VBAR_LABELS,
   VBAR_OPTIONS,
-  getValidVBAROption,
-} from "./vbar";
+  VBAR_TOGGLE_LABELS,
+} from "./vbar-consts";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -98,6 +101,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     project_id,
     active_project_tab: activeTab,
   } = useProjectContext();
+  const { showVbarLabels } = useAppContext();
   const active_flyout = useTypedRedux({ project_id }, "flyout");
   const other_settings = useTypedRedux("account", "other_settings");
   const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
@@ -208,6 +212,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         }}
         flyout={name}
         condensed={condensed}
+        showLabel={showVbarLabels}
       />
     );
     if (tab != null) items.push(tab);
@@ -264,11 +269,12 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 
 function LayoutSelector({ vbar }) {
   const intl = useIntl();
+  const { showVbarLabels } = useAppContext();
   const { project_id } = useProjectContext();
   const account_settings = useActions("account");
 
   const title = intl.formatMessage({
-    id: "project.page.vertica-fixed-tabs.title",
+    id: "project.page.vertical-fixed-tabs.title",
     defaultMessage: "Vertical bar layout",
   });
 
@@ -306,7 +312,21 @@ function LayoutSelector({ vbar }) {
     ),
   });
 
-  items.push({ key: "delimiter", type: "divider" });
+  items.push({ key: "delimiter1", type: "divider" });
+  items.push({
+    key: "toggle-labels",
+    label: (
+      <span>
+        <Icon name={showVbarLabels ? "check-square-o" : "square-o"} />{" "}
+        {intl.formatMessage(VBAR_TOGGLE_LABELS)}
+      </span>
+    ),
+    onClick: () => {
+      account_settings.set_other_settings(VBAR_LABELS, !showVbarLabels);
+    },
+  });
+
+  items.push({ key: "delimiter2", type: "divider" });
   items.push({
     key: "info",
     label: (

@@ -38,5 +38,5 @@ export const STYLE_PRE: React.CSSProperties = {
 export const STYLE_ERR: React.CSSProperties = {
   ...STYLE_LOG,
   fontWeight: "bold",
-  backgroundColor: COLORS.ATND_BG_RED_L,
+  backgroundColor: COLORS.ANTD_BG_RED_L,
 } as const;

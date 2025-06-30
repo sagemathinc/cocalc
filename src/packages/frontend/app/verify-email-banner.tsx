@@ -27,7 +27,7 @@ const VERIFY_EMAIL_STYLE: CSS = {
   width: "100%",
   padding: "5px",
   borderBottom: `1px solid ${COLORS.GRAY_D}`,
-  background: COLORS.ATND_BG_RED_L,
+  background: COLORS.ANTD_BG_RED_L,
 } as const;
 
 const DISMISSED_KEY_LS = "verify-email-dismissed";

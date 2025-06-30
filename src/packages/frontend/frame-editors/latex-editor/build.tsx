@@ -73,7 +73,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     error?: boolean,
     job_info_str?: string,
   ): AntdTabItem {
-    const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
+    const err_style = error ? { background: COLORS.ANTD_BG_RED_L } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
     return Tab({
       key: title,
