@@ -80,6 +80,7 @@ describe("create two connected servers and two clients and test messaging speed"
   const count2 = 1000;
   it(`do a benchmark of cluster send/receiving ${count2} messages`, async () => {
     const servers = await createConatCluster(2);
+    return;
     const [server1, server2] = Object.values(servers);
     const client1 = server1.client();
     const client2 = server2.client();

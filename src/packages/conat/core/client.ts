@@ -520,6 +520,13 @@ export class Client extends EventEmitter {
     ) {
       await once(this, "info");
     }
+    if (
+      this.info == null ||
+      this.state != "connected" ||
+      this.info?.user?.error
+    ) {
+      throw Error("failed to sign in");
+    }
   });
 
   private statsLoop = async () => {

@@ -65,6 +65,9 @@ import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 
 const logger = getLogger("conat:core:server");
 
+const DEFAULT_AUTOSCAN_INTERVAL = 15_000;
+const DEFAULT_LONG_AUTOSCAN_INTERVAL = 60_000;
+
 const DEBUG = false;
 
 export interface InterestUpdate {
@@ -118,6 +121,13 @@ export interface Options {
   // must also be set.  This only has an impact when the id is '0'.
   // This publishes interest state in a stream, so uses more resources.
   clusterName?: string;
+
+  // autoscanInterval = shortest interval when cluster will automatically
+  // be scanned for new nodes.  It may be longer if there's no activity.
+  // Set to 0 to disable autoscan, which is very useful for unit tests.
+  // Defaults to 10_000 = 10 seconds.
+  autoscanInterval?: number;
+  longAutoscanInterval?: number;
 }
 
 type State = "ready" | "closed";
@@ -168,6 +178,8 @@ export class ConatServer {
       maxSubscriptionsPerHub = MAX_SUBSCRIPTIONS_PER_HUB,
       systemAccountPassword,
       clusterName,
+      autoscanInterval = DEFAULT_AUTOSCAN_INTERVAL,
+      longAutoscanInterval = DEFAULT_LONG_AUTOSCAN_INTERVAL,
     } = options;
     this.clusterName = clusterName;
     this.options = {
@@ -179,6 +191,8 @@ export class ConatServer {
       maxSubscriptionsPerHub,
       systemAccountPassword,
       clusterName,
+      autoscanInterval,
+      longAutoscanInterval,
     };
     this.cluster = !!id && !!clusterName;
     this.getUser = async (socket) => {
@@ -798,8 +812,75 @@ export class ConatServer {
       this.queuedClusterUpdates.map(this.publishUpdate);
       this.queuedClusterUpdates.length = 0;
     }
+    this.initAutoscan();
     this.log("cluster successfully initialized");
   };
+
+  private initAutoscan = async () => {
+    if (!this.options.autoscanInterval) {
+      this.log("Cluster autoscan is DISABLED.");
+      return;
+    }
+    this.log(`Cluster autoscan interval ${this.options.autoscanInterval}ms`);
+    let lastCount = 1;
+    while (this.state != "closed") {
+      let x;
+      try {
+        x = await this.scan();
+        if (this.state == ("closed" as any)) return;
+      } catch (err) {
+        // this should never happen unless there is a serious bug (?).
+        this.log(`WARNING/BUG?: serious problem scanning -- ${err}`);
+        throw err;
+        await delay(this.options.longAutoscanInterval);
+        continue;
+      }
+      if (x.errors.length > 0) {
+        this.log(`WARNING: errors while scanning cluster`, x.errors);
+      }
+      if (x.count > 0 || lastCount > 0) {
+        this.log(
+          `cluster scan added ${x.count} links -- will scan again in ${this.options.autoscanInterval}`,
+        );
+        await delay(this.options.autoscanInterval);
+      } else {
+        this.log(
+          `cluster scan found no new links -- waiting ${this.options.longAutoscanInterval}ms before next scan`,
+        );
+        await delay(this.options.longAutoscanInterval);
+      }
+      lastCount = x.count;
+    }
+  };
+
+  private scanSoon = throttle(
+    async () => {
+      if (this.state == "closed" || !this.options.autoscanInterval) {
+        return;
+      }
+      let x;
+      try {
+        x = await this.scan();
+      } catch (err) {
+        this.log(
+          `WARNING/BUG?: scanSoon -- serious problem scanning -- ${err}`,
+        );
+        return;
+      }
+      if (x.errors.length > 0) {
+        this.log(
+          `WARNING: scanSoon -- errors while scanning cluster`,
+          x.errors,
+        );
+      }
+    },
+
+    10_000,
+    {
+      leading: true,
+      trailing: true,
+    },
+  );
 
   // Join this node to the cluster that contains a node with the given address.
   // - the address obviously must be reachable over the network
@@ -820,6 +901,7 @@ export class ConatServer {
     }
     this.clusterLinks[clusterName][id] = link;
     this.clusterLinksByAddress[address] = link;
+    this.scanSoon();
     return link;
   });
 
@@ -871,28 +953,32 @@ export class ConatServer {
       extraHeaders: { Cookie: `sys=${this.options.systemAccountPassword}` },
     });
 
+    const stats = async () => {
+      return { [this.id]: this.stats };
+    };
+    const usage = async () => {
+      return { [this.id]: this.usage.stats() };
+    };
+    // user has to explicitly refresh there browser after
+    // being disconnected this way
+    const disconnect = async (ids: string | string[]) => {
+      if (typeof ids == "string") {
+        ids = [ids];
+      }
+      for (const id of ids) {
+        this.io.in(id).disconnectSockets();
+      }
+    };
+
     const subject = sysApiSubject({ clusterName: this.clusterName });
     // services that ALL servers answer, i.e., a single request gets
     // answers from all members of the cluster.
     await client.service<SysConatServer>(
       subject,
       {
-        stats: async () => {
-          return { [this.id]: this.stats };
-        },
-        usage: async () => {
-          return { [this.id]: this.usage.stats() };
-        },
-        // user has to explicitly refresh there browser after
-        // being disconnected this way
-        disconnect: async (ids: string | string[]) => {
-          if (typeof ids == "string") {
-            ids = [ids];
-          }
-          for (const id of ids) {
-            this.io.in(id).disconnectSockets();
-          }
-        },
+        stats,
+        usage,
+        disconnect,
         join: () => {
           throw Error("wrong service");
         },
@@ -906,7 +992,7 @@ export class ConatServer {
           throw Error("wrong service");
         },
       },
-      { queue: this.id },
+      { queue: `${this.clusterName}-${this.id}` },
     );
     this.log(`successfully started ${subject} service`);
 
@@ -915,44 +1001,29 @@ export class ConatServer {
       id: this.id,
     });
 
-    await client.service<SysConatServer>(
-      subject2,
-      {
-        stats: async () => {
-          return { [this.id]: this.stats };
-        },
-        usage: async () => {
-          return { [this.id]: this.usage.stats() };
-        },
-        // user has to explicitly refresh there browser after
-        // being disconnected this way
-        disconnect: async (ids: string | string[]) => {
-          if (typeof ids == "string") {
-            ids = [ids];
-          }
-          for (const id of ids) {
-            this.io.in(id).disconnectSockets();
-          }
-        },
-        join: async (address: string) => {
-          await this.join(address);
-        },
-        unjoin: async (opts: { clusterName?: string; id: string }) => {
-          await this.unjoin(opts);
-        },
-
-        // topology of the nodes in the (super-)cluster
-        clusterTopology: async (): Promise<{
-          // map from id to address
-          [clusterName: string]: { [id: string]: string };
-        }> => this.clusterTopology(),
-
-        // addresses of all nodes in the (super-)cluster
-        clusterAddresses: async (clusterName?: string): Promise<string[]> =>
-          this.clusterAddresses(clusterName),
+    await client.service<SysConatServer>(subject2, {
+      stats,
+      usage,
+      // user has to explicitly refresh there browser after
+      // being disconnected this way
+      disconnect,
+      join: async (address: string) => {
+        await this.join(address);
       },
-      { queue: this.id },
-    );
+      unjoin: async (opts: { clusterName?: string; id: string }) => {
+        await this.unjoin(opts);
+      },
+
+      // topology of the nodes in the (super-)cluster
+      clusterTopology: async (): Promise<{
+        // map from id to address
+        [clusterName: string]: { [id: string]: string };
+      }> => this.clusterTopology(),
+
+      // addresses of all nodes in the (super-)cluster
+      clusterAddresses: async (clusterName?: string): Promise<string[]> =>
+        this.clusterAddresses(clusterName),
+    });
     this.log(`successfully started ${subject2} service`);
   };
 
@@ -1000,7 +1071,8 @@ export class ConatServer {
   // will eventually be a complete graph.  In particular, this function returns
   // the number of links created (count), so if it returns 0 when called on all nodes, then
   // we're done until new nodes are added.
-  scan = async (): Promise<{ count: number; errors: any[] }> => {
+  scan = reuseInFlight(async (): Promise<{ count: number; errors: any[] }> => {
+    if (this.state == "closed") return { count: 0, errors: [] };
     const knownByUs = new Set(this.clusterAddresses(this.clusterName));
     const unknownToUs = new Set<string>([]);
     const errors: { err: any; desc: string }[] = [];
@@ -1015,6 +1087,7 @@ export class ConatServer {
       const knownByRemoteNode = new Set(
         await sys.clusterAddresses(this.clusterName),
       );
+      if (this.state == "closed") return;
       for (const address of knownByRemoteNode) {
         if (!knownByUs.has(address)) {
           unknownToUs.add(address);
@@ -1024,6 +1097,7 @@ export class ConatServer {
         // we know about them, but they don't know about us, so ask them to link to us.
         try {
           await sys.join(this.address());
+          if (this.state == ("closed" as any)) return;
           count += 1;
         } catch (err) {
           errors.push({
@@ -1039,11 +1113,11 @@ export class ConatServer {
     }
 
     await Promise.all(
-      Object.values(this.clusterLinks[this.clusterName]).map((link) =>
+      Object.values(this.clusterLinks[this.clusterName] ?? {}).map((link) =>
         f(link.client),
       ),
     );
-    if (unknownToUs.size == 0) {
+    if (unknownToUs.size == 0 || this.state == ("closed" as any)) {
       return { count, errors };
     }
 
@@ -1061,7 +1135,7 @@ export class ConatServer {
     await Promise.all(v);
 
     return { count, errors };
-  };
+  });
 
   private waitForInterest = async (
     subject: string,

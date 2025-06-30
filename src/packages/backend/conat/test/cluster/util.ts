@@ -9,9 +9,15 @@ export async function createClusterNode(
   } & Options,
 ): Promise<{ server: ConatServer; client: Client }> {
   const server = await initConatServer({
+    // disable autoscan so we can precisely control connections when building clusters for unit testing.
+    autoscanInterval: 0,
     systemAccountPassword: "foo",
+    getUser: async () => {
+      return { hub_id: "system" };
+    },
     ...opts,
   });
-  const client = server.client();
+  const client = server.client({ systemAccountPassword: "foo" });
+  await client.waitUntilSignedIn();
   return { server, client };
 }

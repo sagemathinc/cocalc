@@ -53,6 +53,7 @@ export async function createConatCluster(n: number, opts?) {
       systemAccountPassword,
       clusterName,
       id,
+      autoscanInterval: 0,
       ...opts,
     });
   }
@@ -62,11 +63,9 @@ export async function createConatCluster(n: number, opts?) {
     for (let j = 0; j < n; j++) {
       if (i != j) {
         v.push(
-          servers[`node-${i}`].join({
-            address: `http://localhost:${servers[`node-${j}`].options.port}`,
-            systemAccountPassword,
-            path: "/",
-          }),
+          servers[`node-${i}`].join(
+            `http://localhost:${servers[`node-${j}`].options.port}`,
+          ),
         );
       }
     }
