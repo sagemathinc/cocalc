@@ -427,7 +427,7 @@ export function RegistrationToken() {
                     props: {
                       style: {
                         backgroundColor:
-                          pct > 90 ? COLORS.ATND_BG_RED_L : undefined,
+                          pct > 90 ? COLORS.ANTD_BG_RED_L : undefined,
                       },
                     },
                     children: `${round1(pct)}%`,

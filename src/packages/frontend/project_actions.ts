@@ -8,10 +8,16 @@ declare let window, document, $;
 
 import * as async from "async";
 import { callback } from "awaiting";
-import { List, Map, Set as immutableSet, fromJS } from "immutable";
+import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
+
+import {
+  computeServerManager,
+  type ComputeServerManager,
+} from "@cocalc/conat/compute/manager";
+import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -51,10 +57,10 @@ import {
 } from "@cocalc/frontend/project/history/types";
 import {
   OpenFileOpts,
+  canonicalPath,
   log_file_open,
   log_opened_time,
   open_file,
-  canonicalPath,
 } from "@cocalc/frontend/project/open-file";
 import { OpenFiles } from "@cocalc/frontend/project/open-files";
 import { FixedTab } from "@cocalc/frontend/project/page/file-tab";
@@ -68,10 +74,8 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "@cocalc/frontend/project/page/flyouts/utils";
-import {
-  VBAR_KEY,
-  getValidVBAROption,
-} from "@cocalc/frontend/project/page/vbar";
+import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
+import { VBAR_KEY } from "@cocalc/frontend/project/page/vbar-consts";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
@@ -101,15 +105,10 @@ import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
-import {
-  computeServerManager,
-  type ComputeServerManager,
-} from "@cocalc/conat/compute/manager";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
 
 const { defaults, required } = misc;
 
@@ -1523,8 +1522,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
+    const currentId = await computeServerAssociations.getServerIdForPath(
+      sidePath,
+    );
     if (currentId != null) {
       // already set
       return;
@@ -2308,8 +2308,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-          ? { compute_server_id: opts.src_compute_server_id }
-          : undefined),
+        ? { compute_server_id: opts.src_compute_server_id }
+        : undefined),
     });
 
     if (opts.only_contents) {

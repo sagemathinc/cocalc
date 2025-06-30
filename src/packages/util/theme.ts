@@ -98,8 +98,8 @@ const MAIN_COLORS = {
   ANTD_LINK_BLUE: "#1677ff", // blue used for links
   ANTD_LINK_BLUE_DARK: "#003eb3", // dark blue used for links
 
-  ATND_BG_RED_M: "#ff7875",
-  ATND_BG_RED_L: "#fff2f0",
+  ANTD_BG_RED_M: "#ff7875",
+  ANTD_BG_RED_L: "#fff2f0",
   ANTD_BG_BLUE_L: "#e6f4ff",
   ANTD_RED_WARN: "#f5222d", // used in official docs if there is red text to warn
   ANTD_YELL_M: "#fadb14",

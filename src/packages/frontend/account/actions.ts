@@ -184,7 +184,7 @@ export class AccountActions extends Actions<AccountState> {
   };
 
   public set_show_purchase_form(show: boolean) {
-    // this controlls the default state of the "buy a license" purchase form in account → licenses
+    // this controls the default state of the "buy a license" purchase form in account → licenses
     // by default, it's not showing up
     this.setState({ show_purchase_form: show });
   }
