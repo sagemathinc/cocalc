@@ -136,7 +136,10 @@ export interface Options {
   autoscanInterval?: number;
   longAutoscanInterval?: number;
 
-  clusterNodes?: Options[];
+  // if localClusterSize >=2 (and clusterName, etc. configured above),
+  // creates a local cluster by spawning child processes with
+  // ports the above port +1, +2, etc.
+  localClusterSize?: number;
 }
 
 type State = "ready" | "closed";
@@ -189,7 +192,7 @@ export class ConatServer {
       clusterName,
       autoscanInterval = DEFAULT_AUTOSCAN_INTERVAL,
       longAutoscanInterval = DEFAULT_LONG_AUTOSCAN_INTERVAL,
-      clusterNodes,
+      localClusterSize = 1,
     } = options;
     this.clusterName = clusterName;
     this.options = {
@@ -203,7 +206,7 @@ export class ConatServer {
       clusterName,
       autoscanInterval,
       longAutoscanInterval,
-      clusterNodes,
+      localClusterSize,
     };
     this.cluster = !!id && !!clusterName;
     this.getUser = async (socket) => {
@@ -825,39 +828,34 @@ export class ConatServer {
   };
 
   private initClusterNodes = async () => {
-    if (
-      this.options.clusterNodes == null ||
-      this.options.clusterNodes.length == 0
-    ) {
+    const localClusterSize = this.options.localClusterSize ?? 1;
+    if (localClusterSize < 2) {
       return;
     }
     // spawn additional servers as separate processes to form a cluster
-    let i = 0;
     const port = this.options.port;
-    if(!port) {
+    if (!port) {
       throw Error("bug -- port must be set");
     }
-    for (const options of this.options.clusterNodes) {
-      i += 1;
+    const f = async (i: number) => {
       const opts = {
-        ...options,
         path: this.options.path,
         ssl: this.options.ssl,
         systemAccountPassword: this.options.systemAccountPassword,
         clusterName: this.options.clusterName,
         autoscanInterval: this.options.autoscanInterval,
         longAutoscanInterval: this.options.longAutoscanInterval,
-        clusterNodes: undefined,
+        port: port + i,
+        id: `${this.options.id}-${i}`,
       };
-      if (!opts.port) {
-        opts.port = port + i;
-      }
-      if (!opts.id || opts.id == this.options.id) {
-        opts.id = `${this.options.id}-${i}`;
-      }
       await forkedConatServer(opts);
       await this.join(getServerAddress(opts));
+    };
+    const v: any[] = [];
+    for (let i = 1; i < localClusterSize; i++) {
+      v.push(f(i));
     }
+    await Promise.all(v);
   };
 
   private initAutoscan = async () => {
