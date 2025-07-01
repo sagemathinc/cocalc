@@ -1,4 +1,4 @@
-import { type Client, connect } from "./client";
+import { type Client, connect, STICKY_QUEUE_GROUP } from "./client";
 import { Patterns } from "./patterns";
 import {
   randomChoice,
@@ -11,6 +11,7 @@ import type { DStream } from "@cocalc/conat/sync/dstream";
 import { once } from "@cocalc/util/async-utils";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
+import { stickyChoice } from "./sticky";
 
 const logger = getLogger("conat:core:cluster");
 
@@ -74,11 +75,11 @@ class ClusterLink {
     this.state = "ready";
   };
 
-  handleInterestUpdate = (update) => {
+  handleInterestUpdate = (update: InterestUpdate) => {
     updateInterest(update, this.interest, this.sticky);
   };
 
-  handleStickyUpdate = (update) => {
+  handleStickyUpdate = (update: StickyUpdate) => {
     updateSticky(update, this.sticky);
   };
 
@@ -135,11 +136,14 @@ class ClusterLink {
     }
     return count;
   };
+  private getStickyTarget = ({ pattern, subject }) => {
+    return this.sticky[pattern]?.[subject];
+  };
 
   private loadBalance = ({
-    //     pattern,
-    //     subject,
-    //     queue,
+    pattern,
+    subject,
+    queue,
     targets,
   }: {
     pattern: string;
@@ -150,7 +154,20 @@ class ClusterLink {
     if (targets.size == 0) {
       return undefined;
     }
-    // TODO: deal with sticky queue groups!
+    if (queue == STICKY_QUEUE_GROUP) {
+      //       console.log("** TODO: deal with sticky queue groups! **", {
+      //         pattern,
+      //         subject,
+      //         queue,
+      //         targets,
+      //       });
+      return stickyChoice({
+        pattern,
+        subject,
+        targets,
+        getStickyTarget: this.getStickyTarget,
+      });
+    }
     return randomChoice(targets);
   };
 

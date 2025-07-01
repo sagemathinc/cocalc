@@ -51,7 +51,6 @@ import {
   MAX_SUBSCRIPTIONS_PER_HUB,
 } from "./constants";
 import { Patterns } from "./patterns";
-import ConsistentHash from "consistent-hash";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { once } from "@cocalc/util/async-utils";
@@ -69,6 +68,7 @@ import { getLogger } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 import { forkedConatServer } from "./start-server";
+import { stickyChoice } from "./sticky";
 
 const logger = getLogger("conat:core:server");
 
@@ -555,26 +555,13 @@ export class ConatServer {
       return undefined;
     }
     if (queue == STICKY_QUEUE_GROUP) {
-      const v = subject.split(".");
-      subject = v.slice(0, v.length - 1).join(".");
-      const currentTarget = this.getStickyTarget({ pattern, subject });
-      if (currentTarget === undefined || !targets.has(currentTarget)) {
-        // we use consistent hashing instead of random to make the choice, because if
-        // choice is being made by two different socketio servers at the same time,
-        // and they make different choices, it would be (temporarily) bad since a
-        // couple messages could get routed inconsistently.
-        // It's actually very highly likely to have such parallel choices
-        // happening in cocalc, since when a file is opened a persistent stream is opened
-        // in the browser and the project at the exact same time, and those are likely
-        // to be connected to different socketio servers.  By using consistent hashing,
-        // all conflicts are avoided except for a few moments when the actual targets
-        // (e.g., the persist servers) are themselves changing, which should be something
-        // that only happens for a moment every few days.
-        const target = consistentChoice(targets, subject);
-        this.updateSticky({ pattern, subject, target });
-        return target;
-      }
-      return currentTarget;
+      return stickyChoice({
+        pattern,
+        subject,
+        targets,
+        updateSticky: this.updateSticky,
+        getStickyTarget: this.getStickyTarget,
+      });
     } else {
       return randomChoice(targets);
     }
@@ -1060,7 +1047,6 @@ export class ConatServer {
         await this.unjoin(opts);
       },
 
-      // topology of the nodes in the (super-)cluster
       clusterTopology: async (): Promise<{
         // map from id to address
         [clusterName: string]: { [id: string]: string };
@@ -1345,24 +1331,6 @@ export function randomChoice(v: Set<string>): string {
   const w = Array.from(v);
   const i = Math.floor(Math.random() * w.length);
   return w[i];
-}
-
-export function consistentChoice(v: Set<string>, resource: string): string {
-  if (v.size == 0) {
-    throw Error("v must have size at least 1");
-  }
-  if (v.size == 1) {
-    for (const x of v) {
-      return x;
-    }
-  }
-  const hr = new ConsistentHash();
-  const w = Array.from(v);
-  w.sort();
-  for (const x of w) {
-    hr.add(x);
-  }
-  return hr.get(resource);
 }
 
 // See https://socket.io/how-to/get-the-ip-address-of-the-client

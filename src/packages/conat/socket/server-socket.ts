@@ -23,7 +23,7 @@ export class ServerSocket extends EventEmitter {
   public lastPing = Date.now();
 
   private queuedWrites: { data: any; headers?: Headers }[] = [];
-  private clientSubject: string;
+  public readonly clientSubject: string;
 
   public state: State = "ready";
   // the non-pattern subject the client connected to
