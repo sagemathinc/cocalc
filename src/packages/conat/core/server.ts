@@ -1240,7 +1240,7 @@ export class ConatServer {
         try {
           return await f;
         } catch (err) {
-          if (!done) {
+          if (!done && !process.env.COCALC_TEST_MODE) {
             console.trace("ERROR", err);
           }
         }

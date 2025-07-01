@@ -7,6 +7,7 @@ import { after, before, server, addNodeToDefaultCluster, wait } from "../setup";
 
 beforeAll(before);
 
+jest.setTimeout(15000);
 describe("using various sync data structures with a cluster", () => {
   let client, dstream;
   it("creates a dstream", async () => {
@@ -24,7 +25,7 @@ describe("using various sync data structures with a cluster", () => {
     client2 = server2.client();
     expect(server2.options.port).not.toBe(server.options.port);
 
-    dstream2 = await client2.sync.dstream({ name: "foo", noCache: true });
+    dstream2 = await client2.sync.dstream({ name: "foo" });
     expect(dstream === dstream2).toBe(false);
     expect(dstream2.getAll()).toEqual(["hi"]);
 

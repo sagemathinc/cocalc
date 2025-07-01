@@ -493,8 +493,9 @@ export const cache = refCache<DStreamOptions, DStream>({
     if (!options.name) {
       throw Error("name must be specified");
     }
-    const { name, account_id, project_id } = options;
-    return jsonStableStringify({ name, account_id, project_id })!;
+    const { name, account_id, project_id, client } = options;
+    const id = client?.id;
+    return jsonStableStringify({ name, account_id, project_id, id })!;
   },
   createObject: async (options: DStreamOptions) => {
     if (options.client == null) {

@@ -823,8 +823,8 @@ export class DKV<T = any> extends EventEmitter {
 
 export const cache = refCache<DKVOptions, DKV>({
   name: "dkv",
-  createKey: ({ name, account_id, project_id }) =>
-    JSON.stringify({ name, account_id, project_id }),
+  createKey: ({ name, account_id, project_id, client }) =>
+    JSON.stringify({ name, account_id, project_id, id: client?.id }),
   createObject: async (opts) => {
     if (opts.client == null) {
       opts = { ...opts, client: await conat() };

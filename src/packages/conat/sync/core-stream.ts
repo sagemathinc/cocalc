@@ -998,7 +998,7 @@ export const cache = refCache<CoreStreamOptions, CoreStream>({
     return cstream;
   },
   createKey: ({ client, ...options }) => {
-    return jsonStableStringify(options)!;
+    return jsonStableStringify({ id: client?.id, ...options })!;
   },
 });
 
