@@ -25,21 +25,20 @@ render({ type: "string-tags", editable: true }, ({ field, obj, spec }) => {
   const ref = useRef<any>(undefined);
   const { save, saving, counter, edit, error, ClickToEdit } =
     useEditableContext<string>(field);
-  const [value, setValue] = useState<string>(obj[field]?.join(",") ?? "");
+  const [value, setValue] = useState<string>(obj[field]?.join(", ") ?? "");
   useEffect(() => {
-    setValue(obj[field]);
+    setValue(obj[field]?.join(", ") ?? "");
   }, [counter, obj[field]]);
 
   if (spec.type != "string-tags" || !spec.editable) {
     throw Error("bug");
   }
   if (!edit) {
-    const tags = obj[field];
     return (
-      <ClickToEdit empty={!tags || tags.length == 0}>
+      <ClickToEdit empty={!value.trim()}>
         <div style={{ lineHeight: "2em", display: "inline-block" }}>
-          {tags?.map((value) => (
-            <Tag key={value}>{value}</Tag>
+          {value.split(",").map((tag) => (
+            <Tag key={value}>{tag.trim()}</Tag>
           ))}
         </div>
       </ClickToEdit>
@@ -58,11 +57,17 @@ render({ type: "string-tags", editable: true }, ({ field, obj, spec }) => {
         }}
         onBlur={() => {
           setValue(ref.current.input.value);
-          save(obj, ref.current.input.value.split(","));
+          save(
+            obj,
+            ref.current.input.value.split(",").map((x) => x.trim()),
+          );
         }}
         onPressEnter={() => {
           setValue(ref.current.input.value);
-          save(obj, ref.current.input.value.split(","));
+          save(
+            obj,
+            ref.current.input.value.split(",").map((x) => x.trim()),
+          );
         }}
       />
       {error}
