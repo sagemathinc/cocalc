@@ -1226,8 +1226,8 @@ export class ConatServer {
         try {
           return await f;
         } catch (err) {
-          if (!done && !process.env.COCALC_TEST_MODE) {
-            console.trace("ERROR", err);
+          if (!done) {
+            logger.debug(`WARNING: waitForInterestInLinks -- ${err}`);
           }
         }
         return false;
