@@ -46,6 +46,97 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    outputs:
+      packages: ${{ steps.packages.outputs.dirs }}
+
+    strategy:
+      matrix:
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: ["20"]
+
+    steps:
+      # Enable tmate debugging of manually-triggered workflows if the input option was provided
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        with:
+          detached: true
+
+      - uses: actions/checkout@v4
+
+      - name: Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
+          # caching, etc., doesn't work without using "uses: pnpm/action-setup@v2", and that
+          # doesn't work, since it makes assumptions about the layout of the repo (e.g., where package.json is),
+          # which aren't true.
+          # cache: "pnpm"
+          # cache-dependency-path: "src/packages/pnpm-lock.yaml"
+
+
+      - name: install pnpm
+        #run: cd src && npm install -g pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+
+      - uses: actions/cache@v4
+        name: Cache pnpm store
+        with:
+          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ matrix.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-${{ matrix.node-version }}-
+            ${{ runner.os }}-pnpm-
+
+
+      - name: Get package directories
+        id: packages
+        run: |
+          cd src
+          # Use robust directory detection with error handling
+          if [ -d packages ]; then
+            dirs=$(find packages -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | jq -R -s -c 'split("\n") | map(select(. != "" and . != "node_modules"))')
+          else
+            dirs='[]'
+          fi
+          echo "dirs=$dirs" >> $GITHUB_OUTPUT
+          echo "Detected packages: $dirs"  # For debugging
+
+      - name: build
+        run: cd src && pnpm run make
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: "src" # "src/**/dist"
+          key: ${{ runner.os }}-build-${{ matrix.node-version }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ matrix.node-version }}-
+
+      # - name: Upload build artifacts
+      #   uses: actions/upload-artifact@v4
+        # with:
+        #   name: build-output
+        #   path: src/**/dist
+        #   retention-days: 1
+        #   compression-level: 0 # for speed
+
+      - name: depcheck
+        run: cd src && pnpm run depcheck
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:${{ matrix.pg-version}}
@@ -63,12 +154,9 @@ jobs:
 
     strategy:
       matrix:
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-        node-version:
-          - "20"
-        pg-version:
-          - "13.12"
-          - "16"
+        dir: ${{ fromJson(needs.build.outputs.packages) }}
+        node-version: ["20"]
+        pg-version: ["13.12", "16"]
 
     steps:
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
@@ -94,7 +182,7 @@ jobs:
       - name: Download and install Valkey
         run: |
           VALKEY_VERSION=8.1.2
-          curl -LO https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          curl -qLO https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
           tar -xzf valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
           sudo cp valkey-${VALKEY_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
 
@@ -106,7 +194,34 @@ jobs:
           pip install ipykernel
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
 
-      - run: cd src && npm install -g pnpm
-      - run: cd src && pnpm run make
-      - run: source venv/bin/activate && cd src && pnpm run test || pnpm run test || pnpm run test
-      - run: cd src && pnpm run depcheck
+      - name: install pnpm
+        #run: cd src && npm install -g pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Restore build artifacts
+        uses: actions/cache@v4
+        with:
+          path: "src" # src/**/dist
+          key: ${{ runner.os }}-build-${{ matrix.pg-version }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ matrix.pg-version }}-
+
+      # - name: Download build artifacts
+      #   uses: actions/download-artifact@v4
+      #  with:
+      #    name: build-output
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          cd src/packages/${{ matrix.dir }}
+          if [ ! -f package.json ]; then
+            echo "::warning::No package.json found in ${{ matrix.dir }}"
+          elif ! jq -e '.scripts.test' package.json > /dev/null; then
+            echo "::notice::No test script in ${{ matrix.dir }}"
+          fi
+          pnpm run test
+
