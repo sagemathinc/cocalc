@@ -101,7 +101,9 @@ export default async function update(
         },
       );
     }
-    data.push(result.query.crm_retention);
+    if (result.query.crm_retention != null) {
+      data.push(result.query.crm_retention);
+    }
 
     // Update interval for next iteration
     n += 1;

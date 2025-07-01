@@ -17,6 +17,7 @@ import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
+import { VBAR_LABELS } from "../project/page/vbar-consts";
 
 // this is incomplete...
 
@@ -57,6 +58,7 @@ export interface AccountState {
     [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
     no_email_new_messages?: boolean;
     use_balance_toward_subscriptions?: boolean;
+    [VBAR_LABELS]?: boolean; // whether to show labels on the vertical action bar
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

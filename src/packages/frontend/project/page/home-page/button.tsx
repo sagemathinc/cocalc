@@ -11,10 +11,8 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import {
-  VBAR_KEY,
-  getValidVBAROption,
-} from "@cocalc/frontend/project/page/vbar";
+import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
+import { VBAR_KEY } from "@cocalc/frontend/project/page/vbar-consts";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
 

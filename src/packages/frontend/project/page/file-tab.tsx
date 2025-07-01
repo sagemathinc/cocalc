@@ -8,9 +8,13 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
+
+// cSpell:ignore fixedtab popout Collabs
+
 import { Popover, Tag } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import { defineMessage, useIntl } from "react-intl";
+
 import { getAlertName } from "@cocalc/comm/project-status/types";
 import {
   CSS,
@@ -45,7 +49,8 @@ import {
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
 import { shouldOpenFileInNewWindow } from "./utils";
-import { getValidVBAROption, VBAR_KEY } from "./vbar";
+import { getValidVBAROption } from "./vbar";
+import { VBAR_KEY } from "./vbar-consts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -177,6 +182,7 @@ interface Props0 {
   isFixedTab?: boolean;
   flyout?: FixedTab;
   condensed?: boolean;
+  showLabel?: boolean; // only relevant for the vertical sidebar. still showing alert tags!
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -197,6 +203,7 @@ export function FileTab(props: Readonly<Props>) {
     isFixedTab,
     flyout = null,
     condensed = false,
+    showLabel = true,
   } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
@@ -325,7 +332,7 @@ export function FileTab(props: Readonly<Props>) {
   } else {
     // highlight info tab if there is at least one alert
     if (status_alerts.length > 0) {
-      style = { backgroundColor: COLORS.ATND_BG_RED_L };
+      style = { backgroundColor: COLORS.ANTD_BG_RED_L };
     } else {
       style = { flex: "none" };
     }
@@ -370,7 +377,7 @@ export function FileTab(props: Readonly<Props>) {
                 paddingInline: "2px",
                 marginInlineEnd: "4px",
               }}
-              color={COLORS.ATND_BG_RED_M}
+              color={COLORS.ANTD_BG_RED_M}
             >
               {getAlertName(a)}
             </Tag>
@@ -389,12 +396,14 @@ export function FileTab(props: Readonly<Props>) {
         }}
         name={icon}
       />
-      <DisplayedLabel
-        path={path}
-        label={label}
-        inline={!isFixedTab}
-        project_id={project_id}
-      />
+      {showLabel ? (
+        <DisplayedLabel
+          path={path}
+          label={label}
+          inline={!isFixedTab}
+          project_id={project_id}
+        />
+      ) : null}
       {tags}
     </>
   );

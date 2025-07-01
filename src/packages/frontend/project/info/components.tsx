@@ -388,7 +388,7 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
     } as const;
 
     const alert_style: CSS = {
-      backgroundColor: COLORS.ATND_BG_RED_L,
+      backgroundColor: COLORS.ANTD_BG_RED_L,
       borderColor: COLORS.ANTD_RED_WARN,
     } as const;
 

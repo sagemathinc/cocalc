@@ -7,15 +7,20 @@ import { theme, ThemeConfig } from "antd";
 import { debounce } from "lodash";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { COLORS } from "@cocalc/util/theme";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
+import { VBAR_LABELS } from "@cocalc/frontend/project/page/vbar-consts";
+import { COLORS } from "@cocalc/util/theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
 import useAppContext, { AppContext, calcStyle } from "./use-context";
+
 export { AppContext, useAppContext };
 
 export function useAppContextProvider() {
   const intl = useIntl();
+  const other_settings = useTypedRedux("account", "other_settings");
+  const showVbarLabels = other_settings.get(VBAR_LABELS) ?? true;
 
   const [pageWidthPx, setPageWidthPx] = useState<number>(window.innerWidth);
 
@@ -57,6 +62,7 @@ export function useAppContextProvider() {
     formatIntl,
     pageWidthPx,
     pageStyle,
+    showVbarLabels,
   };
 }
 

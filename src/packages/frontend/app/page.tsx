@@ -175,7 +175,7 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = <>{intl.formatMessage(labels.account)}</>;
+      label = undefined;
       style = undefined;
     }
 
@@ -188,6 +188,7 @@ export const Page: React.FC = () => {
         icon={icon}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
+        tooltip={intl.formatMessage(labels.account)}
       />
     );
   }

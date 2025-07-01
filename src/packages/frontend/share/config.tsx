@@ -422,31 +422,28 @@ export default function Configure(props: Props) {
                     }
                   />
                 </Paragraph>
-                {sharingOptionsState == "public_unlisted" && (
-                  <>
-                    <Title level={4}>
-                      <Icon name="key" /> License Code - optional
-                    </Title>
-                    <Paragraph>
-                      <EnterLicenseCode
-                        licenseId={licenseId}
-                        setLicenseId={(licenseId) => {
-                          setLicenseId(licenseId);
-                          props.set_public_path({ site_license_id: licenseId });
-                        }}
-                      />
-                      <Paragraph type="secondary">
-                        When people edit a copy of your shared document in a new
-                        project, their project will get upgraded using{" "}
-                        <b>
-                          <i>your</i>
-                        </b>{" "}
-                        license. You can thus provide a high quality experience
-                        to the people you share this link with.
-                      </Paragraph>
-                    </Paragraph>
-                  </>
-                )}
+
+                <Title level={4}>
+                  <Icon name="key" /> License Code - optional
+                </Title>
+                <Paragraph>
+                  <EnterLicenseCode
+                    licenseId={licenseId}
+                    setLicenseId={(licenseId) => {
+                      setLicenseId(licenseId);
+                      props.set_public_path({ site_license_id: licenseId });
+                    }}
+                  />
+                  <Paragraph type="secondary">
+                    When people edit a copy of your shared document in a new
+                    project, their project will get upgraded using{" "}
+                    <b>
+                      <i>your</i>
+                    </b>{" "}
+                    license. You can thus provide a high quality experience to
+                    the people you share this link with.
+                  </Paragraph>
+                </Paragraph>
               </div>
               <ConfigureJupyterApi
                 disabled={parent_is_public}

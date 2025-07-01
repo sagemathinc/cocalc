@@ -93,7 +93,7 @@ export default function ConfigLayout({ page }: Props) {
         margin: 0,
         minHeight: 500,
         ...(info?.danger
-          ? { color: "#ff4d4f", backgroundColor: COLORS.ATND_BG_RED_L }
+          ? { color: "#ff4d4f", backgroundColor: COLORS.ANTD_BG_RED_L }
           : undefined),
       }}
     >

@@ -44,6 +44,7 @@ export function LoadMoreHistory({
   return (
     <>
       <Tooltip
+        placement={"bottom"}
         title={
           disabled
             ? "All TimeTravel history is loaded"

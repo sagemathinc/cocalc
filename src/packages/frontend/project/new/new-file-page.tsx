@@ -6,6 +6,7 @@
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -30,10 +31,8 @@ import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
-import {
-  getValidVBAROption,
-  VBAR_KEY,
-} from "@cocalc/frontend/project/page/vbar";
+import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
+import { VBAR_KEY } from "@cocalc/frontend/project/page/vbar-consts";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";

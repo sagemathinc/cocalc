@@ -7,7 +7,6 @@
 // state in the page store.
 
 import { delay } from "awaiting";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -16,8 +15,8 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { ConnectionStatus } from "./store";
 
-const DISCONNECTED_STATE_DELAY_MS = 5000;
-const CONNECTING_STATE_DELAY_MS = 3000;
+const DISCONNECTED_STATE_DELAY_MS = 10000;
+const CONNECTING_STATE_DELAY_MS = 5000;
 
 import { isMobile } from "../feature";
 
