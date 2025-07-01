@@ -40,7 +40,7 @@ import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
 import type { ConnectionStats } from "@cocalc/conat/core/types";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { once, until } from "@cocalc/util/async-utils";
+import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import {
   deleteRememberMe,
@@ -178,35 +178,34 @@ export class ConatClient extends EventEmitter {
     });
     initTime();
     const client = this.conat();
-    if (!client.info) {
-      await once(client.conn as any, "info");
-    }
-    if (client.info?.user?.account_id) {
-      console.log("Connected as ", JSON.stringify(client.info?.user));
-      this.signedIn({
-        account_id: client.info.user.account_id,
-        hub: client.info.id ?? "",
-      });
-      const cookie = Cookies.get(ACCOUNT_ID_COOKIE);
-      if (cookie && cookie != client.info.user.account_id) {
-        // make sure account_id cookie is set to the actual account we're
-        // signed in as, then refresh since some things are going to be
-        // broken otherwise. To test this use dev tools and just change the account_id
-        // cookies value to something random.
-        Cookies.set(ACCOUNT_ID_COOKIE, client.info.user.account_id);
-        // and we're out of here:
-        location.reload();
+    client.on("info", (info) => {
+      if (client.info?.user?.account_id) {
+        console.log("Connected as ", JSON.stringify(client.info?.user));
+        this.signedIn({
+          account_id: info.user.account_id,
+          hub: info.id ?? "",
+        });
+        const cookie = Cookies.get(ACCOUNT_ID_COOKIE);
+        if (cookie && cookie != client.info.user.account_id) {
+          // make sure account_id cookie is set to the actual account we're
+          // signed in as, then refresh since some things are going to be
+          // broken otherwise. To test this use dev tools and just change the account_id
+          // cookies value to something random.
+          Cookies.set(ACCOUNT_ID_COOKIE, client.info.user.account_id);
+          // and we're out of here:
+          location.reload();
+        }
+      } else {
+        console.log("Sign in failed -- ", client.info);
+        this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
+        this.client.alert_message({
+          type: "error",
+          message: "You must sign in.",
+          block: true,
+        });
+        this.standby();
       }
-    } else {
-      console.log("Sign in failed -- ", client.info);
-      this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
-      this.client.alert_message({
-        type: "error",
-        message: "You must sign in.",
-        block: true,
-      });
-      this.standby();
-    }
+    });
   };
 
   public signedInMessage?: { account_id: string; hub: string };
