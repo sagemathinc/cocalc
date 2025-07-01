@@ -39,8 +39,29 @@ export let persistServer: any = null;
 
 export async function createServer(opts?) {
   const port = await getPort();
-  server = await initConatServer({ port, path, ...opts });
+  server = await initConatServer({
+    port,
+    path,
+    clusterName: "default",
+    id: "home",
+    systemAccountPassword: "secret",
+    ...opts,
+  });
   return server;
+}
+
+export async function addNodeToDefaultCluster(): Promise<ConatServer> {
+  const port = await getPort();
+  const node = await initConatServer({
+    port,
+    path,
+    clusterName: "default",
+    id: "home",
+    systemAccountPassword: "secret",
+  });
+  await server.join(node.address());
+  await node.join(server.address());
+  return node;
 }
 
 export async function createConatCluster(n: number, opts?) {

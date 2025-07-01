@@ -370,16 +370,10 @@ interface SubscriptionOptions {
 // JsonCodec to handle Date's properly, don't change this!!
 const DEFAULT_ENCODING = DataEncoding.MsgPack;
 
-function cocalcServerToSocketioAddress(url?: string): {
+function cocalcServerToSocketioAddress(url: string): {
   address: string;
   path: string;
 } {
-  url = url ?? process.env.CONAT_SERVER;
-  if (!url) {
-    throw Error(
-      "Must give Conat server address or set CONAT_SERVER environment variable",
-    );
-  }
   const u = new URL(url, "http://dummy.org");
   const address = u.origin;
   const path = join(u.pathname, "conat");
@@ -445,12 +439,20 @@ export class Client extends EventEmitter {
 
   constructor(options: ClientOptions) {
     super();
+    if (!options.address) {
+      if (!process.env.CONAT_SERVER) {
+        throw Error(
+          "Must specificy address or set CONAT_SERVER environment variable",
+        );
+      }
+      options = { ...options, address: process.env.CONAT_SERVER };
+    }
     this.setMaxListeners(1000);
     this.options = options;
 
     // for socket.io the address has no base url
     const { address, path } = cocalcServerToSocketioAddress(
-      this.options.address,
+      this.options.address!,
     );
     logger.debug(`Conat: Connecting to ${this.options.address}...`);
     //     if (options.extraHeaders == null) {
