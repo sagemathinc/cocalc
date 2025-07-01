@@ -53,17 +53,13 @@ describe("same basic test, but in the other direction", () => {
   let client0, client1;
   it("get the clients", async () => {
     client0 = server.client();
+    // @ts-ignore
     client1 = Object.values(server.clusterLinks[server.clusterName])[0].client;
   });
 
   let sub;
   it("subscribe", async () => {
     sub = await client1.subscribe("conat");
-  });
-
-  it("publish -- message is initially dropped with no receiver because interest doesn't propogate instantly", async () => {
-    const { count } = await client0.publish("conat", "hi");
-    expect(count).toBe(0);
   });
 
   it("publish after waiting for interest -- this works", async () => {
@@ -87,6 +83,7 @@ describe("with three nodes and two subscribers with different queue group on dis
   let client0, client1, client2, server2;
   it("get the clients", async () => {
     client0 = server.client();
+    // @ts-ignore
     client1 = Object.values(server.clusterLinks[server.clusterName])[0].client;
     server2 = await addNodeToDefaultCluster();
     client2 = server2.client();
@@ -119,8 +116,10 @@ describe("with three nodes and two subscribers with different queue group on dis
     expect(count).toBe(1);
   });
 
-  it("make a sticky sub from two nodes and see that all messages go to the same receiver, no matter which node we send from", async () => {
-    sub0 = await client0.subscribe("sticky", { queue: STICKY_QUEUE_GROUP });
+  it("make a sticky sub from all nodes and see that all messages go to the same receiver, no matter which node we send from", async () => {
+    const sub0 = await client0.subscribe("sticky", {
+      queue: STICKY_QUEUE_GROUP,
+    });
     let n0 = 0;
     (async () => {
       for await (const _ of sub0) {
@@ -128,7 +127,9 @@ describe("with three nodes and two subscribers with different queue group on dis
       }
     })();
 
-    sub1 = await client1.subscribe("sticky", { queue: STICKY_QUEUE_GROUP });
+    const sub1 = await client1.subscribe("sticky", {
+      queue: STICKY_QUEUE_GROUP,
+    });
     let n1 = 0;
     (async () => {
       for await (const _ of sub1) {
@@ -136,14 +137,33 @@ describe("with three nodes and two subscribers with different queue group on dis
       }
     })();
 
-    await client2.waitForInterest("sticky");
-    await delay(500);
+    const sub2 = await client2.subscribe("sticky", {
+      queue: STICKY_QUEUE_GROUP,
+    });
+    let n2 = 0;
+    (async () => {
+      for await (const _ of sub2) {
+        n2++;
+      }
+    })();
 
-    for (let i = 0; i < 10; i++) {
+    await client2.waitForInterest("sticky");
+
+    for (let i = 0; i < 20; i++) {
       const { count } = await client2.publish("sticky");
-      console.log(count)
+      expect(count).toBe(1);
     }
-    console.log({ n0, n1 });
+    for (let i = 0; i < 20; i++) {
+      const { count } = await client1.publish("sticky");
+      expect(count).toBe(1);
+    }
+    for (let i = 0; i < 20; i++) {
+      const { count } = await client0.publish("sticky");
+      expect(count).toBe(1);
+    }
+    expect(n0 * n1).toBe(0);
+    expect(n0 * n2).toBe(0);
+    expect(n1 * n2).toBe(0);
   });
 });
 

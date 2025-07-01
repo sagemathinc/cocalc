@@ -1,6 +1,9 @@
 import ConsistentHash from "consistent-hash";
 
-function consistentHashingChoice(v: Set<string>, resource: string): string {
+export function consistentHashingChoice(
+  v: Set<string>,
+  resource: string,
+): string {
   if (v.size == 0) {
     throw Error("v must have size at least 1");
   }
@@ -9,7 +12,7 @@ function consistentHashingChoice(v: Set<string>, resource: string): string {
       return x;
     }
   }
-  const hr = new ConsistentHash();
+  const hr = new ConsistentHash({ distribution: "uniform" });
   const w = Array.from(v);
   w.sort();
   for (const x of w) {

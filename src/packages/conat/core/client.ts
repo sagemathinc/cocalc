@@ -903,7 +903,7 @@ export class Client extends EventEmitter {
       }
       if (queue == STICKY_QUEUE_GROUP) {
         throw Error(
-          `can only have one sticky subscription per client -- subject='${subject}'`,
+          `can only have one sticky subscription with given subject pattern per client -- subject='${subject}'`,
         );
       }
       sub.refCount += 1;
