@@ -89,18 +89,16 @@ export class ConatSocketServer extends ConatSocketBase {
         subject: mesg.subject,
       });
       this.sockets[id] = socket;
-      (async () => {
-        // in a cluster, it's critical that the other side is visible
-        // before we start sending messages, since otherwise first
-        // message is likely to be dropped if client is on another node.
-        try {
-          await this.client.waitForInterest(socket.clientSubject);
-        } catch {}
-        if (this.state == ("closed" as any)) {
-          return;
-        }
-        this.emit("connection", socket);
-      })();
+      // in a cluster, it's critical that the other side is visible
+      // before we start sending messages, since otherwise first
+      // message is likely to be dropped if client is on another node.
+      try {
+        await this.client.waitForInterest(socket.clientSubject);
+      } catch {}
+      if (this.state == ("closed" as any)) {
+        return;
+      }
+      this.emit("connection", socket);
     }
 
     if (cmd !== undefined) {
