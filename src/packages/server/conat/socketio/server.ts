@@ -65,6 +65,7 @@ export async function init(options: Partial<Options> = {}) {
   } else {
     return createConatServer({
       ...opts,
+      ssl: false,
       httpServer: undefined,
       port: conatClusterPort,
       localClusterSize: conatSocketioCount,
