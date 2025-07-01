@@ -6,6 +6,7 @@ import { useSelected } from "../use-selection";
 import { plural } from "@cocalc/util/misc";
 import { useState } from "react";
 import Export from "./export";
+import TagAccounts from "./tag-accounts";
 import { capitalize } from "@cocalc/util/misc";
 
 export default function TopMenu({
@@ -19,9 +20,10 @@ export default function TopMenu({
   data,
   title,
   primaryKey,
+  refresh,
 }) {
   const [modal, setModal] = useState<
-    "csv-export" | "json-export" | "not-implemented" | null
+    "csv-export" | "json-export" | "not-implemented" | "tag-accounts" | null
   >(null);
   const selected = useSelected({ id });
   const numSelected = selected?.size ?? 0;
@@ -117,7 +119,7 @@ export default function TopMenu({
                   ? "Export CSV (select some records)"
                   : `Export ${selected?.size ?? 0} ${plural(
                       numSelected,
-                      "record"
+                      "record",
                     )} to CSV...`,
               key: "csv-export",
             },
@@ -129,7 +131,7 @@ export default function TopMenu({
                   ? "Export JSON (select some records)"
                   : `Export ${selected?.size ?? 0} ${plural(
                       numSelected,
-                      "record"
+                      "record",
                     )} to JSON...`,
               key: "json-export",
             },
@@ -138,6 +140,28 @@ export default function TopMenu({
       ],
     },
   ];
+  if (dbtable == "crm_accounts") {
+    items[0].children.push({
+      type: "group",
+      label: (
+        <Divider>
+          <Icon name="tags-outlined" style={{ marginRight: "10px" }} /> Tag
+          Accounts
+        </Divider>
+      ),
+      children: [
+        {
+          icon: <Icon name="tags-outlined" />,
+          disabled: primaryKey != null && numSelected == 0,
+          label:
+            numSelected == 0
+              ? "Tag Accounts (select some records)"
+              : `Tag ${selected?.size ?? 0} ${plural(numSelected, "Account")}...`,
+          key: "tag-accounts",
+        },
+      ],
+    });
+  }
   return (
     <>
       {modal == "csv-export" && (primaryKey == null || selected) && (
@@ -162,6 +186,17 @@ export default function TopMenu({
           primaryKey={primaryKey}
         />
       )}
+      {modal == "tag-accounts" && (primaryKey == null || selected) && (
+        <TagAccounts
+          title={title}
+          onClose={() => setModal(null)}
+          selected={selected}
+          data={data}
+          columns={columns}
+          primaryKey={primaryKey}
+          refresh={refresh}
+        />
+      )}
       {modal == "not-implemented" && (
         <Modal
           open
@@ -183,6 +218,7 @@ export default function TopMenu({
           switch (key) {
             case "csv-export":
             case "json-export":
+            case "tag-accounts":
               setModal(key);
               break;
             default:

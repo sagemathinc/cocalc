@@ -12,7 +12,6 @@ so there is no common containing react component that we control...
 */
 
 import { Map } from "immutable";
-
 import {
   AppRedux,
   React,
