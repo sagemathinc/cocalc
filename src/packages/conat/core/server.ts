@@ -403,12 +403,22 @@ export class ConatServer {
   ///////////////////////////////////////
 
   private updateSticky = (sticky: StickyUpdate) => {
-    this.updateClusterStream({ sticky });
-    updateSticky(sticky, this.sticky);
+    if (updateSticky(sticky, this.sticky)) {
+      this.updateClusterStream({ sticky });
+    }
   };
 
   private getStickyTarget = ({ pattern, subject }) => {
-    return this.sticky[pattern]?.[subject];
+    if (!this.cluster || !this.clusterName) {
+      return this.sticky[pattern]?.[subject];
+    }
+    // take into account all nodes in the cluster.  We try each
+    // sorted by id, taking the first that has made a sticky choice.
+    // Thus the choice that is made will stay consistent.
+
+    // When a sticky target goes away, we'll make a new choice of
+    // sticky target.  In that case all other nodes will discard
+    // their choice in favor if the new choice.
   };
 
   ///////////////////////////////////////
@@ -458,10 +468,90 @@ export class ConatServer {
     await this.updateInterest({ op: "add", subject, room, queue });
   };
 
-  private publish = async ({ subject, data, from }): Promise<number> => {
+  // get all interest in this subject across the cluster (NOT supercluster)
+  // This is a map from node id to array of patterns.
+  private clusterInterest = (subject: string) => {
+    const X: {
+      [pattern: string]: { [queue: string]: { [nodeId: string]: Set<string> } };
+    } = {};
+    for (const pattern of this.interest.matches(subject)) {
+      X[pattern] = {};
+      const g = this.interest.get(pattern)!;
+      for (const queue in g) {
+        X[pattern][queue] = { [this.id]: g[queue] };
+      }
+    }
+    if (this.clusterName == null) {
+      return X;
+    }
+    const thisCluster = this.clusterLinks[this.clusterName];
+    if (thisCluster == null) {
+      return X;
+    }
+    for (const id in thisCluster) {
+      const link = thisCluster[id];
+      for (const pattern of link.interest.matches(subject)) {
+        if (X[pattern] === undefined) {
+          X[pattern] = {};
+        }
+        const g = link.interest.get(pattern)!;
+        for (const queue in g) {
+          if (X[pattern][queue] === undefined) {
+            X[pattern][queue] = { [id]: g[queue] };
+          } else {
+            X[pattern][queue][id] = g[queue];
+          }
+        }
+      }
+    }
+    return X;
+  };
+
+  private deliver = ({
+    subject,
+    data,
+    from,
+    targets,
+  }: {
+    subject: string;
+    data: any;
+    from: any;
+    targets: { pattern: string; target: string }[];
+  }): number => {
+    // Deliver the messages to these targets, which should all be
+    // connected to this server. This is used for cluster routing only.
+    if (from?.hub_id != "system") {
+      throw Error(
+        "only the system account can route traffic through the cluster",
+      );
+    }
+    for (const { pattern, target } of targets) {
+      this.io.to(target).emit(pattern, { subject, data });
+    }
+    return targets.length;
+  };
+
+  private publish = async ({
+    subject,
+    data,
+    from,
+  }: {
+    subject: string;
+    data: any;
+    from: any;
+  }): Promise<number> => {
+    // note -- position 6 of data is a no-forward flag, to avoid
+    // a message bouncing back and forth in case the interest stream
+    // were slightly out of sync.
+    const targets = data[6];
+    if (targets != null) {
+      return this.deliver({ subject, data, from, targets });
+    }
+
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error("invalid subject");
     }
+
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
       const message = `permission denied publishing to '${subject}' from ${JSON.stringify(from)}`;
       this.log(message);
@@ -471,68 +561,103 @@ export class ConatServer {
         code: 403,
       });
     }
-    let count = 0;
-    const queueGroups: { [pattern: string]: Set<string> } = {};
-    for (const pattern of this.interest.matches(subject)) {
-      const g = this.interest.get(pattern)!;
-      if (DEBUG) {
-        this.log("publishing", { subject, data, g });
+
+    if (!this.cluster || !this.clusterName) {
+      // Simpler non-cluster (or no forward) case.  We ONLY have to
+      // consider data about this server, and no other nodes.
+      let count = 0;
+      for (const pattern of this.interest.matches(subject)) {
+        const g = this.interest.get(pattern)!;
+        if (DEBUG) {
+          this.log("publishing", { subject, data, g });
+        }
+        // send to exactly one in each queue group
+        for (const queue in g) {
+          const target = this.loadBalance({
+            pattern,
+            subject,
+            queue,
+            targets: g[queue],
+          });
+          if (target !== undefined) {
+            this.io.to(target).emit(pattern, { subject, data });
+            count += 1;
+          }
+        }
       }
-      // send to exactly one in each queue group
+      return count;
+    }
+    // More complicated cluster case, where we have to consider the
+    // entire cluster, or possibly the supercluster.
+    let count = 0;
+    const outsideTargets: {
+      [id: string]: { pattern: string; target: string }[];
+    } = {};
+
+    const queueGroups: { [pattern: string]: Set<string> } = {};
+    const clusterInterest = this.clusterInterest(subject);
+    for (const pattern in clusterInterest) {
+      const g = clusterInterest[pattern];
       for (const queue in g) {
-        const target = this.loadBalance({
+        const t = this.clusterLoadBalance({
           pattern,
           subject,
           queue,
           targets: g[queue],
         });
-        if (target !== undefined) {
+        if (t !== undefined) {
+          const { id, target } = t;
           if (queueGroups[pattern] == null) {
             queueGroups[pattern] = new Set();
           }
           queueGroups[pattern].add(queue);
-          this.io.to(target).emit(pattern, { subject, data });
+          if (id == this.id) {
+            // another client of this server
+            this.io.to(target).emit(pattern, { subject, data });
+          } else {
+            // client connected to a different server -- we note this, and
+            // will send everything for each server at once, instead of
+            // potentially sending the same message multiple times for
+            // different patterns.
+            if (outsideTargets[id] == null) {
+              outsideTargets[id] = [{ pattern, target }];
+            } else {
+              outsideTargets[id].push({ pattern, target });
+            }
+          }
           count += 1;
         }
       }
     }
-
-    // note -- position 6 of data is a no-forward flag, to avoid
-    // a message bouncing back and forth in case the interest stream
-    // were slightly out of sync.
-    const noForward = data[6];
-    if (noForward || !this.cluster || !this.clusterName) {
-      return count;
+    // Send the messages to the outsideTargets.  We send the message
+    // along with exactly who it should be delivered to.  There is of
+    // course no guarantee that a target doesn't vanish just as we are
+    // sending this...
+    for (const id in outsideTargets) {
+      const link = this.clusterLinks[this.clusterName]?.[id];
+      link?.client.conn.emit("publish", [subject, ...data, outsideTargets[id]]);
     }
 
-    // publish to any other nodes in the same cluster
-    const thisCluster = this.clusterLinks[this.clusterName];
-    if (thisCluster) {
-      for (const id in thisCluster) {
-        const link = thisCluster[id];
-        const count2 = link.publish({ subject, data, queueGroups });
-        if (count2 > 0) {
-          count += count2;
-        }
-      }
-    }
-    // if no matches in local cluster, try the supercluster (if there is one)
-    if (count == 0) {
-      // nothing in this cluster, so try other clusters
-      for (const clusterName in this.clusterLinks) {
-        if (clusterName == this.clusterName) continue;
-        const links = this.clusterLinks[clusterName];
-        for (const id in links) {
-          const link = links[id];
-          const count2 = link.publish({ subject, data, queueGroups });
-          if (count2 > 0) {
-            count += count2;
-            // once we publish to any other cluster, we are done.
-            break;
-          }
-        }
-      }
-    }
+    //
+    // TODO: Supercluster routing.
+    //
+    //     // if no matches in local cluster, try the supercluster (if there is one)
+    //     if (count == 0) {
+    //       // nothing in this cluster, so try other clusters
+    //       for (const clusterName in this.clusterLinks) {
+    //         if (clusterName == this.clusterName) continue;
+    //         const links = this.clusterLinks[clusterName];
+    //         for (const id in links) {
+    //           const link = links[id];
+    //           const count2 = link.publish({ subject, data, queueGroups });
+    //           if (count2 > 0) {
+    //             count += count2;
+    //             // once we publish to any other cluster, we are done.
+    //             break;
+    //           }
+    //         }
+    //       }
+    //     }
 
     return count;
   };
@@ -565,6 +690,30 @@ export class ConatServer {
     } else {
       return randomChoice(targets);
     }
+  };
+
+  clusterLoadBalance = ({
+    pattern,
+    subject,
+    queue,
+    targets: targets0,
+  }: {
+    pattern: string;
+    subject: string;
+    queue: string;
+    targets: { [id: string]: Set<string> };
+  }): { id: string; target: string } | undefined => {
+    const targets = new Set<string>();
+    for (const id in targets0) {
+      for (const target of targets0[id]) {
+        targets.add(JSON.stringify({ id, target }));
+      }
+    }
+    const x = this.loadBalance({ pattern, subject, queue, targets });
+    if (!x) {
+      return undefined;
+    }
+    JSON.parse(x);
   };
 
   ///////////////////////////////////////
@@ -927,7 +1076,11 @@ export class ConatServer {
     if (link0 != null) {
       return link0;
     }
-    const link = await clusterLink(address, this.options.systemAccountPassword);
+    const link = await clusterLink(
+      address,
+      this.options.systemAccountPassword,
+      this.updateSticky,
+    );
     const { clusterName, id } = link;
     if (this.clusterLinks[clusterName] == null) {
       this.clusterLinks[clusterName] = {};
@@ -1243,7 +1396,7 @@ export class ConatServer {
         v.push(nothrow(link.waitForInterest(subject, timeout, signal2)));
       }
       if (!timeout) {
-        // with timeout=0 they all immediately answer (so no need to worry about abort/pormise)
+        // with timeout=0 they all immediately answer (so no need to worry about abort/promise)
         const w = await Promise.all(v);
         for (const x of w) {
           if (x) {
@@ -1400,17 +1553,22 @@ export function updateInterest(
   }
 }
 
+// returns true if this actually causes in a change
 export function updateSticky(
   update: StickyUpdate,
   sticky: {
     [pattern: string]: { [subject: string]: string };
   },
-) {
+): boolean {
   const { pattern, subject, target } = update;
   if (sticky[pattern] === undefined) {
     sticky[pattern] = {};
   }
+  if (sticky[pattern][subject] == target) {
+    return false;
+  }
   sticky[pattern][subject] = target;
+  return true;
 }
 
 function getServerAddress(options: Options) {

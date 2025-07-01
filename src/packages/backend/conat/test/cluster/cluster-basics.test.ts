@@ -87,6 +87,7 @@ describe("create a cluster enabled socketio server and test that the streams upd
     link = await clusterLink(
       server.address(),
       server.options.systemAccountPassword,
+      () => {},
     );
     await wait({
       until: () => {
@@ -152,6 +153,7 @@ describe("create a cluster enabled socketio server and test that the streams upd
     const link2 = await clusterLink(
       server.address(),
       server.options.systemAccountPassword,
+      () => {},
     );
     await wait({
       until: () => {

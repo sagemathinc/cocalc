@@ -1,7 +1,6 @@
-import { type Client, connect, STICKY_QUEUE_GROUP } from "./client";
+import { type Client, connect } from "./client";
 import { Patterns } from "./patterns";
 import {
-  randomChoice,
   updateInterest,
   updateSticky,
   type InterestUpdate,
@@ -11,13 +10,13 @@ import type { DStream } from "@cocalc/conat/sync/dstream";
 import { once } from "@cocalc/util/async-utils";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
-import { stickyChoice } from "./sticky";
 
 const logger = getLogger("conat:core:cluster");
 
 export async function clusterLink(
   address: string,
   systemAccountPassword: string,
+  updateStickyLocal: (sticky: StickyUpdate) => void,
 ) {
   const client = connect({ address, systemAccountPassword });
   if (client.info == null) {
@@ -31,7 +30,13 @@ export async function clusterLink(
   if (!clusterName) {
     throw Error("clusterName must be specified");
   }
-  const link = new ClusterLink(client, id, clusterName, address);
+  const link = new ClusterLink(
+    client,
+    id,
+    clusterName,
+    address,
+    updateStickyLocal,
+  );
   await link.init();
   return link;
 }
@@ -39,7 +44,7 @@ export async function clusterLink(
 export { type ClusterLink };
 
 class ClusterLink {
-  private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
+  public interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
   private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
@@ -49,6 +54,7 @@ class ClusterLink {
     public readonly id: string,
     public readonly clusterName: string,
     public readonly address: string,
+    private readonly updateStickyLocal: (sticky: StickyUpdate) => void,
   ) {
     if (!client) {
       throw Error("client must be specified");
@@ -81,6 +87,7 @@ class ClusterLink {
 
   handleStickyUpdate = (update: StickyUpdate) => {
     updateSticky(update, this.sticky);
+    this.updateStickyLocal(update);
   };
 
   close = () => {
@@ -95,80 +102,6 @@ class ClusterLink {
       // @ts-ignore
       delete this.streams;
     }
-  };
-
-  publish = ({
-    subject,
-    data,
-    queueGroups,
-  }: {
-    subject: string;
-    data: any;
-    // these are already used queueGroups, possibly from other links
-    queueGroups: { [pattern: string]: Set<string> };
-  }) => {
-    let count = 0;
-    for (const pattern of this.interest.matches(subject)) {
-      const g = this.interest.get(pattern)!;
-      // send to exactly one in each queue group.
-      for (const queue in g) {
-        if (queueGroups[pattern]?.has(queue)) {
-          // already published to same queue group elsewhere in the (super-)cluster.
-          continue;
-        }
-        const target = this.loadBalance({
-          pattern,
-          subject,
-          queue,
-          targets: g[queue],
-        });
-        if (target !== undefined) {
-          if (queueGroups[pattern] == null) {
-            queueGroups[pattern] = new Set();
-          }
-          queueGroups[pattern].add(queue);
-
-          // worry about from field?
-          this.client.conn.emit("publish", [subject, ...data, true]);
-          count += 1;
-        }
-      }
-    }
-    return count;
-  };
-  private getStickyTarget = ({ pattern, subject }) => {
-    return this.sticky[pattern]?.[subject];
-  };
-
-  private loadBalance = ({
-    pattern,
-    subject,
-    queue,
-    targets,
-  }: {
-    pattern: string;
-    subject: string;
-    queue: string;
-    targets: Set<string>;
-  }): string | undefined => {
-    if (targets.size == 0) {
-      return undefined;
-    }
-    if (queue == STICKY_QUEUE_GROUP) {
-      //       console.log("** TODO: deal with sticky queue groups! **", {
-      //         pattern,
-      //         subject,
-      //         queue,
-      //         targets,
-      //       });
-      return stickyChoice({
-        pattern,
-        subject,
-        targets,
-        getStickyTarget: this.getStickyTarget,
-      });
-    }
-    return randomChoice(targets);
   };
 
   hasInterest = (subject) => {
