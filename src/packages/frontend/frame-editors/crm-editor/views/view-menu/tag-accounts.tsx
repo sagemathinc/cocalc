@@ -15,7 +15,7 @@ import type { ColumnsType } from "../../fields";
 import { Set as iSet } from "immutable";
 import { plural } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
-import { map as awaitMap } from "awaiting";
+import { map as awaitMap, delay } from "awaiting";
 const MAX_PARALLEL_TASKS = 15;
 
 interface Props {
@@ -43,6 +43,7 @@ export default function TagAccounts({
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [add, setAdd] = useState<boolean>(true);
+  const [status, setStatus] = useState<string>("");
 
   if (selected == null) {
     return null;
@@ -69,7 +70,7 @@ export default function TagAccounts({
       let goal = selected.size;
       const check = () => {
         done += 1;
-        setProgress(Math.round((done * 100) / goal));
+        setProgress(Math.round((done * 90) / goal));
       };
 
       const task = async (account_id) => {
@@ -104,9 +105,23 @@ export default function TagAccounts({
         }
         check();
       };
-      await awaitMap(Array.from(selected), MAX_PARALLEL_TASKS, task);
+      const account_ids = Array.from(selected);
+      setStatus("Updating database tags");
+      await awaitMap(account_ids, MAX_PARALLEL_TASKS, task);
+      refresh();
+      setStatus("Syncing users with Salesloft");
+      try {
+        await webapp_client.conat_client.hub.system.adminSalesloftSync({
+          account_ids,
+        });
+      } catch (err) {
+        errors.push(err);
+      }
+      setProgress(100);
+      await delay(250);
       setValue("");
     } finally {
+      setStatus("");
       refresh();
       if (errors.length > 0) {
         setError(errors.join(" \n"));
@@ -163,13 +178,17 @@ export default function TagAccounts({
           message={
             <>
               The above tags will be {add ? "added to" : "removed from"} each
-              selected account.
+              selected account, then we will attempt to sync each with
+              salesloft. Syncing with salesloft happens in the backend, and
+              might not always succeed (e.g., if the user has no email).
             </>
           }
         />
         {loading && (
           <div>
             <Progress percent={progress} />
+            <hr />
+            {status}
           </div>
         )}
         {error && <hr />}
