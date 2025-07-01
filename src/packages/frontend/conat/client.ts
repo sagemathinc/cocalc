@@ -185,7 +185,7 @@ export class ConatClient extends EventEmitter {
       console.log("Connected as ", JSON.stringify(client.info?.user));
       this.signedIn({
         account_id: client.info.user.account_id,
-        hub: client.info.id,
+        hub: client.info.id ?? "",
       });
       const cookie = Cookies.get(ACCOUNT_ID_COOKIE);
       if (cookie && cookie != client.info.user.account_id) {
