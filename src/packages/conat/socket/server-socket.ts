@@ -59,6 +59,9 @@ export class ServerSocket extends EventEmitter {
         await this.request(null, {
           headers: { [SOCKET_HEADER_CMD]: "ping" },
           timeout: this.conatSocket.keepAliveTimeout,
+          // waitForInterest is very important in a cluster -- also, obviously
+          // if somebody just opened a socket, they probably exist.
+          waitForInterest: true,
         });
       },
       disconnect: this.close,
