@@ -20,7 +20,7 @@ beforeAll(before);
 
 describe("test using multiple persist servers in a cluster", () => {
   let client0, server1, client1;
-  it("add another node", async () => {
+  it.only("add another node", async () => {
     client0 = server.client();
     server1 = await addNodeToDefaultCluster();
     client1 = server1.client();

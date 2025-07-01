@@ -10,7 +10,7 @@ The goal is just to make sure there are no ridiculous performance regressions.
 Also, this is a useful file to play around with to understand the speed
 we should expect sending simple messages. It's basically
 
-t ./pubsub-stress.test.ts
+pnpm test `pwd`/pubsub.test.ts
 
 */
 
@@ -19,6 +19,7 @@ import {
   after,
   initConatServer,
   createConatCluster,
+  client,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 import { waitForSubscription } from "./util";
@@ -38,6 +39,28 @@ const log = VERBOSE ? console.log : (..._args) => {};
 beforeAll(before);
 
 jest.setTimeout(15000);
+
+describe("the most basic pub/sub test", () => {
+  let sub;
+  it("subscribe", async () => {
+    sub = await client.subscribe("cocalc");
+  });
+
+  it("publish", async () => {
+    const { count, bytes } = await client.publish("cocalc", "hi");
+    expect(bytes).toBe(3);
+    expect(count).toBe(1);
+  });
+
+  it("receive", async () => {
+    const { value } = await sub.next();
+    expect(value.data).toBe("hi");
+  });
+
+  it("clean up", () => {
+    sub.close();
+  });
+});
 
 describe("create two connected servers and two clients and test messaging speed", () => {
   let server, client1, client2;

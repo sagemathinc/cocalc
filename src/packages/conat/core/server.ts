@@ -562,7 +562,11 @@ export class ConatServer {
       });
     }
 
-    if (!this.cluster || !this.clusterName) {
+    if (
+      !this.cluster ||
+      !this.clusterName ||
+      Object.keys(this.clusterLinks).length == 0
+    ) {
       // Simpler non-cluster (or no forward) case.  We ONLY have to
       // consider data about this server, and no other nodes.
       let count = 0;
@@ -587,6 +591,7 @@ export class ConatServer {
       }
       return count;
     }
+
     // More complicated cluster case, where we have to consider the
     // entire cluster, or possibly the supercluster.
     let count = 0;
@@ -594,7 +599,7 @@ export class ConatServer {
       [id: string]: { pattern: string; target: string }[];
     } = {};
 
-    const queueGroups: { [pattern: string]: Set<string> } = {};
+    // const queueGroups: { [pattern: string]: Set<string> } = {};
     const clusterInterest = this.clusterInterest(subject);
     for (const pattern in clusterInterest) {
       const g = clusterInterest[pattern];
@@ -607,10 +612,10 @@ export class ConatServer {
         });
         if (t !== undefined) {
           const { id, target } = t;
-          if (queueGroups[pattern] == null) {
-            queueGroups[pattern] = new Set();
-          }
-          queueGroups[pattern].add(queue);
+          //           if (queueGroups[pattern] == null) {
+          //             queueGroups[pattern] = new Set();
+          //           }
+          //           queueGroups[pattern].add(queue);
           if (id == this.id) {
             // another client of this server
             this.io.to(target).emit(pattern, { subject, data });
@@ -629,6 +634,7 @@ export class ConatServer {
         }
       }
     }
+
     // Send the messages to the outsideTargets.  We send the message
     // along with exactly who it should be delivered to.  There is of
     // course no guarantee that a target doesn't vanish just as we are
@@ -713,7 +719,7 @@ export class ConatServer {
     if (!x) {
       return undefined;
     }
-    JSON.parse(x);
+    return JSON.parse(x);
   };
 
   ///////////////////////////////////////
