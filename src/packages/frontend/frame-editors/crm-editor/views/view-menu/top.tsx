@@ -141,7 +141,7 @@ export default function TopMenu({
     },
   ];
   if (dbtable == "crm_accounts") {
-    items[0].children.push({
+    items[0].children.unshift({
       type: "group",
       label: (
         <Divider>

@@ -1,9 +1,18 @@
 import { useState } from "react";
-import { Alert, Button, Input, Modal, Progress, Space, Spin } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  Modal,
+  Progress,
+  Space,
+  Spin,
+  Switch,
+} from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { ColumnsType } from "../../fields";
-import { Set } from "immutable";
+import { Set as iSet } from "immutable";
 import { plural } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 import { map as awaitMap } from "awaiting";
@@ -12,7 +21,7 @@ const MAX_PARALLEL_TASKS = 15;
 interface Props {
   title: string;
   onClose: () => void;
-  selected: Set<any> | undefined;
+  selected: iSet<string> | undefined;
   data: { account_id: string; tags?: string[] }[];
   primaryKey: string;
   columns: ColumnsType[];
@@ -33,17 +42,18 @@ export default function TagAccounts({
   const [loading, setLoading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string>("");
+  const [add, setAdd] = useState<boolean>(true);
 
   if (selected == null) {
     return null;
   }
 
   const save = async () => {
-    const tags = value
+    const tags0 = value
       .split(",")
       .map((x) => x.trim())
       .filter((x) => !!x);
-    if (tags.length == 0 || selected == null || selected.size == 0) {
+    if (tags0.length == 0 || selected == null || selected.size == 0) {
       setValue("");
       return;
     }
@@ -57,21 +67,42 @@ export default function TagAccounts({
       setLoading(true);
       let done = 0;
       let goal = selected.size;
+      const check = () => {
+        done += 1;
+        setProgress(Math.round((done * 100) / goal));
+      };
+
       const task = async (account_id) => {
+        let tags;
+        if (add) {
+          tags = Array.from(
+            new Set(tagsByAccount[account_id].concat(tags0)),
+          ).sort();
+        } else {
+          const x = new Set(tagsByAccount[account_id]);
+          const n = x.size;
+          for (const tag of tags0) {
+            x.delete(tag);
+          }
+          if (x.size == n) {
+            check();
+            return;
+          }
+          tags = Array.from(x).sort();
+        }
         try {
           await webapp_client.async_query({
             query: {
               crm_accounts: {
                 account_id,
-                tags: tagsByAccount[account_id].concat(tags),
+                tags,
               },
             },
           });
         } catch (err) {
           errors.push(`${err}`);
         }
-        done += 1;
-        setProgress(Math.round((done * 100) / goal));
+        check();
       };
       await awaitMap(Array.from(selected), MAX_PARALLEL_TASKS, task);
       setValue("");
@@ -94,8 +125,15 @@ export default function TagAccounts({
       footer={null}
       title={
         <div style={{ margin: "0 15px" }}>
-          <Icon name="tags-outlined" /> Tag {selected.size} Selected{" "}
-          {plural(selected.size, "Account")}
+          <Icon name="tags-outlined" /> {add ? "Tag" : "Untag"} {selected.size}{" "}
+          Selected {plural(selected.size, "Account")}
+          <Switch
+            style={{ float: "right", marginRight: "30px" }}
+            checkedChildren="Add"
+            unCheckedChildren="Remove"
+            defaultChecked
+            onChange={setAdd}
+          />
         </div>
       }
       onCancel={onClose}
@@ -107,24 +145,26 @@ export default function TagAccounts({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="Tag or tag1,tag2,..."
-            size="large"
           />
           <Button
-            size="large"
-            style={{ height: "41px" /* hack around antd bug?*/ }}
+            style={{ height: "37px" /* hack around antd bug?*/ }}
             disabled={!value.trim() || loading}
             onClick={() => {
               save();
             }}
           >
-            Tag {plural(selected.size, "Account")} {loading && <Spin />}
+            {!add ? "Untag" : "Tag"} {plural(selected.size, "Account")}{" "}
+            {loading && <Spin />}
           </Button>
         </Space.Compact>
         <Alert
           style={{ margin: "15px 0" }}
           type="info"
           message={
-            <>The above tags will be applied to each selected account.</>
+            <>
+              The above tags will be {add ? "added to" : "removed from"} each
+              selected account.
+            </>
           }
         />
         {loading && (
