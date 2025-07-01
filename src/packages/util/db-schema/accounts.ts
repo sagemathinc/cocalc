@@ -720,6 +720,7 @@ Table({
           banned: true,
           unlisted: true,
           notes: true,
+          tags: true,
           salesloft_id: true,
           purchase_closing_day: true,
           min_balance: true, // admins can set this
