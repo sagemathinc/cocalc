@@ -1,12 +1,12 @@
+import { render } from "@testing-library/react";
 import A from "./A";
-import renderer from "react-test-renderer";
 
-test("some basic properties of A are correct so will open a new tab at right url", () => {
-  const component = renderer.create(<A href="https://cocalc.com">CoCalc</A>);
-  let tree = component.toJSON();
-  expect(tree.type).toBe("a");
-  expect(tree.props.target).toBe("_blank");
-  expect(tree.props.href).toBe("https://cocalc.com");
-  expect(tree.props.rel).toBe("noopener");
-  expect(tree.children).toEqual(["CoCalc"]);
+test("A opens a new tab at the right url", () => {
+  const { getByRole } = render(<A href="https://cocalc.com">CoCalc</A>);
+  const link = getByRole("link", { name: "CoCalc" });
+
+  expect(link).toHaveAttribute("target", "_blank");
+  expect(link).toHaveAttribute("href", "https://cocalc.com");
+  expect(link).toHaveAttribute("rel", "noopener");
+  expect(link).toHaveTextContent("CoCalc");
 });
