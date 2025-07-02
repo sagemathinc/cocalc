@@ -232,7 +232,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             <br />
             {renderBuyAndUpgrade("Buy a license")}
             {hasComputeServers && (
-              <>&npsp;NOTE: Compute servers always have internet access.</>
+              <>&nbsp;NOTE: Compute servers always have internet access.</>
             )}
           </span>
         );
@@ -337,12 +337,64 @@ interface ApplyLicenseProps {
   projectSiteLicenses: string[];
   project_id: string;
   setShowAddLicense: (show: boolean) => void;
+  narrow?: boolean; // if true, then we use a narrower layout
+  licenseAdded?: () => void; // callback when license is added
 }
 
-export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
-  props: ApplyLicenseProps,
-) => {
-  const { projectSiteLicenses, project_id, setShowAddLicense } = props;
+export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = ({
+  projectSiteLicenses,
+  project_id,
+  setShowAddLicense,
+  narrow = false,
+  licenseAdded,
+}: ApplyLicenseProps) => {
+  function renderInput() {
+    return (
+      <SiteLicenseInput
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: "1 0 auto",
+        }}
+        exclude={projectSiteLicenses}
+        onSave={(license_id) => {
+          setShowAddLicense(false);
+          applyLicense({ project_id, license_id });
+          licenseAdded?.();
+        }}
+        onCancel={() => setShowAddLicense(false)}
+        extraButtons={
+          <BuyLicenseForProject project_id={project_id} size={"middle"} />
+        }
+      />
+    );
+  }
+
+  if (narrow) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: "1 0 auto",
+          marginTop: "10px",
+        }}
+      >
+        <div
+          style={{
+            margin: "10px 10px 10px 0",
+            verticalAlign: "bottom",
+            display: "flex",
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Select a license:
+        </div>
+        {renderInput()}
+      </div>
+    );
+  }
 
   // NOTE: we show this dialog even if user does not manage any licenses,
   // because the user could have one via another channel and just wants to add it directly via copy/paste.
@@ -367,22 +419,7 @@ export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
         >
           Select a license:
         </div>
-        <SiteLicenseInput
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: "1 0 auto",
-          }}
-          exclude={projectSiteLicenses}
-          onSave={(license_id) => {
-            setShowAddLicense(false);
-            applyLicense({ project_id, license_id });
-          }}
-          onCancel={() => setShowAddLicense(false)}
-          extraButtons={
-            <BuyLicenseForProject project_id={project_id} size={"middle"} />
-          }
-        />
+        {renderInput()}
       </div>
     </>
   );

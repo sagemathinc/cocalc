@@ -3340,10 +3340,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  close_project_no_internet_warning(): void {
-    this.setState({ internet_warning_closed: true });
-  }
-
   set_compute_image = async (compute_image: string): Promise<void> => {
     const projects_store = this.redux.getStore("projects");
     const previous: string =

@@ -15,6 +15,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { getNow } from "@cocalc/frontend/app/util";
 import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
@@ -29,7 +30,7 @@ export function VerifyEmail() {
 
   function doDismiss(save = true) {
     if (save) {
-      const now = webapp_client.server_time().getTime();
+      const now = getNow();
       LS.set(DISMISSED_KEY_LS, now);
     }
     setHide(true);
@@ -200,7 +201,7 @@ export function useShowVerifyEmail(): boolean {
     !email_address || !email_address_verified?.get(email_address);
 
   // we also do not show this for newly created accounts
-  const now = webapp_client.server_time().getTime();
+  const now = getNow();
   const oneDay = 1 * 24 * 60 * 60 * 1000;
   const notTooNew = created != null && now > created.getTime() + oneDay;
 
