@@ -99,9 +99,11 @@ describe("create two connected servers and two clients and test messaging speed"
       REQUIRED_SINGLE_SERVER_RECV_MESSAGES_PER_SECOND,
     );
   });
+});
 
-  const count2 = 1000;
-  it(`do a benchmark of cluster send/receiving ${count2} messages`, async () => {
+describe("benchmarking bigger send/receives", () => {
+  const count = 1000;
+  it(`do a benchmark of cluster send/receiving ${count} messages`, async () => {
     const servers = await createConatCluster(2);
     return;
     const [server1, server2] = Object.values(servers);
@@ -115,28 +117,32 @@ describe("create two connected servers and two clients and test messaging speed"
       let i = 0;
       for await (const _ of sub) {
         i += 1;
-        if (i >= count1) {
-          return Math.ceil((count1 / (Date.now() - start)) * 1000);
+        if (i >= count) {
+          return Math.ceil((count / (Date.now() - start)) * 1000);
         }
       }
     };
     const start = Date.now();
-    for (let i = 0; i < count1; i++) {
+    for (let i = 0; i < count; i++) {
       client2.publishSync("bench", null);
     }
-    const sendRate = Math.ceil((count1 / (Date.now() - start)) * 1000);
+    const sendRate = Math.ceil((count / (Date.now() - start)) * 1000);
     log("sent", sendRate, "messages per second");
-    expect(sendRate).toBeGreaterThan(
-      REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
-    );
+    if (count > 10) {
+      expect(sendRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
+      );
+    }
     const recvRate = await f();
     log("received ", recvRate, "messages per second");
-    expect(recvRate).toBeGreaterThan(
-      REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
-    );
+    if (count > 10) {
+      expect(recvRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
+      );
+    }
   });
 
-  it(`do a benchmark of send/receiving and STICKY SUB involving ${count2} messages`, async () => {
+  it(`do a benchmark of send/receiving and STICKY SUB involving ${count} messages`, async () => {
     const servers = await createConatCluster(2);
     const [server1, server2] = Object.values(servers);
     const client1 = server1.client();
@@ -147,45 +153,56 @@ describe("create two connected servers and two clients and test messaging speed"
     const f = async () => {
       const start = Date.now();
       let i = 0;
+      log(`sticky cluster: receiving ${count} messages`);
       for await (const _ of sub) {
         i += 1;
-        if (i >= count1) {
-          return Math.ceil((count1 / (Date.now() - start)) * 1000);
+        if (i >= count) {
+          return Math.ceil((count / (Date.now() - start)) * 1000);
         }
       }
     };
     const start = Date.now();
-    for (let i = 0; i < count1; i++) {
+    log(`sticky cluster: sending ${count} messages`);
+    for (let i = 0; i < count; i++) {
       client2.publishSync("bench", null);
     }
-    const sendRate = Math.ceil((count1 / (Date.now() - start)) * 1000);
+    const sendRate = Math.ceil((count / (Date.now() - start)) * 1000);
     log("sticky cluster: sent", sendRate, "messages per second");
-    expect(sendRate).toBeGreaterThan(
-      REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
-    );
+    if (count > 10) {
+      expect(sendRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
+      );
+    }
     const recvRate = await f();
     log("sticky cluster: received ", recvRate, "messages per second");
-    expect(recvRate).toBeGreaterThan(
-      REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
-    );
+    if (count > 10) {
+      expect(recvRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
+      );
+    }
   });
+});
 
+describe("benchmarking with many random subscriptions", () => {
   const subcount = 400;
-  it(`do a benchmark with cluster of send/receiving and ${count2} messages after adding ${subcount} random subscriptions per client`, async () => {
+  const count = 1000;
+  it(`do a benchmark with cluster of send/receiving and ${count} messages after adding ${subcount} random subscriptions per client`, async () => {
     const servers = await createConatCluster(2);
     const [server1, server2] = Object.values(servers);
     const client1 = server1.client();
     const client2 = server2.client();
 
+    log("creating subscriptions");
     const v: any[] = [];
     for (let i = 0; i < subcount; i++) {
       v.push(await client1.subscribe(`bench.one.${i}`));
       v.push(await client2.subscribe(`bench.two.${i}`));
     }
+    log("waiting for subscriptions");
     await waitForSubscription(server1, `bench.one.${subcount - 1}`);
     await waitForSubscription(server2, `bench.two.${subcount - 1}`);
 
-    const sub = await client1.subscribe("bench", { queue: STICKY_QUEUE_GROUP });
+    const sub = await client1.subscribe("bench");
     await waitForSubscription(server1, "bench");
     await waitForSubscription(server2, "bench");
     const f = async () => {
@@ -193,25 +210,98 @@ describe("create two connected servers and two clients and test messaging speed"
       let i = 0;
       for await (const _ of sub) {
         i += 1;
-        if (i >= count1) {
-          return Math.ceil((count1 / (Date.now() - start)) * 1000);
+        if (i >= count) {
+          return Math.ceil((count / (Date.now() - start)) * 1000);
         }
       }
     };
     const start = Date.now();
-    for (let i = 0; i < count1; i++) {
+    for (let i = 0; i < count; i++) {
       client2.publishSync("bench", null);
     }
-    const sendRate = Math.ceil((count1 / (Date.now() - start)) * 1000);
+    const sendRate = Math.ceil((count / (Date.now() - start)) * 1000);
     log("many subs + cluster: sent", sendRate, "messages per second");
-    expect(sendRate).toBeGreaterThan(
-      REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
-    );
+    if (count > 10) {
+      expect(sendRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
+      );
+    }
+    log(`many subs + cluster: receiving ${count} messages`);
     const recvRate = await f();
     log("many subs + cluster: received ", recvRate, "messages per second");
-    expect(recvRate).toBeGreaterThan(
-      REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
+    if (count > 10) {
+      expect(recvRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
+      );
+    }
+  });
+});
+
+describe("benchmarking with many servers", () => {
+  const clusterSize = 4;
+  const subcount = 400;
+  const count = 1000;
+  let clients, servers;
+  it(`do a benchmark with cluster of send/receiving and ${count} messages after adding ${subcount} random subscriptions per client`, async () => {
+    servers = Object.values(await createConatCluster(clusterSize));
+    clients = servers.map((server) => server.client());
+
+    const v: any[] = [];
+    for (let i = 0; i < subcount; i++) {
+      for (const client of clients) {
+        v.push(await client.subscribe(`bench.${client.id}.${i}`));
+      }
+    }
+    for (let i = 0; i < clusterSize; i++) {
+      await waitForSubscription(
+        servers[i],
+        `bench.${clients[i].id}.${subcount - 1}`,
+      );
+    }
+
+    const sub = await clients[1].subscribe("bench");
+    for (let i = 0; i < clusterSize; i++) {
+      await waitForSubscription(servers[i], "bench");
+    }
+    const f = async () => {
+      const start = Date.now();
+      let i = 0;
+      for await (const _ of sub) {
+        i += 1;
+        if (i >= count) {
+          return Math.ceil((count / (Date.now() - start)) * 1000);
+        }
+      }
+    };
+    const start = Date.now();
+    for (let i = 0; i < count / clients.length; i++) {
+      for (let j = 0; j < clients.length; j++) {
+        clients[j].publishSync("bench", null);
+      }
+    }
+    const sendRate = Math.ceil((count / (Date.now() - start)) * 1000);
+    log(
+      `many subs + cluster of size ${clusterSize}: sent`,
+      sendRate,
+      "messages per second",
     );
+    if (count > 10) {
+      expect(sendRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
+      );
+    }
+    log(`many subs + cluster: receiving ${count} messages`);
+    const recvRate = await f();
+    log(
+      `many subs + cluster of size ${clusterSize}: received `,
+      recvRate,
+      "messages per second",
+    );
+    if (count > 10) {
+      expect(recvRate).toBeGreaterThan(
+        REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
+      );
+    }
   });
 });
 

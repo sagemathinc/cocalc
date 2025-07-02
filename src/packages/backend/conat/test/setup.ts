@@ -16,6 +16,7 @@ export { wait } from "@cocalc/backend/conat/test/util";
 export { delay } from "awaiting";
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
+import { randomId } from "@cocalc/conat/names";
 
 const logger = getLogger("conat:test:setup");
 
@@ -44,15 +45,14 @@ function getNodeId() {
 
 export async function createServer(opts?) {
   const port = await getPort();
-  server = await initConatServer({
+  return await initConatServer({
     port,
     path,
     clusterName: "default",
-    id: getNodeId(),
+    id: opts?.id ?? getNodeId(),
     systemAccountPassword: "secret",
     ...opts,
   });
-  return server;
 }
 
 // add another node to the cluster -- this is still in the same process (not forked), which
@@ -72,8 +72,8 @@ export async function addNodeToDefaultCluster(): Promise<ConatServer> {
 }
 
 export async function createConatCluster(n: number, opts?) {
-  const clusterName = opts?.clusterName ?? "cluster";
-  const systemAccountPassword = opts?.systemAccountPassword ?? "secret";
+  const clusterName = opts?.clusterName ?? `cluster-${randomId()}`;
+  const systemAccountPassword = opts?.systemAccountPassword ?? randomId();
   const servers: { [id: string]: ConatServer } = {};
   for (let i = 0; i < n; i++) {
     const id = `node-${i}`;
