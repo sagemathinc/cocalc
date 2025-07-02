@@ -185,7 +185,6 @@ function custom_llm_display(value: string): string {
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "conat_heading"
-  | "conat_server"
   | "conat_password"
   | "stripe_heading"
   | "stripe_publishable_key"
@@ -276,14 +275,6 @@ export const EXTRAS: SettingsExtras = {
     desc: "Conat is a [NATS](https://nats.io/)-like [socketio](https://socket.io/) websocket server and persistence layer that CoCalc uses extensively for communication.",
     default: "",
     type: "header",
-    tags: ["Conat"],
-  },
-  // Conat config may be loaded from via code in packages/server/conat/configuration.ts
-  conat_server: {
-    name: "Conat Server URL",
-    desc: "URL of server where Conat is available.  Defaults to `$CONAT_SERVER` env variable if that is given.  This URL should include the base path. Examples:  https://cocalc.com,   https://localhoast:4043/3fa218e5-7196-4020-8b30-e2127847cc4f/port/5002/",
-    default: "",
-    password: false,
     tags: ["Conat"],
   },
   conat_password: {
