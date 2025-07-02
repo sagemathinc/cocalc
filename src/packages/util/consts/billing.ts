@@ -14,4 +14,4 @@ export const LICENSE_MIN_PRICE = "about $5/month";
 
 // Trial Banner in the UI
 export const EVALUATION_PERIOD_DAYS = 3;
-export const BANNER_NON_DISMISSABLE_DAYS = 7;
+export const BANNER_NON_DISMISSIBLE_DAYS = 7;

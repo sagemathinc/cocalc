@@ -44,7 +44,7 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
   }
 
   function showBanner(): "trial" | "no-internet" | null {
-    // paying usres are allowed to have a setting to hide banner unconditionally
+    // paying users are allowed to have a setting to hide banner unconditionally
     if (other_settings?.get("no_free_warnings")) {
       return showNoInternetBanner();
     }

@@ -6,6 +6,7 @@
 import { Alert, Modal, Space, Tag, Tooltip } from "antd";
 import humanizeList from "humanize-list";
 import { useInterval } from "react-interval-hook";
+
 import {
   CSS,
   React,
@@ -26,16 +27,16 @@ import {
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
 import {
-  BANNER_NON_DISMISSABLE_DAYS,
+  BANNER_NON_DISMISSIBLE_DAYS,
   EVALUATION_PERIOD_DAYS,
   LICENSE_MIN_PRICE,
 } from "@cocalc/util/consts/billing";
 import { server_time } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
+import { BUY_A_LICENSE_URL, CallToSupport } from "./call-to-support";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { applyLicense } from "./settings/site-license";
-import { CallToSupport, BUY_A_LICENSE_URL } from "./call-to-support";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 
@@ -127,13 +128,13 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       projectSiteLicenses.length === 0 && managedLicenses?.size === 0;
     const elevated = projectAgeDays >= EVALUATION_PERIOD_DAYS && no_licenses;
     const expired =
-      projectAgeDays >= BANNER_NON_DISMISSABLE_DAYS && no_licenses;
+      projectAgeDays >= BANNER_NON_DISMISSIBLE_DAYS && no_licenses;
 
     const style = expired
       ? ALERT_STYLE_EXPIRED
       : elevated
-        ? ALERT_STYLE_ELEVATED
-        : ALERT_STYLE;
+      ? ALERT_STYLE_ELEVATED
+      : ALERT_STYLE;
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
 
     const trial_project = no_licenses ? (
@@ -161,7 +162,9 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     //   );
     // }
 
-    function renderBuyAndUpgrade(text: string = "with a license"): React.JSX.Element {
+    function renderBuyAndUpgrade(
+      text: string = "with a license",
+    ): React.JSX.Element {
       return (
         <>
           <BuyLicenseForProject
@@ -260,7 +263,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       !noMemberHosting ||
       !noInternet ||
       !no_licenses ||
-      projectAgeDays < BANNER_NON_DISMISSABLE_DAYS;
+      projectAgeDays < BANNER_NON_DISMISSIBLE_DAYS;
 
     // don't show the banner if project is not running.
     // https://github.com/sagemathinc/cocalc/issues/6496

@@ -117,7 +117,6 @@ export const Page: React.FC = () => {
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
-  const show_verify_email: boolean = useShowVerifyEmail();
   const show_i18n = useShowI18NBanner();
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
@@ -375,7 +374,7 @@ export const Page: React.FC = () => {
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
       {show_i18n && <I18NBanner />}
-      {show_verify_email && <VerifyEmail />}
+      <VerifyEmail />
       {!fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />
