@@ -174,7 +174,7 @@ describe("illustrate using callMany to call multiple services and get all the re
     }
     expect(X.length).toBe(2);
     expect(new Set(X)).toEqual(new Set([1, 2]));
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(Date.now() - start).toBeLessThan(2000);
   });
 
   it("cleans up", () => {

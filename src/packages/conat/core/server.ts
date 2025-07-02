@@ -553,7 +553,7 @@ export class ConatServer {
       });
     }
 
-    if (!this.cluster || !this.clusterName || isTrivial(this.clusterLinks)) {
+    if (!this.cluster) {
       // Simpler non-cluster (or no forward) case.  We ONLY have to
       // consider data about this server, and no other nodes.
       let count = 0;
@@ -599,6 +599,7 @@ export class ConatServer {
         });
         if (t !== undefined) {
           const { id, target } = t;
+          //console.log({ subject, target, pattern });
           //           if (queueGroups[pattern] == null) {
           //             queueGroups[pattern] = new Set();
           //           }
@@ -620,6 +621,10 @@ export class ConatServer {
           count += 1;
         }
       }
+    }
+
+    if (!this.clusterName) {
+      throw Error("clusterName must be set");
     }
 
     // Send the messages to the outsideTargets.  We send the message
@@ -1568,11 +1573,4 @@ function getServerAddress(options: Options) {
   const port = options.port;
   const path = options.path?.slice(0, -"/conat".length) ?? "";
   return `http${options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
-}
-
-function isTrivial(x: object) {
-  for (const _ in x) {
-    return false;
-  }
-  return true;
 }
