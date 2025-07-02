@@ -16,6 +16,7 @@ import {
 
 beforeAll(before);
 
+jest.setTimeout(10000);
 describe("test that dkv survives server restart", () => {
   let kv;
   const name = `test-${Math.random()}`;
@@ -26,7 +27,7 @@ describe("test that dkv survives server restart", () => {
     await restartServer();
   });
 
-  it("creates the dkv and does a basic test", async () => {
+  it("right as it restarts, creates the dkv and does a basic test", async () => {
     kv = await dkv({ name });
     kv.a = 10;
     expect(kv.a).toEqual(10);

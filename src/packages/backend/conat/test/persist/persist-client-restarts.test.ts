@@ -1,7 +1,7 @@
 /*
 Tests of persist client.
 
-pnpm test ./persist-client.test.ts
+pnpm test ./persist-client-restarts.test.ts
 
 */
 

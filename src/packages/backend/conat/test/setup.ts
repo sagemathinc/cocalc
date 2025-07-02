@@ -13,7 +13,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 export { wait } from "@cocalc/backend/conat/test/util";
-export { delay } from "awaiting";
+import { delay } from "awaiting";
+export { delay };
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
 import { randomId } from "@cocalc/conat/names";
@@ -44,9 +45,8 @@ function getNodeId() {
 }
 
 export async function createServer(opts?) {
-  const port = await getPort();
   return await initConatServer({
-    port,
+    port: await getPort(),
     path,
     clusterName: "default",
     id: opts?.id ?? getNodeId(),
@@ -105,7 +105,8 @@ export async function createConatCluster(n: number, opts?) {
 export async function restartServer() {
   const port = server.options.port;
   await server.close();
-  await createServer({ port });
+  await delay(250);
+  server = await createServer({ port });
 }
 
 export async function restartPersistServer() {
