@@ -163,7 +163,7 @@ export async function showUsersAndStats({
     s = "";
   }
   console.log(`Gather data ${s}for up to ${maxWait / 1000} seconds...\n\n`);
-  const X = [stats, usage];
+  const X = [usage, stats];
   const tables: any[] = [];
   const f = async (i) => {
     for (const table of await X[i]({ client, maxWait, maxMessages })) {
