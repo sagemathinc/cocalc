@@ -10,10 +10,35 @@ import {
   before,
   server,
   addNodeToDefaultCluster,
+  createConatCluster,
   once,
 } from "../setup";
 
 beforeAll(before);
+
+describe("most basic possible test of creating a socket in a cluster built from scratch", () => {
+  let client0, client1;
+  it("add second node", async () => {
+    const servers = Object.values(await createConatCluster(2));
+    client0 = servers[0].client();
+    client1 = servers[1].client();
+  });
+
+  const SUBJECT = "xyz";
+  it("create socket server in node0", async () => {
+    const socketServer = client0.socket.listen(SUBJECT);
+    socketServer.on("connection", (socket) => {
+      socket.write("ack");
+    });
+  });
+
+  it("connect to server", async () => {
+    const conn = client1.socket.connect(SUBJECT);
+    const [data] = await once(conn, "data");
+    expect(data).toBe("ack");
+    conn.close();
+  });
+});
 
 describe("creating sockets in a cluster", () => {
   let client0, server1, client1;

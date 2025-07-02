@@ -501,21 +501,14 @@ export class ConatServer {
   private deliver = ({
     subject,
     data,
-    from,
     targets,
   }: {
     subject: string;
     data: any;
-    from: any;
     targets: { pattern: string; target: string }[];
   }): number => {
     // Deliver the messages to these targets, which should all be
     // connected to this server. This is used for cluster routing only.
-    if (from?.hub_id != "system") {
-      throw Error(
-        "only the system account can route traffic through the cluster",
-      );
-    }
     for (const { pattern, target } of targets) {
       this.io.to(target).emit(pattern, { subject, data });
     }
@@ -531,14 +524,6 @@ export class ConatServer {
     data: any;
     from: any;
   }): Promise<number> => {
-    // note -- position 6 of data is a no-forward flag, to avoid
-    // a message bouncing back and forth in case the interest stream
-    // were slightly out of sync.
-    const targets = data[6];
-    if (targets != null) {
-      return this.deliver({ subject, data, from, targets });
-    }
-
     if (!isValidSubjectWithoutWildcards(subject)) {
       throw Error("invalid subject");
     }
@@ -551,6 +536,14 @@ export class ConatServer {
         // set is assumed elsewhere in our code, so don't mess with it!
         code: 403,
       });
+    }
+
+    // note -- position 6 of data is a no-forward flag, to avoid
+    // a message bouncing back and forth in case the interest stream
+    // were slightly out of sync.
+    const targets = data[6];
+    if (targets != null) {
+      return this.deliver({ subject, data, targets });
     }
 
     if (!this.cluster) {
@@ -599,14 +592,10 @@ export class ConatServer {
         });
         if (t !== undefined) {
           const { id, target } = t;
-          //console.log({ subject, target, pattern });
-          //           if (queueGroups[pattern] == null) {
-          //             queueGroups[pattern] = new Set();
-          //           }
-          //           queueGroups[pattern].add(queue);
           if (id == this.id) {
             // another client of this server
             this.io.to(target).emit(pattern, { subject, data });
+            count += 1;
           } else {
             // client connected to a different server -- we note this, and
             // will send everything for each server at once, instead of
@@ -618,7 +607,6 @@ export class ConatServer {
               outsideTargets[id].push({ pattern, target });
             }
           }
-          count += 1;
         }
       }
     }
@@ -633,7 +621,9 @@ export class ConatServer {
     // sending this...
     for (const id in outsideTargets) {
       const link = this.clusterLinks[this.clusterName]?.[id];
-      link?.client.conn.emit("publish", [subject, ...data, outsideTargets[id]]);
+      const data1 = [subject, ...data, outsideTargets[id]];
+      count += 1;
+      link?.client.conn.emit("publish", data1);
     }
 
     //
@@ -801,6 +791,7 @@ export class ConatServer {
         const count = await this.publish({ subject, data, from: user });
         respond?.({ count });
       } catch (err) {
+        console.log(this.id, "ERROR", err);
         if (err.code == 403) {
           socket.emit("permission", {
             message: err.message,
@@ -1574,3 +1565,31 @@ function getServerAddress(options: Options) {
   const path = options.path?.slice(0, -"/conat".length) ?? "";
   return `http${options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
 }
+
+/*
+const watching = new Set(["xyz"]);
+let last = Date.now();
+function watch(action, { subject, data, id, from }) {
+  for (const x of watching) {
+    if (subject.includes(x)) {
+      console.log(Date.now() - last, new Date(), action, id, {
+        subject,
+        data,
+        from,
+      });
+      last = Date.now();
+      if (data[5]?.["CN-Reply"]) {
+        watching.add(data[5]["CN-Reply"]);
+      }
+    }
+  }
+}
+function trace(subject, ...args) {
+  for (const x of watching) {
+    if (subject.includes(x)) {
+      console.log(Date.now() - last, new Date(), subject, ...args);
+      last = Date.now();
+    }
+  }
+}
+*/
