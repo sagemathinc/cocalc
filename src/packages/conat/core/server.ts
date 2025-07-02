@@ -409,16 +409,7 @@ export class ConatServer {
   };
 
   private getStickyTarget = ({ pattern, subject }) => {
-    if (!this.cluster || !this.clusterName) {
-      return this.sticky[pattern]?.[subject];
-    }
-    // take into account all nodes in the cluster.  We try each
-    // sorted by id, taking the first that has made a sticky choice.
-    // Thus the choice that is made will stay consistent.
-
-    // When a sticky target goes away, we'll make a new choice of
-    // sticky target.  In that case all other nodes will discard
-    // their choice in favor if the new choice.
+    return this.sticky[pattern]?.[subject];
   };
 
   ///////////////////////////////////////
@@ -562,11 +553,7 @@ export class ConatServer {
       });
     }
 
-    if (
-      !this.cluster ||
-      !this.clusterName ||
-      Object.keys(this.clusterLinks).length == 0
-    ) {
+    if (!this.cluster || !this.clusterName || isTrivial(this.clusterLinks)) {
       // Simpler non-cluster (or no forward) case.  We ONLY have to
       // consider data about this server, and no other nodes.
       let count = 0;
@@ -1559,7 +1546,7 @@ export function updateInterest(
   }
 }
 
-// returns true if this actually causes in a change
+// returns true if this update actually causes a change to sticky
 export function updateSticky(
   update: StickyUpdate,
   sticky: {
@@ -1581,4 +1568,11 @@ function getServerAddress(options: Options) {
   const port = options.port;
   const path = options.path?.slice(0, -"/conat".length) ?? "";
   return `http${options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
+}
+
+function isTrivial(x: object) {
+  for (const _ in x) {
+    return false;
+  }
+  return true;
 }
