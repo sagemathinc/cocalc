@@ -311,7 +311,7 @@ def test(args) -> None:
             success.append(path)
 
         worked = False
-        for i in range(args.retries):
+        for i in range(args.retries+1):
             try:
                 f()
                 worked = True
@@ -323,7 +323,9 @@ def test(args) -> None:
             except Exception as err:
                 print(err)
                 flakie.append(path)
-                print(f"ERROR testing {path} -- trying again one time")
+                print(f"ERROR testing {path}")
+                if args.retries - i >= 1:
+                    print(f"Trying {path} again at most {args.retries - i} more times")
         if not worked:
             fails.append(path)
 
@@ -574,8 +576,8 @@ def main() -> None:
         "-r",
         "--retries",
         type=int,
-        default=3,
-        help="how many times to retry a failed test suite before giving up")
+        default=2,
+        help="how many times to retry a failed test suite before giving up; set to 0 to NOT retry")
     packages_arg(subparser)
     subparser.set_defaults(func=test)
 
