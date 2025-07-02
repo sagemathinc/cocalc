@@ -681,7 +681,9 @@ try {
 } catch (err) {
   // Might as well have option for a graceful fallback, e.g., when
   // used from node.js...
-  console.log(`IconFont not available -- ${err}`);
+  if (!process.env.COCALC_TEST_MODE) {
+    console.log(`IconFont not available -- ${err}`);
+  }
 }
 
 // This used to exceed TypeScript limits, but apparently it is ok now…

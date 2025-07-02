@@ -101,6 +101,7 @@
     "image-extensions": "^1.1.0",
     "immutable": "^4.3.0",
     "is-hotkey": "^0.2.0",
+    "jest-environment-jsdom": "^30.0.2",
     "jquery": "^3.6.0",
     "js-cookie": "^2.2.1",
     "json-stable-stringify": "^1.0.1",
@@ -152,6 +153,8 @@
   "devDependencies": {
     "@cspell/dict-typescript": "^3.2.0",
     "@formatjs/cli": "^6.7.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/codemirror": "^5.60.15",
     "@types/jquery": "^3.5.5",
     "@types/katex": "^0.16.7",
@@ -163,7 +166,6 @@
     "@types/react-redux": "^7.1.34",
     "coffeescript": "^2.5.1",
     "cspell": "^8.17.2",
-    "enzyme": "^3.11.0",
     "react-test-renderer": "^19.1.0",
     "tsd": "^0.22.0",
     "type-fest": "^3.3.0"

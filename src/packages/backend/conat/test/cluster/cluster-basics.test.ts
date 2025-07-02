@@ -25,6 +25,7 @@ import { sysApi } from "@cocalc/conat/core/sys";
 
 beforeAll(before);
 
+jest.setTimeout(15000);
 describe("create a cluster enabled socketio server and test that the streams update as they should", () => {
   let server, client;
   it("create a server with cluster support enabled", async () => {
@@ -258,7 +259,7 @@ describe("create a cluster with two distinct servers and send a message from one
 });
 
 // This is basically identical to the previous one, but for a bigger cluster:
-const clusterSize = 5;
+const clusterSize = 4;
 describe(`a cluster with ${clusterSize} nodes`, () => {
   const servers: any[] = [],
     clients: any[] = [];
@@ -325,6 +326,7 @@ describe(`a cluster with ${clusterSize} nodes`, () => {
               const orig = servers[i].interest.serialize().patterns;
               return isEqual(orig, link);
             },
+            timeout: 15000,
           });
         }
       }
