@@ -1,5 +1,6 @@
 import { getPythonKernelName } from "../kernel/kernel-data";
 import jupyterExecute from "./execute";
+import Kernel from "./kernel";
 
 describe("test the jupyterExecute function", () => {
   let kernel;
@@ -44,5 +45,9 @@ describe("test the jupyterExecute function", () => {
       },
     ]);
   });
+});
+
+afterAll(async () => {
+  Kernel.closeAll();
 });
 

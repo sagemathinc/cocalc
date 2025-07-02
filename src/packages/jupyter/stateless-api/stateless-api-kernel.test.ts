@@ -65,7 +65,7 @@ describe("create a jupyter stateless-api kernel and test basic functionality", (
 
 describe("test timeout - this is how long until pool starts getting trimmed", () => {
   let kernel;
-  it("gets a kernel with a 1s timeout", async () => {
+  it("gets a kernel from a pool with a 1s timeout", async () => {
     const kernelName = await getPythonKernelName();
     kernel = await Kernel.getFromPool(kernelName, { timeout_s: 1 });
   });
@@ -77,6 +77,7 @@ describe("test timeout - this is how long until pool starts getting trimmed", ()
 
   it("something that takes more than a second", async () => {
     await kernel.execute("print('hi'); import time; time.sleep(1.2)");
+    kernel.close();
   });
 
   it("now check that the pool started shrinking", async () => {
@@ -86,3 +87,6 @@ describe("test timeout - this is how long until pool starts getting trimmed", ()
   });
 });
 
+afterAll(async () => {
+  Kernel.closeAll();
+});

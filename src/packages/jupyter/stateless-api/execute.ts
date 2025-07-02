@@ -45,7 +45,7 @@ export default async function jupyterExecute(opts: ProjectJupyterApiOptions) {
     return outputs;
   } finally {
     if (kernel) {
-      await kernel.close();
+      kernel.close();
     }
   }
 }
