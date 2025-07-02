@@ -291,9 +291,10 @@ def test(args) -> None:
         })
 
     v = packages(args)
-    i = 0
+    v.sort()
+    n = 0
     for path in v:
-        i += 1
+        n += 1
         package_path = os.path.join(CUR, path)
         if package_path.endswith('packages/'):
             continue
@@ -303,7 +304,7 @@ def test(args) -> None:
             print("*" * 40)
             print("*")
             status()
-            print(f"TESTING {i}/{len(v)}: {path}")
+            print(f"TESTING {n}/{len(v)}: {path}")
             print("*")
             print("*" * 40)
             cmd("pnpm run --if-present test", package_path)
