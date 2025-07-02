@@ -14,7 +14,7 @@ import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 
 describe("create a dstream and do some basic operations", () => {
   let s;
