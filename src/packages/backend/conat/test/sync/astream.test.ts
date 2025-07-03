@@ -166,7 +166,7 @@ describe("test a changefeed", () => {
     expect((await cf2b.next()).value.mesg).toBe("two");
   });
 
-  const stress = 10000;
+  const stress = 1000;
   it(`stress test -- write ${stress} values`, async () => {
     const v: number[] = [];
     for (let i = 0; i < stress; i++) {

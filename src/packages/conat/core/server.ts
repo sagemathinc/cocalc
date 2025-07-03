@@ -1478,7 +1478,12 @@ export class ConatServer {
       if (Date.now() - start >= timeout) {
         throw Error("timeout");
       }
-      await once(this.interest, "change");
+      try {
+        // if signal is set only wait for the change for up to 1 second.
+        await once(this.interest, "change", signal != null ? 1000 : undefined);
+      } catch {
+        continue;
+      }
       if (
         (this.state as any) == "closed" ||
         !this.sockets[socketId] ||

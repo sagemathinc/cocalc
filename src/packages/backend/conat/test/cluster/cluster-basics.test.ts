@@ -11,6 +11,7 @@ import {
   delay,
   once,
   wait,
+  waitForConsistentState,
 } from "@cocalc/backend/conat/test/setup";
 import {
   clusterLink,
@@ -191,6 +192,20 @@ describe("create a cluster with two distinct servers and send a message from one
   it("link them", async () => {
     await server1.join(server2.address());
     await server2.join(server1.address());
+    await waitForConsistentState([server1, server2], 10000);
+  });
+
+  it("tests that server-side waitForInterestOnThisNode can be aborted", async () => {
+    const controller = new AbortController();
+    const w = server2.waitForInterestOnThisNode(
+      "no-interest",
+      90000,
+      client2.conn.id,
+      controller.signal,
+    );
+    await delay(150);
+    controller.abort();
+    expect(await w).toBe(false);
   });
 
   it("tests that server-side waitForInterest can be aborted", async () => {
@@ -201,7 +216,8 @@ describe("create a cluster with two distinct servers and send a message from one
       client2.conn.id,
       controller.signal,
     );
-    await delay(15);
+    // give it some time to get going (otherwise test is too easy)
+    await delay(150);
     controller.abort();
     expect(await w).toBe(false);
   });
@@ -278,9 +294,11 @@ describe(`a cluster with ${clusterSize} nodes`, () => {
 
   it("link them all together in a complete digraph", async () => {
     for (let i = 0; i < servers.length; i++) {
-      for (let j = i + 1; j < servers.length; j++) {
-        await servers[i].join(servers[j].address());
-        await servers[j].join(servers[i].address());
+      for (let j = 0; j < servers.length; j++) {
+        if (i != j) {
+          await servers[i].join(servers[j].address());
+          await servers[j].join(servers[i].address());
+        }
       }
     }
   });
@@ -313,25 +331,7 @@ describe(`a cluster with ${clusterSize} nodes`, () => {
   });
 
   it("check that interest data is *eventually* consistent", async () => {
-    for (let i = 0; i < clusterSize; i++) {
-      // now look at everybody else's view of cluster i.
-      for (let j = 0; j < clusterSize; j++) {
-        if (i != j) {
-          await wait({
-            until: () => {
-              const link =
-                servers[j].clusterLinks["my-cluster"][
-                  `node-${i}`
-                ].interest.serialize().patterns;
-              const orig = servers[i].interest.serialize().patterns;
-              return isEqual(orig, link);
-            },
-            timeout: 15000,
-            max: 500,
-          });
-        }
-      }
-    }
+    await waitForConsistentState(servers);
   });
 
   it("test request/respond from all participants", async () => {

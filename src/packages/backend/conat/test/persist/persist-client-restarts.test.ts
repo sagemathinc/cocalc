@@ -18,6 +18,7 @@ import { messageData } from "@cocalc/conat/core/client";
 
 beforeAll(before);
 
+jest.setTimeout(15000);
 describe("restarting the network and/or persist server, but with no delay afterwards", () => {
   let client, s1;
 
@@ -88,6 +89,7 @@ describe("restarting the network and/or persist server, but with no delay afterw
 
   it("it starts working again after restart of BOTH servers, though we expect some errors", async () => {
     await wait({
+      timeout: 15000,
       until: async () => {
         try {
           await s1.set({

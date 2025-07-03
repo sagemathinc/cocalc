@@ -12,12 +12,14 @@ import { syncFiles } from "@cocalc/conat/persist/context";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
-export { wait } from "@cocalc/backend/conat/test/util";
+import { wait } from "@cocalc/backend/conat/test/util";
+export { wait };
 import { delay } from "awaiting";
 export { delay };
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
 import { randomId } from "@cocalc/conat/names";
+import { isEqual } from "lodash";
 
 const logger = getLogger("conat:test:setup");
 
@@ -135,6 +137,62 @@ export function connect(opts?): Client {
   const cn = server.client({ noCache: true, path: "/", ...opts });
   clients.push(cn);
   return cn;
+}
+
+// Given a list of servers that are all connected together in a common
+// cluster, wait until they all have a consistent view of the interest.
+// I.e., the interest object for servers[i] is the same as what every
+// other thinks it is.
+export async function waitForConsistentState(
+  servers: ConatServer[],
+  timeout = 10000,
+): Promise<void> {
+  if (servers.length <= 1) {
+    return;
+  }
+  // @ts-ignore
+  const clusterName = servers[0].clusterName;
+  if (!clusterName) {
+    throw Error("not a cluster");
+  }
+  const ids = new Set<string>([servers[0].id]);
+  for (let i = 1; i < servers.length; i++) {
+    // @ts-ignore
+    if (servers[i].clusterName != clusterName) {
+      throw Error("all servers must be in the same cluster");
+    }
+    ids.add(servers[i].id);
+  }
+
+  if (ids.size != servers.length) {
+    throw Error("all servers must have distinct ids");
+  }
+
+  await wait({
+    until: () => {
+      for (let i = 0; i < servers.length; i++) {
+        // now look at everybody else's view of servers[i].
+        // @ts-ignore
+        const a = servers[i].interest.serialize().patterns;
+        for (let j = 0; j < servers.length; j++) {
+          if (i != j) {
+            // @ts-ignore
+            const link = servers[j].clusterLinks[clusterName][servers[i].id];
+            if (link == null) {
+              throw Error(`node ${j} is not connected to node ${i}`);
+            }
+            const x = link.interest.serialize().patterns;
+            if (!isEqual(a, x)) {
+              // not yet equal
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    },
+    timeout,
+  });
 }
 
 export async function after() {
