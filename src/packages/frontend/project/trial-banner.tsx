@@ -89,10 +89,7 @@ interface BannerProps {
 }
 
 // string and URLs
-export const NO_INTERNET = "can't install packages or download datasets";
 const NO_HOST = ["expect slower performance"];
-const INET_QUOTA =
-  "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
 const MEMBER_QUOTA =
   "https://doc.cocalc.com/billing.html#what-is-member-hosting";
 // const ADD_LICENSE = "https://doc.cocalc.com/project-settings.html#project-add-license";
@@ -137,14 +134,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       : ALERT_STYLE;
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
 
-    const trial_project = no_licenses ? (
-      <A href={DOC_URL} style={{ ...a_style, paddingRight: ".5em" }}>
-        Hello <Icon name="hand" />
-      </A>
-    ) : (
-      <strong>No upgrades</strong>
-    );
-
     // function renderComputeServer() {
     //   return (
     //     <a
@@ -164,13 +153,14 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
 
     function renderBuyAndUpgrade(
       text: string = "with a license",
+      voucherText = "redeem a voucher",
     ): React.JSX.Element {
       return (
         <>
           <BuyLicenseForProject
             project_id={project_id}
             buyText={text}
-            voucherText={"by redeeming a voucher"}
+            voucherText={voucherText}
             asLink={true}
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
@@ -195,16 +185,17 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       }
 
       if (noMemberHosting && noInternet) {
+        const intro = no_licenses ? (
+          <A href={DOC_URL} style={{ ...a_style, paddingRight: ".5em" }}>
+            Hello <Icon name="hand" />
+          </A>
+        ) : (
+          <strong>No upgrades</strong>
+        );
         return (
           <span>
-            {trial_project} You can improve hosting quality and get internet
-            access {/* {renderComputeServer()} */} or {renderBuyAndUpgrade()}.
-            <br />
-            Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
-            {"."}
-            {hasComputeServers && (
-              <>&nbsp; NOTE: Compute servers always have internet access.</>
-            )}
+            {intro} The trial period of this project ended.{" "}
+            {renderBuyAndUpgrade("Buy a license")}.
           </span>
         );
       } else if (noMemberHosting) {
@@ -220,22 +211,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             {renderBuyAndUpgrade("Buy a license")}
           </span>
         );
-      } else if (noInternet) {
-        return (
-          <span>
-            <strong>No internet access</strong> – upgrade{" "}
-            <A href={INET_QUOTA} style={a_style}>
-              Internet Access
-            </A>{" "}
-            or {NO_INTERNET}
-            {"."}
-            <br />
-            {renderBuyAndUpgrade("Buy a license")}
-            {hasComputeServers && (
-              <>&nbsp;NOTE: Compute servers always have internet access.</>
-            )}
-          </span>
-        );
       }
     }
 
@@ -246,10 +221,11 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       };
       return (
         <>
-          {" – "}
+          {" "}
           <span style={{ fontSize: style.fontSize }}>
+            <Icon name="info-circle" />{" "}
             <A href={DOC_TRIAL} style={a_style_more}>
-              more info
+              Trial projects
             </A>
             {"..."}
           </span>

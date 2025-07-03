@@ -19,6 +19,8 @@ import { BannerApplySiteLicense } from "./trial-banner";
 
 const MANAGE_LICENSE_URL = join(appBasePath, "/licenses/managed");
 
+const INET_QUOTA_URL = "https://doc.cocalc.com/upgrades.html#internet-access";
+
 const NO_INTERNET_ACCESS = defineMessage({
   id: "project.no-internet-modal.title",
   defaultMessage: "No Internet Access",
@@ -28,6 +30,7 @@ interface NoInternetBannerProps {
   project_id: string;
   projectSiteLicenses: string[];
   isPaidStudentPayProject?: boolean;
+  hasComputeServers: boolean;
 }
 
 export function useInternetWarningClosed(
@@ -56,7 +59,12 @@ export function useInternetWarningClosed(
 }
 
 export function NoInternetModal(props: NoInternetBannerProps) {
-  const { project_id, projectSiteLicenses, isPaidStudentPayProject } = props;
+  const {
+    project_id,
+    projectSiteLicenses,
+    isPaidStudentPayProject,
+    hasComputeServers,
+  } = props;
   const intl = useIntl();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -79,12 +87,18 @@ export function NoInternetModal(props: NoInternetBannerProps) {
             This restriction prevents installing Python packages (pip, conda) or R packages,
             using Git to clone repositories, downloading datasets or accessing APIs.
             Commands that attempt to access the internet may hang or fail to complete,
-            as network connections are blocked to prevent abuse.`}
+            as network connections are blocked to prevent abuse. <A>Learn more</A>.`}
             values={{
               strong: (c) => <strong>{c}</strong>,
+              A: (c) => <A href={INET_QUOTA_URL}>{c}</A>,
             }}
           />
         </Paragraph>
+        {hasComputeServers && (
+          <Paragraph>
+            NOTE: Compute servers always have internet access.
+          </Paragraph>
+        )}
         {!isPaidStudentPayProject && (
           <Paragraph>
             <FormattedMessage

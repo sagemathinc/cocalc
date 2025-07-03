@@ -22,6 +22,10 @@ export function ProjectWarningBanner() {
   const project_map = useTypedRedux("projects", "project_map");
   const projects_store = useStore("projects");
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
+  const hasComputeServers =
+    computeServers != null &&
+    computeServers.filter((x) => x.get("state") != "deprovisioned").size >= 1;
+
   const runQuota = useRunQuota(project_id, null);
   // list of all licenses applied to this project
   const projectSiteLicenses =
@@ -89,10 +93,6 @@ export function ProjectWarningBanner() {
   function renderTrialBanner() {
     if (!showTrialBanner() || projectIsRunning == null) return null;
 
-    const hasComputeServers =
-      computeServers != null &&
-      computeServers.filter((x) => x.get("state") != "deprovisioned").size >= 1;
-
     return (
       <TrialBanner
         project_id={project_id}
@@ -114,6 +114,7 @@ export function ProjectWarningBanner() {
         project_id={project_id}
         projectSiteLicenses={projectSiteLicenses}
         isPaidStudentPayProject={isPaidStudentPayProject}
+        hasComputeServers={hasComputeServers}
       />
     );
   }
