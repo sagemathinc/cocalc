@@ -480,16 +480,27 @@ export class CoreStream<T = any> extends EventEmitter {
       this.messages.push(mesg);
       this.raw.push(raw);
     } else {
-      // [ ] TODO: insert in the correct place.  This should only
-      // happen when calling load of old ata.  The algorithm below is
+      // Insert in the correct place.  This should only
+      // happen when calling load of old data, which happens, e.g., during
+      // automatic failover.  The algorithm below is
       // dumb and could be replaced by a binary search.  However, we'll
       // change how we batch load so there's less point.
       let i = 0;
       while (i < this.raw.length && this.raw[i].seq < seq) {
         i += 1;
       }
-      this.raw.splice(i, 0, raw);
-      this.messages.splice(i, 0, mesg);
+      // after the above loop, either:
+      //   - this.raw[i] is undefined because i = this.raw.length and every known entry was less than seq,
+      //     so we just append it, or
+      //   - this.raw[i] is defined and this.raw[i].seq >= seq.  If they are equal, do nothing, since we already
+      //     have it.  If not equal, then splice it in.
+      if (i >= this.raw.length) {
+        this.raw.push(raw);
+        this.messages.push(mesg);
+      } else if (this.raw[i].seq > seq) {
+        this.raw.splice(i, 0, raw);
+        this.messages.splice(i, 0, mesg);
+      } // other case -- we already have it.
     }
     let prev: T | undefined = undefined;
     if (typeof key == "string") {

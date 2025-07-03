@@ -21,7 +21,7 @@ const BROKEN_THRESH = 30;
 
 beforeAll(before);
 
-jest.setTimeout(10000);
+jest.setTimeout(15000);
 describe("test using multiple persist servers in a cluster", () => {
   let client0, server1, client1;
   it("add another node", async () => {
@@ -106,10 +106,6 @@ describe("test using multiple persist servers in a cluster", () => {
       Object.keys(persistServer1.sockets).length <= n1
     ) {
       const project_id = uuid();
-      const before = [
-        Object.keys(persistServer0.sockets).length,
-        Object.keys(persistServer1.sockets).length,
-      ];
       const s = await client1.sync.dstream({
         project_id,
         name: "foo",
@@ -145,7 +141,9 @@ describe("test using multiple persist servers in a cluster", () => {
     expect(persistServer1.sockets).toEqual({});
   });
 
+  // this can definitely take a long time (e.g., ~10s), as it involves automatic failover.
   it("Checks automatic failover works:  the streams connected to both servers we created above must keep working, despite at least one of them having its persist server get closed.", async () => {
+    console.log(openStreamsConnectedToBothServers0.length);
     for (let i = 0; i < openStreamsConnectedToBothServers0.length; i++) {
       const stream0 = openStreamsConnectedToBothServers0[i];
       stream0.publish("y");
@@ -154,7 +152,8 @@ describe("test using multiple persist servers in a cluster", () => {
       const stream1 = openStreamsConnectedToBothServers1[i];
       expect(stream0.opts.project_id).toEqual(stream1.opts.project_id);
       await wait({ until: () => stream1.length >= 2 });
-      console.log(i, stream1.getAll(), stream0.getAll());
+      console.log(i, stream1.messages, stream1.getAll(), stream0.getAll());
+      expect(stream1.length).toBe(2);
     }
   });
 });
