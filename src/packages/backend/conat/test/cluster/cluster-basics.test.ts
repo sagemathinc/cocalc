@@ -327,6 +327,7 @@ describe(`a cluster with ${clusterSize} nodes`, () => {
               return isEqual(orig, link);
             },
             timeout: 15000,
+            max: 500,
           });
         }
       }
@@ -547,7 +548,7 @@ describe("test automatic node discovery", () => {
   });
 });
 
-describe("test automatic node discovery", () => {
+describe("test automatic node discovery (and forgetting)", () => {
   const nodes: { client; server }[] = [];
   const clusterName = "auto";
   const create = async (id) => {
@@ -557,6 +558,7 @@ describe("test automatic node discovery", () => {
         clusterName,
         autoscanInterval: 50,
         longAutoscanInterval: 6000,
+        forgetClusterNodeInterval: 500, // make automatic forgetting short so we can test.
       }),
     );
   };
@@ -614,6 +616,25 @@ describe("test automatic node discovery", () => {
         return true;
       },
     });
+  });
+
+  it("close nodes[1], run scan, and observe that nodes[1] is forgotten", async () => {
+    const numNodes = () => {
+      return Object.keys(
+        nodes[0].server.clusterLinks[nodes[0].server.clusterName],
+      ).length;
+    };
+    const n = numNodes();
+    nodes[1].server.close();
+    // not instantly gone
+    expect(numNodes()).toBe(n);
+    await nodes[0].server.scan();
+    // still not gone
+    expect(numNodes()).toBe(n);
+    // wait a second and scan, and it must be gone (because we set the interval very short)
+    await delay(1000);
+    await nodes[0].server.scan();
+    expect(numNodes()).toBe(n - 1);
   });
 });
 

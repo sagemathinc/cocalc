@@ -75,6 +75,14 @@ const logger = getLogger("conat:core:server");
 const DEFAULT_AUTOSCAN_INTERVAL = 15_000;
 const DEFAULT_LONG_AUTOSCAN_INTERVAL = 60_000;
 
+// If a cluster node has been disconnected for this long,
+// unjoin it, thus freeing the stream tracking its state
+// and also if it comes back it will have to explicitly
+// join the cluster again.  This is primarily to not leak RAM
+// when nodes are removed on purpose.  Supercluster nodes
+// are never automatically forgetton.
+const DEFAULT_FORGET_CLUSTER_NODE_INTERVAL = 30 * 60_000; // 30 minutes
+
 const DEBUG = false;
 
 export interface InterestUpdate {
@@ -135,6 +143,7 @@ export interface Options {
   // Defaults to 10_000 = 10 seconds.
   autoscanInterval?: number;
   longAutoscanInterval?: number;
+  forgetClusterNodeInterval?: number;
 
   // if localClusterSize >=2 (and clusterName, etc. configured above),
   // creates a local cluster by spawning child processes with
@@ -192,6 +201,7 @@ export class ConatServer {
       clusterName,
       autoscanInterval = DEFAULT_AUTOSCAN_INTERVAL,
       longAutoscanInterval = DEFAULT_LONG_AUTOSCAN_INTERVAL,
+      forgetClusterNodeInterval = DEFAULT_FORGET_CLUSTER_NODE_INTERVAL,
       localClusterSize = 1,
     } = options;
     this.clusterName = clusterName;
@@ -206,6 +216,7 @@ export class ConatServer {
       clusterName,
       autoscanInterval,
       longAutoscanInterval,
+      forgetClusterNodeInterval,
       localClusterSize,
     };
     this.cluster = !!id && !!clusterName;
@@ -977,6 +988,7 @@ export class ConatServer {
         clusterName: this.options.clusterName,
         autoscanInterval: this.options.autoscanInterval,
         longAutoscanInterval: this.options.longAutoscanInterval,
+        forgetClusterNodeInterval: this.options.forgetClusterNodeInterval,
         port: port + i,
         id: `${this.options.id}-${i}`,
       };
@@ -1259,7 +1271,9 @@ export class ConatServer {
   // the number of links created (count), so if it returns 0 when called on all nodes, then
   // we're done until new nodes are added.
   scan = reuseInFlight(async (): Promise<{ count: number; errors: any[] }> => {
-    if (this.state == "closed") return { count: 0, errors: [] };
+    if (this.state == "closed") {
+      return { count: 0, errors: [] };
+    }
     const knownByUs = new Set(this.clusterAddresses(this.clusterName));
     const unknownToUs = new Set<string>([]);
     const errors: { err: any; desc: string }[] = [];
@@ -1270,28 +1284,28 @@ export class ConatServer {
     let count = 0;
 
     const f = async (client) => {
-      const sys = sysApi(client);
-      const knownByRemoteNode = new Set(
-        await sys.clusterAddresses(this.clusterName),
-      );
-      if (this.state == "closed") return;
-      for (const address of knownByRemoteNode) {
-        if (!knownByUs.has(address)) {
-          unknownToUs.add(address);
+      try {
+        const sys = sysApi(client);
+        const knownByRemoteNode = new Set(
+          await sys.clusterAddresses(this.clusterName),
+        );
+        if (this.state == "closed") return;
+        for (const address of knownByRemoteNode) {
+          if (!knownByUs.has(address)) {
+            unknownToUs.add(address);
+          }
         }
-      }
-      if (!knownByRemoteNode.has(this.address())) {
-        // we know about them, but they don't know about us, so ask them to link to us.
-        try {
+        if (!knownByRemoteNode.has(this.address())) {
+          // we know about them, but they don't know about us, so ask them to link to us.
           await sys.join(this.address());
           if (this.state == ("closed" as any)) return;
           count += 1;
-        } catch (err) {
-          errors.push({
-            err,
-            desc: `requesting remote ${client.options.address} join us`,
-          });
         }
+      } catch (err) {
+        errors.push({
+          err,
+          desc: `requesting remote ${client.options.address} join us`,
+        });
       }
     };
 
@@ -1301,7 +1315,20 @@ export class ConatServer {
 
     await Promise.all(
       Object.values(this.clusterLinks[this.clusterName] ?? {})
-        .filter((link) => link.isConnected())
+        .filter((link) => {
+          if (link.isConnected()) {
+            return true;
+          } else {
+            if (
+              link.howLongDisconnected() >=
+              (this.options.forgetClusterNodeInterval ??
+                DEFAULT_FORGET_CLUSTER_NODE_INTERVAL)
+            ) {
+              // forget about this link
+              this.unjoin(link);
+            }
+          }
+        })
         .map((link) => f(link.client)),
     );
     if (unknownToUs.size == 0 || this.state == ("closed" as any)) {

@@ -48,6 +48,7 @@ class ClusterLink {
   private sticky: { [pattern: string]: { [subject: string]: string } } = {};
   private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
+  private clientStateChanged = Date.now(); // when client status last changed
 
   constructor(
     public readonly client: Client,
@@ -68,6 +69,8 @@ class ClusterLink {
   }
 
   init = async () => {
+    this.client.on("connected", this.handleClientStateChanged);
+    this.client.on("disconnected", this.handleClientStateChanged);
     this.streams = await clusterStreams({
       client: this.client,
       id: this.id,
@@ -100,11 +103,24 @@ class ClusterLink {
     this.updateStickyLocal(update);
   };
 
+  private handleClientStateChanged = () => {
+    this.clientStateChanged = Date.now();
+  };
+
+  howLongDisconnected = () => {
+    if (this.isConnected()) {
+      return 0;
+    }
+    return Date.now() - this.clientStateChanged;
+  };
+
   close = () => {
     if (this.state == "closed") {
       return;
     }
     this.state = "closed";
+    this.client.removeListener("connected", this.handleClientStateChanged);
+    this.client.removeListener("disconnected", this.handleClientStateChanged);
     if (this.streams != null) {
       this.streams.interest.removeListener("change", this.handleInterestUpdate);
       this.streams.interest.close();
