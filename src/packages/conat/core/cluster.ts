@@ -76,9 +76,19 @@ class ClusterLink {
     for (const update of this.streams.interest.getAll()) {
       updateInterest(update, this.interest, this.sticky);
     }
+    // I have a slight concern about this because updates might not
+    // arrive in order during automatic failover.  That said, maybe
+    // automatic failover doesn't matter with these streams, since
+    // it shouldn't really happen -- each stream is served from the server
+    // it is about, and when that server goes down none of this state
+    // matters anymore.
     this.streams.interest.on("change", this.handleInterestUpdate);
     this.streams.sticky.on("change", this.handleStickyUpdate);
     this.state = "ready";
+  };
+
+  isConnected = () => {
+    return this.client.state == "connected";
   };
 
   handleInterestUpdate = (update: InterestUpdate) => {

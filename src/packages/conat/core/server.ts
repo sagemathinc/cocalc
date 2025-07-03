@@ -481,6 +481,9 @@ export class ConatServer {
     }
     for (const id in thisCluster) {
       const link = thisCluster[id];
+      if (!link.isConnected()) {
+        continue;
+      }
       for (const pattern of link.interest.matches(subject)) {
         if (X[pattern] === undefined) {
           X[pattern] = {};
@@ -1202,15 +1205,25 @@ export class ConatServer {
   };
 
   clusterAddresses = (clusterName?: string) => {
-    if (!clusterName) {
-      return [this.address(), ...Object.keys(this.clusterLinksByAddress)];
-    }
     const v: string[] = [];
+    if (!clusterName) {
+      v.push(this.address());
+      for (const addr in this.clusterLinksByAddress) {
+        const link = this.clusterLinksByAddress[addr];
+        if (link.isConnected()) {
+          v.push(addr);
+        }
+      }
+      return v;
+    }
     if (clusterName == this.clusterName) {
       v.push(this.address());
     }
     for (const address in this.clusterLinksByAddress) {
-      if (this.clusterLinksByAddress[address].clusterName == clusterName) {
+      if (
+        this.clusterLinksByAddress[address].isConnected() &&
+        this.clusterLinksByAddress[address].clusterName == clusterName
+      ) {
         v.push(address);
       }
     }
@@ -1287,9 +1300,9 @@ export class ConatServer {
     }
 
     await Promise.all(
-      Object.values(this.clusterLinks[this.clusterName] ?? {}).map((link) =>
-        f(link.client),
-      ),
+      Object.values(this.clusterLinks[this.clusterName] ?? {})
+        .filter((link) => link.isConnected())
+        .map((link) => f(link.client)),
     );
     if (unknownToUs.size == 0 || this.state == ("closed" as any)) {
       return { count, errors };
