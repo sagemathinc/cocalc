@@ -30,7 +30,6 @@ import { COLORS } from "@cocalc/util/theme";
 import { CSSProperties, useMemo, useState } from "react";
 import { useProjectState } from "../project/page/project-state-hook";
 import { useProjectHasInternetAccess } from "../project/settings/has-internet-access-hook";
-import { NO_INTERNET } from "../project/trial-banner";
 import { BuyLicenseForProject } from "../site-licenses/purchase/buy-license-for-project";
 
 const PROJECT_NAME_STYLE: CSSProperties = {
@@ -137,7 +136,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     return (
       <>
         <div style={fontStyle}>
-          This project does not have access to the internet: {NO_INTERNET}.
+          This project does not have access to the internet.
           {onKucalc && (
             <>
               {" "}

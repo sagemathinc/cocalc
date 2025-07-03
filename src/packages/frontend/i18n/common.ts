@@ -514,6 +514,11 @@ export const labels = defineMessages({
     id: "labels.close",
     defaultMessage: "Close",
   },
+  dismiss: {
+    id: "labels.dismiss",
+    defaultMessage: "Dismiss",
+    description: "Short label on a button to dismiss a dialog or modal",
+  },
   guide: {
     id: "labels.guide",
     defaultMessage: "Guide",
