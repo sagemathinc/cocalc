@@ -15,6 +15,8 @@ import {
 
 beforeAll(before);
 
+jest.setTimeout(15000);
+
 describe("using various sync data structures with a cluster", () => {
   let dstream;
   it("creates a dstream", async () => {

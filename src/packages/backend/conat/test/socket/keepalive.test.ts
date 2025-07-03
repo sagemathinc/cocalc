@@ -47,7 +47,7 @@ describe("test a server with a short keepalive time", () => {
 
   it("breaks the client side of the socket and observes the server automatically disconnects", async () => {
     client.sub.close();
-    await delay(1.2 * (keepAlive + keepAliveTimeout));
+    await wait({ until: () => sockets[0].state == "closed" });
     expect(sockets[0].state).toBe("closed");
   });
 });

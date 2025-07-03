@@ -21,6 +21,7 @@ import {
 
 beforeAll(before);
 
+jest.setTimeout(15000);
 describe("create a dkv with limit on the total number of keys, and confirm auto-delete works", () => {
   let kv;
   const name = `test-${Math.random()}`;

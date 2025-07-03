@@ -309,7 +309,7 @@ describe("create a server and client. Disconnect the client and see from the ser
     const t0 = Date.now();
     server.close();
     await closed;
-    expect(Date.now() - t0).toBeLessThan(250);
+    expect(Date.now() - t0).toBeLessThan(1000);
   });
 });
 

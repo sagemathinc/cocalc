@@ -14,12 +14,17 @@ import {
   delay,
   persistServer as persistServer0,
   wait,
+  setDefaultTimeouts,
 } from "../setup";
 import { uuid } from "@cocalc/util/misc";
 
 const BROKEN_THRESH = 30;
 
-beforeAll(before);
+beforeAll(async () => {
+  await before();
+  // this speeds up the automatic failover tests a lot.
+  setDefaultTimeouts({ request: 1000, publish: 1000 });
+});
 
 jest.setTimeout(15000);
 describe("test using multiple persist servers in a cluster", () => {
@@ -143,7 +148,6 @@ describe("test using multiple persist servers in a cluster", () => {
 
   // this can definitely take a long time (e.g., ~10s), as it involves automatic failover.
   it("Checks automatic failover works:  the streams connected to both servers we created above must keep working, despite at least one of them having its persist server get closed.", async () => {
-    console.log(openStreamsConnectedToBothServers0.length);
     for (let i = 0; i < openStreamsConnectedToBothServers0.length; i++) {
       const stream0 = openStreamsConnectedToBothServers0[i];
       stream0.publish("y");
@@ -152,7 +156,6 @@ describe("test using multiple persist servers in a cluster", () => {
       const stream1 = openStreamsConnectedToBothServers1[i];
       expect(stream0.opts.project_id).toEqual(stream1.opts.project_id);
       await wait({ until: () => stream1.length >= 2 });
-      console.log(i, stream1.messages, stream1.getAll(), stream0.getAll());
       expect(stream1.length).toBe(2);
     }
   });

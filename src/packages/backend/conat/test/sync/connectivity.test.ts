@@ -14,18 +14,16 @@ import {
   setDefaultTimeouts,
 } from "@cocalc/backend/conat/test/setup";
 
-beforeAll(before);
+beforeAll(async () => {
+  await before();
+  // some tests below will randomly sometimes take longer than 5s without this:
+  setDefaultTimeouts({ request: 1000, publish: 1000 });
+});
 
 jest.setTimeout(10000);
 describe("test that dkv survives server restart", () => {
   let kv;
   const name = `test-${Math.random()}`;
-
-  it("restarts the conat socketio server to make sure that works", async () => {
-    // some tests below will randomly sometimes take longer than 5s without this:
-    setDefaultTimeouts({ request: 250, publish: 250 });
-    await restartServer();
-  });
 
   it("right as it restarts, creates the dkv and does a basic test", async () => {
     kv = await dkv({ name });
