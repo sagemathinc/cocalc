@@ -126,19 +126,19 @@ export function NoInternetModal(props: NoInternetBannerProps) {
       width={showAddLicense ? 800 : undefined}
       onCancel={() => dismissInternetWarning()}
       footer={
-        <Space>
-          {!showAddLicense && (
+        !showAddLicense && (
+          <Space>
             <Button onClick={() => setShowAddLicense(true)}>
               {intl.formatMessage({
                 id: "project.no-internet-modal.add-license",
                 defaultMessage: "Add License",
               })}
             </Button>
-          )}
-          <Button onClick={() => dismissInternetWarning()} type="primary">
-            {intl.formatMessage(labels.dismiss)}
-          </Button>
-        </Space>
+            <Button onClick={() => dismissInternetWarning()} type="primary">
+              {intl.formatMessage(labels.dismiss)}
+            </Button>
+          </Space>
+        )
       }
       title={
         <>
