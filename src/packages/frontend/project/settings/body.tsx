@@ -63,7 +63,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
 
   // this very rarely changes, so just call this once
   const isPaidStudentPayProject = useMemo(
-    () => !redux.getProjectsStore().isPaidStudentPayProject(project_id),
+    () => redux.getProjectsStore().isPaidStudentPayProject(project_id),
     [project_id],
   );
   const showNonMemberWarning =

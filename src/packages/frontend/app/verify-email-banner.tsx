@@ -3,42 +3,56 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space } from "antd";
+import { Modal, Space } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { emailVerificationMsg } from "@cocalc/frontend/account/settings/email-verification";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
-  CSS,
   redux,
   useActions,
   useAsyncEffect,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { CloseX2, HelpIcon, Icon, Text } from "@cocalc/frontend/components";
+import { getNow } from "@cocalc/frontend/app/util";
+import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
-import { COLORS } from "@cocalc/util/theme";
-
-const VERIFY_EMAIL_STYLE: CSS = {
-  width: "100%",
-  padding: "5px",
-  borderBottom: `1px solid ${COLORS.GRAY_D}`,
-  background: COLORS.ANTD_BG_RED_L,
-} as const;
 
 const DISMISSED_KEY_LS = "verify-email-dismissed";
 
 export function VerifyEmail() {
+  const [hide, setHide] = useState<boolean>(false);
+  const show = useShowVerifyEmail();
+
+  function doDismiss(save = true) {
+    if (save) {
+      const now = getNow();
+      LS.set(DISMISSED_KEY_LS, now);
+    }
+    setHide(true);
+  }
+
+  if (show && !hide) {
+    return <VerifyEmailModal doDismiss={doDismiss} />;
+  } else {
+    return null;
+  }
+}
+
+function VerifyEmailModal({
+  doDismiss,
+}: {
+  doDismiss: (save?: boolean) => void;
+}) {
   const intl = useIntl();
   const page_actions = useActions("page");
   const email_address = useTypedRedux("account", "email_address");
 
   const [error, setError] = useState<string>("");
-  const [show, setShow] = useState<boolean>(true);
   const [sending, setSending] = useState<boolean>(false);
   const [sent, setSent] = useState<boolean>(false);
 
@@ -56,13 +70,8 @@ export function VerifyEmail() {
 
   // TODO: at one point this should be a popup to just edit the email address
   function edit() {
+    doDismiss(false);
     page_actions.set_active_tab("account");
-  }
-
-  function dismiss() {
-    const now = webapp_client.server_time().getTime();
-    LS.set(DISMISSED_KEY_LS, now);
-    setShow(false);
   }
 
   function renderBanner() {
@@ -70,66 +79,98 @@ export function VerifyEmail() {
       return <Text type="danger">{error}</Text>;
     }
     return (
-      <Text strong>
-        <Icon name="mail" />{" "}
-        <FormattedMessage
-          id="app.verify-email-banner.text"
-          defaultMessage={`{sent, select,
-            true {Sent! Please check your email inbox (and maybe spam) and click on the confirmation link.}
-            other {Please check and verify your email address: <code>{email}</code>}}`}
-          values={{
-            sent,
-            email: email_address,
-            code: (c) => <Text code>{c}</Text>,
-          }}
-        />{" "}
-        {sent ? (
-          <Button
-            onClick={() => setShow(false)}
-            bsStyle="success"
-            bsSize={"xsmall"}
-          >
-            {intl.formatMessage(labels.close)}
-          </Button>
-        ) : (
-          <Space size={"small"}>
-            <Button bsSize={"xsmall"} onClick={edit}>
-              <Icon name="pencil" /> {intl.formatMessage(labels.edit)}
-            </Button>
-            <Button
-              onClick={verify}
-              bsStyle="success"
-              disabled={sent || sending}
-              bsSize={"xsmall"}
-            >
-              {intl.formatMessage(emailVerificationMsg, {
-                disabled_button: sent,
-              })}
-            </Button>
-            <HelpIcon
-              title={intl.formatMessage({
-                id: "app.verify-email-banner.help.title",
-                defaultMessage: "Email Verification",
-              })}
-            >
+      <>
+        <Paragraph strong>
+          <FormattedMessage
+            id="app.verify-email-banner.text"
+            defaultMessage={`{sent, select,
+            true {Email Sent! Please check your email inbox (and maybe spam) and click on the confirmation link.}
+            other {Please check and verify your email address:}}`}
+            values={{
+              sent,
+              code: (c) => <Text code>{c}</Text>,
+            }}
+          />
+        </Paragraph>
+        {!sent ? (
+          <>
+            <Paragraph code style={{ textAlign: "center" }}>
+              {email_address}
+            </Paragraph>
+            <Paragraph type="secondary">
               <FormattedMessage
                 id="app.verify-email-banner.help.text"
-                defaultMessage="It's important to have a working email address. We use this for password resets, sending messages, billing notifications, and support. Please ensure your email is correct to stay informed."
+                defaultMessage="It's important to have a working email address. We use it for password resets, sending messages, billing notifications, and support. Please ensure your email is correct to stay informed."
               />
-            </HelpIcon>
-          </Space>
-        )}
-      </Text>
+            </Paragraph>
+            <Paragraph type="secondary">
+              <FormattedMessage
+                id="app.verify-email-banner.edit"
+                defaultMessage="If the email address is wrong, please <E>edit</E> it in the account settings."
+                values={{
+                  E: (text) => (
+                    <Button onClick={edit} bsSize="xsmall">
+                      <Icon name="pencil" /> {text}
+                    </Button>
+                  ),
+                }}
+              />
+            </Paragraph>
+          </>
+        ) : null}
+      </>
     );
   }
 
-  if (!show) return;
+  function renderFooter() {
+    if (sent) {
+      return (
+        <Button onClick={() => doDismiss()} bsStyle="success">
+          {intl.formatMessage(labels.close)}
+        </Button>
+      );
+    }
+
+    return (
+      <Space>
+        <Button onClick={() => doDismiss()}>
+          {intl.formatMessage(labels.close)}
+        </Button>
+        <Button
+          onClick={verify}
+          bsStyle="success"
+          active={!sent && sending}
+          disabled={sent || sending}
+        >
+          {intl.formatMessage(emailVerificationMsg, {
+            disabled_button: sent,
+          })}
+        </Button>
+      </Space>
+    );
+  }
+
+  function renderTitle() {
+    return (
+      <>
+        <Icon name="mail" />{" "}
+        {intl.formatMessage({
+          id: "app.verify-email-banner.title",
+          defaultMessage: "Verify Your Email Address",
+        })}
+      </>
+    );
+  }
 
   return (
-    <div style={VERIFY_EMAIL_STYLE}>
+    <Modal
+      title={renderTitle()}
+      open={true}
+      onCancel={() => doDismiss()}
+      footer={renderFooter()}
+    >
       {renderBanner()}
-      <CloseX2 close={dismiss} />
-    </div>
+    </Modal>
   );
 }
 
@@ -160,7 +201,7 @@ export function useShowVerifyEmail(): boolean {
     !email_address || !email_address_verified?.get(email_address);
 
   // we also do not show this for newly created accounts
-  const now = webapp_client.server_time().getTime();
+  const now = getNow();
   const oneDay = 1 * 24 * 60 * 60 * 1000;
   const notTooNew = created != null && now > created.getTime() + oneDay;
 
