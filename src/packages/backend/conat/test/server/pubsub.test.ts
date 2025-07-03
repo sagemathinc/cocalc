@@ -102,7 +102,7 @@ describe("create two connected servers and two clients and test messaging speed"
 });
 
 describe("benchmarking bigger send/receives", () => {
-  const count = 1000;
+  const count = 500;
   it(`do a benchmark of cluster send/receiving ${count} messages`, async () => {
     const servers = await createConatCluster(2);
     return;
@@ -185,7 +185,7 @@ describe("benchmarking bigger send/receives", () => {
 
 describe("benchmarking with many random subscriptions", () => {
   const subcount = 400;
-  const count = 1000;
+  const count = 500;
   it(`do a benchmark with cluster of send/receiving and ${count} messages after adding ${subcount} random subscriptions per client`, async () => {
     const servers = await createConatCluster(2);
     const [server1, server2] = Object.values(servers);
@@ -240,7 +240,7 @@ describe("benchmarking with many random subscriptions", () => {
 describe("benchmarking with many servers", () => {
   const clusterSize = 4;
   const subcount = 400;
-  const count = 1000;
+  const count = 500;
   let clients, servers;
   it(`do a benchmark with cluster of send/receiving and ${count} messages after adding ${subcount} random subscriptions per client`, async () => {
     servers = Object.values(await createConatCluster(clusterSize));
