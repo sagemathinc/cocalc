@@ -368,14 +368,22 @@ describe("test trimming the interest stream", () => {
   let sub;
   it("subscribes and verifies that trimming does nothing", async () => {
     sub = await client.sub("389");
-    const seqs = await trimClusterStreams(server.clusterStreams, server, 0);
+    const { seqsInterest: seqs } = await trimClusterStreams(
+      server.clusterStreams,
+      server,
+      0,
+    );
     expect(seqs).toEqual([]);
   });
 
   it("unsubscribes and verifies that trimming with a 5s maxAge does nothing", async () => {
     sub.close();
     await delay(100);
-    const seqs = await trimClusterStreams(server.clusterStreams, server, 5000);
+    const { seqsInterest: seqs } = await trimClusterStreams(
+      server.clusterStreams,
+      server,
+      5000,
+    );
     expect(seqs).toEqual([]);
   });
 
@@ -385,7 +393,8 @@ describe("test trimming the interest stream", () => {
     let seqs;
     await wait({
       until: async () => {
-        seqs = await trimClusterStreams(server.clusterStreams, server, 0);
+        seqs = (await trimClusterStreams(server.clusterStreams, server, 0))
+          .seqsInterest;
         return seqs.length >= 2;
       },
     });

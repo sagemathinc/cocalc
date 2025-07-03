@@ -247,11 +247,13 @@ export async function trimClusterStreams(
   data: {
     interest: Patterns<{ [queue: string]: Set<string> }>;
     sticky: { [pattern: string]: { [subject: string]: string } };
+    links: { interest: Patterns<{ [queue: string]: Set<string> }> }[];
   },
   // don't delete anything that isn't at lest minAge ms old.
   minAge: number,
-): Promise<number[]> {
-  const { interest } = streams;
+): Promise<{ seqsInterest: number[]; seqsSticky: number[] }> {
+  const { interest, sticky } = streams;
+  // First deal with interst
   // we iterate over the interest stream checking for subjects
   // with no current interest at all; in such cases it is safe
   // to purge them entirely from the stream.
@@ -259,7 +261,8 @@ export async function trimClusterStreams(
   const now = Date.now();
   for (let n = 0; n < interest.length; n++) {
     const time = interest.time(n);
-    if (time == null || now - time.valueOf() <= minAge) {
+    if (time == null) continue;
+    if (now - time.valueOf() <= minAge) {
       break;
     }
     const update = interest.get(n) as InterestUpdate;
@@ -272,10 +275,50 @@ export async function trimClusterStreams(
   }
   if (seqs.length > 0) {
     // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
-    logger.debug("trimClusterStream: trimming", { seqs });
+    logger.debug("trimClusterStream: trimming interset", { seqs });
     for (const seq of seqs) {
       await interest.delete({ seq });
     }
   }
-  return seqs;
+
+  // Next deal with sticky -- trim ones where the pattern is no longer of interest.
+  // There could be other reasons to trim but it gets much trickier. This one is more
+  // obvious, except we have to check for any interest in the whole cluster, not
+  // just this node.
+  const seqs2: number[] = [];
+  function noInterest(pattern: string) {
+    if (data.interest.hasPattern(pattern)) {
+      return false;
+    }
+    for (const link of data.links) {
+      if (link.interest.hasPattern(pattern)) {
+        return false;
+      }
+    }
+    // nobody cares
+    return true;
+  }
+  for (let n = 0; n < sticky.length; n++) {
+    const time = sticky.time(n);
+    if (time == null) continue;
+    if (now - time.valueOf() <= minAge) {
+      break;
+    }
+    const update = sticky.get(n) as StickyUpdate;
+    if (noInterest(update.pattern)) {
+      const seq = sticky.seq(n);
+      if (seq != null) {
+        seqs2.push(seq);
+      }
+    }
+  }
+  if (seqs2.length > 0) {
+    // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
+    logger.debug("trimClusterStream: trimming sticky", { seqs2 });
+    for (const seq of seqs2) {
+      await sticky.delete({ seq });
+    }
+  }
+
+  return { seqsInterest: seqs, seqsSticky: seqs2 };
 }

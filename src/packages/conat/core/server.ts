@@ -377,7 +377,7 @@ export class ConatServer {
 
   // throttled because could be expensive -- once a minute it trims
   // operations that are definitely no longer relevant and are at least
-  // 5 minutes old.  These are ops involving a pattern where
+  // several minutes old.  These are ops involving a pattern where
   // there is no interest in that pattern.
   private trimClusterStream = throttle(
     async () => {
@@ -388,8 +388,14 @@ export class ConatServer {
       ) {
         await trimClusterStreams(
           this.clusterStreams,
-          { interest: this.interest, sticky: this.sticky },
-          5 * 60000,
+          {
+            interest: this.interest,
+            sticky: this.sticky,
+            links: Object.values(
+              this.clusterLinks?.[this.clusterName ?? ""] ?? {},
+            ),
+          },
+          15 * 60000,
         );
       }
     },
