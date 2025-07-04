@@ -19,7 +19,6 @@ import {
   clusterService,
   trimClusterStreams,
 } from "@cocalc/conat/core/cluster";
-import { isEqual } from "lodash";
 import { createClusterNode } from "./util";
 import type { Client } from "@cocalc/conat/core/client";
 import { sysApi } from "@cocalc/conat/core/sys";
