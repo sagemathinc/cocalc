@@ -13,7 +13,7 @@ import { seconds2hms } from "@cocalc/util/misc";
 import express, { Response } from "express";
 import { createServer, Server } from "net";
 import { isFloat } from "validator";
-import { database_is_working } from "./hub_register";
+import { database_is_working } from "@cocalc/server/metrics/hub_register";
 const logger = getLogger("hub:healthcheck");
 const { debug: L } = logger;
 

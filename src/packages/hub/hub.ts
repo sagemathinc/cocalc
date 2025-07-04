@@ -35,7 +35,7 @@ import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { set_agent_endpoint } from "./health-checks";
-import { start as startHubRegister } from "./hub_register";
+import { start as startHubRegister } from "@cocalc/server/metrics/hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
