@@ -38,7 +38,8 @@
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
     "@types/pg": "^8.6.1",
-    "coffeescript": "^2.5.1"
+    "coffeescript": "^2.5.1",
+    "jest-junit": "^16.0.0"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -46,6 +47,7 @@
     "clean": "rm -rf dist",
     "tsc": "../node_modules/.bin/tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit --runInBand",
+    "test:report": "pnpm exec jest --forceExit --runInBand --reporters=default --reporters=jest-junit",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test"
   },
