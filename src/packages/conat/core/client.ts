@@ -460,6 +460,15 @@ export class Client extends EventEmitter {
     //     }
     this.conn = connectToSocketIO(address, {
       ...DEFAULT_SOCKETIO_CLIENT_OPTIONS,
+      // it is necessary to manually managed reconnects due to a bugs
+      // in socketio that has stumped their devs
+      //   -- https://github.com/socketio/socket.io/issues/5197
+      // So no matter what options are set, we never use socketio's
+      // reconnection logic. if options.reconnection is true or
+      // not given, then we implement (in this file) reconnect ourselves.
+      // The browser frontend explicit sets options.reconnection false
+      // and uses its own logic.
+      reconnection: false,
       ...options,
       ...(options.systemAccountPassword
         ? {
@@ -494,10 +503,13 @@ export class Client extends EventEmitter {
         ...args,
       );
     });
-    this.conn.on("disconnect", () => {
+    this.conn.on("disconnect", async () => {
       this.stats.recv0 = { messages: 0, bytes: 0 }; // reset on disconnect
       this.setState("disconnected");
       this.disconnectAllSockets();
+      if (this.options.reconnection ?? true) {
+        this.connect();
+      }
     });
     this.initInbox();
     this.statsLoop();
@@ -515,6 +527,33 @@ export class Client extends EventEmitter {
     // @ts-ignore
     setTimeout(() => this.conn.io.disconnect(), 1);
   };
+
+  connect = reuseInFlight(async () => {
+    let attempts = 0;
+    await until(
+      async () => {
+        if (this.conn?.connected || this.state == "closed") {
+          return true;
+        }
+        this.disconnect();
+        await delay(
+          Math.max(
+            this.options.reconnectionDelay ??
+              DEFAULT_SOCKETIO_CLIENT_OPTIONS.reconnectionDelay ??
+              500,
+            500,
+          ),
+        );
+        attempts += 1;
+        console.log(
+          `Connecting to ${this.options.address}: attempts ${attempts}`,
+        );
+        this.conn.io.connect();
+        return false;
+      },
+      { min: 3000, max: 15000 },
+    );
+  });
 
   waitUntilSignedIn = reuseInFlight(async () => {
     // not "signed in" if --
@@ -1490,6 +1529,9 @@ export class Client extends EventEmitter {
   };
 
   private disconnectAllSockets = () => {
+    if (!this.sockets.servers) {
+      return;
+    }
     for (const subject in this.sockets.servers) {
       this.sockets.servers[subject].disconnect();
     }
