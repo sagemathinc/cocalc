@@ -6,7 +6,7 @@
 // endpoints for various health checks
 
 import getLogger from "@cocalc/backend/logger";
-const { new_counter } = require("@cocalc/hub/metrics-recorder");
+import { new_counter } from "@cocalc/server/metrics/metrics-recorder";
 import { howLongDisconnectedMins } from "@cocalc/database/postgres/record-connect-error";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { seconds2hms } from "@cocalc/util/misc";

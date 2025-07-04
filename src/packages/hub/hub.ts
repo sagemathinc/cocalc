@@ -7,7 +7,6 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
-import TTLCache from "@isaacs/ttlcache";
 import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
@@ -50,7 +49,8 @@ import { initConatServer } from "@cocalc/server/conat/socketio";
 
 import initHttpRedirect from "./servers/http-redirect";
 
-const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
+import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
+import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -94,15 +94,11 @@ async function init_update_site_license_usage_log() {
 
 async function initMetrics() {
   logger.info("Initializing Metrics Recorder...");
-  await callback(MetricsRecorder.init, logger);
+  MetricsRecorder.init();
   return {
     metric_blocked: MetricsRecorder.new_counter(
       "blocked_ms_total",
       'accumulates the "blocked" time in the hub [ms]',
-    ),
-    uncaught_exception_total: MetricsRecorder.new_counter(
-      "uncaught_exception_total",
-      'counts "BUG"s',
     ),
   };
 }
@@ -115,7 +111,7 @@ async function startServer(): Promise<void> {
     `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`,
   );
 
-  const { metric_blocked, uncaught_exception_total } = await initMetrics();
+  const { metric_blocked } = await initMetrics();
 
   // Log anything that blocks the CPU for more than ~100ms -- see https://github.com/tj/node-blocked
   blocked((ms: number) => {
@@ -303,70 +299,7 @@ async function startServer(): Promise<void> {
     setInterval(trimLogFileSize, 1000 * 60 * 3);
   }
 
-  addErrorListeners(uncaught_exception_total);
-}
-
-// addErrorListeners: after successful startup, don't crash on routine errors.
-// We don't do this until startup, since we do want to crash on errors on startup.
-
-// Use cache to not save the SAME error to the database (and prometheus)
-// more than once per minute.
-const errorReportCache = new TTLCache({ ttl: 60 * 1000 });
-
-// note -- we show the error twice in these, one in backticks, since sometimes
-// that works better.
-function addErrorListeners(uncaught_exception_total) {
-  process.addListener("uncaughtException", (err) => {
-    const e = `${err}`;
-    if (e.includes("ECONNRESET")) {
-      // we whitelist these, since I've audited everything I can and just
-      // cannot find what's causing them in hub-conat-api
-      logger.debug(`WARNING -- ${e}`, err, err.stack);
-      console.error(err);
-      return;
-    }
-
-    logger.error(
-      "BUG ****************************************************************************",
-    );
-    logger.error("Uncaught exception: " + err, ` ${err}`);
-    console.error(err);
-    logger.error(err.stack);
-    logger.error(
-      "BUG ****************************************************************************",
-    );
-    const key = `${err}`;
-    if (errorReportCache.has(key)) {
-      return;
-    }
-    errorReportCache.set(key, true);
-    database?.uncaught_exception(err);
-    uncaught_exception_total.inc(1);
-  });
-
-  return process.on("unhandledRejection", (reason, p) => {
-    logger.error(
-      "BUG UNHANDLED REJECTION *********************************************************",
-    );
-    console.error(p, reason); // strangely sometimes logger.error can't actually show the traceback...
-    logger.error(
-      "Unhandled Rejection at:",
-      p,
-      "reason:",
-      reason,
-      ` : ${p} -- ${reason}`,
-    );
-    logger.error(
-      "BUG UNHANDLED REJECTION *********************************************************",
-    );
-    const key = `${p}${reason}`;
-    if (errorReportCache.has(key)) {
-      return;
-    }
-    errorReportCache.set(key, true);
-    database?.uncaught_exception(reason);
-    uncaught_exception_total.inc(1);
-  });
+  addErrorListeners();
 }
 
 //############################################

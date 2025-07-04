@@ -810,9 +810,6 @@ importers:
       parse-domain:
         specifier: ^5.0.0
         version: 5.0.0(encoding@0.1.13)
-      prom-client:
-        specifier: ^13.0.0
-        version: 13.2.0
       random-key:
         specifier: ^0.3.2
         version: 0.3.2
@@ -1396,6 +1393,9 @@ importers:
       passport-orcid:
         specifier: ^0.0.4
         version: 0.0.4
+      prom-client:
+        specifier: ^13.2.0
+        version: 13.2.0
       random-key:
         specifier: ^0.3.2
         version: 0.3.2

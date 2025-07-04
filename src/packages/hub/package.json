@@ -36,7 +36,6 @@
     "mime-types": "^2.1.35",
     "ms": "2.1.2",
     "parse-domain": "^5.0.0",
-    "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
     "react": "^19.1.0",
     "uglify-js": "^3.14.1",
