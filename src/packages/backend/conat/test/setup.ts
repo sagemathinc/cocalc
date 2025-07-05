@@ -191,10 +191,12 @@ export async function waitForConsistentState(
                 // likely going to fail
                 console.log(
                   "server stream getAll: ",
+                  // @ts-ignore
                   servers[i].clusterStreams.interest.getAll(),
                 );
                 console.log(
                   "link stream getAll: ",
+                  // @ts-ignore
                   link.streams.interest.getAll(),
                 );
                 console.log("waitForConsistentState", { i, j, a, x });
