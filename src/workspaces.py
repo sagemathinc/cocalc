@@ -279,13 +279,13 @@ def install(args) -> None:
 
 def test(args) -> None:
     CUR = os.path.abspath('.')
-    flakie = []
+    flaky = []
     fails = []
     success = []
 
     def status():
         print("Status: ", {
-            "flakie": flakie,
+            "flaky": flaky,
             "fails": fails,
             "success": success
         })
@@ -322,7 +322,7 @@ def test(args) -> None:
                 return
             except Exception as err:
                 print(err)
-                flakie.append(path)
+                flaky.append(path)
                 print(f"ERROR testing {path}")
                 if args.retries - i >= 1:
                     print(f"Trying {path} again at most {args.retries - i} more times")
@@ -330,8 +330,8 @@ def test(args) -> None:
             fails.append(path)
 
     status()
-    if len(flakie) > 0:
-        print("Flakie test suites:", flakie)
+    if len(flaky) > 0:
+        print("Flaky test suites:", flaky)
 
     if len(fails) == 0:
         print("ALL TESTS PASSED!")
