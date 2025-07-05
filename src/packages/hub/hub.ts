@@ -177,7 +177,7 @@ async function startServer(): Promise<void> {
   // This loads from the database credentials to use Conat.
   await loadConatConfiguration();
 
-  if (program.conatCore) {
+  if (program.conatRouter) {
     // launch standalone socketio websocket server (no http server)
     await initConatServer();
   }
@@ -323,19 +323,19 @@ async function main(): Promise<void> {
     )
     .option(
       "--conat-server",
-      "run a hub that provides a single-core conat server (socketio), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
+      "run a hub that provides a single-core conat server (i.e., conat-router but integrated with the http server), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
     )
     .option(
-      "--conat-core",
+      "--conat-router",
       "run a hub that provides the core conat communication layer server over a websocket (but not http server).",
     )
     .option(
       "--conat-api",
-      "run a hub that connect to conat-core and provides the standard conat API services, e.g., basic api, LLM's, changefeeds, http file upload/download, etc.  There must be at least one of these.   You can increase or decrease the number of these servers with no coordination needed.",
+      "run a hub that connect to conat-router and provides the standard conat API services, e.g., basic api, LLM's, changefeeds, http file upload/download, etc.  There must be at least one of these.   You can increase or decrease the number of these servers with no coordination needed.",
     )
     .option(
       "--conat-persist",
-      "run a hub that connects to conat-core and provides persistence for streams (e.g., key for sync editing).  There must be at least one of these, and they need access to common shared disk to store sqlite files.  Only one server uses a given sqlite file at a time.  You can increase or decrease the number of these servers with no coordination needed.",
+      "run a hub that connects to conat-router and provides persistence for streams (e.g., key for sync editing).  There must be at least one of these, and they need access to common shared disk to store sqlite files.  Only one server uses a given sqlite file at a time.  You can increase or decrease the number of these servers with no coordination needed.",
     )
     .option("--proxy-server", "run a proxy server in this process")
     .option(
