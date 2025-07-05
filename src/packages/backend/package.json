@@ -10,7 +10,10 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
@@ -28,7 +31,12 @@
     "conat-persist": "DEBUG=cocalc:*  node ./bin/conat-persist.cjs",
     "conat-test-server": "node ./bin/conat-test-server.cjs"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
@@ -45,7 +53,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "password-hash": "^1.2.2",
-    "prom-client": "^13.0.0",
+    "prom-client": "^15.1.3",
     "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "tmp-promise": "^3.0.3",
