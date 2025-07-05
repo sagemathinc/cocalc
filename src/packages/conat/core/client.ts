@@ -31,7 +31,7 @@ same, but it is close).  It's basically a symmetrical pub/sub/reqest/respond mod
 for messaging on which you can build distributed systems.  The tricky part, which
 NATS.js gets wrong (in my opinion), is implementing  this in a way that is robust
 and scalable, in terms for authentication, real world browser connectivity and
-so on.  Our approach is to use proven mature technology like socket.io and sqlite, 
+so on.  Our approach is to use proven mature technology like socket.io and sqlite,
 instead of writing everything from scratch.
 
 Clients: We view all clients as plugged into a common "dial tone",
@@ -115,9 +115,9 @@ then resumed, or the server is restarted, or the client connects to
 a different server!  These situations can, of course, result in missing
 some messages, but that's understood.  There are no guarantees at all with
 a subscription that every message is received.  Finally, any time a client
-disconnects and reconnects, the client ensures that all subscriptions 
+disconnects and reconnects, the client ensures that all subscriptions
 exist for it on the server via a sync process.
- 
+
 Subscription robustness is a major difference with NATS.js, which would
 mysteriously terminate subscriptions for a variety of reasons, meaning that any
 code using subscriptions had to be wrapped in ugly complexity to be
@@ -1254,6 +1254,15 @@ export class Client extends EventEmitter {
         let done = false;
         const f = (cb) => {
           const handle = (response) => {
+            if (this.state == "closed" && response?.error) {
+              if (!process.env.COCALC_TEST_MODE) {
+                console.warn(
+                  "conat client: ignoring outstanding error message since client closed",
+                );
+              }
+              cb(undefined, response);
+              return;
+            }
             // console.log("_publish", { done, subject, mesg, headers, confirm });
             if (response?.error) {
               cb(new ConatError(response.error, { code: response.code }));
