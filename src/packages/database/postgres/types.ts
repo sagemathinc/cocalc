@@ -406,6 +406,8 @@ export interface PostgreSQL extends EventEmitter {
   webapp_error(opts: object);
 
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
+  
+  uncaught_exception: (err:any) => void;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

@@ -37,7 +37,7 @@ describe("multiple clients using multiple persist servers", () => {
   });
 
   let persistClients: any[] = [];
-  
+
   // NOTE: count must be below about 40 to avoid hitting the default
   // per-user connection limit of 100.
   let count = 30;

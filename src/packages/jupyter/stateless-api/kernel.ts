@@ -1,12 +1,14 @@
 import { kernel as createKernel } from "@cocalc/jupyter/kernel";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import { run_cell } from "@cocalc/jupyter/nbgrader/jupyter-run";
-import { mkdtemp, rm } from "fs/promises";
+import { mkdtemp } from "fs/promises";
+import { rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type Limits } from "@cocalc/util/jupyter/nbgrader-types";
+import { closeAll as closeAllLaunches } from "@cocalc/jupyter/kernel/launch-kernel";
 
 const log = getLogger("jupyter:stateless-api:kernel");
 
@@ -28,9 +30,12 @@ export default class Kernel {
   private static ulimit: { [kernelName: string]: string } = {};
 
   private kernel?: JupyterKernelInterface;
-  private tempDir: string;
+  private tempDir?: string;
+  private state?: "closed" | undefined = undefined;
 
-  constructor(private kernelName: string) {}
+  constructor(private kernelName: string) {
+    kernels.push(this);
+  }
 
   private static getPool(kernelName: string) {
     let pool = Kernel.pools[kernelName];
@@ -100,6 +105,7 @@ export default class Kernel {
     while (pool.length <= size) {
       // <= since going to remove one below
       const k = new Kernel(kernelName);
+      pool.push(k);
       // we cause this kernel to get init'd soon, but NOT immediately, since starting
       // several at once just makes them all take much longer exactly when the user
       // most wants to use their new kernel
@@ -115,7 +121,6 @@ export default class Kernel {
         Math.random() * 3000 * i,
       );
       i += 1;
-      pool.push(k);
     }
     const k = pool.shift() as Kernel;
     // it's ok to call again due to reuseInFlight and that no-op after init.
@@ -124,11 +129,15 @@ export default class Kernel {
   }
 
   private init = reuseInFlight(async () => {
-    if (this.kernel != null) {
+    if (this.kernel != null || this.state == "closed") {
       // already initialized
       return;
     }
     this.tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
+    if (this.state == "closed") {
+      this.close();
+      return;
+    }
     const path = `${this.tempDir}/execute.ipynb`;
     this.kernel = createKernel({
       name: this.kernelName,
@@ -136,7 +145,15 @@ export default class Kernel {
       ulimit: Kernel.ulimit[this.kernelName] ?? DEFAULT_ULIMIT,
     });
     await this.kernel.ensure_running();
+    if (this.state == "closed") {
+      this.close();
+      return;
+    }
     await this.kernel.execute_code_now({ code: "" });
+    if (this.state == "closed") {
+      this.close();
+      return;
+    }
   });
 
   // empty all pools and do not refill
@@ -187,21 +204,43 @@ export default class Kernel {
     pool.push(this);
   };
 
-  close = async () => {
-    if (this.kernel == null) {
-      return;
-    }
+  close = () => {
+    this.state = "closed";
     try {
-      await this.kernel.close();
+      this.kernel?.close();
     } catch (err) {
       log.warn("Error closing kernel", err);
     } finally {
       delete this.kernel;
     }
-    try {
-      await rm(this.tempDir, { force: true, recursive: true });
-    } catch (err) {
-      log.warn("Error cleaning up temporary directory", err);
+    if (this.tempDir) {
+      try {
+        rmSync(this.tempDir, { force: true, recursive: true });
+      } catch (err) {
+        log.warn("Error cleaning up temporary directory", err);
+      } finally {
+        delete this.tempDir;
+      }
     }
   };
 }
+
+// Clean up after any kernel created here
+const kernels: Kernel[] = [];
+function closeAll() {
+  closeAllLaunches();
+  for (const kernel of kernels) {
+    kernel.close();
+  }
+  kernels.length = 0;
+}
+
+process.once("exit", () => {
+  closeAll();
+});
+
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    closeAll();
+  });
+});

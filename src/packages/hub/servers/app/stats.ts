@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { callback2 } from "@cocalc/util/async-utils";
-import { database_is_working } from "@cocalc/hub/hub_register";
+import { database_is_working } from "@cocalc/server/metrics/hub_register";
 import { database } from "../database";
 
 export default function init(router: Router) {

@@ -4,18 +4,18 @@
  */
 
 import React from "react";
-import { shallow } from "enzyme";
+import { render, screen } from "@testing-library/react";
 import { TextPlain } from "../text-plain";
 
 describe("basic hello world", () => {
-  const wrapper = shallow(<TextPlain value="Hello World" />);
-
   it("checks the output", () => {
-    expect(wrapper.find("span").text()).toBe("Hello World");
+    render(<TextPlain value="Hello World" />);
+    expect(screen.getByText("Hello World")).toBeInTheDocument();
   });
 
   it("changes the value and checks new output", () => {
-    wrapper.setProps({ value: "xyz" });
-    expect(wrapper.find("span").text()).toBe("xyz");
+    const { rerender } = render(<TextPlain value="Hello World" />);
+    rerender(<TextPlain value="xyz" />);
+    expect(screen.getByText("xyz")).toBeInTheDocument();
   });
 });

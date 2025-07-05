@@ -4,15 +4,14 @@
  */
 
 import React from "react";
-import { shallow } from "enzyme";
+import { render, screen } from "@testing-library/react";
 import { UntrustedJavascript } from "../untrusted-javascript";
 
 describe("basic test", () => {
-  const wrapper = shallow(<UntrustedJavascript />);
-
   it("checks the output", () => {
-    expect(wrapper.find("span").text()).toContain(
-      "not running untrusted Javascript"
-    );
+    render(<UntrustedJavascript />);
+    expect(
+      screen.getByText(/not running untrusted Javascript/i)
+    ).toBeInTheDocument();
   });
 });

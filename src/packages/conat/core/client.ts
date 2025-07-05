@@ -31,8 +31,8 @@ same, but it is close).  It's basically a symmetrical pub/sub/reqest/respond mod
 for messaging on which you can build distributed systems.  The tricky part, which
 NATS.js gets wrong (in my opinion), is implementing  this in a way that is robust
 and scalable, in terms for authentication, real world browser connectivity and
-so on.  Our approach is to use proven mature technology like socket.io, sqlite
-and valkey, instead of writing everything from scratch.
+so on.  Our approach is to use proven mature technology like socket.io and sqlite,
+instead of writing everything from scratch.
 
 Clients: We view all clients as plugged into a common "dial tone",
 except for optional permissions that are configured when starting the server.
@@ -114,12 +114,9 @@ MUST NEVER throw an error or silently end when the connection is dropped
 then resumed, or the server is restarted, or the client connects to
 a different server!  These situations can, of course, result in missing
 some messages, but that's understood.  There are no guarantees at all with
-a subscription that every message is received.  That said, we have enabled
-connectionStateRecovery (and added special conat support for it) so no messages
-are dropped for temporary disconnects, even up to several minutes,
-and even in valkey cluster mode!  Finally, any time a client disconnects
-and reconnects, the client ensures that all subscriptions exist for it on the server
-via a sync process.
+a subscription that every message is received.  Finally, any time a client
+disconnects and reconnects, the client ensures that all subscriptions
+exist for it on the server via a sync process.
 
 Subscription robustness is a major difference with NATS.js, which would
 mysteriously terminate subscriptions for a variety of reasons, meaning that any
@@ -253,13 +250,14 @@ export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // half the chunk size... because there is no way to know if recipients will be
   // using long polling to RECEIVE messages.  Not insurmountable.
   transports: ["websocket"],
+  rememberUpgrade: true,
 
   // nodejs specific for project/compute server in some settings
   rejectUnauthorized: false,
 
   reconnection: true,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 15000,
+  reconnectionDelay: process.env.COCALC_TEST_MODE ? 50 : 500,
+  reconnectionDelayMax: process.env.COCALC_TEST_MODE ? 500 : 15000,
   reconnectionAttempts: 9999999999, // infinite
 };
 
@@ -280,6 +278,7 @@ interface Options {
   //
   address?: string;
   inboxPrefix?: string;
+  systemAccountPassword?: string;
 }
 
 export type ClientOptions = Options & {
@@ -321,11 +320,13 @@ interface SubscriptionOptions {
   queue?: string;
   // sticky: when a choice from a queue group is made, the same choice is always made
   // in the future for any message with subject matching subject with the last segment
-  // replaced by a *, until the target goes away. Setting this just sets the queue
-  // option to STICKY_QUEUE_GROUP.
+  // replaced by a *, until the target for the choice goes away. Setting this just
+  // sets the queue option to the constant string STICKY_QUEUE_GROUP.
   //
-  // Examples of subjects matching except possibly last segment are
-  //             foo.bar.lJcBSieLn and foo.bar.ZzsDC376ge
+  // Examples of two subjects matching "except possibly last segments" are
+  //          - foo.bar.lJcBSieLn
+  //          - foo.bar.ZzsDC376ge
+  //
   // You can put anything random in the last segment and all messages
   // that match foo.bar.* get the same choice from the queue group.
   // The idea is that *when* the message with subject foo.bar.lJcBSieLn gets
@@ -333,8 +334,30 @@ interface SubscriptionOptions {
   // that message.  It remembers the choice, and so long as that target is subscribed,
   // it sends any message matching foo.bar.* to that same target.
   // This is used in our implementation of persistent socket connections that
-  // are built on pub/sub.  The underlying implementation uses consistent
-  // hashing and messages to sync state of the servers.
+  // are built on pub/sub.
+
+  // The underlying implementation uses (1) consistent hashing and (2) a stream
+  // to sync state of the servers.
+  //
+  // If the members of the sticky queue group have been stable for a while (e.g., a minute)
+  // then all servers in a local cluster have the same list of subscribers in the sticky
+  // queue group, and using consistent hashing any server will make the same choice of
+  // where to route messages.  If the members of the sticky queue group are dynamically changing,
+  // it is possible for an inconsistent choice to be made.  If this happens, it will be fixed
+  // within a few seconds. During that time, it's possible a virtual conat socket
+  // connection could get created then destroyed a few seconds laters, due to the sticky
+  // assignment changing.
+  //
+  // The following isn't implemented yet -- one idea.  Another idea would be the stickiness
+  // is local to a cluster. Not sure!
+  // Regarding a *supercluster*, if no choice has already been made in any cluster for
+  // a given subject (except last segment), then a choice is made using consistent hashing
+  // from the subscribers in the *nearest* cluster that has at least one subscriber.
+  // If choices are made simultaneously across the supercluster, then it is likely that
+  // they are inconsistent.  As soon as these choices are visible, they are resolved, with
+  // the tie broken using lexicographic sort of the "socketio room" (this is a
+  // random string that is used to send messages to a subscriber).
+
   sticky?: boolean;
   respond?: Function;
   // timeout to create the subscription -- this may wait *until* you connect before
@@ -348,16 +371,10 @@ interface SubscriptionOptions {
 // JsonCodec to handle Date's properly, don't change this!!
 const DEFAULT_ENCODING = DataEncoding.MsgPack;
 
-function cocalcServerToSocketioAddress(url?: string): {
+function cocalcServerToSocketioAddress(url: string): {
   address: string;
   path: string;
 } {
-  url = url ?? process.env.CONAT_SERVER;
-  if (!url) {
-    throw Error(
-      "Must give Conat server address or set CONAT_SERVER environment variable",
-    );
-  }
   const u = new URL(url, "http://dummy.org");
   const address = u.origin;
   const path = join(u.pathname, "conat");
@@ -372,6 +389,7 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
+  //console.trace("connect", opts);
   if (!opts.address) {
     const x = cache.one();
     if (x != null) {
@@ -422,12 +440,20 @@ export class Client extends EventEmitter {
 
   constructor(options: ClientOptions) {
     super();
-    this.setMaxListeners(1000);
+    if (!options.address) {
+      if (!process.env.CONAT_SERVER) {
+        throw Error(
+          "Must specificy address or set CONAT_SERVER environment variable",
+        );
+      }
+      options = { ...options, address: process.env.CONAT_SERVER };
+    }
     this.options = options;
+    this.setMaxListeners(1000);
 
     // for socket.io the address has no base url
     const { address, path } = cocalcServerToSocketioAddress(
-      this.options.address,
+      this.options.address!,
     );
     logger.debug(`Conat: Connecting to ${this.options.address}...`);
     //     if (options.extraHeaders == null) {
@@ -435,8 +461,25 @@ export class Client extends EventEmitter {
     //     }
     this.conn = connectToSocketIO(address, {
       ...DEFAULT_SOCKETIO_CLIENT_OPTIONS,
+      // it is necessary to manually managed reconnects due to a bugs
+      // in socketio that has stumped their devs
+      //   -- https://github.com/socketio/socket.io/issues/5197
+      // So no matter what options are set, we never use socketio's
+      // reconnection logic. if options.reconnection is true or
+      // not given, then we implement (in this file) reconnect ourselves.
+      // The browser frontend explicit sets options.reconnection false
+      // and uses its own logic.
       ...options,
+      ...(options.systemAccountPassword
+        ? {
+            extraHeaders: {
+              ...options.extraHeaders,
+              Cookie: `sys=${options.systemAccountPassword}`,
+            },
+          }
+        : undefined),
       path,
+      reconnection: true,
     });
 
     this.conn.on("info", (info) => {
@@ -461,16 +504,30 @@ export class Client extends EventEmitter {
         ...args,
       );
     });
-    this.conn.on("disconnect", () => {
+    this.conn.on("disconnect", async () => {
+      if (this.isClosed()) {
+        return;
+      }
       this.stats.recv0 = { messages: 0, bytes: 0 }; // reset on disconnect
       this.setState("disconnected");
       this.disconnectAllSockets();
     });
+    this.conn.io.connect();
     this.initInbox();
     this.statsLoop();
   }
 
+  cluster = async () => {
+    return await callback(
+      this.conn.timeout(10000).emit.bind(this.conn),
+      "cluster",
+    );
+  };
+
   disconnect = () => {
+    if (this.isClosed()) {
+      return;
+    }
     this.disconnectAllSockets();
     // @ts-ignore
     setTimeout(() => this.conn.io.disconnect(), 1);
@@ -488,6 +545,13 @@ export class Client extends EventEmitter {
       this.info?.user?.error
     ) {
       await once(this, "info");
+    }
+    if (
+      this.info == null ||
+      this.state != "connected" ||
+      this.info?.user?.error
+    ) {
+      throw Error("failed to sign in");
     }
   });
 
@@ -856,7 +920,7 @@ export class Client extends EventEmitter {
       }
       if (queue == STICKY_QUEUE_GROUP) {
         throw Error(
-          `can only have one sticky subscription per client -- subject='${subject}'`,
+          `can only have one sticky subscription with given subject pattern per client -- subject='${subject}'`,
         );
       }
       sub.refCount += 1;
@@ -1181,6 +1245,7 @@ export class Client extends EventEmitter {
         done,
         encoding,
         raw.slice(i, i + chunkSize),
+        // position v[6] is used for clusters
       ];
       if (done && headers) {
         v.push(headers);
@@ -1189,6 +1254,15 @@ export class Client extends EventEmitter {
         let done = false;
         const f = (cb) => {
           const handle = (response) => {
+            if (this.state == "closed" && response?.error) {
+              if (!process.env.COCALC_TEST_MODE) {
+                console.warn(
+                  "conat client: ignoring outstanding error message since client closed",
+                );
+              }
+              cb(undefined, response);
+              return;
+            }
             // console.log("_publish", { done, subject, mesg, headers, confirm });
             if (response?.error) {
               cb(new ConatError(response.error, { code: response.code }));
@@ -1367,16 +1441,16 @@ export class Client extends EventEmitter {
   };
 
   sync = {
-    dkv: async (opts: DKVOptions): Promise<DKV> =>
-      await dkv({ ...opts, client: this }),
-    akv: async (opts: DKVOptions): Promise<AKV> =>
-      await akv({ ...opts, client: this }),
-    dko: async (opts: DKVOptions): Promise<DKO> =>
-      await dko({ ...opts, client: this }),
-    dstream: async (opts: DStreamOptions): Promise<DStream> =>
-      await dstream({ ...opts, client: this }),
-    astream: async (opts: DStreamOptions): Promise<AStream> =>
-      await astream({ ...opts, client: this }),
+    dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
+      await dkv<T>({ ...opts, client: this }),
+    akv: async <T,>(opts: DKVOptions): Promise<AKV<T>> =>
+      await akv<T>({ ...opts, client: this }),
+    dko: async <T,>(opts: DKVOptions): Promise<DKO<T>> =>
+      await dko<T>({ ...opts, client: this }),
+    dstream: async <T,>(opts: DStreamOptions): Promise<DStream<T>> =>
+      await dstream<T>({ ...opts, client: this }),
+    astream: async <T,>(opts: DStreamOptions): Promise<AStream<T>> =>
+      await astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
   };
@@ -1442,6 +1516,9 @@ export class Client extends EventEmitter {
   };
 
   private disconnectAllSockets = () => {
+    if (this.state == "closed") {
+      return;
+    }
     for (const subject in this.sockets.servers) {
       this.sockets.servers[subject].disconnect();
     }
@@ -1464,6 +1541,43 @@ export class Client extends EventEmitter {
   };
 
   message = (mesg, options?) => messageData(mesg, options);
+
+  bench = {
+    publish: async (n: number = 1000, subject = "bench"): Promise<number> => {
+      const t0 = Date.now();
+      console.log(`publishing ${n} messages to`, { subject });
+      for (let i = 0; i < n - 1; i++) {
+        this.publishSync(subject, null);
+      }
+      // then send one final message and wait for an ack.
+      // since messages are in order, we know that all other
+      // messages were delivered to the server.
+      const { count } = await this.publish(subject, null);
+      console.log("listeners: ", count);
+      const t1 = Date.now();
+      const rate = Math.round((n / (t1 - t0)) * 1000);
+      console.log(rate, "messages per second delivered");
+      return rate;
+    },
+
+    subscribe: async (n: number = 1000, subject = "bench"): Promise<number> => {
+      const sub = await this.subscribe(subject);
+      // send the data
+      for (let i = 0; i < n; i++) {
+        this.publishSync(subject, null);
+      }
+      const t0 = Date.now();
+      let i = 0;
+      for await (const _ of sub) {
+        i += 1;
+        if (i >= n) {
+          break;
+        }
+      }
+      const t1 = Date.now();
+      return Math.round((n / (t1 - t0)) * 1000);
+    },
+  };
 }
 
 interface PublishOptions {
@@ -1753,7 +1867,13 @@ export class Message<T = any> extends MessageData<T> {
     if (!subject) {
       return { bytes: 0, count: 0 };
     }
-    return await this.client.publish(subject, mesg, opts);
+    let { bytes, count } = await this.client.publish(subject, mesg, opts);
+    if (count == 0) {
+      // nobody listening but they just made a request -- give it a second try
+      await this.client.waitForInterest(subject, { timeout: 15000 });
+      ({ bytes, count } = await this.client.publish(subject, mesg, opts));
+    }
+    return { bytes, count };
   };
 }
 

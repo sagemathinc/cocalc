@@ -12,11 +12,14 @@ import { syncFiles } from "@cocalc/conat/persist/context";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
-export { wait } from "@cocalc/backend/conat/test/util";
-export { delay } from "awaiting";
+import { wait } from "@cocalc/backend/conat/test/util";
+export { wait };
+import { delay } from "awaiting";
+export { delay };
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
-import { spawn, ChildProcess } from "node:child_process";
+import { randomId } from "@cocalc/conat/names";
+import { isEqual } from "lodash";
 
 const logger = getLogger("conat:test:setup");
 
@@ -38,16 +41,74 @@ export let tempDir;
 export let server: any = null;
 export let persistServer: any = null;
 
+let nodeNumber = 0;
+function getNodeId() {
+  return `node-${nodeNumber++}`;
+}
+
 export async function createServer(opts?) {
+  return await initConatServer({
+    port: await getPort(),
+    path,
+    clusterName: "default",
+    id: opts?.id ?? getNodeId(),
+    systemAccountPassword: "secret",
+    ...opts,
+  });
+}
+
+// add another node to the cluster -- this is still in the same process (not forked), which
+// is generally good since you can console.log from it, faster, etc.
+export async function addNodeToDefaultCluster(): Promise<ConatServer> {
   const port = await getPort();
-  server = await initConatServer({ port, path, ...opts });
-  return server;
+  const node = await initConatServer({
+    port,
+    path,
+    clusterName: "default",
+    id: getNodeId(),
+    systemAccountPassword: "secret",
+  });
+  await server.join(node.address());
+  await node.join(server.address());
+  return node;
+}
+
+export async function createConatCluster(n: number, opts?) {
+  const clusterName = opts?.clusterName ?? `cluster-${randomId()}`;
+  const systemAccountPassword = opts?.systemAccountPassword ?? randomId();
+  const servers: { [id: string]: ConatServer } = {};
+  for (let i = 0; i < n; i++) {
+    const id = `node-${i}`;
+    servers[id] = await createServer({
+      systemAccountPassword,
+      clusterName,
+      id,
+      autoscanInterval: 0,
+      ...opts,
+    });
+  }
+  // join every server to every other server
+  const v: any[] = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i != j) {
+        v.push(
+          servers[`node-${i}`].join(
+            `http://localhost:${servers[`node-${j}`].options.port}`,
+          ),
+        );
+      }
+    }
+  }
+  await Promise.all(v);
+  return servers;
 }
 
 export async function restartServer() {
   const port = server.options.port;
   await server.close();
-  await createServer({ port });
+  await delay(250);
+  server = await createServer({ port });
 }
 
 export async function restartPersistServer() {
@@ -73,88 +134,116 @@ export async function before() {
 
 const clients: Client[] = [];
 export function connect(opts?): Client {
-  const cn = server.client({ noCache: true, ...opts });
+  const cn = server.client({ noCache: true, path: "/", ...opts });
   clients.push(cn);
   return cn;
+}
+
+// Given a list of servers that are all connected together in a common
+// cluster, wait until they all have a consistent view of the interest.
+// I.e., the interest object for servers[i] is the same as what every
+// other thinks it is.
+export async function waitForConsistentState(
+  servers: ConatServer[],
+  timeout = 10000,
+): Promise<void> {
+  if (servers.length <= 1) {
+    return;
+  }
+  // @ts-ignore
+  const clusterName = servers[0].clusterName;
+  if (!clusterName) {
+    throw Error("not a cluster");
+  }
+  const ids = new Set<string>([servers[0].id]);
+  for (let i = 1; i < servers.length; i++) {
+    // @ts-ignore
+    if (servers[i].clusterName != clusterName) {
+      throw Error("all servers must be in the same cluster");
+    }
+    ids.add(servers[i].id);
+  }
+
+  if (ids.size != servers.length) {
+    throw Error("all servers must have distinct ids");
+  }
+
+  const start = Date.now();
+  await wait({
+    until: () => {
+      for (let i = 0; i < servers.length; i++) {
+        if (servers[i].state == "closed") {
+          return true;
+        }
+        // now look at everybody else's view of servers[i].
+        // @ts-ignore
+        const a = servers[i].interest.serialize().patterns;
+        for (let j = 0; j < servers.length; j++) {
+          if (i != j) {
+            // @ts-ignore
+            const link = servers[j].clusterLinks[clusterName][servers[i].id];
+            if (link == null) {
+              throw Error(`node ${j} is not connected to node ${i}`);
+            }
+            const x = link.interest.serialize().patterns;
+            if (!isEqual(a, x)) {
+              if (Date.now() - start > 3000) {
+                // likely going to fail
+                console.log(
+                  "server stream getAll: ",
+                  // @ts-ignore
+                  servers[i].clusterStreams.interest.stream.client.id,
+                  // @ts-ignore
+                  servers[i].clusterStreams.interest.stream.storage.path,
+                  // @ts-ignore
+                  servers[i].clusterStreams.interest.seqs(),
+                  // @ts-ignore
+                  //servers[i].clusterStreams.interest.getAll(),
+                );
+                console.log(
+                  "link stream getAll: ",
+                  // @ts-ignore
+                  link.streams.interest.stream.client.id,
+                  // @ts-ignore
+                  link.streams.interest.stream.storage.path,
+                  // @ts-ignore
+                  link.streams.interest.seqs(),
+                  // @ts-ignore
+                  //link.streams.interest.getAll(),
+                );
+                console.log("waitForConsistentState", { i, j, a, x });
+              }
+              // not yet equal
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    },
+    timeout,
+  });
 }
 
 export async function after() {
   persistServer?.close();
   await rm(tempDir, { force: true, recursive: true });
-  await server?.close();
+  try {
+    server?.close();
+  } catch {}
   for (const cn of clients) {
-    cn.close();
-  }
-  for (const { close } of valkeys) {
-    close();
+    try {
+      cn.close();
+    } catch {}
   }
 }
 
 process.once("exit", () => {
-  for (const { close } of valkeys) {
-    try {
-      close();
-    } catch {}
-  }
+  after();
 });
+
 ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
   process.once(sig, () => {
     process.exit();
   });
 });
-
-// runs a new ephemeral valkey server on an available port,
-// returning that port.
-const valkeys: any[] = [];
-export async function runValkey(): Promise<{
-  port: number;
-  address: string;
-  close: () => void;
-  password: string;
-}> {
-  const port = await getPort();
-  const password = "testpass";
-
-  // sapwn valkey-server listening on port running in a mode where
-  // data is never saved to disk using the nodejs spawn command:
-  // // Start valkey-server with in-memory only, no persistence
-  const child: ChildProcess = spawn(
-    "valkey-server",
-    [
-      "--port",
-      String(port),
-      "--save",
-      "",
-      "--appendonly",
-      "no",
-      "--requirepass",
-      password,
-    ],
-    {
-      stdio: "ignore", // or "inherit" for debugging
-      detached: false,
-    },
-  );
-
-  let closed = false;
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    if (!child?.pid) return;
-    try {
-      process.kill(child.pid, "SIGKILL");
-    } catch {
-      // already dead or not found
-    }
-  };
-
-  const server = {
-    port,
-    close,
-    address: `valkey://:${password}@localhost:${port}`,
-    password,
-  };
-  valkeys.push(server);
-
-  return server;
-}

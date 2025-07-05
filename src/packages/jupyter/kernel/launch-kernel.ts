@@ -56,7 +56,7 @@ export interface LaunchJupyterOpts {
 }
 
 export interface SpawnedKernel {
-  spawn; // output of execa
+  spawn; // output of node:child_process spawn
   connectionFile: string;
   config: ConnectionInfo;
   kernel_spec;
@@ -168,6 +168,7 @@ async function launchKernelSpec(
   } else {
     running_kernel = spawn(argv[0], argv.slice(1), full_spawn_options);
   }
+  spawned.push(running_kernel);
 
   running_kernel.on("error", (code, signal) => {
     logger.debug("launchKernelSpec: ERROR -- ", { argv, code, signal });
@@ -217,3 +218,25 @@ async function ensureDirectoryExists(path: string) {
     }
   }
 }
+
+// Clean up after any children created here
+const spawned: any[] = [];
+export function closeAll() {
+  for (const child of spawned) {
+    if (child.pid) {
+      process.kill(-child.pid, "SIGKILL");
+      child.kill("SIGKILL");
+    }
+  }
+  spawned.length = 0;
+}
+
+process.once("exit", () => {
+  closeAll();
+});
+
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    closeAll();
+  });
+});

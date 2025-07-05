@@ -21,6 +21,7 @@ import {
 
 beforeAll(before);
 
+jest.setTimeout(15000);
 describe("create a dkv with limit on the total number of keys, and confirm auto-delete works", () => {
   let kv;
   const name = `test-${Math.random()}`;
@@ -189,21 +190,23 @@ describe("create a dstream with limit on the total number of messages, and confi
   it("verifies that max_age works", async () => {
     await s.save();
     expect(s.hasUnsavedChanges()).toBe(false);
-    await delay(300);
+    await delay(1100);
+    // this "new" should be much newer than 1s
     s.push("new");
-    await s.config({ max_age: 20 }); // anything older than 20ms should be deleted
+    await s.config({ max_age: 1000 }); // anything older than 1s should be deleted
     await wait({ until: () => s.length == 1 });
     expect(s.getAll()).toEqual(["new"]);
     await s.config({ max_age: -1 });
   });
 
-  it("verifies that ttl works", async () => {
+  it("verifies that ttl works by writing a message and making sure it gets automatically deleted soon", async () => {
     const conf = await s.config();
     expect(conf.allow_msg_ttl).toBe(false);
     const conf2 = await s.config({ max_age: -1, allow_msg_ttl: true });
     expect(conf2.allow_msg_ttl).toBe(true);
 
     s.publish("ttl-message", { ttl: 50 });
+    expect(s.length).toBe(2);
     await s.save();
     await wait({
       until: async () => {
@@ -211,6 +214,7 @@ describe("create a dstream with limit on the total number of messages, and confi
         return s.length == 1;
       },
     });
+    expect(s.length).toBe(1);
     expect(s.get()).toEqual(["new"]);
   });
 

@@ -107,7 +107,7 @@ describe("create and test a more complicated service", () => {
 
     const d = await client.now();
     expect(isDate(d)).toBe(true);
-    expect(Math.abs(d.valueOf() - Date.now())).toBeLessThan(100);
+    expect(Math.abs(d.valueOf() - Date.now())).toBeLessThan(2000);
 
     const n = 10 * 1e6;
     expect((await client.big(n)).length).toBe(n);

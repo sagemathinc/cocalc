@@ -5,11 +5,13 @@ export async function wait({
   start = 5,
   decay = 1.2,
   max = 300,
+  timeout = 10000,
 }: {
   until: Function;
   start?: number;
   decay?: number;
   max?: number;
+  timeout?: number;
 }) {
   await until(
     async () => {
@@ -24,7 +26,7 @@ export async function wait({
       decay,
       max,
       min: 5,
-      timeout: 10000,
+      timeout,
     },
   );
 }

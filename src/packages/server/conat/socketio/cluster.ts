@@ -104,7 +104,6 @@ async function worker() {
     systemAccountPassword,
     // port -- server needs to know implicitly to make a clients
     port: getPort(),
-    cluster: true,
   });
   conatServer.io.adapter(createAdapter());
   setupWorker(conatServer.io);

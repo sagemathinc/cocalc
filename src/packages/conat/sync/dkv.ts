@@ -127,9 +127,11 @@ export interface DKVOptions {
   noAutosave?: boolean;
 
   ephemeral?: boolean;
+  sync?: boolean;
 
   noCache?: boolean;
   noInventory?: boolean;
+  service?: string;
 }
 
 export class DKV<T = any> extends EventEmitter {
@@ -161,7 +163,9 @@ export class DKV<T = any> extends EventEmitter {
       merge,
       config,
       noAutosave,
-      ephemeral = false,
+      ephemeral,
+      sync,
+      service,
     } = opts;
     this.name = name;
     this.desc = desc;
@@ -174,6 +178,8 @@ export class DKV<T = any> extends EventEmitter {
       client,
       config,
       ephemeral,
+      sync,
+      service,
     });
 
     return new Proxy(this, {
@@ -787,7 +793,11 @@ export class DKV<T = any> extends EventEmitter {
       let inv: Inventory | undefined = undefined;
       try {
         const { account_id, project_id, desc } = this.opts;
-        const inv = await inventory({ account_id, project_id });
+        const inv = await inventory({
+          account_id,
+          project_id,
+          service: this.opts.service,
+        });
         if (this.isClosed()) {
           return;
         }
@@ -816,8 +826,8 @@ export class DKV<T = any> extends EventEmitter {
 
 export const cache = refCache<DKVOptions, DKV>({
   name: "dkv",
-  createKey: ({ name, account_id, project_id }) =>
-    JSON.stringify({ name, account_id, project_id }),
+  createKey: ({ name, account_id, project_id, client }) =>
+    JSON.stringify({ name, account_id, project_id, id: client?.id }),
   createObject: async (opts) => {
     if (opts.client == null) {
       opts = { ...opts, client: await conat() };

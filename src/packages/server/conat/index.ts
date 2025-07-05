@@ -40,8 +40,3 @@ export async function initConatApi() {
   initLLM();
   createTimeService();
 }
-
-export async function initConatCore() {
-  logger.debug("initConatApi: socketio websocsocket server on a port");
-  await loadConatConfiguration();
-}

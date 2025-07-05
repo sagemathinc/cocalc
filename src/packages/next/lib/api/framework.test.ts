@@ -1,3 +1,5 @@
+/** @jest-environment node */
+
 /*
 This file gets unit tested both in prod and dev modes.  This is important to
 ensure that in production the input validation is skipped (for now!).

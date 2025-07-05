@@ -26,8 +26,8 @@ const logger = getLogger("data");
 export let secretToken: string = "";
 
 function init() {
-  if (compute_server_id) {
-    // it's a compute server, so we always set secret token to a random value.
+  if (compute_server_id || process.env.COCALC_TEST_MODE) {
+    // it's a compute server or in test mode, so we always set secret token to a random value.
     secretToken = secureRandomStringSync(32);
     return;
   }
@@ -51,11 +51,11 @@ function init() {
     logger.debug("Successfully initialized project secret_token");
   } catch (err) {
     console.trace(err);
-    const mesg = `The secret token must be in the path given by COCALC_SECRET_TOKEN or at '${join(data, "secret-token")}'.  There is something wrong with the setup of this project. ${err}`;
+    const mesg = `The secret token must be in the path given by COCALC_SECRET_TOKEN or at '${join(data, "secret-token")}'.  There is something wrong with the setup of this project. ${err}.`;
     logger.debug(mesg);
     console.trace(mesg);
     setTimeout(() => {
-      // git the process a chance to output the errors and logs above before actually terminating.
+      // give the process a chance to output the errors and logs above before actually terminating.
       process.exit(1);
     }, 2000);
   }

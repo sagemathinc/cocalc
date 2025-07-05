@@ -1,3 +1,5 @@
+/** @jest-environment node */
+
 import { createMocks } from "lib/api/test-framework";
 import handler from "./guesslang";
 

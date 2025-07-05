@@ -48,7 +48,7 @@ export interface SyncTableOptions {
 export const createSyncTable = refCache<SyncTableOptions, ConatSyncTable>({
   name: "synctable",
   createKey: (opts: SyncTableOptions) =>
-    jsonStableStringify({ ...opts, client: undefined })!,
+    jsonStableStringify({ ...opts, client: opts.client?.id })!,
   createObject: async (options: SyncTableOptions & { client: Client }) => {
     let t;
     if (options.stream) {

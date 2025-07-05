@@ -16,6 +16,10 @@ import cocalc_circle from "./cocalc-circle.svg";
 import useCustomize from "./customize";
 import "./startup-banner.css";
 
+export function TestBanner() {
+  return <StartupBanner />;
+}
+
 export default function StartupBanner() {
   const customize = useCustomize();
 

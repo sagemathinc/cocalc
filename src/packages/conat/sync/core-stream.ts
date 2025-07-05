@@ -108,10 +108,18 @@ export interface CoreStreamOptions {
   start_seq?: number;
 
   ephemeral?: boolean;
+  sync?: boolean;
 
   client?: Client;
 
   noCache?: boolean;
+
+  // the name of the cluster of persistence servers to use -- this is
+  // by default SERVICE from conat/persist/util.ts.  Set it to something
+  // else to use special different servers, e.g., we use a different service
+  // for sharing cluster state date, where the servers are ephemeral and
+  // there is one for each node.
+  service?: string;
 }
 
 export interface User {
@@ -161,6 +169,7 @@ export class CoreStream<T = any> extends EventEmitter {
   private storage: StorageOptions;
   private client?: Client;
   private persistClient: PersistStreamClient;
+  private service?: string;
 
   constructor({
     name,
@@ -169,7 +178,9 @@ export class CoreStream<T = any> extends EventEmitter {
     config,
     start_seq,
     ephemeral = false,
+    sync,
     client,
+    service,
   }: CoreStreamOptions) {
     super();
     logger.debug("constructor", name);
@@ -177,11 +188,13 @@ export class CoreStream<T = any> extends EventEmitter {
       throw Error("client must be specified");
     }
     this.client = client;
+    this.service = service;
     this.user = { account_id, project_id };
     this.name = name;
     this.storage = {
       path: storagePath({ account_id, project_id, name }),
       ephemeral,
+      sync,
     };
     this._start_seq = start_seq;
     this.configOptions = config;
@@ -207,6 +220,7 @@ export class CoreStream<T = any> extends EventEmitter {
       client: this.client,
       user: this.user,
       storage: this.storage,
+      service: this.service,
     });
     this.persistClient.on("error", (err) => {
       if (!process.env.COCALC_TEST_MODE) {
@@ -236,10 +250,6 @@ export class CoreStream<T = any> extends EventEmitter {
       },
       { start: 750 },
     );
-
-    // NOTE: if we miss a message between getAllFromLeader and when we start listening,
-    // it will get filled in, due to sequence number tracking.
-    this.listen();
   };
 
   config = async (
@@ -289,28 +299,40 @@ export class CoreStream<T = any> extends EventEmitter {
         if (this.client == null) {
           return true;
         }
+        let messages: StoredMessage[] = [];
+        let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
+        let changefeed: any = undefined;
         try {
+          changefeed = await this.persistClient.changefeed();
+          (async () => {
+            try {
+              for await (const updates of changefeed) {
+                //                 console.log(
+                //                   "getAllFromPersist-changefeed-update",
+                //                   this.client.id,
+                //                   this.storage.path,
+                //                   JSON.stringify(updates.map(({ seq }) => seq)),
+                //                 );
+                changes = changes.concat(updates);
+              }
+            } catch {}
+          })();
           // console.log("get persistent stream", { start_seq }, this.storage);
-          const sub = await this.persistClient.getAll({
+          messages = await this.persistClient.getAll({
             start_seq,
           });
-          // console.log("got sub", { noEmit });
-          while (true) {
-            const { value, done } = await sub.next();
-            if (done) {
-              return true;
-            }
-            const messages = value as StoredMessage[];
-            const seq = this.processPersistentMessages(messages, {
-              noEmit,
-              noSeqCheck: true,
-            });
-            if (seq != null) {
-              // we update start_seq in case we need to try again
-              start_seq = seq! + 1;
-            }
-          }
         } catch (err) {
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(
+              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}, service=${this.service}, storage=${JSON.stringify(this.storage)}`,
+            );
+          }
+          if (err.code == 503) {
+            // temporary error due to messages being dropped,
+            // so return false to try again. This is expected to
+            // sometimes happen under heavy load, automatic failover, etc.
+            return false;
+          }
           if (err.code == 403) {
             // fatal permission error
             throw err;
@@ -319,16 +341,32 @@ export class CoreStream<T = any> extends EventEmitter {
             // too many users
             throw err;
           }
-          if (!process.env.COCALC_TEST_MODE) {
-            console.log(
-              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}`,
-            );
-          }
+        } finally {
+          changefeed?.close();
         }
-        return false;
+        //         console.log(
+        //           "getAllFromPersist",
+        //           this.client.id,
+        //           this.storage.path,
+        //           JSON.stringify(messages.map(({ seq }) => seq)),
+        //         );
+        this.processPersistentMessages(messages, {
+          noEmit,
+          noSeqCheck: true,
+        });
+        if (changes.length > 0) {
+          this.processPersistentMessages(changes, {
+            noEmit,
+            noSeqCheck: false,
+          });
+        }
+        // success!
+        return true;
       },
-      { start: 750 },
+      { start: 1000, max: 15000 },
     );
+
+    this.listen();
   };
 
   private processPersistentMessages = (
@@ -435,7 +473,7 @@ export class CoreStream<T = any> extends EventEmitter {
     },
   ) => {
     if (this.raw == null) return;
-    if (!noSeqCheck && this.processPersistentSetLargestSeq > 0) {
+    if (!noSeqCheck) {
       const expected = this.processPersistentSetLargestSeq + 1;
       if (seq > expected) {
         log(
@@ -469,16 +507,27 @@ export class CoreStream<T = any> extends EventEmitter {
       this.messages.push(mesg);
       this.raw.push(raw);
     } else {
-      // [ ] TODO: insert in the correct place.  This should only
-      // happen when calling load of old ata.  The algorithm below is
+      // Insert in the correct place.  This should only
+      // happen when calling load of old data, which happens, e.g., during
+      // automatic failover.  The algorithm below is
       // dumb and could be replaced by a binary search.  However, we'll
       // change how we batch load so there's less point.
       let i = 0;
       while (i < this.raw.length && this.raw[i].seq < seq) {
         i += 1;
       }
-      this.raw.splice(i, 0, raw);
-      this.messages.splice(i, 0, mesg);
+      // after the above loop, either:
+      //   - this.raw[i] is undefined because i = this.raw.length and every known entry was less than seq,
+      //     so we just append it, or
+      //   - this.raw[i] is defined and this.raw[i].seq >= seq.  If they are equal, do nothing, since we already
+      //     have it.  If not equal, then splice it in.
+      if (i >= this.raw.length) {
+        this.raw.push(raw);
+        this.messages.push(mesg);
+      } else if (this.raw[i].seq > seq) {
+        this.raw.splice(i, 0, raw);
+        this.messages.splice(i, 0, mesg);
+      } // other case -- we already have it.
     }
     let prev: T | undefined = undefined;
     if (typeof key == "string") {
@@ -524,6 +573,12 @@ export class CoreStream<T = any> extends EventEmitter {
             // console.log("changefeed", this.storage, updates);
             log("core-stream: process updates", updates, this.storage);
             if (this.client == null) return true;
+            //             console.log(
+            //               "listen",
+            //               this.client.id,
+            //               this.storage.path,
+            //               JSON.stringify(updates.map(({ seq }) => seq)),
+            //             );
             this.processPersistentMessages(updates, {
               noEmit: false,
               noSeqCheck: false,
@@ -770,7 +825,9 @@ export class CoreStream<T = any> extends EventEmitter {
   }
 
   // load older messages starting at start_seq up to the oldest message
-  // we currently have.
+  // we currently have.  This can throw an exception in case of heavy
+  // load or network issues, but should completely succeed or make
+  // no change.
   load = async ({
     start_seq,
     noEmit,
@@ -790,13 +847,11 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     // we're moving start_seq back to this point
     this._start_seq = start_seq;
-    const sub = await this.persistClient.getAll({
+    const messages = await this.persistClient.getAll({
       start_seq,
       end_seq,
     });
-    for await (const updates of sub) {
-      this.processPersistentMessages(updates, { noEmit, noSeqCheck: true });
-    }
+    this.processPersistentMessages(messages, { noEmit, noSeqCheck: true });
   };
 
   private getAllMissingMessages = reuseInFlight(async () => {
@@ -809,16 +864,14 @@ export class CoreStream<T = any> extends EventEmitter {
           const missing = Array.from(this.missingMessages);
           missing.sort();
           log("core-stream: getMissingSeq", missing, this.storage);
-          const sub = await this.persistClient.getAll({
+          const messages = await this.persistClient.getAll({
             start_seq: missing[0],
             end_seq: missing[missing.length - 1],
           });
-          for await (const updates of sub) {
-            this.processPersistentMessages(updates, {
-              noEmit: false,
-              noSeqCheck: true,
-            });
-          }
+          this.processPersistentMessages(messages, {
+            noEmit: false,
+            noSeqCheck: true,
+          });
           for (const seq of missing) {
             this.missingMessages.delete(seq);
           }
@@ -987,7 +1040,7 @@ export const cache = refCache<CoreStreamOptions, CoreStream>({
     return cstream;
   },
   createKey: ({ client, ...options }) => {
-    return jsonStableStringify(options)!;
+    return jsonStableStringify({ id: client?.id, ...options })!;
   },
 });
 

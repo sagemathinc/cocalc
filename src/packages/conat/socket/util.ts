@@ -23,10 +23,10 @@ export const PING_PONG_INTERVAL = 60000;
 // any size.
 export const DEFAULT_MAX_QUEUE_SIZE = 1000;
 
-export const DEFAULT_COMMAND_TIMEOUT = 3000;
+export const DEFAULT_COMMAND_TIMEOUT = 10_000;
 
-export const DEFAULT_KEEP_ALIVE = 90000;
-export const DEFAULT_KEEP_ALIVE_TIMEOUT = 15000;
+export const DEFAULT_KEEP_ALIVE = 90_000;
+export const DEFAULT_KEEP_ALIVE_TIMEOUT = 15_000;
 
 export type Command = "connect" | "close" | "ping" | "socket";
 
