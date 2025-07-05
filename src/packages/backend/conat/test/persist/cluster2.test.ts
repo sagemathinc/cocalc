@@ -28,6 +28,10 @@ describe("test using multiple persist servers in a cluster", () => {
     client1 = server1.client();
   });
 
+  it("wait until both servers in the cluster have the same state", async () => {
+    await waitForConsistentState([server, server1], 5000);
+  });
+
   let persistServer1;
   it("add a second persist server connected to server1", async () => {
     persistServer1 = createPersistServer({ client: client1 });

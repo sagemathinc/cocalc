@@ -127,6 +127,7 @@ export interface DKVOptions {
   noAutosave?: boolean;
 
   ephemeral?: boolean;
+  sync?: boolean;
 
   noCache?: boolean;
   noInventory?: boolean;
@@ -162,7 +163,8 @@ export class DKV<T = any> extends EventEmitter {
       merge,
       config,
       noAutosave,
-      ephemeral = false,
+      ephemeral,
+      sync,
       service,
     } = opts;
     this.name = name;
@@ -176,6 +178,7 @@ export class DKV<T = any> extends EventEmitter {
       client,
       config,
       ephemeral,
+      sync,
       service,
     });
 

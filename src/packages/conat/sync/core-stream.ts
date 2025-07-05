@@ -108,6 +108,7 @@ export interface CoreStreamOptions {
   start_seq?: number;
 
   ephemeral?: boolean;
+  sync?: boolean;
 
   client?: Client;
 
@@ -177,6 +178,7 @@ export class CoreStream<T = any> extends EventEmitter {
     config,
     start_seq,
     ephemeral = false,
+    sync,
     client,
     service,
   }: CoreStreamOptions) {
@@ -192,6 +194,7 @@ export class CoreStream<T = any> extends EventEmitter {
     this.storage = {
       path: storagePath({ account_id, project_id, name }),
       ephemeral,
+      sync,
     };
     this._start_seq = start_seq;
     this.configOptions = config;
@@ -300,35 +303,24 @@ export class CoreStream<T = any> extends EventEmitter {
         if (this.client == null) {
           return true;
         }
+        let messages: StoredMessage[] = [];
         try {
           // console.log("get persistent stream", { start_seq }, this.storage);
-          const sub = await this.persistClient.getAll({
+          messages = await this.persistClient.getAll({
             start_seq,
           });
-          // console.log("got sub", { noEmit });
-          // [ ] TODO: CRITICAL -- rewrite this code below to check messages.headers.seq
-          //     and make sure it counts from 0 up until done, and that nothing was missed.
-          //     ONLY once that is done and we have everything do we call processPersistentMessages.
-          //     Otherwise, just wait and try again from scratch.  There's no socket or
-          //     any other guarantees that messages aren't dropped since this is requestMany,
-          //     and under load DEFINITELY messages can be dropped.
-          //
-          while (true) {
-            const { value, done } = await sub.next();
-            if (done) {
-              return true;
-            }
-            const messages = value as StoredMessage[];
-            const seq = this.processPersistentMessages(messages, {
-              noEmit,
-              noSeqCheck: true,
-            });
-            if (seq != null) {
-              // we update start_seq in case we need to try again
-              start_seq = seq! + 1;
-            }
-          }
         } catch (err) {
+          if (!process.env.COCALC_TEST_MODE) {
+            console.log(
+              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}, service=${this.service}, storage=${JSON.stringify(this.storage)}`,
+            );
+          }
+          if (err.code == 503) {
+            // temporary error due to messages being dropped,
+            // so return false to try again. This is expected to
+            // sometimes happen under heavy load, automatic failover, etc.
+            return false;
+          }
           if (err.code == 403) {
             // fatal permission error
             throw err;
@@ -337,15 +329,15 @@ export class CoreStream<T = any> extends EventEmitter {
             // too many users
             throw err;
           }
-          if (!process.env.COCALC_TEST_MODE) {
-            console.log(
-              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}, service=${this.service}, storage=${JSON.stringify(this.storage)}`,
-            );
-          }
         }
-        return false;
+        this.processPersistentMessages(messages, {
+          noEmit,
+          noSeqCheck: true,
+        });
+        // success!
+        return true;
       },
-      { start: 750 },
+      { start: 1000, max: 15000 },
     );
   };
 
@@ -799,7 +791,9 @@ export class CoreStream<T = any> extends EventEmitter {
   }
 
   // load older messages starting at start_seq up to the oldest message
-  // we currently have.
+  // we currently have.  This can throw an exception in case of heavy
+  // load or network issues, but should completely succeed or make
+  // no change.
   load = async ({
     start_seq,
     noEmit,
@@ -819,13 +813,11 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     // we're moving start_seq back to this point
     this._start_seq = start_seq;
-    const sub = await this.persistClient.getAll({
+    const messages = await this.persistClient.getAll({
       start_seq,
       end_seq,
     });
-    for await (const updates of sub) {
-      this.processPersistentMessages(updates, { noEmit, noSeqCheck: true });
-    }
+    this.processPersistentMessages(messages, { noEmit, noSeqCheck: true });
   };
 
   private getAllMissingMessages = reuseInFlight(async () => {
@@ -838,16 +830,14 @@ export class CoreStream<T = any> extends EventEmitter {
           const missing = Array.from(this.missingMessages);
           missing.sort();
           log("core-stream: getMissingSeq", missing, this.storage);
-          const sub = await this.persistClient.getAll({
+          const messages = await this.persistClient.getAll({
             start_seq: missing[0],
             end_seq: missing[missing.length - 1],
           });
-          for await (const updates of sub) {
-            this.processPersistentMessages(updates, {
-              noEmit: false,
-              noSeqCheck: true,
-            });
-          }
+          this.processPersistentMessages(messages, {
+            noEmit: false,
+            noSeqCheck: true,
+          });
           for (const seq of missing) {
             this.missingMessages.delete(seq);
           }

@@ -11,6 +11,7 @@ import {
   addNodeToDefaultCluster,
   wait,
   client,
+  waitForConsistentState,
 } from "../setup";
 
 beforeAll(before);
@@ -37,6 +38,10 @@ describe("using various sync data structures with a cluster", () => {
     expect(new Set(server2.clusterAddresses())).toEqual(
       new Set(server.clusterAddresses()),
     );
+  });
+
+  it("wait until both servers in the cluster have the same state", async () => {
+    await waitForConsistentState([server, server2], 5000);
   });
 
   let dstream2;

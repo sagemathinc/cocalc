@@ -219,6 +219,8 @@ export async function after() {
   try {
     server?.close();
   } catch {}
+  const f = () => {};
+  process.addListener("uncaughtException", f);
   for (const cn of clients) {
     try {
       cn.close();

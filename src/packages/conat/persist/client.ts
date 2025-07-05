@@ -22,6 +22,13 @@ import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
 import { delay } from "awaiting";
 
+interface GetAllOpts {
+  start_seq?: number;
+  end_seq?: number;
+  timeout?: number;
+  maxWait?: number;
+}
+
 const logger = getLogger("persist:client");
 
 export type ChangefeedEvent = (SetOperation | DeleteOperation)[];
@@ -337,18 +344,15 @@ class PersistStreamClient extends EventEmitter {
     return resp;
   };
 
-  // returns async iterator over arrays of stored messages
-  async *getAll({
+  // returns async iterator over arrays of stored messages.
+  // It's must safer to use getAll below, but less memory
+  // efficient.
+  async *getAllIter({
     start_seq,
     end_seq,
     timeout,
     maxWait,
-  }: {
-    start_seq?: number;
-    end_seq?: number;
-    timeout?: number;
-    maxWait?: number;
-  } = {}): AsyncGenerator<StoredMessage[], void, unknown> {
+  }: GetAllOpts = {}): AsyncGenerator<StoredMessage[], void, unknown> {
     const sub = await this.socket.requestMany(null, {
       headers: {
         cmd: "getAll",
@@ -359,6 +363,7 @@ class PersistStreamClient extends EventEmitter {
       timeout,
       maxWait,
     });
+    let seq = 0; // next expected seq number for the sub (not the data)
     for await (const { data, headers } of sub) {
       if (headers?.error) {
         throw new ConatError(`${headers.error}`, { code: headers.code });
@@ -367,9 +372,35 @@ class PersistStreamClient extends EventEmitter {
         // done
         return;
       }
+      if (typeof headers?.seq != "number" || headers?.seq != seq) {
+        throw new ConatError(
+          `data dropped, probably due to load -- please try again; expected seq=${seq}, but got ${headers?.seq}`,
+          {
+            code: 503,
+          },
+        );
+      } else {
+        seq = headers?.seq + 1;
+      }
       yield data;
     }
   }
+
+  getAll = async (opts: GetAllOpts = {}): Promise<StoredMessage[]> => {
+    // NOTE: We check messages.headers.seq (which has nothing to do with the stream seq numbers!)
+    // and make sure it counts from 0 up until done, and that nothing was missed.
+    // ONLY once that is done and we have everything do we call processPersistentMessages.
+    // Otherwise, just wait and try again from scratch.  There's no socket or
+    // any other guarantees that messages aren't dropped since this is requestMany,
+    // and under load DEFINITELY messages can be dropped.
+    // This throws with code=503 if something goes wrong due to sequence numbers.
+    let messages: StoredMessage[] = [];
+    const sub = await this.getAllIter(opts);
+    for await (const value of sub) {
+      messages = messages.concat(value);
+    }
+    return messages;
+  };
 
   keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {
     return this.checkForError(

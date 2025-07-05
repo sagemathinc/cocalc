@@ -57,6 +57,7 @@ export interface DStreamOptions {
   client?: Client;
   noAutosave?: boolean;
   ephemeral?: boolean;
+  sync?: boolean;
 
   noCache?: boolean;
   noInventory?: boolean;
