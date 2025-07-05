@@ -306,6 +306,13 @@ export class CoreStream<T = any> extends EventEmitter {
             start_seq,
           });
           // console.log("got sub", { noEmit });
+          // [ ] TODO: CRITICAL -- rewrite this code below to check messages.headers.seq
+          //     and make sure it counts from 0 up until done, and that nothing was missed.
+          //     ONLY once that is done and we have everything do we call processPersistentMessages.
+          //     Otherwise, just wait and try again from scratch.  There's no socket or
+          //     any other guarantees that messages aren't dropped since this is requestMany,
+          //     and under load DEFINITELY messages can be dropped.
+          //
           while (true) {
             const { value, done } = await sub.next();
             if (done) {

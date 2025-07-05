@@ -168,9 +168,13 @@ export async function waitForConsistentState(
     throw Error("all servers must have distinct ids");
   }
 
+  const start = Date.now();
   await wait({
     until: () => {
       for (let i = 0; i < servers.length; i++) {
+        if (servers[i].state == "closed") {
+          return true;
+        }
         // now look at everybody else's view of servers[i].
         // @ts-ignore
         const a = servers[i].interest.serialize().patterns;
@@ -183,7 +187,18 @@ export async function waitForConsistentState(
             }
             const x = link.interest.serialize().patterns;
             if (!isEqual(a, x)) {
-              // console.log({ i, j, a, x });
+              if (Date.now() - start > 3000) {
+                // likely going to fail
+                console.log(
+                  "server stream getAll: ",
+                  servers[i].clusterStreams.interest.getAll(),
+                );
+                console.log(
+                  "link stream getAll: ",
+                  link.streams.interest.getAll(),
+                );
+                console.log("waitForConsistentState", { i, j, a, x });
+              }
               // not yet equal
               return false;
             }
@@ -199,9 +214,13 @@ export async function waitForConsistentState(
 export async function after() {
   persistServer?.close();
   await rm(tempDir, { force: true, recursive: true });
-  await server?.close();
+  try {
+    server?.close();
+  } catch {}
   for (const cn of clients) {
-    cn.close();
+    try {
+      cn.close();
+    } catch {}
   }
 }
 

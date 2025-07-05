@@ -14,6 +14,7 @@ import {
   persistServer as persistServer0,
   waitForConsistentState,
   delay,
+  wait,
 } from "../setup";
 import { uuid } from "@cocalc/util/misc";
 const BROKEN_THRESH = 30;
@@ -36,32 +37,31 @@ describe("test using multiple persist servers in a cluster", () => {
   });
 
   it("wait until both servers in the cluster have the same state", async () => {
-    await delay(1000);
-    await waitForConsistentState([server, server1], 4000);
+    await waitForConsistentState([server, server1], 5000);
   });
 
   const openStreamsConnectedToBothServers0: any[] = [];
   const openStreamsConnectedToBothServers1: any[] = [];
-  it("create more streams connected to both servers to use both", async () => {
-    // make random streams, with at least one new one connected to each
-    // persist server
+  it("create more streams connected to both servers, in each case illustrating as well that the stream works from both clients", async () => {
     expect(Object.keys(persistServer0.sockets).length).toBe(0);
     expect(Object.keys(persistServer1.sockets).length).toBe(0);
+    // create random streams, until we get at least one new one connected to each
+    // of the two persist servers
     while (
       Object.keys(persistServer0.sockets).length == 0 ||
       Object.keys(persistServer1.sockets).length == 0
     ) {
       const project_id = uuid();
-      const before = [
-        Object.keys(persistServer0.sockets).length,
-        Object.keys(persistServer1.sockets).length,
-      ];
       const s = await client1.sync.dstream({
         project_id,
         name: "foo",
         noCache: true,
+        // we make these ephemeral so there's no possibility of communication via the filesystem
+        // in case different persist servers were used!
+        ephemeral: true,
       });
-      await s.publish("x");
+      s.publish("x");
+      await s.save();
       openStreamsConnectedToBothServers0.push(s);
       if (openStreamsConnectedToBothServers0.length > BROKEN_THRESH) {
         throw Error("sticky queue groups are clearly not working properly");
@@ -70,21 +70,19 @@ describe("test using multiple persist servers in a cluster", () => {
         project_id,
         name: "foo",
         noCache: true,
+        ephemeral: true,
       });
-      expect(t.getAll()).toEqual(["x"]);
       openStreamsConnectedToBothServers1.push(t);
-      // since the two streams s and t we created above are for the same dstream,
-      // they MUST have connected to the same persist server, so the count must
-      // have gone up by TWO for either server0 or server1.
-      const after = [
-        Object.keys(persistServer0.sockets).length,
-        Object.keys(persistServer1.sockets).length,
-      ];
-      // differences must be even
-      expect((after[0] - before[0]) % 2).toBe(0);
-      expect((after[1] - before[1]) % 2).toBe(0);
+
+      expect(t.getAll()).toEqual(["x"]);
+      t.publish("y");
+      await t.save();
+
+      await wait({ until: () => s.length == 2 });
+      expect(s.getAll()).toEqual(["x", "y"]);
     }
     expect(openStreamsConnectedToBothServers0.length).toBeGreaterThan(1);
+    expect(openStreamsConnectedToBothServers1.length).toBeGreaterThan(1);
   });
 });
 

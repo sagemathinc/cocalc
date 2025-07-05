@@ -163,13 +163,9 @@ export class ConatServer {
   private cluster?: boolean;
 
   private sockets: { [id: string]: any } = {};
-  private disconnectingTimeout: {
-    [id: string]: ReturnType<typeof setTimeout>;
-  } = {};
-
   private stats: { [id: string]: ConnectionStats } = {};
   private usage: UsageMonitor;
-  private state: State = "ready";
+  public state: State = "ready";
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
@@ -758,11 +754,6 @@ export class ConatServer {
     this.stats[socket.id].user = user;
     const id = socket.id;
     this.log("new connection", { id, user });
-    if (this.disconnectingTimeout[id]) {
-      this.log("clearing disconnectingTimeout - ", { id, user });
-      clearTimeout(this.disconnectingTimeout[id]);
-      delete this.disconnectingTimeout[id];
-    }
     if (this.subscriptions[id] == null) {
       this.subscriptions[id] = new Set<string>();
     }

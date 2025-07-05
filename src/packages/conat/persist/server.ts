@@ -122,6 +122,10 @@ export function server({
       id: socket.id,
       subject: socket.subject,
     });
+    //     console.log(new Date(), "persist server got connection", {
+    //       persist: client.info.id,
+    //       subject: socket.subject,
+    //     });
     let error = "";
     let errorCode: any = undefined;
     let changefeed = false;

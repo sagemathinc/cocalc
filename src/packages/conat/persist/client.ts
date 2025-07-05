@@ -47,7 +47,7 @@ class PersistStreamClient extends EventEmitter {
     private service = SERVICE,
   ) {
     super();
-     this.setMaxListeners(100);
+    this.setMaxListeners(100);
     // paths.add(this.storage.path);
     logger.debug("constructor", this.storage);
     this.init();
@@ -80,6 +80,7 @@ class PersistStreamClient extends EventEmitter {
     }
 
     this.socket.once("disconnected", () => {
+      // console.log("persist client was disconnected", this.storage.path);
       this.reconnecting = true;
       this.socket.removeAllListeners();
       setTimeout(this.init, 1000);
