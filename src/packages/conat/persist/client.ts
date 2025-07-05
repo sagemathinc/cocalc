@@ -20,7 +20,7 @@ import { assertHasWritePermission as assertHasWritePermission0 } from "./auth";
 import { refCacheSync } from "@cocalc/util/refcache";
 import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
-import { delay } from "awaiting";
+import { until } from "@cocalc/util/async-utils";
 
 interface GetAllOpts {
   start_seq?: number;
@@ -81,7 +81,8 @@ class PersistStreamClient extends EventEmitter {
       changefeed: this.changefeeds.length > 0,
     });
 
-    // get any messages from the stream that we missed while offline.
+    // get any messages from the stream that we missed while offline;
+    // this only matters if there are changefeeds.
     if (this.reconnecting) {
       this.getMissed();
     }
@@ -116,49 +117,36 @@ class PersistStreamClient extends EventEmitter {
   };
 
   private getMissed = async () => {
+    if (this.changefeeds.length == 0 || this.state != "ready") {
+      return;
+    }
     try {
       this.gettingMissed = true;
       this.changesWhenGettingMissed.length = 0;
-      while (this.state == "ready") {
-        try {
-          await this.socket.waitUntilReady(90000);
-          break;
-        } catch {
-          // timeout
-          await delay(1000);
-        }
-      }
-      //     console.log("getMissed", {
-      //       path: this.storage.path,
-      //       lastSeq: this.lastSeq,
-      //       changefeeds: this.changefeeds.length,
-      //     });
-      if (this.changefeeds.length == 0) {
+
+      await until(
+        async () => {
+          if (this.changefeeds.length == 0 || this.state != "ready") {
+            return true;
+          }
+          try {
+            await this.socket.waitUntilReady(15000);
+            const updates = await this.getAll({
+              start_seq: this.lastSeq,
+              timeout: 15000,
+            });
+            this.changefeedEmit(updates);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { min: 2000, max: 15000 },
+      );
+    } finally {
+      if (this.state != "ready") {
         return;
       }
-      // we are resuming after a disconnect when we had some data up to lastSeq.
-      // let's grab anything we missed.
-      const sub = await this.socket.requestMany(null, {
-        headers: {
-          cmd: "getAll",
-          start_seq: this.lastSeq,
-          timeout: 15000,
-        } as any,
-        timeout: 15000,
-        maxWait: 15000,
-      });
-      for await (const { data: updates, headers } of sub) {
-        if (headers?.error) {
-          // give up
-          return;
-        }
-        if (updates == null || this.socket.state == "closed") {
-          // done
-          return;
-        }
-        this.changefeedEmit(updates);
-      }
-    } finally {
       this.gettingMissed = false;
       for (const updates of this.changesWhenGettingMissed) {
         this.changefeedEmit(updates);

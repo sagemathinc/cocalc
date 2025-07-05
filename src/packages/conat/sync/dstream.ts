@@ -213,6 +213,15 @@ export class DStream<T = any> extends EventEmitter {
     }
   };
 
+  // all sequences numbers of messages
+  seqs = (): number[] => {
+    const seqs = this.raw.map(({ seq }) => seq);
+    for (const seq in this.saved) {
+      seqs.push(parseInt(seq));
+    }
+    return seqs;
+  };
+
   time = (n: number): Date | undefined => {
     if (this.isClosed()) {
       throw Error("not initialized");

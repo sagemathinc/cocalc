@@ -250,10 +250,6 @@ export class CoreStream<T = any> extends EventEmitter {
       },
       { start: 750 },
     );
-
-    // NOTE: if we miss a message between getAllFromLeader and when we start listening,
-    // it will get filled in, due to sequence number tracking.
-    this.listen();
   };
 
   config = async (
@@ -304,7 +300,23 @@ export class CoreStream<T = any> extends EventEmitter {
           return true;
         }
         let messages: StoredMessage[] = [];
+        let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
+        let changefeed: any = undefined;
         try {
+          changefeed = await this.persistClient.changefeed();
+          (async () => {
+            try {
+              for await (const updates of changefeed) {
+                //                 console.log(
+                //                   "getAllFromPersist-changefeed-update",
+                //                   this.client.id,
+                //                   this.storage.path,
+                //                   JSON.stringify(updates.map(({ seq }) => seq)),
+                //                 );
+                changes = changes.concat(updates);
+              }
+            } catch {}
+          })();
           // console.log("get persistent stream", { start_seq }, this.storage);
           messages = await this.persistClient.getAll({
             start_seq,
@@ -329,16 +341,32 @@ export class CoreStream<T = any> extends EventEmitter {
             // too many users
             throw err;
           }
+        } finally {
+          changefeed?.close();
         }
+        //         console.log(
+        //           "getAllFromPersist",
+        //           this.client.id,
+        //           this.storage.path,
+        //           JSON.stringify(messages.map(({ seq }) => seq)),
+        //         );
         this.processPersistentMessages(messages, {
           noEmit,
           noSeqCheck: true,
         });
+        if (changes.length > 0) {
+          this.processPersistentMessages(changes, {
+            noEmit,
+            noSeqCheck: false,
+          });
+        }
         // success!
         return true;
       },
       { start: 1000, max: 15000 },
     );
+
+    this.listen();
   };
 
   private processPersistentMessages = (
@@ -445,7 +473,7 @@ export class CoreStream<T = any> extends EventEmitter {
     },
   ) => {
     if (this.raw == null) return;
-    if (!noSeqCheck && this.processPersistentSetLargestSeq > 0) {
+    if (!noSeqCheck) {
       const expected = this.processPersistentSetLargestSeq + 1;
       if (seq > expected) {
         log(
@@ -545,6 +573,12 @@ export class CoreStream<T = any> extends EventEmitter {
             // console.log("changefeed", this.storage, updates);
             log("core-stream: process updates", updates, this.storage);
             if (this.client == null) return true;
+            //             console.log(
+            //               "listen",
+            //               this.client.id,
+            //               this.storage.path,
+            //               JSON.stringify(updates.map(({ seq }) => seq)),
+            //             );
             this.processPersistentMessages(updates, {
               noEmit: false,
               noSeqCheck: false,

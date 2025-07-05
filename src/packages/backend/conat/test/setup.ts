@@ -192,12 +192,24 @@ export async function waitForConsistentState(
                 console.log(
                   "server stream getAll: ",
                   // @ts-ignore
-                  servers[i].clusterStreams.interest.getAll(),
+                  servers[i].clusterStreams.interest.stream.client.id,
+                  // @ts-ignore
+                  servers[i].clusterStreams.interest.stream.storage.path,
+                  // @ts-ignore
+                  servers[i].clusterStreams.interest.seqs(),
+                  // @ts-ignore
+                  //servers[i].clusterStreams.interest.getAll(),
                 );
                 console.log(
                   "link stream getAll: ",
                   // @ts-ignore
-                  link.streams.interest.getAll(),
+                  link.streams.interest.stream.client.id,
+                  // @ts-ignore
+                  link.streams.interest.stream.storage.path,
+                  // @ts-ignore
+                  link.streams.interest.seqs(),
+                  // @ts-ignore
+                  //link.streams.interest.getAll(),
                 );
                 console.log("waitForConsistentState", { i, j, a, x });
               }

@@ -185,7 +185,7 @@ export interface StoredMessage {
 }
 
 export interface SetOperation extends StoredMessage {
-  op: undefined;
+  op?: undefined;
   msgID?: string;
 }
 
