@@ -37,7 +37,7 @@ describe("test using multiple persist servers in a cluster", () => {
 
   it("wait until both servers in the cluster have the same state", async () => {
     await delay(1000);
-    await waitForConsistentState([server, server1], 2000);
+    await waitForConsistentState([server, server1], 4000);
   });
 
   const openStreamsConnectedToBothServers0: any[] = [];

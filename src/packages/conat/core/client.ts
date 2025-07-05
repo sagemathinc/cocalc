@@ -250,13 +250,14 @@ export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // half the chunk size... because there is no way to know if recipients will be
   // using long polling to RECEIVE messages.  Not insurmountable.
   transports: ["websocket"],
+  rememberUpgrade: true,
 
   // nodejs specific for project/compute server in some settings
   rejectUnauthorized: false,
 
   reconnection: true,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 15000,
+  reconnectionDelay: process.env.COCALC_TEST_MODE ? 50 : 500,
+  reconnectionDelayMax: process.env.COCALC_TEST_MODE ? 500 : 15000,
   reconnectionAttempts: 9999999999, // infinite
 };
 
@@ -447,8 +448,8 @@ export class Client extends EventEmitter {
       }
       options = { ...options, address: process.env.CONAT_SERVER };
     }
-    this.setMaxListeners(1000);
     this.options = options;
+    this.setMaxListeners(1000);
 
     // for socket.io the address has no base url
     const { address, path } = cocalcServerToSocketioAddress(
@@ -468,7 +469,6 @@ export class Client extends EventEmitter {
       // not given, then we implement (in this file) reconnect ourselves.
       // The browser frontend explicit sets options.reconnection false
       // and uses its own logic.
-      reconnection: false,
       ...options,
       ...(options.systemAccountPassword
         ? {
@@ -479,6 +479,7 @@ export class Client extends EventEmitter {
           }
         : undefined),
       path,
+      reconnection: true,
     });
 
     this.conn.on("info", (info) => {
@@ -504,13 +505,14 @@ export class Client extends EventEmitter {
       );
     });
     this.conn.on("disconnect", async () => {
+      if (this.isClosed()) {
+        return;
+      }
       this.stats.recv0 = { messages: 0, bytes: 0 }; // reset on disconnect
       this.setState("disconnected");
       this.disconnectAllSockets();
-      if (this.options.reconnection ?? true) {
-        this.connect();
-      }
     });
+    this.conn.io.connect();
     this.initInbox();
     this.statsLoop();
   }
@@ -523,37 +525,13 @@ export class Client extends EventEmitter {
   };
 
   disconnect = () => {
+    if (this.isClosed()) {
+      return;
+    }
     this.disconnectAllSockets();
     // @ts-ignore
     setTimeout(() => this.conn.io.disconnect(), 1);
   };
-
-  connect = reuseInFlight(async () => {
-    let attempts = 0;
-    await until(
-      async () => {
-        if (this.conn?.connected || this.state == "closed") {
-          return true;
-        }
-        this.disconnect();
-        await delay(
-          Math.max(
-            this.options.reconnectionDelay ??
-              DEFAULT_SOCKETIO_CLIENT_OPTIONS.reconnectionDelay ??
-              500,
-            500,
-          ),
-        );
-        attempts += 1;
-        console.log(
-          `Connecting to ${this.options.address}: attempts ${attempts}`,
-        );
-        this.conn.io.connect();
-        return false;
-      },
-      { min: 3000, max: 15000 },
-    );
-  });
 
   waitUntilSignedIn = reuseInFlight(async () => {
     // not "signed in" if --
@@ -1529,7 +1507,7 @@ export class Client extends EventEmitter {
   };
 
   private disconnectAllSockets = () => {
-    if (!this.sockets.servers) {
+    if (this.state == "closed") {
       return;
     }
     for (const subject in this.sockets.servers) {

@@ -183,6 +183,7 @@ export async function waitForConsistentState(
             }
             const x = link.interest.serialize().patterns;
             if (!isEqual(a, x)) {
+              // console.log({ i, j, a, x });
               // not yet equal
               return false;
             }

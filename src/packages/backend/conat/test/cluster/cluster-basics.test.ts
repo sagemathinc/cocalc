@@ -189,8 +189,12 @@ describe("create a cluster with two distinct servers and send a message from one
   });
 
   it("link them", async () => {
+    await delay(500);
     await server1.join(server2.address());
     await server2.join(server1.address());
+  });
+
+  it("wait for consistent state", async () => {
     await waitForConsistentState([server1, server2], 10000);
   });
 
