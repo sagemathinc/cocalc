@@ -283,6 +283,16 @@ export class ConatServer {
     });
   };
 
+  // this is for the Kubernetes health check -- I haven't
+  // thought at all about what to do here, really.
+  // Hopefully experience can teach us.
+  isHealthy = () => {
+    if (this.state == "closed") {
+      return false;
+    }
+    return true;
+  };
+
   close = async () => {
     if (this.state == "closed") {
       return;

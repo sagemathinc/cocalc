@@ -41,14 +41,25 @@ import { conatSocketioCount, conatClusterPort } from "@cocalc/backend/data";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { join } from "path";
-import { getLogger } from "@cocalc/backend/logger";
 import "@cocalc/backend/conat";
 import "@cocalc/backend/conat/persist"; // initializes context
+import { dnsScan } from "./dns-scan";
+import { health } from "./health";
+import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("conat-server");
 
-export async function init(options: Partial<Options> = {}) {
+export async function init(
+  options0: Partial<Options> & { kucalc?: boolean } = {},
+) {
   logger.debug("init");
+  const { kucalc, ...options } = options0;
+
+  if (kucalc) {
+    // In Kubernetes we do two things differently:
+    //   - the server id is derived from the hostname
+    //   - we use dns to periodically lookup the other servers and join to them.
+  }
 
   const opts = {
     getUser,
@@ -60,7 +71,16 @@ export async function init(options: Partial<Options> = {}) {
     ...options,
   };
 
-  if (!conatSocketioCount || conatSocketioCount <= 1) {
+  if (kucalc) {
+    const server = createConatServer(opts);
+    // enable dns scanner
+    dnsScan(server);
+    // enable health checks
+    health(server);
+    return server;
+  }
+
+  if ((conatSocketioCount ?? 1) <= 1) {
     return createConatServer(opts);
   } else {
     return createConatServer({
@@ -72,6 +92,5 @@ export async function init(options: Partial<Options> = {}) {
       clusterName: "default",
       id: "node",
     });
-    throw Error(`not implemented -- socket count = ${conatSocketioCount}`);
   }
 }

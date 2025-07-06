@@ -179,7 +179,7 @@ async function startServer(): Promise<void> {
 
   if (program.conatRouter) {
     // launch standalone socketio websocket server (no http server)
-    await initConatServer();
+    await initConatServer({ kucalc: program.mode == "kucalc" });
   }
 
   if (program.conatApi || program.conatServer) {

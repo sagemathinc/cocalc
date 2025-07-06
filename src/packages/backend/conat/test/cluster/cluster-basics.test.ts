@@ -33,6 +33,8 @@ describe("create a cluster enabled socketio server and test that the streams upd
       clusterName: "cluster0",
       id: "0",
     }));
+
+    expect(server.isHealthy()).toBe(true);
   });
 
   let streams;
@@ -638,6 +640,7 @@ describe("test automatic node discovery (and forgetting)", () => {
     };
     const n = numNodes();
     nodes[1].server.close();
+    expect(nodes[1].server.isHealthy()).toBe(false);
     // not instantly gone
     expect(numNodes()).toBe(n);
     await nodes[0].server.scan();
