@@ -38,6 +38,7 @@ import {
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
 import {
+  conatPassword,
   conatSocketioCount,
   conatClusterPort,
   conatClusterName as clusterName,
@@ -61,9 +62,6 @@ export async function init(
   const { kucalc, ...options } = options0;
 
   if (kucalc) {
-    // In Kubernetes we do two things differently:
-    //   - the server id is derived from the hostname
-    //   - we use dns to periodically lookup the other servers and join to them.
   }
 
   const opts = {
@@ -78,6 +76,11 @@ export async function init(
   };
 
   if (kucalc) {
+    // In Kubernetes we do two things differently:
+    //   - the server id is derived from the hostname
+    //   - we use dns to periodically lookup the other servers and join to them.
+    // we might switch to something else, but for now this should be fine
+    opts.systemAccountPassword = conatPassword;
     if (!opts.clusterName) {
       opts.clusterName = "default";
     }
