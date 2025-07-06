@@ -18,6 +18,7 @@ import { delay } from "awaiting";
 export { delay };
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { once } from "@cocalc/util/async-utils";
+import { until } from "@cocalc/util/async-utils";
 import { randomId } from "@cocalc/conat/names";
 import { isEqual } from "lodash";
 
@@ -169,8 +170,8 @@ export async function waitForConsistentState(
   }
 
   const start = Date.now();
-  await wait({
-    until: () => {
+  await until(
+    () => {
       for (let i = 0; i < servers.length; i++) {
         if (servers[i].state == "closed") {
           return true;
@@ -186,33 +187,50 @@ export async function waitForConsistentState(
               throw Error(`node ${j} is not connected to node ${i}`);
             }
             const x = link.interest.serialize().patterns;
+            const showInfo = () => {
+              console.log(
+                "server stream getAll: ",
+                // @ts-ignore
+                servers[i].clusterStreams.interest.stream.client.id,
+                // @ts-ignore
+                servers[i].clusterStreams.interest.stream.storage.path,
+                // @ts-ignore
+                servers[i].clusterStreams.interest.seqs(),
+                // @ts-ignore
+                //servers[i].clusterStreams.interest.getAll(),
+              );
+              console.log(
+                "link stream getAll: ",
+                // @ts-ignore
+                link.streams.interest.stream.client.id,
+                // @ts-ignore
+                link.streams.interest.stream.storage.path,
+                // @ts-ignore
+                link.streams.interest.seqs(),
+                // @ts-ignore
+                //link.streams.interest.getAll(),
+              );
+              console.log("waitForConsistentState", { i, j, a, x });
+            };
             if (!isEqual(a, x)) {
+              // @ts-ignore
+              const seqs0 = servers[i].clusterStreams.interest.seqs();
+              const seqs1 = link.streams.interest.seqs();
+              if (
+                !isEqual(
+                  seqs0.slice(0, seqs1.length),
+                  seqs1.slice(0, seqs0.length),
+                )
+              ) {
+                showInfo();
+                throw Error(`inconsistent initial sequences`);
+              }
+
               if (Date.now() - start > 3000) {
                 // likely going to fail
-                console.log(
-                  "server stream getAll: ",
-                  // @ts-ignore
-                  servers[i].clusterStreams.interest.stream.client.id,
-                  // @ts-ignore
-                  servers[i].clusterStreams.interest.stream.storage.path,
-                  // @ts-ignore
-                  servers[i].clusterStreams.interest.seqs(),
-                  // @ts-ignore
-                  //servers[i].clusterStreams.interest.getAll(),
-                );
-                console.log(
-                  "link stream getAll: ",
-                  // @ts-ignore
-                  link.streams.interest.stream.client.id,
-                  // @ts-ignore
-                  link.streams.interest.stream.storage.path,
-                  // @ts-ignore
-                  link.streams.interest.seqs(),
-                  // @ts-ignore
-                  //link.streams.interest.getAll(),
-                );
-                console.log("waitForConsistentState", { i, j, a, x });
+                showInfo();
               }
+
               // not yet equal
               return false;
             }
@@ -221,8 +239,8 @@ export async function waitForConsistentState(
       }
       return true;
     },
-    timeout,
-  });
+    { timeout },
+  );
 }
 
 export async function after() {

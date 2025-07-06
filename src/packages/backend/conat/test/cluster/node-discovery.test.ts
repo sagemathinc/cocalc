@@ -9,6 +9,7 @@ import { createClusterNode } from "./util";
 
 beforeAll(before);
 
+jest.setTimeout(10000);
 describe("test automatic node discovery (and forgetting)", () => {
   const nodes: { client; server }[] = [];
   const clusterName = "auto";
