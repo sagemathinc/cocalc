@@ -20,9 +20,30 @@ export async function dnsScan(server: ConatServer) {
   await delay(3000);
   while (server.state != "closed") {
     try {
-      const addresses = await getAddresses();
+      const addresses = new Set(await getAddresses());
       logger.debug("DNS found", addresses);
+
+      const current = new Set(server.clusterAddresses());
+      logger.debug("Current cluster", current);
+      for (const address of current) {
+        if (address == server.address()) {
+          continue;
+        }
+
+        if (!addresses.has(address)) {
+          if (server.state == ("closed" as any)) return;
+          try {
+            await server.unjoin({ address });
+          } catch (err) {
+            logger.debug(`WARNING: error unjoining to ${address} -- ${err}`);
+          }
+        }
+      }
+
       for (const address of addresses) {
+        if (current.has(address)) {
+          continue;
+        }
         logger.debug("joining", address);
         if (server.state == ("closed" as any)) return;
         try {
