@@ -65,7 +65,7 @@ class PersistStreamClient extends EventEmitter {
       this.close();
       return;
     }
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       return;
     }
     this.socket?.close();
@@ -172,6 +172,8 @@ class PersistStreamClient extends EventEmitter {
     }
     this.emit("changefeed", updates);
   };
+
+  private isClosed = () => this.state == "closed";
 
   close = () => {
     logger.debug("close", this.storage);
@@ -341,6 +343,10 @@ class PersistStreamClient extends EventEmitter {
     timeout,
     maxWait,
   }: GetAllOpts = {}): AsyncGenerator<StoredMessage[], void, unknown> {
+    if (this.isClosed()) {
+      // done
+      return;
+    }
     const sub = await this.socket.requestMany(null, {
       headers: {
         cmd: "getAll",
@@ -351,6 +357,10 @@ class PersistStreamClient extends EventEmitter {
       timeout,
       maxWait,
     });
+    if (this.isClosed()) {
+      // done with this
+      return;
+    }
     let seq = 0; // next expected seq number for the sub (not the data)
     for await (const { data, headers } of sub) {
       if (headers?.error) {
@@ -384,8 +394,14 @@ class PersistStreamClient extends EventEmitter {
     // This throws with code=503 if something goes wrong due to sequence numbers.
     let messages: StoredMessage[] = [];
     const sub = await this.getAllIter(opts);
+    if (this.isClosed()) {
+      throw Error("closed");
+    }
     for await (const value of sub) {
       messages = messages.concat(value);
+    }
+    if (this.isClosed()) {
+      throw Error("closed");
     }
     return messages;
   };

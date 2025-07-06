@@ -261,6 +261,10 @@ export class CoreStream<T = any> extends EventEmitter {
     return await this.persistClient.config({ config });
   };
 
+  private isClosed = () => {
+    return this.client === undefined;
+  };
+
   close = () => {
     logger.debug("close", this.name);
     delete this.client;
@@ -296,7 +300,7 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     await until(
       async () => {
-        if (this.client == null) {
+        if (this.isClosed()) {
           return true;
         }
         let messages: StoredMessage[] = [];
@@ -304,15 +308,12 @@ export class CoreStream<T = any> extends EventEmitter {
         let changefeed: any = undefined;
         try {
           changefeed = await this.persistClient.changefeed();
+          if (this.isClosed()) {
+            return true;
+          }
           (async () => {
             try {
               for await (const updates of changefeed) {
-                //                 console.log(
-                //                   "getAllFromPersist-changefeed-update",
-                //                   this.client.id,
-                //                   this.storage.path,
-                //                   JSON.stringify(updates.map(({ seq }) => seq)),
-                //                 );
                 changes = changes.concat(updates);
               }
             } catch {}
@@ -322,9 +323,12 @@ export class CoreStream<T = any> extends EventEmitter {
             start_seq,
           });
         } catch (err) {
+          if (this.isClosed()) {
+            return true;
+          }
           if (!process.env.COCALC_TEST_MODE) {
             console.log(
-              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}, service=${this.service}, storage=${JSON.stringify(this.storage)}`,
+              `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}, service=${this.service}, storage=${JSON.stringify(this.storage)} -- will retry`,
             );
           }
           if (err.code == 503 || err.code == 408) {
