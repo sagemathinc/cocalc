@@ -118,7 +118,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     workingDir?: string,
   ) {
     this.actions = actions;
-    this.ask_for_cwd = debounce(this.ask_for_cwd);
 
     this.account_store = redux.getStore("account");
     this.project_actions = redux.getProjectActions(actions.project_id);
@@ -289,9 +288,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       try {
         await this.configureComputeServerId();
       } catch {
-        // expected if the project tab closes right when the terminal is
-        // being created.
-        return;
+        // expected to throw sometimes, e.g., if the project tab closes
+        // right when the terminal is being created, in which case this.state
+        // will be closed and we exit.
       }
       if (this.state == "closed") {
         return;
@@ -721,9 +720,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.render_buffer = "";
   };
 
-  ask_for_cwd = (): void => {
+  ask_for_cwd = debounce((): void => {
     this.conn_write({ cmd: "cwd" });
-  };
+  });
 
   kick_other_users_out(): void {
     // @ts-ignore
