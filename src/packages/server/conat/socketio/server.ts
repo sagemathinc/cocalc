@@ -49,6 +49,7 @@ import "@cocalc/backend/conat";
 import "@cocalc/backend/conat/persist"; // initializes context
 import { dnsScan } from "./dns-scan";
 import { health } from "./health";
+import { hostname } from "node:os";
 import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("conat-server");
@@ -79,6 +80,9 @@ export async function init(
   if (kucalc) {
     if (!opts.clusterName) {
       opts.clusterName = "default";
+    }
+    if (!opts.id) {
+      opts.id = hostname().split("-").slice(-1)[0];
     }
     const server = createConatServer(opts);
     // enable dns scanner
