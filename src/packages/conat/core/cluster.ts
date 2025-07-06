@@ -275,7 +275,7 @@ export async function trimClusterStreams(
   }
   if (seqs.length > 0) {
     // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
-    logger.debug("trimClusterStream: trimming interset", { seqs });
+    logger.debug("trimClusterStream: trimming interest", { seqs });
     for (const seq of seqs) {
       await interest.delete({ seq });
     }
