@@ -55,11 +55,29 @@ function pidFile(HOME: string): string {
   return join(dataPath(HOME), pidFilename);
 }
 
+function parseDarwinTime(output:string) : number {
+  // output = '{ sec = 1747866131, usec = 180679 } Wed May 21 15:22:11 2025';
+  const match = output.match(/sec\s*=\s*(\d+)/);
+
+  if (match) {
+    const sec = parseInt(match[1], 10);
+    return sec * 1000;
+  } else {
+    throw new Error("Could not parse sysctl output");
+  }
+}
+
 let _bootTime = 0;
 export async function bootTime(): Promise<number> {
   if (!_bootTime) {
-    const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
-    _bootTime = new Date(stdout).valueOf();
+    if (process.platform === "darwin") {
+      // uptime isn't available on macos.
+      const { stdout } = await executeCode({ command: "sysctl", args: ['-n', 'kern.boottime']});
+      _bootTime = parseDarwinTime(stdout);
+    } else {
+      const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
+      _bootTime = new Date(stdout).valueOf();
+    }
   }
   return _bootTime;
 }
