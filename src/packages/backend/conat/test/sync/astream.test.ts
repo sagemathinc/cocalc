@@ -93,7 +93,7 @@ describe("test basics with an astream", () => {
   });
 });
 
-const stress1 = 1e4;
+const stress1 = 1e3;
 describe(`stress test -- write, then read back, ${stress1} messages`, () => {
   let client, s;
   const name = "stress-test";

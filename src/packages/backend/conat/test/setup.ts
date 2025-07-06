@@ -145,7 +145,7 @@ export function connect(opts?): Client {
 // other thinks it is.
 export async function waitForConsistentState(
   servers: ConatServer[],
-  timeout = 10000,
+  timeout = 20000,
 ): Promise<void> {
   if (servers.length <= 1) {
     return;

@@ -1,4 +1,9 @@
-import { before, after, wait } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  wait,
+  waitForConsistentState,
+} from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 import { type ConatServer } from "@cocalc/conat/core/server";
 import { createClusterNode } from "./util";
@@ -54,6 +59,12 @@ describe("create cluster of two nodes, and verify that *sticky* subs properly wo
   });
 
   it("send messages and note they all go to the same target -- next the hard case across the cluster", async () => {
+    // NOTE: if we do this test without waiting for consistent state, it will definitely
+    // fail sometimes, since server2 literally doesn't know enough about the servers yet, 
+    // so has to make a different choice.  Services of course must account for the fact that
+    // for the first moments of their existence, sticky routing can't work.
+    await waitForConsistentState([server1, server2]);
+    
     await client2.waitForInterest(subject);
     for (let i = 0; i < count; i++) {
       await client2.publish(subject, "hi");

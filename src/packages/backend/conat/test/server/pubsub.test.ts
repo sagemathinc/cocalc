@@ -24,14 +24,14 @@ import {
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 import { waitForSubscription } from "./util";
 
-// should be several thousand, so 250 seems reasonable as a cutoff to indicate
-// things are horribly wrong
-const REQUIRED_SINGLE_SERVER_RECV_MESSAGES_PER_SECOND = 250;
-// should be tens of thousands
-const REQUIRED_SINGLE_SERVER_SEND_MESSAGES_PER_SECOND = 500;
+// These are all very low since results are very low when running
+// tests massively in parallel.
 
-const REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND = 200;
-const REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND = 400;
+const REQUIRED_SINGLE_SERVER_RECV_MESSAGES_PER_SECOND = 150;
+const REQUIRED_SINGLE_SERVER_SEND_MESSAGES_PER_SECOND = 200;
+
+const REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND = 100;
+const REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND = 200;
 
 const VERBOSE = false;
 const log = VERBOSE ? console.log : (..._args) => {};
