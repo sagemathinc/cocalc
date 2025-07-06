@@ -160,6 +160,14 @@ export async function retry_until_success<T>(
 import { EventEmitter } from "events";
 import { CB } from "./types/database";
 
+export class TimeoutError extends Error {
+  code: number;
+  constructor(mesg: string) {
+    super(mesg);
+    this.code = 408;
+  }
+}
+
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event.
    If timeout_ms is 0 (the default) this can wait an unbounded
@@ -195,13 +203,13 @@ export async function once(
 
     function onClosed() {
       cleanup();
-      reject(new Error(`once: "${event}" not emitted before "closed"`));
+      reject(new TimeoutError(`once: "${event}" not emitted before "closed"`));
     }
 
     function onTimeout() {
       cleanup();
       reject(
-        new Error(`once: timeout of ${timeout_ms}ms waiting for "${event}"`),
+        new TimeoutError(`once: timeout of ${timeout_ms}ms waiting for "${event}"`),
       );
     }
 

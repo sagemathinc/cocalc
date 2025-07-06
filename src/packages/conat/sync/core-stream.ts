@@ -327,10 +327,11 @@ export class CoreStream<T = any> extends EventEmitter {
               `WARNING: getAllFromPersist - failed -- ${err}, code=${err.code}, service=${this.service}, storage=${JSON.stringify(this.storage)}`,
             );
           }
-          if (err.code == 503) {
-            // temporary error due to messages being dropped,
+          if (err.code == 503 || err.code == 408) {
+            // 503: temporary error due to messages being dropped,
             // so return false to try again. This is expected to
             // sometimes happen under heavy load, automatic failover, etc.
+            // 408: timeout waiting to be connected/ready
             return false;
           }
           if (err.code == 403) {
@@ -341,6 +342,8 @@ export class CoreStream<T = any> extends EventEmitter {
             // too many users
             throw err;
           }
+          // any other error that we might not address above -- just try again in a while.
+          return false;
         } finally {
           changefeed?.close();
         }
