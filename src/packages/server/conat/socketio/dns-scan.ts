@@ -8,6 +8,7 @@ import { delay } from "awaiting";
 import type { ConatServer } from "@cocalc/conat/core/server";
 import { lookup } from "dns/promises";
 import port from "@cocalc/backend/port";
+import { hostname } from "node:os";
 import { getLogger } from "@cocalc/backend/logger";
 
 const SCAN_INTERVAL = 15_000;
@@ -20,7 +21,7 @@ export async function dnsScan(server: ConatServer) {
   while (server.state != "closed") {
     try {
       const addresses = await getAddresses();
-      logger.debug("DNS can revealed", addresses);
+      logger.debug("DNS found", addresses);
       for (const address of addresses) {
         logger.debug("joining", address);
         if (server.state == ("closed" as any)) return;
@@ -39,10 +40,12 @@ export async function dnsScan(server: ConatServer) {
 
 export async function getAddresses(): Promise<string[]> {
   const v: string[] = [];
+  const { address: self } = await lookup(hostname());
   for (const { address } of await lookup(
     process.env.COCALC_SERVICE ?? "hub-conat-router",
     { all: true },
   )) {
+    if (address == self) continue;
     v.push(`http://${address}:${port}`);
   }
   return v;

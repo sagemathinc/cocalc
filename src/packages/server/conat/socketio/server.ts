@@ -37,7 +37,11 @@ import {
 } from "@cocalc/conat/core/server";
 import { getUser, isAllowed } from "./auth";
 import { secureRandomString } from "@cocalc/backend/misc";
-import { conatSocketioCount, conatClusterPort } from "@cocalc/backend/data";
+import {
+  conatSocketioCount,
+  conatClusterPort,
+  conatClusterName as clusterName,
+} from "@cocalc/backend/data";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { join } from "path";
@@ -68,10 +72,14 @@ export async function init(
       options.systemAccountPassword ?? (await secureRandomString(64)),
     path: join(basePath, "conat"),
     port,
+    clusterName,
     ...options,
   };
 
   if (kucalc) {
+    if (!opts.clusterName) {
+      opts.clusterName = "default";
+    }
     const server = createConatServer(opts);
     // enable dns scanner
     dnsScan(server);

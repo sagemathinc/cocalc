@@ -245,6 +245,8 @@ export let conatClusterHealthPort = parseInt(
   process.env.CONAT_CLUSTER_HEALTH_PORT ?? "0",
 );
 
+export const conatClusterName = process.env.CONAT_CLUSTER_NAME;
+
 // API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
