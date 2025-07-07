@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "Przyciski pokazują pełne strony",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Pokaż pasek akcji",
   "project.page.vertical-fixed-tabs.title": "Układ pionowy paska",
-  "project.page.vertical-fixed-tabs.toggle-labels": "Pokaż etykiety",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Ukryj etykiety} other {Pokaż etykiety}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "Pokaż opis na przyciskach pionowego paska akcji",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Ukryj pasek akcji",
   "project.servers.project-servers.description": "Możesz uruchomić różne serwery notebooków w tym projekcie jednym kliknięciem. Działają w tym samym środowisku, mają dostęp do tych samych plików i zatrzymują się, gdy projekt się zatrzymuje. Możesz także <A>uruchomić własne serwery</A>.",

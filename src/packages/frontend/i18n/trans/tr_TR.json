@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "Düğmeler tam sayfaları gösterir",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Eylem çubuğunu göster",
   "project.page.vertical-fixed-tabs.title": "Dikey çubuk düzeni",
-  "project.page.vertical-fixed-tabs.toggle-labels": "Etiketleri göster",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Etiketleri gizle} other {Etiketleri göster}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "Dikey eylem çubuğu düğmelerinde açıklamayı göster",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Eylem çubuğunu gizle",
   "project.servers.project-servers.description": "Bu proje içinde tek tıkla çeşitli defter sunucularını çalıştırabilirsiniz. Aynı ortamda çalışırlar, aynı dosyalara erişirler ve proje durduğunda dururlar. Ayrıca <A>kendi sunucularınızı çalıştırabilirsiniz</A>.",

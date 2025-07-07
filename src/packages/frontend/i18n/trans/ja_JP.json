@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "ボタンが全ページを表示",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "アクションバーを表示",
   "project.page.vertical-fixed-tabs.title": "縦棒レイアウト",
-  "project.page.vertical-fixed-tabs.toggle-labels": "ラベルを表示",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {ラベルを隠す} other {ラベルを表示}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "縦のアクションバーボタンに説明を表示",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "アクションバーを隠す",
   "project.servers.project-servers.description": "このプロジェクト内で様々なノートブックサーバーをワンクリックで実行できます。それらは同じ環境で動作し、同じファイルにアクセスし、プロジェクトが停止すると停止します。また、<A>自分のサーバーを実行する</A>こともできます。",

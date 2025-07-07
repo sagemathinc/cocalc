@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "الأزرار تظهر الصفحات الكاملة",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "عرض شريط الإجراءات",
   "project.page.vertical-fixed-tabs.title": "تخطيط الشريط الرأسي",
-  "project.page.vertical-fixed-tabs.toggle-labels": "عرض التسميات",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {إخفاء التسميات} other {إظهار التسميات}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "عرض الوصف على أزرار شريط الإجراءات العمودي",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "إخفاء شريط الإجراءات",
   "project.servers.project-servers.description": "يمكنك تشغيل خوادم دفتر ملاحظات مختلفة داخل هذا المشروع بنقرة واحدة. تعمل في نفس البيئة، وتصل إلى نفس الملفات، وتتوقف عندما يتوقف المشروع. يمكنك أيضًا <A>تشغيل خوادمك الخاصة</A>.",

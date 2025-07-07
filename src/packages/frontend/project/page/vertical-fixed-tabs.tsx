@@ -185,8 +185,8 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     const isActive = (vbar === "flyout" ? active_flyout : activeTab) === name;
 
     const style: CSS = {
-      padding: "0",
       ...color,
+      margin: "0",
       borderLeft: `4px solid ${
         isActive ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
       }`,
@@ -195,6 +195,12 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         ? { backgroundColor: COLORS.BLUE_LLLL }
         : undefined),
     };
+
+    const spacing: string = showVbarLabels
+      ? "5px"
+      : condensed
+      ? "8px" // margin for condensed mode
+      : "12px"; // margin for normal mode
 
     const tab = (
       <FileTab
@@ -207,9 +213,9 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         iconStyle={{
           fontSize: condensed ? "18px" : "24px",
           margin: "0",
-          padding: "5px 0px",
           ...color,
         }}
+        extraSpacing={spacing}
         flyout={name}
         condensed={condensed}
         showLabel={showVbarLabels}
@@ -317,8 +323,8 @@ function LayoutSelector({ vbar }) {
     key: "toggle-labels",
     label: (
       <span>
-        <Icon name={showVbarLabels ? "check-square-o" : "square-o"} />{" "}
-        {intl.formatMessage(VBAR_TOGGLE_LABELS)}
+        <Icon name={"signature-outlined"} />{" "}
+        {intl.formatMessage(VBAR_TOGGLE_LABELS, { show: showVbarLabels })}
       </span>
     ),
     onClick: () => {

@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "按钮显示完整页面",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "显示操作栏",
   "project.page.vertical-fixed-tabs.title": "垂直条布局",
-  "project.page.vertical-fixed-tabs.toggle-labels": "显示标签",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {隐藏标签} other {显示标签}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "在垂直操作栏按钮上显示描述",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "隐藏操作栏",
   "project.servers.project-servers.description": "您可以通过一次点击在此项目内运行各种笔记本服务器。它们在相同的环境中运行，访问相同的文件，并在项目停止时停止。您也可以<A>运行您自己的服务器</A>。",

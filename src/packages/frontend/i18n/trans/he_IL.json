@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "כפתורים מראים דפים מלאים",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "הצג את סרגל הפעולות",
   "project.page.vertical-fixed-tabs.title": "פריסה אנכית",
-  "project.page.vertical-fixed-tabs.toggle-labels": "הצג תוויות",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {הסתר תוויות} other {הצג תוויות}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "הצג את התיאור על כפתורי סרגל הפעולה האנכי",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "הסתר את סרגל הפעולות",
   "project.servers.project-servers.description": "ניתן להפעיל שרתי מחברות שונים בתוך הפרויקט הזה בלחיצה אחת. הם פועלים באותה סביבה, יש להם גישה לאותם קבצים, והם נעצרים כאשר הפרויקט נעצר. ניתן גם <A>להפעיל שרתים משלכם</A>.",

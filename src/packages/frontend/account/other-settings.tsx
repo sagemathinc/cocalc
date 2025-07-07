@@ -538,8 +538,10 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
               style={{ marginBottom: 0 }}
               ellipsis={{ expandable: true, symbol: "more" }}
             >
-              <Text strong>{intl.formatMessage(VBAR_TOGGLE_LABELS)}</Text>:{" "}
-              {intl.formatMessage(VBAR_TOGGLE_LABELS_DESCRIPTION)}
+              <Text strong>
+                {intl.formatMessage(VBAR_TOGGLE_LABELS, { show: false })}
+              </Text>
+              : {intl.formatMessage(VBAR_TOGGLE_LABELS_DESCRIPTION)}
             </Paragraph>
           </Checkbox>
         </div>

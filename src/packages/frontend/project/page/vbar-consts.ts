@@ -23,7 +23,7 @@ export const VBAR_EXPLANATION = defineMessage({
 
 export const VBAR_TOGGLE_LABELS = defineMessage({
   id: "project.page.vertical-fixed-tabs.toggle-labels",
-  defaultMessage: "Show labels",
+  defaultMessage: "{show, select, true {Hide labels} other {Show labels}}",
 });
 
 export const VBAR_TOGGLE_LABELS_DESCRIPTION = defineMessage({

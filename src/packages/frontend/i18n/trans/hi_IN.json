@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "बटन संपूर्ण पृष्ठ दिखाएं",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "क्रिया पट्टी दिखाएं",
   "project.page.vertical-fixed-tabs.title": "वर्टिकल बार लेआउट",
-  "project.page.vertical-fixed-tabs.toggle-labels": "लेबल दिखाएं",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {लेबल छिपाएं} other {लेबल दिखाएं}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "वर्टिकल एक्शन बार बटन पर विवरण दिखाएं",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "कार्य पट्टी छिपाएँ",
   "project.servers.project-servers.description": "आप इस प्रोजेक्ट के अंदर विभिन्न नोटबुक सर्वर एक क्लिक में चला सकते हैं। वे एक ही वातावरण में चलते हैं, एक ही फाइलों तक पहुँचते हैं, और प्रोजेक्ट के बंद होने पर बंद हो जाते हैं। आप <A>अपने खुद के सर्वर भी चला सकते हैं</A>।",

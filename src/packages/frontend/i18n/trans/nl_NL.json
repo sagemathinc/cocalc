@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "Knoppen tonen volledige pagina's",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Toon de actiebalk",
   "project.page.vertical-fixed-tabs.title": "Verticale balkindeling",
-  "project.page.vertical-fixed-tabs.toggle-labels": "Labels weergeven",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Labels verbergen} other {Labels tonen}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "Toon de beschrijving op de verticale actieknoppenbalk",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Verberg de actiebalk",
   "project.servers.project-servers.description": "Je kunt verschillende notebook-servers binnen dit project met één klik uitvoeren. Ze draaien in dezelfde omgeving, hebben toegang tot dezelfde bestanden, en stoppen wanneer het project stopt. Je kunt ook <A>je eigen servers draaien</A>.",

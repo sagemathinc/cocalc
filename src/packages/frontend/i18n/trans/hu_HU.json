@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "Gombok teljes oldalakat mutatnak",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Mutasd az akciósávot",
   "project.page.vertical-fixed-tabs.title": "Függőleges sáv elrendezés",
-  "project.page.vertical-fixed-tabs.toggle-labels": "Címkék megjelenítése",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Címkék elrejtése} other {Címkék megjelenítése}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "Mutassa a leírást a függőleges műveleti sáv gombjain",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Rejtsd el az műveletsávot",
   "project.servers.project-servers.description": "Egyetlen kattintással különböző notebook szervereket futtathatsz ebben a projektben. Ugyanabban a környezetben futnak, hozzáférnek ugyanazokhoz a fájlokhoz, és leállnak, amikor a projekt leáll. Saját szervereket is <A>futtathatsz</A>.",

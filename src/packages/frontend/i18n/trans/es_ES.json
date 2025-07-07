@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "Los botones muestran páginas completas",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Mostrar la barra de acciones",
   "project.page.vertical-fixed-tabs.title": "Diseño de barra vertical",
-  "project.page.vertical-fixed-tabs.toggle-labels": "Mostrar etiquetas",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Ocultar etiquetas} other {Mostrar etiquetas}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "Mostrar la descripción en los botones de la barra de acciones vertical",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Ocultar la barra de acciones",
   "project.servers.project-servers.description": "Puedes ejecutar varios servidores de cuadernos dentro de este proyecto con un solo clic. Se ejecutan en el mismo entorno, tienen acceso a los mismos archivos y se detienen cuando el proyecto se detiene. También puedes <A>ejecutar tus propios servidores</A>.",

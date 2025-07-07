@@ -179,6 +179,7 @@ interface Props0 {
   noPopover?: boolean;
   placement?;
   iconStyle?: CSSProperties;
+  extraSpacing?: string; // around main div and caret
   isFixedTab?: boolean;
   flyout?: FixedTab;
   condensed?: boolean;
@@ -319,7 +320,11 @@ export function FileTab(props: Readonly<Props>) {
         }}
       >
         <Icon
-          style={{ padding: "0 3px", margin: "0", color }}
+          style={{
+            padding: "0 3px",
+            margin: "0",
+            color,
+          }}
           name="caret-right"
         />
       </div>
@@ -425,6 +430,8 @@ export function FileTab(props: Readonly<Props>) {
           width: "100%",
           paddingLeft: "8px",
           paddingRight: "8px",
+          paddingTop: props.extraSpacing ?? "0",
+          paddingBottom: props.extraSpacing ?? "0",
         }}
       >
         {btnLeft}
@@ -435,7 +442,10 @@ export function FileTab(props: Readonly<Props>) {
 
   const body = (
     <div
-      style={{ ...style, ...props.style }}
+      style={{
+        ...style,
+        ...props.style,
+      }}
       cocalc-test={label}
       onClick={click}
       onMouseUp={onMouseUp}

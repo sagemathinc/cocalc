@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "I pulsanti mostrano pagine intere",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Mostra la barra delle azioni",
   "project.page.vertical-fixed-tabs.title": "Layout a barre verticale",
-  "project.page.vertical-fixed-tabs.toggle-labels": "Mostra etichette",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Nascondi etichette} other {Mostra etichette}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "Mostra la descrizione sui pulsanti della barra delle azioni verticali",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Nascondi la barra delle azioni",
   "project.servers.project-servers.description": "Puoi eseguire vari server notebook all'interno di questo progetto con un solo clic. Funzionano nello stesso ambiente, hanno accesso agli stessi file e si fermano quando il progetto si ferma. Puoi anche <A>eseguire i tuoi server</A>.",

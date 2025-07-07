@@ -1254,7 +1254,7 @@
   "project.page.vbar.option.full": "Schaltflächen zeigen ganze Seiten",
   "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Aktionsleiste anzeigen",
   "project.page.vertical-fixed-tabs.title": "Layout des vertikalen Balken",
-  "project.page.vertical-fixed-tabs.toggle-labels": "Beschriftungen anzeigen",
+  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Beschriftungen ausblenden} other {Beschriftungen anzeigen}}",
   "project.page.vertical-fixed-tabs.toggle-labels.description": "Zeige die Beschreibung auf den vertikalen Aktionsleisten-Buttons",
   "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Aktionsleiste ausblenden",
   "project.servers.project-servers.description": "Sie können verschiedene Notebook-Server in diesem Projekt mit einem Klick starten. Sie laufen in derselben Umgebung, haben Zugriff auf dieselben Dateien und stoppen, wenn das Projekt stoppt. Sie können auch <A>Ihren eigenen Server starten</A>.",
