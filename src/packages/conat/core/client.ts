@@ -123,6 +123,14 @@ mysteriously terminate subscriptions for a variety of reasons, meaning that any
 code using subscriptions had to be wrapped in ugly complexity to be
 usable in production.
 
+INTEREST AWARENESS: In Conat there is a cluster-aware event driving way to
+wait for interest in a subject.  This is an extremely useful extension to
+NATS functionality, since it makes it much easier to dynamically setup 
+a client and a server and exchange messages without having to poll and fail
+potentially a few times.  This makes certain operations involving complicated
+steps behind the scenes -- upload a file, open a file to edit with sync, etc. --
+feel more responsive.
+
 USAGE:
 
 The following should mostly work to interactively play around with this
@@ -1172,7 +1180,7 @@ export class Client extends EventEmitter {
   publish = async (
     subject: string,
     mesg,
-    opts?: PublishOptions,
+    opts: PublishOptions = {},
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
@@ -1187,12 +1195,45 @@ export class Client extends EventEmitter {
       return { bytes: 0, count: 0 };
     }
     await this.waitUntilSignedIn();
+    const start = Date.now();
     const { bytes, getCount, promise } = this._publish(subject, mesg, {
       ...opts,
       confirm: true,
     });
     await promise;
-    return { bytes, count: getCount?.()! };
+    let count = getCount?.()!;
+
+    if (
+      opts.waitForInterest &&
+      count != null &&
+      count == 0 &&
+      !this.isClosed() &&
+      (opts.timeout == null || Date.now() - start <= opts.timeout)
+    ) {
+      await this.waitForInterest(subject, {
+        timeout: opts.timeout ? opts.timeout - (Date.now() - start) : undefined,
+      });
+      if (this.isClosed()) {
+        return { bytes, count };
+      }
+      const elapsed = Date.now() - start;
+      const timeout = opts.timeout == null ? undefined : opts.timeout - elapsed;
+      // client and there is interest
+      if (timeout && timeout <= 500) {
+        // but... not enough time left to try again even if there is interest,
+        // i.e., will fail anyways due to network latency
+        return { bytes, count };
+      }
+      const { getCount, promise } = this._publish(subject, mesg, {
+        ...opts,
+        timeout,
+        confirm: true,
+      });
+      await promise;
+      count = getCount?.()!;
+    }
+
+    return { bytes, count };
   };
 
   private _publish = (
@@ -1316,19 +1357,11 @@ export class Client extends EventEmitter {
   request = async (
     subject: string,
     mesg: any,
-    {
-      timeout = DEFAULT_REQUEST_TIMEOUT,
-      // waitForInterest -- if publish fails due to no receivers and
-      // waitForInterest is true, will wait until there is a receiver
-      // and publish again:
-      waitForInterest = false,
-      ...options
-    }: PublishOptions & { timeout?: number; waitForInterest?: boolean } = {},
+    { timeout = DEFAULT_REQUEST_TIMEOUT, ...options }: PublishOptions = {},
   ): Promise<Message> => {
     if (timeout <= 0) {
       throw Error("timeout must be positive");
     }
-    const start = Date.now();
     const inbox = await this.getInbox();
     const inboxSubject = this.temporaryInboxSubject();
     const sub = new EventIterator<Message>(inbox, inboxSubject, {
@@ -1343,39 +1376,13 @@ export class Client extends EventEmitter {
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     };
     const { count } = await this.publish(subject, mesg, opts);
-
     if (!count) {
-      const giveUp = () => {
-        sub.stop();
-        throw new ConatError(
-          `request -- no subscribers matching '${subject}'`,
-          {
-            code: 503,
-          },
-        );
-      };
-      if (waitForInterest) {
-        await this.waitForInterest(subject, { timeout });
-        if (this.state == "closed") {
-          throw Error("closed");
-        }
-        const remaining = timeout - (Date.now() - start);
-        if (remaining <= 1000) {
-          throw new ConatError("timeout", { code: 408 });
-        }
-        // no error so there is very likely now interest, so we publish again:
-        const { count } = await this.publish(subject, mesg, {
-          ...opts,
-          timeout: remaining,
-        });
-        if (!count) {
-          giveUp();
-        }
-      } else {
-        giveUp();
-      }
+      sub.stop();
+      // if you hit this, consider using the option waitForInterest:true
+      throw new ConatError(`request -- no subscribers matching '${subject}'`, {
+        code: 503,
+      });
     }
-
     for await (const resp of sub) {
       sub.stop();
       return resp;
@@ -1588,8 +1595,17 @@ interface PublishOptions {
   // encoded message (using encoding) and any mesg parameter
   // is *IGNORED*.
   raw?;
+
   // timeout used when publishing a message and awaiting a response.
   timeout?: number;
+
+  // waitForInterest -- if publishing async so its possible to tell whether or not
+  // there were any recipients, and there were NO recipients, it will wait until
+  // there is a recipient and send again.  This does NOT use polling, but instead
+  // uses a cluster aware and fully event based primitive in the server.
+  // There is thus only a speed penality doing this on failure and never 
+  // on success.
+  waitForInterest?: boolean;
 }
 
 interface RequestManyOptions extends PublishOptions {
