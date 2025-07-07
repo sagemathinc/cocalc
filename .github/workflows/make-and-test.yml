@@ -45,7 +45,8 @@ jobs:
 
   build:
     # https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/using-github-hosted-runners/using-larger-runners/managing-larger-runners#adding-a-larger-runner-to-an-organization
-    runs-on: prod-9183 #ubuntu-24.04-4cpu-16ram
+    #runs-on: prod-9183
+    runs-on: ubuntu-24.04-4cpu-16ram
     services:
       postgres:
         image: postgres:${{ matrix.pg-version}}
