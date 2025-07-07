@@ -10,7 +10,10 @@ describe("test the per user subscription limit", () => {
   let server;
 
   it("creates a server with a subscription limit of 3", async () => {
-    server = await createServer({ maxSubscriptionsPerClient: 3 });
+    server = await createServer({
+      maxSubscriptionsPerClient: 3,
+      clusterName: undefined, // since can't bootstrap with so few subscriptions!
+    });
   });
 
   let client;

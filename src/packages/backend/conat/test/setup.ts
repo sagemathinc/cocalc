@@ -13,14 +13,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 import { wait } from "@cocalc/backend/conat/test/util";
-export { wait };
 import { delay } from "awaiting";
-export { delay };
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
-export { once } from "@cocalc/util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { until } from "@cocalc/util/async-utils";
 import { randomId } from "@cocalc/conat/names";
 import { isEqual } from "lodash";
+
+export { wait, delay, once };
 
 const logger = getLogger("conat:test:setup");
 
@@ -35,7 +35,11 @@ export async function initConatServer(
     options = { ...options, port };
   }
 
-  return createConatServer(options);
+  const server = createConatServer(options);
+  if (false && server.state != "ready") {
+    await once(server, "ready");
+  }
+  return server;
 }
 
 export let tempDir;
@@ -182,7 +186,7 @@ export async function waitForConsistentState(
         for (let j = 0; j < servers.length; j++) {
           if (i != j) {
             // @ts-ignore
-            const link = servers[j].clusterLinks[clusterName][servers[i].id];
+            const link = servers[j].clusterLinks[clusterName]?.[servers[i].id];
             if (link == null) {
               throw Error(`node ${j} is not connected to node ${i}`);
             }

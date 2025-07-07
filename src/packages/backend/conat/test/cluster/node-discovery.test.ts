@@ -25,7 +25,7 @@ describe("test automatic node discovery (and forgetting)", () => {
     );
   };
 
-  it("create three distinct servers with cluster support enabled", async () => {
+  it("create two servers with cluster support enabled", async () => {
     await create("node0");
     await create("node1");
   });

@@ -69,6 +69,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 import { forkedConatServer } from "./start-server";
 import { stickyChoice } from "./sticky";
+import { EventEmitter } from "events";
 
 const logger = getLogger("conat:core:server");
 
@@ -151,9 +152,9 @@ export interface Options {
   localClusterSize?: number;
 }
 
-type State = "ready" | "closed";
+type State = "init" | "ready" | "closed";
 
-export class ConatServer {
+export class ConatServer extends EventEmitter {
   public readonly io;
   public readonly id: string;
 
@@ -165,7 +166,7 @@ export class ConatServer {
   private sockets: { [id: string]: any } = {};
   private stats: { [id: string]: ConnectionStats } = {};
   private usage: UsageMonitor;
-  public state: State = "ready";
+  public state: State = "init";
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
   private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
@@ -183,6 +184,7 @@ export class ConatServer {
   private queuedClusterUpdates: Update[] = [];
 
   constructor(options: Options) {
+    super();
     const {
       httpServer,
       port = 3000,
@@ -266,13 +268,26 @@ export class ConatServer {
     }
     this.initUsage();
     this.io.on("connection", this.handleSocket);
+    this.init();
+  }
+
+  private setState = (state: State) => {
+    if (this.state == state) return;
+    this.emit(state);
+    this.state = state;
+  };
+
+  private isClosed = () => this.state == "closed";
+
+  private init = async () => {
     if (this.options.systemAccountPassword) {
-      this.initSystemService();
+      await this.initSystemService();
     }
     if (this.clusterName) {
-      this.initCluster();
+      await this.initCluster();
     }
-  }
+    this.setState("ready");
+  };
 
   private initUsage = () => {
     this.usage = new UsageMonitor({
@@ -287,17 +302,17 @@ export class ConatServer {
   // thought at all about what to do here, really.
   // Hopefully experience can teach us.
   isHealthy = () => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       return false;
     }
     return true;
   };
 
   close = async () => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       return;
     }
-    this.state = "closed";
+    this.setState("closed");
 
     if (this.clusterStreams != null) {
       for (const name in this.clusterStreams) {
@@ -414,7 +429,7 @@ export class ConatServer {
   ///////////////////////////////////////
 
   private updateInterest = async (interest: InterestUpdate) => {
-    if (this.state != "ready") return;
+    if (this.isClosed()) return;
     // publish to the stream
     this.updateClusterStream({ interest });
     // update our local state
@@ -812,7 +827,7 @@ export class ConatServer {
         const count = await this.publish({ subject, data, from: user });
         respond?.({ count });
       } catch (err) {
-        console.log(this.id, "ERROR", err);
+        // console.log(this.id, "ERROR", err);
         if (err.code == 403) {
           socket.emit("permission", {
             message: err.message,
@@ -1016,11 +1031,11 @@ export class ConatServer {
     }
     this.log(`Cluster autoscan interval ${this.options.autoscanInterval}ms`);
     let lastCount = 1;
-    while (this.state != "closed") {
+    while (!this.isClosed()) {
       let x;
       try {
         x = await this.scan();
-        if (this.state == ("closed" as any)) return;
+        if (this.isClosed()) return;
       } catch (err) {
         // this should never happen unless there is a serious bug (?).
         this.log(`WARNING/BUG?: serious problem scanning -- ${err}`);
@@ -1048,7 +1063,7 @@ export class ConatServer {
 
   private scanSoon = throttle(
     async () => {
-      if (this.state == "closed" || !this.options.autoscanInterval) {
+      if (this.isClosed() || !this.options.autoscanInterval) {
         return;
       }
       let x;
@@ -1278,7 +1293,7 @@ export class ConatServer {
   // the number of links created (count), so if it returns 0 when called on all nodes, then
   // we're done until new nodes are added.
   scan = reuseInFlight(async (): Promise<{ count: number; errors: any[] }> => {
-    if (this.state == "closed") {
+    if (this.isClosed()) {
       return { count: 0, errors: [] };
     }
     const knownByUs = new Set(this.clusterAddresses(this.clusterName));
@@ -1296,7 +1311,7 @@ export class ConatServer {
         const knownByRemoteNode = new Set(
           await sys.clusterAddresses(this.clusterName),
         );
-        if (this.state == "closed") return;
+        if (this.isClosed()) return;
         for (const address of knownByRemoteNode) {
           if (!knownByUs.has(address)) {
             unknownToUs.add(address);
@@ -1305,7 +1320,7 @@ export class ConatServer {
         if (!knownByRemoteNode.has(this.address())) {
           // we know about them, but they don't know about us, so ask them to link to us.
           await sys.join(this.address());
-          if (this.state == ("closed" as any)) return;
+          if (this.isClosed()) return;
           count += 1;
         }
       } catch (err) {
@@ -1338,7 +1353,7 @@ export class ConatServer {
         })
         .map((link) => f(link.client)),
     );
-    if (unknownToUs.size == 0 || this.state == ("closed" as any)) {
+    if (unknownToUs.size == 0 || this.isClosed()) {
       return { count, errors };
     }
 
@@ -1471,11 +1486,7 @@ export class ConatServer {
       timeout = MAX_INTEREST_TIMEOUT;
     }
     const start = Date.now();
-    while (
-      this.state != "closed" &&
-      this.sockets[socketId] &&
-      !signal?.aborted
-    ) {
+    while (!this.isClosed() && this.sockets[socketId] && !signal?.aborted) {
       if (Date.now() - start >= timeout) {
         throw Error("timeout");
       }
@@ -1485,11 +1496,7 @@ export class ConatServer {
       } catch {
         continue;
       }
-      if (
-        (this.state as any) == "closed" ||
-        !this.sockets[socketId] ||
-        signal?.aborted
-      ) {
+      if (this.isClosed() || !this.sockets[socketId] || signal?.aborted) {
         return false;
       }
       const hasMatch = this.interest.hasMatch(subject);
