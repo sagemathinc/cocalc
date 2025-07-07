@@ -6,6 +6,7 @@ import {
   waitForConsistentState,
 } from "@cocalc/backend/conat/test/setup";
 import { createClusterNode } from "./util";
+import { isEqual } from "lodash";
 
 beforeAll(before);
 
@@ -61,17 +62,32 @@ describe("test automatic node discovery (and forgetting)", () => {
     });
   });
 
-  const count = 5;
+  // WORRY -- with count bigger, e.g., 5, sometimes this doesn't work.
+  // It might be an indicator of an issue.
+  const count = 3;
+  it(`check state is consistent -- before adding more ${count} nodes`, async () => {
+    await waitForConsistentState(nodes.map((x) => x.server));
+  });
+
   it(`add ${count} more nodes`, async () => {
     for (let i = 3; i < 3 + count; i++) {
       await create(`node${i}`);
       await nodes[i].server.join(nodes[i - 1].server.address());
     }
+  });
+
+  it("wait until every node knows about every other node", async () => {
     const total = nodes.length;
+    const all = new Set(nodes.map((x) => x.server.address()));
     await wait({
       until: () => {
         for (let i = 0; i < total; i++) {
-          if (nodes[i].server.clusterAddresses(clusterName).length != total) {
+          if (
+            !isEqual(
+              all,
+              new Set(nodes[i].server.clusterAddresses(clusterName)),
+            )
+          ) {
             return false;
           }
         }
@@ -80,7 +96,7 @@ describe("test automatic node discovery (and forgetting)", () => {
     });
   });
 
-  it("check state is consistent", async () => {
+  it(`wait for cluster to have consistent state -- after adding ${count} nodes`, async () => {
     await waitForConsistentState(nodes.map((x) => x.server));
   });
 

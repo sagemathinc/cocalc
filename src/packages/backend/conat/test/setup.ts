@@ -36,7 +36,7 @@ export async function initConatServer(
   }
 
   const server = createConatServer(options);
-  if (false && server.state != "ready") {
+  if (server.state != "ready") {
     await once(server, "ready");
   }
   return server;
@@ -126,11 +126,12 @@ export async function restartPersistServer() {
 export let client;
 export async function before() {
   tempDir = await mkdtemp(join(tmpdir(), "conat-test"));
+  syncFiles.local = join(tempDir, "local");
+  syncFiles.archive = join(tempDir, "archive");
+  
   server = await createServer();
   client = connect();
   persistServer = createPersistServer({ client });
-  syncFiles.local = join(tempDir, "local");
-  syncFiles.archive = join(tempDir, "archive");
   setConatClient({
     conat: connect,
     getLogger,
@@ -150,7 +151,7 @@ export function connect(opts?): Client {
 // other thinks it is.
 export async function waitForConsistentState(
   servers: ConatServer[],
-  timeout = 20000,
+  timeout = 10000,
 ): Promise<void> {
   if (servers.length <= 1) {
     return;
