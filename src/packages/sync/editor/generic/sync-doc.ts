@@ -2262,7 +2262,7 @@ export class SyncDoc extends EventEmitter {
     // a snapshot at the same time -- this would waste a little space
     // in the stream, but is otherwise harmless, since the snapshots
     // are identical.
-    this.snapshot_if_necessary();
+    this.snapshotIfNecessary();
   };
 
   private dstream = () => {
@@ -2365,9 +2365,9 @@ export class SyncDoc extends EventEmitter {
 
   // Have a snapshot every this.snapshot_interval patches, except
   // for the very last interval.
-  private snapshot_if_necessary = async (): Promise<void> => {
+  private snapshotIfNecessary = async (): Promise<void> => {
     if (this.get_state() !== "ready") return;
-    const dbg = this.dbg("snapshot_if_necessary");
+    const dbg = this.dbg("snapshotIfNecessary");
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });

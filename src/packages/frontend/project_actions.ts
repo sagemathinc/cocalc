@@ -1522,9 +1522,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2308,8 +2307,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -2682,11 +2681,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
   // that extension.  Throws an Error if the path name is invalid.
-  public construct_absolute_path(
+  construct_absolute_path = (
     name: string,
     current_path?: string,
     ext?: string,
-  ) {
+  ): string => {
     if (name.length === 0) {
       throw Error("Cannot use empty filename");
     }
@@ -2700,7 +2699,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       s = `${s}.${ext}`;
     }
     return s;
-  }
+  };
 
   async create_folder(opts: {
     name: string;
