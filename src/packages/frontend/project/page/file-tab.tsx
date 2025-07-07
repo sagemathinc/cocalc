@@ -11,7 +11,7 @@ A single tab in a project.
 
 // cSpell:ignore fixedtab popout Collabs
 
-import { Popover, Tag } from "antd";
+import { Popover, Tag, Tooltip } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
@@ -392,6 +392,33 @@ export function FileTab(props: Readonly<Props>) {
       </div>
     ) : undefined;
 
+  function renderFixedTab() {
+    const button = (
+      <div
+        className="cc-project-fixedtab"
+        style={{
+          textAlign: "center",
+          width: "100%",
+          paddingLeft: "8px",
+          paddingRight: "8px",
+          paddingTop: props.extraSpacing ?? "0",
+          paddingBottom: props.extraSpacing ?? "0",
+        }}
+      >
+        {btnLeft}
+      </div>
+    );
+    if (isFixedTab && !showLabel) {
+      return (
+        <Tooltip title={label} placement="right">
+          {button}
+        </Tooltip>
+      );
+    } else {
+      return button;
+    }
+  }
+
   const btnLeft = (
     <>
       <Icon
@@ -423,19 +450,7 @@ export function FileTab(props: Readonly<Props>) {
         justifyContent: "space-between",
       }}
     >
-      <div
-        className="cc-project-fixedtab"
-        style={{
-          textAlign: "center",
-          width: "100%",
-          paddingLeft: "8px",
-          paddingRight: "8px",
-          paddingTop: props.extraSpacing ?? "0",
-          paddingBottom: props.extraSpacing ?? "0",
-        }}
-      >
-        {btnLeft}
-      </div>
+      {renderFixedTab()}
       {renderFlyoutCaret()}
     </div>
   );
