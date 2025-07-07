@@ -1,9 +1,5 @@
 name: Make all packages and run their tests
 
-# a larger machine, with less job concurrency
-# https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/using-github-hosted-runners/using-larger-runners/managing-larger-runners#adding-a-larger-runner-to-an-organization
-runs-on: ubuntu-24.04-4cpu-16ram
-
 # newer commits in the same PR abort running ones for the same workflow
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -48,8 +44,8 @@ jobs:
         run: cd src/scripts && python3 check_doc_urls.py || sleep 5 || python3 check_doc_urls.py
 
   build:
-    runs-on: ubuntu-latest
-
+    # https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/using-github-hosted-runners/using-larger-runners/managing-larger-runners#adding-a-larger-runner-to-an-organization
+    runs-on: prod-9183 #ubuntu-24.04-4cpu-16ram
     services:
       postgres:
         image: postgres:${{ matrix.pg-version}}
