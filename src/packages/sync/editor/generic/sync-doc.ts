@@ -1582,7 +1582,7 @@ export class SyncDoc extends EventEmitter {
     }
     assertDefined(this.patch_list);
     if (init.size == null) {
-      // don't crash but warn at least.  
+      // don't crash but warn at least.
       console.warn("SYNC BUG -- init.size must be defined", { init });
     }
     if (
@@ -2364,9 +2364,14 @@ export class SyncDoc extends EventEmitter {
   });
 
   // Have a snapshot every this.snapshot_interval patches, except
-  // for the very last interval.
-  private snapshotIfNecessary = async (): Promise<void> => {
-    if (this.get_state() !== "ready") return;
+  // for the very last interval.  Throttle so we don't try to make
+  // snapshots too frequently, as making them is always optional and
+  // now part of the UI.
+  private snapshotIfNecessary = throttle(async (): Promise<void> => {
+    if (this.get_state() !== "ready") {
+      // especially important due to throttle
+      return;
+    }
     const dbg = this.dbg("snapshotIfNecessary");
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
@@ -2390,7 +2395,7 @@ export class SyncDoc extends EventEmitter {
     } else {
       dbg("no need to make a snapshot yet");
     }
-  };
+  }, 60000);
 
   /*- x - patch object
     - patch: if given will be used as an actual patch
