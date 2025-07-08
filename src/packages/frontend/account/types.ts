@@ -59,6 +59,7 @@ export interface AccountState {
     no_email_new_messages?: boolean;
     use_balance_toward_subscriptions?: boolean;
     [VBAR_LABELS]?: boolean; // whether to show labels on the vertical action bar
+    show_symbol_bar_labels?: boolean; // whether to show labels on the menu buttons
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

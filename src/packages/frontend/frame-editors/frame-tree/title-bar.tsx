@@ -270,6 +270,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const otherSettings = useRedux(["account", "other_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
+  const showSymbolBarLabels = otherSettings.get(
+    "show_symbol_bar_labels",
+    false,
+  );
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
@@ -707,8 +711,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-                ? intl.formatMessage(label)
-                : label
+              ? intl.formatMessage(label)
+              : label
           }
           items={v}
         />
@@ -1057,6 +1061,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return null;
     }
     const { disabled, label, key, children, onClick } = item;
+    const style: CSS = {
+      color: "#333",
+      padding: showSymbolBarLabels ? "0" : "4px 0 0 0",
+      height: showSymbolBarLabels ? "36px" : "28px",
+      position: "relative",
+      top: showSymbolBarLabels ? "0" : "2px",
+    };
     if (children != null) {
       return (
         <DropdownMenu
@@ -1065,7 +1076,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           title={label}
           items={children}
           button={false}
-          style={{ color: "#333", padding: 0 }}
+          style={style}
         />
       );
     } else {
@@ -1076,7 +1087,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           key={key}
           disabled={disabled}
           onClick={onClick}
-          style={{ color: "#333", padding: 0 }}
+          style={style}
         >
           {label}
         </Button>
@@ -1107,7 +1118,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           opacity: is_active ? undefined : 0.3,
         }}
       >
-        <div style={{ marginBottom: "-2px", paddingTop:'4px' }}>{v}</div>
+        <div style={{ marginBottom: "-1px", marginTop: "-1px" }}>{v}</div>
       </div>
     );
   }
