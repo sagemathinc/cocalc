@@ -2,33 +2,33 @@
 To start this standalone
 
    s = await require('@cocalc/server/conat/socketio').initConatServer()
-    
+
 It will also get run integrated with the hub if the --conat-server option is passed in.
 
 How to make a cluster of two servers:
 
     s1 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000, clusterName:'my-cluster', id:'s1', systemAccountPassword:'x', path:'/'}); 0
-    
+
 and in another session:
 
     s2 = await require('@cocalc/server/conat/socketio').initConatServer({port:3001,  clusterName:'my-cluster', id:'s2', systemAccountPassword:'x', path:'/'}); 0
-    
+
     await s2.join('http://localhost:3000')
-    
+
     s2.clusterTopology()
-    
+
         // { 'my-cluster': { s1: 'http://localhost:3000', s2: 'http://localhost:3001' }}
-    
+
 Then in another terminal, make a client connected to each:
 
-    c1 = require('@cocalc/conat/core/client').connect({address:'http://localhost:3000', 
+    c1 = require('@cocalc/conat/core/client').connect({address:'http://localhost:3000',
      systemAccountPassword:'x'});
-    c2 = require('@cocalc/conat/core/client').connect({address:'http://localhost:3001', 
+    c2 = require('@cocalc/conat/core/client').connect({address:'http://localhost:3001',
      systemAccountPassword:'x'});
-     
+
     c1.watch('foo')
     c2.publishSync('foo', 'hi')
-    
+
 */
 
 import {
@@ -48,7 +48,7 @@ import port from "@cocalc/backend/port";
 import { join } from "path";
 import "@cocalc/backend/conat";
 import "@cocalc/backend/conat/persist"; // initializes context
-import { dnsScan } from "./dns-scan";
+import { dnsScan, localAddress } from "./dns-scan";
 import { health } from "./health";
 import { hostname } from "node:os";
 import { getLogger } from "@cocalc/backend/logger";
@@ -81,6 +81,7 @@ export async function init(
     //   - we use dns to periodically lookup the other servers and join to them.
     // we might switch to something else, but for now this should be fine
     opts.systemAccountPassword = conatPassword;
+    opts.clusterIpAddress = await localAddress();
     if (!opts.clusterName) {
       opts.clusterName = "default";
     }

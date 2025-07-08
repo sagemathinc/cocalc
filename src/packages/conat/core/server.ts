@@ -150,6 +150,9 @@ export interface Options {
   // creates a local cluster by spawning child processes with
   // ports the above port +1, +2, etc.
   localClusterSize?: number;
+
+  // the ip address of this server on the cluster.
+  clusterIpAddress?: string;
 }
 
 type State = "init" | "ready" | "closed";
@@ -201,6 +204,7 @@ export class ConatServer extends EventEmitter {
       longAutoscanInterval = DEFAULT_LONG_AUTOSCAN_INTERVAL,
       forgetClusterNodeInterval = DEFAULT_FORGET_CLUSTER_NODE_INTERVAL,
       localClusterSize = 1,
+      clusterIpAddress,
     } = options;
     this.clusterName = clusterName;
     this.options = {
@@ -216,6 +220,7 @@ export class ConatServer extends EventEmitter {
       longAutoscanInterval,
       forgetClusterNodeInterval,
       localClusterSize,
+      clusterIpAddress,
     };
     this.cluster = !!id && !!clusterName;
     this.getUser = async (socket) => {
@@ -1641,7 +1646,7 @@ export function updateSticky(
 function getServerAddress(options: Options) {
   const port = options.port;
   const path = options.path?.slice(0, -"/conat".length) ?? "";
-  return `http${options.ssl || port == 443 ? "s" : ""}://localhost:${port}${path}`;
+  return `http${options.ssl || port == 443 ? "s" : ""}://${options.clusterIpAddress ?? "localhost"}:${port}${path}`;
 }
 
 /*

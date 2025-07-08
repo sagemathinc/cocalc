@@ -59,9 +59,14 @@ export async function dnsScan(server: ConatServer) {
   }
 }
 
+export async function localAddress(): Promise<string> {
+  const { address } = await lookup(hostname());
+  return address;
+}
+
 export async function getAddresses(): Promise<string[]> {
   const v: string[] = [];
-  const { address: self } = await lookup(hostname());
+  const self = await localAddress();
   for (const { address } of await lookup(
     process.env.COCALC_SERVICE ?? "hub-conat-router",
     { all: true },
