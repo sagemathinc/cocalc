@@ -99,18 +99,19 @@ export class ConatSocketClient extends ConatSocketBase {
     cmd: "close" | "ping" | "connect",
     timeout = DEFAULT_COMMAND_TIMEOUT,
   ) => {
-    logger.silly("sendCommandToServer", { cmd, timeout });
     const headers = {
       [SOCKET_HEADER_CMD]: cmd,
       id: this.id,
     };
     const subject = `${this.subject}.server.${this.id}`;
+    logger.silly("sendCommandToServer", { cmd, timeout, subject });
     const resp = await this.client.request(subject, null, {
       headers,
       timeout,
+      waitForInterest: cmd == "connect", // connect is exactly when other side might not be visible yet.
     });
     const value = resp.data;
-    logger.silly("sendCommandToServer: got resp", { cmd, value });
+    logger.silly("sendCommandToServer: got resp", { cmd, value, subject });
     if (value?.error) {
       throw Error(value?.error);
     } else {
@@ -145,12 +146,12 @@ export class ConatSocketClient extends ConatSocketBase {
             return true;
           }
           try {
-            logger.silly("sending connect command to server");
+            logger.silly("sending connect command to server", this.subject);
             resp = await this.sendCommandToServer("connect");
             this.alive?.recv();
             return true;
           } catch (err) {
-            logger.silly("failed to connect", err);
+            logger.silly("failed to connect", this.subject, err);
           }
           return false;
         },

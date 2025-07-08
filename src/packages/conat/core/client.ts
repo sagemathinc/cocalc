@@ -125,7 +125,7 @@ usable in production.
 
 INTEREST AWARENESS: In Conat there is a cluster-aware event driving way to
 wait for interest in a subject.  This is an extremely useful extension to
-NATS functionality, since it makes it much easier to dynamically setup 
+NATS functionality, since it makes it much easier to dynamically setup
 a client and a server and exchange messages without having to poll and fail
 potentially a few times.  This makes certain operations involving complicated
 steps behind the scenes -- upload a file, open a file to edit with sync, etc. --
@@ -243,7 +243,9 @@ import {
   createSyncTable,
 } from "@cocalc/conat/sync/synctable";
 
-export const MAX_INTEREST_TIMEOUT = 90000;
+export const MAX_INTEREST_TIMEOUT = 90_000;
+
+const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 15_000;
 
 const MSGPACK_ENCODER_OPTIONS = {
   // ignoreUndefined is critical so database queries work properly, and
@@ -1210,16 +1212,17 @@ export class Client extends EventEmitter {
       !this.isClosed() &&
       (opts.timeout == null || Date.now() - start <= opts.timeout)
     ) {
+      let timeout = opts.timeout ?? DEFAULT_WAIT_FOR_INTEREST_TIMEOUT;
       await this.waitForInterest(subject, {
-        timeout: opts.timeout ? opts.timeout - (Date.now() - start) : undefined,
+        timeout: timeout ? timeout - (Date.now() - start) : undefined,
       });
       if (this.isClosed()) {
         return { bytes, count };
       }
       const elapsed = Date.now() - start;
-      const timeout = opts.timeout == null ? undefined : opts.timeout - elapsed;
+      timeout -= elapsed;
       // client and there is interest
-      if (timeout && timeout <= 500) {
+      if (timeout <= 500) {
         // but... not enough time left to try again even if there is interest,
         // i.e., will fail anyways due to network latency
         return { bytes, count };
@@ -1603,8 +1606,9 @@ interface PublishOptions {
   // there were any recipients, and there were NO recipients, it will wait until
   // there is a recipient and send again.  This does NOT use polling, but instead
   // uses a cluster aware and fully event based primitive in the server.
-  // There is thus only a speed penality doing this on failure and never 
-  // on success.
+  // There is thus only a speed penality doing this on failure and never
+  // on success.  Note that waitForInterest always has a timeout, defaulting
+  // to DEFAULT_WAIT_FOR_INTEREST_TIMEOUT if above timeout not given.
   waitForInterest?: boolean;
 }
 
@@ -1883,13 +1887,13 @@ export class Message<T = any> extends MessageData<T> {
     if (!subject) {
       return { bytes: 0, count: 0 };
     }
-    let { bytes, count } = await this.client.publish(subject, mesg, opts);
-    if (count == 0) {
-      // nobody listening but they just made a request -- give it a second try
-      await this.client.waitForInterest(subject, { timeout: 15000 });
-      ({ bytes, count } = await this.client.publish(subject, mesg, opts));
-    }
-    return { bytes, count };
+    return await this.client.publish(subject, mesg, {
+      // we *always* wait for interest for sync respond, since
+      // it is by far the most likely situation where it wil be needed, due
+      // to inboxes when users first sign in.
+      waitForInterest: true,
+      ...opts,
+    });
   };
 }
 
