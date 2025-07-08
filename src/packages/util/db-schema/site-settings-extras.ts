@@ -230,6 +230,7 @@ export type SiteSettingsExtrasKeys =
   | "github_project_id"
   | "github_username"
   | "github_token"
+  | "github_block"
   | "prometheus_metrics"
   | "pay_as_you_go_section"
   | "pay_as_you_go_spending_limit"
@@ -524,6 +525,13 @@ export const EXTRAS: SettingsExtras = {
     desc: "This is a Personal Access token for the above GitHub account.  You can get one at https://github.com/settings/tokens -- you do not have to enable any scopes -- it used only to increase rate limits from 60/hour to 5000/hour.",
     default: "",
     password: true,
+    show: () => true,
+    tags: ["GitHub"],
+  },
+  github_block: {
+    name: "GitHub Abuse Block",
+    desc: "In case of **abuse**, you can block proxying of any GitHub URL that contains any string in this comma separated list.",
+    default: "",
     show: () => true,
     tags: ["GitHub"],
   },
