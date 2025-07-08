@@ -217,7 +217,7 @@ export function Complete({
       label: (
         <div style={{ ...style, display: "flex", alignItems: "center" }}>
           <AIAvatar size={22} />{" "}
-          <span style={{ marginLeft: "5px" }}>More AI Language Models</span>
+          <span style={{ marginLeft: "5px" }}>More AI Models</span>
         </div>
       ),
       style,

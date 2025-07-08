@@ -636,6 +636,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderSaveTimetravelGroup(): Rendered {
+    if (props.type == "chat") {
+      // these buttons don't make much sense for side chat.
+      return;
+    }
     const noLabel = IS_MOBILE || !(props.is_only || props.is_full);
     const v: React.JSX.Element[] = [];
     let x;
@@ -1107,7 +1111,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           opacity: is_active ? undefined : 0.3,
         }}
       >
-        <div style={{ marginBottom: "-2px", paddingTop:'4px' }}>{v}</div>
+        <div style={{ marginBottom: "-2px", paddingTop: "4px" }}>{v}</div>
       </div>
     );
   }

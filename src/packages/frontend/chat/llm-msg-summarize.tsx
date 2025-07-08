@@ -7,7 +7,7 @@ import { Button, Collapse, Switch } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { useAsyncEffect, useState } from "@cocalc/frontend/app-framework";
-import { Icon, Paragraph, RawPrompt, Tip } from "@cocalc/frontend/components";
+import { Paragraph, RawPrompt, Tip } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import LLMSelector, {
@@ -56,7 +56,7 @@ export function SummarizeThread({
   return (
     <PopconfirmKeyboard
       onVisibilityChange={setVisible}
-      icon={<AIAvatar size={16} />}
+      icon={<AIAvatar size={16} style={{ marginRight: "15px" }} />}
       title={<>Summarize this thread</>}
       description={() => (
         <div style={{ maxWidth: "500px" }}>
@@ -116,7 +116,8 @@ export function SummarizeThread({
         title={"Summarize this thread using a language model."}
       >
         <Button type="text" style={{ color: COLORS.GRAY_M }}>
-          <Icon name="vertical-align-middle" /> Summarize…
+          <AIAvatar size={16} style={{ top: 0 }} />
+          Summarize…
         </Button>
       </Tip>
     </PopconfirmKeyboard>

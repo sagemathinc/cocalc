@@ -218,7 +218,7 @@ export function ChatLog({
     <>
       {visibleHashtags.size > 0 && (
         <HashtagBar
-          style={{ margin: "3px 0" }}
+          style={{ margin: "5px 15px 0 15px" }}
           actions={{
             set_hashtag_state: (tag, state) => {
               actions.setHashtagState(tag, state);

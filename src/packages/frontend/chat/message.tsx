@@ -236,7 +236,7 @@ export default function Message({
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
-  const replyMentionsRef = useRef<SubmitMentionsFn|undefined>(undefined);
+  const replyMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const is_viewers_message = sender_is_viewer(account_id, message);
   const verb = show_history ? "Hide" : "Show";
@@ -507,7 +507,7 @@ export default function Message({
 
     const feedback = message.getIn(["feedback", account_id]);
     const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
+      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
     const showOtherFeedback = otherFeedback > 0;
 
     return (
@@ -942,7 +942,7 @@ export default function Message({
                 )
               }
             >
-              <Icon name="to-top-outlined" /> Fold…
+              <Icon name="vertical-align-middle" /> Fold…
             </Button>
           </Tip>
         )}
@@ -973,7 +973,7 @@ export default function Message({
             type="link"
             block
             style={{ color: "darkblue", textAlign: "center" }}
-            icon={<Icon name="to-top-outlined" rotate="180" />}
+            icon={<Icon name="expand-arrows" />}
           >
             {label}
           </Button>
@@ -1002,13 +1002,7 @@ export default function Message({
               textAlign: "center",
             };
 
-      const iconName = is_folded
-        ? mode === "standalone"
-          ? reverseRowOrdering
-            ? "right-circle-o"
-            : "left-circle-o"
-          : "right-circle-o"
-        : "down-circle-o";
+      const iconName = is_folded ? "expand" : "vertical-align-middle";
 
       const button = (
         <Button

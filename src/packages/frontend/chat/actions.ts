@@ -780,9 +780,12 @@ export class ChatActions extends Actions<ChatState> {
     // submit question to the given language model
     const id = uuid();
     this.chatStreams.add(id);
-    setTimeout(() => {
-      this.chatStreams.delete(id);
-    }, 3 * 60 * 1000);
+    setTimeout(
+      () => {
+        this.chatStreams.delete(id);
+      },
+      3 * 60 * 1000,
+    );
 
     // construct the LLM history for the given thread
     const history = reply_to ? this.getLLMHistory(reply_to) : undefined;

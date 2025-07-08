@@ -576,7 +576,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       <LabeledRow
         label={intl.formatMessage({
           id: "account.other-settings.llm.default_llm",
-          defaultMessage: "Default AI Language Model",
+          defaultMessage: "Default AI Model",
         })}
       >
         <LLMSelector model={model} setModel={setModel} />

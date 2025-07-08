@@ -7,7 +7,7 @@ import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { FormattedMessage } from "react-intl";
 
-import { ButtonGroup, Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
+import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
@@ -23,13 +23,11 @@ import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
-import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
-import VideoChatButton from "./video/launch-button";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -142,11 +140,6 @@ export function ChatRoom({
     );
   }
 
-  function render_video_chat_button() {
-    if (project_id == null || path == null) return;
-    return <VideoChatButton actions={actions} />;
-  }
-
   function isValidFilterRecentCustom(): boolean {
     const v = parseFloat(filterRecentHCustom);
     return isFinite(v) && v >= 0;
@@ -238,7 +231,7 @@ export function ChatRoom({
       return null;
     }
     return (
-      <Space style={{ width: "100%", marginTop: "3px" }} wrap>
+      <Space style={{ marginTop: "5px", marginLeft: "15px" }} wrap>
         <Filter
           actions={actions}
           search={search}
@@ -251,10 +244,6 @@ export function ChatRoom({
           }}
         />
         {renderFilterRecent()}
-        <ButtonGroup style={{ marginLeft: "5px" }}>
-          {render_video_chat_button()}
-        </ButtonGroup>
-        <FoldAllThreads actions={actions} shortLabel={false} />
       </Space>
     );
   }
