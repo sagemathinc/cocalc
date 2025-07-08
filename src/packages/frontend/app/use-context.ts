@@ -11,7 +11,7 @@ import { createContext, ReactNode, useContext } from "react";
 import type { IntlMessage } from "@cocalc/util/i18n/types";
 import { COLORS } from "@cocalc/util/theme";
 
-import { VBAR_LABELS_DEFAULT } from "@cocalc/frontend/project/page/vbar-consts";
+import { ACTIVITY_BAR_LABELS_DEFAULT } from "@cocalc/frontend/project/page/activity-bar-consts";
 import {
   FONT_SIZE_ICONS_NARROW,
   FONT_SIZE_ICONS_NORMAL,
@@ -28,14 +28,14 @@ export interface AppState {
   formatIntl: (msg: IntlMessage | ReactNode | string) => ReactNode | string;
   timeAgoAbsolute?: boolean;
   setTimeAgoAbsolute?: (boolean) => void;
-  showVbarLabels?: boolean; // whether to show labels on the vertical fixed bar
+  showActBarLabels?: boolean; // whether to show labels on the vertical fixed bar
 }
 
 export const DEFAULT_CONTEXT = {
   pageWidthPx: 1000, // gets updated
   pageStyle: calcStyle(false), // gets updated
   formatIntl: () => "Loading…",
-  showVbarLabels: VBAR_LABELS_DEFAULT,
+  showActBarLabels: ACTIVITY_BAR_LABELS_DEFAULT,
 };
 
 export const AppContext = createContext<AppState>(DEFAULT_CONTEXT);
