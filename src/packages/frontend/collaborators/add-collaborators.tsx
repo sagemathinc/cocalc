@@ -528,7 +528,7 @@ export const AddCollaborators: React.FC<Props> = ({
     const users: User[] = [];
     const existing: User[] = [];
     for (const r of results) {
-      if (project.get("users").get(r.account_id) != null) {
+      if (project.getIn(["users", r.account_id]) != null) {
         existing.push(r);
       } else {
         users.push(r);
