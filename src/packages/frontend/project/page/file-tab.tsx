@@ -49,8 +49,8 @@ import {
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
 import { shouldOpenFileInNewWindow } from "./utils";
-import { getValidVBAROption } from "./vbar";
-import { VBAR_KEY } from "./vbar-consts";
+import { getValidActivityBarOption } from "./activity-bar";
+import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -85,7 +85,7 @@ type FixedTabs = {
   };
 };
 
-// TODO/NOTE: for better or worse I just can't stand the tooltips on the sidebar!
+// TODO/NOTE: for better or worse I just can't stand the tooltips on the activity bar!
 // Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
@@ -183,7 +183,7 @@ interface Props0 {
   isFixedTab?: boolean;
   flyout?: FixedTab;
   condensed?: boolean;
-  showLabel?: boolean; // only relevant for the vertical sidebar. still showing alert tags!
+  showLabel?: boolean; // only relevant for the vertical activity bar. still showing alert tags!
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -223,7 +223,9 @@ export function FileTab(props: Readonly<Props>) {
 
   const other_settings = useTypedRedux("account", "other_settings");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
-  const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
+  const actBar = getValidActivityBarOption(
+    other_settings.get(ACTIVITY_BAR_KEY),
+  );
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -273,8 +275,8 @@ export function FileTab(props: Readonly<Props>) {
       if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
         // this tab can't be opened in a full page
         actions?.toggleFlyout(flyout);
-      } else if (flyout != null && vbar !== "both") {
-        if (anyModifierKey !== (vbar === "full")) {
+      } else if (flyout != null && actBar !== "both") {
+        if (anyModifierKey !== (actBar === "full")) {
           setActiveTab(name);
         } else {
           actions?.toggleFlyout(flyout);
@@ -295,7 +297,7 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
-    if (flyout == null || vbar !== "both") return;
+    if (flyout == null || actBar !== "both") return;
 
     const color =
       flyout === active_flyout
@@ -408,9 +410,9 @@ export function FileTab(props: Readonly<Props>) {
         {btnLeft}
       </div>
     );
-    if (isFixedTab && !showLabel) {
+    if (isFixedTab && !showLabel && !other_settings.get("hide_file_popovers")) {
       return (
-        <Tooltip title={label} placement="right">
+        <Tooltip title={label} placement="right" mouseEnterDelay={1}>
           {button}
         </Tooltip>
       );
@@ -480,7 +482,7 @@ export function FileTab(props: Readonly<Props>) {
 
   // in pure "full page" vbar mode, do not show a vertical tab, which has no fullpage
   if (
-    vbar === "full" &&
+    actBar === "full" &&
     flyout != null &&
     FIXED_PROJECT_TABS[flyout].noFullPage
   ) {

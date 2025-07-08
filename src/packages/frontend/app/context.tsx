@@ -10,17 +10,17 @@ import { useIntl } from "react-intl";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
-import { VBAR_LABELS } from "@cocalc/frontend/project/page/vbar-consts";
+import { ACTIVITY_BAR_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { COLORS } from "@cocalc/util/theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
-import useAppContext, { AppContext, calcStyle } from "./use-context";
+import useAppContext, { AppContext, AppState, calcStyle } from "./use-context";
 
 export { AppContext, useAppContext };
 
-export function useAppContextProvider() {
+export function useAppContextProvider(): AppState {
   const intl = useIntl();
   const other_settings = useTypedRedux("account", "other_settings");
-  const showVbarLabels = other_settings.get(VBAR_LABELS) ?? true;
+  const showActBarLabels = other_settings.get(ACTIVITY_BAR_LABELS) ?? true;
 
   const [pageWidthPx, setPageWidthPx] = useState<number>(window.innerWidth);
 
@@ -62,7 +62,7 @@ export function useAppContextProvider() {
     formatIntl,
     pageWidthPx,
     pageStyle,
-    showVbarLabels,
+    showActBarLabels,
   };
 }
 

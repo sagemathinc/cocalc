@@ -74,8 +74,8 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "@cocalc/frontend/project/page/flyouts/utils";
-import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
-import { VBAR_KEY } from "@cocalc/frontend/project/page/vbar-consts";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
@@ -550,8 +550,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
+        const actBar = account_store?.getIn([
+          "other_settings",
+          ACTIVITY_BAR_KEY,
+        ]);
+        const flyoutsDefault = getValidActivityBarOption(actBar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
@@ -1522,8 +1525,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
+    const currentId = await computeServerAssociations.getServerIdForPath(
+      sidePath,
+    );
     if (currentId != null) {
       // already set
       return;
@@ -2307,8 +2311,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-          ? { compute_server_id: opts.src_compute_server_id }
-          : undefined),
+        ? { compute_server_id: opts.src_compute_server_id }
+        : undefined),
     });
 
     if (opts.only_contents) {
