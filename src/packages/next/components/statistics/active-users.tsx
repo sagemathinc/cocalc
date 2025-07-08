@@ -7,6 +7,7 @@ import { Table } from "antd";
 import { HistoricCounts } from "@cocalc/util/db-schema/stats";
 import { Paragraph, Title } from "components/misc";
 import { ZEROS } from "./misc";
+import { PROJECTS_HEADING_WIDTH } from "./active-projects";
 
 interface Props {
   active: HistoricCounts;
@@ -16,7 +17,12 @@ interface Props {
 }
 
 const columns = [
-  { title: "Accounts", dataIndex: "type", key: "type" },
+  {
+    title: "Accounts",
+    dataIndex: "type",
+    key: "type",
+    width: PROJECTS_HEADING_WIDTH,
+  },
   { title: "Hour", dataIndex: "1h", key: "1h" },
   { title: "Day", dataIndex: "1d", key: "1d" },
   { title: "Week", dataIndex: "7d", key: "7d" },
