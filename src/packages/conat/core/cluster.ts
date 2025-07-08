@@ -21,7 +21,7 @@ export async function clusterLink(
   const client = connect({ address, systemAccountPassword });
   if (client.info == null) {
     await client.waitUntilSignedIn();
-    if (client.info == null) throw Error("bug");
+    if (client.info == null) throw Error("bug -- failed to sign in");
   }
   const { id, clusterName } = client.info;
   if (!id) {

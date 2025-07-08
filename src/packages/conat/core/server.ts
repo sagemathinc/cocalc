@@ -7,7 +7,7 @@ Just try it out, start up node.js in this directory and:
     c.watch('foo')
     c2 = s.client();
     c2.pub('foo', 'bar')
-    
+
 To connect from another terminal:
 
     c = require('@cocalc/conat/core/client').connect({address:"http://localhost:4567"})
@@ -22,7 +22,7 @@ cd packages/server
 
    s0 = await require('@cocalc/server/conat/socketio').initConatServer({port:3000}); 0
 
-   
+
 ---
 
 */
@@ -1098,23 +1098,31 @@ export class ConatServer extends EventEmitter {
     if (!this.options.systemAccountPassword) {
       throw Error("systemAccountPassword must be set");
     }
+    logger.debug("join: connecting to ", address);
     const link0 = this.clusterLinksByAddress[address];
     if (link0 != null) {
+      logger.debug("join: already connected to ", address);
       return link0;
     }
-    const link = await clusterLink(
-      address,
-      this.options.systemAccountPassword,
-      this.updateSticky,
-    );
-    const { clusterName, id } = link;
-    if (this.clusterLinks[clusterName] == null) {
-      this.clusterLinks[clusterName] = {};
+    try {
+      const link = await clusterLink(
+        address,
+        this.options.systemAccountPassword,
+        this.updateSticky,
+      );
+      const { clusterName, id } = link;
+      if (this.clusterLinks[clusterName] == null) {
+        this.clusterLinks[clusterName] = {};
+      }
+      this.clusterLinks[clusterName][id] = link;
+      this.clusterLinksByAddress[address] = link;
+      this.scanSoon();
+      logger.debug("join: successfully created new connection to ", address);
+      return link;
+    } catch (err) {
+      logger.debug("join: FAILED creating a new connection to ", address, err);
+      throw err;
     }
-    this.clusterLinks[clusterName][id] = link;
-    this.clusterLinksByAddress[address] = link;
-    this.scanSoon();
-    return link;
   });
 
   unjoin = ({
@@ -1312,6 +1320,12 @@ export class ConatServer extends EventEmitter {
           await sys.clusterAddresses(this.clusterName),
         );
         if (this.isClosed()) return;
+        logger.debug(
+          "scan: remote",
+          client.options.address,
+          "knows about ",
+          knownByRemoteNode,
+        );
         for (const address of knownByRemoteNode) {
           if (!knownByUs.has(address)) {
             unknownToUs.add(address);
@@ -1319,6 +1333,11 @@ export class ConatServer extends EventEmitter {
         }
         if (!knownByRemoteNode.has(this.address())) {
           // we know about them, but they don't know about us, so ask them to link to us.
+          logger.debug(
+            "scan: asking remote ",
+            client.options.address,
+            " to link to us",
+          );
           await sys.join(this.address());
           if (this.isClosed()) return;
           count += 1;
