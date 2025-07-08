@@ -206,7 +206,7 @@ export async function writeFile({
       compute_server_id,
       name,
     });
-    // tell compute server to start reading our file.
+    // tell compute server / project to start reading our file.
     const cn = await conat();
     const resp = await cn.request(
       getWriteSubject({ project_id, compute_server_id }),
