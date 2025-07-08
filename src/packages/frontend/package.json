@@ -143,7 +143,6 @@
     "universal-cookie": "^4.0.4",
     "use-async-effect": "^2.2.7",
     "use-debounce": "^7.0.1",
-    "use-deep-compare-effect": "^1.8.1",
     "use-resize-observer": "^9.1.0",
     "utility-types": "^3.10.0",
     "video-extensions": "^1.2.0",
