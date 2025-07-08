@@ -353,18 +353,17 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <ButtonGroup
           style={{
             padding: "3.5px 0 0 0",
-            background: is_active
-              ? COL_BAR_BACKGROUND
-              : COL_BAR_BACKGROUND_DARK,
             height: button_height(),
             float: "right",
           }}
           key={"control-buttons"}
         >
-          {is_active && !props.is_full ? render_split_row() : undefined}
-          {is_active && !props.is_full ? render_split_col() : undefined}
-          {!props.is_only ? render_full() : undefined}
-          {render_x()}
+          <span style={is_active ? undefined : { opacity: 0.3 }}>
+            {!props.is_full ? render_split_row() : undefined}
+            {!props.is_full ? render_split_col() : undefined}
+            {!props.is_only ? render_full() : undefined}
+            {render_x()}
+          </span>
         </ButtonGroup>
       </div>
     );
@@ -390,8 +389,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               props.actions.unset_frame_full();
             }}
             style={{
-              color: darkMode ? "orange" : undefined,
-              background: !darkMode ? "orange" : undefined,
+              color: darkMode ? "yellowgreen" : undefined,
+              background: !darkMode ? "yellowgreen" : undefined,
             }}
           >
             <Icon name={"compress"} />
@@ -1069,7 +1068,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           title={label}
           items={children}
           button={false}
-          style={{ color: "#333", padding: 0 }}
+          style={{ color: "#333", padding: "7.5px 0 0 0" }}
         />
       );
     } else {
@@ -1080,7 +1079,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           key={key}
           disabled={disabled}
           onClick={onClick}
-          style={{ color: "#333", padding: 0 }}
+          style={{ color: "#333", padding: "7.5px 0 0 0" }}
         >
           {label}
         </Button>
@@ -1089,6 +1088,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderButtonBar(popup = false) {
+    if (!is_active) {
+      return null;
+    }
     if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
@@ -1103,17 +1105,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (v.length == 0) {
       return null;
     }
-    return (
-      <div
-        style={{
-          borderBottom: popup ? undefined : "1px solid #ccc",
-          background: "#fafafa",
-          opacity: is_active ? undefined : 0.3,
-        }}
-      >
-        <div style={{ marginBottom: "-2px", paddingTop: "4px" }}>{v}</div>
-      </div>
-    );
+    return <div style={{ marginTop: "5px" }}>{v}</div>;
   }
 
   function renderComputeServerDocStatus() {
@@ -1261,9 +1253,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           {renderMainMenusAndButtons()}
           {is_active && renderConnectionStatus()}
           {is_active && allButtonsPopover()}
+          {renderButtonBar()}
           {renderFrameControls()}
         </div>
-        {renderButtonBar()}
         {renderConfirmBar()}
         {hasTour && props.is_visible && props.tab_is_visible && (
           <TitleBarTour refs={tourRefs} />
