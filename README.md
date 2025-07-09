@@ -1,5 +1,7 @@
 # CoCalc
 
+[![Make all packages and run their tests](https://github.com/sagemathinc/cocalc/actions/workflows/make-and-test.yml/badge.svg)](https://github.com/sagemathinc/cocalc/actions/workflows/make-and-test.yml)
+
 #### <u>_**Co**_</u>_llaborative_ <u>_**Calc**_</u>_ulation_
 
 CoCalc is web-based software that enables collaboration in research, teaching, and scientific publishing. It includes [Jupyter Notebooks](https://cocalc.com/features/jupyter-notebook), [Sage Worksheets](https://cocalc.com/features/sage), a [LaTeX Editor](https://cocalc.com/features/latex-editor) and a [Linux Terminal](https://cocalc.com/features/terminal) to help people work together in real time from different locations. It also has a [Computational Whiteboard](https://cocalc.com/features/whiteboard) for expressing and sharing ideas and running code. It is available for free and [can be upgraded for internet access, better hosting quality, and other features](https://cocalc.com/store). It can also be used for [teaching courses](https://cocalc.com/features/teaching) with flexible [course license options](https://cocalc.com/pricing/courses). It is also possible to run CoCalc [on your own infrastructure](https://cocalc.com/pricing/onprem).
