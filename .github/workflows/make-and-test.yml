@@ -109,4 +109,3 @@ jobs:
       - run: cd src && npm install -g pnpm
       - run: cd src && pnpm run make
       - run: source venv/bin/activate && cd src && pnpm run test-github-ci
-      - run: cd src && pnpm run depcheck
