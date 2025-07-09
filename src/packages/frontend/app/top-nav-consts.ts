@@ -11,11 +11,8 @@ export const NARROW_THRESHOLD_PX = 550;
 // show labels of projects, if there are less than this many
 export const HIDE_LABEL_THRESHOLD = 6;
 
-// the width of the top bar
-export const NAV_HEIGHT_PX = 36;
-
-// … and on narrower screens, a bit tighter
-export const NAV_HEIGHT_NARROW_PX = 28;
+export const NAV_HEIGHT_PX = 46;
+export const NAV_HEIGHT_NARROW_PX = 46;
 
 export const NAV_CLASS = "hidden-xs";
 
@@ -30,7 +27,6 @@ export const TOP_BAR_ELEMENT_CLASS = "cocalc-top-bar-element";
 export interface PageStyle {
   topBarStyle: CSS;
   fileUseStyle: CSS;
-  projectsNavStyle: CSS | undefined;
   fontSizeIcons: string; // {n}px
   topPaddingIcons: string; // {n}px
   sidePaddingIcons: string; // {n}px

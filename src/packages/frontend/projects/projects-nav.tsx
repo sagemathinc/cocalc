@@ -5,7 +5,6 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-
 import {
   redux,
   useActions,
@@ -31,6 +30,9 @@ import { CSSProperties, useMemo, useState } from "react";
 import { useProjectState } from "../project/page/project-state-hook";
 import { useProjectHasInternetAccess } from "../project/settings/has-internet-access-hook";
 import { BuyLicenseForProject } from "../site-licenses/purchase/buy-license-for-project";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+
+const minimal = true;
 
 const PROJECT_NAME_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
@@ -83,10 +85,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     return (
       // Hiding this on very skinny devices isn't necessarily bad, since the exact same information is
       // now visible via a big "Connecting..." banner after a few seconds.
-      <span
-        style={{ paddingLeft: "15px", marginRight: "-15px" }}
-        className="hidden-xs"
-      >
+      <span style={{ marginRight: "-10px" }} className="hidden-xs">
         <WebsocketIndicator state={project_websockets?.get(project_id)} />
       </span>
     );
@@ -194,13 +193,22 @@ function ProjectTab({ project_id }: ProjectTabProps) {
 
   function renderAvatar() {
     const avatar = project?.get("avatar_image_tiny");
-    if (!avatar) return;
+    if (!avatar) {
+      if (!minimal) {
+        return null;
+      }
+      return (
+        <span style={{ fontSize: "18px", fontWeight: "bold", color: "#666" }}>
+          {title.slice(0, 1).toUpperCase()}
+        </span>
+      );
+    }
     return (
       <Avatar
-        style={{ marginTop: "-2px" }}
+        style={{ marginTop: "-4px" }}
         shape="circle"
         icon={<img src={project.get("avatar_image_tiny")} />}
-        size={20}
+        size={36}
       />
     );
   }
@@ -215,13 +223,23 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   }
 
   const body = (
-    <div onMouseUp={onMouseUp} style={width != null ? { width } : undefined}>
+    <div
+      onMouseUp={onMouseUp}
+      style={{
+        ...(width != null ? { width } : undefined),
+      }}
+    >
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
-      <div style={PROJECT_NAME_STYLE} onClick={click_title}>
+      <div
+        style={minimal ? undefined : PROJECT_NAME_STYLE}
+        onClick={click_title}
+      >
         {icon}
         {renderNoInternet()}
         {renderAvatar()}{" "}
-        <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
+        {!minimal && (
+          <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
+        )}
       </div>
     </div>
   );
@@ -300,14 +318,19 @@ export function ProjectsNav(props: ProjectsNavProps) {
       style={{
         overflow: "hidden",
         height: `${height}px`,
+        display: "flex",
+        flex: 1,
+        paddingLeft: "15px",
         ...style,
       }}
     >
       {items.length > 0 && (
         <SortableTabs
+          style={{ width: undefined }}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           items={project_ids}
+          tabWidth={75}
         >
           <Tabs
             animated={false}
@@ -317,11 +340,28 @@ export function ProjectsNav(props: ProjectsNavProps) {
             onChange={(project_id) => {
               actions.set_active_tab(project_id);
             }}
-            type={"editable-card"}
             renderTabBar={renderTabBar}
             items={items}
+            type={"editable-card"}
           />
         </SortableTabs>
+      )}
+      {activeTopTab?.length == 36 && (
+        <ProjectTitle
+          noClick
+          project_id={activeTopTab}
+          style={{
+            width: "100%",
+            fontSize: "18pt",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+            color: "#666",
+            marginTop: "2px",
+            marginLeft: "30px",
+          }}
+        />
       )}
     </div>
   );

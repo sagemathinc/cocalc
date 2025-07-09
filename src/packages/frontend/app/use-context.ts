@@ -55,6 +55,7 @@ export function calcStyle(isNarrow: boolean): PageStyle {
 
   const topBarStyle = {
     height: `${height}px`,
+    background: "#fafafa",
   } as const;
 
   const fileUseStyle = {
@@ -75,22 +76,9 @@ export function calcStyle(isNarrow: boolean): PageStyle {
     zIndex: 110,
   } as const;
 
-  const projectsNavStyle = isNarrow
-    ? ({
-        /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
-        width: "100vw",
-        marginTop: "4px",
-        height: `${height}px`,
-        // no flex!
-      } as const)
-    : ({
-        flex: "1 1 auto", // necessary to stretch out to the full width
-      } as const);
-
   return {
     topBarStyle,
     fileUseStyle,
-    projectsNavStyle,
     isNarrow,
     sidePaddingIcons,
     topPaddingIcons,

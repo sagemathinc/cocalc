@@ -43,7 +43,7 @@ import { useAppContext } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
 import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
 import InsecureTestModeBanner from "./insecure-test-mode-banner";
-import { AppLogo } from "./logo";
+// import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
@@ -80,7 +80,7 @@ export const Page: React.FC = () => {
   const page_actions = useActions("page");
 
   const { pageStyle } = useAppContext();
-  const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
+  const { isNarrow, fileUseStyle, topBarStyle } = pageStyle;
 
   const intl = useIntl();
 
@@ -203,7 +203,6 @@ export const Page: React.FC = () => {
       return (
         <NavTab
           name="admin"
-          label={"Admin"}
           label_class={NAV_CLASS}
           icon={"users"}
           active_top_tab={active_top_tab}
@@ -248,10 +247,6 @@ export const Page: React.FC = () => {
       <NavTab
         name={undefined} // does not open a tab, just a popup
         active_top_tab={active_top_tab} // it's never supposed to be active!
-        label={intl.formatMessage({
-          id: "page.help.label",
-          defaultMessage: "Help",
-        })}
         label_class={NAV_CLASS}
         icon={"medkit"}
         on_click={openSupportTab}
@@ -315,25 +310,25 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_project_nav_button(): React.JSX.Element {
-    return (
-      <NavTab
-        style={{
-          height: `${pageStyle.height}px`,
-          margin: "0",
-          overflow: "hidden",
-        }}
-        name={"projects"}
-        active_top_tab={active_top_tab}
-        tooltip={intl.formatMessage({
-          id: "page.project_nav.tooltip",
-          defaultMessage: "Show all the projects on which you collaborate.",
-        })}
-        icon="edit"
-        label={intl.formatMessage(labels.projects)}
-      />
-    );
-  }
+  //   function render_project_nav_button(): React.JSX.Element {
+  //     return (
+  //       <NavTab
+  //         style={{
+  //           height: `${pageStyle.height}px`,
+  //           margin: "0",
+  //           overflow: "hidden",
+  //         }}
+  //         name={"projects"}
+  //         active_top_tab={active_top_tab}
+  //         tooltip={intl.formatMessage({
+  //           id: "page.project_nav.tooltip",
+  //           defaultMessage: "Show all the projects on which you collaborate.",
+  //         })}
+  //         icon="edit"
+  //         label={intl.formatMessage(labels.projects)}
+  //       />
+  //     );
+  //   }
 
   // register a default drag and drop handler, that prevents
   // accidental file drops
@@ -378,21 +373,13 @@ export const Page: React.FC = () => {
       <VerifyEmail />
       {!fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
-          <AppLogo size={pageStyle.height} />
-          {is_logged_in && render_project_nav_button()}
-          {!isNarrow ? (
-            <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-          ) : (
-            // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
-            <div style={{ flex: "1 1 auto" }} />
-          )}
+          {/* <AppLogo size={pageStyle.height} /> */}
+          {/* is_logged_in && render_project_nav_button()*/}
+          <ProjectsNav height={pageStyle.height} />
           {render_right_nav()}
         </nav>
       )}
       {fullscreen && render_fullscreen()}
-      {isNarrow && (
-        <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-      )}
       <ActiveContent />
       <PayAsYouGoModal />
       <PopconfirmModal />
