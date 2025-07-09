@@ -63,6 +63,8 @@ import {
   createClusterPersistServer,
   Sticky,
   Interest,
+  hashInterest,
+  hashSticky,
 } from "./cluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
@@ -174,10 +176,10 @@ export class ConatServer extends EventEmitter {
   public state: State = "init";
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
-  private interest: Interest = new Patterns();
+  public interest: Interest = new Patterns();
   // the target string is JSON.stringify({ id: string; subject: string }),
   // which is the socket.io room to send the messages to.
-  private sticky: Sticky = {};
+  public sticky: Sticky = {};
 
   private clusterStreams?: ClusterStreams;
   private clusterLinks: {
@@ -1531,6 +1533,13 @@ export class ConatServer extends EventEmitter {
       }
     }
     return false;
+  };
+
+  hash = (): { interest: number; sticky: number } => {
+    return {
+      interest: hashInterest(this.interest),
+      sticky: hashSticky(this.sticky),
+    };
   };
 }
 

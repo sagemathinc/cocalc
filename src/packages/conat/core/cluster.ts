@@ -83,6 +83,9 @@ class ClusterLink {
     for (const update of this.streams.interest.getAll()) {
       updateInterest(update, this.interest, this.sticky);
     }
+    for (const update of this.streams.sticky.getAll()) {
+      updateSticky(update, this.sticky);
+    }
     // I have a slight concern about this because updates might not
     // arrive in order during automatic failover.  That said, maybe
     // automatic failover doesn't matter with these streams, since
@@ -167,6 +170,13 @@ class ClusterLink {
     }
 
     return false;
+  };
+
+  hash = (): { interest: number; sticky: number } => {
+    return {
+      interest: hashInterest(this.interest),
+      sticky: hashSticky(this.sticky),
+    };
   };
 }
 
