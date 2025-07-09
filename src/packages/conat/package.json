@@ -39,11 +39,9 @@
   "dependencies": {
     "@cocalc/comm": "workspace:*",
     "@cocalc/conat": "workspace:*",
-    "@cocalc/redis-streams-adapter": "^0.2.3",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.4.1",
     "@msgpack/msgpack": "^3.1.1",
-    "@socket.io/redis-adapter": "^8.3.0",
     "ascii-table3": "^1.0.1",
     "awaiting": "^3.0.0",
     "consistent-hash": "^1.2.2",
