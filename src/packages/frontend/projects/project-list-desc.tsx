@@ -92,7 +92,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_projects_actions_toolbar(): React.JSX.Element {
+  function render_projects_actions_toolbar() {
     if (visible_projects.length == 0) {
       return null;
     }
@@ -195,8 +195,6 @@ export const ProjectsListingDescription: React.FC<Props> = ({
       </Button>
     );
   }
-
-  function renderRemoveMyself() {}
 
   function render_hide_all(): React.JSX.Element | undefined {
     if (visible_projects.length === 0) {
