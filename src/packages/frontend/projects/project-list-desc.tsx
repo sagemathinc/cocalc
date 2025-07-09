@@ -20,6 +20,7 @@ import {
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { plural } from "@cocalc/util/misc";
+import RemoveMyself from "./remove-myself";
 
 interface Props {
   visible_projects: string[];
@@ -92,16 +93,16 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   }
 
   function render_projects_actions_toolbar(): React.JSX.Element {
+    if (visible_projects.length == 0) {
+      return null;
+    }
     return (
       <ButtonGroup style={{ margin: "15px" }}>
-        {visible_projects.length > 0 && !deleted
-          ? render_delete_all_button()
-          : undefined}
-        {visible_projects.length > 0 && !hidden
-          ? render_hide_all_button()
-          : undefined}
-        {visible_projects.length > 0 ? render_stop_all_button() : undefined}
-        {visible_projects.length > 0 ? render_restart_all_button() : undefined}
+        {!deleted ? render_delete_all_button() : undefined}
+        {!hidden ? render_hide_all_button() : undefined}
+        {render_stop_all_button()}
+        {render_restart_all_button()}
+        <RemoveMyself project_ids={visible_projects} />
       </ButtonGroup>
     );
   }
@@ -194,6 +195,8 @@ export const ProjectsListingDescription: React.FC<Props> = ({
       </Button>
     );
   }
+
+  function renderRemoveMyself() {}
 
   function render_hide_all(): React.JSX.Element | undefined {
     if (visible_projects.length === 0) {
