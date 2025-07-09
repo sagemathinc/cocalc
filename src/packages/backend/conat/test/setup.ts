@@ -191,7 +191,10 @@ export async function waitForConsistentState(
             // @ts-ignore
             const link = servers[j].clusterLinks[clusterName]?.[servers[i].id];
             if (link == null) {
-              throw Error(`node ${j} is not connected to node ${i}`);
+              if (Date.now() - start > 3000) {
+                console.log(`node ${j} is not connected to node ${i}`);
+              }
+              return false;
             }
             const hashLink = link.hash();
             const x = link.interest.serialize().patterns;
