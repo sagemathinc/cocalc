@@ -303,10 +303,13 @@ const MAX_HEADER_SIZE = 100000;
 const STATS_LOOP = 5000;
 
 // fairly long since this is to avoid leaks, not for responsiveness in the UI.
-export const DEFAULT_SUBSCRIPTION_TIMEOUT = 60000;
+export const DEFAULT_SUBSCRIPTION_TIMEOUT = 60_000;
 
-export let DEFAULT_REQUEST_TIMEOUT = 7500;
-export let DEFAULT_PUBLISH_TIMEOUT = 7500;
+// long so servers don't get DOS's on startup, etc.  Also, we use interest-based
+// checks when publish and request fail, so we're not depending on these to
+// fail as part of the normal startup process for anything.
+export let DEFAULT_REQUEST_TIMEOUT = 30_000;
+export let DEFAULT_PUBLISH_TIMEOUT = 30_000;
 
 export function setDefaultTimeouts({
   request = DEFAULT_REQUEST_TIMEOUT,
