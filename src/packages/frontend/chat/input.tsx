@@ -260,6 +260,11 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
+      modeSwitchStyle={{
+        float: "right",
+        position: "relative",
+        marginBottom: "-5px",
+      }}
     />
   );
 }
