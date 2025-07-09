@@ -1026,6 +1026,9 @@ importers:
       '@ant-design/cssinjs':
         specifier: ^1.23.0
         version: 1.23.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@testing-library/jest-dom':
+        specifier: ^6.6.3
+        version: 6.6.3
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -1047,9 +1050,6 @@ importers:
       node-mocks-http:
         specifier: ^1.14.1
         version: 1.17.2(@types/express@4.17.23)(@types/node@18.19.115)
-      react-test-renderer:
-        specifier: ^19.1.0
-        version: 19.1.0(react@19.1.0)
 
   project:
     dependencies:
@@ -19453,7 +19453,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.0.10
+      '@types/node': 18.19.115
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
