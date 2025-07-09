@@ -29,10 +29,13 @@ describe("the most basic pub/sub test with a 2-node cluster", () => {
     sub = await client0.subscribe("cocalc");
   });
 
-  it("publish -- message is initially dropped with no receiver because interest doesn't propogate instantly", async () => {
-    const { count } = await client1.publish("cocalc", "hi");
-    expect(count).toBe(0);
-  });
+  // commenting this out, since it is impossible to robustly test in all cases,
+  // since sometmes the subscription info can move very quickly and this publish
+  // could be slow!
+  //   it("publish -- message is initially dropped with no receiver because interest doesn't propogate instantly", async () => {
+  //     const { count } = await client1.publish("cocalc", "hi");
+  //     expect(count).toBe(0);
+  //   });
 
   it("publish after waiting for interest -- this works", async () => {
     await client1.waitForInterest("cocalc");
