@@ -245,7 +245,7 @@ import {
 
 export const MAX_INTEREST_TIMEOUT = 90_000;
 
-const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 15_000;
+const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 30_000;
 
 const MSGPACK_ENCODER_OPTIONS = {
   // ignoreUndefined is critical so database queries work properly, and
