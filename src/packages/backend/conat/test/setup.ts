@@ -36,6 +36,9 @@ export async function initConatServer(
   }
 
   const server = createConatServer(options);
+  if (server.clusterName == "default") {
+    defaultCluster.push(server);
+  }
   if (server.state != "ready") {
     await once(server, "ready");
   }
@@ -64,6 +67,8 @@ export async function createServer(opts?) {
 
 // add another node to the cluster -- this is still in the same process (not forked), which
 // is generally good since you can console.log from it, faster, etc.
+// this does connect the new node to all existing nodes.
+export const defaultCluster: ConatServer[] = [];
 export async function addNodeToDefaultCluster(): Promise<ConatServer> {
   const port = await getPort();
   const node = await initConatServer({
@@ -73,8 +78,10 @@ export async function addNodeToDefaultCluster(): Promise<ConatServer> {
     id: getNodeId(),
     systemAccountPassword: "secret",
   });
-  await server.join(node.address());
-  await node.join(server.address());
+  for (const s of defaultCluster) {
+    await s.join(node.address());
+    await node.join(s.address());
+  }
   return node;
 }
 
@@ -171,7 +178,9 @@ export async function waitForConsistentState(
   }
 
   if (ids.size != servers.length) {
-    throw Error("all servers must have distinct ids");
+    throw Error(
+      `all servers must have distinct ids -- ${JSON.stringify(servers.map((x) => x.id))}`,
+    );
   }
 
   const start = Date.now();

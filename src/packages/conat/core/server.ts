@@ -187,7 +187,7 @@ export class ConatServer extends EventEmitter {
   } = {};
   private clusterLinksByAddress: { [address: string]: ClusterLink } = {};
   private clusterPersistServer?: ConatSocketServer;
-  private clusterName?: string;
+  public readonly clusterName?: string;
   private queuedClusterUpdates: Update[] = [];
 
   constructor(options: Options) {
