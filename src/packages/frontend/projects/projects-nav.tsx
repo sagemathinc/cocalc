@@ -295,6 +295,17 @@ export function ProjectsNav(props: ProjectsNavProps) {
     }
   }
 
+  function renderTabBar0(tabBarProps, DefaultTabBar) {
+    return renderTabBar(tabBarProps, DefaultTabBar, {
+      [activeTopTab]: {
+        border: "1px solid #d3d3d3",
+        borderRadius: "10px",
+        // negative margin to prevent moving when adding the border above.
+        margin: "-1px -1px 0 -1px",
+      },
+    });
+  }
+
   return (
     <div
       style={{
@@ -318,7 +329,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
               actions.set_active_tab(project_id);
             }}
             type={"editable-card"}
-            renderTabBar={renderTabBar}
+            renderTabBar={renderTabBar0}
             items={items}
           />
         </SortableTabs>

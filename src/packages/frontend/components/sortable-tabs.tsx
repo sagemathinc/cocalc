@@ -130,13 +130,14 @@ export function SortableTabs(props: Props) {
   );
 }
 
-export function SortableTab({ children, id }) {
+export function SortableTab({ children, id, style }) {
   const { attributes, listeners, setNodeRef, transform, transition, active } =
     useSortable({ id });
   return (
     <div
       ref={setNodeRef}
       style={{
+        ...style,
         transform: transform
           ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
           : undefined,
@@ -151,11 +152,11 @@ export function SortableTab({ children, id }) {
   );
 }
 
-export function renderTabBar(tabBarProps, DefaultTabBar) {
+export function renderTabBar(tabBarProps, DefaultTabBar, styles?) {
   return (
     <DefaultTabBar {...tabBarProps}>
       {(node) => (
-        <SortableTab key={node.key} id={node.key}>
+        <SortableTab key={node.key} id={node.key} style={styles?.[node.key]}>
           {node}
         </SortableTab>
       )}

@@ -51,7 +51,7 @@ export default function ProjectTabs(props: PTProps) {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
 
-  if (openFiles.size == 0) return <></>;
+  //if (openFiles.size == 0) return <></>;
 
   return (
     <div
@@ -207,8 +207,8 @@ export function VerticalFixedTabs({
     const spacing: string = showActBarLabels
       ? "5px"
       : condensed
-      ? "8px" // margin for condensed mode
-      : "12px"; // margin for normal mode
+        ? "8px" // margin for condensed mode
+        : "12px"; // margin for normal mode
 
     const tab = (
       <FileTab

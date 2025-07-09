@@ -55,6 +55,7 @@ export function calcStyle(isNarrow: boolean): PageStyle {
 
   const topBarStyle = {
     height: `${height}px`,
+    background: "#fafafa",
   } as const;
 
   const fileUseStyle = {
