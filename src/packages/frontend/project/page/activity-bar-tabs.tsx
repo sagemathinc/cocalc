@@ -24,12 +24,12 @@ import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { getValidActivityBarOption } from "./activity-bar";
 import {
-  TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE,
   ACTIVITY_BAR_EXPLANATION,
   ACTIVITY_BAR_KEY,
   ACTIVITY_BAR_LABELS,
   ACTIVITY_BAR_OPTIONS,
   ACTIVITY_BAR_TOGGLE_LABELS,
+  TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE,
 } from "./activity-bar-consts";
 import { FileTab, FIXED_PROJECT_TABS, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
@@ -94,9 +94,10 @@ interface FVTProps {
   setHomePageButtonWidth: (width: number) => void;
 }
 
-export function VerticalFixedTabs(props: Readonly<FVTProps>) {
+export function VerticalFixedTabs({
+  setHomePageButtonWidth,
+}: Readonly<FVTProps>) {
   const intl = useIntl();
-  const { setHomePageButtonWidth } = props;
   const {
     actions,
     project_id,
@@ -122,6 +123,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 
       const gh = gap.current.clientHeight;
       const ph = parent.current.clientHeight;
+      if (ph == 0) return;
 
       if (refCondensed.current) {
         // 5px slack to avoid flickering
@@ -133,7 +135,6 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         if (gh < 1) {
           setCondensed(true);
           refCondensed.current = true;
-          // max? because when we start with a thin window, the ph is already smaller than th
           breakPoint.current = ph;
         }
       }
@@ -150,6 +151,10 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       window.removeEventListener("resize", calcCondensed);
     };
   }, []);
+
+  useEffect(() => {
+    calcCondensed();
+  }, [showActBarLabels, parent.current, gap.current]);
 
   useEffect(() => {
     if (parent.current == null) return;
@@ -171,7 +176,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     return () => {
       observer.disconnect();
     };
-  }, [condensed, parent.current]);
+  }, [condensed, showActBarLabels, parent.current, gap.current]);
 
   const items: ReactNode[] = [];
   for (const nameStr in FIXED_PROJECT_TABS) {
@@ -269,7 +274,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     >
       {items}
       {/* moves the layout selector to the bottom */}
-      <div ref={gap} style={{ flex: 1 }}></div>{" "}
+      <div ref={gap} style={{ flex: 1 }}></div>
       {/* moves hide switch to the bottom */}
       <LayoutSelector actBar={actBar} />
       {renderToggleActivityBar()}
