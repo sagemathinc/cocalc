@@ -1257,7 +1257,6 @@
   "project.page.flyouts.new.header_location": "Località:",
   "project.page.project-licenses.header": "Quote e {upgrades}",
   "project.page.project-licenses.intro": "Le licenze e gli aggiornamenti pay as you go cambiano le quote e le funzionalità disponibili per un progetto.",
-  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Nascondi etichette} other {Mostra etichette}}",
   "project.servers.project-servers.description": "Puoi eseguire vari server notebook all'interno di questo progetto con un solo clic. Funzionano nello stesso ambiente, hanno accesso agli stessi file e si fermano quando il progetto si ferma. Puoi anche <A>eseguire i tuoi server</A>.",
   "project.settings.about-box.description.label": "Descrizione (markdown)",
   "project.settings.about-box.image.label": "Immagine (opzionale)",

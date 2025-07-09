@@ -1257,7 +1257,6 @@
   "project.page.flyouts.new.header_location": "מיקום",
   "project.page.project-licenses.header": "מכסה ושדרוגים",
   "project.page.project-licenses.intro": "רישיונות ושדרוגים לפי שימוש משנים את המכסות והתכונות הזמינות לפרויקט",
-  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {הסתר תוויות} other {הצג תוויות}}",
   "project.servers.project-servers.description": "ניתן להפעיל שרתי מחברות שונים בתוך הפרויקט הזה בלחיצה אחת. הם פועלים באותה סביבה, יש להם גישה לאותם קבצים, והם נעצרים כאשר הפרויקט נעצר. ניתן גם <A>להפעיל שרתים משלכם</A>.",
   "project.settings.about-box.description.label": "תיאור (markdown)",
   "project.settings.about-box.image.label": "תמונה (אופציונלי)",

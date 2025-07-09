@@ -1257,7 +1257,6 @@
   "project.page.flyouts.new.header_location": "Konum:",
   "project.page.project-licenses.header": "Kotalar ve {upgrades}",
   "project.page.project-licenses.intro": "Lisanslar ve kullanıldıkça öde yükseltmeleri, bir projeye sunulan kotaları ve özellikleri değiştirir.",
-  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Etiketleri gizle} other {Etiketleri göster}}",
   "project.servers.project-servers.description": "Bu proje içinde tek tıkla çeşitli defter sunucularını çalıştırabilirsiniz. Aynı ortamda çalışırlar, aynı dosyalara erişirler ve proje durduğunda dururlar. Ayrıca <A>kendi sunucularınızı çalıştırabilirsiniz</A>.",
   "project.settings.about-box.description.label": "Açıklama (markdown)",
   "project.settings.about-box.image.label": "Görsel (isteğe bağlı)",

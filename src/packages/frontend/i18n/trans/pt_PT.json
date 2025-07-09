@@ -1257,7 +1257,6 @@
   "project.page.flyouts.new.header_location": "Localização:",
   "project.page.project-licenses.header": "Quotas e {upgrades}",
   "project.page.project-licenses.intro": "Licenças e atualizações pagas conforme o uso alteram as quotas e funcionalidades disponíveis para um projeto.",
-  "project.page.vertical-fixed-tabs.toggle-labels": "{show, select, true {Ocultar etiquetas} other {Mostrar etiquetas}}",
   "project.servers.project-servers.description": "Pode executar vários servidores de cadernos dentro deste projeto com um clique. Eles funcionam no mesmo ambiente, têm acesso aos mesmos ficheiros e param quando o projeto para. Também pode <A>executar os seus próprios servidores</A>.",
   "project.settings.about-box.description.label": "Descrição (markdown)",
   "project.settings.about-box.image.label": "Imagem (opcional)",
