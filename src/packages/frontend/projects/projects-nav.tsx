@@ -352,13 +352,13 @@ export function ProjectsNav(props: ProjectsNavProps) {
           project_id={activeTopTab}
           style={{
             width: "100%",
-            fontSize: "18pt",
+            fontSize: "14pt",
             textOverflow: "ellipsis",
             overflow: "hidden",
             textAlign: "center",
             whiteSpace: "nowrap",
             color: "#666",
-            marginTop: "2px",
+            marginTop: "6px",
             marginLeft: "30px",
           }}
         />
