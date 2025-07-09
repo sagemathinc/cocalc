@@ -61,6 +61,8 @@ import {
   type ClusterStreams,
   trimClusterStreams,
   createClusterPersistServer,
+  Sticky,
+  Interest,
 } from "./cluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
@@ -172,10 +174,10 @@ export class ConatServer extends EventEmitter {
   public state: State = "init";
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
-  private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
+  private interest: Interest = new Patterns();
   // the target string is JSON.stringify({ id: string; subject: string }),
   // which is the socket.io room to send the messages to.
-  private sticky: { [pattern: string]: { [subject: string]: string } } = {};
+  private sticky: Sticky = {};
 
   private clusterStreams?: ClusterStreams;
   private clusterLinks: {
@@ -1585,10 +1587,8 @@ function getAddress(socket) {
 
 export function updateInterest(
   update: InterestUpdate,
-  interest: Patterns<{ [queue: string]: Set<string> }>,
-  sticky: {
-    [pattern: string]: { [subject: string]: string };
-  },
+  interest: Interest,
+  sticky: Sticky,
 ) {
   const { op, subject, queue, room } = update;
   const groups = interest.get(subject);
@@ -1626,12 +1626,7 @@ export function updateInterest(
 }
 
 // returns true if this update actually causes a change to sticky
-export function updateSticky(
-  update: StickyUpdate,
-  sticky: {
-    [pattern: string]: { [subject: string]: string };
-  },
-): boolean {
+export function updateSticky(update: StickyUpdate, sticky: Sticky): boolean {
   const { pattern, subject, target } = update;
   if (sticky[pattern] === undefined) {
     sticky[pattern] = {};

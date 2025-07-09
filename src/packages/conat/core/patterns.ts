@@ -1,6 +1,7 @@
 import { isEqual } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 import { EventEmitter } from "events";
+import { hash_string } from "@cocalc/util/misc";
 
 type Index = { [pattern: string]: Index | string };
 
@@ -19,6 +20,14 @@ export class Patterns<T> extends EventEmitter {
     this.emit("closed");
     this.patterns = {};
     this.index = {};
+  };
+
+  hash = (hashT: (x: T) => number): number => {
+    let h = 0;
+    for (const pattern in this.patterns) {
+      h += hash_string(pattern) + hashT(this.patterns[pattern]);
+    }
+    return h;
   };
 
   serialize = (fromT?: (x: T) => any) => {

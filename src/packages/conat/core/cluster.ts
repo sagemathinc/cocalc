@@ -10,6 +10,7 @@ import type { DStream } from "@cocalc/conat/sync/dstream";
 import { once } from "@cocalc/util/async-utils";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
+import { hash_string } from "@cocalc/util/misc";
 
 const logger = getLogger("conat:core:cluster");
 
@@ -41,11 +42,14 @@ export async function clusterLink(
   return link;
 }
 
+export type Sticky = { [pattern: string]: { [subject: string]: string } };
+export type Interest = Patterns<{ [queue: string]: Set<string> }>;
+
 export { type ClusterLink };
 
 class ClusterLink {
-  public interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
-  private sticky: { [pattern: string]: { [subject: string]: string } } = {};
+  public interest: Interest = new Patterns();
+  private sticky: Sticky = {};
   private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
   private clientStateChanged = Date.now(); // when client status last changed
@@ -321,4 +325,38 @@ export async function trimClusterStreams(
   }
 
   return { seqsInterest: seqs, seqsSticky: seqs2 };
+}
+
+function hashSet(X: Set<string>): number {
+  let h = 0;
+  for (const a of X) {
+    h += hash_string(a); // integers, and not too many, so should commute
+  }
+  return h;
+}
+
+function hashInterestValue(X: { [queue: string]: Set<string> }): number {
+  let h = 0;
+  for (const queue in X) {
+    h += hashSet(X[queue]); // integers, and not too many, so should commute
+  }
+  return h;
+}
+
+export function hashInterest(
+  interest: Patterns<{ [queue: string]: Set<string> }>,
+): number {
+  return interest.hash(hashInterestValue);
+}
+
+export function hashSticky(sticky: Sticky): number {
+  let h = 0;
+  for (const pattern in sticky) {
+    h += hash_string(pattern);
+    const x = sticky[pattern];
+    for (const subject in x) {
+      h += hash_string(x[subject]);
+    }
+  }
+  return h;
 }
