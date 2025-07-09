@@ -546,27 +546,30 @@ export class Client extends EventEmitter {
     setTimeout(() => this.conn.io.disconnect(), 1);
   };
 
-  waitUntilSignedIn = reuseInFlight(async () => {
-    // not "signed in" if --
-    //   - not connected, or
-    //   - no info at all (which gets sent on sign in)
-    //   - or the user is {error:....}, which is what happens when sign in fails
-    //     e.g., do to an expired cookie
-    if (
-      this.info == null ||
-      this.state != "connected" ||
-      this.info?.user?.error
-    ) {
-      await once(this, "info");
-    }
-    if (
-      this.info == null ||
-      this.state != "connected" ||
-      this.info?.user?.error
-    ) {
-      throw Error("failed to sign in");
-    }
-  });
+  // this has NO timeout by default
+  waitUntilSignedIn = reuseInFlight(
+    async ({ timeout }: { timeout?: number } = {}) => {
+      // not "signed in" if --
+      //   - not connected, or
+      //   - no info at all (which gets sent on sign in)
+      //   - or the user is {error:....}, which is what happens when sign in fails
+      //     e.g., do to an expired cookie
+      if (
+        this.info == null ||
+        this.state != "connected" ||
+        this.info?.user?.error
+      ) {
+        await once(this, "info", timeout);
+      }
+      if (
+        this.info == null ||
+        this.state != "connected" ||
+        this.info?.user?.error
+      ) {
+        throw Error("failed to sign in");
+      }
+    },
+  );
 
   private statsLoop = async () => {
     await until(

@@ -1103,36 +1103,46 @@ export class ConatServer extends EventEmitter {
   // - the address obviously must be reachable over the network
   // - the systemAccountPassword of this node and the one with the given
   //   address must be the same.
-  join = reuseInFlight(async (address: string): Promise<ClusterLink> => {
-    if (!this.options.systemAccountPassword) {
-      throw Error("systemAccountPassword must be set");
-    }
-    logger.debug("join: connecting to ", address);
-    const link0 = this.clusterLinksByAddress[address];
-    if (link0 != null) {
-      logger.debug("join: already connected to ", address);
-      return link0;
-    }
-    try {
-      const link = await clusterLink(
-        address,
-        this.options.systemAccountPassword,
-        this.updateSticky,
-      );
-      const { clusterName, id } = link;
-      if (this.clusterLinks[clusterName] == null) {
-        this.clusterLinks[clusterName] = {};
+  join = reuseInFlight(
+    async (
+      address: string,
+      { timeout }: { timeout?: number } = {},
+    ): Promise<ClusterLink> => {
+      if (!this.options.systemAccountPassword) {
+        throw Error("systemAccountPassword must be set");
       }
-      this.clusterLinks[clusterName][id] = link;
-      this.clusterLinksByAddress[address] = link;
-      this.scanSoon();
-      logger.debug("join: successfully created new connection to ", address);
-      return link;
-    } catch (err) {
-      logger.debug("join: FAILED creating a new connection to ", address, err);
-      throw err;
-    }
-  });
+      logger.debug("join: connecting to ", address);
+      const link0 = this.clusterLinksByAddress[address];
+      if (link0 != null) {
+        logger.debug("join: already connected to ", address);
+        return link0;
+      }
+      try {
+        const link = await clusterLink(
+          address,
+          this.options.systemAccountPassword,
+          this.updateSticky,
+          timeout,
+        );
+        const { clusterName, id } = link;
+        if (this.clusterLinks[clusterName] == null) {
+          this.clusterLinks[clusterName] = {};
+        }
+        this.clusterLinks[clusterName][id] = link;
+        this.clusterLinksByAddress[address] = link;
+        this.scanSoon();
+        logger.debug("join: successfully created new connection to ", address);
+        return link;
+      } catch (err) {
+        logger.debug(
+          "join: FAILED creating a new connection to ",
+          address,
+          err,
+        );
+        throw err;
+      }
+    },
+  );
 
   unjoin = ({
     id,

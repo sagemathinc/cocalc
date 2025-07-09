@@ -11,6 +11,7 @@ import { once } from "@cocalc/util/async-utils";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
 import { hash_string } from "@cocalc/util/misc";
+const CREATE_LINK_TIMEOUT = 45_000;
 
 const logger = getLogger("conat:core:cluster");
 
@@ -18,11 +19,22 @@ export async function clusterLink(
   address: string,
   systemAccountPassword: string,
   updateStickyLocal: (sticky: StickyUpdate) => void,
+  timeout = CREATE_LINK_TIMEOUT,
 ) {
   const client = connect({ address, systemAccountPassword });
   if (client.info == null) {
-    await client.waitUntilSignedIn();
-    if (client.info == null) throw Error("bug -- failed to sign in");
+    try {
+      await client.waitUntilSignedIn({
+        timeout: timeout ?? CREATE_LINK_TIMEOUT,
+      });
+    } catch (err) {
+      client.close();
+      throw err;
+    }
+    if (client.info == null) {
+      // this is impossible
+      throw Error("BUG -- failed to sign in");
+    }
   }
   const { id, clusterName } = client.info;
   if (!id) {
