@@ -38,6 +38,7 @@ interface Props {
   items: (string | number)[];
   children?: ReactNode;
   style?: CSSProperties;
+  tabWidth?: number;
 }
 
 interface ItemContextType {
@@ -52,8 +53,14 @@ export function useItemContext() {
   return useContext(ItemContext);
 }
 
-export function SortableTabs(props: Props) {
-  const { onDragStart, onDragEnd, items, children, style } = props;
+export function SortableTabs({
+  onDragStart,
+  onDragEnd,
+  items,
+  children,
+  style,
+  tabWidth,
+}: Props) {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
       distance: 2,
@@ -77,6 +84,9 @@ export function SortableTabs(props: Props) {
   const { isOver } = useMouse(divRef);
 
   const itemWidth = useMemo(() => {
+    if (tabWidth) {
+      return tabWidth;
+    }
     if (divRef.current == null) {
       lastRef.current = null;
       return undefined;
