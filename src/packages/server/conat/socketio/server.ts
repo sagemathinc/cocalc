@@ -48,7 +48,7 @@ import port from "@cocalc/backend/port";
 import { join } from "path";
 import "@cocalc/backend/conat";
 import "@cocalc/backend/conat/persist"; // initializes context
-import { dnsScan, localAddress } from "./dns-scan";
+import { dnsScan, localAddress, SCAN_INTERVAL } from "./dns-scan";
 import { health } from "./health";
 import { hostname } from "node:os";
 import { getLogger } from "@cocalc/backend/logger";
@@ -88,6 +88,11 @@ export async function init(
     if (!opts.id) {
       opts.id = hostname().split("-").slice(-1)[0];
     }
+    // make this very short in k8s because we use the k8s api to get
+    // the exact nodes frequently, so even if there was a temporary split
+    // brain and each side stopped trying to connect to the other side,
+    // things would get fixed by k8s within SCAN_INTERVAL.
+    opts.forgetClusterNodeInterval = 4 * SCAN_INTERVAL;
     const server = createConatServer(opts);
     // enable dns scanner
     dnsScan(server);

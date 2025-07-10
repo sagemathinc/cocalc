@@ -81,12 +81,13 @@ const DEFAULT_AUTOSCAN_INTERVAL = 15_000;
 const DEFAULT_LONG_AUTOSCAN_INTERVAL = 60_000;
 
 // If a cluster node has been disconnected for this long,
-// unjoin it, thus freeing the stream tracking its state
-// and also if it comes back it will have to explicitly
+// unjoin it, thus freeing the streams tracking its state (so memory),
+// If it comes back it will have to explicitly
 // join the cluster again.  This is primarily to not leak RAM
-// when nodes are removed on purpose.  Supercluster nodes
-// are never automatically forgetton.
-const DEFAULT_FORGET_CLUSTER_NODE_INTERVAL = 30 * 60_000; // 30 minutes
+// when nodes are removed on purpose, and also avoid a cluttered log
+// of constant reconnect errors.  Supercluster nodes are never
+// automatically forgotten.
+const DEFAULT_FORGET_CLUSTER_NODE_INTERVAL = 30 * 60_000; // 30 minutes by default
 
 const DEBUG = false;
 
@@ -1469,7 +1470,9 @@ export class ConatServer extends EventEmitter {
           return await f;
         } catch (err) {
           if (!done) {
-            logger.debug(`WARNING: waitForInterestInLinks -- ${err}`);
+            logger.debug(
+              `WARNING: waitForInterestInLinks ${subject} -- ${err}`,
+            );
           }
         }
         return false;

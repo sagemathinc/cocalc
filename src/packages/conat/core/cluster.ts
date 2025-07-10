@@ -147,6 +147,9 @@ class ClusterLink {
       // @ts-ignore
       delete this.streams;
     }
+    this.client.close();
+    // @ts-ignore
+    delete this.client;
   };
 
   hasInterest = (subject) => {
