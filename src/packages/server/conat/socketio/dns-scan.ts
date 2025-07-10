@@ -91,7 +91,7 @@ export async function getAddresses(): Promise<string[]> {
       "-l",
       "run=hub-conat-router",
       "-o",
-      `jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.podIP}{"\n"}{end}'`,
+      `jsonpath='{range .items[*]}{.metadata.name}{"\\t"}{.status.podIP}{"\\n"}{end}'`,
     ],
   });
   for (const x of stdout.split("\n")) {
