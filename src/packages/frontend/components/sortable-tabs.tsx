@@ -156,7 +156,11 @@ export function renderTabBar(tabBarProps, DefaultTabBar, styles?) {
   return (
     <DefaultTabBar {...tabBarProps}>
       {(node) => (
-        <SortableTab key={node.key} id={node.key} style={styles?.[node.key]}>
+        <SortableTab
+          key={node.key}
+          id={node.key}
+          style={styles?.[node.key] ?? styles?.[""]}
+        >
           {node}
         </SortableTab>
       )}

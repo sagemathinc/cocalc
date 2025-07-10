@@ -5,7 +5,6 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-
 import {
   redux,
   useActions,
@@ -298,11 +297,10 @@ export function ProjectsNav(props: ProjectsNavProps) {
   function renderTabBar0(tabBarProps, DefaultTabBar) {
     return renderTabBar(tabBarProps, DefaultTabBar, {
       [activeTopTab]: {
-        border: "1px solid #d3d3d3",
-        borderRadius: "10px",
-        // negative margin to prevent moving when adding the border above.
-        margin: "-1px -1px 0 -1px",
+        border: "2px solid #d3d3d3",
+        borderRadius: "8px",
       },
+      "": { border: "2px solid transparent", borderRadius: "8px" },
     });
   }
 
