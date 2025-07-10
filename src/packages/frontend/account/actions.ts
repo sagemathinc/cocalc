@@ -244,4 +244,34 @@ export class AccountActions extends Actions<AccountState> {
     // @ts-ignore
     this.setState({ fragment });
   };
+
+  addTag = (tag: string) => {
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tags = store.get("tags");
+    if (tags?.includes(tag)) {
+      // already tagged
+      return;
+    }
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const v = tags?.toJS() ?? [];
+    v.push(tag);
+    table.set({ tags: v });
+  };
+
+  // delete won't be visible in frontend until a browser refresh...
+  deleteTag = async (tag: string) => {
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tags = store.get("tags");
+    if (!tags?.includes(tag)) {
+      // already tagged
+      return;
+    }
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const v = tags.toJS().filter((x) => x != tag);
+    await webapp_client.async_query({ query: { accounts: { tags: v } } });
+  };
 }
