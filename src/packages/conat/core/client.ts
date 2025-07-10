@@ -209,7 +209,6 @@ import * as msgpack from "@msgpack/msgpack";
 import { randomId } from "@cocalc/conat/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
-import { callback } from "awaiting";
 import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
@@ -531,10 +530,7 @@ export class Client extends EventEmitter {
   }
 
   cluster = async () => {
-    return await callback(
-      this.conn.timeout(10000).emit.bind(this.conn),
-      "cluster",
-    );
+    return await this.conn.timeout(10000).emitWithAck("cluster");
   };
 
   disconnect = () => {
@@ -608,20 +604,14 @@ export class Client extends EventEmitter {
       );
     }
     timeout = Math.min(timeout, MAX_INTEREST_TIMEOUT);
-    const f = (cb) => {
-      this.conn
-        .timeout(timeout ? timeout : 10000)
-        .emit("wait-for-interest", { subject, timeout }, (err, response) => {
-          if (err) {
-            cb(err);
-          } else if (response.error) {
-            cb(new ConatError(response.error, { code: response.code }));
-          } else {
-            cb(undefined, response);
-          }
-        });
-    };
-    return await callback(f);
+    const response = await this.conn.timeout(timeout ? timeout : 10000).emitWithAck(
+      "wait-for-interest",
+      { subject, timeout },
+    );
+    if (response.error) {
+      throw new ConatError(response.error, { code: response.code });
+    }
+    return response;
   };
 
   recvStats = (bytes: number) => {
@@ -827,11 +817,9 @@ export class Client extends EventEmitter {
     let stable = true;
     if (missing.length > 0) {
       stable = false;
-      const resp = await callback(
-        this.conn.timeout(timeout).emit.bind(this.conn),
-        "subscribe",
-        missing,
-      );
+      const resp = await this.conn
+        .timeout(timeout)
+        .emitWithAck("subscribe", missing);
       // some subscription could fail due to permissions changes, e.g., user got
       // removed from a project.
       for (let i = 0; i < missing.length; i++) {
@@ -851,11 +839,7 @@ export class Client extends EventEmitter {
       }
     }
     if (extra.length > 0) {
-      await callback(
-        this.conn.timeout(timeout).emit.bind(this.conn),
-        "unsubscribe",
-        extra,
-      );
+      await this.conn.timeout(timeout).emitWithAck("unsubscribe", extra);
       stable = false;
     }
     return stable;
@@ -866,11 +850,9 @@ export class Client extends EventEmitter {
   private getSubscriptions = async (
     timeout = DEFAULT_REQUEST_TIMEOUT,
   ): Promise<Set<string>> => {
-    const subs = await callback(
-      this.conn.timeout(timeout).emit.bind(this.conn),
-      "subscriptions",
-      null,
-    );
+    const subs = await this.conn
+      .timeout(timeout)
+      .emitWithAck("subscriptions", null);
     return new Set(subs);
   };
 
@@ -958,30 +940,29 @@ export class Client extends EventEmitter {
     this.stats.subs++;
     let promise;
     if (confirm) {
-      const f = (cb) => {
-        const handle = (response) => {
-          if (response?.error) {
-            cb(new ConatError(response.error, { code: response.code }));
+      const f = async () => {
+        let response;
+        try {
+          if (timeout) {
+            response = await this.conn
+              .timeout(timeout)
+              .emitWithAck("subscribe", { subject, queue });
           } else {
-            cb(response?.error, response);
-          }
-        };
-        if (timeout) {
-          this.conn
-            .timeout(timeout)
-            .emit("subscribe", { subject, queue }, (err, response) => {
-              if (err) {
-                handle({ error: `${err}`, code: 408 });
-              } else {
-                handle(response);
-              }
+            // this should never be used -- see above
+            response = await this.conn.emitWithAck("subscribe", {
+              subject,
+              queue,
             });
-        } else {
-          // this should never be used -- see above
-          this.conn.emit("subscribe", { subject, queue }, handle);
+          }
+        } catch (err) {
+          throw new ConatError(`${err}`, { code: 408 });
         }
+        if (response?.error) {
+          throw new ConatError(response.error, { code: response.code });
+        }
+        return response;
       };
-      promise = callback(f);
+      promise = f();
     } else {
       this.conn.emit("subscribe", { subject, queue });
       promise = undefined;
@@ -1182,7 +1163,8 @@ export class Client extends EventEmitter {
       // already closed
       return { bytes: 0 };
     }
-    return this._publish(subject, mesg, opts);
+    // must NOT confirm
+    return this._publish(subject, mesg, { ...opts, confirm: false });
   };
 
   publish = async (
@@ -1254,6 +1236,7 @@ export class Client extends EventEmitter {
       encoding = DEFAULT_ENCODING,
       confirm,
       timeout = DEFAULT_PUBLISH_TIMEOUT,
+      noThrow,
     }: PublishOptions & { confirm?: boolean } = {},
   ) => {
     if (this.isClosed()) {
@@ -1301,49 +1284,35 @@ export class Client extends EventEmitter {
         v.push(headers);
       }
       if (confirm) {
-        let done = false;
-        const f = (cb) => {
-          const handle = (response) => {
-            if (this.state == "closed" && response?.error) {
-              if (!process.env.COCALC_TEST_MODE) {
-                console.warn(
-                  "conat client: ignoring outstanding error message since client closed",
-                );
-              }
-              cb(undefined, response);
-              return;
-            }
-            // console.log("_publish", { done, subject, mesg, headers, confirm });
-            if (response?.error) {
-              cb(new ConatError(response.error, { code: response.code }));
-            } else {
-              cb(response?.error, response);
-            }
-          };
+        const f = async () => {
           if (timeout) {
-            const timer = setTimeout(() => {
-              done = true;
-              cb(new ConatError("timeout", { code: 408 }));
-            }, timeout);
-
-            this.conn.timeout(timeout).emit("publish", v, (err, response) => {
-              if (done) {
-                return;
-              }
-              clearTimeout(timer);
-              if (err) {
-                handle({ error: `${err}`, code: 408 });
+            try {
+              const response = await this.conn
+                .timeout(timeout)
+                .emitWithAck("publish", v);
+              if (response?.error) {
+                throw new ConatError(response.error, { code: response.code });
               } else {
-                handle(response);
+                return response;
               }
-            });
+            } catch (err) {
+              throw new ConatError(`timeout - ${subject} - ${err}`, {
+                code: 408,
+              });
+            }
           } else {
-            this.conn.emit("publish", v, handle);
+            return await this.conn.emitWithAck("publish", v);
           }
         };
         const promise = (async () => {
-          const response = await callback(f);
-          count = Math.max(count, response.count ?? 0);
+          try {
+            const response = await f();
+            count = Math.max(count, response.count ?? 0);
+          } catch (err) {
+            if (!noThrow) {
+              throw err;
+            }
+          }
         })();
         promises.push(promise);
       } else {
@@ -1616,6 +1585,13 @@ interface PublishOptions {
   // on success.  Note that waitForInterest always has a timeout, defaulting
   // to DEFAULT_WAIT_FOR_INTEREST_TIMEOUT if above timeout not given.
   waitForInterest?: boolean;
+
+  // noThrow -- if set and publishing would throw an exception, it is
+  // instead silently dropped and undefined is returned instead.
+  // Use this where you might want to use publishSync, but still want
+  // to ensure there is interest; however, it's not important to know
+  // if there was an error sending.
+  noThrow?: boolean;
 }
 
 interface RequestManyOptions extends PublishOptions {
