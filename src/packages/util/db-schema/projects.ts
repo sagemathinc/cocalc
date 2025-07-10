@@ -20,6 +20,10 @@ import { Table } from "./types";
 
 export const MAX_FILENAME_SEARCH_RESULTS = 100;
 
+const PROJECTS_LIMIT = 300;
+const PROJECTS_CUTOFF = "6 weeks";
+const THROTTLE_CHANGES = 1000;
+
 Table({
   name: "projects",
   rules: {
@@ -48,12 +52,15 @@ Table({
 
     user_query: {
       get: {
-        pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
-        pg_where_load: ["last_edited >= NOW() - interval '2 days'", "projects"],
-        options: [{ limit: 100, order_by: "-last_edited" }],
-        options_load: [{ limit: 15, order_by: "-last_edited" }],
+        pg_where: [
+          `last_edited >= NOW() - interval '${PROJECTS_CUTOFF}'`,
+          "projects",
+        ],
+        pg_where_load: ["last_edited >= NOW() - interval '7 days'", "projects"],
+        options: [{ limit: PROJECTS_LIMIT, order_by: "-last_edited" }],
+        options_load: [{ limit: 50, order_by: "-last_edited" }],
         pg_changefeed: "projects",
-        throttle_changes: 2000,
+        throttle_changes: THROTTLE_CHANGES,
         fields: {
           project_id: null,
           name: null,
