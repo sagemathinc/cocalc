@@ -245,7 +245,7 @@ export class AccountActions extends Actions<AccountState> {
     this.setState({ fragment });
   };
 
-  addTag = (tag: string) => {
+  addTag = async (tag: string) => {
     const store = this.redux.getStore("account");
     if (!store) return;
     const tags = store.get("tags");
@@ -258,6 +258,15 @@ export class AccountActions extends Actions<AccountState> {
     const v = tags?.toJS() ?? [];
     v.push(tag);
     table.set({ tags: v });
+    try {
+      await webapp_client.conat_client.hub.system.userSalesloftSync({});
+    } catch (err) {
+      console.warn(
+        "WARNING: issue syncing  with salesloft after setting tag",
+        tag,
+        err,
+      );
+    }
   };
 
   // delete won't be visible in frontend until a browser refresh...
