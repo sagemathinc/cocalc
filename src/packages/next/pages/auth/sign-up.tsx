@@ -6,15 +6,12 @@
 import { Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
-import { join } from "path";
-
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
 import { gtag_id, sign_up_id } from "@cocalc/util/theme";
 import SignUp from "components/auth/sign-up";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
-import apiPost from "lib/api/post";
 import basePath from "lib/base-path";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -27,7 +24,7 @@ export default function SignUpPage({ customize, requiresToken, requireTags }) {
     router.push("/");
   }
 
-  async function onSuccess({ firstFile }) {
+  async function onSuccess() {
     if (isCommercial) {
       try {
         (window as any).gtag?.("event", "conversion", {
@@ -38,21 +35,7 @@ export default function SignUpPage({ customize, requiresToken, requireTags }) {
         console.warn("error sending gtag event", err);
       }
     }
-    try {
-      // If you have at least one project, open the newest one.
-      const { project_id } = await apiPost("/projects/get-one");
-      if (project_id) {
-        let url = join(basePath, `/projects/${project_id}`);
-        if (firstFile) {
-          url = join(url, "files", firstFile);
-        }
-        window.location.href = url;
-      }
-      return;
-    } catch (_err) {
-      // no problem -- many situation where wouldn't have a project
-    }
-    openRoot();
+    router.push("/app?sign-in");
   }
 
   return (
