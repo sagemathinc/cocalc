@@ -1525,9 +1525,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2311,8 +2310,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -2837,6 +2836,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.log({ event: "file_action", action: "created", files: [p] });
+    if (ext) {
+      redux.getActions("account")?.addTag(`create-${ext}`);
+    }
     if (opts.switch_over) {
       this.open_file({
         path: p,
