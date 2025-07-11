@@ -5,15 +5,31 @@ COCALC_SERVICE
 */
 
 import { delay } from "awaiting";
-import type { ConatServer } from "@cocalc/conat/core/server";
 import { lookup } from "dns/promises";
-import port from "@cocalc/backend/port";
 import { hostname } from "node:os";
-import { getLogger } from "@cocalc/backend/logger";
+
 import { executeCode } from "@cocalc/backend/execute-code";
-import { split } from "@cocalc/util/misc";
+import { getLogger } from "@cocalc/backend/logger";
+import port from "@cocalc/backend/port";
+import type { ConatServer } from "@cocalc/conat/core/server";
+import { split, unreachable } from "@cocalc/util/misc";
+import { getAddressesFromK8sApi } from "./dns-scan-k8s-api";
 
 export const SCAN_INTERVAL = 15_000;
+
+type PeerDiscovery = "KUBECTL" | "API";
+
+function isPeerDiscovery(x: string): x is PeerDiscovery {
+  return x === "KUBECTL" || x === "API";
+}
+
+const PEER_DISCOVERY: PeerDiscovery = (function () {
+  const val = process.env.COCALC_CONAT_PEER_DISCOVERY ?? "KUBECTL";
+  if (!isPeerDiscovery(val)) {
+    throw Error(`Invalid COCALC_CONAT_PEER_DISCOVERY: ${val}`);
+  }
+  return val;
+})();
 
 const logger = getLogger("conat:socketio:dns-scan");
 
@@ -83,6 +99,32 @@ export async function getAddresses(): Promise<string[]> {
   const h = hostname();
   const i = h.lastIndexOf("-");
   const prefix = h.slice(0, i);
+
+  const podInfos = await getPodInfos();
+  for (const { name, podIP } of podInfos) {
+    if (name != h && name.startsWith(prefix)) {
+      v.push(`http://${podIP}:${port}`);
+    }
+  }
+  return v;
+}
+
+async function getPodInfos(): Promise<{ name: string; podIP: string }[]> {
+  switch (PEER_DISCOVERY) {
+    case "KUBECTL":
+      return await getAddressesFromKubectl();
+    case "API":
+      return await getAddressesFromK8sApi();
+    default:
+      unreachable(PEER_DISCOVERY);
+      throw Error(`Unknown PEER_DISCOVERY: ${PEER_DISCOVERY}`);
+  }
+}
+
+async function getAddressesFromKubectl(): Promise<
+  { name: string; podIP: string }[]
+> {
+  const ret: { name: string; podIP: string }[] = [];
   const { stdout } = await executeCode({
     command: "kubectl",
     args: [
@@ -97,10 +139,10 @@ export async function getAddresses(): Promise<string[]> {
   for (const x of stdout.split("\n")) {
     const row = split(x);
     if (row.length == 2) {
-      if (row[0] != h && row[0].startsWith(prefix)) {
-        v.push(`http://${row[1]}:${port}`);
-      }
+      ret.push({ name: row[0], podIP: row[1] });
+    } else {
+      logger.warn(`Unexpected row from kubectl: ${x}`);
     }
   }
-  return v;
+  return ret;
 }
