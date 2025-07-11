@@ -6,7 +6,8 @@
     "./*": "./dist/*.js",
     "./table": "./dist/table/index.js",
     "./listings": "./dist/listings/index.js",
-    "./editor/db": "./dist/editor/db/index.js"
+    "./editor/db": "./dist/editor/db/index.js",
+    "./editor/string": "./dist/editor/string/index.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
