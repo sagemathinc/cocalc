@@ -191,7 +191,8 @@ export class ConatSocketServer extends ConatSocketBase {
       mesg.respondSync("closed");
     } else if (cmd == "connect") {
       // very important that connected is successfully delivered, so do not use respondSync.
-      mesg.respond("connected");
+      // Using respond waits for interest.
+      mesg.respond("connected", { noThrow: true });
     } else {
       mesg.respondSync({ error: `unknown command - '${cmd}'` });
     }

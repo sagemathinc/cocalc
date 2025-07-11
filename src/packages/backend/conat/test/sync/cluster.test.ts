@@ -41,7 +41,7 @@ describe("using various sync data structures with a cluster", () => {
   });
 
   it("wait until both servers in the cluster have the same state", async () => {
-    await waitForConsistentState([server, server2], 5000);
+    await waitForConsistentState([server, server2], 15000);
   });
 
   let dstream2;

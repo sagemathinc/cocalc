@@ -181,9 +181,13 @@ export class TimeoutError extends Error {
 export async function once(
   obj: EventEmitter,
   event: string,
-  timeout_ms: number = 0,
+  timeout_ms: number | undefined = 0,
 ): Promise<any> {
   if (obj == null) throw Error("once -- obj is undefined");
+  if (timeout_ms == null) {
+    // clients might explicitly pass in undefined, but below we expect 0 to mean "no timeout"
+    timeout_ms = 0;
+  }
   if (typeof obj.once != "function")
     throw Error("once -- obj.once must be a function");
 
@@ -209,7 +213,9 @@ export async function once(
     function onTimeout() {
       cleanup();
       reject(
-        new TimeoutError(`once: timeout of ${timeout_ms}ms waiting for "${event}"`),
+        new TimeoutError(
+          `once: timeout of ${timeout_ms}ms waiting for "${event}"`,
+        ),
       );
     }
 

@@ -8,7 +8,7 @@ import {
   connect,
   delay,
 } from "@cocalc/backend/conat/test/setup";
-import { Client, type Message } from "@cocalc/conat/core/client";
+import type { Client, Message } from "@cocalc/conat/core/client";
 import { wait } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);

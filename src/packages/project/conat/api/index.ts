@@ -23,9 +23,9 @@ How to do development (so in a dev project doing cc-in-cc dev).
     export DEBUG=cocalc:*
     export DEBUG_CONSOLE=yes
 
-If API_KEY is a project-wide API key, then you can change 
-COCALC_PROJECT_ID however you want and don't have to worry 
-about whether the project is running or the project secret 
+If API_KEY is a project-wide API key, then you can change
+COCALC_PROJECT_ID however you want and don't have to worry
+about whether the project is running or the project secret
 key changing when the project is restarted.
 
 2. Then do this:
@@ -103,30 +103,30 @@ async function handleMessage(api, subject, mesg) {
     const { service } = request.args[0] ?? {};
     if (service == "open-files") {
       terminateOpenFiles();
-      mesg.respond({ status: "terminated", service });
+      await mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "listings") {
       closeListings();
-      mesg.respond({ status: "terminated", service });
+      await mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "files:read") {
       await closeFilesRead();
-      mesg.respond({ status: "terminated", service });
+      await mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "files:write") {
       await closeFilesWrite();
-      mesg.respond({ status: "terminated", service });
+      await mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "api") {
       // special hook so admin can terminate handling. This is useful for development.
       terminate = true;
       console.warn("TERMINATING listening on ", subject);
       logger.debug("TERMINATING listening on ", subject);
-      mesg.respond({ status: "terminated", service });
+      await mesg.respond({ status: "terminated", service });
       api.stop();
       return;
     } else {
-      mesg.respond({ error: `Unknown service ${service}` });
+      await mesg.respond({ error: `Unknown service ${service}` });
     }
   } else {
     handleApiRequest(request, mesg);
@@ -147,7 +147,7 @@ async function handleApiRequest(request, mesg) {
       resp = { error: `${err}` };
     }
   }
-  mesg.respond(resp);
+  await mesg.respond(resp);
 }
 
 import * as system from "./system";

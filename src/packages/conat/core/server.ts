@@ -61,6 +61,10 @@ import {
   type ClusterStreams,
   trimClusterStreams,
   createClusterPersistServer,
+  Sticky,
+  Interest,
+  hashInterest,
+  hashSticky,
 } from "./cluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
@@ -77,12 +81,13 @@ const DEFAULT_AUTOSCAN_INTERVAL = 15_000;
 const DEFAULT_LONG_AUTOSCAN_INTERVAL = 60_000;
 
 // If a cluster node has been disconnected for this long,
-// unjoin it, thus freeing the stream tracking its state
-// and also if it comes back it will have to explicitly
+// unjoin it, thus freeing the streams tracking its state (so memory),
+// If it comes back it will have to explicitly
 // join the cluster again.  This is primarily to not leak RAM
-// when nodes are removed on purpose.  Supercluster nodes
-// are never automatically forgetton.
-const DEFAULT_FORGET_CLUSTER_NODE_INTERVAL = 30 * 60_000; // 30 minutes
+// when nodes are removed on purpose, and also avoid a cluttered log
+// of constant reconnect errors.  Supercluster nodes are never
+// automatically forgotten.
+const DEFAULT_FORGET_CLUSTER_NODE_INTERVAL = 30 * 60_000; // 30 minutes by default
 
 const DEBUG = false;
 
@@ -172,10 +177,10 @@ export class ConatServer extends EventEmitter {
   public state: State = "init";
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
-  private interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
+  public interest: Interest = new Patterns();
   // the target string is JSON.stringify({ id: string; subject: string }),
   // which is the socket.io room to send the messages to.
-  private sticky: { [pattern: string]: { [subject: string]: string } } = {};
+  public sticky: Sticky = {};
 
   private clusterStreams?: ClusterStreams;
   private clusterLinks: {
@@ -183,7 +188,7 @@ export class ConatServer extends EventEmitter {
   } = {};
   private clusterLinksByAddress: { [address: string]: ClusterLink } = {};
   private clusterPersistServer?: ConatSocketServer;
-  private clusterName?: string;
+  public readonly clusterName?: string;
   private queuedClusterUpdates: Update[] = [];
 
   constructor(options: Options) {
@@ -1099,36 +1104,46 @@ export class ConatServer extends EventEmitter {
   // - the address obviously must be reachable over the network
   // - the systemAccountPassword of this node and the one with the given
   //   address must be the same.
-  join = reuseInFlight(async (address: string): Promise<ClusterLink> => {
-    if (!this.options.systemAccountPassword) {
-      throw Error("systemAccountPassword must be set");
-    }
-    logger.debug("join: connecting to ", address);
-    const link0 = this.clusterLinksByAddress[address];
-    if (link0 != null) {
-      logger.debug("join: already connected to ", address);
-      return link0;
-    }
-    try {
-      const link = await clusterLink(
-        address,
-        this.options.systemAccountPassword,
-        this.updateSticky,
-      );
-      const { clusterName, id } = link;
-      if (this.clusterLinks[clusterName] == null) {
-        this.clusterLinks[clusterName] = {};
+  join = reuseInFlight(
+    async (
+      address: string,
+      { timeout }: { timeout?: number } = {},
+    ): Promise<ClusterLink> => {
+      if (!this.options.systemAccountPassword) {
+        throw Error("systemAccountPassword must be set");
       }
-      this.clusterLinks[clusterName][id] = link;
-      this.clusterLinksByAddress[address] = link;
-      this.scanSoon();
-      logger.debug("join: successfully created new connection to ", address);
-      return link;
-    } catch (err) {
-      logger.debug("join: FAILED creating a new connection to ", address, err);
-      throw err;
-    }
-  });
+      logger.debug("join: connecting to ", address);
+      const link0 = this.clusterLinksByAddress[address];
+      if (link0 != null) {
+        logger.debug("join: already connected to ", address);
+        return link0;
+      }
+      try {
+        const link = await clusterLink(
+          address,
+          this.options.systemAccountPassword,
+          this.updateSticky,
+          timeout,
+        );
+        const { clusterName, id } = link;
+        if (this.clusterLinks[clusterName] == null) {
+          this.clusterLinks[clusterName] = {};
+        }
+        this.clusterLinks[clusterName][id] = link;
+        this.clusterLinksByAddress[address] = link;
+        this.scanSoon();
+        logger.debug("join: successfully created new connection to ", address);
+        return link;
+      } catch (err) {
+        logger.debug(
+          "join: FAILED creating a new connection to ",
+          address,
+          err,
+        );
+        throw err;
+      }
+    },
+  );
 
   unjoin = ({
     id,
@@ -1455,7 +1470,9 @@ export class ConatServer extends EventEmitter {
           return await f;
         } catch (err) {
           if (!done) {
-            logger.debug(`WARNING: waitForInterestInLinks -- ${err}`);
+            logger.debug(
+              `WARNING: waitForInterestInLinks ${subject} -- ${err}`,
+            );
           }
         }
         return false;
@@ -1530,6 +1547,13 @@ export class ConatServer extends EventEmitter {
     }
     return false;
   };
+
+  hash = (): { interest: number; sticky: number } => {
+    return {
+      interest: hashInterest(this.interest),
+      sticky: hashSticky(this.sticky),
+    };
+  };
 }
 
 function getSubjectFromRoom(room: string) {
@@ -1585,10 +1609,8 @@ function getAddress(socket) {
 
 export function updateInterest(
   update: InterestUpdate,
-  interest: Patterns<{ [queue: string]: Set<string> }>,
-  sticky: {
-    [pattern: string]: { [subject: string]: string };
-  },
+  interest: Interest,
+  sticky: Sticky,
 ) {
   const { op, subject, queue, room } = update;
   const groups = interest.get(subject);
@@ -1626,12 +1648,7 @@ export function updateInterest(
 }
 
 // returns true if this update actually causes a change to sticky
-export function updateSticky(
-  update: StickyUpdate,
-  sticky: {
-    [pattern: string]: { [subject: string]: string };
-  },
-): boolean {
+export function updateSticky(update: StickyUpdate, sticky: Sticky): boolean {
   const { pattern, subject, target } = update;
   if (sticky[pattern] === undefined) {
     sticky[pattern] = {};

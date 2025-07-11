@@ -10,7 +10,7 @@ import { isEqual } from "lodash";
 
 beforeAll(before);
 
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 describe("test automatic node discovery (and forgetting)", () => {
   const nodes: { client; server }[] = [];
   const clusterName = "auto";

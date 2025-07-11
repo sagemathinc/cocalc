@@ -203,7 +203,6 @@ export const Page: React.FC = () => {
       return (
         <NavTab
           name="admin"
-          label={"Admin"}
           label_class={NAV_CLASS}
           icon={"users"}
           active_top_tab={active_top_tab}

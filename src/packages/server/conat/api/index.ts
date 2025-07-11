@@ -102,7 +102,7 @@ async function handleMessage({ api, subject, mesg }) {
     // special hook so admin can terminate handling. This is useful for development.
     const { account_id } = getUserId(mesg.subject);
     if (!(!!account_id && (await userIsInGroup(account_id, "admin")))) {
-      mesg.respond({ error: "only admin can terminate" });
+      mesg.respond({ error: "only admin can terminate" }, { noThrow: true });
       return;
     }
     // TODO: could be part of handleApiRequest below, but done differently because
@@ -111,22 +111,22 @@ async function handleMessage({ api, subject, mesg }) {
     logger.debug(`Terminate service '${service}'`);
     if (service == "changefeeds") {
       terminateChangefeedServer();
-      mesg.respond({ status: "terminated", service });
+      mesg.respond({ status: "terminated", service }, { noThrow: true });
       return;
     } else if (service == "persist") {
       terminatePersistServer();
-      mesg.respond({ status: "terminated", service });
+      mesg.respond({ status: "terminated", service }, { noThrow: true });
       return;
     } else if (service == "api") {
       // special hook so admin can terminate handling. This is useful for development.
       console.warn("TERMINATING listening on ", subject);
       logger.debug("TERMINATING listening on ", subject);
       terminate = true;
-      mesg.respond({ status: "terminated", service });
+      mesg.respond({ status: "terminated", service }, { noThrow: true });
       api.stop();
       return;
     } else {
-      mesg.respond({ error: `Unknown service ${service}` });
+      mesg.respond({ error: `Unknown service ${service}` }, { noThrow: true });
     }
   } else {
     // we explicitly do NOT await this, since we want this hub server to handle

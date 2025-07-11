@@ -9,6 +9,8 @@ import {
   addNodeToDefaultCluster,
   wait,
   delay,
+  waitForConsistentState,
+  defaultCluster,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 
@@ -27,10 +29,13 @@ describe("the most basic pub/sub test with a 2-node cluster", () => {
     sub = await client0.subscribe("cocalc");
   });
 
-  it("publish -- message is initially dropped with no receiver because interest doesn't propogate instantly", async () => {
-    const { count } = await client1.publish("cocalc", "hi");
-    expect(count).toBe(0);
-  });
+  // commenting this out, since it is impossible to robustly test in all cases,
+  // since sometmes the subscription info can move very quickly and this publish
+  // could be slow!
+  //   it("publish -- message is initially dropped with no receiver because interest doesn't propogate instantly", async () => {
+  //     const { count } = await client1.publish("cocalc", "hi");
+  //     expect(count).toBe(0);
+  //   });
 
   it("publish after waiting for interest -- this works", async () => {
     await client1.waitForInterest("cocalc");
@@ -79,7 +84,7 @@ describe("same basic test, but in the other direction", () => {
   });
 });
 
-describe("with three nodes and two subscribers with different queue group on distinct nodes", () => {
+describe("three nodes and two subscribers with different queue group on distinct nodes", () => {
   let client0, client1, client2, server2;
   it("get the clients", async () => {
     client0 = server.client();
@@ -116,7 +121,7 @@ describe("with three nodes and two subscribers with different queue group on dis
     expect(count).toBe(1);
   });
 
-  it("make a sticky sub from all nodes and see that all messages go to the same receiver, no matter which node we send from", async () => {
+  it("make sticky subs from each node, and see that all messages go to the same receiver, no matter which node we send from", async () => {
     const sub0 = await client0.subscribe("sticky", {
       queue: STICKY_QUEUE_GROUP,
     });
@@ -150,20 +155,38 @@ describe("with three nodes and two subscribers with different queue group on dis
     await client2.waitForInterest("sticky");
 
     for (let i = 0; i < 20; i++) {
-      const { count } = await client2.publish("sticky");
+      const { count } = await client2.publish("sticky", null);
       expect(count).toBe(1);
     }
     for (let i = 0; i < 20; i++) {
-      const { count } = await client1.publish("sticky");
+      const { count } = await client1.publish("sticky", null);
       expect(count).toBe(1);
     }
     for (let i = 0; i < 20; i++) {
-      const { count } = await client0.publish("sticky");
+      const { count } = await client0.publish("sticky", null);
       expect(count).toBe(1);
     }
+    await wait({ until: () => n0 + n1 + n2 == 60 });
     expect(n0 * n1).toBe(0);
     expect(n0 * n2).toBe(0);
     expect(n1 * n2).toBe(0);
+    expect(n0 + n1 + n2).toBe(60);
+
+    await waitForConsistentState(defaultCluster);
+
+    // add another node and test
+    const server3 = await addNodeToDefaultCluster();
+    const client3 = server3.client();
+    await waitForConsistentState(defaultCluster);
+    for (let i = 0; i < 20; i++) {
+      const { count } = await client3.publish("sticky", null);
+      expect(count).toBe(1);
+    }
+    await wait({ until: () => n0 + n1 + n2 == 80 });
+    expect(n0 * n1).toBe(0);
+    expect(n0 * n2).toBe(0);
+    expect(n1 * n2).toBe(0);
+    expect(n0 + n1 + n2).toBe(80);
   });
 });
 

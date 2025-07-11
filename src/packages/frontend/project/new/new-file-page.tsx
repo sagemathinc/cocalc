@@ -344,10 +344,12 @@ export default function NewFilePage(props: Props) {
   //key is so autofocus works below
   return (
     <SettingBox
+      style={{ marginTop: "20px" }}
       show_header
       icon={"plus-circle"}
       title={
         <>
+          &nbsp;
           <FormattedMessage
             id="project.new-file-page.title"
             defaultMessage={

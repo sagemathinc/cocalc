@@ -96,14 +96,14 @@
   },
   "devDependencies": {
     "@ant-design/cssinjs": "^1.23.0",
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/express": "^4.17.21",
     "@types/node": "^18.16.14",
     "@types/react": "^19.1.8",
     "@uiw/react-textarea-code-editor": "^3.1.1",
     "next-rspack": "^15.3.4",
-    "node-mocks-http": "^1.14.1",
-    "react-test-renderer": "^19.1.0"
+    "node-mocks-http": "^1.14.1"
   },
   "pnpm": {
     "overrides": {

@@ -10,6 +10,8 @@ import type { DStream } from "@cocalc/conat/sync/dstream";
 import { once } from "@cocalc/util/async-utils";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
+import { hash_string } from "@cocalc/util/misc";
+const CREATE_LINK_TIMEOUT = 45_000;
 
 const logger = getLogger("conat:core:cluster");
 
@@ -17,11 +19,22 @@ export async function clusterLink(
   address: string,
   systemAccountPassword: string,
   updateStickyLocal: (sticky: StickyUpdate) => void,
+  timeout = CREATE_LINK_TIMEOUT,
 ) {
   const client = connect({ address, systemAccountPassword });
   if (client.info == null) {
-    await client.waitUntilSignedIn();
-    if (client.info == null) throw Error("bug -- failed to sign in");
+    try {
+      await client.waitUntilSignedIn({
+        timeout: timeout ?? CREATE_LINK_TIMEOUT,
+      });
+    } catch (err) {
+      client.close();
+      throw err;
+    }
+    if (client.info == null) {
+      // this is impossible
+      throw Error("BUG -- failed to sign in");
+    }
   }
   const { id, clusterName } = client.info;
   if (!id) {
@@ -41,11 +54,14 @@ export async function clusterLink(
   return link;
 }
 
+export type Sticky = { [pattern: string]: { [subject: string]: string } };
+export type Interest = Patterns<{ [queue: string]: Set<string> }>;
+
 export { type ClusterLink };
 
 class ClusterLink {
-  public interest: Patterns<{ [queue: string]: Set<string> }> = new Patterns();
-  private sticky: { [pattern: string]: { [subject: string]: string } } = {};
+  public interest: Interest = new Patterns();
+  private sticky: Sticky = {};
   private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
   private clientStateChanged = Date.now(); // when client status last changed
@@ -78,6 +94,9 @@ class ClusterLink {
     });
     for (const update of this.streams.interest.getAll()) {
       updateInterest(update, this.interest, this.sticky);
+    }
+    for (const update of this.streams.sticky.getAll()) {
+      updateSticky(update, this.sticky);
     }
     // I have a slight concern about this because updates might not
     // arrive in order during automatic failover.  That said, maybe
@@ -128,6 +147,9 @@ class ClusterLink {
       // @ts-ignore
       delete this.streams;
     }
+    this.client.close();
+    // @ts-ignore
+    delete this.client;
   };
 
   hasInterest = (subject) => {
@@ -163,6 +185,13 @@ class ClusterLink {
     }
 
     return false;
+  };
+
+  hash = (): { interest: number; sticky: number } => {
+    return {
+      interest: hashInterest(this.interest),
+      sticky: hashSticky(this.sticky),
+    };
   };
 }
 
@@ -321,4 +350,38 @@ export async function trimClusterStreams(
   }
 
   return { seqsInterest: seqs, seqsSticky: seqs2 };
+}
+
+function hashSet(X: Set<string>): number {
+  let h = 0;
+  for (const a of X) {
+    h += hash_string(a); // integers, and not too many, so should commute
+  }
+  return h;
+}
+
+function hashInterestValue(X: { [queue: string]: Set<string> }): number {
+  let h = 0;
+  for (const queue in X) {
+    h += hashSet(X[queue]); // integers, and not too many, so should commute
+  }
+  return h;
+}
+
+export function hashInterest(
+  interest: Patterns<{ [queue: string]: Set<string> }>,
+): number {
+  return interest.hash(hashInterestValue);
+}
+
+export function hashSticky(sticky: Sticky): number {
+  let h = 0;
+  for (const pattern in sticky) {
+    h += hash_string(pattern);
+    const x = sticky[pattern];
+    for (const subject in x) {
+      h += hash_string(x[subject]);
+    }
+  }
+  return h;
 }
