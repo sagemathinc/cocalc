@@ -3,12 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React, { useContext } from "react";
-import { Button, Menu, MenuProps, Flex, Spin } from "antd";
+import type { MenuProps } from "antd";
+import { Button, Flex, Menu, Spin } from "antd";
 import { useRouter } from "next/router";
+import React, { useContext } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import { currency, round2down } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { StoreBalanceContext } from "../../lib/balance";
 
 type MenuItem = Required<MenuProps>["items"][number];
@@ -17,7 +19,7 @@ const styles: { [k: string]: React.CSSProperties } = {
   menuBookend: {
     height: "100%",
     whiteSpace: "nowrap",
-    flexGrow: 1,
+    flex: "0 1 auto",
     textAlign: "end",
   },
   menu: {
@@ -38,7 +40,7 @@ const styles: { [k: string]: React.CSSProperties } = {
     maxWidth: "100%",
     flexGrow: 1,
   },
-};
+} as const;
 
 export interface ConfigMenuProps {
   main?: string;
@@ -64,6 +66,7 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       key: "site-license",
       icon: <Icon name="key" />,
     },
+    { label: "Course", key: "course", icon: <Icon name="graduation-cap" /> },
     {
       label: "Vouchers",
       key: "vouchers",
