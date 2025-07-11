@@ -33,6 +33,7 @@ import { RunLimit } from "./run-limit";
 import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
+import { LicenseType } from "./types";
 import { UsageAndDuration } from "./usage-and-duration";
 
 const DEFAULT_PRESET: Preset = "standard";
@@ -47,9 +48,11 @@ const STYLE: React.CSSProperties = {
 
 interface Props {
   noAccount: boolean;
-  type: "license" | "course";
+  type: LicenseType;
 }
 
+// depending on the type, this either purchases a license with all settings,
+// or a license for a course with a subset of controls.
 export default function SiteLicense({ noAccount, type }: Props) {
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
@@ -74,6 +77,8 @@ export default function SiteLicense({ noAccount, type }: Props) {
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit License in Shopping Cart"
+          : type === "course"
+          ? "Purchase a License for a Course"
           : "Configure a License"}
       </Title>
       {router.query.id == null && (
@@ -106,7 +111,19 @@ export default function SiteLicense({ noAccount, type }: Props) {
           )}
           {type === "course" && (
             <div>
-              <Paragraph style={{ fontSize: "12pt" }}>Course License</Paragraph>
+              <Paragraph style={{ fontSize: "12pt" }}>
+                When you teach your course on CoCalc, you benefit from a
+                managed, reliable platform used by tens of thousands of students
+                since 2013. Each student works in an isolated workspace
+                (project), with options for group work. File-based assignments
+                are handed out to students and collected when completed. You can
+                easily monitor progress, review editing history, and assist
+                students directly. For more information, please consult the{" "}
+                <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
+                  instructor guide
+                </A>
+                .
+              </Paragraph>
             </div>
           )}
         </>
@@ -114,6 +131,7 @@ export default function SiteLicense({ noAccount, type }: Props) {
       <CreateSiteLicense
         showInfoBar={scrollY > offsetHeader}
         noAccount={noAccount}
+        type={type}
       />
     </>
   );
@@ -122,7 +140,15 @@ export default function SiteLicense({ noAccount, type }: Props) {
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
+function CreateSiteLicense({
+  showInfoBar = false,
+  noAccount = false,
+  type,
+}: {
+  type: LicenseType;
+  noAccount: boolean;
+  showInfoBar: boolean;
+}) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
@@ -163,6 +189,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
 
   function onLicenseChange() {
     const vals = form.getFieldsValue(true);
+    // console.log("form vals=", vals);
     encodeFormValues(router, vals, "regular");
     setCost(computeCost(vals));
 
@@ -231,6 +258,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
       cartError={cartError}
       setCartError={setCartError}
       noAccount={noAccount}
+      type={type}
     />
   );
 
@@ -269,8 +297,10 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           showExplanations={showExplanations}
           form={form}
           onChange={onLicenseChange}
+          type={type}
         />
         <RunLimit
+          type={type}
           showExplanations={showExplanations}
           form={form}
           onChange={onLicenseChange}

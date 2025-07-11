@@ -11,3 +11,5 @@ export const StorePages = [
 ] as const;
 
 export type StorePagesTypes = (typeof StorePages)[number];
+
+export type LicenseType = "license" | "course";

@@ -15,6 +15,7 @@ import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { decimalDivide } from "@cocalc/util/stripe/calc";
+import { LicenseType } from "./types";
 
 export const ADD_STYLE = {
   display: "inline-block",
@@ -37,6 +38,7 @@ interface Props {
   dedicatedItem?: boolean;
   disabled?: boolean;
   noAccount: boolean;
+  type: LicenseType;
 }
 
 export function AddBox({
@@ -48,6 +50,7 @@ export function AddBox({
   dedicatedItem = false,
   noAccount,
   disabled = false,
+  type,
 }: Props) {
   if (cost?.input.type == "cash-voucher") {
     return null;
@@ -76,7 +79,8 @@ export function AddBox({
         }}
         message={
           <>
-            {money(round2up(costPer))} <b>per project</b>{" "}
+            {money(round2up(costPer))}{" "}
+            <b>per {type === "course" ? "student" : "project"}</b>{" "}
             {!!cost.period && cost.period != "range" ? cost.period : ""}
           </>
         }
@@ -175,8 +179,8 @@ export function AddToCartButton({
       {clicked
         ? "Moving to Cart..."
         : router.query.id != null
-          ? "Save Changes"
-          : "Add to Cart"}
+        ? "Save Changes"
+        : "Add to Cart"}
       {clicked && <Spin style={{ marginLeft: "15px" }} />}
     </Button>
   );

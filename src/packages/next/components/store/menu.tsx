@@ -11,7 +11,7 @@ import React, { useContext } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { currency, round2down } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { StoreBalanceContext } from "../../lib/balance";
+import { StoreBalanceContext } from "lib/balance";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -25,6 +25,7 @@ const styles: { [k: string]: React.CSSProperties } = {
   menu: {
     width: "100%",
     height: "100%",
+    flex: "1 1 auto",
     border: 0,
   },
   menuRoot: {
