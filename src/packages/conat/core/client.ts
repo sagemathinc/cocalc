@@ -604,10 +604,9 @@ export class Client extends EventEmitter {
       );
     }
     timeout = Math.min(timeout, MAX_INTEREST_TIMEOUT);
-    const response = await this.conn.timeout(timeout ? timeout : 10000).emitWithAck(
-      "wait-for-interest",
-      { subject, timeout },
-    );
+    const response = await this.conn
+      .timeout(timeout ? timeout : 10000)
+      .emitWithAck("wait-for-interest", { subject, timeout });
     if (response.error) {
       throw new ConatError(response.error, { code: response.code });
     }
@@ -1083,9 +1082,14 @@ export class Client extends EventEmitter {
           throw Error(`${name} not defined`);
         }
         const result = await f.apply(mesg, args);
-        mesg.respondSync(result);
+        // use await mesg.respond so waitForInterest is on, which is almost always
+        // good for services.
+        await mesg.respond(result);
       } catch (err) {
-        mesg.respondSync(null, { headers: { error: `${err}` } });
+        await mesg.respond(null, {
+          noThrow: true, // we're not catching this one
+          headers: { error: `${err}` },
+        });
       }
     };
     const loop = async () => {

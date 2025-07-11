@@ -20,7 +20,9 @@ OUTPUT: starts (or keeps running) the filesystem aware side of an editing sessio
 
 */
 
-// import { type Client } from "@cocalc/conat/core/client";
+import type { Client, Message, Subscription } from "@cocalc/conat/core/client";
+import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
+import { isValidUUID } from "@cocalc/util/misc";
 
 interface SyncDoc {
   close: () => void;
@@ -32,7 +34,6 @@ export type SyncDocCreator = (opts: {
   doctype?: any;
 }) => SyncDoc;
 
-/*
 interface Options {
   client: Client;
 
@@ -43,8 +44,14 @@ interface Options {
   createSyncDoc: SyncDocCreator;
 }
 
-export function init(opts: Options) {
-  return new SyncServer(opts.client, opts.projects, opts.createSyncDocs);
+export async function init(opts: Options) {
+  const syncServer = new SyncServer(
+    opts.client,
+    opts.projects,
+    opts.createSyncDoc,
+  );
+  await syncServer.init();
+  return syncServer;
 }
 
 interface Api {
@@ -52,19 +59,59 @@ interface Api {
 }
 
 class SyncServer {
-  constructor(client: Client, projects: string, createSyncDoc: SyncDocCreator) {
-    this.client.service = await client1.service<Api>("arith.*", {
-      add: async (a, b) => a + b,
-      mul: async (a, b) => a * b,
-      // Here we do NOT use an arrow => function and this is
-      // bound to the calling mesg, which lets us get the subject.
-      // Because user identity and permissions are done via wildcard
-      // subjects, having access to the calling message is critical
-      async open({ path, doctype }) {
-        const mesg: Message = this as any;
-        console.log(mesg.subject);
+  private service?: Subscription;
+  private syncDocs: { [key: string]: SyncDoc } = {};
+  private interest: { [key: string]: number } = {};
+
+  constructor(
+    private client: Client,
+    private projects: string,
+    private createSyncDoc: SyncDocCreator,
+  ) {}
+
+  init = async () => {
+    const self = this;
+    this.service = await this.client.service<Api>(
+      "sync.*.open",
+      {
+        async open({ path, doctype }) {
+          const mesg: Message = this as any;
+          self.open(mesg.subject, path, doctype);
+        },
       },
+      { queue: STICKY_QUEUE_GROUP },
+    );
+  };
+
+  private key = (project_id, path) => {
+    return `${project_id}/${path}`;
+  };
+
+  private open = (subject: string, path: string, doctype) => {
+    const project_id = subject.split(".")[1]?.slice("project-".length);
+    console.log("open", {
+      subject,
+      path,
+      doctype,
+      project_id,
+      projects: this.projects,
     });
-  }
+    if (!isValidUUID(project_id)) {
+      throw Error("invalid subject");
+    }
+    const key = this.key(project_id, path);
+    if (this.syncDocs[key] === undefined) {
+      this.syncDocs[key] = this.createSyncDoc({ project_id, path, doctype });
+    }
+    this.interest[key] = Date.now();
+  };
+
+  close = () => {
+    this.service?.close();
+    delete this.service;
+    for (const key in this.syncDocs) {
+      this.syncDocs[key].close();
+      delete this.syncDocs[key];
+    }
+  };
 }
-*/

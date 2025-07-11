@@ -5,7 +5,6 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-
 import {
   redux,
   useActions,
@@ -22,7 +21,6 @@ import {
 } from "@cocalc/frontend/components/sortable-tabs";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
 import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
@@ -76,21 +74,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     "projects",
     "public_project_titles",
   );
-  const project_websockets = useTypedRedux("projects", "project_websockets");
   const any_alerts = useProjectStatusAlerts(project_id);
-
-  function renderWebsocketIndicator() {
-    return (
-      // Hiding this on very skinny devices isn't necessarily bad, since the exact same information is
-      // now visible via a big "Connecting..." banner after a few seconds.
-      <span
-        style={{ paddingLeft: "15px", marginRight: "-15px" }}
-        className="hidden-xs"
-      >
-        <WebsocketIndicator state={project_websockets?.get(project_id)} />
-      </span>
-    );
-  }
 
   const title = project?.get("title") ?? public_project_titles?.get(project_id);
   if (title == null) {
@@ -103,11 +87,6 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   if (active_top_tab == project_id) {
     set_window_title(title);
   }
-
-  const nav_style_inner: CSSProperties = {
-    float: "right",
-    whiteSpace: "nowrap",
-  };
 
   const project_state = project?.getIn(["state", "state"]);
 
@@ -215,8 +194,13 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   }
 
   const body = (
-    <div onMouseUp={onMouseUp} style={width != null ? { width } : undefined}>
-      <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
+    <div
+      onMouseUp={onMouseUp}
+      style={{
+        marginTop: "-4px" /* compensate for border */,
+        ...(width != null ? { width } : undefined),
+      }}
+    >
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
         {icon}
         {renderNoInternet()}
@@ -298,11 +282,10 @@ export function ProjectsNav(props: ProjectsNavProps) {
   function renderTabBar0(tabBarProps, DefaultTabBar) {
     return renderTabBar(tabBarProps, DefaultTabBar, {
       [activeTopTab]: {
-        border: "1px solid #d3d3d3",
-        borderRadius: "10px",
-        // negative margin to prevent moving when adding the border above.
-        margin: "-1px -1px 0 -1px",
+        border: "2px solid #d3d3d3",
+        borderRadius: "8px",
       },
+      "": { border: "2px solid transparent", borderRadius: "8px" },
     });
   }
 
