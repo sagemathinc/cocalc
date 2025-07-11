@@ -784,8 +784,8 @@ importers:
         specifier: ^3.5.4
         version: 3.5.4
       http-proxy-3:
-        specifier: ^1.20.7
-        version: 1.20.7
+        specifier: ^1.20.8
+        version: 1.20.8
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -4380,6 +4380,9 @@ packages:
   '@types/node@24.0.10':
     resolution: {integrity: sha512-ENHwaH+JIRTDIEEbDK6QSQntAYGtbvdDXnMXnZaZ6k13Du1dPMmprkEHIL7ok2Wl2aZevetwTAb5S+7yIF+enA==}
 
+  '@types/node@24.0.13':
+    resolution: {integrity: sha512-Qm9OYVOFHFYg3wJoTSrz80hoec5Lia/dPp84do3X7dZvLikQvM1YpmvTBEdIr/e+U8HTkFjLHLnl78K/qjf+jQ==}
+
   '@types/nodemailer@6.4.17':
     resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
 
@@ -7383,8 +7386,8 @@ packages:
   http-parser-js@0.5.10:
     resolution: {integrity: sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA==}
 
-  http-proxy-3@1.20.7:
-    resolution: {integrity: sha512-WgtPGRfs3+QVf4chyW4Swh8F4Mhs/uvVBn91QDOKap59XCF8tvte3KRrMJdYi8BDWm3eoRIQJMBIi8RRHdxLIQ==}
+  http-proxy-3@1.20.8:
+    resolution: {integrity: sha512-RNAa6Q8QswRZPzApka8e/4K5LOawFsGNLrWe1RbDol7nubErRgzyJJ9tpb5MEE/TvdC3VdPdmln/Rid8qkJxCA==}
     engines: {node: '>=18'}
 
   http-proxy-agent@5.0.0:
@@ -14833,6 +14836,10 @@ snapshots:
     dependencies:
       undici-types: 7.8.0
 
+  '@types/node@24.0.13':
+    dependencies:
+      undici-types: 7.8.0
+
   '@types/nodemailer@6.4.17':
     dependencies:
       '@types/node': 18.19.115
@@ -18549,7 +18556,7 @@ snapshots:
 
   http-parser-js@0.5.10: {}
 
-  http-proxy-3@1.20.7:
+  http-proxy-3@1.20.8:
     dependencies:
       debug: 4.4.1
       follow-redirects: 1.15.9(debug@4.4.1)
@@ -19453,7 +19460,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 18.19.115
+      '@types/node': 24.0.13
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
