@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "이 프레임 닫기",
   "frame_editors.frame_tree.title_bar.maximize": "이 프레임만 보기",
   "frame_editors.frame_tree.title_bar.minimize": "모든 프레임 표시",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "레이블이 표시되면, 기호 막대는 메뉴 아래의 자체 행에 배치됩니다 – 그렇지 않으면 더 작아지고 메뉴 옆에 있습니다.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {아이콘을 클릭하여 툴바에서 제거} other {아이콘을 클릭하여 툴바에 추가}}",
   "i18n.localization.lang.arabic": "아랍어",
   "i18n.localization.lang.chinese": "중국어",

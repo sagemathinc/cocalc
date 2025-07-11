@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "このフレームを閉じる",
   "frame_editors.frame_tree.title_bar.maximize": "このフレームのみを表示",
   "frame_editors.frame_tree.title_bar.minimize": "すべてのフレームを表示",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "ラベルが表示されている場合、シンボルバーはメニューの下に独自の行に配置されます。表示されていない場合は、メニューの横に小さく表示されます。",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {アイコンをクリックしてツールバーから削除} other {アイコンをクリックしてツールバーに追加}}",
   "i18n.localization.lang.arabic": "アラビア語",
   "i18n.localization.lang.chinese": "中国語",

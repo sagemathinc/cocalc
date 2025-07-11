@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "Sluit dit frame. Om de standaardindeling te herstellen, sluit alle frames.",
   "frame_editors.frame_tree.title_bar.maximize": "Toon alleen dit frame",
   "frame_editors.frame_tree.title_bar.minimize": "Toon alle frames",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "Als labels worden weergegeven, wordt de symbolenbalk in een eigen rij onder het menu geplaatst – anders is deze kleiner en naast het menu.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Klik op het pictogram om van de werkbalk te verwijderen} other {Klik op het pictogram om aan de werkbalk toe te voegen}}",
   "i18n.localization.lang.arabic": "Arabisch",
   "i18n.localization.lang.chinese": "Chinees",

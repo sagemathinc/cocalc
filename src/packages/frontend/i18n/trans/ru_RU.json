@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "Закрыть этот фрейм",
   "frame_editors.frame_tree.title_bar.maximize": "Показать только этот кадр",
   "frame_editors.frame_tree.title_bar.minimize": "Показать все кадры",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "Если метки отображаются, панель символов размещается в отдельной строке под меню – в противном случае она меньше и находится рядом с меню.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Нажмите на значок, чтобы удалить с панели инструментов} other {Нажмите на значок, чтобы добавить на панель инструментов}}",
   "i18n.localization.lang.arabic": "Арабский",
   "i18n.localization.lang.chinese": "Китайский",

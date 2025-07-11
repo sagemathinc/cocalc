@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "أغلق هذا الإطار",
   "frame_editors.frame_tree.title_bar.maximize": "عرض هذا الإطار فقط",
   "frame_editors.frame_tree.title_bar.minimize": "عرض كافة الإطارات",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "إذا تم عرض التسميات، يتم وضع شريط الرموز في صف خاص به تحت القائمة – وإلا فإنه يكون أصغر ويكون بجانب القائمة.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {انقر على الأيقونة لإزالتها من شريط الأدوات} other {انقر على الأيقونة لإضافتها إلى شريط الأدوات}}",
   "i18n.localization.lang.arabic": "العربية",
   "i18n.localization.lang.chinese": "الصينية",

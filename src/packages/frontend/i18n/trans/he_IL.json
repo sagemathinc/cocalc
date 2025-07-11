@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "סגור מסגרת זו",
   "frame_editors.frame_tree.title_bar.maximize": "הצג רק את המסגרת הזו",
   "frame_editors.frame_tree.title_bar.minimize": "הצג את כל המסגרות",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "אם תוויות מוצגות, סרגל הסמלים ממוקם בשורה משלו מתחת לתפריט – אחרת הוא קטן יותר וליד התפריט.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {לחץ על הסמל להסרה מסרגל הכלים} other {לחץ על הסמל להוספה לסרגל הכלים}}",
   "i18n.localization.lang.arabic": "ערבית",
   "i18n.localization.lang.chinese": "סינית",

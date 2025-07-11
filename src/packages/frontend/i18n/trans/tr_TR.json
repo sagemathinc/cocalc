@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "Bu çerçeveyi kapat",
   "frame_editors.frame_tree.title_bar.maximize": "Yalnızca bu çerçeveyi göster",
   "frame_editors.frame_tree.title_bar.minimize": "Tüm kareleri göster",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "Eğer etiketler gösteriliyorsa, sembol çubuğu menünün altındaki kendi satırına yerleştirilir – aksi takdirde daha küçük ve menünün yanındadır.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Araç çubuğundan kaldırmak için simgeye tıklayın} other {Araç çubuğuna eklemek için simgeye tıklayın}}",
   "i18n.localization.lang.arabic": "Arapça",
   "i18n.localization.lang.chinese": "Çince",

@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "Fermer ce cadre",
   "frame_editors.frame_tree.title_bar.maximize": "Afficher seulement ce cadre",
   "frame_editors.frame_tree.title_bar.minimize": "Afficher tous les cadres",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "Si les étiquettes sont affichées, la barre de symboles est placée sur sa propre ligne sous le menu – sinon elle est plus petite et à côté du menu.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Cliquez sur l'icône pour retirer de la barre d'outils} other {Cliquez sur l'icône pour ajouter à la barre d'outils}}",
   "i18n.localization.lang.arabic": "Arabe",
   "i18n.localization.lang.chinese": "Chinois",

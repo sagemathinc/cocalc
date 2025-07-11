@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "关闭此框架",
   "frame_editors.frame_tree.title_bar.maximize": "仅显示此框架",
   "frame_editors.frame_tree.title_bar.minimize": "显示所有帧",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "如果显示标签，符号栏位于菜单下方的单独一行中，否则它会更小并位于菜单旁边。",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {点击图标从工具栏移除} other {点击图标添加到工具栏}}",
   "i18n.localization.lang.arabic": "阿拉伯语",
   "i18n.localization.lang.chinese": "中文",

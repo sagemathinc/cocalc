@@ -598,6 +598,7 @@
   "frame_editors.frame_tree.title_bar.close": "Zamknij to okno",
   "frame_editors.frame_tree.title_bar.maximize": "Pokaż tylko tę ramkę",
   "frame_editors.frame_tree.title_bar.minimize": "Pokaż wszystkie ramki",
+  "frame_editors.frame_tree.title_bar.symbols.label.explanation": "Jeśli etykiety są wyświetlane, pasek symboli jest umieszczony w osobnym wierszu pod menu – w przeciwnym razie jest mniejszy i znajduje się obok menu.",
   "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip": "{isOnButtonBar, select, true {Kliknij ikonę, aby usunąć z paska narzędzi} other {Kliknij ikonę, aby dodać do paska narzędzi}}",
   "i18n.localization.lang.arabic": "Arabski",
   "i18n.localization.lang.chinese": "Chiński",
