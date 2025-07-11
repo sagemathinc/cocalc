@@ -47,14 +47,17 @@ export default function Overview() {
         </Paragraph>
       ) : undefined}
       <OverviewRow>
-        <Product icon="key" title="Licenses" href="/store/site-license">
+        <Product icon="key" title="License" href="/store/site-license">
           Buy a license to upgrade projects, get internet access, more CPU, disk
           and memory.
         </Product>
-        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
-          Purchase a <A href={"/vouchers"}>voucher code</A> to make <SiteName />{" "}
-          credit easily available to somebody else.
+        <Product icon="graduation-cap" title="Course" href="/store/course">
+          Purchase a license for teaching a course.
         </Product>
+        <Paragraph style={{ textAlign: "center", width: "100%" }}>
+          <Icon name="gift" /> Purchase a <A href={"/vouchers"}>voucher code</A>{" "}
+          to make <SiteName /> credit easily available to somebody else.
+        </Paragraph>
         <Divider />
         <Product
           href={"/features/compute-server"}
@@ -74,7 +77,7 @@ export default function Overview() {
         <A href="/store/cart">shopping cart</A> or go straight to{" "}
         <A href="/store/checkout">checkout</A>.
       </Paragraph>
-      <Paragraph>
+      <Paragraph style={{ marginBottom: "4em" }}>
         You can also browse your{" "}
         <A href="/settings/purchases">purchase history</A>,{" "}
         <A href="/settings/licenses">licenses</A>, and{" "}
