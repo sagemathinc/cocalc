@@ -236,11 +236,6 @@ async function startServer(): Promise<void> {
       nextServer: !!program.nextServer,
       cert: program.httpsCert,
       key: program.httpsKey,
-      listenersHack:
-        program.mode == "single-user" &&
-        program.proxyServer &&
-        program.nextServer &&
-        process.env["NODE_ENV"] == "development",
     });
 
     // The express app create via initExpressApp above **assumes** that init_passport is done

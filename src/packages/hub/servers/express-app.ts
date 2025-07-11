@@ -45,7 +45,6 @@ interface Options {
   conatServer: boolean;
   cert?: string;
   key?: string;
-  listenersHack: boolean;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -150,19 +149,19 @@ export default async function init(opts: Options): Promise<{
     });
   }
 
+  // This must be second to the last, since it will prevent any
+  // other upgrade handlers from being added to httpServer.
   if (opts.proxyServer) {
     winston.info(`initializing the http proxy server`, {
       conatSocketioCount,
       conatServer: !!opts.conatServer,
       isPersonal: opts.isPersonal,
-      listenersHack: opts.listenersHack,
     });
     initProxy({
       projectControl: opts.projectControl,
       isPersonal: opts.isPersonal,
       httpServer,
       app,
-      listenersHack: opts.listenersHack,
       // enable proxy server for /conat if:
       //  (1) we are not running conat at all from here, or
       //  (2) we are running socketio in cluster mode, hence
