@@ -10,8 +10,10 @@ import { lookup } from "dns/promises";
 import port from "@cocalc/backend/port";
 import { hostname } from "node:os";
 import { getLogger } from "@cocalc/backend/logger";
+import { executeCode } from "@cocalc/backend/execute-code";
+import { split } from "@cocalc/util/misc";
 
-const SCAN_INTERVAL = 15_000;
+export const SCAN_INTERVAL = 15_000;
 
 const logger = getLogger("conat:socketio:dns-scan");
 
@@ -59,15 +61,46 @@ export async function dnsScan(server: ConatServer) {
   }
 }
 
+export async function localAddress(): Promise<string> {
+  const { address } = await lookup(hostname());
+  return address;
+}
+
+/*
+
+hub@hub-conat-router-5cbc9576f-44sl2:/tmp$ hostname
+hub-conat-router-5cbc9576f-44sl2
+
+# figured this out by reading the docs at https://kubernetes.io/docs/reference/kubectl/jsonpath/
+
+hub@hub-conat-router-5cbc9576f-44sl2:/tmp$ kubectl get pods -l run=hub-conat-router -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.podIP}{"\n"}{end}'
+hub-conat-router-5cbc9576f-44sl2        192.168.39.103
+hub-conat-router-5cbc9576f-n99x7        192.168.236.174
+*/
+
 export async function getAddresses(): Promise<string[]> {
   const v: string[] = [];
-  const { address: self } = await lookup(hostname());
-  for (const { address } of await lookup(
-    process.env.COCALC_SERVICE ?? "hub-conat-router",
-    { all: true },
-  )) {
-    if (address == self) continue;
-    v.push(`http://${address}:${port}`);
+  const h = hostname();
+  const i = h.lastIndexOf("-");
+  const prefix = h.slice(0, i);
+  const { stdout } = await executeCode({
+    command: "kubectl",
+    args: [
+      "get",
+      "pods",
+      "-l",
+      "run=hub-conat-router",
+      "-o",
+      `jsonpath={range .items[*]}{.metadata.name}{"\\t"}{.status.podIP}{"\\n"}{end}`,
+    ],
+  });
+  for (const x of stdout.split("\n")) {
+    const row = split(x);
+    if (row.length == 2) {
+      if (row[0] != h && row[0].startsWith(prefix)) {
+        v.push(`http://${row[1]}:${port}`);
+      }
+    }
   }
   return v;
 }

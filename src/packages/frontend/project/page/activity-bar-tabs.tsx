@@ -22,17 +22,18 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import track from "@cocalc/frontend/user-tracking";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
+import { getValidActivityBarOption } from "./activity-bar";
+import {
+  ACTIVITY_BAR_EXPLANATION,
+  ACTIVITY_BAR_KEY,
+  ACTIVITY_BAR_LABELS,
+  ACTIVITY_BAR_OPTIONS,
+  ACTIVITY_BAR_TOGGLE_LABELS,
+  TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE,
+} from "./activity-bar-consts";
+import { FileTab, FIXED_PROJECT_TABS, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
-import { getValidVBAROption } from "./vbar";
-import {
-  VBAR_EXPLANATION,
-  VBAR_KEY,
-  VBAR_LABELS,
-  VBAR_OPTIONS,
-  VBAR_TOGGLE_LABELS,
-} from "./vbar-consts";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -50,7 +51,7 @@ export default function ProjectTabs(props: PTProps) {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
 
-  if (openFiles.size == 0) return <></>;
+  //if (openFiles.size == 0) return <></>;
 
   return (
     <div
@@ -93,18 +94,21 @@ interface FVTProps {
   setHomePageButtonWidth: (width: number) => void;
 }
 
-export function VerticalFixedTabs(props: Readonly<FVTProps>) {
+export function VerticalFixedTabs({
+  setHomePageButtonWidth,
+}: Readonly<FVTProps>) {
   const intl = useIntl();
-  const { setHomePageButtonWidth } = props;
   const {
     actions,
     project_id,
     active_project_tab: activeTab,
   } = useProjectContext();
-  const { showVbarLabels } = useAppContext();
+  const { showActBarLabels } = useAppContext();
   const active_flyout = useTypedRedux({ project_id }, "flyout");
   const other_settings = useTypedRedux("account", "other_settings");
-  const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
+  const actBar = getValidActivityBarOption(
+    other_settings.get(ACTIVITY_BAR_KEY),
+  );
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
   const gap = useRef<HTMLDivElement>(null);
@@ -119,6 +123,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 
       const gh = gap.current.clientHeight;
       const ph = parent.current.clientHeight;
+      if (ph == 0) return;
 
       if (refCondensed.current) {
         // 5px slack to avoid flickering
@@ -130,7 +135,6 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         if (gh < 1) {
           setCondensed(true);
           refCondensed.current = true;
-          // max? because when we start with a thin window, the ph is already smaller than th
           breakPoint.current = ph;
         }
       }
@@ -147,6 +151,10 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       window.removeEventListener("resize", calcCondensed);
     };
   }, []);
+
+  useEffect(() => {
+    calcCondensed();
+  }, [showActBarLabels, parent.current, gap.current]);
 
   useEffect(() => {
     if (parent.current == null) return;
@@ -168,7 +176,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     return () => {
       observer.disconnect();
     };
-  }, [condensed, parent.current]);
+  }, [condensed, showActBarLabels, parent.current, gap.current]);
 
   const items: ReactNode[] = [];
   for (const nameStr in FIXED_PROJECT_TABS) {
@@ -182,19 +190,25 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
         : undefined;
 
-    const isActive = (vbar === "flyout" ? active_flyout : activeTab) === name;
+    const isActive = (actBar === "flyout" ? active_flyout : activeTab) === name;
 
     const style: CSS = {
-      padding: "0",
       ...color,
+      margin: "0",
       borderLeft: `4px solid ${
         isActive ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
       }`,
       // highlight active flyout in flyout-only mode more -- see https://github.com/sagemathinc/cocalc/issues/6855
-      ...(isActive && vbar === "flyout"
+      ...(isActive && actBar === "flyout"
         ? { backgroundColor: COLORS.BLUE_LLLL }
         : undefined),
     };
+
+    const spacing: string = showActBarLabels
+      ? "5px"
+      : condensed
+        ? "8px" // margin for condensed mode
+        : "12px"; // margin for normal mode
 
     const tab = (
       <FileTab
@@ -207,24 +221,24 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         iconStyle={{
           fontSize: condensed ? "18px" : "24px",
           margin: "0",
-          padding: "5px 0px",
           ...color,
         }}
+        extraSpacing={spacing}
         flyout={name}
         condensed={condensed}
-        showLabel={showVbarLabels}
+        showLabel={showActBarLabels}
       />
     );
     if (tab != null) items.push(tab);
   }
 
-  function renderToggleSidebar() {
+  function renderToggleActivityBar() {
     return (
       <Tooltip
         title={intl.formatMessage({
-          id: "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip",
-          defaultMessage: "Hide the action bar",
-          description: "This hides the vertical action bar in the UI",
+          id: "project.page.activity-bar.hide.tooltip",
+          defaultMessage: "Hide the activity bar",
+          description: "This hides the vertical activity bar in the UI",
         })}
         placement="rightTop"
       >
@@ -236,6 +250,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
             track("action-bar", { action: "hide" });
             actions?.toggleActionButtons();
           }}
+          style={{ marginBottom: TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE }}
         >
           <Icon name="vertical-right-outlined" />
         </Button>
@@ -259,31 +274,32 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     >
       {items}
       {/* moves the layout selector to the bottom */}
-      <div ref={gap} style={{ flex: 1 }}></div>{" "}
+      <div ref={gap} style={{ flex: 1 }}></div>
       {/* moves hide switch to the bottom */}
-      <LayoutSelector vbar={vbar} />
-      {renderToggleSidebar()}
+      <LayoutSelector actBar={actBar} />
+      {renderToggleActivityBar()}
     </div>
   );
 }
 
-function LayoutSelector({ vbar }) {
+function LayoutSelector({ actBar }) {
   const intl = useIntl();
-  const { showVbarLabels } = useAppContext();
+  const [open, setOpen] = useState(false);
+  const { showActBarLabels } = useAppContext();
   const { project_id } = useProjectContext();
   const account_settings = useActions("account");
 
   const title = intl.formatMessage({
-    id: "project.page.vertical-fixed-tabs.title",
-    defaultMessage: "Vertical bar layout",
+    id: "project.page.activity-bar-layout.title",
+    defaultMessage: "Activity bar layout",
   });
 
   const items: NonNullable<MenuProps["items"]> = Object.entries(
-    VBAR_OPTIONS,
+    ACTIVITY_BAR_OPTIONS,
   ).map(([key, label]) => ({
     key,
     onClick: () => {
-      account_settings.set_other_settings(VBAR_KEY, key);
+      account_settings.set_other_settings(ACTIVITY_BAR_KEY, key);
       track("flyout", {
         aspect: "layout",
         value: key,
@@ -295,7 +311,7 @@ function LayoutSelector({ vbar }) {
       <span>
         <Icon
           name="check"
-          style={key === vbar ? undefined : { visibility: "hidden" }}
+          style={key === actBar ? undefined : { visibility: "hidden" }}
         />{" "}
         {intl.formatMessage(label)}
       </span>
@@ -317,12 +333,17 @@ function LayoutSelector({ vbar }) {
     key: "toggle-labels",
     label: (
       <span>
-        <Icon name={showVbarLabels ? "check-square-o" : "square-o"} />{" "}
-        {intl.formatMessage(VBAR_TOGGLE_LABELS)}
+        <Icon name={"signature-outlined"} />{" "}
+        {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+          show: showActBarLabels,
+        })}
       </span>
     ),
     onClick: () => {
-      account_settings.set_other_settings(VBAR_LABELS, !showVbarLabels);
+      account_settings.set_other_settings(
+        ACTIVITY_BAR_LABELS,
+        !showActBarLabels,
+      );
     },
   });
 
@@ -337,17 +358,25 @@ function LayoutSelector({ vbar }) {
     onClick: () => {
       Modal.info({
         title,
-        content: intl.formatMessage(VBAR_EXPLANATION),
+        content: intl.formatMessage(ACTIVITY_BAR_EXPLANATION),
       });
     },
   });
 
   return (
     <div style={{ textAlign: "center" }}>
-      <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
+      <Dropdown
+        menu={{ items }}
+        trigger={["click"]}
+        onOpenChange={(next) => setOpen(next)}
+        placement="topLeft"
+      >
         <Button
           icon={<Icon name="layout" />}
-          style={{ margin: "5px" }}
+          block
+          style={{
+            ...(open ? { backgroundColor: COLORS.GRAY_LL } : {}),
+          }}
           type="text"
         />
       </Dropdown>

@@ -25,16 +25,17 @@ import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LOCALIZATIONS, labels } from "@cocalc/frontend/i18n";
-import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
 import {
-  VBAR_EXPLANATION,
-  VBAR_KEY,
-  VBAR_LABELS,
-  VBAR_LABELS_DEFAULT,
-  VBAR_OPTIONS,
-  VBAR_TOGGLE_LABELS,
-  VBAR_TOGGLE_LABELS_DESCRIPTION,
-} from "@cocalc/frontend/project/page/vbar-consts";
+  ACTIVITY_BAR_EXPLANATION,
+  ACTIVITY_BAR_KEY,
+  ACTIVITY_BAR_LABELS,
+  ACTIVITY_BAR_LABELS_DEFAULT,
+  ACTIVITY_BAR_OPTIONS,
+  ACTIVITY_BAR_TITLE,
+  ACTIVITY_BAR_TOGGLE_LABELS,
+  ACTIVITY_BAR_TOGGLE_LABELS_DESCRIPTION,
+} from "@cocalc/frontend/project/page/activity-bar-consts";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -513,24 +514,24 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   }
 
   function render_vertical_fixed_bar_options(): Rendered {
-    const selected = getValidVBAROption(props.other_settings.get(VBAR_KEY));
+    const selected = getValidActivityBarOption(
+      props.other_settings.get(ACTIVITY_BAR_KEY),
+    );
     const options = Object.fromEntries(
-      Object.entries(VBAR_OPTIONS).map(([k, v]) => [k, intl.formatMessage(v)]),
+      Object.entries(ACTIVITY_BAR_OPTIONS).map(([k, v]) => [
+        k,
+        intl.formatMessage(v),
+      ]),
     );
     return (
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.other-settings.vbar.title",
-          defaultMessage: "Vertical Project Bar",
-        })}
-      >
+      <LabeledRow label={intl.formatMessage(ACTIVITY_BAR_TITLE)}>
         <div>
           <SelectorInput
             style={{ marginBottom: "10px" }}
             selected={selected}
             options={options}
             on_change={(value) => {
-              on_change(VBAR_KEY, value);
+              on_change(ACTIVITY_BAR_KEY, value);
               track("flyout", { aspect: "layout", how: "account", value });
             }}
           />
@@ -538,14 +539,15 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
             type="secondary"
             ellipsis={{ expandable: true, symbol: "more" }}
           >
-            {intl.formatMessage(VBAR_EXPLANATION)}
+            {intl.formatMessage(ACTIVITY_BAR_EXPLANATION)}
           </Paragraph>
           <Checkbox
             checked={
-              props.other_settings.get(VBAR_LABELS) ?? VBAR_LABELS_DEFAULT
+              props.other_settings.get(ACTIVITY_BAR_LABELS) ??
+              ACTIVITY_BAR_LABELS_DEFAULT
             }
             onChange={(e) => {
-              on_change(VBAR_LABELS, e.target.checked);
+              on_change(ACTIVITY_BAR_LABELS, e.target.checked);
             }}
           >
             <Paragraph
@@ -553,8 +555,12 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
               style={{ marginBottom: 0 }}
               ellipsis={{ expandable: true, symbol: "more" }}
             >
-              <Text strong>{intl.formatMessage(VBAR_TOGGLE_LABELS)}</Text>:{" "}
-              {intl.formatMessage(VBAR_TOGGLE_LABELS_DESCRIPTION)}
+              <Text strong>
+                {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+                  show: false,
+                })}
+              </Text>
+              : {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS_DESCRIPTION)}
             </Paragraph>
           </Checkbox>
         </div>
@@ -585,7 +591,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       <LabeledRow
         label={intl.formatMessage({
           id: "account.other-settings.llm.default_llm",
-          defaultMessage: "Default AI Language Model",
+          defaultMessage: "Default AI Model",
         })}
       >
         <LLMSelector model={model} setModel={setModel} />

@@ -108,5 +108,4 @@ jobs:
 
       - run: cd src && npm install -g pnpm
       - run: cd src && pnpm run make
-      - run: source venv/bin/activate && cd src && pnpm run test || pnpm run test || pnpm run test
-      - run: cd src && pnpm run depcheck
+      - run: source venv/bin/activate && cd src && pnpm run test-github-ci

@@ -3126,4 +3126,20 @@ export class Actions<
       }
     }
   }
+
+  foldAIThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads(true);
+  }
+
+  foldAllThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads();
+  }
 }

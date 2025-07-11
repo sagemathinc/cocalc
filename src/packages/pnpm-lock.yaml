@@ -167,9 +167,6 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: 'link:'
-      '@cocalc/redis-streams-adapter':
-        specifier: ^0.2.3
-        version: 0.2.3(socket.io-adapter@2.5.5)
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
@@ -179,9 +176,6 @@ importers:
       '@msgpack/msgpack':
         specifier: ^3.1.1
         version: 3.1.2
-      '@socket.io/redis-adapter':
-        specifier: ^8.3.0
-        version: 8.3.0(socket.io-adapter@2.5.5)
       ascii-table3:
         specifier: ^1.0.1
         version: 1.0.1
@@ -647,9 +641,6 @@ importers:
       use-debounce:
         specifier: ^7.0.1
         version: 7.0.1(react@19.1.0)
-      use-deep-compare-effect:
-        specifier: ^1.8.1
-        version: 1.8.1(react@19.1.0)
       use-resize-observer:
         specifier: ^9.1.0
         version: 9.1.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -1035,6 +1026,9 @@ importers:
       '@ant-design/cssinjs':
         specifier: ^1.23.0
         version: 1.23.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@testing-library/jest-dom':
+        specifier: ^6.6.3
+        version: 6.6.3
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -1056,9 +1050,6 @@ importers:
       node-mocks-http:
         specifier: ^1.14.1
         version: 1.17.2(@types/express@4.17.23)(@types/node@18.19.115)
-      react-test-renderer:
-        specifier: ^19.1.0
-        version: 19.1.0(react@19.1.0)
 
   project:
     dependencies:
@@ -2267,12 +2258,6 @@ packages:
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
 
-  '@cocalc/redis-streams-adapter@0.2.3':
-    resolution: {integrity: sha512-9ttOz86edQS2RYt9ADN1l5s2kOnOG7d1wA11TRTrxOjaXa7xvTqgLjwzQL1LnVJ8C1+CipN8mDzw3PaSug3kWg==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      socket.io-adapter: ^2.5.4
-
   '@cocalc/widgets@1.2.0':
     resolution: {integrity: sha512-q1Ka84hQYwocvoS81gjlgtT6cvgrEtgP9vKbAp6AzKd9moW9r6oHkduL8i9CT8GD/4b7fTJ6oAAqxh160VUuPA==}
 
@@ -3300,10 +3285,6 @@ packages:
   '@module-federation/webpack-bundler-runtime@0.15.0':
     resolution: {integrity: sha512-i+3wu2Ljh2TmuUpsnjwZVupOVqV50jP0ndA8PSP4gwMKlgdGeaZ4VH5KkHAXGr2eiYUxYLMrJXz1+eILJqeGDg==}
 
-  '@msgpack/msgpack@2.8.0':
-    resolution: {integrity: sha512-h9u4u/jiIRKbq25PM+zymTyW6bhTzELvOoUd+AvYriWOAKpLGnIamaET3pnHYoI5iYphAHBI4ayx0MehR+VVPQ==}
-    engines: {node: '>= 10'}
-
   '@msgpack/msgpack@3.1.2':
     resolution: {integrity: sha512-JEW4DEtBzfe8HvUYecLU9e6+XJnKDlUAIve8FvPzF3Kzs6Xo/KuZkZJsDH0wJXl/qEZbeeE7edxDNY3kMs39hQ==}
     engines: {node: '>= 18'}
@@ -3997,12 +3978,6 @@ packages:
 
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
-
-  '@socket.io/redis-adapter@8.3.0':
-    resolution: {integrity: sha512-ly0cra+48hDmChxmIpnESKrc94LjRL80TEmZVscuQ/WWkRP81nNj8W8cCGMqbI4L6NCuAaPRSzZF1a9GlAxxnA==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      socket.io-adapter: ^2.5.4
 
   '@socket.io/sticky@1.0.4':
     resolution: {integrity: sha512-VuauT5CJLvzYtKIgouFSQ8rUaygseR+zRutnwh6ZA2QYcXx+8g52EoJ8V2SLxfo+Tfs3ELUDy08oEXxlWNrxaw==}
@@ -8987,9 +8962,6 @@ packages:
   normalize-wheel@1.0.1:
     resolution: {integrity: sha512-1OnlAPZ3zgrk8B91HyRj+eVv+kS5u+Z0SCsak6Xil/kmgEia50ga7zfkumayonZrImffAxPU/5WcyGhzetHNPA==}
 
-  notepack.io@3.0.1:
-    resolution: {integrity: sha512-TKC/8zH5pXIAMVQio2TvVDTtPRX+DJPHDqjRbxogtFiByHyzKmy96RA0JtCQJ+WouyyL4A10xomQzgbUT+1jCg==}
-
   nouislider@15.4.0:
     resolution: {integrity: sha512-AV7UMhGhZ4Mj6ToMT812Ib8OJ4tAXR2/Um7C4l4ZvvsqujF0WpQTpqqHJ+9xt4174R7ueQOUrBR4yakJpAIPCA==}
 
@@ -11303,10 +11275,6 @@ packages:
   uid2@0.0.4:
     resolution: {integrity: sha512-IevTus0SbGwQzYh3+fRsAMTVVPOoIVufzacXcHPmdlle1jUpq7BRL+mw3dgeLanvGZdwwbWhRV6XrcFNdBmjWA==}
 
-  uid2@1.0.0:
-    resolution: {integrity: sha512-+I6aJUv63YAcY9n4mQreLUt0d4lvwkkopDNmpomkAUz0fAkEMV9pRWxN0EjhW1YfRhcuyHg2v3mwddCDW1+LFQ==}
-    engines: {node: '>= 4.0.0'}
-
   uid@2.0.2:
     resolution: {integrity: sha512-u3xV3X7uzvi5b1MncmZo3i2Aw222Zk1keqLA1YkHldREkAhAqi65wuPfe7lHx8H/Wzy+8CE7S7uS3jekIM5s8g==}
     engines: {node: '>=8'}
@@ -11445,12 +11413,6 @@ packages:
     engines: {node: '>= 10.0.0'}
     peerDependencies:
       react: '>=16.8.0'
-
-  use-deep-compare-effect@1.8.1:
-    resolution: {integrity: sha512-kbeNVZ9Zkc0RFGpfMN3MNfaKNvcLNyxOAAd9O4CBZ+kCBXXscn9s/4I+8ytUER4RDpEYs5+O6Rs4PqiZ+rHr5Q==}
-    engines: {node: '>=10', npm: '>=6'}
-    peerDependencies:
-      react: '>=16.13'
 
   use-isomorphic-layout-effect@1.2.0:
     resolution: {integrity: sha512-q6ayo8DWoPZT0VdG4u3D3uxcgONP3Mevx2i2b0434cwWBoL+aelL1DzkXI6w3PhTZzUeR2kaVlZn70iCiseP6w==}
@@ -12353,14 +12315,6 @@ snapshots:
     dependencies:
       debug: 4.4.1
       node-uuid: 1.4.8
-    transitivePeerDependencies:
-      - supports-color
-
-  '@cocalc/redis-streams-adapter@0.2.3(socket.io-adapter@2.5.5)':
-    dependencies:
-      '@msgpack/msgpack': 2.8.0
-      debug: 4.3.7
-      socket.io-adapter: 2.5.5
     transitivePeerDependencies:
       - supports-color
 
@@ -13663,8 +13617,6 @@ snapshots:
       '@module-federation/runtime': 0.15.0
       '@module-federation/sdk': 0.15.0
 
-  '@msgpack/msgpack@2.8.0': {}
-
   '@msgpack/msgpack@3.1.2': {}
 
   '@napi-rs/canvas-android-arm64@0.1.69':
@@ -14388,15 +14340,6 @@ snapshots:
       - supports-color
 
   '@socket.io/component-emitter@3.1.2': {}
-
-  '@socket.io/redis-adapter@8.3.0(socket.io-adapter@2.5.5)':
-    dependencies:
-      debug: 4.3.7
-      notepack.io: 3.0.1
-      socket.io-adapter: 2.5.5
-      uid2: 1.0.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@socket.io/sticky@1.0.4': {}
 
@@ -19510,7 +19453,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.0.10
+      '@types/node': 18.19.115
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -20530,8 +20473,6 @@ snapshots:
       svg-arc-to-cubic-bezier: 3.2.0
 
   normalize-wheel@1.0.1: {}
-
-  notepack.io@3.0.1: {}
 
   nouislider@15.4.0: {}
 
@@ -23287,8 +23228,6 @@ snapshots:
 
   uid2@0.0.4: {}
 
-  uid2@1.0.0: {}
-
   uid@2.0.2:
     dependencies:
       '@lukeed/csprng': 1.1.0
@@ -23420,12 +23359,6 @@ snapshots:
 
   use-debounce@7.0.1(react@19.1.0):
     dependencies:
-      react: 19.1.0
-
-  use-deep-compare-effect@1.8.1(react@19.1.0):
-    dependencies:
-      '@babel/runtime': 7.25.6
-      dequal: 2.0.3
       react: 19.1.0
 
   use-isomorphic-layout-effect@1.2.0(@types/react@19.1.8)(react@19.1.0):

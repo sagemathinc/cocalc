@@ -36,6 +36,9 @@ export async function initConatServer(
   }
 
   const server = createConatServer(options);
+  if (server.clusterName == "default") {
+    defaultCluster.push(server);
+  }
   if (server.state != "ready") {
     await once(server, "ready");
   }
@@ -64,6 +67,8 @@ export async function createServer(opts?) {
 
 // add another node to the cluster -- this is still in the same process (not forked), which
 // is generally good since you can console.log from it, faster, etc.
+// this does connect the new node to all existing nodes.
+export const defaultCluster: ConatServer[] = [];
 export async function addNodeToDefaultCluster(): Promise<ConatServer> {
   const port = await getPort();
   const node = await initConatServer({
@@ -73,8 +78,10 @@ export async function addNodeToDefaultCluster(): Promise<ConatServer> {
     id: getNodeId(),
     systemAccountPassword: "secret",
   });
-  await server.join(node.address());
-  await node.join(server.address());
+  for (const s of defaultCluster) {
+    await s.join(node.address());
+    await node.join(s.address());
+  }
   return node;
 }
 
@@ -128,7 +135,7 @@ export async function before() {
   tempDir = await mkdtemp(join(tmpdir(), "conat-test"));
   syncFiles.local = join(tempDir, "local");
   syncFiles.archive = join(tempDir, "archive");
-  
+
   server = await createServer();
   client = connect();
   persistServer = createPersistServer({ client });
@@ -171,7 +178,9 @@ export async function waitForConsistentState(
   }
 
   if (ids.size != servers.length) {
-    throw Error("all servers must have distinct ids");
+    throw Error(
+      `all servers must have distinct ids -- ${JSON.stringify(servers.map((x) => x.id))}`,
+    );
   }
 
   const start = Date.now();
@@ -184,40 +193,67 @@ export async function waitForConsistentState(
         // now look at everybody else's view of servers[i].
         // @ts-ignore
         const a = servers[i].interest.serialize().patterns;
+        const b = servers[i].sticky;
+        const hashServer = servers[i].hash();
         for (let j = 0; j < servers.length; j++) {
           if (i != j) {
             // @ts-ignore
             const link = servers[j].clusterLinks[clusterName]?.[servers[i].id];
             if (link == null) {
-              throw Error(`node ${j} is not connected to node ${i}`);
+              if (Date.now() - start > 3000) {
+                console.log(`node ${j} is not connected to node ${i}`);
+              }
+              return false;
             }
+            const hashLink = link.hash();
             const x = link.interest.serialize().patterns;
+            const y = link.sticky;
             const showInfo = () => {
-              console.log(
-                "server stream getAll: ",
-                // @ts-ignore
-                servers[i].clusterStreams.interest.stream.client.id,
-                // @ts-ignore
-                servers[i].clusterStreams.interest.stream.storage.path,
-                // @ts-ignore
-                servers[i].clusterStreams.interest.seqs(),
-                // @ts-ignore
-                //servers[i].clusterStreams.interest.getAll(),
-              );
-              console.log(
-                "link stream getAll: ",
-                // @ts-ignore
-                link.streams.interest.stream.client.id,
-                // @ts-ignore
-                link.streams.interest.stream.storage.path,
-                // @ts-ignore
-                link.streams.interest.seqs(),
-                // @ts-ignore
-                //link.streams.interest.getAll(),
-              );
-              console.log("waitForConsistentState", { i, j, a, x });
+              for (const type of ["interest", "sticky"]) {
+                console.log(
+                  `server stream ${type}: `,
+                  hashServer[type],
+                  // @ts-ignore
+                  servers[i].clusterStreams[type].stream.client.id,
+                  // @ts-ignore
+                  servers[i].clusterStreams[type].stream.storage.path,
+                  // @ts-ignore
+                  servers[i].clusterStreams[type].seqs(),
+                  // @ts-ignore
+                  //servers[i].clusterStreams.interest.getAll(),
+                );
+
+                console.log(
+                  `link stream ${type}: `,
+                  hashLink[type],
+                  // @ts-ignore
+                  link.streams[type].stream.client.id,
+                  // @ts-ignore
+                  link.streams[type].stream.storage.path,
+                  // @ts-ignore
+                  link.streams[type].seqs(),
+                  // @ts-ignore
+                  //link.streams.interest.getAll(),
+                );
+              }
+              console.log("waitForConsistentState", {
+                i,
+                j,
+                serverInterest: a,
+                linkInterest: x,
+                serverSticky: b,
+                linkSticky: y,
+              });
             };
-            if (!isEqual(a, x)) {
+            if (!isEqual(hashServer, hashLink)) {
+              if (Date.now() - start > 3000) {
+                console.log("hashes are not equal");
+                // likely going to fail
+                showInfo();
+              }
+              return false;
+            }
+            if (!isEqual(a, x) /*|| !isEqual(b, y) */) {
               // @ts-ignore
               const seqs0 = servers[i].clusterStreams.interest.seqs();
               const seqs1 = link.streams.interest.seqs();

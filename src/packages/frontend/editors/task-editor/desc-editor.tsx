@@ -87,7 +87,10 @@ export default function DescriptionEditor({
           actions.redo();
         }}
         minimal
-        editBarStyle={{ marginBottom: "10px" }}
+        modeSwitchStyle={{
+          float: "right",
+          position: "relative",
+        }}
       />
       <ColorPicker
         toggle={<Button style={{ float: "right" }}>Color...</Button>}

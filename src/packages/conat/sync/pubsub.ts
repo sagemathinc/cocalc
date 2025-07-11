@@ -53,7 +53,7 @@ export class PubSub extends EventEmitter {
   };
 
   set = (obj) => {
-    this.client.publish(this.subject, obj);
+    this.client.publishSync(this.subject, obj);
   };
 
   private subscribe = async () => {

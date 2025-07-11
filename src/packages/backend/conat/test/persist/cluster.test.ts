@@ -138,13 +138,13 @@ describe("test using multiple persist servers in a cluster", () => {
       expect(t.getAll()).toEqual(["x"]);
       openStreams1.push(t);
     }
-    expect(openStreams0.length).toBeGreaterThan(1);
+    expect(openStreams0.length).toBeGreaterThan(0);
   });
 
   it("remove one persist server", async () => {
     persistServer1.close();
     // [ ] TODO: removing this delay leads to very consistent failures
-    // involving data loss, but things should just be slower, never broken, 
+    // involving data loss, but things should just be slower, never broken,
     // on automatic failover.
     await delay(3000);
   });

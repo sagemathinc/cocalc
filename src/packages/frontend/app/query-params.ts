@@ -79,4 +79,5 @@ export function init_query_params(): void {
   // not have session in the URL, so we can share url's without infected
   // other user's session.
   QueryParams.remove("session");
+
 }

@@ -65,7 +65,7 @@ export async function init() {
       logger.debug(
         "received terminate-handler, so will not handle any further messages",
       );
-      mesg.respond({ exiting: true });
+      mesg.respond({ exiting: true }, { noThrow: true });
       return;
     }
     handleRequest({ data, mesg, primus });
@@ -81,5 +81,5 @@ async function handleRequest({ data, mesg, primus }) {
     resp = { error: `${err}` };
   }
   //logger.debug("responded", resp);
-  mesg.respond(resp ?? null);
+  mesg.respond(resp ?? null, { noThrow: true });
 }

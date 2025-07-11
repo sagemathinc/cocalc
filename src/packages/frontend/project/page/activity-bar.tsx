@@ -5,12 +5,12 @@
 
 import { AccountStore } from "@cocalc/frontend/account";
 import { redux } from "@cocalc/frontend/app-framework";
-import { VBAR_OPTIONS } from "./vbar-consts";
+import { ACTIVITY_BAR_OPTIONS } from "./activity-bar-consts";
 
 const FLYOUT_DEFAULT_DATE = new Date("2100-01-01");
 
-// New users created after this date will have the default VBAR option set to "flyout"
-function getDefaultVBAROption() {
+// New users created after this date will have the default activity bar option set to "flyout"
+function getDefaultActivityBarOption() {
   const store: AccountStore = redux.getStore("account");
   if (store == null) return "both";
   const created = store.get("created");
@@ -24,11 +24,11 @@ function getDefaultVBAROption() {
   }
 }
 
-export function getValidVBAROption(
+export function getValidActivityBarOption(
   vbar_setting: any,
-): keyof typeof VBAR_OPTIONS {
-  if (typeof vbar_setting !== "string" || VBAR_OPTIONS[vbar_setting] == null) {
-    return getDefaultVBAROption();
+): keyof typeof ACTIVITY_BAR_OPTIONS {
+  if (typeof vbar_setting !== "string" || ACTIVITY_BAR_OPTIONS[vbar_setting] == null) {
+    return getDefaultActivityBarOption();
   }
-  return vbar_setting as keyof typeof VBAR_OPTIONS;
+  return vbar_setting as keyof typeof ACTIVITY_BAR_OPTIONS;
 }

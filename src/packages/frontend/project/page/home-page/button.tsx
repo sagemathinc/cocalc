@@ -11,8 +11,8 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
-import { VBAR_KEY } from "@cocalc/frontend/project/page/vbar-consts";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -32,12 +32,16 @@ export default function HomePageButton({ project_id, active, width }) {
         fontSize: "24px",
         color: active ? COLORS.ANTD_LINK_BLUE : COLORS.FILE_ICON,
         transitionDuration: "0s",
+        background: "#fafafa",
       }}
       onClick={() => {
         // Showing homepage in flyout only mode, otherwise the files as usual
         const account_store = redux.getStore("account") as any;
-        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-        const pureFlyoutMode = getValidVBAROption(vbar) === "flyout";
+        const actBar = account_store?.getIn([
+          "other_settings",
+          ACTIVITY_BAR_KEY,
+        ]);
+        const pureFlyoutMode = getValidActivityBarOption(actBar) === "flyout";
         actions?.set_active_tab(pureFlyoutMode ? "home" : "files");
 
         actions?.set_current_path("");

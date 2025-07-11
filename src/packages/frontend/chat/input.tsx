@@ -205,8 +205,7 @@ export default function ChatInput({
     return intl.formatMessage(
       {
         id: "chat.input.placeholder",
-        defaultMessage:
-          "Type a new message ({have_llm, select, true {chat with AI or } other {}}notify a collaborator by typing @)...",
+        defaultMessage: "Message (@mention)...",
       },
       {
         have_llm,
@@ -261,6 +260,11 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
+      modeSwitchStyle={{
+        float: "right",
+        position: "relative",
+        marginBottom: "-5px",
+      }}
     />
   );
 }

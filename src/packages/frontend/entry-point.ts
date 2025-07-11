@@ -25,7 +25,7 @@ import "./launch/actions";
 
 // Various jquery plugins:
 import "./jquery-plugins";
-import '@ant-design/v5-patch-for-react-19';
+import "@ant-design/v5-patch-for-react-19";
 
 // Initialize app stores, actions, etc.
 import { init as initJqueryPlugins } from "./jquery-plugins";

@@ -15,10 +15,10 @@ import { once } from "@cocalc/util/async-utils";
 
 beforeAll(async () => {
   await before();
-  setDefaultTimeouts({ request: 750, publish: 750 });
+  setDefaultTimeouts({ request: 500, publish: 500 });
 });
 
-jest.setTimeout(15000);
+//jest.setTimeout(25000);
 
 describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
   const SUBJECT = "reconnect.one";
@@ -53,7 +53,11 @@ describe("create a client and server and socket, verify it works, restart conat 
   });
 
   async function waitForClientsToReconnect() {
-    await Promise.all([once(cn1, "connected"), once(cn2, "connected")]);
+    for (const client of [cn1, cn2]) {
+      if (client.state != "connected") {
+        await once(client, "connected");
+      }
+    }
   }
 
   it("restarts the conat socketio server, wait for clients to reconnect, and test sending data over socket", async () => {

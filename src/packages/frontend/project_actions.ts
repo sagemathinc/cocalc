@@ -74,8 +74,8 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "@cocalc/frontend/project/page/flyouts/utils";
-import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
-import { VBAR_KEY } from "@cocalc/frontend/project/page/vbar-consts";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
@@ -550,8 +550,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
+        const actBar = account_store?.getIn([
+          "other_settings",
+          ACTIVITY_BAR_KEY,
+        ]);
+        const flyoutsDefault = getValidActivityBarOption(actBar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
@@ -2833,6 +2836,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.log({ event: "file_action", action: "created", files: [p] });
+    if (ext) {
+      redux.getActions("account")?.addTag(`create-${ext}`);
+    }
     if (opts.switch_over) {
       this.open_file({
         path: p,

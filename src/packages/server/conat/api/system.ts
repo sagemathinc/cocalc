@@ -10,6 +10,7 @@ import search from "@cocalc/server/accounts/search";
 export { getNames } from "@cocalc/server/accounts/get-name";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const logger = getLogger("server:conat:api:system");
 
@@ -154,3 +155,12 @@ export async function adminSalesloftSync({
     }
   })();
 }
+
+// user can sync themself with salesloft.
+export const userSalesloftSync = reuseInFlight(
+  async ({ account_id }: { account_id?: string }): Promise<void> => {
+    if (account_id) {
+      await salesloftSync([account_id]);
+    }
+  },
+);

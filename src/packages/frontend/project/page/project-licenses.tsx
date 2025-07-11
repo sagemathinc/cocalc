@@ -5,9 +5,7 @@
 
 import { Divider } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { redux } from "@cocalc/frontend//app-framework";
-import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
@@ -16,6 +14,7 @@ import { ICON_UPGRADES, ROOT_STYLE } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
 import { useProject } from "./common";
+import AdminWarning from "@cocalc/frontend/project/page/admin-warning";
 
 export function ProjectLicenses({ project_id }): React.JSX.Element {
   const intl = useIntl();
@@ -71,15 +70,7 @@ export function ProjectLicenses({ project_id }): React.JSX.Element {
 
   function renderAdmin() {
     if (group !== "admin") return;
-    return (
-      <Alert bsStyle="warning" style={{ margin: "10px" }}>
-        <h4>
-          <strong>
-            Warning: you are editing the project settings as an administrator.
-          </strong>
-        </h4>
-      </Alert>
-    );
+    return <AdminWarning />;
   }
 
   if (group != "admin" && group != "owner" && project?.get("sandbox")) {

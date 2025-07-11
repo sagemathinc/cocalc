@@ -8,11 +8,12 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+
 import {
   CSS,
   redux,
@@ -357,18 +358,17 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <ButtonGroup
           style={{
             padding: "3.5px 0 0 0",
-            background: is_active
-              ? COL_BAR_BACKGROUND
-              : COL_BAR_BACKGROUND_DARK,
             height: button_height(),
             float: "right",
           }}
           key={"control-buttons"}
         >
-          {is_active && !props.is_full ? render_split_row() : undefined}
-          {is_active && !props.is_full ? render_split_col() : undefined}
-          {!props.is_only ? render_full() : undefined}
-          {render_x()}
+          <span style={is_active ? undefined : { opacity: 0.3 }}>
+            {!props.is_full ? render_split_row() : undefined}
+            {!props.is_full ? render_split_col() : undefined}
+            {!props.is_only ? render_full() : undefined}
+            {render_x()}
+          </span>
         </ButtonGroup>
       </div>
     );
@@ -394,8 +394,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               props.actions.unset_frame_full();
             }}
             style={{
-              color: darkMode ? "orange" : undefined,
-              background: !darkMode ? "orange" : undefined,
+              color: darkMode ? "yellowgreen" : undefined,
+              background: !darkMode ? "yellowgreen" : undefined,
             }}
           >
             <Icon name={"compress"} />
@@ -640,6 +640,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderSaveTimetravelGroup(): Rendered {
+    if (props.type == "chat") {
+      // these buttons don't make much sense for side chat.
+      return;
+    }
     const noLabel = IS_MOBILE || !(props.is_only || props.is_full);
     const v: React.JSX.Element[] = [];
     let x;
@@ -1063,7 +1067,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const { disabled, label, key, children, onClick } = item;
     const style: CSS = {
       color: "#333",
-      padding: showSymbolBarLabels ? "0" : "4px 0 0 0",
+      padding: showSymbolBarLabels ? "0" : "7.5px 0 0 0",
       height: showSymbolBarLabels ? "36px" : "28px",
       position: "relative",
       top: showSymbolBarLabels ? "0" : "2px",
@@ -1096,6 +1100,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderButtonBar(popup = false) {
+    if (!is_active) {
+      return null;
+    }
     if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
@@ -1110,17 +1117,22 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (v.length == 0) {
       return null;
     }
-    return (
-      <div
-        style={{
-          borderBottom: popup ? undefined : "1px solid #ccc",
-          background: "#fafafa",
-          opacity: is_active ? undefined : 0.3,
-        }}
-      >
-        <div style={{ marginBottom: "-1px", marginTop: "-1px" }}>{v}</div>
-      </div>
-    );
+    // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
+    if (showSymbolBarLabels) {
+      return (
+        <div
+          style={{
+            borderBottom: popup ? undefined : "1px solid #ccc",
+            background: "#fafafa",
+            opacity: is_active ? undefined : 0.3,
+          }}
+        >
+          <div style={{ marginBottom: "-1px", marginTop: "-1px" }}>{v}</div>
+        </div>
+      );
+    } else {
+      return <div style={{ marginTop: "5px" }}>{v}</div>;
+    }
   }
 
   function renderComputeServerDocStatus() {
@@ -1268,9 +1280,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           {renderMainMenusAndButtons()}
           {is_active && renderConnectionStatus()}
           {is_active && allButtonsPopover()}
+          {renderButtonBar()}
           {renderFrameControls()}
         </div>
-        {renderButtonBar()}
         {renderConfirmBar()}
         {hasTour && props.is_visible && props.tab_is_visible && (
           <TitleBarTour refs={tourRefs} />

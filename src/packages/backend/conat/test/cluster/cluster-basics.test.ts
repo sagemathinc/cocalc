@@ -2,7 +2,6 @@
 
 pnpm test `pwd`/cluster-basics.test.ts
 
-
 */
 
 import {
@@ -26,6 +25,7 @@ import { sysApi } from "@cocalc/conat/core/sys";
 beforeAll(before);
 
 jest.setTimeout(20000);
+
 describe("create a cluster enabled socketio server and test that the streams update as they should", () => {
   let server, client;
   it("create a server with cluster support enabled", async () => {
@@ -559,6 +559,31 @@ describe("test automatic node discovery", () => {
       await nodes[i].server.scan();
       expect(nodes[i].server.clusterAddresses("discovery").length).toBe(4);
     }
+  });
+});
+
+describe("test the clusterIpAddress option", () => {
+  it("create a server without explicit clusterIpAddress", async () => {
+    const { server } = await createClusterNode({
+      clusterName: "cluster0",
+      id: "0",
+    });
+
+    expect(server.options.clusterIpAddress).toBe(undefined);
+    expect(server.address()).toBe(`http://localhost:${server.options.port}`);
+    server.close();
+  });
+
+  it("create a server with explicit clusterIpAddress", async () => {
+    const { server } = await createClusterNode({
+      clusterName: "cluster0",
+      id: "0",
+      clusterIpAddress: "127.0.0.1",
+    });
+
+    expect(server.options.clusterIpAddress).toBe("127.0.0.1");
+    expect(server.address()).toBe(`http://127.0.0.1:${server.options.port}`);
+    server.close();
   });
 });
 
