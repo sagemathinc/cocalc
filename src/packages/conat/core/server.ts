@@ -715,9 +715,10 @@ export class ConatServer extends EventEmitter {
       });
     }
 
-    // note -- position 6 of data is a no-forward flag, to avoid
+    // note -- position 6 of data is special cluster delivery data, to avoid
     // a message bouncing back and forth in case the interest stream
-    // were slightly out of sync.
+    // were slightly out of sync and also so we no exactly where
+    // to deliver the message.
     const targets = data[6];
     if (targets != null) {
       return this.deliver({ subject, data, targets });
@@ -798,7 +799,10 @@ export class ConatServer extends EventEmitter {
     // sending this...
     for (const id in outsideTargets) {
       const link = this.clusterLinks[this.clusterName]?.[id];
-      const data1 = [subject, ...data, outsideTargets[id]];
+      const data1 = [subject, ...data];
+      // use explicit index since length of data depends on
+      // whether or not there are headers!
+      data1[7] = outsideTargets[id];
       count += 1;
       link?.client.conn.emit("publish", data1);
     }

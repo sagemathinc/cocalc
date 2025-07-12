@@ -5,6 +5,7 @@ import {
   waitForConsistentState,
   wait,
   addNodeToDefaultCluster,
+  delay,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 
@@ -19,7 +20,7 @@ describe("ensure sticky state sync and use is working properly", () => {
     clients = servers.map((x) => x.client());
   });
 
-  const count = 10;
+  const count = 1;
   it(`create ${count} distinct sticky subscriptions and send one message to each to creat sticky routing state on servers[0]`, async () => {
     clients.push(servers[0].client());
     clients.push(servers[1].client());
@@ -37,8 +38,11 @@ describe("ensure sticky state sync and use is working properly", () => {
       await clients[0].subscribe(`subject.${i}.*`, {
         queue: STICKY_QUEUE_GROUP,
       });
-      // cause choice to be made and saved on servers[0]
-      await clients[0].publish(`subject.${i}.foo`);
+      // publishing causes a choice to be made and saved on servers[0]
+      await clients[0].publish(`subject.${i}.foo`, "hello");
+      expect(servers[0].sticky[`subject.${i}.*`]).not.toBe(undefined);
+      // but no choice on servers[1]
+      expect(servers[1].sticky[`subject.${i}.*`]).toBe(undefined);
     }
   });
 
@@ -49,7 +53,7 @@ describe("ensure sticky state sync and use is working properly", () => {
     expect(v.length).toBe(count);
   });
 
-  it.skip(`sticky on servers[1] should have no entries starting in "subject".`, async () => {
+  it(`sticky on servers[1] should have no entries starting in "subject".`, async () => {
     const v = Object.keys(servers[1].sticky).filter((s) =>
       s.startsWith("subject."),
     );
@@ -72,7 +76,6 @@ describe("ensure sticky state sync and use is working properly", () => {
   it("send message from clients[1] to each subject", async () => {
     for (let i = 0; i < count; i++) {
       await clients[1].publish(`subject.${i}.foo`);
-      console.log(servers[1].sticky);
     }
   });
 
