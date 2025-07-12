@@ -5,7 +5,6 @@ import {
   waitForConsistentState,
   wait,
   addNodeToDefaultCluster,
-  delay,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 
@@ -20,7 +19,7 @@ describe("ensure sticky state sync and use is working properly", () => {
     clients = servers.map((x) => x.client());
   });
 
-  const count = 1;
+  const count = 25;
   it(`create ${count} distinct sticky subscriptions and send one message to each to creat sticky routing state on servers[0]`, async () => {
     clients.push(servers[0].client());
     clients.push(servers[1].client());
@@ -84,6 +83,14 @@ describe("ensure sticky state sync and use is working properly", () => {
       s.startsWith("subject."),
     );
     expect(v.length).toBe(0);
+  });
+
+  it("unjoining servers[0] from servers[1] should transfer the sticky state to servers[1]", async () => {
+    await servers[1].unjoin({ address: servers[0].address() });
+    const v = Object.keys(servers[1].sticky).filter((s) =>
+      s.startsWith("subject."),
+    );
+    expect(v.length).toBe(count);
   });
 });
 
