@@ -18,7 +18,6 @@ const logger = getLogger("conat:core:cluster");
 export async function clusterLink(
   address: string,
   systemAccountPassword: string,
-  updateStickyLocal: (sticky: StickyUpdate) => void,
   timeout = CREATE_LINK_TIMEOUT,
 ) {
   const client = connect({ address, systemAccountPassword });
@@ -43,13 +42,7 @@ export async function clusterLink(
   if (!clusterName) {
     throw Error("clusterName must be specified");
   }
-  const link = new ClusterLink(
-    client,
-    id,
-    clusterName,
-    address,
-    updateStickyLocal,
-  );
+  const link = new ClusterLink(client, id, clusterName, address);
   await link.init();
   return link;
 }
@@ -61,7 +54,7 @@ export { type ClusterLink };
 
 class ClusterLink {
   public interest: Interest = new Patterns();
-  private sticky: Sticky = {};
+  public sticky: Sticky = {};
   private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
   private clientStateChanged = Date.now(); // when client status last changed
@@ -71,7 +64,6 @@ class ClusterLink {
     public readonly id: string,
     public readonly clusterName: string,
     public readonly address: string,
-    private readonly updateStickyLocal: (sticky: StickyUpdate) => void,
   ) {
     if (!client) {
       throw Error("client must be specified");
@@ -119,7 +111,6 @@ class ClusterLink {
 
   handleStickyUpdate = (update: StickyUpdate) => {
     updateSticky(update, this.sticky);
-    this.updateStickyLocal(update);
   };
 
   private handleClientStateChanged = () => {

@@ -137,6 +137,8 @@ export interface Options {
   // if true, use https when creating an internal client.
   ssl?: boolean;
 
+  // WARNING: **superclusters are NOT fully iplemented yet.**
+  //
   // if clusterName is set, enable clustering. Each node
   // in the cluster must have a different name. systemAccountPassword
   // must also be set.  This only has an impact when the id is '0'.
@@ -456,8 +458,54 @@ export class ConatServer extends EventEmitter {
     }
   };
 
-  private getStickyTarget = ({ pattern, subject }) => {
-    return this.sticky[pattern]?.[subject];
+  private getStickyTarget = ({
+    pattern,
+    subject,
+    targets: targets0,
+  }: {
+    pattern: string;
+    subject: string;
+    targets: Set<string>; // the current valid choices as defined by subscribers known via interest graph
+  }) => {
+    if (!this.cluster || this.clusterName == null) {
+      return this.sticky[pattern]?.[subject];
+    }
+    const targets = new Set<string>();
+    const target = this.sticky[pattern]?.[subject];
+    if (target !== undefined && targets0.has(target)) {
+      targets.add(target);
+    }
+    // next check sticky state of other nodes in the cluster
+    const cluster = this.clusterLinks[this.clusterName];
+    for (const id in cluster) {
+      const target = cluster[id].sticky[pattern]?.[subject];
+      if (target !== undefined && targets0.has(target)) {
+        targets.add(target);
+      }
+    }
+    if (targets.size == 0) {
+      return undefined;
+    }
+    if (targets.size == 1) {
+      for (const target of targets) {
+        return target;
+      }
+    }
+
+    // problem: there are distinct mutually incompatible
+    // choices of targets.  This can only happen if at least
+    // two choices were made when the cluster was in an
+    // inconsistent state.
+    // We just take the first in alphabetical order.
+    // Since the sticky maps being used to make
+    // this list of targets is eventually consistent
+    // across the cluster, the same choice of target from
+    // those targets will be made by all nodes.
+    // The main problem with doing this is its slightly more
+    // effort.  The main advantage is that no communication
+    // or coordination between nodes is needed to "fix or agree
+    // on something", and that's a huge advantage!!
+    return Array.from(targets).sort()[0];
   };
 
   ///////////////////////////////////////
@@ -678,7 +726,7 @@ export class ConatServer extends EventEmitter {
     }
 
     //
-    // TODO: Supercluster routing.
+    // TODO: Supercluster routing.  NOT IMPLEMENTED YET
     //
     //     // if no matches in local cluster, try the supercluster (if there is one)
     //     if (count == 0) {
@@ -1122,7 +1170,6 @@ export class ConatServer extends EventEmitter {
         const link = await clusterLink(
           address,
           this.options.systemAccountPassword,
-          this.updateSticky,
           timeout,
         );
         const { clusterName, id } = link;
