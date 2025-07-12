@@ -119,9 +119,11 @@ describe("ensure sticky state sync and use is working properly", () => {
       }
     }
     for (const server of servers) {
+      // we randomize the last segment to verify that it is NOT used
+      // as input to the sticky routing choice.
       const { count } = await server
         .client()
-        .publish("subject.0.foo", "delivery-test");
+        .publish(`subject.0.${randomId()}`, "delivery-test");
       expect(count).toBe(1);
     }
     const ids = new Set<string>();
@@ -170,7 +172,6 @@ describe("ensure sticky state sync and use is working properly", () => {
     );
     expect(v.length).toBe(count);
   });
-
 });
 
 afterAll(after);
