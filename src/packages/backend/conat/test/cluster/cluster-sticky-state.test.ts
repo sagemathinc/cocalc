@@ -8,6 +8,7 @@ import {
   delay,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
+import { randomId } from "@cocalc/conat/names";
 
 beforeAll(before);
 
@@ -20,10 +21,10 @@ describe("ensure sticky state sync and use is working properly", () => {
     clients = servers.map((x) => x.client());
   });
 
-  const count = 1;
+  const count = 25;
   const subs0: any[] = [];
   const subs1: any[] = [];
-  it(`create ${count} distinct sticky subscriptions and send one message to each to creat sticky routing state on servers[0]`, async () => {
+  it(`create ${count} distinct sticky subscriptions and send one message to each to create sticky routing state on servers[0]`, async () => {
     clients.push(servers[0].client());
     clients.push(servers[1].client());
     for (let i = 0; i < count; i++) {
@@ -50,6 +51,19 @@ describe("ensure sticky state sync and use is working properly", () => {
       // but no choice on servers[1]
       expect(servers[1].sticky[`subject.${i}.*`]).toBe(undefined);
     }
+  });
+
+  let chosen;
+  it("see which subscription got chosen for subject.0.* -- this is useful later", async () => {
+    const p0 = async () => {
+      await subs0[0].next();
+      return 0;
+    };
+    const p1 = async () => {
+      await subs1[0].next();
+      return 1;
+    };
+    chosen = await Promise.race([p0(), p1()]);
   });
 
   it(`sticky on servers[0] should have ${count} entries starting in "subject".`, async () => {
@@ -93,46 +107,48 @@ describe("ensure sticky state sync and use is working properly", () => {
   });
 
   async function deliveryTest() {
+    const sub = chosen == 0 ? subs0[0] : subs1[0];
+
+    // clear up the subscription (we sent it stuff above)
+    const sentinel = randomId();
+    await clients[0].publish("subject.0.foo", sentinel);
+    while (true) {
+      const { value } = await sub.next();
+      if (value.data == sentinel) {
+        break;
+      }
+    }
     for (const server of servers) {
-      const { count } = await server.client().publish("subject.0.foo", "hello");
+      const { count } = await server
+        .client()
+        .publish("subject.0.foo", "delivery-test");
       expect(count).toBe(1);
     }
-    const ids: string[] = [];
+    const ids = new Set<string>();
     for (let i = 0; i < servers.length; i++) {
       // on of the subs will receive it and one will hang forever (which is fine)
-      const { value } = await Promise.race([subs0[0].next(), subs1[0].next()]);
-      console.log(i, value.data);
-      expect(value.data).toBe("hello");
-      ids.push(value.client.id);
+      const { value } = await sub.next();
+      expect(value.data).toBe("delivery-test");
+      ids.add(value.client.id);
     }
-    // all messages must go to the SAME sub, since sticky
-    expect(ids.length).toBe(1);
+    // all messages must go to the SAME subscriber, since sticky
+    expect(ids.size).toBe(1);
   }
 
   it("publish from every node to subject.0.foo", deliveryTest);
 
-  it.skip("unjoining servers[0] from servers[1] should transfer the sticky state to servers[1]", async () => {
-    await servers[1].unjoin({ address: servers[0].address() });
-    const v = Object.keys(servers[1].sticky).filter((s) =>
-      s.startsWith("subject."),
-    );
-    expect(v.length).toBe(count);
-  });
-
-  it("rejoin node to cluster", async () => {
-    await servers[1].join(servers[0].address());
-    await waitForConsistentState(servers);
-  });
-
   const count2 = 5;
-  it.skip(`add ${count2} more nodes to the cluster should be reaonably fast and not blow up in a feedback loop`, async () => {
+  it(`add ${count2} more nodes to the cluster should be reaonably fast and not blow up in a feedback loop`, async () => {
     for (let i = 0; i < count2; i++) {
       await addNodeToDefaultCluster();
     }
+  });
+
+  it("wait until cluster is consistent", async () => {
     await waitForConsistentState(servers);
   });
 
-  it.skip("double check the links have the sticky state", () => {
+  it("double check the links have the sticky state", () => {
     for (const server of servers.slice(1)) {
       const link = server.clusterLinksByAddress[servers[0].address()];
       const v = Object.keys(link.sticky).filter((s) =>
@@ -142,20 +158,19 @@ describe("ensure sticky state sync and use is working properly", () => {
     }
   });
 
-  it.skip("in bigger, cluster, publish from every node to subject.0.foo", async () => {
-    for (const server of servers) {
-      await server.client().publish("subject.0.foo", "hello");
-    }
-    const ids: string[] = [];
-    for (const _ of servers) {
-      const { value } = await Promise.race([subs0[0].next(), subs1[0].next()]);
-      console.log(value.data);
-      //expect(value.data).toBe("hello");
-      ids.push(value.client.id);
-    }
-    // all messages must go to same sub, since sticky
-    expect(ids.length).toBe(1);
+  it(
+    "in bigger, cluster, publish from every node to subject.0.foo",
+    deliveryTest,
+  );
+
+  it("unjoining servers[0] from servers[1] should transfer the sticky state to servers[1]", async () => {
+    await servers[1].unjoin({ address: servers[0].address() });
+    const v = Object.keys(servers[1].sticky).filter((s) =>
+      s.startsWith("subject."),
+    );
+    expect(v.length).toBe(count);
   });
+
 });
 
 afterAll(after);
