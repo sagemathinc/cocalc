@@ -505,7 +505,85 @@ export class ConatServer extends EventEmitter {
     // effort.  The main advantage is that no communication
     // or coordination between nodes is needed to "fix or agree
     // on something", and that's a huge advantage!!
+
+    // This choice algorithm is used in saveNonredundantStickyState below!
+    // **Don't change this without changing that!!**
     return Array.from(targets).sort()[0];
+  };
+
+  private saveNonredundantStickyState = (link: ClusterLink) => {
+    // When a link is about to be closed (e.g., the node died or is lost),
+    // we store its non-redundant sticky state in our own sticky state,
+    // so those routing choices aren't lost.  Hopefully only a single
+    // node in the cluster stores this info (due to the randomness of removing,
+    // it'll be the one that happens to do this first), but if more than one
+    // does, it's just less efficient.
+
+    if (link.clusterName != this.clusterName) {
+      // only worry about nodes in the same cluster
+      return;
+    }
+    const cluster = this.clusterLinks[this.clusterName];
+    const isRedundant = (pattern, subject, target) => {
+      let t = this.sticky[pattern]?.[subject];
+      if (t == target) {
+        // we already have it -- not redundnant
+        return true;
+      }
+
+      for (const id in cluster) {
+        const link = cluster[id];
+        if (id == link.id) {
+          continue;
+        }
+        const s = cluster[id].sticky[pattern]?.subject;
+        if (s !== undefined) {
+          if (s == target) {
+            // someone else has it, so definitely not redundant
+            return true;
+          }
+          if (t === undefined || s < t) {
+            t = s;
+          }
+        }
+      }
+      // nobody else has this mapping... but maybe it's not used
+      // due to other conflicting ones?
+      if (t !== undefined && t < target) {
+        // target wouldn't be used since there's conflicting ones that are smaller
+        return true;
+      }
+      // target *would* be used, but nobody else knows it, so we probably must save it.
+      // Make sure the pattern is still of interest first
+      if (this.interest.hasPattern(pattern)) {
+        // we need it!
+        return false;
+      }
+      for (const id in cluster) {
+        const link = cluster[id];
+        if (id == link.id) {
+          continue;
+        }
+        if (link.interest.hasPattern(pattern)) {
+          return false;
+        }
+      }
+      // nothing in the remaining cluster is subscribed to this pattern, so
+      // no point in preserving this sticky routing info
+      return true;
+    };
+
+    // { [pattern: string]: { [subject: string]: string } }
+    for (const pattern in link.sticky) {
+      const x = link.sticky[pattern];
+      for (const subject in x) {
+        const target = x[subject];
+        if (!isRedundant(pattern, subject, target)) {
+          // we save the assignment
+          this.updateSticky({ pattern, subject, target });
+        }
+      }
+    }
   };
 
   ///////////////////////////////////////
@@ -1223,6 +1301,8 @@ export class ConatServer extends EventEmitter {
       // already gone
       return;
     }
+
+    this.saveNonredundantStickyState(link);
     link.close();
     delete this.clusterLinks[link.clusterName][link.id];
     delete this.clusterLinksByAddress[link.address];
@@ -1474,7 +1554,7 @@ export class ConatServer extends EventEmitter {
         signal,
       );
     }
-    // check if there is already interest in the local cluster
+    // check if there is already  known interest
     const links = this.superclusterLinks();
     for (const link of links) {
       if (link.hasInterest(subject)) {

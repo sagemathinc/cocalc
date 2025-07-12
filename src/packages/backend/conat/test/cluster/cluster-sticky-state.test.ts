@@ -19,7 +19,7 @@ describe("ensure sticky state sync and use is working properly", () => {
     clients = servers.map((x) => x.client());
   });
 
-  const count = 5;
+  const count = 10;
   it(`create ${count} distinct sticky subscriptions and send one message to each to creat sticky routing state on servers[0]`, async () => {
     clients.push(servers[0].client());
     clients.push(servers[1].client());
@@ -72,10 +72,11 @@ describe("ensure sticky state sync and use is working properly", () => {
   it("send message from clients[1] to each subject", async () => {
     for (let i = 0; i < count; i++) {
       await clients[1].publish(`subject.${i}.foo`);
+      console.log(servers[1].sticky);
     }
   });
 
-  it.skip(`sticky on servers[1] should STILL have no entries starting in "subject", since no choices had to be made`, async () => {
+  it(`sticky on servers[1] should STILL have no entries starting in "subject", since no choices had to be made`, async () => {
     const v = Object.keys(servers[1].sticky).filter((s) =>
       s.startsWith("subject."),
     );
