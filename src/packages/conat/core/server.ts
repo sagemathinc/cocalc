@@ -743,7 +743,9 @@ export class ConatServer extends EventEmitter {
           });
           if (target !== undefined) {
             this.io.to(target).emit(pattern, { subject, data });
-            count += 1;
+            if (!isSilentPattern(pattern)) {
+              count++;
+            }
           }
         }
       }
@@ -773,7 +775,9 @@ export class ConatServer extends EventEmitter {
           if (id == this.id) {
             // another client of this server
             this.io.to(target).emit(pattern, { subject, data });
-            count += 1;
+            if (!isSilentPattern(pattern)) {
+              count++;
+            }
           } else {
             // client connected to a different server -- we note this, and
             // will send everything for each server at once, instead of
@@ -803,7 +807,11 @@ export class ConatServer extends EventEmitter {
       // use explicit index since length of data depends on
       // whether or not there are headers!
       data1[7] = outsideTargets[id];
-      count += 1;
+      for (const { pattern } of data1[7]) {
+        if (!isSilentPattern(pattern)) {
+          count++;
+        }
+      }
       link?.client.conn.emit("publish", data1);
     }
 
@@ -1795,6 +1803,17 @@ function getServerAddress(options: Options) {
   const port = options.port;
   const path = options.path?.slice(0, -"/conat".length) ?? "";
   return `http${options.ssl || port == 443 ? "s" : ""}://${options.clusterIpAddress ?? "localhost"}:${port}${path}`;
+}
+
+/*
+Without this, if an admin subscribed to '>' then suddenly all the algorithms
+for responding to messages, sockets, etc., based on "waiting for interest"
+would start failing.  The following is a hack to allow subscribing to '>'.
+Really we need something more general for other admin "wire taps", but
+this will have to do for now.
+*/
+function isSilentPattern(pattern: string): boolean {
+  return pattern == ">";
 }
 
 /*

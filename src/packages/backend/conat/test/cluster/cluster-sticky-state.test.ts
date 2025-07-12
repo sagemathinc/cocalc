@@ -5,7 +5,6 @@ import {
   waitForConsistentState,
   wait,
   addNodeToDefaultCluster,
-  delay,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 import { randomId } from "@cocalc/conat/names";
@@ -152,6 +151,7 @@ describe("ensure sticky state sync and use is working properly", () => {
 
   it("double check the links have the sticky state", () => {
     for (const server of servers.slice(1)) {
+      // @ts-ignore
       const link = server.clusterLinksByAddress[servers[0].address()];
       const v = Object.keys(link.sticky).filter((s) =>
         s.startsWith("subject."),
@@ -164,6 +164,17 @@ describe("ensure sticky state sync and use is working properly", () => {
     "in bigger, cluster, publish from every node to subject.0.foo",
     deliveryTest,
   );
+
+  it("listen on > and note that it doesn't impact the count", async () => {
+    const sub = await clients[0].subscribe(">");
+    for (let i = 0; i < servers.length; i++) {
+      const { count } = await servers[i]
+        .client()
+        .publish("subject.0.foo", "hi");
+      expect(count).toBe(1);
+    }
+    sub.close();
+  });
 
   it("unjoining servers[0] from servers[1] should transfer the sticky state to servers[1]", async () => {
     await servers[1].unjoin({ address: servers[0].address() });

@@ -18,8 +18,6 @@ beforeAll(async () => {
   setDefaultTimeouts({ request: 500, publish: 500 });
 });
 
-//jest.setTimeout(25000);
-
 describe("create a client and server and socket, verify it works, restart conat server, then confirm that socket still works", () => {
   const SUBJECT = "reconnect.one";
 
