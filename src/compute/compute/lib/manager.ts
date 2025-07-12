@@ -2,7 +2,7 @@
 The manager does the following:
 
 - Waits until the filesystem is mounted
-- Then connects to NATS in the same was as a project, but with compute_server_id positive.
+- Then connects to Conat in the same way as a project, but with compute_server_id positive.
 
 */
 

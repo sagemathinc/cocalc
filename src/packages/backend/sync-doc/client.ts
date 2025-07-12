@@ -9,6 +9,7 @@ and provide document sync functionality built on Conat.
 */
 
 import { EventEmitter } from "events";
+import type { Client as ConatClient } from "@cocalc/conat/core/client";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0,
@@ -16,29 +17,22 @@ import {
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import { once } from "@cocalc/util/async-utils";
-
-export class FileWatcher extends EventEmitter implements FileWatcher0 {
-  private path: string;
-  constructor(path: string) {
-    super();
-    this.path = path;
-    console.log("FileWatcher", this.path);
-  }
-  public close(): void {}
-}
+import { FileSystemClient } from "@cocalc/backend/sync-doc/client-fs";
 
 export class Client extends EventEmitter implements Client0 {
-  private _client_id: string;
-  private initial_get_query: { [table: string]: any[] };
-  public set_queries: any[] = [];
+  private filesystemClient = new FileSystemClient();
 
-  constructor(
-    initial_get_query: { [table: string]: any[] },
-    client_id: string,
-  ) {
+  write_file = this.filesystemClient.write_file;
+  path_read = this.filesystemClient.path_read;
+  path_stat = this.filesystemClient.path_stat;
+  path_exists = this.filesystemClient.path_exists;
+  file_size_async = this.filesystemClient.file_size_async;
+  file_stat_async = this.filesystemClient.file_stat_async;
+  watch_file = this.filesystemClient.watch_file;
+  path_access = this.filesystemClient.path_access;
+
+  constructor(private conat: ConatClient) {
     super();
-    this._client_id = client_id;
-    this.initial_get_query = initial_get_query;
   }
 
   server_time = (): Date => {
@@ -62,9 +56,6 @@ export class Client extends EventEmitter implements Client0 {
   };
 
   dbg = (_f: string): Function => {
-    //     return (...args) => {
-    //       console.log(_f, ...args);
-    //     };
     return (..._) => {};
   };
 
@@ -73,9 +64,7 @@ export class Client extends EventEmitter implements Client0 {
     path: string;
     action: string;
     ttl: number;
-  }): void => {
-    //console.log("mark_file", opts);
-  };
+  }): void => {};
 
   log_error = (opts: {
     project_id: string;
@@ -87,52 +76,7 @@ export class Client extends EventEmitter implements Client0 {
   };
 
   query = (opts): void => {
-    if (opts.options && opts.options.length === 1 && opts.options[0].set) {
-      // set query
-      this.set_queries.push(opts);
-      opts.cb();
-    } else {
-      // get query -- returns predetermined result
-      const table = Object.keys(opts.query)[0];
-      let result = this.initial_get_query[table];
-      if (result == null) {
-        result = [];
-      }
-      //console.log("GET QUERY ", table, result);
-      opts.cb(undefined, { query: { [table]: result } });
-    }
-  };
-
-  path_access = (opts: { path: string; mode: string; cb: Function }): void => {
-    console.log("path_access", opts.path, opts.mode);
-    opts.cb(true);
-  };
-  path_exists = (opts: { path: string; cb: Function }): void => {
-    console.log("path_access", opts.path);
-    opts.cb(true);
-  };
-  path_stat = (opts: { path: string; cb: Function }): void => {
-    console.log("path_state", opts.path);
-    opts.cb(true);
-  };
-  path_read = async (opts: {
-    path: string;
-    maxsize_MB?: number;
-    cb: Function;
-  }): Promise<void> => {
-    console.log("path_ready", opts.path);
-    opts.cb(true);
-  };
-  write_file = async (opts: {
-    path: string;
-    data: string;
-    cb: Function;
-  }): Promise<void> => {
-    console.log("write_file", opts.path, opts.data);
-    opts.cb(true);
-  };
-  watch_file = (opts: { path: string }): FileWatcher => {
-    return new FileWatcher(opts.path);
+    opts.cb("not implemented");
   };
 
   is_connected = (): boolean => {

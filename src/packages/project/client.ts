@@ -24,7 +24,7 @@ as a result.
 import EventEmitter from "node:events";
 import fs from "node:fs";
 import { join } from "node:path";
-import { FileSystemClient } from "@cocalc/sync-client/lib/client-fs";
+import { FileSystemClient } from "@cocalc/backend/sync-doc/client-fs";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
