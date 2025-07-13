@@ -367,7 +367,7 @@ export class SyncDoc extends EventEmitter {
           return true;
         } catch (err) {
           if (this.isClosed()) {
-            return;
+            return true;
           }
           const m = `WARNING: problem initializing ${this.path} -- ${err}`;
           log(m);
