@@ -1,4 +1,5 @@
 import ConsistentHash from "consistent-hash";
+import { hash_string } from "@cocalc/util/misc";
 
 export function consistentHashingChoice(
   v: Set<string>,
@@ -18,7 +19,10 @@ export function consistentHashingChoice(
   for (const x of w) {
     hr.add(x);
   }
-  return hr.get(resource);
+  // we hash the resource so that the values are randomly distributed even
+  // if the resources look very similar (e.g., subject.1, subject.2, etc.)
+  // I thought that "consistent-hash" hashed the resource, but it doesn't really.
+  return hr.get(hash_string(resource));
 }
 
 export function stickyChoice({
@@ -35,11 +39,12 @@ export function stickyChoice({
   getStickyTarget: (opts: {
     pattern: string;
     subject: string;
+    targets: Set<string>;
   }) => string | undefined;
 }) {
   const v = subject.split(".");
   subject = v.slice(0, v.length - 1).join(".");
-  const currentTarget = getStickyTarget({ pattern, subject });
+  const currentTarget = getStickyTarget({ pattern, subject, targets });
   if (currentTarget === undefined || !targets.has(currentTarget)) {
     // we use consistent hashing instead of random to make the choice, because if
     // choice is being made by two different socketio servers at the same time,

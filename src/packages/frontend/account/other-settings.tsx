@@ -248,6 +248,21 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  function render_show_symbol_bar_labels(): Rendered {
+    return (
+      <Checkbox
+        checked={!!props.other_settings.get("show_symbol_bar_labels")}
+        onChange={(e) => on_change("show_symbol_bar_labels", e.target.checked)}
+      >
+        <FormattedMessage
+          id="account.other-settings.symbol_bar_labels"
+          defaultMessage={`<strong>Show Symbol Bar Labels:</strong>
+            show labels in the frame editor symbol bar`}
+        />
+      </Checkbox>
+    );
+  }
+
   function render_default_file_sort(): Rendered {
     return (
       <LabeledRow
@@ -672,6 +687,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {render_hide_project_popovers()}
         {render_hide_file_popovers()}
         {render_hide_button_tooltips()}
+        {render_show_symbol_bar_labels()}
         <Checkbox
           checked={!!props.other_settings.get("hide_navbar_balance")}
           onChange={(e) => on_change("hide_navbar_balance", e.target.checked)}

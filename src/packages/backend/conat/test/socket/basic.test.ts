@@ -1,6 +1,6 @@
 /*
 
-pnpm test `pwd`/basic.test.ts 
+pnpm test `pwd`/basic.test.ts
 
 */
 

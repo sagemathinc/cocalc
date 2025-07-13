@@ -15,7 +15,7 @@ import { Icon, IconName, isIconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
-// import { FrameTitleBarProps } from "../title-bar";
+import { COLORS } from "@cocalc/util/theme";
 import { EditorDescription } from "../types";
 import { COMMANDS } from "./commands";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
@@ -25,8 +25,6 @@ import type { Command } from "./types";
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
 const ICON_WIDTH = "28px";
-
-const BUTTON_LABELS = false;
 
 export class ManageCommands {
   // TODO: setting this to FrameTitleBarProps causes type issues in frame-editors/jupyter-editor/editor.ts
@@ -445,6 +443,11 @@ export class ManageCommands {
     });
   };
 
+  showSymbolBarLabels = (): boolean => {
+    const account = redux.getStore("account");
+    return account.showSymbolBarLabels();
+  };
+
   commandToMenuItem = ({
     name = "",
     key,
@@ -482,11 +485,11 @@ export class ManageCommands {
       label = (
         <>
           {icon ?? <Icon name="square" />}
-          {BUTTON_LABELS && (
+          {this.showSymbolBarLabels() && (
             <div
               style={{
                 fontSize: "11px",
-                color: "#666",
+                color: COLORS.GRAY_M,
                 marginTop: "-10px",
                 // special case: button='' explicitly means no label
                 width: cmd.button === "" ? undefined : "50px",

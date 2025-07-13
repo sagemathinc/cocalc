@@ -4,7 +4,7 @@ Unit tests of multiple persist servers at once:
 - making numerous distinct clients and seeing that they are distributed across persist servers
 - stopping a persist server and seeing that failover happens without data loss
 
-pnpm test `pwd`/multiple-servers.test.ts 
+pnpm test `pwd`/multiple-servers.test.ts
 
 */
 

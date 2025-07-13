@@ -137,6 +137,8 @@ export interface Options {
   // if true, use https when creating an internal client.
   ssl?: boolean;
 
+  // WARNING: **superclusters are NOT fully iplemented yet.**
+  //
   // if clusterName is set, enable clustering. Each node
   // in the cluster must have a different name. systemAccountPassword
   // must also be set.  This only has an impact when the id is '0'.
@@ -456,8 +458,132 @@ export class ConatServer extends EventEmitter {
     }
   };
 
-  private getStickyTarget = ({ pattern, subject }) => {
-    return this.sticky[pattern]?.[subject];
+  private getStickyTarget = ({
+    pattern,
+    subject,
+    targets: targets0,
+  }: {
+    pattern: string;
+    subject: string;
+    targets: Set<string>; // the current valid choices as defined by subscribers known via interest graph
+  }) => {
+    if (!this.cluster || this.clusterName == null) {
+      return this.sticky[pattern]?.[subject];
+    }
+    const targets = new Set<string>();
+    const target = this.sticky[pattern]?.[subject];
+    if (target !== undefined && targets0.has(target)) {
+      targets.add(target);
+    }
+    // next check sticky state of other nodes in the cluster
+    const cluster = this.clusterLinks[this.clusterName];
+    for (const id in cluster) {
+      const target = cluster[id].sticky[pattern]?.[subject];
+      if (target !== undefined && targets0.has(target)) {
+        targets.add(target);
+      }
+    }
+    if (targets.size == 0) {
+      return undefined;
+    }
+    if (targets.size == 1) {
+      for (const target of targets) {
+        return target;
+      }
+    }
+
+    // problem: there are distinct mutually incompatible
+    // choices of targets.  This can only happen if at least
+    // two choices were made when the cluster was in an
+    // inconsistent state.
+    // We just take the first in alphabetical order.
+    // Since the sticky maps being used to make
+    // this list of targets is eventually consistent
+    // across the cluster, the same choice of target from
+    // those targets will be made by all nodes.
+    // The main problem with doing this is its slightly more
+    // effort.  The main advantage is that no communication
+    // or coordination between nodes is needed to "fix or agree
+    // on something", and that's a huge advantage!!
+
+    // This choice algorithm is used in saveNonredundantStickyState below!
+    // **Don't change this without changing that!!**
+    return Array.from(targets).sort()[0];
+  };
+
+  private saveNonredundantStickyState = (link: ClusterLink) => {
+    // When a link is about to be closed (e.g., the node died or is lost),
+    // we store its non-redundant sticky state in our own sticky state,
+    // so those routing choices aren't lost.  Hopefully only a single
+    // node in the cluster stores this info (due to the randomness of removing,
+    // it'll be the one that happens to do this first), but if more than one
+    // does, it's just less efficient.
+
+    if (link.clusterName != this.clusterName) {
+      // only worry about nodes in the same cluster
+      return;
+    }
+    const cluster = this.clusterLinks[this.clusterName];
+    const isRedundant = (pattern, subject, target) => {
+      let t = this.sticky[pattern]?.[subject];
+      if (t == target) {
+        // we already have it -- not redundnant
+        return true;
+      }
+
+      for (const id in cluster) {
+        const link = cluster[id];
+        if (id == link.id) {
+          continue;
+        }
+        const s = cluster[id].sticky[pattern]?.subject;
+        if (s !== undefined) {
+          if (s == target) {
+            // someone else has it, so definitely not redundant
+            return true;
+          }
+          if (t === undefined || s < t) {
+            t = s;
+          }
+        }
+      }
+      // nobody else has this mapping... but maybe it's not used
+      // due to other conflicting ones?
+      if (t !== undefined && t < target) {
+        // target wouldn't be used since there's conflicting ones that are smaller
+        return true;
+      }
+      // target *would* be used, but nobody else knows it, so we probably must save it.
+      // Make sure the pattern is still of interest first
+      if (this.interest.hasPattern(pattern)) {
+        // we need it!
+        return false;
+      }
+      for (const id in cluster) {
+        const link = cluster[id];
+        if (id == link.id) {
+          continue;
+        }
+        if (link.interest.hasPattern(pattern)) {
+          return false;
+        }
+      }
+      // nothing in the remaining cluster is subscribed to this pattern, so
+      // no point in preserving this sticky routing info
+      return true;
+    };
+
+    // { [pattern: string]: { [subject: string]: string } }
+    for (const pattern in link.sticky) {
+      const x = link.sticky[pattern];
+      for (const subject in x) {
+        const target = x[subject];
+        if (!isRedundant(pattern, subject, target)) {
+          // we save the assignment
+          this.updateSticky({ pattern, subject, target });
+        }
+      }
+    }
   };
 
   ///////////////////////////////////////
@@ -589,9 +715,10 @@ export class ConatServer extends EventEmitter {
       });
     }
 
-    // note -- position 6 of data is a no-forward flag, to avoid
+    // note -- position 6 of data is special cluster delivery data, to avoid
     // a message bouncing back and forth in case the interest stream
-    // were slightly out of sync.
+    // were slightly out of sync and also so we no exactly where
+    // to deliver the message.
     const targets = data[6];
     if (targets != null) {
       return this.deliver({ subject, data, targets });
@@ -616,7 +743,9 @@ export class ConatServer extends EventEmitter {
           });
           if (target !== undefined) {
             this.io.to(target).emit(pattern, { subject, data });
-            count += 1;
+            if (!isSilentPattern(pattern)) {
+              count++;
+            }
           }
         }
       }
@@ -646,7 +775,9 @@ export class ConatServer extends EventEmitter {
           if (id == this.id) {
             // another client of this server
             this.io.to(target).emit(pattern, { subject, data });
-            count += 1;
+            if (!isSilentPattern(pattern)) {
+              count++;
+            }
           } else {
             // client connected to a different server -- we note this, and
             // will send everything for each server at once, instead of
@@ -672,13 +803,20 @@ export class ConatServer extends EventEmitter {
     // sending this...
     for (const id in outsideTargets) {
       const link = this.clusterLinks[this.clusterName]?.[id];
-      const data1 = [subject, ...data, outsideTargets[id]];
-      count += 1;
+      const data1 = [subject, ...data];
+      // use explicit index since length of data depends on
+      // whether or not there are headers!
+      data1[7] = outsideTargets[id];
+      for (const { pattern } of data1[7]) {
+        if (!isSilentPattern(pattern)) {
+          count++;
+        }
+      }
       link?.client.conn.emit("publish", data1);
     }
 
     //
-    // TODO: Supercluster routing.
+    // TODO: Supercluster routing.  NOT IMPLEMENTED YET
     //
     //     // if no matches in local cluster, try the supercluster (if there is one)
     //     if (count == 0) {
@@ -1122,7 +1260,6 @@ export class ConatServer extends EventEmitter {
         const link = await clusterLink(
           address,
           this.options.systemAccountPassword,
-          this.updateSticky,
           timeout,
         );
         const { clusterName, id } = link;
@@ -1176,6 +1313,8 @@ export class ConatServer extends EventEmitter {
       // already gone
       return;
     }
+
+    this.saveNonredundantStickyState(link);
     link.close();
     delete this.clusterLinks[link.clusterName][link.id];
     delete this.clusterLinksByAddress[link.address];
@@ -1427,7 +1566,7 @@ export class ConatServer extends EventEmitter {
         signal,
       );
     }
-    // check if there is already interest in the local cluster
+    // check if there is already  known interest
     const links = this.superclusterLinks();
     for (const link of links) {
       if (link.hasInterest(subject)) {
@@ -1664,6 +1803,17 @@ function getServerAddress(options: Options) {
   const port = options.port;
   const path = options.path?.slice(0, -"/conat".length) ?? "";
   return `http${options.ssl || port == 443 ? "s" : ""}://${options.clusterIpAddress ?? "localhost"}:${port}${path}`;
+}
+
+/*
+Without this, if an admin subscribed to '>' then suddenly all the algorithms
+for responding to messages, sockets, etc., based on "waiting for interest"
+would start failing.  The following is a hack to allow subscribing to '>'.
+Really we need something more general for other admin "wire taps", but
+this will have to do for now.
+*/
+function isSilentPattern(pattern: string): boolean {
+  return pattern == ">";
 }
 
 /*
