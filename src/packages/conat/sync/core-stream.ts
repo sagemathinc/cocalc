@@ -486,8 +486,6 @@ export class CoreStream<T = any> extends EventEmitter {
     }
 
     const mesg = decode({ encoding, data });
-    //     if (this.log)
-    //       log(this.id, this.client.id, "processPersistentSet", seq, mesg, this.raw);
     const raw = {
       timestamp: time,
       headers,

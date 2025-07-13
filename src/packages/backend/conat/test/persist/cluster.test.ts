@@ -150,7 +150,6 @@ describe("test using multiple persist servers in a cluster", () => {
   });
 
   it("remove one persist server", async () => {
-    openStreams1.map((x) => (x.stream.log = true));
     persistServer1.close();
   });
 
