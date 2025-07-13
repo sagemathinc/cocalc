@@ -298,6 +298,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@types/node':
+        specifier: ^18.16.14
+        version: 18.19.118
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0

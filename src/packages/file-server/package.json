@@ -17,15 +17,25 @@
     "test": "pnpm exec jest  --runInBand",
     "depcheck": "pnpx depcheck"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "btrfs", "zfs", "cocalc"],
+  "keywords": [
+    "utilities",
+    "btrfs",
+    "zfs",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@types/node": "^18.16.14",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^11.10.0",
     "lodash": "^4.17.21"

@@ -154,6 +154,14 @@ export class Filesystem {
     });
   };
 
+  unmount = async () => {
+    await sudo({
+      command: "umount",
+      args: [this.opts.mount],
+      err_on_exit: true,
+    });
+  };
+
   private formatDevice = async () => {
     await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
   };
