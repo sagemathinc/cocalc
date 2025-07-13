@@ -366,10 +366,15 @@ export class SyncDoc extends EventEmitter {
           log("initAll succeeded");
           return true;
         } catch (err) {
-          console.trace(err);
+          if (this.isClosed()) {
+            return;
+          }
           const m = `WARNING: problem initializing ${this.path} -- ${err}`;
           log(m);
-          // log always:
+          if (DEBUG) {
+            console.trace(err);
+          }
+          // log always
           console.log(m);
         }
         log("wait then try again");
@@ -695,6 +700,8 @@ export class SyncDoc extends EventEmitter {
 
     this.on("user-change", this.throttled_file_use as any);
   };
+
+  isClosed = () => (this.state ?? "closed") == "closed";
 
   private set_state = (state: State): void => {
     this.state = state;

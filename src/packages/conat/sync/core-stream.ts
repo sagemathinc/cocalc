@@ -57,8 +57,10 @@ const logger = getLogger("sync:core-stream");
 
 const PUBLISH_MANY_BATCH_SIZE = 500;
 
-const log = (..._args) => {};
-//const log = console.log;
+const DEFAULT_GET_ALL_TIMEOUT = 15000;
+
+//const log = (..._args) => {};
+const log = console.log;
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -305,22 +307,14 @@ export class CoreStream<T = any> extends EventEmitter {
         }
         let messages: StoredMessage[] = [];
         let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
-        let changefeed: any = undefined;
         try {
-          changefeed = await this.persistClient.changefeed();
           if (this.isClosed()) {
             return true;
           }
-          (async () => {
-            try {
-              for await (const updates of changefeed) {
-                changes = changes.concat(updates);
-              }
-            } catch {}
-          })();
           // console.log("get persistent stream", { start_seq }, this.storage);
           messages = await this.persistClient.getAll({
             start_seq,
+            timeout: DEFAULT_GET_ALL_TIMEOUT,
           });
         } catch (err) {
           if (this.isClosed()) {
@@ -348,8 +342,6 @@ export class CoreStream<T = any> extends EventEmitter {
           }
           // any other error that we might not address above -- just try again in a while.
           return false;
-        } finally {
-          changefeed?.close();
         }
         //         console.log(
         //           "getAllFromPersist",
@@ -501,7 +493,8 @@ export class CoreStream<T = any> extends EventEmitter {
     }
 
     const mesg = decode({ encoding, data });
-    // console.log("processPersistentSet", seq, mesg)
+    //     if (this.log)
+    //       log(this.id, this.client.id, "processPersistentSet", seq, mesg, this.raw);
     const raw = {
       timestamp: time,
       headers,
@@ -555,7 +548,9 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
+    //if (this.log) console.log(this.client.id, "after", this.raw, this.messages);
     if (!noEmit) {
+      //if (this.log) console.log(this.client.id, "emit change!");
       this.emitChange({ mesg, raw, key, prev, msgID });
     }
   };
@@ -566,19 +561,52 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private listen = async () => {
-    log("core-stream: listen", this.storage);
+    // log("core-stream: listen", this.storage);
     await until(
       async () => {
         if (this.client == null) {
           return true;
         }
         try {
-          log("core-stream: START listening on changefeed", this.storage);
+          //log("core-stream: START listening on changefeed", this.storage);
           const changefeed = await this.persistClient.changefeed();
-          // console.log("listening on the changefeed...", this.storage);
+
+          // Now that we have the changefeed running, we grab any messages that
+          // might have been missed between the last getAll and when the
+          // changefeed was running -- this is usually empty, but there are race
+          // condition where it could be non-empty.  The result would be that
+          // this stream is not aware of a change that happened until we get one
+          // more change from the changefeed, and then it is aware (so no data loss,
+          // but it is confusingly hung until something happens).   Thus this is
+          // important to do.  This problem arises when opening a file for the
+          // first time, where the project and browser both open it at almost the
+          // exact same time and the project inserts a change (the first patch) exactly
+          // as the browser finished the initial connect and right before the changefeed
+          // is initialized.
+          const messages = await this.persistClient.getAll({
+            start_seq: this.lastSeq + 1,
+            timeout: DEFAULT_GET_ALL_TIMEOUT,
+          });
+          this.processPersistentMessages(messages, {
+            noEmit: false,
+            noSeqCheck: false,
+          });
+
+          //           log(
+          //             this.client.id,
+          //             "core-stream: listening on the changefeed...",
+          //             this.storage,
+          //           );
           for await (const updates of changefeed) {
-            // console.log("changefeed", this.storage, updates);
-            log("core-stream: process updates", updates, this.storage);
+            //             if (this.log) {
+            //               log(
+            //                 this.client.id,
+            //                 "core-stream: changefeed",
+            //                 this.storage,
+            //                 updates,
+            //                 decode({ encoding: 0, data: updates[0].raw }),
+            //               );
+            //             }
             if (this.client == null) return true;
             //             console.log(
             //               "listen",
@@ -604,7 +632,6 @@ export class CoreStream<T = any> extends EventEmitter {
             );
           }
         }
-        log("core-stream: STOP listening on changefeed", this.storage);
         // above loop exits when the persistent server
         // stops sending messages for some reason. In that
         // case we reconnect, picking up where we left off:

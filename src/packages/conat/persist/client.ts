@@ -22,6 +22,8 @@ import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
 import { until } from "@cocalc/util/async-utils";
 
+const RECONNECT_DELAY = 1000;
+
 interface GetAllOpts {
   start_seq?: number;
   end_seq?: number;
@@ -46,6 +48,7 @@ class PersistStreamClient extends EventEmitter {
   private reconnecting = false;
   private gettingMissed = false;
   private changesWhenGettingMissed: ChangefeedEvent[] = [];
+  id = Math.random();
 
   constructor(
     private client: Client,
@@ -61,6 +64,14 @@ class PersistStreamClient extends EventEmitter {
   }
 
   private init = () => {
+    if (this.reconnecting) {
+      console.log(
+        this.id,
+        "persist client reconnecting",
+        this.client.id,
+        this.storage.path,
+      );
+    }
     if (this.client.state == "closed") {
       this.close();
       return;
@@ -91,15 +102,17 @@ class PersistStreamClient extends EventEmitter {
       // console.log("persist client was disconnected", this.storage.path);
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, 1000);
+      setTimeout(this.init, RECONNECT_DELAY);
     });
     this.socket.once("closed", () => {
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, 1000);
+      setTimeout(this.init, RECONNECT_DELAY);
     });
 
     this.socket.on("data", (updates, headers) => {
+      if (this.storage.path.endsWith("foo"))
+        console.log(this.id, "data", updates, headers);
       if (updates == null && headers != null) {
         // has to be an error
         this.emit(
@@ -131,6 +144,22 @@ class PersistStreamClient extends EventEmitter {
           }
           try {
             await this.socket.waitUntilReady(15000);
+            if (this.changefeeds.length == 0 || this.state != "ready") {
+              return true;
+            }
+            const resp = await this.socket.request(null, {
+              headers: {
+                cmd: "changefeed",
+              },
+            });
+            if (resp.headers?.error) {
+              throw new ConatError(`${resp.headers?.error}`, {
+                code: resp.headers?.code,
+              });
+            }
+            if (this.changefeeds.length == 0 || this.state != "ready") {
+              return true;
+            }
             const updates = await this.getAll({
               start_seq: this.lastSeq,
               timeout: 15000,

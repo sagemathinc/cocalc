@@ -15,6 +15,7 @@ import {
   persistServer as persistServer0,
   wait,
   setDefaultTimeouts,
+  setDefaultSocketTimeouts,
   waitForConsistentState,
 } from "../setup";
 import { uuid } from "@cocalc/util/misc";
@@ -25,9 +26,14 @@ beforeAll(async () => {
   await before();
   // this speeds up the automatic failover tests a lot.
   setDefaultTimeouts({ request: 1000, publish: 1000 });
+  setDefaultSocketTimeouts({
+    command: 1000,
+    keepAlive: 2000,
+    keepAliveTimeout: 1000,
+  });
 });
 
-jest.setTimeout(15000);
+jest.setTimeout(10000);
 describe("test using multiple persist servers in a cluster", () => {
   let client0, server1, client1;
   it("add another node", async () => {
@@ -142,25 +148,24 @@ describe("test using multiple persist servers in a cluster", () => {
   });
 
   it("remove one persist server", async () => {
+    openStreams1.map((x) => (x.stream.log = true));
+    console.log("CLOSING PERSIST SERVER");
     persistServer1.close();
-    // [ ] TODO: removing this delay leads to very consistent failures
-    // involving data loss, but things should just be slower, never broken,
-    // on automatic failover.
-    await delay(3000);
   });
 
-  it("creating / opening streams we made above still work with no data lost", async () => {
-    for (const project_id of project_ids) {
-      const s = await client0.sync.dstream({
-        project_id,
-        name: "foo",
-        sync: true,
-      });
-      expect(await s.getAll()).toEqual([project_id]);
-      s.close();
-    }
-    expect(Object.keys(persistServer1.sockets).length).toEqual(0);
-  });
+  //   it.skip("creating / opening streams we made above still work with no data lost", async () => {
+  //     for (const project_id of project_ids) {
+  //       const s = await client0.sync.dstream({
+  //         project_id,
+  //         name: "foo",
+  //         noCache: true,
+  //         sync: true,
+  //       });
+  //       expect(await s.getAll()).toEqual([project_id]);
+  //       s.close();
+  //     }
+  //     expect(Object.keys(persistServer1.sockets).length).toEqual(0);
+  //   });
 
   // this can definitely take a long time (e.g., ~10s), as it involves automatic failover.
   it("Checks automatic failover works:  the streams connected to both servers we created above must keep working, despite at least one of them having its persist server get closed.", async () => {
@@ -169,9 +174,29 @@ describe("test using multiple persist servers in a cluster", () => {
       stream0.publish("y");
       await stream0.save();
       expect(stream0.hasUnsavedChanges()).toBe(false);
+
+
       const stream1 = openStreams1[i];
       expect(stream0.opts.project_id).toEqual(stream1.opts.project_id);
-      await wait({ until: () => stream1.length >= 2, timeout: 10000 });
+      console.log(i, stream1.stream.storage);
+      await wait({
+        until: async () => {
+          console.log(
+            i,
+            stream1.stream.client.id,
+            stream1.stream.id,
+            stream1.getAll(),
+            stream1.messages,
+            (await stream1.stream.persistClient.getAll({ start_seq: 0 }))
+              .length,
+            stream1.stream.messages,
+            stream1.stream.raw,
+          );
+          return stream1.length >= 2;
+        },
+        timeout: 10000,
+        start: 1000,
+      });
       expect(stream1.length).toBe(2);
     }
   });

@@ -1600,53 +1600,42 @@ export class ConatServer extends EventEmitter {
     links: ClusterLink[],
   ): Promise<boolean> => {
     const v: any[] = [];
-    let done = false;
-    try {
-      // we use AbortController etc below so we can cancel waiting once
-      // we get any interest.
-      const nothrow = async (f) => {
-        try {
-          return await f;
-        } catch (err) {
-          if (!done) {
-            logger.debug(
-              `WARNING: waitForInterestInLinks ${subject} -- ${err}`,
-            );
-          }
-        }
-        return false;
-      };
-      const controller = new AbortController();
-      const signal2 = controller.signal;
-      v.push(
-        nothrow(
-          this.waitForInterestOnThisNode(subject, timeout, socketId, signal2),
-        ),
-      );
-      for (const link of links) {
-        v.push(nothrow(link.waitForInterest(subject, timeout, signal2)));
-      }
-      if (!timeout) {
-        // with timeout=0 they all immediately answer (so no need to worry about abort/promise)
-        const w = await Promise.all(v);
-        for (const x of w) {
-          if (x) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      signal?.addEventListener("abort", () => {
-        controller.abort();
-      });
-      const w = await Promise.race(v);
-      // cancel all the others.
-      controller.abort();
-      return w;
-    } finally {
-      done = true;
+    // we use AbortController etc below so we can cancel waiting once
+    // we get any interest.
+    const nothrow = async (f) => {
+      try {
+        return await f;
+      } catch {}
+      return false;
+    };
+    const controller = new AbortController();
+    const signal2 = controller.signal;
+    v.push(
+      nothrow(
+        this.waitForInterestOnThisNode(subject, timeout, socketId, signal2),
+      ),
+    );
+    for (const link of links) {
+      v.push(nothrow(link.waitForInterest(subject, timeout, signal2)));
     }
+    if (!timeout) {
+      // with timeout=0 they all immediately answer (so no need to worry about abort/promise)
+      const w = await Promise.all(v);
+      for (const x of w) {
+        if (x) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    signal?.addEventListener("abort", () => {
+      controller.abort();
+    });
+    const w = await Promise.race(v);
+    // cancel all the others.
+    controller.abort();
+    return w;
   };
 
   private waitForInterestOnThisNode = async (
