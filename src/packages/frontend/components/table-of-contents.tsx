@@ -37,7 +37,7 @@ export function TableOfContents(props: Props) {
   }
 
   return useMemo(() => {
-    const entries: JSX.Element[] = [];
+    const entries: React.JSX.Element[] = [];
     for (const entry of props.contents ?? []) {
       entries.push(<Entry {...props} entry={entry} />);
     }

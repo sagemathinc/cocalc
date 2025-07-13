@@ -46,7 +46,7 @@ interface Props {
   id?: string;
   maxHeight?: string;
   style?;
-  title?: JSX.Element | string;
+  title?: React.JSX.Element | string;
   size?;
   mode?: "vertical" | "inline";
   defaultOpen?: boolean;

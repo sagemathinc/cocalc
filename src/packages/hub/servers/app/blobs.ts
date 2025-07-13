@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { database } from "../database";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { database_is_working } from "@cocalc/hub/hub_register";
+import { database_is_working } from "@cocalc/server/metrics/hub_register";
 import { callback2 } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/hub/logger";
 

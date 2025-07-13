@@ -5,7 +5,6 @@
 
 import { delay } from "awaiting";
 import React, { useState, useRef } from "react";
-import ReactDOM from "react-dom";
 import { Map } from "immutable";
 import { INPUT_STYLE, STDOUT_STYLE } from "./style";
 import type { JupyterActions } from "../browser-actions";
@@ -39,7 +38,7 @@ export const Input: React.FC<InputProps> = (props: InputProps) => {
   //        to jump to that input.  That could tie into a global state indicator of which
   //        cell is currently running.  But that's outside the scope of this code.
   React.useEffect(() => {
-    const elt: any = ReactDOM.findDOMNode(inputRef.current);
+    const elt = inputRef.current;
     if (elt == null) return;
     elt.focus({ preventScroll: true });
   }, []);

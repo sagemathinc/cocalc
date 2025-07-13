@@ -140,7 +140,7 @@ export default function CloudFilesystems({ project_id, noTitle }: Props) {
     );
   };
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const id of ids) {
     v.push(
       <SortableItem key={`${id}`} id={id}>

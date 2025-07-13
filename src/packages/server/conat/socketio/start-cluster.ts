@@ -9,9 +9,6 @@ export default function startCluster({
   port = conatClusterPort,
   numWorkers = conatSocketioCount,
 }: { port?: number; numWorkers?: number } = {}) {
-  // spawn valkey-server listening on port running in a mode where
-  // data is never saved to disk using the nodejs spawn command:
-  // // Start valkey-server with in-memory only, no persistence
   const child: ChildProcess = spawn(
     process.argv[0],
     [join(__dirname, "cluster.js")],

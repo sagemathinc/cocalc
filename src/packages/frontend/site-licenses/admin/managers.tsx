@@ -42,7 +42,7 @@ export const Managers: React.FC<Props> = ({
     }
   }
 
-  function render_manager_buttons(account_id: string): JSX.Element {
+  function render_manager_buttons(account_id: string): React.JSX.Element {
     return (
       <div style={{ float: "right" }}>
         <Popconfirm
@@ -61,7 +61,7 @@ export const Managers: React.FC<Props> = ({
     );
   }
 
-  function render_manager_info(): JSX.Element | void {
+  function render_manager_info(): React.JSX.Element | void {
     if (manager_info == null || user_map == null) return;
     const account_id: string = manager_info.get("account_id");
     return (
@@ -82,7 +82,7 @@ export const Managers: React.FC<Props> = ({
     );
   }
 
-  function render_user(account_id: string): JSX.Element {
+  function render_user(account_id: string): React.JSX.Element {
     if (user_map == null) {
       throw Error("bug");
     }
@@ -106,7 +106,7 @@ export const Managers: React.FC<Props> = ({
     }
   }
 
-  function render_add(): JSX.Element {
+  function render_add(): React.JSX.Element {
     return (
       <div style={{ float: "right" }}>
         <input
@@ -131,7 +131,7 @@ export const Managers: React.FC<Props> = ({
   if (user_map == null) {
     return <span />;
   }
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const account_id of managers ?? []) {
     v.push(render_user(account_id));
   }

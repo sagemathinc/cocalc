@@ -7,3 +7,4 @@ export function shouldOpenFileInNewWindow(e?: React.MouseEvent) {
   if (e == null) return false;
   return e.ctrlKey || e.shiftKey || e.metaKey;
 }
+

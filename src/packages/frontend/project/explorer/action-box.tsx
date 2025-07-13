@@ -104,7 +104,7 @@ export function ActionBox(props: ReactProps) {
     }
   }
 
-  function render_selected_files_list(): JSX.Element {
+  function render_selected_files_list(): React.JSX.Element {
     return (
       <pre style={PRE_STYLE}>
         {props.checked_files.toArray().map((name) => (
@@ -125,7 +125,7 @@ export function ActionBox(props: ReactProps) {
     props.actions.fetch_directory_listing();
   }
 
-  function render_delete_warning(): JSX.Element | undefined {
+  function render_delete_warning(): React.JSX.Element | undefined {
     if (props.current_path === ".trash") {
       return (
         <Col sm={5}>
@@ -140,7 +140,7 @@ export function ActionBox(props: ReactProps) {
     }
   }
 
-  function render_delete(): JSX.Element | undefined {
+  function render_delete(): React.JSX.Element | undefined {
     const { size } = props.checked_files;
     return (
       <div>
@@ -214,7 +214,7 @@ export function ActionBox(props: ReactProps) {
     return dest !== props.current_path;
   }
 
-  function render_move(): JSX.Element {
+  function render_move(): React.JSX.Element {
     const { size } = props.checked_files;
     return (
       <div>
@@ -262,7 +262,7 @@ export function ActionBox(props: ReactProps) {
     }
   }
 
-  function render_different_project_dialog(): JSX.Element | undefined {
+  function render_different_project_dialog(): React.JSX.Element | undefined {
     if (show_different_project) {
       return (
         <Col sm={4} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
@@ -280,7 +280,7 @@ export function ActionBox(props: ReactProps) {
     }
   }
 
-  function render_copy_different_project_options(): JSX.Element | undefined {
+  function render_copy_different_project_options(): React.JSX.Element | undefined {
     if (props.project_id !== copy_destination_project_id) {
       return (
         <div>
@@ -430,7 +430,7 @@ export function ActionBox(props: ReactProps) {
     );
   }
 
-  function render_copy(): JSX.Element {
+  function render_copy(): React.JSX.Element {
     const { size } = props.checked_files;
     const signed_in = get_user_type() === "signed_in";
     if (!signed_in) {
@@ -539,7 +539,7 @@ export function ActionBox(props: ReactProps) {
     }
   }
 
-  function render_share(): JSX.Element {
+  function render_share(): React.JSX.Element {
     // currently only works for a single selected file
     const path: string = props.checked_files.first() ?? "";
     if (!path) {
@@ -568,7 +568,7 @@ export function ActionBox(props: ReactProps) {
     );
   }
 
-  function render_action_box(action: FileAction): JSX.Element | undefined {
+  function render_action_box(action: FileAction): React.JSX.Element | undefined {
     switch (action) {
       case "compress":
         return <CreateArchive />;

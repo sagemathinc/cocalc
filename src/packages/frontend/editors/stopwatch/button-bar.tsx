@@ -15,7 +15,7 @@ import { Gap } from "@cocalc/frontend/components/gap";
 import { labels } from "@cocalc/frontend/i18n";
 import { TimeActions } from "./actions";
 
-export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
+export function ButtonBar({ actions }: { actions: TimeActions }): React.JSX.Element {
   return (
     <div style={{ margin: "1px" }}>
       {timeTravelButton(actions)}

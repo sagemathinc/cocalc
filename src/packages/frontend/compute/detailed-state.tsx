@@ -65,7 +65,7 @@ export default function DetailedState({
   if (!detailed_state) {
     return null;
   }
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const name of COMPONENTS) {
     if (detailed_state[name]) {
       v.push(

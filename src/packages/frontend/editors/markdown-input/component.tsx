@@ -21,12 +21,7 @@ import {
   useState,
 } from "react";
 import { alert_message } from "@cocalc/frontend/alerts";
-import {
-  ReactDOM,
-  redux,
-  useRedux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { A } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -154,8 +149,8 @@ export function MarkdownInput(props: Props) {
     value,
   } = props;
   const { actions, isVisible } = useFrameContext();
-  const cm = useRef<CodeMirror.Editor>();
-  const textarea_ref = useRef<HTMLTextAreaElement>(null);
+  const cm = useRef<CodeMirror.Editor | undefined>(undefined);
+  const textarea_ref = useRef<HTMLTextAreaElement | null>(null);
   const editor_settings = useRedux(["account", "editor_settings"]);
   const options = useMemo(() => {
     return {
@@ -188,7 +183,7 @@ export function MarkdownInput(props: Props) {
     cursor: EventHandlerFunction;
     change: EventHandlerFunction;
     from: { line: number; ch: number };
-  }>();
+  } | undefined>(undefined);
 
   const mentionableUsers = useMentionableUsers();
 
@@ -222,7 +217,7 @@ export function MarkdownInput(props: Props) {
 
   useEffect(() => {
     // initialize the codemirror editor
-    const node = ReactDOM.findDOMNode(textarea_ref.current);
+    const node = textarea_ref.current;
     if (node == null) {
       // maybe unmounted right as this happened.
       return;
@@ -641,7 +636,7 @@ export function MarkdownInput(props: Props) {
     }
   }
 
-  function render_mention_email(): JSX.Element | undefined {
+  function render_mention_email(): React.JSX.Element | undefined {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
@@ -703,7 +698,7 @@ export function MarkdownInput(props: Props) {
     // appears like with github... Emoticons: {emoticons}.
   }
 
-  function render_mention_instructions(): JSX.Element | undefined {
+  function render_mention_instructions(): React.JSX.Element | undefined {
     if (!enableMentions) return;
     return (
       <>
@@ -714,7 +709,7 @@ export function MarkdownInput(props: Props) {
     );
   }
 
-  function render_upload_instructions(): JSX.Element | undefined {
+  function render_upload_instructions(): React.JSX.Element | undefined {
     if (!enableUpload) return;
     const text = IS_MOBILE ? (
       <a>Tap here to upload images.</a>
@@ -871,7 +866,7 @@ export function MarkdownInput(props: Props) {
 
   const showInstructions = !!value?.trim();
 
-  let body: JSX.Element = (
+  let body: React.JSX.Element = (
     <div style={{ height: showInstructions ? "calc(100% - 22px)" : "100%" }}>
       {showInstructions ? render_instructions() : undefined}
       <div

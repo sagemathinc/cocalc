@@ -60,6 +60,7 @@ export class AStream<T = any> {
       client: this.client,
       user: this.user,
       storage: this.storage,
+      service: options.service,
     });
   }
 
@@ -91,9 +92,13 @@ export class AStream<T = any> {
     return (await this.getMessage(seq_or_key, opts))?.headers;
   };
 
-  // this is an async iterator so you can iterate over the
+  // This is an async iterator so you can iterate over the
   // data without having to have it all in RAM at once.
   // Of course, you can put it all in a single list if you want.
+  // It is NOT guaranteed to always work if the load is very heavy
+  // or network is flaky, but will return all data properly in order
+  // then throw an exception with code 503 rather than returning data
+  // with something skipped.
   async *getAll(opts): AsyncGenerator<
     {
       mesg: T;
@@ -105,7 +110,7 @@ export class AStream<T = any> {
     void,
     unknown
   > {
-    for await (const messages of this.stream.getAll(opts)) {
+    for await (const messages of this.stream.getAllIter(opts)) {
       for (const { seq, time, key, encoding, raw, headers } of messages) {
         const mesg = decode({ encoding, data: raw });
         yield { mesg, headers, seq, time, key };

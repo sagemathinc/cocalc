@@ -21,7 +21,7 @@ export const PathLink = React.memo(function PathLink({
   path,
   actions,
   default_value = "home directory of project",
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const handle_click = React.useCallback(
     function handle_click() {
       actions.set_active_tab("files");

@@ -19,7 +19,7 @@ interface PhysicalKeyboardProps {
 
 export function EditorSettingsPhysicalKeyboard(
   props: PhysicalKeyboardProps,
-): JSX.Element {
+): React.JSX.Element {
   const intl = useIntl();
 
   if (props.physical_keyboard === "NO_DATA") {
@@ -51,7 +51,7 @@ interface KeyboardVariantProps {
 
 export function EditorSettingsKeyboardVariant(
   props: KeyboardVariantProps,
-): JSX.Element {
+): React.JSX.Element {
   const intl = useIntl();
 
   if (props.keyboard_variant === "NO_DATA") {

@@ -8,9 +8,13 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
-import { Popover, Tag } from "antd";
+
+// cSpell:ignore fixedtab popout Collabs
+
+import { Popover, Tag, Tooltip } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import { defineMessage, useIntl } from "react-intl";
+
 import { getAlertName } from "@cocalc/comm/project-status/types";
 import {
   CSS,
@@ -45,7 +49,8 @@ import {
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
 import { shouldOpenFileInNewWindow } from "./utils";
-import { getValidVBAROption, VBAR_KEY } from "./vbar";
+import { getValidActivityBarOption } from "./activity-bar";
+import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -71,16 +76,16 @@ type FixedTabs = {
     icon: IconName;
     flyout: (props: {
       project_id: string;
-      wrap: (content: JSX.Element, style?: CSS) => JSX.Element;
+      wrap: (content: React.JSX.Element, style?: CSS) => React.JSX.Element;
       flyoutWidth: number;
-    }) => JSX.Element;
+    }) => React.JSX.Element;
     flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
   };
 };
 
-// TODO/NOTE: for better or worse I just can't stand the tooltips on the sidebar!
+// TODO/NOTE: for better or worse I just can't stand the tooltips on the activity bar!
 // Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
@@ -174,9 +179,11 @@ interface Props0 {
   noPopover?: boolean;
   placement?;
   iconStyle?: CSSProperties;
+  extraSpacing?: string; // around main div and caret
   isFixedTab?: boolean;
   flyout?: FixedTab;
   condensed?: boolean;
+  showLabel?: boolean; // only relevant for the vertical activity bar. still showing alert tags!
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -197,6 +204,7 @@ export function FileTab(props: Readonly<Props>) {
     isFixedTab,
     flyout = null,
     condensed = false,
+    showLabel = true,
   } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
@@ -215,7 +223,9 @@ export function FileTab(props: Readonly<Props>) {
 
   const other_settings = useTypedRedux("account", "other_settings");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
-  const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
+  const actBar = getValidActivityBarOption(
+    other_settings.get(ACTIVITY_BAR_KEY),
+  );
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -265,8 +275,8 @@ export function FileTab(props: Readonly<Props>) {
       if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
         // this tab can't be opened in a full page
         actions?.toggleFlyout(flyout);
-      } else if (flyout != null && vbar !== "both") {
-        if (anyModifierKey !== (vbar === "full")) {
+      } else if (flyout != null && actBar !== "both") {
+        if (anyModifierKey !== (actBar === "full")) {
           setActiveTab(name);
         } else {
           actions?.toggleFlyout(flyout);
@@ -287,7 +297,7 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
-    if (flyout == null || vbar !== "both") return;
+    if (flyout == null || actBar !== "both") return;
 
     const color =
       flyout === active_flyout
@@ -312,7 +322,11 @@ export function FileTab(props: Readonly<Props>) {
         }}
       >
         <Icon
-          style={{ padding: "0 3px", margin: "0", color }}
+          style={{
+            padding: "0 3px",
+            margin: "0",
+            color,
+          }}
           name="caret-right"
         />
       </div>
@@ -325,7 +339,7 @@ export function FileTab(props: Readonly<Props>) {
   } else {
     // highlight info tab if there is at least one alert
     if (status_alerts.length > 0) {
-      style = { backgroundColor: COLORS.ATND_BG_RED_L };
+      style = { backgroundColor: COLORS.ANTD_BG_RED_L };
     } else {
       style = { flex: "none" };
     }
@@ -370,7 +384,7 @@ export function FileTab(props: Readonly<Props>) {
                 paddingInline: "2px",
                 marginInlineEnd: "4px",
               }}
-              color={COLORS.ATND_BG_RED_M}
+              color={COLORS.ANTD_BG_RED_M}
             >
               {getAlertName(a)}
             </Tag>
@@ -379,6 +393,33 @@ export function FileTab(props: Readonly<Props>) {
         )}
       </div>
     ) : undefined;
+
+  function renderFixedTab() {
+    const button = (
+      <div
+        className="cc-project-fixedtab"
+        style={{
+          textAlign: "center",
+          width: "100%",
+          paddingLeft: "8px",
+          paddingRight: "8px",
+          paddingTop: props.extraSpacing ?? "0",
+          paddingBottom: props.extraSpacing ?? "0",
+        }}
+      >
+        {btnLeft}
+      </div>
+    );
+    if (isFixedTab && !showLabel && !other_settings.get("hide_file_popovers")) {
+      return (
+        <Tooltip title={label} placement="right" mouseEnterDelay={1}>
+          {button}
+        </Tooltip>
+      );
+    } else {
+      return button;
+    }
+  }
 
   const btnLeft = (
     <>
@@ -389,12 +430,14 @@ export function FileTab(props: Readonly<Props>) {
         }}
         name={icon}
       />
-      <DisplayedLabel
-        path={path}
-        label={label}
-        inline={!isFixedTab}
-        project_id={project_id}
-      />
+      {showLabel ? (
+        <DisplayedLabel
+          path={path}
+          label={label}
+          inline={!isFixedTab}
+          project_id={project_id}
+        />
+      ) : null}
       {tags}
     </>
   );
@@ -409,24 +452,17 @@ export function FileTab(props: Readonly<Props>) {
         justifyContent: "space-between",
       }}
     >
-      <div
-        className="cc-project-fixedtab"
-        style={{
-          textAlign: "center",
-          width: "100%",
-          paddingLeft: "8px",
-          paddingRight: "8px",
-        }}
-      >
-        {btnLeft}
-      </div>
+      {renderFixedTab()}
       {renderFlyoutCaret()}
     </div>
   );
 
   const body = (
     <div
-      style={{ ...style, ...props.style }}
+      style={{
+        ...style,
+        ...props.style,
+      }}
       cocalc-test={label}
       onClick={click}
       onMouseUp={onMouseUp}
@@ -446,7 +482,7 @@ export function FileTab(props: Readonly<Props>) {
 
   // in pure "full page" vbar mode, do not show a vertical tab, which has no fullpage
   if (
-    vbar === "full" &&
+    actBar === "full" &&
     flyout != null &&
     FIXED_PROJECT_TABS[flyout].noFullPage
   ) {

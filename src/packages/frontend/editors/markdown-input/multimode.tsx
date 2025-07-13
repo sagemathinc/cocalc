@@ -15,7 +15,6 @@ import {
   useRef,
   useState,
 } from "react";
-
 import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { Icon } from "@cocalc/frontend/components";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
@@ -134,7 +133,7 @@ interface Props {
   // refresh codemirror if this changes
   refresh?: any;
 
-  overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
+  overflowEllipsis?: boolean; // if true (the default!), show "..." button popping up all menu entries
 
   dirtyRef?: MutableRefObject<boolean>; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).
 
@@ -176,7 +175,7 @@ export default function MultiMarkdownInput({
   onUndo,
   onUploadEnd,
   onUploadStart,
-  overflowEllipsis = false,
+  overflowEllipsis = true,
   placeholder,
   refresh,
   registerEditor,
@@ -207,7 +206,7 @@ export default function MultiMarkdownInput({
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  const editBar2 = useRef<JSX.Element | undefined>(undefined);
+  const editBar2 = useRef<React.JSX.Element | undefined>(undefined);
 
   const getKey = () => `${project_id}${path}:${cacheId}`;
 
@@ -287,7 +286,7 @@ export default function MultiMarkdownInput({
     };
   }, [mode]);
 
-  function toggleEditBarPopupver() {
+  function toggleEditBarPopover() {
     setEditBarPopover(!editBarPopover);
   }
 
@@ -390,7 +389,7 @@ export default function MultiMarkdownInput({
               onChange={(e) => {
                 const mode = e.target.value;
                 if (mode === "menu") {
-                  toggleEditBarPopupver();
+                  toggleEditBarPopover();
                 } else {
                   setMode(mode as Mode);
                 }

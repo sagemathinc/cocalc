@@ -73,7 +73,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     error?: boolean,
     job_info_str?: string,
   ): AntdTabItem {
-    const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
+    const err_style = error ? { background: COLORS.ANTD_BG_RED_L } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
     return Tab({
       key: title,
@@ -227,7 +227,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   // usually, one job is running at a time
   function render_jobs(): Rendered {
     if (!build_logs) return;
-    const infos: JSX.Element[] = [];
+    const infos: React.JSX.Element[] = [];
     let isLongRunning = false;
     let logTail = "";
     build_logs.forEach((infoI, key) => {

@@ -4,7 +4,7 @@
  */
 
 import { Col, Row, Space } from "antd";
-import { ReactNode } from "react";
+import { ReactNode, type JSX } from "react";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";

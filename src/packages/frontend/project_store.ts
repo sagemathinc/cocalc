@@ -25,8 +25,12 @@ import {
   Table,
   TypedMap,
 } from "@cocalc/frontend/app-framework";
-import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
 import { Listings, listings } from "@cocalc/frontend/conat/listings";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
+import { get_local_storage } from "@cocalc/frontend/misc";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { remove } from "@cocalc/frontend/project-file";
+import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
 import {
   FILE_ACTIONS,
   ProjectActions,
@@ -53,16 +57,12 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
-import { get_local_storage } from "@cocalc/frontend/misc";
-import { QueryParams } from "@cocalc/frontend/misc/query-params";
-import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
-import { remove } from "@cocalc/frontend/project-file";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
 export type ModalInfo = TypedMap<{
-  title: string | JSX.Element;
-  content: string | JSX.Element;
+  title: string | React.JSX.Element;
+  content: string | React.JSX.Element;
   onOk?: any;
   onCancel?: any;
 }>;
@@ -88,7 +88,6 @@ export interface ProjectStoreState {
 
   // Project Page
   active_project_tab: string;
-  internet_warning_closed: boolean; // Makes bottom height update
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
@@ -308,7 +307,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Page
       active_project_tab: "files",
-      internet_warning_closed: false, // Makes bottom height update
       num_ghost_file_tabs: 0,
       flyout: null,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,

@@ -8,7 +8,6 @@
 
 import { Alert, Button } from "antd";
 import { sortBy, uniq } from "lodash";
-
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   CSS,
@@ -110,11 +109,11 @@ const USERS_STYLE: CSS = {
 } as const;
 
 interface Props {
-  wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  wrap: (list: React.JSX.Element, style?: CSS) => React.JSX.Element;
   flyoutWidth: number;
 }
 
-export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
+export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
   const { wrap, flyoutWidth } = props;
   const { formatIntl } = useAppContext();
   const { project_id, flipTabs, manageStarredFiles } = useProjectContext();
@@ -258,7 +257,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     how: "file" | "undo",
     group?: string,
     isLast?: boolean,
-  ): JSX.Element {
+  ): React.JSX.Element {
     const isactive: boolean = activePath === path;
     const style =
       group != null
@@ -368,7 +367,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  function renderEmpty(): JSX.Element {
+  function renderEmpty(): React.JSX.Element {
     return (
       <div>
         <Alert
@@ -407,7 +406,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   // here, there is no grouping – it's the custom ordering and below are (optionally) starred files
-  function renderTabs(): [JSX.Element, JSX.Element | null] {
+  function renderTabs(): [React.JSX.Element, React.JSX.Element | null] {
     const openTabs = openFiles
       .filter((path) => filteredFiles.includes(path))
       .sort((a, b) => {
@@ -457,8 +456,8 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   // type "folder" and  "type" have actual groups
-  function renderGroupsOfGrouped(): JSX.Element {
-    const groups: JSX.Element[] = [];
+  function renderGroupsOfGrouped(): React.JSX.Element {
+    const groups: React.JSX.Element[] = [];
 
     for (const group of getGroupKeys()) {
       const fileNames = getGroupFilenames(group);
@@ -489,7 +488,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     }
   }
 
-  function renderGroups(): JSX.Element {
+  function renderGroups(): React.JSX.Element {
     // flat, same ordering as file tabs
     if (mode === "tabs") {
       const [tabs, stars] = renderTabs();

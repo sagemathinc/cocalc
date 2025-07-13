@@ -1,7 +1,6 @@
 /*
 cocalc-kubernetes support.
 
-
 TODO/CRITICAL: I deleted this from target.ts, so be sure to make this.host be actually right!
 
   if (project._kubernetes) {
@@ -42,6 +41,7 @@ class Project extends BaseProject {
 
   async start(): Promise<void> {
     winston.debug("start ", this.project_id);
+    //await this.touch(undefined, { noStart: true });
     throw Error("implement me");
   }
 

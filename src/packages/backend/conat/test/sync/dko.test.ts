@@ -8,7 +8,12 @@ pnpm test ./dko.test.ts
 */
 
 import { dko as createDko } from "@cocalc/backend/conat/sync";
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  connect,
+  client,
+} from "@cocalc/backend/conat/test/setup";
 import { wait } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);
@@ -96,6 +101,51 @@ describe("test a large value that requires chunking", () => {
   it("clears and closes the kv", async () => {
     kv.clear();
     await kv.close();
+  });
+});
+
+describe("test keys that start with a bracket, weird keys, valid JSON, etc", () => {
+  let kv, kv2;
+  let client2;
+  const BAD_KEYS = [
+    "[foo]",
+    "[P] [W}\\ test]",
+    "normal",
+    JSON.stringify(["foo", "bar"]),
+  ];
+  it("creates a dko", async () => {
+    client2 = connect();
+    const name = "[!nuts$##&^$$#!\\blah]";
+    kv = await client.sync.dko({ name });
+    kv2 = await client2.sync.dko({ name });
+    for (const key of BAD_KEYS) {
+      kv.set(key, { cocalc: "conat" });
+      expect(kv.has(key)).toBe(true);
+      expect(kv.get(key)).toEqual({ cocalc: "conat" });
+      await kv.save();
+      await wait({ until: () => kv2.has(key) });
+      expect(kv2.get(key)).toEqual({ cocalc: "conat" });
+    }
+    kv.close();
+    kv2.close();
+  });
+});
+
+describe("illustrate that https://github.com/sagemathinc/cocalc/issues/8386 is not truly fixed", () => {
+  it("creates a dko", async () => {
+    const kv = await client.sync.dko({ name: "issue-8386" });
+    const key = JSON.stringify(["key", "field"]);
+    kv.set(key, { foo: "bar" });
+    expect(kv.fromPath(key)).toEqual({ key: "key", field: "field" });
+    expect(kv.get(key)).toEqual({ foo: "bar" });
+
+    // here's the bug -- basically if you have a key that is a valid JSON array of
+    // length two (and only then), you get an extra spurious key.  This might never
+    // be a problem in practice though, since the key you want is also there.
+    expect(kv.getAll()).toEqual({
+      key: { field: ["foo"] },
+      '["key","field"]': { foo: "bar" },
+    });
   });
 });
 

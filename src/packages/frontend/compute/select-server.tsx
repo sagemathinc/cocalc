@@ -160,7 +160,7 @@ export default function SelectServer({
         }
       }
     }
-    const v: { label: JSX.Element; options: Option[] }[] = [
+    const v: { label: React.JSX.Element; options: Option[] }[] = [
       {
         label: <div style={{ fontSize: "12pt" }}>Default</div>,
         options: [

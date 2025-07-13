@@ -13,7 +13,8 @@ rewrote this to use the Antd dropdown, which is more dynamic.
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { CSS, ReactDOM } from "@cocalc/frontend/app-framework";
+import { CSS } from "@cocalc/frontend/app-framework";
+import ReactDOM from "react-dom";
 import type { MenuItems } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { strictMod } from "@cocalc/util/misc";
@@ -85,7 +86,7 @@ export function Complete({
   const llm_ref = useRef<boolean>(llm);
   const selected_user_ref = useRef<number>(selectedUser);
   const selected_llm_ref = useRef<number>(selectedLLM);
-  const selected_key_ref = useRef<string>();
+  const selected_key_ref = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     selected_user_ref.current = selectedUser;
@@ -216,7 +217,7 @@ export function Complete({
       label: (
         <div style={{ ...style, display: "flex", alignItems: "center" }}>
           <AIAvatar size={22} />{" "}
-          <span style={{ marginLeft: "5px" }}>More AI Language Models</span>
+          <span style={{ marginLeft: "5px" }}>More AI Models</span>
         </div>
       ),
       style,
@@ -257,7 +258,7 @@ export function Complete({
     },
   };
 
-  function renderDropdown(): JSX.Element {
+  function renderDropdown(): React.JSX.Element {
     return (
       <Dropdown
         menu={menu}

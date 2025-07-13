@@ -14,17 +14,13 @@ Autorefresh exponential backoff algorithm:
 const MIN_INTERVAL_MS = 2000;
 const MAX_INTERVAL_MS = 45000;
 const EXPONENTIAL_BACKOFF = 1.3;
-
 import { Button, Checkbox, Modal, Spin, Tooltip } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
-import ReactDOM from "react-dom";
 import { Terminal } from "@xterm/xterm";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { getSerialPortOutput } from "./api";
-
 import { setTheme } from "@cocalc/frontend/frame-editors/terminal-editor/themes";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 
@@ -110,7 +106,7 @@ export function SerialLogModal({ id, title, close }) {
       const output = await getSerialPortOutput(id);
       lastOutputRef.current = output;
       if (termRef.current == null) {
-        const elt = ReactDOM.findDOMNode(eltRef.current) as any;
+        const elt = eltRef.current;
         if (elt != null) {
           const settings =
             redux.getStore("account").get("terminal")?.toJS() ?? {};

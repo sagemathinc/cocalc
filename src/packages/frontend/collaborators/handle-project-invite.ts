@@ -11,23 +11,23 @@ import { delay } from "awaiting";
 
 export const PROJECT_INVITE_QUERY_PARAM = "project-invite";
 
-async function handle_project_invite() {
-  webapp_client.removeListener("signed_in", handle_project_invite); // only try at most once the first time.
+async function handleProjectInviteToken() {
   const token_id = QueryParams.get(PROJECT_INVITE_QUERY_PARAM);
-  if (!token_id) return;
+  if (!token_id) {
+    return;
+  }
   QueryParams.remove(PROJECT_INVITE_QUERY_PARAM);
   const account_id = webapp_client.account_id;
   if (!account_id) return;
-  add_self_to_project_using_token(token_id);
+  addSelfToProjectUsingInviteToken(token_id);
 }
 
-async function init() {
+export async function init() {
   await delay(0); // has to be after page loads...
-  webapp_client.on("signed_in", handle_project_invite);
+  webapp_client.once("signed_in", handleProjectInviteToken);
 }
-init();
 
-export async function add_self_to_project_using_token(token_id) {
+async function addSelfToProjectUsingInviteToken(token_id) {
   if (webapp_client.account_id == null) return;
 
   const actions = redux.getActions("page");
@@ -46,6 +46,7 @@ export async function add_self_to_project_using_token(token_id) {
       account_id: webapp_client.account_id,
       token_id,
     });
+    console.log({ resp });
     const project_id = resp.project_id;
     if (typeof project_id == "string") {
       alert_message({
@@ -61,8 +62,6 @@ export async function add_self_to_project_using_token(token_id) {
       });
       // Now actually open it.
       redux.getActions("projects").open_project({ project_id });
-    } else {
-      throw Error("something went wrong (this shouldn't happen)"); // should never happen.
     }
   } catch (err) {
     alert_message({ type: "error", message: err.toString(), timeout: 30 });

@@ -15,7 +15,7 @@ import { Icon, IconName, isIconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
-// import { FrameTitleBarProps } from "../title-bar";
+import { COLORS } from "@cocalc/util/theme";
 import { EditorDescription } from "../types";
 import { COMMANDS } from "./commands";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
@@ -132,7 +132,7 @@ export class ManageCommands {
     if (cmd == null) {
       return v;
     }
-    const process = (cmd, name, parentLabel: JSX.Element | string) => {
+    const process = (cmd, name, parentLabel: React.JSX.Element | string) => {
       if (cmd.children) {
         const newParentLabel = (
           <div style={{ display: "flex" }}>
@@ -211,7 +211,7 @@ export class ManageCommands {
     );
   };
 
-  getParentLabel = (cmd: Partial<Command>): JSX.Element | string => {
+  getParentLabel = (cmd: Partial<Command>): React.JSX.Element | string => {
     const { group } = cmd;
     if (!group) {
       return "Menu";
@@ -443,6 +443,11 @@ export class ManageCommands {
     });
   };
 
+  showSymbolBarLabels = (): boolean => {
+    const account = redux.getStore("account");
+    return account.showSymbolBarLabels();
+  };
+
   commandToMenuItem = ({
     name = "",
     key,
@@ -480,19 +485,21 @@ export class ManageCommands {
       label = (
         <>
           {icon ?? <Icon name="square" />}
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#666",
-              marginTop: "-10px",
-              // special case: button='' explicitly means no label
-              width: cmd.button === "" ? undefined : "50px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {buttonLabel}
-          </div>
+          {this.showSymbolBarLabels() && (
+            <div
+              style={{
+                fontSize: "11px",
+                color: COLORS.GRAY_M,
+                marginTop: "-10px",
+                // special case: button='' explicitly means no label
+                width: cmd.button === "" ? undefined : "50px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {buttonLabel}
+            </div>
+          )}
         </>
       );
     } else {

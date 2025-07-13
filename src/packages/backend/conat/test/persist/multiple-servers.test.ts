@@ -4,7 +4,7 @@ Unit tests of multiple persist servers at once:
 - making numerous distinct clients and seeing that they are distributed across persist servers
 - stopping a persist server and seeing that failover happens without data loss
 
-pnpm test `pwd`/multiple-servers.test.ts 
+pnpm test `pwd`/multiple-servers.test.ts
 
 */
 
@@ -37,7 +37,7 @@ describe("multiple clients using multiple persist servers", () => {
   });
 
   let persistClients: any[] = [];
-  
+
   // NOTE: count must be below about 40 to avoid hitting the default
   // per-user connection limit of 100.
   let count = 30;

@@ -420,7 +420,7 @@ export function FileTypeSelector({
     );
   }
 
-  function addAiDocGenerate(btn: JSX.Element, ext: Ext) {
+  function addAiDocGenerate(btn: React.JSX.Element, ext: Ext) {
     if (isFlyout) {
       return (
         <Col sm={sm} md={md} key={`with-ai-${ext}`}>

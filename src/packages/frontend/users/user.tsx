@@ -43,8 +43,7 @@ function User_map_given(props: Props) {
   function render_last_active() {
     if (props.last_active) {
       return (
-        <span>
-          {" "}
+        <span style={{ margin: "0 5px" }}>
           (<TimeAgo date={props.last_active} />)
         </span>
       );

@@ -5,7 +5,8 @@
 
 // Hub Registration
 
-const winston = require("./logger").getLogger("hub");
+import { getLogger } from "@cocalc/backend/logger";
+const logger = getLogger("hub_register");
 import * as misc from "@cocalc/util/misc";
 const { defaults, required } = misc;
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
@@ -19,28 +20,28 @@ let the_port: number | undefined = undefined;
 let the_interval: number | undefined = undefined; // seconds
 
 function register_hub(cb) {
-  winston.debug("register_hub");
+  logger.debug("register_hub");
   if (the_database == null) {
     database_is_working = false;
-    winston.debug("register_hub -- no database, so FAILED");
+    logger.debug("register_hub -- no database, so FAILED");
     cb?.("database not yet set");
     return;
   }
   if (the_database._clients == null) {
     database_is_working = false;
-    winston.debug("register_hub -- not connected, so FAILED");
+    logger.debug("register_hub -- not connected, so FAILED");
     cb?.("database not connected");
     return;
   }
   if (the_database.is_standby) {
-    winston.debug("register_hub -- doing read query of site settings");
+    logger.debug("register_hub -- doing read query of site settings");
     the_database.get_site_settings({
       cb(err, _) {
         if (err) {
-          winston.debug("register_hub -- FAILED read query");
+          logger.debug("register_hub -- FAILED read query");
           database_is_working = false;
         } else {
-          winston.debug("register_hub -- read query worked");
+          logger.debug("register_hub -- read query worked");
           database_is_working = true;
         }
       },
@@ -48,7 +49,7 @@ function register_hub(cb) {
     return;
   }
 
-  winston.debug("register_hub -- doing db query");
+  logger.debug("register_hub -- doing db query");
   if (the_host == null || the_port == null || the_interval == null) {
     throw new Error(
       "the_host, the_port, and the_interval must be set before registering this hub",
@@ -62,10 +63,10 @@ function register_hub(cb) {
     cb(err) {
       if (err) {
         database_is_working = false;
-        winston.debug(`register_hub -- fail - ${err}`);
+        logger.debug(`register_hub -- fail - ${err}`);
       } else {
         database_is_working = true;
-        winston.debug("register_hub -- success");
+        logger.debug("register_hub -- success");
       }
       cb?.(err);
     },
@@ -94,7 +95,7 @@ export function start(opts: Opts): void {
     interval_s: required,
     cb: undefined,
   });
-  winston.debug("hub_register.start...");
+  logger.debug("hub_register.start...");
   if (started) {
     throw new Error("Can't start hub_register twice");
   } else {

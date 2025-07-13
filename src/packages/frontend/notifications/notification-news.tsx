@@ -111,7 +111,7 @@ export function NewsPanel(props: NewsPanelProps) {
     );
   }
 
-  function renderNewsPanelExtra(): JSX.Element {
+  function renderNewsPanelExtra(): React.JSX.Element {
     const read_all = intl.formatMessage(MSGS.read_all);
 
     const mark_all = intl.formatMessage(MSGS.mark_all, { anyUnread });

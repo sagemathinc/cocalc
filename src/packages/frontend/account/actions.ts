@@ -184,7 +184,7 @@ export class AccountActions extends Actions<AccountState> {
   };
 
   public set_show_purchase_form(show: boolean) {
-    // this controlls the default state of the "buy a license" purchase form in account → licenses
+    // this controls the default state of the "buy a license" purchase form in account → licenses
     // by default, it's not showing up
     this.setState({ show_purchase_form: show });
   }
@@ -243,5 +243,44 @@ export class AccountActions extends Actions<AccountState> {
   setFragment = (fragment) => {
     // @ts-ignore
     this.setState({ fragment });
+  };
+
+  addTag = async (tag: string) => {
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tags = store.get("tags");
+    if (tags?.includes(tag)) {
+      // already tagged
+      return;
+    }
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const v = tags?.toJS() ?? [];
+    v.push(tag);
+    table.set({ tags: v });
+    try {
+      await webapp_client.conat_client.hub.system.userSalesloftSync({});
+    } catch (err) {
+      console.warn(
+        "WARNING: issue syncing  with salesloft after setting tag",
+        tag,
+        err,
+      );
+    }
+  };
+
+  // delete won't be visible in frontend until a browser refresh...
+  deleteTag = async (tag: string) => {
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tags = store.get("tags");
+    if (!tags?.includes(tag)) {
+      // already tagged
+      return;
+    }
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const v = tags.toJS().filter((x) => x != tag);
+    await webapp_client.async_query({ query: { accounts: { tags: v } } });
   };
 }

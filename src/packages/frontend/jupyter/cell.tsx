@@ -59,7 +59,7 @@ interface Props {
   is_visible?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
-  dragHandle?: JSX.Element;
+  dragHandle?: React.JSX.Element;
   read_only?: boolean;
   isDragging?: boolean;
 }
@@ -366,7 +366,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
 
   function render_insert_cell(
     position: "above" | "below" = "above",
-  ): JSX.Element | null {
+  ): React.JSX.Element | null {
     if (props.actions == null || IS_TOUCH) {
       return null;
     }

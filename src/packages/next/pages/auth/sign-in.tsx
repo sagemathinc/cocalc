@@ -23,7 +23,7 @@ export default function Home({ customize }) {
       <Layout>
         <Header page="sign-in" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignIn onSuccess={() => router.push("/")} />
+          <SignIn onSuccess={() => router.push("/app?sign-in")} />
           <Footer />
         </Layout.Content>
       </Layout>

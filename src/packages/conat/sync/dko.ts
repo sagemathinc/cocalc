@@ -133,10 +133,21 @@ export class DKO<T = any> extends EventEmitter {
   };
 
   private fromPath = (path: string): { key: string; field?: string } => {
-    if (path.startsWith("[")) {
-      // json encoded as above
-      const [key, field] = JSON.parse(path);
-      return { key, field };
+    if (path.startsWith("[") && path.endsWith("]")) {
+      // *might* be json encoded as above
+      try {
+        const v = JSON.parse(path);
+        if (v.length == 2) {
+          const [key, field] = v;
+          return { key, field };
+        } else {
+          throw Error("fallback");
+        }
+      } catch {
+        // it wasn't json encoded
+        // see https://github.com/sagemathinc/cocalc/issues/8386
+        return { key: path };
+      }
     } else {
       // not encoded since no field -- the value of this one is the list of keys
       return { key: path };
@@ -170,10 +181,21 @@ export class DKO<T = any> extends EventEmitter {
       return undefined;
     }
     const x: any = {};
-    for (const field of fields) {
-      x[field] = this.dkv.get(this.toPath(key, field));
+    try {
+      for (const field of fields) {
+        x[field] = this.dkv.get(this.toPath(key, field));
+      }
+      return x;
+    } catch {
+      return undefined;
     }
-    return x;
+  };
+
+  has = (key: string): boolean => {
+    if (this.dkv == null) {
+      throw Error("closed");
+    }
+    return this.dkv.has(key);
   };
 
   getAll = (): { [key: string]: T } => {

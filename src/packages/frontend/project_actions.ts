@@ -8,10 +8,16 @@ declare let window, document, $;
 
 import * as async from "async";
 import { callback } from "awaiting";
-import { List, Map, Set as immutableSet, fromJS } from "immutable";
+import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
+
+import {
+  computeServerManager,
+  type ComputeServerManager,
+} from "@cocalc/conat/compute/manager";
+import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -51,10 +57,10 @@ import {
 } from "@cocalc/frontend/project/history/types";
 import {
   OpenFileOpts,
+  canonicalPath,
   log_file_open,
   log_opened_time,
   open_file,
-  canonicalPath,
 } from "@cocalc/frontend/project/open-file";
 import { OpenFiles } from "@cocalc/frontend/project/open-files";
 import { FixedTab } from "@cocalc/frontend/project/page/file-tab";
@@ -68,10 +74,8 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "@cocalc/frontend/project/page/flyouts/utils";
-import {
-  VBAR_KEY,
-  getValidVBAROption,
-} from "@cocalc/frontend/project/page/vbar";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
@@ -101,15 +105,10 @@ import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
-import {
-  computeServerManager,
-  type ComputeServerManager,
-} from "@cocalc/conat/compute/manager";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
 
 const { defaults, required } = misc;
 
@@ -551,8 +550,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
+        const actBar = account_store?.getIn([
+          "other_settings",
+          ACTIVITY_BAR_KEY,
+        ]);
+        const flyoutsDefault = getValidActivityBarOption(actBar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
@@ -2682,11 +2684,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
   // that extension.  Throws an Error if the path name is invalid.
-  public construct_absolute_path(
+  construct_absolute_path = (
     name: string,
     current_path?: string,
     ext?: string,
-  ) {
+  ): string => {
     if (name.length === 0) {
       throw Error("Cannot use empty filename");
     }
@@ -2700,7 +2702,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       s = `${s}.${ext}`;
     }
     return s;
-  }
+  };
 
   async create_folder(opts: {
     name: string;
@@ -2834,6 +2836,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.log({ event: "file_action", action: "created", files: [p] });
+    if (ext) {
+      redux.getActions("account")?.addTag(`create-${ext}`);
+    }
     if (opts.switch_over) {
       this.open_file({
         path: p,
@@ -3338,10 +3343,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
-  }
-
-  close_project_no_internet_warning(): void {
-    this.setState({ internet_warning_closed: true });
   }
 
   set_compute_image = async (compute_image: string): Promise<void> => {

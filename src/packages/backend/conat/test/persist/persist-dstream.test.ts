@@ -29,7 +29,7 @@ describe("create a dstream, write data, close it, then open it again and see dat
 });
 
 // this is here because I had a bug in the syncRefCache that this exposed.
-describe.only("just like above, create a dstream, write data, close it, then open it again and see data persisted -- **but do it all in the same function**", () => {
+describe("just like above, create a dstream, write data, close it, then open it again and see data persisted -- **but do it all in the same function**", () => {
   let client;
   const name = "foo2";
   it("create clients and a document", async () => {

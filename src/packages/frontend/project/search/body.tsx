@@ -391,7 +391,7 @@ function ProjectSearchOutput({
         </Alert>
       );
     }
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     let i = 0;
     for (const result of search_results) {
       v.push(

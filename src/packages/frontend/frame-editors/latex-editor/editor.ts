@@ -21,7 +21,6 @@ import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { LatexWordCount } from "./latex-word-count";
 import { PDFEmbed } from "./pdf-embed";
 import { PDFJS } from "./pdfjs";
-import { pdf_path } from "./util";
 
 export const pdfjsCommands = set([
   "print",
@@ -114,7 +113,6 @@ const pdfjs_canvas: EditorDescription = {
     "print",
     "download_pdf",
   ]),
-  path: pdf_path,
   renderer: "canvas",
 } as const;
 
@@ -177,7 +175,6 @@ const pdf_embed: EditorDescription = {
   icon: "file-pdf",
   commands: set(["print", "save", "download"]),
   component: PDFEmbed,
-  path: pdf_path,
 } as const;
 
 const EDITOR_SPEC = {

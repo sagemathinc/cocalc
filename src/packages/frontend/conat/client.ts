@@ -40,7 +40,7 @@ import { info as refCacheInfo } from "@cocalc/util/refcache";
 import { connect as connectToConat } from "@cocalc/conat/core/client";
 import type { ConnectionStats } from "@cocalc/conat/core/types";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { once } from "@cocalc/util/async-utils";
+import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import {
   deleteRememberMe,
@@ -66,6 +66,7 @@ export class ConatClient extends EventEmitter {
   private clientWithState: ClientWithState;
   private _conatClient: null | ReturnType<typeof connectToConat>;
   public numConnectionAttempts = 0;
+  private automaticallyReconnect;
 
   constructor(client: WebappClient) {
     super();
@@ -95,6 +96,10 @@ export class ConatClient extends EventEmitter {
       this._conatClient = connectToConat({
         address,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
+        // it is necessary to manually managed reconnects due to a bugs
+        // in socketio that has stumped their devs
+        //   -- https://github.com/socketio/socket.io/issues/5197
+        reconnection: false,
       });
       this._conatClient.on("connected", () => {
         this.setConnectionStatus({
@@ -104,6 +109,7 @@ export class ConatClient extends EventEmitter {
           stats: this._conatClient?.stats,
         });
         this.client.emit("connected");
+        this.automaticallyReconnect = true;
       });
       this._conatClient.on("disconnected", (reason, details) => {
         this.setConnectionStatus({
@@ -113,6 +119,9 @@ export class ConatClient extends EventEmitter {
           stats: this._conatClient?.stats,
         });
         this.client.emit("disconnected", "offline");
+        if (this.automaticallyReconnect) {
+          setTimeout(this.connect, 1000);
+        }
       });
       this._conatClient.conn.io.on("reconnect_attempt", (attempt) => {
         this.numConnectionAttempts = attempt;
@@ -169,35 +178,34 @@ export class ConatClient extends EventEmitter {
     });
     initTime();
     const client = this.conat();
-    if (!client.info) {
-      await once(client.conn as any, "info");
-    }
-    if (client.info?.user?.account_id) {
-      console.log("Connected as ", JSON.stringify(client.info?.user));
-      this.signedIn({
-        account_id: client.info.user.account_id,
-        hub: client.info.id,
-      });
-      const cookie = Cookies.get(ACCOUNT_ID_COOKIE);
-      if (cookie && cookie != client.info.user.account_id) {
-        // make sure account_id cookie is set to the actual account we're
-        // signed in as, then refresh since some things are going to be
-        // broken otherwise. To test this use dev tools and just change the account_id
-        // cookies value to something random.
-        Cookies.set(ACCOUNT_ID_COOKIE, client.info.user.account_id);
-        // and we're out of here:
-        location.reload();
+    client.on("info", (info) => {
+      if (client.info?.user?.account_id) {
+        console.log("Connected as ", JSON.stringify(client.info?.user));
+        this.signedIn({
+          account_id: info.user.account_id,
+          hub: info.id ?? "",
+        });
+        const cookie = Cookies.get(ACCOUNT_ID_COOKIE);
+        if (cookie && cookie != client.info.user.account_id) {
+          // make sure account_id cookie is set to the actual account we're
+          // signed in as, then refresh since some things are going to be
+          // broken otherwise. To test this use dev tools and just change the account_id
+          // cookies value to something random.
+          Cookies.set(ACCOUNT_ID_COOKIE, client.info.user.account_id);
+          // and we're out of here:
+          location.reload();
+        }
+      } else {
+        console.log("Sign in failed -- ", client.info);
+        this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
+        this.client.alert_message({
+          type: "error",
+          message: "You must sign in.",
+          block: true,
+        });
+        this.standby();
       }
-    } else {
-      console.log("Sign in failed -- ", client.info);
-      this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
-      this.client.alert_message({
-        type: "error",
-        message: client.info?.user?.error,
-        block: true,
-      });
-      this.standby();
-    }
+    });
   };
 
   public signedInMessage?: { account_id: string; hub: string };
@@ -221,19 +229,45 @@ export class ConatClient extends EventEmitter {
   // if there is a connection, put it in standby
   standby = () => {
     // @ts-ignore
+    this.automaticallyReconnect = false;
     this._conatClient?.disconnect();
   };
 
   // if there is a connection, resume it
   resume = () => {
-    if (this.permanentlyDisconnected) {
-      console.log(
-        "Not connecting -- client is permanently disconnected and must refresh their browser",
-      );
-      return;
-    }
-    this._conatClient?.conn.io.connect();
+    this.connect();
   };
+
+  // keep trying until connected.
+  connect = reuseInFlight(async () => {
+    let attempts = 0;
+    await until(
+      async () => {
+        if (this.permanentlyDisconnected) {
+          console.log(
+            "Not connecting -- client is permanently disconnected and must refresh their browser",
+          );
+          return true;
+        }
+        if (this._conatClient == null) {
+          this.conat();
+        }
+        if (this._conatClient?.conn?.connected) {
+          return true;
+        }
+        this._conatClient?.disconnect();
+        await delay(750);
+        await waitForOnline();
+        attempts += 1;
+        console.log(
+          `Connecting to ${this._conatClient?.options.address}: attempts ${attempts}`,
+        );
+        this._conatClient?.conn.io.connect();
+        return false;
+      },
+      { min: 3000, max: 15000 },
+    );
+  });
 
   callConatService: CallConatServiceFunction = async (options) => {
     return await callConatService(options);
@@ -497,4 +531,15 @@ function setNotDeleted({ project_id, path }) {
   }
   const actions = redux.getProjectActions(project_id);
   actions?.setRecentlyDeleted(path, 0);
+}
+
+async function waitForOnline(): Promise<void> {
+  if (navigator.onLine) return;
+  await new Promise<void>((resolve) => {
+    const handler = () => {
+      window.removeEventListener("online", handler);
+      resolve();
+    };
+    window.addEventListener("online", handler);
+  });
 }

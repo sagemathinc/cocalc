@@ -18,7 +18,7 @@ import { useRef } from "react";
 
 export default function ComputeServers() {
   const { computeServersEnabled, siteName } = useCustomize();
-  const ref = useRef<any>();
+  const ref = useRef<any>(undefined);
   if (!computeServersEnabled) {
     // note frontend also makes the constraint that at least one cloud is enabled.
     // see: packages/frontend/compute/config.ts

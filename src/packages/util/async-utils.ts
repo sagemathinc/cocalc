@@ -59,8 +59,8 @@ export async function until(
     log?.(`will retry in ${Math.round(d / 1000)} seconds`);
     await awaiting.delay(d);
   }
-  log?.("FAILED: timeout");
-  throw Error("timeout");
+  log?.(`FAILED: timeout -- ${timeout} ms`);
+  throw Error(`timeout -- ${timeout} ms`);
 }
 
 export { asyncDebounce, asyncThrottle } from "./async-debounce-throttle";
@@ -160,6 +160,14 @@ export async function retry_until_success<T>(
 import { EventEmitter } from "events";
 import { CB } from "./types/database";
 
+export class TimeoutError extends Error {
+  code: number;
+  constructor(mesg: string) {
+    super(mesg);
+    this.code = 408;
+  }
+}
+
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event.
    If timeout_ms is 0 (the default) this can wait an unbounded
@@ -173,9 +181,13 @@ import { CB } from "./types/database";
 export async function once(
   obj: EventEmitter,
   event: string,
-  timeout_ms: number = 0,
+  timeout_ms: number | undefined = 0,
 ): Promise<any> {
   if (obj == null) throw Error("once -- obj is undefined");
+  if (timeout_ms == null) {
+    // clients might explicitly pass in undefined, but below we expect 0 to mean "no timeout"
+    timeout_ms = 0;
+  }
   if (typeof obj.once != "function")
     throw Error("once -- obj.once must be a function");
 
@@ -195,13 +207,15 @@ export async function once(
 
     function onClosed() {
       cleanup();
-      reject(new Error(`once: "${event}" not emitted before "closed"`));
+      reject(new TimeoutError(`once: "${event}" not emitted before "closed"`));
     }
 
     function onTimeout() {
       cleanup();
       reject(
-        new Error(`once: timeout of ${timeout_ms}ms waiting for "${event}"`),
+        new TimeoutError(
+          `once: timeout of ${timeout_ms}ms waiting for "${event}"`,
+        ),
       );
     }
 

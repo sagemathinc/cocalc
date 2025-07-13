@@ -92,7 +92,7 @@ export default function AnnotationLayer({
     scale: number,
     width: number,
     y: number,
-  ): JSX.Element {
+  ): React.JSX.Element {
     return (
       <div
         onDoubleClick={(e) => e.stopPropagation()}
@@ -114,7 +114,7 @@ export default function AnnotationLayer({
   if (annotations == null) {
     return <div />;
   }
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const annotation0 of annotations) {
     // NOTE: We have to do this ugly cast to any because the @types for pdfjs are
     // incomplete/wrong for annotations.

@@ -57,7 +57,8 @@ export class ProjectCollaborators {
   public async add_collaborator(
     opts: AddCollaborator,
   ): Promise<{ project_id?: string | string[] }> {
-    // project_id is a single string or an array of project id's in case of a token.
+    // project_id is a single string or possibly an array of project_id's 
+    // in case of a token.
     return await this.conat.hub.projects.addCollaborator({
       opts,
     });

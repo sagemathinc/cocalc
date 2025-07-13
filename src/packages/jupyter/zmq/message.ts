@@ -42,7 +42,7 @@ are: * BSD 3-Clause License *
 
 import crypto from "crypto";
 import { v4 as uuid } from "uuid";
-import * as zmq from "zeromq/v5-compat";
+import { Dealer } from "zeromq";
 
 const DEBUG = (global as any).DEBUG || false;
 
@@ -80,15 +80,15 @@ export interface MessageProps {
   parent_header?: JupyterHeader;
   metadata?: any;
   content?: any;
-  buffers?: Buffer[];
+  buffers?;
 }
 
 export class Message {
   idents: Buffer[];
   header: JupyterHeader;
   parent_header: JupyterHeader;
-  metadata: object;
-  content: object;
+  metadata: { [key: string]: any };
+  content: { [key: string]: any };
   buffers: Buffer[];
 
   constructor(properties?: MessageProps) {
@@ -101,7 +101,7 @@ export class Message {
   }
 
   respond(
-    socket: zmq.Socket,
+    socket: Dealer,
     messageType: string,
     content?: object,
     metadata?: object,
@@ -232,136 +232,3 @@ function _decode(
     buffers: frames.slice(i + 6),
   });
 }
-
-// Socket
-
-export class Socket extends zmq.Socket {
-  _jmp: {
-    scheme: string;
-    key: string;
-    _listeners: {
-      unwrapped: (...args: any[]) => void;
-      wrapped: (...args: any[]) => void;
-    }[];
-  };
-
-  constructor(socketType: zmq.SocketType, scheme = "sha256", key = "") {
-    super(socketType);
-    this._jmp = {
-      scheme,
-      key,
-      _listeners: [],
-    };
-  }
-
-  // @ts-ignore
-  send(
-    message: Message | string | Buffer | (Message | Buffer | string)[],
-    flags?: number,
-  ): this {
-    const p = Object.getPrototypeOf(Socket.prototype);
-
-    if (message instanceof Message) {
-      log("SOCKET: SEND:", message);
-      // @ts-ignore
-      p.send.call(
-        this,
-        message._encode(this._jmp.scheme, this._jmp.key),
-        flags,
-      );
-      return this;
-    }
-    // @ts-ignore
-    p.send.apply(this, arguments);
-    return this;
-  }
-
-  on(event: string, listener: (...args: any[]) => void): this {
-    const p = Object.getPrototypeOf(Socket.prototype);
-    if (event !== "message") {
-      // @ts-ignore
-      p.on.apply(this, arguments);
-      return this;
-    }
-
-    const _listener = {
-      unwrapped: listener,
-      wrapped: ((...args: any[]) => {
-        const message = Message._decode(args, this._jmp.scheme, this._jmp.key);
-        if (message) {
-          listener(message);
-        }
-      }).bind(this),
-    };
-    this._jmp._listeners.push(_listener);
-    // @ts-ignore
-    p.on.call(this, event, _listener.wrapped);
-    return this;
-  }
-
-  addListener = this.on;
-
-  once(event: string, listener: (...args: any[]) => void): this {
-    const p = Object.getPrototypeOf(Socket.prototype);
-    if (event !== "message") {
-      // @ts-ignore
-      p.once.apply(this, arguments);
-      return this;
-    }
-
-    const _listener = {
-      unwrapped: listener,
-      wrapped: ((...args: any[]) => {
-        const message = Message._decode(args, this._jmp.scheme, this._jmp.key);
-        if (message) {
-          try {
-            listener(message);
-          } catch (error) {
-            this.removeListener(event, listener);
-            throw error;
-          }
-        }
-        this.removeListener(event, listener);
-      }).bind(this),
-    };
-    this._jmp._listeners.push(_listener);
-    // @ts-ignore
-    p.on.call(this, event, _listener.wrapped);
-    return this;
-  }
-
-  removeListener(event: string, listener: (...args: any[]) => void): this {
-    const p = Object.getPrototypeOf(Socket.prototype);
-    if (event !== "message") {
-      // @ts-ignore
-      p.removeListener.apply(this, arguments);
-      return this;
-    }
-
-    const index = this._jmp._listeners.findIndex(
-      (l) => l.unwrapped === listener,
-    );
-    if (index !== -1) {
-      const _listener = this._jmp._listeners[index];
-      this._jmp._listeners.splice(index, 1);
-      // @ts-ignore
-      p.removeListener.call(this, event, _listener.wrapped);
-      return this;
-    }
-    // @ts-ignore
-    p.removeListener.apply(this, arguments);
-    return this;
-  }
-
-  removeAllListeners(event?: string): this {
-    const p = Object.getPrototypeOf(Socket.prototype);
-    if (!event || event === "message") {
-      this._jmp._listeners.length = 0;
-    }
-    // @ts-ignore
-    p.removeAllListeners.apply(this, arguments);
-    return this;
-  }
-}
-
-export { zmq };

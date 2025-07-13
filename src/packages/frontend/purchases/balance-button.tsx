@@ -27,6 +27,8 @@ export default function BalanceButton({
   const dbBalance = useTypedRedux("account", "balance");
   const balanceAlert = useTypedRedux("account", "balance_alert");
   const [balance, setBalance] = useState<number | null>(dbBalance ?? null);
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const hideNavbarBalance = otherSettings?.get("hide_navbar_balance");
 
   useEffect(() => {
     if (dbBalance != null) {
@@ -123,7 +125,7 @@ export default function BalanceButton({
 
   // This ensures it only shows up in commercial setups.
   // Wherever it is used, the component shouldn't be instantiated in those cases, though.
-  if (!is_commercial) {
+  if (!is_commercial || (topBar && hideNavbarBalance && !balanceAlert)) {
     return;
   } else {
     return (

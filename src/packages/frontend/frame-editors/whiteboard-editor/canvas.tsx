@@ -346,6 +346,7 @@ export default function Canvas({
     },
   );
 
+  const nodeRef = useRef<any>({});
   const innerCanvasRef = useRef<any>(null);
 
   const transformsRef = useRef<Transforms>(
@@ -837,6 +838,7 @@ export default function Canvas({
     if (visible) {
       renderedElements.unshift(
         <Draggable
+          nodeRef={nodeRef}
           key="nav"
           position={{ x: 0, y: 0 }}
           scale={canvasScale}
@@ -854,6 +856,7 @@ export default function Canvas({
           }}
         >
           <div
+            ref={nodeRef}
             style={{
               zIndex: MAX_ELEMENTS + 1,
               position: "absolute",

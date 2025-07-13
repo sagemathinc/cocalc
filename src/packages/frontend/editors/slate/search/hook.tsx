@@ -44,7 +44,7 @@ interface Options {
 
 export interface SearchHook {
   decorate: ([node, path]) => { anchor: Point; focus: Point; search: true }[];
-  Search: JSX.Element;
+  Search: React.JSX.Element;
   search: string;
   previous: () => void;
   next: () => void;

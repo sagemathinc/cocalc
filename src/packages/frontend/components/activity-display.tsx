@@ -36,7 +36,7 @@ interface Props {
 
 export const ActivityDisplay: React.FC<Props> = React.memo(
   ({ activity, trunc, on_clear, style }) => {
-    function render_items(): JSX.Element[] {
+    function render_items(): React.JSX.Element[] {
       const n = trunc ?? 80;
       const do_trunc = (s) => trunc_string(s, n);
       return activity.map((desc, i) => (

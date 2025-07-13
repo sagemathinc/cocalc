@@ -20,6 +20,7 @@ import {
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { plural } from "@cocalc/util/misc";
+import RemoveMyself from "./remove-myself";
 
 interface Props {
   visible_projects: string[];
@@ -56,7 +57,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
 
   const actions = useActions("projects");
 
-  function render_header(): JSX.Element | undefined {
+  function render_header(): React.JSX.Element | undefined {
     if ((project_map?.size ?? 0) > 0 && (hidden || deleted)) {
       const d = deleted ? "deleted " : "";
       const h = hidden ? "hidden " : "";
@@ -71,7 +72,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     }
   }
 
-  function render_span(query: string): JSX.Element {
+  function render_span(query: string): React.JSX.Element {
     return (
       <span>
         whose title, description, state or users match{" "}
@@ -91,22 +92,22 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_projects_actions_toolbar(): JSX.Element {
+  function render_projects_actions_toolbar() {
+    if (visible_projects.length == 0) {
+      return null;
+    }
     return (
       <ButtonGroup style={{ margin: "15px" }}>
-        {visible_projects.length > 0 && !deleted
-          ? render_delete_all_button()
-          : undefined}
-        {visible_projects.length > 0 && !hidden
-          ? render_hide_all_button()
-          : undefined}
-        {visible_projects.length > 0 ? render_stop_all_button() : undefined}
-        {visible_projects.length > 0 ? render_restart_all_button() : undefined}
+        {!deleted ? render_delete_all_button() : undefined}
+        {!hidden ? render_hide_all_button() : undefined}
+        {render_stop_all_button()}
+        {render_restart_all_button()}
+        <RemoveMyself project_ids={visible_projects} />
       </ButtonGroup>
     );
   }
 
-  function render_projects_actions_alert(): JSX.Element | undefined {
+  function render_projects_actions_alert(): React.JSX.Element | undefined {
     switch (show_alert) {
       case "hide":
         return render_hide_all();
@@ -119,7 +120,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     }
   }
 
-  function render_alert_message(): JSX.Element | undefined {
+  function render_alert_message(): React.JSX.Element | undefined {
     let query = (search ?? "").toLowerCase();
     const hashtags_string = (() => {
       const result: string[] = [];
@@ -151,7 +152,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     }
   }
 
-  function render_hide_all_button(): JSX.Element {
+  function render_hide_all_button(): React.JSX.Element {
     return (
       <Button
         disabled={show_alert === "hide"}
@@ -162,7 +163,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_delete_all_button(): JSX.Element {
+  function render_delete_all_button(): React.JSX.Element {
     return (
       <Button
         disabled={show_alert === "delete"}
@@ -173,7 +174,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_stop_all_button(): JSX.Element {
+  function render_stop_all_button(): React.JSX.Element {
     return (
       <Button
         disabled={show_alert === "stop"}
@@ -184,7 +185,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_restart_all_button(): JSX.Element {
+  function render_restart_all_button(): React.JSX.Element {
     return (
       <Button
         disabled={show_alert === "restart"}
@@ -195,7 +196,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_hide_all(): JSX.Element | undefined {
+  function render_hide_all(): React.JSX.Element | undefined {
     if (visible_projects.length === 0) {
       return;
     }
@@ -236,7 +237,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_can_be_undone(): JSX.Element {
+  function render_can_be_undone(): React.JSX.Element {
     return (
       <span>
         <br />
@@ -245,7 +246,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_stop_all(): JSX.Element | undefined {
+  function render_stop_all(): React.JSX.Element | undefined {
     if (visible_projects.length === 0) {
       return;
     }
@@ -271,7 +272,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_restart_all(): JSX.Element | undefined {
+  function render_restart_all(): React.JSX.Element | undefined {
     if (visible_projects.length === 0) {
       return;
     }
@@ -297,7 +298,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
-  function render_delete_all(): JSX.Element | undefined {
+  function render_delete_all(): React.JSX.Element | undefined {
     if (visible_projects.length === 0) {
       return;
     }

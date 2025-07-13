@@ -18,6 +18,8 @@ import { getSSO } from "lib/sso/sso";
 import { SSO } from "lib/sso/types";
 import withCustomize from "lib/with-customize";
 
+import type { JSX } from "react";
+
 const { Paragraph, Text } = Typography;
 
 interface Props {

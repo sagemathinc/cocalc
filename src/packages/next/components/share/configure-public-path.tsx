@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { Alert, Divider, Radio, Input, Select, Space } from "antd";
 import useDatabase from "lib/hooks/database";
 import useCustomize from "lib/use-customize";
@@ -210,27 +210,23 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             </Radio.Group>
           </Space>
         </EditRow>
-        {visibility == "unlisted" && (
-          <EditRow
-            label="Upgrade with a site license?"
-            description={
-              <>
-                For unlisted shares, you can select a site license that you
-                manage, and anybody who edits a copy of this share will have
-                this site license applied to their project. You can track and
-                remove usage of this license in the{" "}
-                <A>license management page</A> (coming soon).
-              </>
-            }
-          >
-            <SelectSiteLicense
-              defaultLicenseId={original.site_license_id}
-              onChange={(site_license_id) => {
-                setEdited({ ...edited, site_license_id });
-              }}
-            />
-          </EditRow>
-        )}
+        <EditRow
+          label="Upgrade with a license?"
+          description={
+            <>
+              You can select a license that you manage, and anybody who edits a
+              copy of this share will have this license applied to their
+              project.
+            </>
+          }
+        >
+          <SelectSiteLicense
+            defaultLicenseId={original.site_license_id}
+            onChange={(site_license_id) => {
+              setEdited({ ...edited, site_license_id });
+            }}
+          />
+        </EditRow>
         <EditRow
           label="Permission"
           description={
@@ -259,7 +255,7 @@ function License({ license, onChange }) {
     options.push(
       <Option key={value} value={value}>
         {LICENSES[value]}
-      </Option>
+      </Option>,
     );
   }
   return (

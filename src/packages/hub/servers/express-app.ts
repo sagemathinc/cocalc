@@ -31,7 +31,7 @@ import initHttpServer from "./http";
 import initRobots from "./robots";
 import basePath from "@cocalc/backend/base-path";
 import { initConatServer } from "@cocalc/server/conat/socketio";
-import { conatClusterPort } from "@cocalc/backend/data";
+import { conatSocketioCount } from "@cocalc/backend/data";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -45,7 +45,6 @@ interface Options {
   conatServer: boolean;
   cert?: string;
   key?: string;
-  listenersHack: boolean;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -150,24 +149,24 @@ export default async function init(opts: Options): Promise<{
     });
   }
 
+  // This must be second to the last, since it will prevent any
+  // other upgrade handlers from being added to httpServer.
   if (opts.proxyServer) {
     winston.info(`initializing the http proxy server`, {
-      conatClusterPort,
+      conatSocketioCount,
       conatServer: !!opts.conatServer,
       isPersonal: opts.isPersonal,
-      listenersHack: opts.listenersHack,
     });
     initProxy({
       projectControl: opts.projectControl,
       isPersonal: opts.isPersonal,
       httpServer,
       app,
-      listenersHack: opts.listenersHack,
       // enable proxy server for /conat if:
       //  (1) we are not running conat at all from here, or
       //  (2) we are running socketio in cluster mode, hence
       //      on a different port
-      proxyConat: !opts.conatServer || !!conatClusterPort,
+      proxyConat: !opts.conatServer || (conatSocketioCount ?? 1) >= 2,
     });
   }
 

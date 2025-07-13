@@ -12,6 +12,7 @@ import { type Client } from "@cocalc/conat/core/client";
 import { field_cmp, human_readable_size } from "@cocalc/util/misc";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+import { sysApiMany } from "@cocalc/conat/core/sys";
 
 dayjs.extend(duration);
 
@@ -38,7 +39,10 @@ interface Options {
 
 // cd packages/backend; pnpm conat-connections
 export async function usage({ client, maxWait = 3000, maxMessages }: Options) {
-  const sys = client.callMany("sys.conat.server", { maxWait, maxMessages });
+  const sys = sysApiMany(client, {
+    maxWait,
+    maxMessages,
+  });
   const data = await sys.usage();
   const rows: any[] = [];
   const perServerRows: any[] = [];
@@ -68,11 +72,14 @@ export async function usage({ client, maxWait = 3000, maxMessages }: Options) {
   tablePerUser.setStyle("unicode-round");
   tablePerServer.setStyle("unicode-round");
 
-  return [tablePerUser, tablePerServer];
+  return [tablePerServer, tablePerUser];
 }
 
 export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
-  const sys = client.callMany("sys.conat.server", { maxWait, maxMessages });
+  const sys = sysApiMany(client, {
+    maxWait,
+    maxMessages,
+  });
   const data = await sys.stats();
 
   const rows: any[] = [];
@@ -89,7 +96,9 @@ export async function stats({ client, maxWait = 3000, maxMessages }: Options) {
         } else {
           user = JSON.stringify(x.user).slice(1, -1);
         }
-        const uptime = formatCompactDuration(Date.now() - x.connected);
+        const uptime = x.connected
+          ? formatCompactDuration(Date.now() - x.connected)
+          : 0;
         rows.push([
           id,
           user,
@@ -154,7 +163,7 @@ export async function showUsersAndStats({
     s = "";
   }
   console.log(`Gather data ${s}for up to ${maxWait / 1000} seconds...\n\n`);
-  const X = [stats, usage];
+  const X = [usage, stats];
   const tables: any[] = [];
   const f = async (i) => {
     for (const table of await X[i]({ client, maxWait, maxMessages })) {

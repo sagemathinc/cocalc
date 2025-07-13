@@ -1,5 +1,4 @@
 import { client_db } from "@cocalc/util/schema";
-import { alert_message } from "@cocalc/frontend/alerts";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { len, trunc_middle } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -26,7 +25,7 @@ export class VideoChat {
   }
 
   close = () => {
-    this.closeVideoChatWindow();
+    // this.closeVideoChatWindow();
     delete this.intervalId;
   };
 
@@ -93,12 +92,6 @@ export class VideoChat {
     const secret_token = redux
       .getStore("projects")
       .getIn(["project_map", this.project_id, "secret_token"]);
-    if (!secret_token) {
-      alert_message({
-        type: "error",
-        message: "You MUST be a project collaborator -- video chat will fail.",
-      });
-    }
     return client_db.sha1(secret_token, this.path);
   };
 

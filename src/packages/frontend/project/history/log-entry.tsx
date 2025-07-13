@@ -103,7 +103,7 @@ function TookTime({
 }: {
   ms?: number;
   display?: "seconds";
-}): JSX.Element | null {
+}): React.JSX.Element | null {
   if (ms == undefined) {
     return null;
   }
@@ -146,7 +146,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       "software",
     );
 
-    function render_open_file(event: OpenFile): JSX.Element {
+    function render_open_file(event: OpenFile): React.JSX.Element {
       return (
         <span>
           Opened
@@ -177,7 +177,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_public_path(event: PublicPathEvent): JSX.Element {
+    function render_public_path(event: PublicPathEvent): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -207,7 +207,7 @@ export const LogEntry: React.FC<Props> = React.memo(
 
     function render_software_environment(
       event: SoftwareEnvironmentEvent,
-    ): JSX.Element {
+    ): React.JSX.Element {
       const envs = software_envs?.get("environments");
       const prev: string = envs
         ? (envs.get(event.previous)?.get("title") ?? event.previous)
@@ -227,7 +227,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_start_project(event: ProjectControlEvent): JSX.Element {
+    function render_start_project(event: ProjectControlEvent): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -239,7 +239,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_project_restart_requested(): JSX.Element {
+    function render_project_restart_requested(): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -250,7 +250,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_project_stop_requested(): JSX.Element {
+    function render_project_stop_requested(): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -261,7 +261,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_project_start_requested(): JSX.Element {
+    function render_project_start_requested(): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -272,7 +272,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_project_started(): JSX.Element {
+    function render_project_started(): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -283,7 +283,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_project_stopped(): JSX.Element {
+    function render_project_stopped(): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -294,7 +294,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_miniterm_command(cmd: string): JSX.Element {
+    function render_miniterm_command(cmd: string): React.JSX.Element {
       if (cmd.length > 50) {
         return (
           <Tip
@@ -311,7 +311,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
     }
 
-    function render_miniterm(event: MiniTermEvent): JSX.Element {
+    function render_miniterm(event: MiniTermEvent): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -323,7 +323,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function project_title(event: { project: string }): JSX.Element {
+    function project_title(event: { project: string }): React.JSX.Element {
       return (
         <ProjectTitle
           style={cursor ? selected_item : undefined}
@@ -337,7 +337,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       link: boolean,
       i: number,
       project_id?: string,
-    ): JSX.Element {
+    ): React.JSX.Element {
       return (
         <PathLink
           path={path}
@@ -401,7 +401,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
     }
 
-    function render_file_action(e: FileActionEvent): JSX.Element {
+    function render_file_action(e: FileActionEvent): React.JSX.Element {
       const computeServer = e.compute_server_id ? (
         <ComputeServerTag
           id={e.compute_server_id}
@@ -503,7 +503,7 @@ export const LogEntry: React.FC<Props> = React.memo(
 
     function render_set(obj: any): Rendered[] {
       let i = 0;
-      const result: JSX.Element[] = [];
+      const result: React.JSX.Element[] = [];
       for (const key in obj) {
         i += 1;
         const value = obj[key];
@@ -646,7 +646,7 @@ export const LogEntry: React.FC<Props> = React.memo(
 
     function render_upgrade(event: UpgradeEvent): Rendered {
       const { params } = require("@cocalc/util/schema").PROJECT_UPGRADES;
-      const v: JSX.Element[] = [];
+      const v: React.JSX.Element[] = [];
       for (const param in event.upgrades) {
         const val = event.upgrades[param];
         const factor =
@@ -713,7 +713,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_invite_user(event: CollaboratorEvent): JSX.Element {
+    function render_invite_user(event: CollaboratorEvent): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -725,7 +725,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_invite_nonuser(event: CollaboratorEvent): JSX.Element {
+    function render_invite_nonuser(event: CollaboratorEvent): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -737,7 +737,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_remove_collaborator(event: CollaboratorEvent): JSX.Element {
+    function render_remove_collaborator(event: CollaboratorEvent): React.JSX.Element {
       return (
         <span>
           {" "}
@@ -828,7 +828,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     // FUTURE:
     //    return <span>{misc.to_json(@event)}</span>
 
-    function render_user(): JSX.Element {
+    function render_user(): React.JSX.Element {
       if (account_id != null) {
         return <User user_map={user_map} account_id={account_id} />;
       } else {
@@ -836,7 +836,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
     }
 
-    function render_avatar(): JSX.Element {
+    function render_avatar(): React.JSX.Element {
       if (account_id != null) {
         return <Avatar account_id={account_id} size={24} />;
       } else {

@@ -72,7 +72,7 @@ export interface CellInputProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   setShowAICellGen?: (show: Position) => void;
-  dragHandle?: JSX.Element;
+  dragHandle?: React.JSX.Element;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -409,7 +409,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
     }
 
-    function render_hidden(): JSX.Element {
+    function render_hidden(): React.JSX.Element {
       return (
         <CellHiddenPart
           title={

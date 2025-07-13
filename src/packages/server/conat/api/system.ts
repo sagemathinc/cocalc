@@ -9,6 +9,10 @@ import isAdmin from "@cocalc/server/accounts/is-admin";
 import search from "@cocalc/server/accounts/search";
 export { getNames } from "@cocalc/server/accounts/get-name";
 import { callback2 } from "@cocalc/util/async-utils";
+import getLogger from "@cocalc/backend/logger";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+
+const logger = getLogger("server:conat:api:system");
 
 export function ping() {
   return { now: Date.now() };
@@ -128,3 +132,35 @@ export async function deletePassport(opts: {
 }): Promise<void> {
   await delete_passport(db(), opts);
 }
+
+import { sync as salesloftSync } from "@cocalc/server/salesloft/sync";
+export async function adminSalesloftSync({
+  account_id,
+  account_ids,
+}: {
+  account_id?: string;
+  account_ids: string[];
+}) {
+  if (!account_id || !(await isAdmin(account_id))) {
+    throw Error("must be an admin");
+  }
+  (async () => {
+    // we do not block on this
+    try {
+      await salesloftSync(account_ids);
+    } catch (err) {
+      logger.debug(`WARNING: issue syncing with salesloft -- ${err}`, {
+        account_ids,
+      });
+    }
+  })();
+}
+
+// user can sync themself with salesloft.
+export const userSalesloftSync = reuseInFlight(
+  async ({ account_id }: { account_id?: string }): Promise<void> => {
+    if (account_id) {
+      await salesloftSync([account_id]);
+    }
+  },
+);

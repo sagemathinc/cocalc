@@ -7,6 +7,8 @@
     "./execute/*": "./dist/execute/*.js",
     "./kernel": "./dist/kernel/index.js",
     "./kernel/*": "./dist/kernel/*.js",
+    "./zmq": "./dist/zmq/index.js",
+    "./zmq/*": "./dist/zmq/*.js",
     "./nbgrader": "./dist/nbgrader/index.js",
     "./nbgrader/*": "./dist/nbgrader/*.js",
     "./pool/*": "./dist/pool/*.js",
@@ -21,7 +23,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
-    "test": "pnpm exec jest --forceExit --maxWorkers=2",
+    "test": "pnpm exec jest --forceExit --maxWorkers=1",
     "depcheck": "pnpx depcheck",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
@@ -43,7 +45,6 @@
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@nteract/messaging": "^7.0.20",
     "awaiting": "^3.0.0",
     "debug": "^4.4.0",
     "expect": "^26.6.2",
@@ -57,7 +58,6 @@
     "lru-cache": "^7.18.3",
     "mkdirp": "^1.0.4",
     "node-cleanup": "^2.1.2",
-    "rxjs": "^6.6.7",
     "shell-escape": "^0.2.0",
     "uuid": "^8.3.2",
     "zeromq": "^6.4.2"

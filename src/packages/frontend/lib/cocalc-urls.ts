@@ -12,14 +12,23 @@ export function fileURL({
   project_id,
   compute_server_id,
   path,
+  param,
 }: {
   project_id: string;
   path: string;
   compute_server_id?: number;
+  param?: string;
 }): string {
   let url = join(appBasePath, project_id, "files", encode_path(path));
   if (compute_server_id) {
     url += `?id=${compute_server_id}`;
+  }
+  if (param) {
+    if (compute_server_id) {
+      url += "&" + param;
+    } else {
+      url += "?" + param;
+    }
   }
   return url;
 }

@@ -73,7 +73,10 @@ export abstract class BaseProject extends EventEmitter {
     dbg("initializing");
   }
 
-  async touch(account_id?: string): Promise<void> {
+  async touch(
+    account_id?: string,
+    { noStart }: { noStart?: boolean } = {},
+  ): Promise<void> {
     const d = db();
     if (account_id) {
       await callback2(d.touch.bind(d), {
@@ -87,7 +90,9 @@ export abstract class BaseProject extends EventEmitter {
         [this.project_id],
       );
     }
-    await this.start();
+    if (!noStart) {
+      await this.start();
+    }
   }
 
   protected async siteLicenseHook(havePAYGO: boolean): Promise<void> {

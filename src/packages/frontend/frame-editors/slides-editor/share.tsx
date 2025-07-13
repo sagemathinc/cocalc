@@ -12,7 +12,7 @@ interface Props {
 
 export default function ShareServerSlides({ content }: Props) {
   const pages = parseSyncdbFile(content, Object.values(fixedElements));
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   let i = 0;
   for (const page of pages) {
     i += 1;

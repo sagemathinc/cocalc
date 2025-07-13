@@ -1,6 +1,7 @@
 import { isEqual } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 import { EventEmitter } from "events";
+import { hash_string } from "@cocalc/util/misc";
 
 type Index = { [pattern: string]: Index | string };
 
@@ -19,6 +20,14 @@ export class Patterns<T> extends EventEmitter {
     this.emit("closed");
     this.patterns = {};
     this.index = {};
+  };
+
+  hash = (hashT: (x: T) => number): number => {
+    let h = 0;
+    for (const pattern in this.patterns) {
+      h += hash_string(pattern) + hashT(this.patterns[pattern]);
+    }
+    return h;
   };
 
   serialize = (fromT?: (x: T) => any) => {
@@ -60,6 +69,15 @@ export class Patterns<T> extends EventEmitter {
 
   matches = (subject: string): string[] => {
     return matchUsingIndex(this.index, subject.split("."));
+  };
+
+  // return true if there is at least one match
+  hasMatch = (subject: string): boolean => {
+    return matchUsingIndex(this.index, subject.split("."), true).length > 0;
+  };
+
+  hasPattern = (pattern: string): boolean => {
+    return this.patterns[pattern] !== undefined;
   };
 
   matchesTest = (subject: string): string[] => {
@@ -148,7 +166,11 @@ function deleteIndex(index: Index, segments: string[]) {
 }
 
 // todo deal with >
-function matchUsingIndex(index: Index, segments: string[]): string[] {
+function matchUsingIndex(
+  index: Index,
+  segments: string[],
+  atMostOne = false,
+): string[] {
   if (segments.length == 0) {
     const p = index[""];
     if (p === undefined) {
@@ -169,12 +191,21 @@ function matchUsingIndex(index: Index, segments: string[]): string[] {
         // stops *or* this pattern is >
         if (segments.length == 1) {
           matches.push(p);
+          if (atMostOne) {
+            return matches;
+          }
         } else if (pattern == ">") {
           matches.push(p);
+          if (atMostOne) {
+            return matches;
+          }
         }
       } else {
-        for (const s of matchUsingIndex(p, segments.slice(1))) {
+        for (const s of matchUsingIndex(p, segments.slice(1), atMostOne)) {
           matches.push(s);
+          if (atMostOne) {
+            return matches;
+          }
         }
       }
     }

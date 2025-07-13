@@ -17,7 +17,7 @@ import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { useProjectContext } from "../../context";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
+import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
 

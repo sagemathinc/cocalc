@@ -64,7 +64,7 @@ export function NewFileDropdown({
     const list = makeList(mode);
     const extensions: (string | { type: "divider" })[] = [];
     const file_types_so_far = {};
-    for (const ext of list) {
+    for (let ext of list) {
       if (typeof ext !== "string") {
         extensions.push({ type: "divider" });
         continue;
@@ -74,6 +74,9 @@ export function NewFileDropdown({
         continue;
       }
       const data = file_associations[ext];
+      if (data.ext != null) {
+        ext = data.ext;
+      }
       if (data.exclude_from_menu) continue;
       if (data.name != undefined && !file_types_so_far[data.name]) {
         file_types_so_far[data.name] = true;

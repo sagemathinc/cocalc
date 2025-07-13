@@ -162,7 +162,7 @@ export function Library({ project_id, onClose }: Props) {
     actions?.setState({ library_selected: doc });
   }
 
-  function select_list(): JSX.Element[] | undefined {
+  function select_list(): React.JSX.Element[] | undefined {
     if (library_docs_sorted == null) {
       return;
     }
@@ -176,7 +176,7 @@ export function Library({ project_id, onClose }: Props) {
       cursor: "pointer",
     };
 
-    const list: JSX.Element[] = [];
+    const list: React.JSX.Element[] = [];
     let cur_cat: any = undefined;
 
     library_docs_sorted.map((doc) => {
@@ -210,7 +210,7 @@ export function Library({ project_id, onClose }: Props) {
     return list;
   }
 
-  function selector(): JSX.Element {
+  function selector(): React.JSX.Element {
     const list_style = {
       maxHeight: HEIGHT,
       overflowX: "hidden",

@@ -79,7 +79,7 @@ const TITLES = {
 
 export const MarksBar: React.FC<MarksBarProps> = (props: MarksBarProps) => {
   const { marks, editor } = props;
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   v.push(<Insert key="insert" editor={editor} />);
   for (const mark of MARKS) {
     v.push(

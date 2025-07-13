@@ -366,10 +366,15 @@ export class SyncDoc extends EventEmitter {
           log("initAll succeeded");
           return true;
         } catch (err) {
-          console.trace(err);
+          if (this.isClosed()) {
+            return true;
+          }
           const m = `WARNING: problem initializing ${this.path} -- ${err}`;
           log(m);
-          // log always:
+          if (DEBUG) {
+            console.trace(err);
+          }
+          // log always
           console.log(m);
         }
         log("wait then try again");
@@ -397,7 +402,7 @@ export class SyncDoc extends EventEmitter {
   // changes. See the function handleComputeServerManagerChange.
   private isFileServer = reuseInFlight(async () => {
     if (this.state == "closed") return;
-    if (this.client.is_browser()) {
+    if (this.client == null || this.client.is_browser()) {
       // browser is never the file server (yet), and doesn't need to do
       // anything related to watching for changes in state.
       // Someday via webassembly or browsers making users files availabl,
@@ -695,6 +700,8 @@ export class SyncDoc extends EventEmitter {
 
     this.on("user-change", this.throttled_file_use as any);
   };
+
+  isClosed = () => (this.state ?? "closed") == "closed";
 
   private set_state = (state: State): void => {
     this.state = state;
@@ -1460,8 +1467,8 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 
-    await this.init_syncstring_table(),
-      this.assert_not_closed("initAll -- successful init_syncstring_table");
+    await this.init_syncstring_table();
+    this.assert_not_closed("initAll -- successful init_syncstring_table");
 
     log("patch_list, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
@@ -1504,7 +1511,7 @@ export class SyncDoc extends EventEmitter {
       // this will finish.
       //       if (!this.client.is_browser() && !this.client.is_project()) {
       //         // FAKE DELAY!!!  Just to simulate flakiness / slow network!!!!
-      //         await delay(10000);
+      // await delay(3000);
       //       }
       await retry_until_success({
         f: this.init_load_from_disk,
@@ -1563,6 +1570,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
+    let init;
     const is_init = (t: SyncTable) => {
       this.assert_not_closed("is_init");
       const tbl = t.get_one();
@@ -1570,15 +1578,20 @@ export class SyncDoc extends EventEmitter {
         dbg("null");
         return false;
       }
-      return tbl.get("init") != null;
+      init = tbl.get("init")?.toJS();
+      return init != null;
     };
     dbg("waiting for init...");
-    const init = await this.syncstring_table.wait(is_init, 0);
+    await this.syncstring_table.wait(is_init, 0);
     dbg("init done");
     if (init.error) {
       throw Error(init.error);
     }
     assertDefined(this.patch_list);
+    if (init.size == null) {
+      // don't crash but warn at least.
+      console.warn("SYNC BUG -- init.size must be defined", { init });
+    }
     if (
       !this.client.is_project() &&
       this.patch_list.count() === 0 &&
@@ -2256,7 +2269,7 @@ export class SyncDoc extends EventEmitter {
     // a snapshot at the same time -- this would waste a little space
     // in the stream, but is otherwise harmless, since the snapshots
     // are identical.
-    this.snapshot_if_necessary();
+    this.snapshotIfNecessary();
   };
 
   private dstream = () => {
@@ -2358,10 +2371,15 @@ export class SyncDoc extends EventEmitter {
   });
 
   // Have a snapshot every this.snapshot_interval patches, except
-  // for the very last interval.
-  private snapshot_if_necessary = async (): Promise<void> => {
-    if (this.get_state() !== "ready") return;
-    const dbg = this.dbg("snapshot_if_necessary");
+  // for the very last interval.  Throttle so we don't try to make
+  // snapshots too frequently, as making them is always optional and
+  // now part of the UI.
+  private snapshotIfNecessary = throttle(async (): Promise<void> => {
+    if (this.get_state() !== "ready") {
+      // especially important due to throttle
+      return;
+    }
+    const dbg = this.dbg("snapshotIfNecessary");
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });
@@ -2384,7 +2402,7 @@ export class SyncDoc extends EventEmitter {
     } else {
       dbg("no need to make a snapshot yet");
     }
-  };
+  }, 60000);
 
   /*- x - patch object
     - patch: if given will be used as an actual patch
@@ -2743,6 +2761,9 @@ export class SyncDoc extends EventEmitter {
     x: any,
     data: Map<string, any>,
   ): Promise<void> => {
+    if (this.state === "closed") {
+      return;
+    }
     // Existing document.
 
     if (this.path == null) {
@@ -2769,17 +2790,18 @@ export class SyncDoc extends EventEmitter {
       this.emit("settings-change", settings);
     }
 
-    // Ensure that this client is in the list of clients
-    const client_id: string = this.client_id();
-    this.my_user_id = this.users.indexOf(client_id);
-    if (this.my_user_id === -1) {
-      this.my_user_id = this.users.length;
-      this.users.push(client_id);
-      await this.set_syncstring_table({
-        users: this.users,
-      });
+    if (this.client != null) {
+      // Ensure that this client is in the list of clients
+      const client_id: string = this.client_id();
+      this.my_user_id = this.users.indexOf(client_id);
+      if (this.my_user_id === -1) {
+        this.my_user_id = this.users.length;
+        this.users.push(client_id);
+        await this.set_syncstring_table({
+          users: this.users,
+        });
+      }
     }
-
     this.emit("metadata-change");
   };
 
@@ -2933,8 +2955,8 @@ export class SyncDoc extends EventEmitter {
       size = data.length;
       dbg(`got it -- length=${size}`);
       this.from_str(data);
-      // we also know that this is the version on disk, so we update the hash
       this.commit();
+      // we also know that this is the version on disk, so we update the hash
       await this.set_save({
         state: "done",
         error: "",

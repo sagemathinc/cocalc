@@ -452,7 +452,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
       };
     }
 
-    public render(): JSX.Element {
+    public render(): React.JSX.Element {
       const style =
         this.props.style != undefined
           ? this.props.style

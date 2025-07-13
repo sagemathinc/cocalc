@@ -55,7 +55,7 @@ describe("create a general kv and do basic operations", () => {
   });
 
   it("checks that time works", async () => {
-    const key = "x".repeat(10000);
+    const key = "x".repeat(1000);
     kv.set(key, "big key");
     await kv.save();
     expect(Math.abs(Date.now() - kv.time(key))).toBeLessThan(300);

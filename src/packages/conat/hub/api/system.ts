@@ -21,6 +21,9 @@ export const system = {
   adminResetPasswordLink: authFirst,
   sendEmailVerification: authFirst,
   deletePassport: authFirst,
+
+  adminSalesloftSync: authFirst,
+  userSalesloftSync: authFirst,
 };
 
 export interface System {
@@ -94,6 +97,14 @@ export interface System {
     account_id?: string;
     user_account_id: string;
   }) => Promise<string>;
+
+  // user must be an admin or get an error. Sync's the given salesloft accounts.
+  adminSalesloftSync: (opts: {
+    account_id?: string;
+    account_ids: string[];
+  }) => Promise<void>;
+
+  userSalesloftSync: (opts: { account_id?: string }) => Promise<void>;
 
   sendEmailVerification: (opts: {
     account_id?: string;

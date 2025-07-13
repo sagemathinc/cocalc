@@ -34,6 +34,8 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
+import type { JSX } from "react";
+
 function addMonth(date: Date): Date {
   return dayjs(date).add(30, "days").add(12, "hours").toDate();
 }

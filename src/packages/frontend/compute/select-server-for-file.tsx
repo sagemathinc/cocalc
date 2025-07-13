@@ -62,7 +62,7 @@ export default function SelectComputeServerForFile({
   }, [project_id]);
   const [value, setValue] = useState<number | undefined>(undefined);
 
-  const okButtonRef = useRef();
+  const okButtonRef = useRef<any>(undefined);
   useEffect(() => {
     if (confirmSwitch && okButtonRef.current) {
       // @ts-ignore

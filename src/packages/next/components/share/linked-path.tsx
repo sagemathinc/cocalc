@@ -5,6 +5,8 @@
 
 import Link from "next/link";
 
+import type { JSX } from "react";
+
 interface Props {
   id: string;
   path: string;

@@ -8,12 +8,13 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
+import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
+import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 
-import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   redux,
@@ -39,6 +40,7 @@ import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { ACTIVITY_BAR_TOGGLE_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { AIGenerateDocumentModal } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
@@ -271,6 +273,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const otherSettings = useRedux(["account", "other_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
+  const showSymbolBarLabels = otherSettings.get(
+    "show_symbol_bar_labels",
+    false,
+  );
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
@@ -354,18 +360,17 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <ButtonGroup
           style={{
             padding: "3.5px 0 0 0",
-            background: is_active
-              ? COL_BAR_BACKGROUND
-              : COL_BAR_BACKGROUND_DARK,
             height: button_height(),
             float: "right",
           }}
           key={"control-buttons"}
         >
-          {!props.is_full ? render_split_row() : undefined}
-          {!props.is_full ? render_split_col() : undefined}
-          {!props.is_only ? render_full() : undefined}
-          {render_x()}
+          <span style={is_active ? undefined : { opacity: 0.3 }}>
+            {!props.is_full ? render_split_row() : undefined}
+            {!props.is_full ? render_split_col() : undefined}
+            {!props.is_only ? render_full() : undefined}
+            {render_x()}
+          </span>
         </ButtonGroup>
       </div>
     );
@@ -391,8 +396,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               props.actions.unset_frame_full();
             }}
             style={{
-              color: darkMode ? "orange" : undefined,
-              background: !darkMode ? "orange" : undefined,
+              color: darkMode ? "yellowgreen" : undefined,
+              background: !darkMode ? "yellowgreen" : undefined,
             }}
           >
             <Icon name={"compress"} />
@@ -637,8 +642,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderSaveTimetravelGroup(): Rendered {
+    if (props.type == "chat") {
+      // these buttons don't make much sense for side chat.
+      return;
+    }
     const noLabel = IS_MOBILE || !(props.is_only || props.is_full);
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     let x;
     if ((x = renderSaveButton(noLabel))) v.push(x);
     if ((x = renderTimeTravel(noLabel))) v.push(x);
@@ -708,8 +717,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-                ? intl.formatMessage(label)
-                : label
+              ? intl.formatMessage(label)
+              : label
           }
           items={v}
         />
@@ -721,7 +730,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   function renderMenus() {
     if (!is_active) return;
 
-    const v: { menu: JSX.Element; pos: number }[] = [];
+    const v: { menu: React.JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
       const x = renderMenu(name);
       if (x != null) {
@@ -749,7 +758,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (!is_active) {
       return (
         <div style={{ display: "flex", width: "100%" }}>
-          {renderSaveTimetravelGroup()}
           <div style={{ flex: 1, textAlign: "center" }}>{renderTitle()}</div>
         </div>
       );
@@ -775,7 +783,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         disableTourRefs.current = true;
       }
 
-      const v: (JSX.Element | undefined | null)[] = [];
+      const v: (React.JSX.Element | undefined | null)[] = [];
       v.push(renderSaveTimetravelGroup());
       if (props.title != null) {
         v.push(renderTitle());
@@ -828,6 +836,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function allButtonsPopover() {
+    if (!is_active) {
+      return null;
+    }
     return (
       <Popover
         overlayStyle={{ zIndex: 990 }}
@@ -1056,6 +1067,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return null;
     }
     const { disabled, label, key, children, onClick } = item;
+    const style: CSS = {
+      color: "#333",
+      padding: showSymbolBarLabels ? "0" : "7.5px 0 0 0",
+      height: showSymbolBarLabels ? "36px" : undefined,
+    } as const;
     if (children != null) {
       return (
         <DropdownMenu
@@ -1064,7 +1080,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           title={label}
           items={children}
           button={false}
-          style={{ color: "#333", padding: 0, height: "36px" }}
+          style={style}
         />
       );
     } else {
@@ -1075,7 +1091,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           key={key}
           disabled={disabled}
           onClick={onClick}
-          style={{ color: "#333", padding: 0, height: "36px" }}
+          style={style}
         >
           {label}
         </Button>
@@ -1083,12 +1099,54 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
   }
 
+  function wrapButtonBarContextMenu(bar: React.JSX.Element) {
+    const showSymbolLabel = (
+      <>
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.symbols.label.explanation",
+            defaultMessage:
+              "If labels are shown, the symbol bar is placed in its own row beneath the menu – otherwise it is smaller and next to the menu.",
+          })}
+        >
+          <Icon name="signature-outlined" />{" "}
+          {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+            show: showSymbolBarLabels,
+          })}
+        </Tooltip>
+      </>
+    );
+    const items: MenuProps["items"] = [
+      {
+        key: "toggle-labels",
+        label: showSymbolLabel,
+        onClick: () => {
+          redux
+            .getActions("account")
+            .set_other_settings("show_symbol_bar_labels", !showSymbolBarLabels);
+        },
+      },
+    ];
+    return (
+      <Dropdown
+        trigger={["contextMenu"]}
+        menu={{ items }}
+        overlayStyle={{ maxWidth: "400px" }}
+      >
+        {bar}
+      </Dropdown>
+    );
+  }
+
   function renderButtonBar(popup = false) {
+    if (!is_active) {
+      return null;
+    }
     if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
     const w = manageCommands.getToolbarButtons();
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     for (const name of w) {
       const b = renderButtonBarButton(name);
       if (b != null) {
@@ -1098,16 +1156,24 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (v.length == 0) {
       return null;
     }
-    return (
-      <div
-        style={{
-          borderBottom: popup ? undefined : "1px solid #ccc",
-          background: "#fafafa",
-        }}
-      >
-        <div style={{ margin: "-1px 0 -1px 0" }}>{v}</div>
-      </div>
-    );
+    // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
+    if (showSymbolBarLabels) {
+      return wrapButtonBarContextMenu(
+        <div
+          style={{
+            borderBottom: popup ? undefined : "1px solid #ccc",
+            background: "#fafafa",
+            opacity: is_active ? undefined : 0.3,
+          }}
+        >
+          <div style={{ marginBottom: "-1px", marginTop: "1px" }}>{v}</div>
+        </div>,
+      );
+    } else {
+      return wrapButtonBarContextMenu(
+        <div style={{ marginTop: "3px" }}>{v}</div>,
+      );
+    }
   }
 
   function renderComputeServerDocStatus() {
@@ -1253,11 +1319,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           className={"cc-frame-tree-title-bar"}
         >
           {renderMainMenusAndButtons()}
-          {renderConnectionStatus()}
-          {allButtonsPopover()}
+          {is_active && renderConnectionStatus()}
+          {is_active && allButtonsPopover()}
+          {!showSymbolBarLabels ? renderButtonBar() : undefined}
           {renderFrameControls()}
         </div>
-        {renderButtonBar()}
+        {showSymbolBarLabels ? renderButtonBar() : undefined}
         {renderConfirmBar()}
         {hasTour && props.is_visible && props.tab_is_visible && (
           <TitleBarTour refs={tourRefs} />

@@ -177,12 +177,7 @@ export function ComputeImageSelector({
         const registry = img.get("registry");
         const tag = img.get("tag");
         const labelStr = img.get("short") ?? img.get("title") ?? value;
-        const label: ReactNode =
-          value === defaultComputeImg ? (
-            <Text strong>{labelStr}</Text>
-          ) : (
-            <>{labelStr}</>
-          );
+        const label = <>{labelStr}</>;
         const extra = registry && tag ? ` (${registry}:${tag})` : "";
         const title = `${img.get("descr")}${extra}`;
         const searchStr = `${title} ${labelStr}`.toLowerCase();

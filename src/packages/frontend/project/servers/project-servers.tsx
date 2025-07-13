@@ -61,7 +61,7 @@ export function ProjectServers() {
     !available.julia &&
     !available.rserver;
 
-  function renderNamedServers(): JSX.Element {
+  function renderNamedServers(): React.JSX.Element {
     return (
       <>
         <Row gutter={gutter} style={newRowStyle}>
@@ -161,7 +161,7 @@ export function ProjectServers() {
     );
   }
 
-  function renderSageServerControl(): JSX.Element {
+  function renderSageServerControl(): React.JSX.Element {
     return (
       <Row gutter={gutter} style={newRowStyle}>
         <Col sm={24} md={12}>

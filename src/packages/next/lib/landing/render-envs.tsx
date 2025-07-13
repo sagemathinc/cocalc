@@ -4,7 +4,7 @@
  */
 
 import { Typography } from "antd";
-import React from "react";
+import React, { type JSX } from "react";
 
 import A from "components/misc/A";
 import { ExecInfo, SoftwareSpecEntry } from "./types";

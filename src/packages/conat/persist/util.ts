@@ -62,19 +62,24 @@ export type User = {
   hub_id?: string;
 };
 
-export function persistSubject({ account_id, project_id }: User) {
+export function persistSubject({
+  account_id,
+  project_id,
+  service = SERVICE,
+}: User & { service?: string }) {
   if (account_id) {
-    return `${SERVICE}.account-${account_id}`;
+    return `${service}.account-${account_id}`;
   } else if (project_id) {
-    return `${SERVICE}.project-${project_id}`;
+    return `${service}.project-${project_id}`;
   } else {
-    return `${SERVICE}.hub`;
+    return `${service}.hub`;
   }
 }
 
 export async function getStream({
   subject,
   storage,
+  service,
 }): Promise<PersistentStream> {
   // this permsissions check should always work and use should
   // never see an error here, since
@@ -84,9 +89,9 @@ export async function getStream({
   assertHasWritePermission({
     subject,
     path: storage.path,
+    service,
   });
   const path = join(syncFiles.local, storage.path);
   await ensureContainingDirectoryExists(path);
   return pstream({ ...storage, path });
 }
-

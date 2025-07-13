@@ -5,7 +5,7 @@
 
 import { Button, Col, Grid, Row } from "antd";
 import { join } from "path";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { DOC_AI } from "@cocalc/util/consts/ui";

@@ -19,10 +19,10 @@ interface Props {
   add_inner_style?: CSS;
   children?: React.ReactNode;
   hide_label?: boolean;
-  icon?: IconName | JSX.Element;
+  icon?: IconName | React.JSX.Element;
   is_project?: boolean;
   label_class?: string;
-  label?: string | JSX.Element;
+  label?: string | React.JSX.Element;
   name?: string;
   on_click?: () => void;
   style?: CSS;
@@ -113,7 +113,7 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
     ...add_inner_style,
   };
 
-  function renderInner(): JSX.Element {
+  function renderInner(): React.JSX.Element {
     const inner = (
       <div style={inner_style}>
         {render_icon()}

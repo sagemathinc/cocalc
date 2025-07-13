@@ -1636,8 +1636,15 @@ export class Actions<
     }
 
     if (this._syncstring.get_state() != "ready") {
-      await once(this._syncstring, "ready");
-      if (this.isClosed()) return;
+      try {
+        await once(this._syncstring, "ready");
+      } catch {
+        // never made it
+        return;
+      }
+      if (this.isClosed()) {
+        return;
+      }
     }
 
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
@@ -1751,7 +1758,12 @@ export class Actions<
     const state = syncdoc.get_state();
     if (state == "closed") return false;
     if (state == "init") {
-      await once(syncdoc, "ready");
+      try {
+        await once(syncdoc, "ready");
+      } catch {
+        // never mode it
+        return false;
+      }
       if (this.isClosed()) return false;
     }
     return true;
@@ -3125,5 +3137,21 @@ export class Actions<
         await delay(d);
       }
     }
+  }
+
+  foldAIThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads(true);
+  }
+
+  foldAllThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads();
   }
 }

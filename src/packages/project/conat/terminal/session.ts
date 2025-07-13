@@ -29,7 +29,7 @@ const INPUT_CHUNK_SIZE = 50;
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
 const SOFT_RESET =
-  "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x; sleep 0.1; clear -x";
+  "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x; sleep 0.1; clear -x; sleep 0.1; clear -x";
 
 const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${SOFT_RESET}; history -d $(history 1);\n`;
 
@@ -39,7 +39,7 @@ const DEFAULT_COMMAND = "/bin/bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
-  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "2000000",
+  process.env.COCALC_TERMINAL_HISTORY_LIMIT_BYTES ?? "1000000",
 );
 
 // Limits that result in dropping messages -- this makes sense for a terminal (unlike a file you're editing).
@@ -82,6 +82,13 @@ export class Session {
     this.streamName = `terminal-${termPath}`;
   }
 
+  kill = async () => {
+    if (this.stream == null) {
+      return;
+    }
+    await this.stream.delete({ all: true });
+  };
+
   write = async (data) => {
     if (this.state == "off") {
       await this.restart();
@@ -103,7 +110,7 @@ export class Session {
     ) {
       const chunk = data.slice(i, i + INPUT_CHUNK_SIZE);
       this.pty.write(chunk);
-      logger.debug("wrote data to pty", chunk.length);
+      // logger.debug("wrote data to pty", chunk.length);
       await delay(1000 / MAX_MSGS_PER_SECOND);
     }
     if (reject) {
@@ -158,7 +165,10 @@ export class Session {
       config: {
         max_bytes: HISTORY_LIMIT_BYTES,
         max_bytes_per_second: MAX_BYTES_PER_SECOND,
-        max_msgs_per_second: MAX_MSGS_PER_SECOND,
+        // we throttle to less than MAX_MSGS_PER_SECOND client side, and
+        // have server impose a much higher limit, since messages can arrive
+        // in a group.
+        max_msgs_per_second: 5 * MAX_MSGS_PER_SECOND,
       },
     });
     this.stream.publish("\r\n".repeat((this.size?.rows ?? 40) + 40));
@@ -228,7 +238,7 @@ export class Session {
     // due to being *slightly* off.
     const throttle = new Throttle(1000 / (MAX_MSGS_PER_SECOND - 3));
     throttle.on("data", (data: string) => {
-      logger.debug("got data out of pty");
+      // logger.debug("got data out of pty");
       this.handleBackendMessages(data);
       this.stream?.publish(data);
     });

@@ -6,6 +6,7 @@
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -30,10 +31,8 @@ import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
-import {
-  getValidVBAROption,
-  VBAR_KEY,
-} from "@cocalc/frontend/project/page/vbar";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -229,7 +228,7 @@ export default function NewFilePage(props: Props) {
               <Icon name="cloud-upload" />{" "}
               <FormattedMessage
                 id="project.new.new-file-page.upload.title"
-                defaultMessage={"Upload Files Into Your Project"}
+                defaultMessage={"Upload Files"}
               />
             </h4>
           </Col>
@@ -337,18 +336,20 @@ export default function NewFilePage(props: Props) {
   function closeNewPage() {
     // Showing homepage in flyout only mode, otherwise the files as usual
     const account_store = redux.getStore("account") as any;
-    const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-    const pureFlyoutMode = getValidVBAROption(vbar) === "flyout";
+    const actBar = account_store?.getIn(["other_settings", ACTIVITY_BAR_KEY]);
+    const pureFlyoutMode = getValidActivityBarOption(actBar) === "flyout";
     actions?.set_active_tab(pureFlyoutMode ? "home" : "files");
   }
 
   //key is so autofocus works below
   return (
     <SettingBox
+      style={{ marginTop: "20px" }}
       show_header
       icon={"plus-circle"}
       title={
         <>
+          &nbsp;
           <FormattedMessage
             id="project.new-file-page.title"
             defaultMessage={

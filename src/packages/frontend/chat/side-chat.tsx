@@ -1,6 +1,5 @@
 import { Button, Flex, Space, Tooltip } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import {
   CSS,
   redux,
@@ -17,12 +16,10 @@ import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
-import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
-import VideoChatButton from "./video/launch-button";
 
 interface Props {
   project_id: string;
@@ -59,7 +56,7 @@ export default function SideChat({
   const project_map = useTypedRedux("projects", "project_map");
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
-  const submitMentionsRef = useRef<SubmitMentionsFn>();
+  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const markAsRead = useCallback(() => {
     markChatAsReadIfUnseen(project_id, path);
@@ -121,24 +118,6 @@ export default function SideChat({
             borderBottom: "1px solid lightgrey",
           }}
         >
-          <Space.Compact
-            style={{
-              float: "right",
-              marginTop: "-5px",
-            }}
-          >
-            <VideoChatButton actions={actions} />
-            <Tooltip title="Show TimeTravel change history of this side chat.">
-              <Button
-                onClick={() => {
-                  actions.showTimeTravelInNewTab();
-                }}
-              >
-                <Icon name="history" />
-              </Button>
-            </Tooltip>
-            <FoldAllThreads actions={actions} shortLabel={true} />
-          </Space.Compact>
           <CollabList
             addCollab={addCollab}
             project={project}

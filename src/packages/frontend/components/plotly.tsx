@@ -3,7 +3,7 @@ import useResizeObserver from "use-resize-observer";
 import { Spin } from "antd";
 
 export default function Plot(props) {
-  const divRef = useRef<HTMLDivElement>(null);
+  const divRef = useRef<HTMLDivElement>(null as any);
   const resize = useResizeObserver({ ref: divRef });
   const [reactPlotlyjs, setReactPlotlyjs] = useState<any>(null);
 

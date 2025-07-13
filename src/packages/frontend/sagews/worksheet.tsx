@@ -26,7 +26,7 @@ export default function Worksheet({ sagews, style }: Props) {
     }
   }
   cells.sort(field_cmp("pos"));
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const cell of cells) {
     const { id, input, output, flags } = cell;
     v.push(

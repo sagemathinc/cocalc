@@ -260,9 +260,16 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     // Wait until the syncstring is loaded from disk.
     if (this._syncstring.get_state() == "init") {
-      await once(this._syncstring, "ready");
+      try {
+        await once(this._syncstring, "ready");
+      } catch {
+        // closed before finished opening
+        return;
+      }
     }
-    if (this._state == "closed") return;
+    if (this._state == "closed") {
+      return;
+    }
 
     let program = ""; // later, might contain the !TeX program build directive
     let cocalc_cmd = ""; // later, might contain the cocalc command
@@ -327,9 +334,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._init_syncdb(["key"], undefined, path);
 
     // Wait for the syncdb to be loaded and ready.
-    if (this._syncdb == null) throw Error("syncdb must be defined");
+    if (this._syncdb == null) {
+      throw Error("syncdb must be defined");
+    }
     if (this._syncdb.get_state() == "init") {
-      await once(this._syncdb, "ready");
+      try {
+        await once(this._syncdb, "ready");
+      } catch {
+        // user closed it
+        return;
+      }
       if (this._state == "closed") return;
     }
 

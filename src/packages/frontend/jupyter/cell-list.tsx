@@ -639,7 +639,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     // This is needed for **the share server**, which hasn't had
     // windowing implemented/tested for yet and also for the
     // non-windowed mode, which we will always support as an option.
-    const v: (JSX.Element | null)[] = [];
+    const v: (React.JSX.Element | null)[] = [];
     let index: number = 0;
     let isFirst = true;
     cell_list.forEach((id: string) => {

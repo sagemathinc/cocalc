@@ -27,7 +27,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
       return <div style={INPUT_STYLE} />;
     }
     const kernel = capitalize(props.kernel != null ? props.kernel : "");
-    let tip: string | JSX.Element = "Enter code to be evaluated.";
+    let tip: string | React.JSX.Element = "Enter code to be evaluated.";
     // in timetravel or read only mode only state is "done".
     const state =
       props.actions == null || props.read_only ? "done" : props.state;

@@ -18,7 +18,7 @@ interface StarredInTabsProps {
   showStarred: boolean;
   showStarredTabs: boolean;
   setShowStarredTabs: (show: boolean) => void;
-  starredRendered: JSX.Element[];
+  starredRendered: React.JSX.Element[];
 }
 
 export function StarredInTabs({

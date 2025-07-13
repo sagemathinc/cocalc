@@ -513,7 +513,7 @@ export const License: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_save_cancel(id): JSX.Element {
+  function render_save_cancel(id): React.JSX.Element {
     return (
       <>
         <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>

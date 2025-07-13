@@ -4,7 +4,7 @@
  */
 
 import { Alert, Button, Divider, Layout, List } from "antd";
-import { ReactNode } from "react";
+import { ReactNode, type JSX } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import getSupportUrl from "@cocalc/frontend/support/url";

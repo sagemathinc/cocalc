@@ -7,7 +7,6 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
-import TTLCache from "@isaacs/ttlcache";
 import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
@@ -16,7 +15,7 @@ import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
-  pguser as DEFAULT_DB_USER,  
+  pguser as DEFAULT_DB_USER,
 } from "@cocalc/backend/data";
 import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
@@ -36,7 +35,7 @@ import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { set_agent_endpoint } from "./health-checks";
-import { start as startHubRegister } from "./hub_register";
+import { start as startHubRegister } from "@cocalc/server/metrics/hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
@@ -50,7 +49,8 @@ import { initConatServer } from "@cocalc/server/conat/socketio";
 
 import initHttpRedirect from "./servers/http-redirect";
 
-const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
+import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
+import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -94,15 +94,11 @@ async function init_update_site_license_usage_log() {
 
 async function initMetrics() {
   logger.info("Initializing Metrics Recorder...");
-  await callback(MetricsRecorder.init, logger);
+  MetricsRecorder.init();
   return {
     metric_blocked: MetricsRecorder.new_counter(
       "blocked_ms_total",
       'accumulates the "blocked" time in the hub [ms]',
-    ),
-    uncaught_exception_total: MetricsRecorder.new_counter(
-      "uncaught_exception_total",
-      'counts "BUG"s',
     ),
   };
 }
@@ -115,7 +111,7 @@ async function startServer(): Promise<void> {
     `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`,
   );
 
-  const { metric_blocked, uncaught_exception_total } = await initMetrics();
+  const { metric_blocked } = await initMetrics();
 
   // Log anything that blocks the CPU for more than ~100ms -- see https://github.com/tj/node-blocked
   blocked((ms: number) => {
@@ -181,9 +177,9 @@ async function startServer(): Promise<void> {
   // This loads from the database credentials to use Conat.
   await loadConatConfiguration();
 
-  if (program.conatCore) {
+  if (program.conatRouter) {
     // launch standalone socketio websocket server (no http server)
-    await initConatServer();
+    await initConatServer({ kucalc: program.mode == "kucalc" });
   }
 
   if (program.conatApi || program.conatServer) {
@@ -240,11 +236,6 @@ async function startServer(): Promise<void> {
       nextServer: !!program.nextServer,
       cert: program.httpsCert,
       key: program.httpsKey,
-      listenersHack:
-        program.mode == "single-user" &&
-        program.proxyServer &&
-        program.nextServer &&
-        process.env["NODE_ENV"] == "development",
     });
 
     // The express app create via initExpressApp above **assumes** that init_passport is done
@@ -288,36 +279,6 @@ async function startServer(): Promise<void> {
     }\n\n-----------\n\n`;
     logger.info(msg);
     console.log(msg);
-
-    if (
-      program.conatServer &&
-      program.nextServer &&
-      process.env["NODE_ENV"] != "production"
-    ) {
-      // This is mostly to deal with conflicts between both nextjs and webpack when doing
-      // hot module reloading.  They fight with each other, and the we -- the developers --
-      // win only AFTER the fight is done. So we force the fight automatically, rather than
-      // manually, which is confusing.
-      // It also allows us to ensure super insanely slow nextjs is built.
-      console.log(
-        `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
-      );
-      const childProcess = spawn(
-        "chromium-browser",
-        ["--no-sandbox", "--headless", target],
-        { detached: true, stdio: "ignore" },
-      );
-      childProcess.unref();
-
-      // Schedule the process to be killed after 120 seconds (120,000 milliseconds)
-      setTimeout(() => {
-        if (childProcess.pid) {
-          try {
-            process.kill(-childProcess.pid, "SIGKILL");
-          } catch (_err) {}
-        }
-      }, 120000);
-    }
   }
 
   if (program.all || program.mentions) {
@@ -333,61 +294,7 @@ async function startServer(): Promise<void> {
     setInterval(trimLogFileSize, 1000 * 60 * 3);
   }
 
-  addErrorListeners(uncaught_exception_total);
-}
-
-// addErrorListeners: after successful startup, don't crash on routine errors.
-// We don't do this until startup, since we do want to crash on errors on startup.
-
-// Use cache to not save the SAME error to the database (and prometheus)
-// more than once per minute.
-const errorReportCache = new TTLCache({ ttl: 60 * 1000 });
-
-// note -- we show the error twice in these, one in backticks, since sometimes
-// that works better.
-function addErrorListeners(uncaught_exception_total) {
-  process.addListener("uncaughtException", function (err) {
-    logger.error(
-      "BUG ****************************************************************************",
-    );
-    logger.error("Uncaught exception: " + err, ` ${err}`);
-    console.error(err.stack);
-    logger.error(err.stack);
-    logger.error(
-      "BUG ****************************************************************************",
-    );
-    const key = `${err}`;
-    if (errorReportCache.has(key)) {
-      return;
-    }
-    errorReportCache.set(key, true);
-    database?.uncaught_exception(err);
-    uncaught_exception_total.inc(1);
-  });
-
-  return process.on("unhandledRejection", function (reason, p) {
-    logger.error(
-      "BUG UNHANDLED REJECTION *********************************************************",
-    );
-    console.error(p, reason); // strangely sometimes logger.error can't actually show the traceback...
-    logger.error(
-      "Unhandled Rejection at:",
-      p,
-      "reason:",
-      reason,
-      ` : ${p} -- ${reason}`,
-    );
-    logger.error(
-      "BUG UNHANDLED REJECTION *********************************************************",
-    );
-    const key = `${p}${reason}`;
-    if (errorReportCache.has(key)) {
-      return;
-    }
-    errorReportCache.set(key, true);
-    database?.uncaught_exception(reason);
-    uncaught_exception_total.inc(1);
-  });
+  addErrorListeners();
 }
 
 //############################################
@@ -411,19 +318,19 @@ async function main(): Promise<void> {
     )
     .option(
       "--conat-server",
-      "run a hub that provides a single-core conat server (socketio), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
+      "run a hub that provides a single-core conat server (i.e., conat-router but integrated with the http server), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
     )
     .option(
-      "--conat-core",
-      "run a hub that provides the core conat communication layer server over a websocket (but not http server).  If you run more than one of these at once they MUST be configured to use valkey, or messages won't get transmitted between them.",
+      "--conat-router",
+      "run a hub that provides the core conat communication layer server over a websocket (but not http server).",
     )
     .option(
       "--conat-api",
-      "run a hub that connect to conat-core and provides the standard conat API services, e.g., basic api, LLM's, changefeeds, http file upload/download, etc.  There must be at least one of these.   You can increase or decrease the number of these servers with no coordination needed.",
+      "run a hub that connect to conat-router and provides the standard conat API services, e.g., basic api, LLM's, changefeeds, http file upload/download, etc.  There must be at least one of these.   You can increase or decrease the number of these servers with no coordination needed.",
     )
     .option(
       "--conat-persist",
-      "run a hub that connects to conat-core and provides persistence for streams (e.g., key for sync editing).  There must be at least one of these, and they need access to common shared disk to store sqlite files.  Only one server uses a given sqlite file at a time.  You can increase or decrease the number of these servers with no coordination needed.",
+      "run a hub that connects to conat-router and provides persistence for streams (e.g., key for sync editing).  There must be at least one of these, and they need access to common shared disk to store sqlite files.  Only one server uses a given sqlite file at a time.  You can increase or decrease the number of these servers with no coordination needed.",
     )
     .option("--proxy-server", "run a proxy server in this process")
     .option(

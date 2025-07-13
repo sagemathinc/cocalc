@@ -12,6 +12,8 @@ import { r_join } from "@cocalc/frontend/components/r_join";
 import SiteName from "./site-name";
 import Edit from "./edit";
 
+import type { JSX } from "react";
+
 interface Props {
   id: string;
   path: string;

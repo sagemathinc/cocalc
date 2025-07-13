@@ -436,7 +436,7 @@ function Subdirs(props) {
     })();
     return <Loading />;
   } else {
-    const w: JSX.Element[] = [];
+    const w: React.JSX.Element[] = [];
     const base = !path ? "" : path + "/";
     const paths: string[] = [];
     const newPaths: string[] = [];

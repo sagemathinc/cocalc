@@ -17,7 +17,7 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
 
-export function LogHeader(): JSX.Element {
+export function LogHeader(): React.JSX.Element {
   const intl = useIntl();
   const { project_id } = useProjectContext();
 

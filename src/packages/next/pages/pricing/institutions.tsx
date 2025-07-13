@@ -16,6 +16,8 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize, useCustomize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
+import type { JSX } from "react";
+
 // internal link to the contact form
 const URL_SUPPORT =
   "/support/new?type=purchase&subject=CoCalc%20Institutional&body=&title=Purchase%20Institutional%20License";

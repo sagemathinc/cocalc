@@ -170,7 +170,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `log-${project_id}`,
   });
-  function render_log_entries(): JSX.Element {
+  function render_log_entries(): React.JSX.Element {
     if (state.current.next_cursor_pos) {
       delete state.current.next_cursor_pos;
     }
@@ -184,7 +184,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     );
   }
 
-  function render_log_panel(): JSX.Element {
+  function render_log_panel(): React.JSX.Element {
     return (
       <div
         className="smc-vfill"
@@ -195,7 +195,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     );
   }
 
-  function render_body(): JSX.Element {
+  function render_body(): React.JSX.Element {
     if (!project_log && !project_log_all) {
       if (!state.current.loading_table) {
         state.current.loading_table = true;
@@ -211,7 +211,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     return render_log_panel();
   }
 
-  function render_search(): JSX.Element | void {
+  function render_search(): React.JSX.Element | void {
     if (actions == null) return;
     return (
       <LogSearch

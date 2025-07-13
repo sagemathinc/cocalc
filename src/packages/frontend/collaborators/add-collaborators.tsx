@@ -238,8 +238,8 @@ export const AddCollaborators: React.FC<Props> = ({
     select_ref.current?.focus();
   }
 
-  function render_options(users: User[]): JSX.Element[] {
-    const options: JSX.Element[] = [];
+  function render_options(users: User[]): React.JSX.Element[] {
+    const options: React.JSX.Element[] = [];
     for (const r of users) {
       if (r.label == null || r.tag == null || r.name == null) {
         let name = r.account_id
@@ -424,14 +424,14 @@ export const AddCollaborators: React.FC<Props> = ({
     }
   }
 
-  function render_email_body_error(): JSX.Element | undefined {
+  function render_email_body_error(): React.JSX.Element | undefined {
     if (!email_body_error) {
       return;
     }
     return <ErrorDisplay error={email_body_error} />;
   }
 
-  function render_email_textarea(): JSX.Element {
+  function render_email_textarea(): React.JSX.Element {
     return (
       <Input.TextArea
         defaultValue={email_body}
@@ -451,7 +451,7 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  function render_send_email(): JSX.Element | undefined {
+  function render_send_email(): React.JSX.Element | undefined {
     if (!email_to) {
       return;
     }
@@ -501,7 +501,7 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  function render_search(): JSX.Element | undefined {
+  function render_search(): React.JSX.Element | undefined {
     return (
       <div style={{ marginBottom: "15px" }}>
         {state == "searched" ? (
@@ -522,20 +522,20 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  function render_select_list(): JSX.Element | undefined {
+  function render_select_list(): React.JSX.Element | undefined {
     if (project == null) return;
 
     const users: User[] = [];
     const existing: User[] = [];
     for (const r of results) {
-      if (project.get("users").get(r.account_id) != null) {
+      if (project.getIn(["users", r.account_id]) != null) {
         existing.push(r);
       } else {
         users.push(r);
       }
     }
 
-    function render_search_help(): JSX.Element | undefined {
+    function render_search_help(): React.JSX.Element | undefined {
       if (focused && results.length === 0) {
         return <Alert type="info" message={"Press enter to search..."} />;
       }
@@ -629,7 +629,7 @@ export const AddCollaborators: React.FC<Props> = ({
     return false;
   }
 
-  function render_select_list_button(): JSX.Element | undefined {
+  function render_select_list_button(): React.JSX.Element | undefined {
     const number_selected = selected_entries.length;
     let label: string;
     let disabled: boolean;
@@ -668,7 +668,7 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  function render_invite_result(): JSX.Element | undefined {
+  function render_invite_result(): React.JSX.Element | undefined {
     if (state != "invited") {
       return;
     }
