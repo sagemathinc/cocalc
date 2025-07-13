@@ -16,6 +16,7 @@ import { wait } from "@cocalc/backend/conat/test/util";
 import { delay } from "awaiting";
 export { setDefaultTimeouts } from "@cocalc/conat/core/client";
 export { setDefaultSocketTimeouts } from "@cocalc/conat/socket/util";
+export { setDefaultReconnectDelay } from "@cocalc/conat/persist/client";
 import { once } from "@cocalc/util/async-utils";
 import { until } from "@cocalc/util/async-utils";
 import { randomId } from "@cocalc/conat/names";

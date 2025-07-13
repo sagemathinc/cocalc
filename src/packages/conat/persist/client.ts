@@ -22,7 +22,11 @@ import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
 import { until } from "@cocalc/util/async-utils";
 
-const RECONNECT_DELAY = 1000;
+let DEFAULT_RECONNECT_DELAY = 1500;
+
+export function setDefaultReconnectDelay(delay) {
+  DEFAULT_RECONNECT_DELAY = delay;
+}
 
 interface GetAllOpts {
   start_seq?: number;
@@ -34,10 +38,7 @@ interface GetAllOpts {
 const logger = getLogger("persist:client");
 
 export type ChangefeedEvent = (SetOperation | DeleteOperation)[];
-
 export type Changefeed = EventIterator<ChangefeedEvent>;
-
-// const paths = new Set<string>();
 
 export { type PersistStreamClient };
 class PersistStreamClient extends EventEmitter {
@@ -48,7 +49,6 @@ class PersistStreamClient extends EventEmitter {
   private reconnecting = false;
   private gettingMissed = false;
   private changesWhenGettingMissed: ChangefeedEvent[] = [];
-  id = Math.random();
 
   constructor(
     private client: Client,
@@ -64,14 +64,6 @@ class PersistStreamClient extends EventEmitter {
   }
 
   private init = () => {
-    if (this.reconnecting) {
-      console.log(
-        this.id,
-        "persist client reconnecting",
-        this.client.id,
-        this.storage.path,
-      );
-    }
     if (this.client.state == "closed") {
       this.close();
       return;
@@ -80,7 +72,6 @@ class PersistStreamClient extends EventEmitter {
       return;
     }
     this.socket?.close();
-    // console.log("making a socket connection to ", persistSubject(this.user));
     const subject = persistSubject({ ...this.user, service: this.service });
     this.socket = this.client.socket.connect(subject, {
       desc: `persist: ${this.storage.path}`,
@@ -99,20 +90,17 @@ class PersistStreamClient extends EventEmitter {
     }
 
     this.socket.once("disconnected", () => {
-      // console.log("persist client was disconnected", this.storage.path);
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, RECONNECT_DELAY);
+      setTimeout(this.init, DEFAULT_RECONNECT_DELAY);
     });
     this.socket.once("closed", () => {
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, RECONNECT_DELAY);
+      setTimeout(this.init, DEFAULT_RECONNECT_DELAY);
     });
 
     this.socket.on("data", (updates, headers) => {
-      if (this.storage.path.endsWith("foo"))
-        console.log(this.id, "data", updates, headers);
       if (updates == null && headers != null) {
         // has to be an error
         this.emit(
@@ -207,7 +195,6 @@ class PersistStreamClient extends EventEmitter {
   close = () => {
     logger.debug("close", this.storage);
     // paths.delete(this.storage.path);
-    // console.log("persist -- close", this.storage.path, paths);
     this.state = "closed";
     this.emit("closed");
     for (const iter of this.changefeeds) {

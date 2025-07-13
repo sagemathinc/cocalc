@@ -16,6 +16,7 @@ import {
   wait,
   setDefaultTimeouts,
   setDefaultSocketTimeouts,
+  setDefaultReconnectDelay,
   waitForConsistentState,
 } from "../setup";
 import { uuid } from "@cocalc/util/misc";
@@ -31,6 +32,7 @@ beforeAll(async () => {
     keepAlive: 2000,
     keepAliveTimeout: 1000,
   });
+  setDefaultReconnectDelay(1);
 });
 
 jest.setTimeout(10000);
@@ -149,23 +151,22 @@ describe("test using multiple persist servers in a cluster", () => {
 
   it("remove one persist server", async () => {
     openStreams1.map((x) => (x.stream.log = true));
-    console.log("CLOSING PERSIST SERVER");
     persistServer1.close();
   });
 
-  //   it.skip("creating / opening streams we made above still work with no data lost", async () => {
-  //     for (const project_id of project_ids) {
-  //       const s = await client0.sync.dstream({
-  //         project_id,
-  //         name: "foo",
-  //         noCache: true,
-  //         sync: true,
-  //       });
-  //       expect(await s.getAll()).toEqual([project_id]);
-  //       s.close();
-  //     }
-  //     expect(Object.keys(persistServer1.sockets).length).toEqual(0);
-  //   });
+  it("creating / opening streams we made above still work with no data lost", async () => {
+    for (const project_id of project_ids) {
+      const s = await client0.sync.dstream({
+        project_id,
+        name: "foo",
+        noCache: true,
+        sync: true,
+      });
+      expect(await s.getAll()).toEqual([project_id]);
+      s.close();
+    }
+    expect(Object.keys(persistServer1.sockets).length).toEqual(0);
+  });
 
   // this can definitely take a long time (e.g., ~10s), as it involves automatic failover.
   it("Checks automatic failover works:  the streams connected to both servers we created above must keep working, despite at least one of them having its persist server get closed.", async () => {
@@ -175,26 +176,13 @@ describe("test using multiple persist servers in a cluster", () => {
       await stream0.save();
       expect(stream0.hasUnsavedChanges()).toBe(false);
 
-
       const stream1 = openStreams1[i];
       expect(stream0.opts.project_id).toEqual(stream1.opts.project_id);
-      console.log(i, stream1.stream.storage);
       await wait({
         until: async () => {
-          console.log(
-            i,
-            stream1.stream.client.id,
-            stream1.stream.id,
-            stream1.getAll(),
-            stream1.messages,
-            (await stream1.stream.persistClient.getAll({ start_seq: 0 }))
-              .length,
-            stream1.stream.messages,
-            stream1.stream.raw,
-          );
           return stream1.length >= 2;
         },
-        timeout: 10000,
+        timeout: 5000,
         start: 1000,
       });
       expect(stream1.length).toBe(2);

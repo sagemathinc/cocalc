@@ -59,8 +59,8 @@ const PUBLISH_MANY_BATCH_SIZE = 500;
 
 const DEFAULT_GET_ALL_TIMEOUT = 15000;
 
-//const log = (..._args) => {};
-const log = console.log;
+const log = (..._args) => {};
+//const log = console.log;
 
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
@@ -343,12 +343,6 @@ export class CoreStream<T = any> extends EventEmitter {
           // any other error that we might not address above -- just try again in a while.
           return false;
         }
-        //         console.log(
-        //           "getAllFromPersist",
-        //           this.client.id,
-        //           this.storage.path,
-        //           JSON.stringify(messages.map(({ seq }) => seq)),
-        //         );
         this.processPersistentMessages(messages, {
           noEmit,
           noSeqCheck: true,
@@ -372,7 +366,6 @@ export class CoreStream<T = any> extends EventEmitter {
     messages: (SetOperation | DeleteOperation | StoredMessage)[],
     opts: { noEmit?: boolean; noSeqCheck?: boolean },
   ) => {
-    // console.log("processPersistentMessages", messages.length, " messages");
     if (this.raw === undefined) {
       // closed
       return;
@@ -408,7 +401,6 @@ export class CoreStream<T = any> extends EventEmitter {
     { noEmit }: { noEmit?: boolean },
   ) => {
     if (this.raw == null) return;
-    //console.log("processPersistentDelete", seqs);
     const X = new Set<number>(seqs);
     // seqs is a list of integers.  We remove
     // every entry from this.raw, this.messages, and this.kv
@@ -440,7 +432,6 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
 
-    //console.log({ indexes, seqs, noEmit });
     // remove this.raw[i] and this.messages[i] for all i in indexes,
     // with special case to be fast in the very common case of contiguous indexes.
     if (indexes.length > 1 && indexes.every((v, i) => v === indexes[0] + i)) {
@@ -548,9 +539,7 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
-    //if (this.log) console.log(this.client.id, "after", this.raw, this.messages);
     if (!noEmit) {
-      //if (this.log) console.log(this.client.id, "emit change!");
       this.emitChange({ mesg, raw, key, prev, msgID });
     }
   };
@@ -570,6 +559,12 @@ export class CoreStream<T = any> extends EventEmitter {
         try {
           //log("core-stream: START listening on changefeed", this.storage);
           const changefeed = await this.persistClient.changefeed();
+          this.persistClient.on("changefeed", (updates) => {
+            this.processPersistentMessages(updates, {
+              noEmit: false,
+              noSeqCheck: false,
+            });
+          });
 
           // Now that we have the changefeed running, we grab any messages that
           // might have been missed between the last getAll and when the
@@ -597,31 +592,25 @@ export class CoreStream<T = any> extends EventEmitter {
           //             "core-stream: listening on the changefeed...",
           //             this.storage,
           //           );
-          for await (const updates of changefeed) {
+          for await (const _ of changefeed) {
             //             if (this.log) {
             //               log(
+            //                 this.persistClient.id,
             //                 this.client.id,
             //                 "core-stream: changefeed",
             //                 this.storage,
             //                 updates,
-            //                 decode({ encoding: 0, data: updates[0].raw }),
             //               );
             //             }
-            if (this.client == null) return true;
-            //             console.log(
-            //               "listen",
-            //               this.client.id,
-            //               this.storage.path,
-            //               JSON.stringify(updates.map(({ seq }) => seq)),
-            //             );
-            this.processPersistentMessages(updates, {
-              noEmit: false,
-              noSeqCheck: false,
-            });
+            if (this.client == null) {
+              return true;
+            }
+            //             this.processPersistentMessages(updates, {
+            //               noEmit: false,
+            //               noSeqCheck: false,
+            //             });
           }
-          // console.log("DONE listening on the changefeed...", this.storage);
         } catch (err) {
-          // console.log("error listening on the changefeed...");
           // This normally doesn't happen but could if a persist server is being restarted
           // frequently or things are seriously broken.  We cause this in
           //    backend/conat/test/core/core-stream-break.test.ts
@@ -635,11 +624,13 @@ export class CoreStream<T = any> extends EventEmitter {
         // above loop exits when the persistent server
         // stops sending messages for some reason. In that
         // case we reconnect, picking up where we left off:
-        if (this.client == null) return true;
-        log(
-          "core-stream: get missing from when changefeed ended",
-          this.storage,
-        );
+        if (this.client == null) {
+          return true;
+        }
+        //         log(
+        //           "core-stream: get missing from when changefeed ended",
+        //           this.storage,
+        //         );
         await this.getAllFromPersist({
           start_seq: this.lastSeq + 1,
           noEmit: false,

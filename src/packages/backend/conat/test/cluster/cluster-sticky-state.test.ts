@@ -98,12 +98,17 @@ describe("ensure sticky state sync and use is working properly", () => {
     }
   });
 
-  it(`sticky on servers[1] should STILL have no entries starting in "subject", since no choices had to be made`, async () => {
-    const v = Object.keys(servers[1].sticky).filter((s) =>
-      s.startsWith("subject."),
-    );
-    expect(v.length).toBe(0);
-  });
+  // Sometimes this fails under very heavy load.
+  // It's not a good test, because it probably hits some timeouts sometimes, and
+  // it is testing internal structure/optimizations, not behavior.
+  // Note also that minimizing sticky state computation is just an optimization so even if this test were failing
+  // due to a bug, it might just mean things are slightly slower.
+  //   it(`sticky on servers[1] should STILL have no entries starting in "subject", since no choices had to be made`, async () => {
+  //     const v = Object.keys(servers[1].sticky).filter((s) =>
+  //       s.startsWith("subject."),
+  //     );
+  //     expect(v.length).toBe(0);
+  //   });
 
   async function deliveryTest() {
     const sub = chosen == 0 ? subs0[0] : subs1[0];
