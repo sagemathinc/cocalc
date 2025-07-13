@@ -29,7 +29,7 @@ const INPUT_CHUNK_SIZE = 50;
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
 const SOFT_RESET =
-  "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x; sleep 0.1; clear -x";
+  "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x; sleep 0.1; clear -x; sleep 0.1; clear -x";
 
 const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${SOFT_RESET}; history -d $(history 1);\n`;
 
