@@ -40,6 +40,7 @@ import type {
   StoredMessage,
   Configuration,
 } from "@cocalc/conat/persist/storage";
+import type { Changefeed } from "@cocalc/conat/persist/client";
 export type { Configuration };
 import { join } from "path";
 import {
@@ -171,6 +172,7 @@ export class CoreStream<T = any> extends EventEmitter {
   private storage: StorageOptions;
   private client?: Client;
   private persistClient: PersistStreamClient;
+  private changefeed?: Changefeed;
   private service?: string;
 
   constructor({
@@ -302,14 +304,14 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     await until(
       async () => {
-        if (this.isClosed()) {
-          return true;
-        }
         let messages: StoredMessage[] = [];
         let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
         try {
           if (this.isClosed()) {
             return true;
+          }
+          if (this.changefeed == null) {
+            this.changefeed = await this.persistClient.changefeed();
           }
           // console.log("get persistent stream", { start_seq }, this.storage);
           messages = await this.persistClient.getAll({
@@ -553,64 +555,31 @@ export class CoreStream<T = any> extends EventEmitter {
     // log("core-stream: listen", this.storage);
     await until(
       async () => {
-        if (this.client == null) {
+        if (this.isClosed()) {
           return true;
         }
         try {
-          //log("core-stream: START listening on changefeed", this.storage);
-          const changefeed = await this.persistClient.changefeed();
-          this.persistClient.on("changefeed", (updates) => {
+          if (this.changefeed == null) {
+            this.changefeed = await this.persistClient.changefeed();
+            if (this.isClosed()) {
+              return true;
+            }
+          }
+
+          for await (const updates of this.changefeed) {
             this.processPersistentMessages(updates, {
               noEmit: false,
               noSeqCheck: false,
             });
-          });
-
-          // Now that we have the changefeed running, we grab any messages that
-          // might have been missed between the last getAll and when the
-          // changefeed was running -- this is usually empty, but there are race
-          // condition where it could be non-empty.  The result would be that
-          // this stream is not aware of a change that happened until we get one
-          // more change from the changefeed, and then it is aware (so no data loss,
-          // but it is confusingly hung until something happens).   Thus this is
-          // important to do.  This problem arises when opening a file for the
-          // first time, where the project and browser both open it at almost the
-          // exact same time and the project inserts a change (the first patch) exactly
-          // as the browser finished the initial connect and right before the changefeed
-          // is initialized.
-          const messages = await this.persistClient.getAll({
-            start_seq: this.lastSeq + 1,
-            timeout: DEFAULT_GET_ALL_TIMEOUT,
-          });
-          this.processPersistentMessages(messages, {
-            noEmit: false,
-            noSeqCheck: false,
-          });
-
-          //           log(
-          //             this.client.id,
-          //             "core-stream: listening on the changefeed...",
-          //             this.storage,
-          //           );
-          for await (const _ of changefeed) {
-            //             if (this.log) {
-            //               log(
-            //                 this.persistClient.id,
-            //                 this.client.id,
-            //                 "core-stream: changefeed",
-            //                 this.storage,
-            //                 updates,
-            //               );
-            //             }
-            if (this.client == null) {
+            if (this.isClosed()) {
               return true;
             }
-            //             this.processPersistentMessages(updates, {
-            //               noEmit: false,
-            //               noSeqCheck: false,
-            //             });
           }
         } catch (err) {
+          // There should never be a case where the changefeed throws
+          // an error or ends without this whole streaming being closed.
+          // If that happens its an unexpected bug. Instead of failing,
+          // we log this, loop around, and make a new changefeed.
           // This normally doesn't happen but could if a persist server is being restarted
           // frequently or things are seriously broken.  We cause this in
           //    backend/conat/test/core/core-stream-break.test.ts
@@ -621,16 +590,17 @@ export class CoreStream<T = any> extends EventEmitter {
             );
           }
         }
+
+        delete this.changefeed;
+
         // above loop exits when the persistent server
         // stops sending messages for some reason. In that
-        // case we reconnect, picking up where we left off:
+        // case we reconnect, picking up where we left off.
+
         if (this.client == null) {
           return true;
         }
-        //         log(
-        //           "core-stream: get missing from when changefeed ended",
-        //           this.storage,
-        //         );
+
         await this.getAllFromPersist({
           start_seq: this.lastSeq + 1,
           noEmit: false,
