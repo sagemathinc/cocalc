@@ -20,7 +20,7 @@ import {
   rmdir,
   sudo,
 } from "@cocalc/file-server/storage-zfs/util";
-import { subvolume, SNAPSHOTS } from "./subvolume";
+import { subvolume, SNAPSHOTS, type Subvolume } from "./subvolume";
 import { join, normalize } from "path";
 
 // default size of btrfs filesystem if creating an image file.
@@ -100,11 +100,18 @@ export class Filesystem {
     }
   };
 
-  info = async () => {
-    return await sudo({
+  info = async (): Promise<{ [field: string]: string }> => {
+    const { stdout } = await sudo({
       command: "btrfs",
       args: ["subvolume", "show", this.opts.mount],
     });
+    const obj: { [field: string]: string } = {};
+    for (const x of stdout.split("\n")) {
+      const i = x.indexOf(":");
+      if (i == -1) continue;
+      obj[x.slice(0, i).trim()] = x.slice(i + 1).trim();
+    }
+    return obj;
   };
 
   //
@@ -170,7 +177,7 @@ export class Filesystem {
     // nothing, yet
   };
 
-  subvolume = async (name: string) => {
+  subvolume = async (name: string): Promise<Subvolume> => {
     if (RESERVED.has(name)) {
       throw Error(`${name} is reserved`);
     }
@@ -215,7 +222,10 @@ export class Filesystem {
   };
 
   deleteSubvolume = async (name: string) => {
-    await sudo({ command: "btrfs", args: ["subvolume", "delete", name] });
+    await sudo({
+      command: "btrfs",
+      args: ["subvolume", "delete", join(this.opts.mount, name)],
+    });
   };
 
   list = async (): Promise<string[]> => {
@@ -226,7 +236,8 @@ export class Filesystem {
     return stdout
       .split("\n")
       .map((x) => x.split(" ").slice(-1)[0])
-      .filter((x) => x);
+      .filter((x) => x)
+      .sort();
   };
 
   rsync = async ({
