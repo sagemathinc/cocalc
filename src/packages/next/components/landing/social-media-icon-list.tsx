@@ -11,6 +11,7 @@ enum SocialMediaType {
   LINKEDIN = "linkedin",
   TWITTER = "twitter",
   YOUTUBE = "youtube",
+  DISCORD = "discord",
 }
 
 const ICON_MAP: Record<SocialMediaType, IconName> = {
@@ -20,6 +21,7 @@ const ICON_MAP: Record<SocialMediaType, IconName> = {
   [SocialMediaType.LINKEDIN]: "linkedin-filled",
   [SocialMediaType.TWITTER]: "twitter",
   [SocialMediaType.YOUTUBE]: "youtube-filled",
+  [SocialMediaType.DISCORD]: "discord",
 };
 
 export interface SocialMediaIconListProps {

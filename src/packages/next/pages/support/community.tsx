@@ -11,6 +11,7 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import MailingList from "public/info/cocalc-mailing-list.png";
+import Discord from "public/info/discord.png";
 import { COLORS } from "@cocalc/util/theme";
 import Facebook from "public/info/facebook.png";
 import GitHubDiscussions from "public/info/github-discussions.png";
@@ -22,6 +23,24 @@ import Twitter from "public/info/twitter.png";
 const imageWidth = "300px";
 
 const dataSource = [
+  {
+    link: "https://discord.gg/nEHs2GK",
+    title: (
+      <>
+        <b>Chat</b> about CoCalc on Discord
+      </>
+    ),
+    logo: "comment",
+    image: Discord,
+    imageWidth,
+    description: (
+      <>
+        Visit the{" "}
+        <A href="https://discord.gg/EugdaJZ8">CoCalc Discord server</A> to chat
+        with other CoCalc users, ask questions, and give us quick feedback.
+      </>
+    ),
+  },
   {
     link: "https://github.com/sagemathinc/cocalc",
     logo: "github",
