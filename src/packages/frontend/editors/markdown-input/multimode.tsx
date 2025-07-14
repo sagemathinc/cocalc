@@ -351,8 +351,8 @@ export default function MultiMarkdownInput({
               color: COLORS.GRAY_M,
               ...(mode == "editor" || hideHelp
                 ? {
-                    position: "absolute",
-                    right: 0,
+                    float: "right",
+                    position: "relative",
                     zIndex: 1,
                   }
                 : { float: "right" }),
