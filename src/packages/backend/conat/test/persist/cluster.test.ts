@@ -15,6 +15,8 @@ import {
   persistServer as persistServer0,
   wait,
   setDefaultTimeouts,
+  setDefaultSocketTimeouts,
+  setDefaultReconnectDelay,
   waitForConsistentState,
 } from "../setup";
 import { uuid } from "@cocalc/util/misc";
@@ -25,9 +27,15 @@ beforeAll(async () => {
   await before();
   // this speeds up the automatic failover tests a lot.
   setDefaultTimeouts({ request: 1000, publish: 1000 });
+  setDefaultSocketTimeouts({
+    command: 1000,
+    keepAlive: 2000,
+    keepAliveTimeout: 1000,
+  });
+  setDefaultReconnectDelay(1);
 });
 
-jest.setTimeout(15000);
+jest.setTimeout(10000);
 describe("test using multiple persist servers in a cluster", () => {
   let client0, server1, client1;
   it("add another node", async () => {
@@ -143,10 +151,6 @@ describe("test using multiple persist servers in a cluster", () => {
 
   it("remove one persist server", async () => {
     persistServer1.close();
-    // [ ] TODO: removing this delay leads to very consistent failures
-    // involving data loss, but things should just be slower, never broken,
-    // on automatic failover.
-    await delay(3000);
   });
 
   it("creating / opening streams we made above still work with no data lost", async () => {
@@ -154,6 +158,7 @@ describe("test using multiple persist servers in a cluster", () => {
       const s = await client0.sync.dstream({
         project_id,
         name: "foo",
+        noCache: true,
         sync: true,
       });
       expect(await s.getAll()).toEqual([project_id]);
@@ -169,9 +174,16 @@ describe("test using multiple persist servers in a cluster", () => {
       stream0.publish("y");
       await stream0.save();
       expect(stream0.hasUnsavedChanges()).toBe(false);
+
       const stream1 = openStreams1[i];
       expect(stream0.opts.project_id).toEqual(stream1.opts.project_id);
-      await wait({ until: () => stream1.length >= 2, timeout: 10000 });
+      await wait({
+        until: async () => {
+          return stream1.length >= 2;
+        },
+        timeout: 5000,
+        start: 1000,
+      });
       expect(stream1.length).toBe(2);
     }
   });

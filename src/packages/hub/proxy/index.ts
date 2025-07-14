@@ -5,7 +5,7 @@
 
 import { Application } from "express";
 import getLogger from "../logger";
-import initProxy from "./handle-request";
+import initRequest from "./handle-request";
 import initUpgrade from "./handle-upgrade";
 import base_path from "@cocalc/backend/base-path";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
@@ -17,18 +17,17 @@ interface Options {
   httpServer; // got from express_app via httpServer = http.createServer(app).
   projectControl: ProjectControlFunction; // controls projects (aka "compute server")
   isPersonal: boolean; // if true, disables all access controls
-  listenersHack: boolean;
   proxyConat: boolean;
 }
 
-export default function init(opts: Options) {
+export default function initProxy(opts: Options) {
   const proxy_regexp = `^${
     base_path.length <= 1 ? "" : base_path
   }\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/*`;
   logger.info("creating proxy server with proxy_regexp", proxy_regexp);
 
   // tcp connections:
-  const handleProxy = initProxy(opts);
+  const handleProxy = initRequest(opts);
 
   // websocket upgrades:
   const handleUpgrade = initUpgrade(opts, proxy_regexp);

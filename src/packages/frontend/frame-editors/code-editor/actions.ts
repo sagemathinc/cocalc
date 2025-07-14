@@ -110,6 +110,7 @@ import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 import { log_opened_time } from "@cocalc/frontend/project/open-file";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 
 interface gutterMarkerParams {
   line: number;
@@ -1237,6 +1238,9 @@ export class Actions<
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
     if (explicit) {
+      if (!await this.ensureProjectIsRunning(`save ${this.path} to disk`)) {
+        return;
+      }
       const account: any = this.redux.getStore("account");
       if (
         account &&
@@ -1636,8 +1640,15 @@ export class Actions<
     }
 
     if (this._syncstring.get_state() != "ready") {
-      await once(this._syncstring, "ready");
-      if (this.isClosed()) return;
+      try {
+        await once(this._syncstring, "ready");
+      } catch {
+        // never made it
+        return;
+      }
+      if (this.isClosed()) {
+        return;
+      }
     }
 
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
@@ -1751,7 +1762,12 @@ export class Actions<
     const state = syncdoc.get_state();
     if (state == "closed") return false;
     if (state == "init") {
-      await once(syncdoc, "ready");
+      try {
+        await once(syncdoc, "ready");
+      } catch {
+        // never mode it
+        return false;
+      }
       if (this.isClosed()) return false;
     }
     return true;
@@ -2159,6 +2175,10 @@ export class Actions<
       this.set_status("");
     }
   }
+
+  ensureProjectIsRunning = async (what: string): Promise<boolean> => {
+    return await ensure_project_running(this.project_id, what);
+  };
 
   public format_support_for_syntax(
     available_features: AvailableFeatures,

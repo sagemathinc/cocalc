@@ -40,6 +40,7 @@ import type {
   StoredMessage,
   Configuration,
 } from "@cocalc/conat/persist/storage";
+import type { Changefeed } from "@cocalc/conat/persist/client";
 export type { Configuration };
 import { join } from "path";
 import {
@@ -56,6 +57,8 @@ import { getLogger } from "@cocalc/conat/client";
 const logger = getLogger("sync:core-stream");
 
 const PUBLISH_MANY_BATCH_SIZE = 500;
+
+const DEFAULT_GET_ALL_TIMEOUT = 15000;
 
 const log = (..._args) => {};
 //const log = console.log;
@@ -169,6 +172,7 @@ export class CoreStream<T = any> extends EventEmitter {
   private storage: StorageOptions;
   private client?: Client;
   private persistClient: PersistStreamClient;
+  private changefeed?: Changefeed;
   private service?: string;
 
   constructor({
@@ -300,27 +304,19 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     await until(
       async () => {
-        if (this.isClosed()) {
-          return true;
-        }
         let messages: StoredMessage[] = [];
         let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
-        let changefeed: any = undefined;
         try {
-          changefeed = await this.persistClient.changefeed();
           if (this.isClosed()) {
             return true;
           }
-          (async () => {
-            try {
-              for await (const updates of changefeed) {
-                changes = changes.concat(updates);
-              }
-            } catch {}
-          })();
+          if (this.changefeed == null) {
+            this.changefeed = await this.persistClient.changefeed();
+          }
           // console.log("get persistent stream", { start_seq }, this.storage);
           messages = await this.persistClient.getAll({
             start_seq,
+            timeout: DEFAULT_GET_ALL_TIMEOUT,
           });
         } catch (err) {
           if (this.isClosed()) {
@@ -348,15 +344,7 @@ export class CoreStream<T = any> extends EventEmitter {
           }
           // any other error that we might not address above -- just try again in a while.
           return false;
-        } finally {
-          changefeed?.close();
         }
-        //         console.log(
-        //           "getAllFromPersist",
-        //           this.client.id,
-        //           this.storage.path,
-        //           JSON.stringify(messages.map(({ seq }) => seq)),
-        //         );
         this.processPersistentMessages(messages, {
           noEmit,
           noSeqCheck: true,
@@ -380,7 +368,6 @@ export class CoreStream<T = any> extends EventEmitter {
     messages: (SetOperation | DeleteOperation | StoredMessage)[],
     opts: { noEmit?: boolean; noSeqCheck?: boolean },
   ) => {
-    // console.log("processPersistentMessages", messages.length, " messages");
     if (this.raw === undefined) {
       // closed
       return;
@@ -416,7 +403,6 @@ export class CoreStream<T = any> extends EventEmitter {
     { noEmit }: { noEmit?: boolean },
   ) => {
     if (this.raw == null) return;
-    //console.log("processPersistentDelete", seqs);
     const X = new Set<number>(seqs);
     // seqs is a list of integers.  We remove
     // every entry from this.raw, this.messages, and this.kv
@@ -448,7 +434,6 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     }
 
-    //console.log({ indexes, seqs, noEmit });
     // remove this.raw[i] and this.messages[i] for all i in indexes,
     // with special case to be fast in the very common case of contiguous indexes.
     if (indexes.length > 1 && indexes.every((v, i) => v === indexes[0] + i)) {
@@ -501,7 +486,6 @@ export class CoreStream<T = any> extends EventEmitter {
     }
 
     const mesg = decode({ encoding, data });
-    // console.log("processPersistentSet", seq, mesg)
     const raw = {
       timestamp: time,
       headers,
@@ -566,34 +550,34 @@ export class CoreStream<T = any> extends EventEmitter {
   };
 
   private listen = async () => {
-    log("core-stream: listen", this.storage);
+    // log("core-stream: listen", this.storage);
     await until(
       async () => {
-        if (this.client == null) {
+        if (this.isClosed()) {
           return true;
         }
         try {
-          log("core-stream: START listening on changefeed", this.storage);
-          const changefeed = await this.persistClient.changefeed();
-          // console.log("listening on the changefeed...", this.storage);
-          for await (const updates of changefeed) {
-            // console.log("changefeed", this.storage, updates);
-            log("core-stream: process updates", updates, this.storage);
-            if (this.client == null) return true;
-            //             console.log(
-            //               "listen",
-            //               this.client.id,
-            //               this.storage.path,
-            //               JSON.stringify(updates.map(({ seq }) => seq)),
-            //             );
+          if (this.changefeed == null) {
+            this.changefeed = await this.persistClient.changefeed();
+            if (this.isClosed()) {
+              return true;
+            }
+          }
+
+          for await (const updates of this.changefeed) {
             this.processPersistentMessages(updates, {
               noEmit: false,
               noSeqCheck: false,
             });
+            if (this.isClosed()) {
+              return true;
+            }
           }
-          // console.log("DONE listening on the changefeed...", this.storage);
         } catch (err) {
-          // console.log("error listening on the changefeed...");
+          // There should never be a case where the changefeed throws
+          // an error or ends without this whole streaming being closed.
+          // If that happens its an unexpected bug. Instead of failing,
+          // we log this, loop around, and make a new changefeed.
           // This normally doesn't happen but could if a persist server is being restarted
           // frequently or things are seriously broken.  We cause this in
           //    backend/conat/test/core/core-stream-break.test.ts
@@ -604,15 +588,17 @@ export class CoreStream<T = any> extends EventEmitter {
             );
           }
         }
-        log("core-stream: STOP listening on changefeed", this.storage);
+
+        delete this.changefeed;
+
         // above loop exits when the persistent server
         // stops sending messages for some reason. In that
-        // case we reconnect, picking up where we left off:
-        if (this.client == null) return true;
-        log(
-          "core-stream: get missing from when changefeed ended",
-          this.storage,
-        );
+        // case we reconnect, picking up where we left off.
+
+        if (this.client == null) {
+          return true;
+        }
+
         await this.getAllFromPersist({
           start_seq: this.lastSeq + 1,
           noEmit: false,

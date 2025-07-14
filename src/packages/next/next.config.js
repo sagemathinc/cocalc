@@ -31,6 +31,9 @@ const config = {
       "node_modules",
       "react-dom",
     );
+    config.devServer = {
+      hot: true,
+    };
     // Important: return the modified config
     return config;
   },

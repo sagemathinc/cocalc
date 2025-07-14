@@ -6,7 +6,6 @@
 import { Layout, Tooltip } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
-
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
@@ -84,7 +83,7 @@ export default function Home(props: Props) {
         }}
       >
         <Title level={1} style={{ color: COLORS.GRAY }}>
-          Signed in as{" "}
+        Signed in as{" "}
           <Tooltip title={"View all your account settings"} placement={"right"}>
             <a href={join(basePath, "settings")}>
               {`${account.first_name} ${account.last_name} ${

@@ -143,6 +143,10 @@ export class AccountStore extends Store<AccountState> {
     if (!tours) return false;
     return tours.includes(tour) || tours.includes("all");
   }
+
+  showSymbolBarLabels(): boolean {
+    return this.getIn(["other_settings", "show_symbol_bar_labels"], false);
+  }
 }
 
 // A user is anonymous if they have not provided a way to sign

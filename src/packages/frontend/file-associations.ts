@@ -216,7 +216,7 @@ file_associations["tex"] = {
   icon: "tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "LaTeX",
-  exclude_from_compute_server: true,
+  exclude_from_compute_server: false,
   ext: "tex",
 };
 

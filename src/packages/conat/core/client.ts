@@ -22,6 +22,22 @@ much better in so many ways:
      - JsonCodec: uses JSON.stringify and TextEncoder.  This does not work
        with Buffer or Date and is less compact, but can be very fast.
 
+- One BIG DIFFERENCE from Nats is that when a message is sent the sender
+  can optionally find out how many clients received it.  They can also wait
+  until there is interest and send the message again.  This is automated so
+  it's very easy to use, and it makes writing distributed services without
+  race conditions making them broken temporarily much easier.  HOWEVER,
+  there is one caveat -- if as an admin you create a "tap", i.e., you
+  subscribe to all messages matching some pattern just to see what's going
+  on, then currently that counts in the delivery count and interest, and that
+  would then cause these race conditions to happen again. E.g., a user
+  signs in, subscribes to their INBOX, sends a request, and gets a response
+  to that inbox, but does this all quickly, and in a cluster, the server doesn't
+  see the inbox yet, so it fails.  As a workaround, subscriptions to the
+  subject pattern '>' are invisible, so you can always tap into '>' for debugging
+  purposes.  TODO: implement a general way of making an invisible subscriber that
+  doesn't count.
+
 
 THE CORE API
 
@@ -604,13 +620,14 @@ export class Client extends EventEmitter {
       );
     }
     timeout = Math.min(timeout, MAX_INTEREST_TIMEOUT);
-    const response = await this.conn
-      .timeout(timeout ? timeout : 10000)
-      .emitWithAck("wait-for-interest", { subject, timeout });
-    if (response.error) {
-      throw new ConatError(response.error, { code: response.code });
+    try {
+      const response = await this.conn
+        .timeout(timeout ? timeout : 10000)
+        .emitWithAck("wait-for-interest", { subject, timeout });
+      return response;
+    } catch (err) {
+      throw toConatError(err);
     }
-    return response;
   };
 
   recvStats = (bytes: number) => {
@@ -954,7 +971,7 @@ export class Client extends EventEmitter {
             });
           }
         } catch (err) {
-          throw new ConatError(`${err}`, { code: 408 });
+          throw toConatError(err);
         }
         if (response?.error) {
           throw new ConatError(response.error, { code: response.code });
@@ -1300,9 +1317,7 @@ export class Client extends EventEmitter {
                 return response;
               }
             } catch (err) {
-              throw new ConatError(`timeout - ${subject} - ${err}`, {
-                code: 408,
-              });
+              throw toConatError(err);
             }
           } else {
             return await this.conn.emitWithAck("publish", v);
@@ -1909,4 +1924,16 @@ function isEmpty(obj: object): boolean {
     return false;
   }
   return true;
+}
+
+function toConatError(socketIoError) {
+  // only errors are "disconnected" and a timeout
+  const e = `${socketIoError}`;
+  if (e.includes("disconnected")) {
+    return e;
+  } else {
+    return new ConatError(`timeout - ${e}`, {
+      code: 408,
+    });
+  }
 }

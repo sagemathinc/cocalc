@@ -365,6 +365,9 @@ function ShowAllThreads({
       return null;
     }
     const message = filteredMessages[index];
+    if (message == null) {
+      return null;
+    }
     const focused = message.index == cursor;
     return (
       <div
@@ -435,8 +438,8 @@ function ShowAllThreads({
             checkedMessageIds.size == 0
               ? "square"
               : checkedMessageIds.size == filteredMessages.length
-              ? "check-square"
-              : "minus-square"
+                ? "check-square"
+                : "minus-square"
           }
           style={{
             fontSize: "14pt",
