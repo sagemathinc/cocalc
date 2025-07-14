@@ -1,7 +1,7 @@
 import { before, after, fs } from "./setup";
 import { isValidUUID } from "@cocalc/util/misc";
-// import { readFile, writeFile } from "fs/promises";
-// import { join } from "path";
+import { readFile, writeFile } from "fs/promises";
+import { join } from "path";
 
 beforeAll(before);
 
@@ -60,15 +60,21 @@ describe("operations with subvolumes", () => {
     await fs.rsync({ src: "sagemath", target: "cython" });
   });
 
-  //   it("rsync with an actual file", async () => {
-  //     const sagemath = await fs.subvolume("sagemath");
-  //     const cython = await fs.subvolume("cython");
-  //     await writeFile(join(sagemath.path, "README.md"), "hi");
-  //     await fs.rsync({ src: "sagemath", target: "cython" });
-  //     expect((await readFile(join(sagemath.path, "README.md")), "utf8")).toEqual(
-  //       "hi",
-  //     );
-  //   });
+  it("rsync an actual file", async () => {
+    const sagemath = await fs.subvolume("sagemath");
+    const cython = await fs.subvolume("cython");
+    await writeFile(join(sagemath.path, "README.md"), "hi");
+    await fs.rsync({ src: "sagemath", target: "cython" });
+    const copy = await readFile(join(cython.path, "README.md"), "utf8");
+    expect(copy).toEqual("hi");
+  });
+
+  it("clone a subvolume with contents", async () => {
+    await fs.cloneSubvolume("cython", "pyrex");
+    const pyrex = await fs.subvolume("pyrex");
+    const clone = await readFile(join(pyrex.path, "README.md"), "utf8");
+    expect(clone).toEqual("hi");
+  });
 });
 
 afterAll(after);

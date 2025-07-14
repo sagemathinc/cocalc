@@ -29,6 +29,5 @@ export async function after() {
   try {
     await fs.unmount();
   } catch {}
-  console.log("deleting ", tempDir);
   await rm(tempDir, { force: true, recursive: true });
 }
