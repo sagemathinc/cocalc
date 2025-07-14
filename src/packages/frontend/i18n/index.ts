@@ -47,6 +47,8 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         return import("@cocalc/frontend/i18n/trans/zh_CN.compiled.json");
       case "es":
         return import("@cocalc/frontend/i18n/trans/es_ES.compiled.json");
+      case "eu":
+        return import("@cocalc/frontend/i18n/trans/es_PV.compiled.json");
       case "fr":
         return import("@cocalc/frontend/i18n/trans/fr_FR.compiled.json");
       case "it":
@@ -59,6 +61,8 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         return import("@cocalc/frontend/i18n/trans/ja_JP.compiled.json");
       case "pt":
         return import("@cocalc/frontend/i18n/trans/pt_PT.compiled.json");
+      case "br":
+        return import("@cocalc/frontend/i18n/trans/pt_BR.compiled.json");
       case "ko":
         return import("@cocalc/frontend/i18n/trans/ko_KR.compiled.json");
       case "pl":
