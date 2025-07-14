@@ -42,7 +42,7 @@ export async function get_directory_listing(opts: ListingOpts) {
       timeout = 0.5;
       time0 = server_time();
       if (opts.trigger_start_project === false) {
-        return { files: [] };
+        return { files: [], noRunning: true };
       }
       redux.getActions("projects").start_project(opts.project_id);
     } else {

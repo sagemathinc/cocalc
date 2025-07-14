@@ -110,6 +110,7 @@ import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 import { log_opened_time } from "@cocalc/frontend/project/open-file";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 
 interface gutterMarkerParams {
   line: number;
@@ -1237,6 +1238,9 @@ export class Actions<
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
     if (explicit) {
+      if (!await this.ensureProjectIsRunning(`save ${this.path} to disk`)) {
+        return;
+      }
       const account: any = this.redux.getStore("account");
       if (
         account &&
@@ -2171,6 +2175,10 @@ export class Actions<
       this.set_status("");
     }
   }
+
+  ensureProjectIsRunning = async (what: string): Promise<boolean> => {
+    return await ensure_project_running(this.project_id, what);
+  };
 
   public format_support_for_syntax(
     available_features: AvailableFeatures,
