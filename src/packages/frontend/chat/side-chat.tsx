@@ -238,14 +238,8 @@ function AddChatCollab({ addCollab, project_id }) {
   }
   return (
     <div>
-      You can{" "}
-      {redux.getProjectsStore().hasLanguageModelEnabled(project_id) && (
-        <>chat with AI or notify a collaborator by typing @, </>
-      )}
-      <A href="https://github.com/sagemathinc/cocalc/discussions">
-        join a discussion on GitHub
-      </A>
-      , and add more collaborators to this project below.
+      @mention AI or collaborators, add more collaborators below, or{" "}
+      <A href="https://discord.gg/EugdaJZ8">join the CoCalc Discord.</A>
       <AddCollaborators project_id={project_id} autoFocus where="side-chat" />
       <div style={{ color: COLORS.GRAY_M }}>
         (Collaborators have access to all files in this project.)

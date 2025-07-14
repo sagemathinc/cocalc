@@ -300,7 +300,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     return (
-      <Card style={{ width: "100%", overflowX: "auto" }}>
+      <Card style={{ minWidth: "800px", width: "100%", overflow: "auto" }}>
         {heading}
         <br />
         <br />
