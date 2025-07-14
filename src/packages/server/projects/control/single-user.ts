@@ -14,21 +14,20 @@ This is useful for:
   - development of cocalc from inside of a CoCalc project
   - non-collaborative use of cocalc on your own
     laptop, e.g., when you're on an airplane.
-    
-    
+
+
 DEVELOPMENT:
 
 
 ~/cocalc/src/packages/server/projects/control$ COCALC_MODE='single-user' node
 Welcome to Node.js v20.19.1.
 Type ".help" for more information.
-> a = require('@cocalc/server/projects/control'); 
+> a = require('@cocalc/server/projects/control');
 > p = a.getProject('8a840733-93b6-415c-83d4-7e5712a6266b')
 > await p.start()
 */
 
-import { kill } from "process";
-
+import { kill } from "node:process";
 import getLogger from "@cocalc/backend/logger";
 import {
   BaseProject,
@@ -153,16 +152,26 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "stopping" };
       await this.saveStateToDatabase(this.stateChanging);
-      try {
-        const pid = await getProjectPID(this.HOME);
-        logger.debug(`stop: sending kill -${pid}`);
-        kill(-pid);
-      } catch (err) {
-        // expected exception if no pid
-        logger.debug(`stop: kill err ${err}`);
-      }
+      const pid = await getProjectPID(this.HOME);
+      const killProject = () => {
+        try {
+          logger.debug(`stop: sending kill -${pid}`);
+          kill(-pid, "SIGKILL");
+        } catch (err) {
+          // expected exception if no pid
+          logger.debug(`stop: kill err ${err}`);
+        }
+      };
+      killProject();
       await this.wait({
-        until: async () => !(await isProjectRunning(this.HOME)),
+        until: async () => {
+          if (await isProjectRunning(this.HOME)) {
+            killProject();
+            return false;
+          } else {
+            return true;
+          }
+        },
         maxTime: MAX_STOP_TIME_MS,
       });
       await deleteProjectSecretToken(this.project_id);

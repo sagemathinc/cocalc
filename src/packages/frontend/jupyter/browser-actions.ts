@@ -153,11 +153,7 @@ export class JupyterActions extends JupyterActions0 {
       }
     });
 
-    // Put an entry in the project log once the jupyter notebook gets opened.
-    // NOTE: Obviously, the project does NOT need to put entries in the log.
-    this.syncdb.once("change", () =>
-      this.redux?.getProjectActions(this.project_id).log_opened_time(this.path),
-    );
+    this.initOpenLog();
 
     // project doesn't care about cursors, but browser clients do:
     this.syncdb.on("cursor_activity", this.syncdb_cursor_activity);
@@ -175,6 +171,23 @@ export class JupyterActions extends JupyterActions0 {
         account_store.get("editor_settings");
     }
   }
+
+  initOpenLog = () => {
+    // Put an entry in the project log once the jupyter notebook gets opened and
+    // shows cells.
+    const reportOpened = () => {
+      if (this._state == "closed") {
+        return;
+      }
+      if (this.syncdb.get_one({ type: "cell" }) != null) {
+        this.redux
+          ?.getProjectActions(this.project_id)
+          .log_opened_time(this.path);
+        this.syncdb.removeListener("change", reportOpened);
+      }
+    };
+    this.syncdb.on("change", reportOpened);
+  };
 
   initUsageInfo = async () => {
     while (this._state != "closed") {
