@@ -1496,7 +1496,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       most_recent_file_click: undefined,
     });
-    this.fetch_directory_listing({ path });
+
+    store.get_listings().watch(path, true);
   };
 
   setComputeServerId = (compute_server_id: number) => {
@@ -1556,9 +1557,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Update the directory listing cache for the given path.
   // Uses current path if path not provided.
-  async fetch_directory_listing(opts?): Promise<void> {
+  fetch_directory_listing = async (opts?): Promise<void> => {
     await fetchDirectoryListing(this, opts);
-  }
+  };
 
   public async fetch_directory_listing_directly(
     path: string,
