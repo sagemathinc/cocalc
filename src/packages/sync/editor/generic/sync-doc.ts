@@ -1463,7 +1463,7 @@ export class SyncDoc extends EventEmitter {
     log("update interest");
     this.initInterestLoop();
 
-    log("ensure syncstring exists in database (if not using NATS)");
+    log("ensure syncstring exists");
     this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 
