@@ -35,6 +35,7 @@
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@types/jest": "^29.5.14",
     "@types/node": "^18.16.14",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^11.10.0",
