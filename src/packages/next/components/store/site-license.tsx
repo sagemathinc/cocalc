@@ -306,6 +306,7 @@ function CreateSiteLicense({
           onChange={onLicenseChange}
         />
         <QuotaConfig
+          type={type}
           boost={false}
           form={form}
           onChange={onLicenseChange}

@@ -197,3 +197,31 @@ export const PRESETS: PresetEntries = {
     member: true,
   },
 } as const;
+
+export const COURSE = {
+  standard: {
+    icon: "line-chart",
+    name: PRESET_STANDARD_NAME,
+    descr: "is a good choice for most use cases in a course",
+    expect: [
+      "Run a couple of Jupyter Notebooks at once,",
+      "Edit LaTeX, Markdown, R Documents, and use VS Code,",
+      `${STANDARD_DISK} GB disk space is sufficient to store many files and small datasets.`,
+    ],
+    note: <Paragraph type="secondary">TODO NOTE</Paragraph>,
+    details: (
+      <>
+        You can run a couple of Jupyter Notebooks in a project at once,
+        depending on the kernel and memory usage. This quota is fine for editing
+        LaTeX documents, working with Sage Worksheets, using VS Code, and
+        editing all other document types. Also, {STANDARD_DISK} GB of disk space
+        is sufficient to store many files and a few small datasets.
+      </>
+    ),
+    cpu: STANDARD_CPU,
+    ram: STANDARD_RAM,
+    disk: STANDARD_DISK,
+    uptime: "short",
+    member: true,
+  },
+} as const satisfies { [key in "standard"]: PresetConfig };

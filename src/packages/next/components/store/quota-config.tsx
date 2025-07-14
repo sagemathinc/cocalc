@@ -3,6 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useEffect, useRef, useState, type JSX } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { displaySiteLicense } from "@cocalc/util/consts/site-license";
+import { plural, unreachable } from "@cocalc/util/misc";
+import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
 import {
   Alert,
   Button,
@@ -16,21 +22,18 @@ import {
   Tabs,
   Typography,
 } from "antd";
-import { useEffect, useRef, useState, type JSX } from "react";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { displaySiteLicense } from "@cocalc/util/consts/site-license";
-import { plural } from "@cocalc/util/misc";
-import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { CSS, Paragraph } from "components/misc";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import {
+  COURSE,
   PRESETS,
   PRESET_MATCH_FIELDS,
   Preset,
   PresetConfig,
 } from "./quota-config-presets";
+import type { LicenseType } from "./types";
 
 const { Text } = Typography;
 
@@ -57,6 +60,7 @@ interface Props {
   setPreset?: (preset: Preset | null) => void;
   presetAdjusted?: boolean;
   setPresetAdjusted?: (adjusted: boolean) => void;
+  type: LicenseType;
 }
 
 export const QuotaConfig: React.FC<Props> = (props: Props) => {
@@ -72,6 +76,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     setPreset,
     presetAdjusted,
     setPresetAdjusted,
+    type,
   } = props;
 
   const presetsRef = useRef<HTMLDivElement>(null);
@@ -107,7 +112,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (boost) {
       return "Booster";
     } else {
-      return "Quota Upgrades";
+      switch (type) {
+        case "license":
+          return "Quota Upgrades";
+        case "course":
+          return "Project Upgrades";
+        default:
+          unreachable(type);
+      }
     }
   }
 
@@ -384,6 +396,62 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderCoursePresets() {
+    const p = preset != null ? COURSE[preset] : undefined;
+    let presetInfo: JSX.Element | undefined = undefined;
+    if (p != null) {
+      const { name, cpu, disk, ram, uptime, note } = p;
+      const basic = (
+        <>
+          provides up to{" "}
+          <Text strong>
+            {cpu} {plural(cpu, "vCPU")}
+          </Text>
+          , <Text strong>{ram} GB memory</Text>, and{" "}
+          <Text strong>{disk} GB disk space</Text> for each project.
+        </>
+      );
+      const ut = (
+        <>
+          the project's{" "}
+          <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
+        </>
+      );
+      presetInfo = (
+        <Paragraph>
+          <strong>{name}</strong> {basic} Additionally, {ut}. {note}
+        </Paragraph>
+      );
+    }
+
+    return (
+      <>
+        <Form.Item label="Preset">
+          <Radio.Group
+            size="large"
+            value={preset}
+            onChange={(e) => onPresetChange(e.target.value)}
+          >
+            <Space direction="vertical">
+              {(Object.keys(COURSE) as Array<Preset>).map((p) => {
+                const { name, icon, descr } = COURSE[p];
+                return (
+                  <Radio key={p} value={p}>
+                    <span>
+                      <Icon name={icon ?? "arrow-up"} />{" "}
+                      <strong>{name}:</strong> {descr}
+                    </span>
+                  </Radio>
+                );
+              })}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+        {presetInfo}
+      </>
+    );
+  }
+
   function renderPresetsNarrow() {
     const p = preset != null ? PRESETS[preset] : undefined;
     let presetInfo: JSX.Element | undefined = undefined;
@@ -560,38 +628,45 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         </>
       );
     } else {
-      return (
-        <Tabs
-          activeKey={configMode}
-          onChange={setConfigMode}
-          type="card"
-          tabPosition="top"
-          size="middle"
-          centered={true}
-          items={[
-            {
-              key: "preset",
-              label: (
-                <span>
-                  <Icon name="gears" style={{ marginRight: "5px" }} />
-                  Presets
-                </span>
-              ),
-              children: presetExtra(),
-            },
-            {
-              key: "expert",
-              label: (
-                <span>
-                  <Icon name="wrench" style={{ marginRight: "5px" }} />
-                  {EXPERT_CONFIG}
-                </span>
-              ),
-              children: detailed(),
-            },
-          ]}
-        />
-      );
+      switch (type) {
+        case "license":
+          return (
+            <Tabs
+              activeKey={configMode}
+              onChange={setConfigMode}
+              type="card"
+              tabPosition="top"
+              size="middle"
+              centered={true}
+              items={[
+                {
+                  key: "preset",
+                  label: (
+                    <span>
+                      <Icon name="gears" style={{ marginRight: "5px" }} />
+                      Presets
+                    </span>
+                  ),
+                  children: presetExtra(),
+                },
+                {
+                  key: "expert",
+                  label: (
+                    <span>
+                      <Icon name="wrench" style={{ marginRight: "5px" }} />
+                      {EXPERT_CONFIG}
+                    </span>
+                  ),
+                  children: detailed(),
+                },
+              ]}
+            />
+          );
+        case "course":
+          return renderCoursePresets();
+        default:
+          unreachable(type);
+      }
     }
   }
 
