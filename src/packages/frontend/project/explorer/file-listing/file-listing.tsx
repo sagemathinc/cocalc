@@ -279,8 +279,7 @@ export const FileListing: React.FC<Props> = ({
         >
           <FormattedMessage
             id="project.explorer.file-listing.stale-warning"
-            defaultMessage={`Showing stale directory listing
-              {is_missing, select, true {<b>missing {missing} files</b>} other {}}.
+            defaultMessage={`Showing stale directory listing{is_missing, select, true {<b> missing {missing} files</b>} other {}}.
               To update the directory listing <a>start this project</a>.`}
             values={{
               is_missing: missing > 0,

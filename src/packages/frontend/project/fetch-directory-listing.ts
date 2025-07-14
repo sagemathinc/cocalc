@@ -97,6 +97,10 @@ const fetchDirectoryListing = reuseInFlight(
       }
       const directory_listings = store.get("directory_listings");
       let listing2 = directory_listings.get(compute_server_id) ?? Map();
+      if (listing.noRunning && (listing2.get(path)?.size ?? 0) > 0) {
+        // do not change it
+        return;
+      }
       listing2 = listing2.set(path, value);
       actions.setState({
         directory_listings: directory_listings.set(compute_server_id, listing2),

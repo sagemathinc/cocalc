@@ -22,6 +22,12 @@ import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
 import { until } from "@cocalc/util/async-utils";
 
+let DEFAULT_RECONNECT_DELAY = 1500;
+
+export function setDefaultReconnectDelay(delay) {
+  DEFAULT_RECONNECT_DELAY = delay;
+}
+
 interface GetAllOpts {
   start_seq?: number;
   end_seq?: number;
@@ -32,10 +38,7 @@ interface GetAllOpts {
 const logger = getLogger("persist:client");
 
 export type ChangefeedEvent = (SetOperation | DeleteOperation)[];
-
 export type Changefeed = EventIterator<ChangefeedEvent>;
-
-// const paths = new Set<string>();
 
 export { type PersistStreamClient };
 class PersistStreamClient extends EventEmitter {
@@ -69,7 +72,6 @@ class PersistStreamClient extends EventEmitter {
       return;
     }
     this.socket?.close();
-    // console.log("making a socket connection to ", persistSubject(this.user));
     const subject = persistSubject({ ...this.user, service: this.service });
     this.socket = this.client.socket.connect(subject, {
       desc: `persist: ${this.storage.path}`,
@@ -88,15 +90,14 @@ class PersistStreamClient extends EventEmitter {
     }
 
     this.socket.once("disconnected", () => {
-      // console.log("persist client was disconnected", this.storage.path);
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, 1000);
+      setTimeout(this.init, DEFAULT_RECONNECT_DELAY);
     });
     this.socket.once("closed", () => {
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, 1000);
+      setTimeout(this.init, DEFAULT_RECONNECT_DELAY);
     });
 
     this.socket.on("data", (updates, headers) => {
@@ -131,6 +132,22 @@ class PersistStreamClient extends EventEmitter {
           }
           try {
             await this.socket.waitUntilReady(15000);
+            if (this.changefeeds.length == 0 || this.state != "ready") {
+              return true;
+            }
+            const resp = await this.socket.request(null, {
+              headers: {
+                cmd: "changefeed",
+              },
+            });
+            if (resp.headers?.error) {
+              throw new ConatError(`${resp.headers?.error}`, {
+                code: resp.headers?.code,
+              });
+            }
+            if (this.changefeeds.length == 0 || this.state != "ready") {
+              return true;
+            }
             const updates = await this.getAll({
               start_seq: this.lastSeq,
               timeout: 15000,
@@ -178,7 +195,6 @@ class PersistStreamClient extends EventEmitter {
   close = () => {
     logger.debug("close", this.storage);
     // paths.delete(this.storage.path);
-    // console.log("persist -- close", this.storage.path, paths);
     this.state = "closed";
     this.emit("closed");
     for (const iter of this.changefeeds) {
