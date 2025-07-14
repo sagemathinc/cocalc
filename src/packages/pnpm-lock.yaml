@@ -289,37 +289,19 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
-      '@cocalc/conat':
-        specifier: workspace:*
-        version: link:../conat
       '@cocalc/file-server':
         specifier: workspace:*
         version: 'link:'
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+    devDependencies:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.118
-      awaiting:
-        specifier: ^3.0.0
-        version: 3.0.0
-      better-sqlite3:
-        specifier: ^11.10.0
-        version: 11.10.0
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
-    devDependencies:
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
-      '@types/lodash':
-        specifier: ^4.14.202
-        version: 4.17.20
 
   frontend:
     dependencies:

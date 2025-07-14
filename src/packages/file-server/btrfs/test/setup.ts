@@ -1,7 +1,7 @@
 import {
   filesystem,
   type Filesystem,
-} from "@cocalc/file-server/storage-btrfs/filesystem";
+} from "@cocalc/file-server/btrfs/filesystem";
 import process from "node:process";
 import { chmod, mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

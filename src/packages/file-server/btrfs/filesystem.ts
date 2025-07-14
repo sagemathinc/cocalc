@@ -12,14 +12,7 @@ a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({devic
 */
 
 import refCache from "@cocalc/util/refcache";
-import {
-  exists,
-  isdir,
-  listdir,
-  mkdirp,
-  rmdir,
-  sudo,
-} from "@cocalc/file-server/storage-zfs/util";
+import { exists, isdir, listdir, mkdirp, rmdir, sudo } from "./util";
 import { subvolume, SNAPSHOTS, type Subvolume } from "./subvolume";
 import { join, normalize } from "path";
 

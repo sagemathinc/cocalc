@@ -9,7 +9,7 @@ import {
   listdir,
   mkdirp,
   sudo,
-} from "@cocalc/file-server/storage-zfs/util";
+} from "./util";
 import { join } from "path";
 import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
 import { human_readable_size } from "@cocalc/util/misc";

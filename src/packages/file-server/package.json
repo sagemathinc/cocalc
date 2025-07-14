@@ -3,19 +3,16 @@
   "version": "1.0.0",
   "description": "CoCalc File Server",
   "exports": {
-    "./zfs": "./dist/zfs/index.js",
-    "./zfs/*": "./dist/zfs/*.js",
-    "./storage-zfs": "./dist/storage-zfs/index.js",
-    "./storage-zfs/*": "./dist/storage-zfs/*.js",
-    "./storage-btrfs": "./dist/storage-btrfs/index.js",
-    "./storage-btrfs/*": "./dist/storage-btrfs/*.js"
+    "./btrfs": "./dist/btrfs/index.js",
+    "./btrfs/*": "./dist/btrfs/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest  --runInBand",
-    "depcheck": "pnpx depcheck"
+    "depcheck": "pnpx depcheck",
+    "clean": "rm -rf node_modules dist"
   },
   "files": [
     "dist/**",
@@ -26,24 +23,17 @@
   "keywords": [
     "utilities",
     "btrfs",
-    "zfs",
     "cocalc"
   ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
-    "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
-    "@cocalc/util": "workspace:*",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^18.16.14",
-    "awaiting": "^3.0.0",
-    "better-sqlite3": "^11.10.0",
-    "lodash": "^4.17.21"
+    "@cocalc/util": "workspace:*"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/lodash": "^4.14.202"
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18.16.14"
   },
   "repository": {
     "type": "git",
