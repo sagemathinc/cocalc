@@ -6,12 +6,11 @@ import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
 import { exists, listdir, mkdirp, sudo } from "./util";
 import { join, normalize } from "path";
-import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
 import { SubvolumeFilesystem } from "./subvolume-fs";
 import { SubvolumeBup } from "./subvolume-bup";
+import { SubvolumeSnapshot } from "./subvolume-snapshot";
 import getLogger from "@cocalc/backend/logger";
 
-export const SNAPSHOTS = ".snapshots";
 const SEND_SNAPSHOT_PREFIX = "send-";
 const PAD = 4;
 
@@ -27,26 +26,26 @@ export class Subvolume {
 
   public readonly filesystem: Filesystem;
   public readonly path: string;
-  public readonly snapshotsDir: string;
   public readonly fs: SubvolumeFilesystem;
   public readonly bup: SubvolumeBup;
+  public readonly snapshot: SubvolumeSnapshot;
 
   constructor({ filesystem, name }: Options) {
     this.filesystem = filesystem;
     this.name = name;
     this.path = join(filesystem.opts.mount, name);
-    this.snapshotsDir = join(this.path, SNAPSHOTS);
     this.fs = new SubvolumeFilesystem(this);
     this.bup = new SubvolumeBup(this);
+    this.snapshot = new SubvolumeSnapshot(this);
   }
 
   init = async () => {
     if (!(await exists(this.path))) {
+      logger.debug(`creating ${this.name} at ${this.path}`);
       await sudo({
         command: "btrfs",
         args: ["subvolume", "create", this.path],
       });
-      await this.makeSnapshotsDir();
       await this.chown(this.path);
       await this.size(
         this.filesystem.opts.defaultSize ?? DEFAULT_SUBVOLUME_SIZE,
@@ -167,96 +166,6 @@ export class Subvolume {
   };
 
   /////////////
-  // SNAPSHOTS
-  /////////////
-  snapshotPath = (snapshot: string, ...segments) => {
-    return join(SNAPSHOTS, snapshot, ...segments);
-  };
-
-  private makeSnapshotsDir = async () => {
-    if (await exists(this.snapshotsDir)) {
-      return;
-    }
-    await mkdirp([this.snapshotsDir]);
-    await this.chown(this.snapshotsDir);
-    await sudo({ command: "chmod", args: ["a-w", this.snapshotsDir] });
-  };
-
-  createSnapshot = async (name?: string) => {
-    name ??= new Date().toISOString();
-    logger.debug("createSnapshot", { name, subvolume: this.name });
-    await this.makeSnapshotsDir();
-    await sudo({
-      command: "btrfs",
-      args: [
-        "subvolume",
-        "snapshot",
-        "-r",
-        this.path,
-        join(this.snapshotsDir, name),
-      ],
-    });
-  };
-
-  snapshots = async (): Promise<string[]> => {
-    return (await listdir(this.snapshotsDir)).sort();
-  };
-
-  lockSnapshot = async (name) => {
-    if (await exists(join(this.snapshotsDir, name))) {
-      await sudo({
-        command: "touch",
-        args: [join(this.snapshotsDir, `.${name}.lock`)],
-      });
-    } else {
-      throw Error(`snapshot ${name} does not exist`);
-    }
-  };
-
-  unlockSnapshot = async (name) => {
-    await sudo({
-      command: "rm",
-      args: ["-f", join(this.snapshotsDir, `.${name}.lock`)],
-    });
-  };
-
-  snapshotExists = async (name: string) => {
-    return await exists(join(this.snapshotsDir, name));
-  };
-
-  deleteSnapshot = async (name) => {
-    if (await exists(join(this.snapshotsDir, `.${name}.lock`))) {
-      throw Error(`snapshot ${name} is locked`);
-    }
-    await sudo({
-      command: "btrfs",
-      args: ["subvolume", "delete", join(this.snapshotsDir, name)],
-    });
-  };
-
-  updateRollingSnapshots = async (counts?: Partial<SnapshotCounts>) => {
-    return await updateRollingSnapshots({ subvolume: this, counts });
-  };
-
-  // has newly written changes since last snapshot
-  hasUnsavedChanges = async (): Promise<boolean> => {
-    const s = await this.snapshots();
-    if (s.length == 0) {
-      // more than just the SNAPSHOTS directory?
-      const v = await listdir(this.path);
-      if (v.length == 0 || (v.length == 1 && v[0] == this.snapshotsDir)) {
-        return false;
-      }
-      return true;
-    }
-    const pathGen = await getGeneration(this.path);
-    const snapGen = await getGeneration(
-      join(this.snapshotsDir, s[s.length - 1]),
-    );
-    return snapGen < pathGen;
-  };
-
-  /////////////
   // BTRFS send/recv
   // Not used.  Instead we will rely on bup (and snapshots of the underlying disk) for backups, since:
   //  - much easier to check they are valid
@@ -278,7 +187,7 @@ export class Subvolume {
     const streams = new Set(
       await listdir(join(this.filesystem.streams, this.name)),
     );
-    const allSnapshots = await this.snapshots();
+    const allSnapshots = (await this.snapshot.ls()).map((x) => x.name);
     const snapshots = allSnapshots.filter(
       (x) => x.startsWith(SEND_SNAPSHOT_PREFIX) && streams.has(x),
     );
@@ -298,22 +207,22 @@ export class Subvolume {
     }
     const send = `${SEND_SNAPSHOT_PREFIX}${seq}`;
     if (allSnapshots.includes(send)) {
-      await this.deleteSnapshot(send);
+      await this.snapshot.delete(send);
     }
-    await this.createSnapshot(send);
+    await this.snapshot.create(send);
     await sudo({
       command: "btrfs",
       args: [
         "send",
         "--compressed-data",
-        join(this.snapshotsDir, send),
-        ...(last ? ["-p", join(this.snapshotsDir, parent)] : []),
+        join(this.snapshot.path(), send),
+        ...(last ? ["-p", this.snapshot.path(parent)] : []),
         "-f",
         join(this.filesystem.streams, this.name, send),
       ],
     });
     if (parent) {
-      await this.deleteSnapshot(parent);
+      await this.snapshot.delete(parent);
     }
   };
 
@@ -328,15 +237,6 @@ export class Subvolume {
   //       });
   //     }
   //   };
-}
-
-async function getGeneration(path: string): Promise<number> {
-  const { stdout } = await sudo({
-    command: "btrfs",
-    args: ["subvolume", "show", path],
-    verbose: false,
-  });
-  return parseInt(stdout.split("Generation:")[1].split("\n")[0].trim());
 }
 
 const cache = refCache<Options & { noCache?: boolean }, Subvolume>({

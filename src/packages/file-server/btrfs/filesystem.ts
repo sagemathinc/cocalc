@@ -13,7 +13,8 @@ a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({devic
 
 import refCache from "@cocalc/util/refcache";
 import { exists, isdir, listdir, mkdirp, rmdir, sudo } from "./util";
-import { subvolume, SNAPSHOTS, type Subvolume } from "./subvolume";
+import { subvolume, type Subvolume } from "./subvolume";
+import { SNAPSHOTS } from "./subvolume-snapshot";
 import { join, normalize } from "path";
 
 // default size of btrfs filesystem if creating an image file.
@@ -201,10 +202,13 @@ export class Filesystem {
       command: "mv",
       args: [join(this.opts.mount, source, name), join(this.opts.mount, name)],
     });
-    const snapshots = await listdir(join(this.opts.mount, name, SNAPSHOTS));
-    await rmdir(
-      snapshots.map((x) => join(this.opts.mount, name, SNAPSHOTS, x)),
-    );
+    const snapdir = join(this.opts.mount, name, SNAPSHOTS);
+    if (await exists(snapdir)) {
+      const snapshots = await listdir(snapdir);
+      await rmdir(
+        snapshots.map((x) => join(this.opts.mount, name, SNAPSHOTS, x)),
+      );
+    }
     const src = await this.subvolume(source);
     const vol = await this.subvolume(name);
     const { size } = await src.usage();

@@ -50,6 +50,12 @@ export async function sudo(
   });
 }
 
+export async function btrfs(
+  opts: Partial<ExecuteCodeOptions & { desc?: string }>,
+) {
+  return await sudo({ ...opts, command: "btrfs" });
+}
+
 export async function rm(paths: string[]) {
   if (paths.length == 0) return;
   await sudo({ command: "rm", args: paths });

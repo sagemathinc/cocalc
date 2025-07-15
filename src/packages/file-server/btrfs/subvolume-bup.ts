@@ -23,17 +23,17 @@ export class SubvolumeBup {
     // timeout used for bup index and bup save commands
     timeout = 30 * 60 * 1000,
   }: { timeout?: number } = {}) => {
-    if (await this.subvolume.snapshotExists(BUP_SNAPSHOT)) {
+    if (await this.subvolume.snapshot.exists(BUP_SNAPSHOT)) {
       logger.debug(`createBupBackup: deleting existing ${BUP_SNAPSHOT}`);
-      await this.subvolume.deleteSnapshot(BUP_SNAPSHOT);
+      await this.subvolume.snapshot.delete(BUP_SNAPSHOT);
     }
     try {
       logger.debug(
         `createBackup: creating ${BUP_SNAPSHOT} to get a consistent backup`,
       );
-      await this.subvolume.createSnapshot(BUP_SNAPSHOT);
+      await this.subvolume.snapshot.create(BUP_SNAPSHOT);
       const target = this.subvolume.normalize(
-        this.subvolume.snapshotPath(BUP_SNAPSHOT),
+        this.subvolume.snapshot.path(BUP_SNAPSHOT),
       );
 
       logger.debug(`createBupBackup: indexing ${BUP_SNAPSHOT}`);
@@ -67,7 +67,7 @@ export class SubvolumeBup {
       });
     } finally {
       logger.debug(`createBupBackup: deleting temporary ${BUP_SNAPSHOT}`);
-      await this.subvolume.deleteSnapshot(BUP_SNAPSHOT);
+      await this.subvolume.snapshot.delete(BUP_SNAPSHOT);
     }
   };
 
@@ -78,7 +78,7 @@ export class SubvolumeBup {
     }
     path = normalize(path);
     // ... but to avoid potential data loss, we make a snapshot before deleting it.
-    await this.subvolume.createSnapshot();
+    await this.subvolume.snapshot.create();
     const i = path.indexOf("/"); // remove the commit name
     // remove the target we're about to restore
     await this.subvolume.fs.rm(path.slice(i + 1), { recursive: true });

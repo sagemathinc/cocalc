@@ -22,21 +22,23 @@ describe(`stress test creating ${numSnapshots} snapshots`, () => {
     const start = Date.now();
     for (let i = 0; i < numSnapshots; i++) {
       await writeFile(join(vol.path, `${i}.txt`), "world");
-      await vol.createSnapshot(`snap${i}`);
+      await vol.snapshot.create(`snap${i}`);
       snaps.push(`snap${i}`);
     }
     log(
       `created ${Math.round((numSnapshots / (Date.now() - start)) * 1000)} snapshots per second in serial`,
     );
     snaps.sort();
-    expect(await vol.snapshots()).toEqual(snaps);
+    expect((await vol.snapshot.ls()).map(({ name }) => name).sort()).toEqual(
+      snaps.sort(),
+    );
   });
 
   it(`delete our ${numSnapshots} snapshots`, async () => {
     for (let i = 0; i < numSnapshots; i++) {
-      await vol.deleteSnapshot(`snap${i}`);
+      await vol.snapshot.delete(`snap${i}`);
     }
-    expect(await vol.snapshots()).toEqual([]);
+    expect(await vol.snapshot.ls()).toEqual([]);
   });
 });
 

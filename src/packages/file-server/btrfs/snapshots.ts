@@ -1,4 +1,4 @@
-import { type Subvolume } from "./subvolume";
+import { type SubvolumeSnapshot } from "./subvolume-snapshot";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:storage-btrfs:snapshots");
@@ -30,17 +30,17 @@ export interface SnapshotCounts {
 }
 
 export async function updateRollingSnapshots({
-  subvolume,
+  snapshot,
   counts,
 }: {
-  subvolume: Subvolume;
+  snapshot: SubvolumeSnapshot;
   counts?: Partial<SnapshotCounts>;
 }) {
   counts = { ...DEFAULT_SNAPSHOT_COUNTS, ...counts };
 
-  const changed = await subvolume.hasUnsavedChanges();
+  const changed = await snapshot.hasUnsavedChanges();
   logger.debug("updateRollingSnapshots", {
-    name: subvolume.name,
+    name: snapshot.subvolume.name,
     counts,
     changed,
   });
@@ -50,9 +50,9 @@ export async function updateRollingSnapshots({
   }
 
   // get exactly the iso timestamp snapshot names:
-  const snapshots = (await subvolume.snapshots()).filter((x) =>
-    DATE_REGEXP.test(x),
-  );
+  const snapshots = (await snapshot.ls())
+    .map((x) => x.name)
+    .filter((name) => DATE_REGEXP.test(name));
   snapshots.sort();
   if (snapshots.length > 0) {
     const age = Date.now() - new Date(snapshots.slice(-1)[0]).valueOf();
@@ -61,7 +61,7 @@ export async function updateRollingSnapshots({
         if (age < SNAPSHOT_INTERVALS_MS[key]) {
           // no need to snapshot since there is already a sufficiently recent snapshot
           logger.debug("updateRollingSnapshots: no need to snapshot", {
-            name: subvolume.name,
+            name: snapshot.subvolume.name,
           });
           return;
         }
@@ -72,14 +72,14 @@ export async function updateRollingSnapshots({
   }
 
   // make a new snapshot
-  const snapshot = new Date().toISOString();
-  await subvolume.createSnapshot(snapshot);
+  const name = new Date().toISOString();
+  await snapshot.create(name);
   // delete extra snapshots
-  snapshots.push(snapshot);
+  snapshots.push(name);
   const toDelete = snapshotsToDelete({ counts, snapshots });
-  for (const snapshot of toDelete) {
+  for (const expired of toDelete) {
     try {
-      await subvolume.deleteSnapshot(snapshot);
+      await snapshot.delete(expired);
     } catch {
       // some snapshots can't be deleted, e.g., they were used for the last send.
     }
