@@ -1618,10 +1618,10 @@ importers:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
       sass:
-        specifier: ^1.57.1
+        specifier: ^1.89.2
         version: 1.89.2
       sass-loader:
-        specifier: ^16.0.2
+        specifier: ^16.0.5
         version: 16.0.5(@rspack/core@1.4.4(@swc/helpers@0.5.15))(sass@1.89.2)(webpack@5.99.5)
       script-loader:
         specifier: ^0.7.2
@@ -4379,9 +4379,6 @@ packages:
 
   '@types/node@24.0.10':
     resolution: {integrity: sha512-ENHwaH+JIRTDIEEbDK6QSQntAYGtbvdDXnMXnZaZ6k13Du1dPMmprkEHIL7ok2Wl2aZevetwTAb5S+7yIF+enA==}
-
-  '@types/node@24.0.13':
-    resolution: {integrity: sha512-Qm9OYVOFHFYg3wJoTSrz80hoec5Lia/dPp84do3X7dZvLikQvM1YpmvTBEdIr/e+U8HTkFjLHLnl78K/qjf+jQ==}
 
   '@types/nodemailer@6.4.17':
     resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
@@ -14836,10 +14833,6 @@ snapshots:
     dependencies:
       undici-types: 7.8.0
 
-  '@types/node@24.0.13':
-    dependencies:
-      undici-types: 7.8.0
-
   '@types/nodemailer@6.4.17':
     dependencies:
       '@types/node': 18.19.115
@@ -19460,7 +19453,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.0.13
+      '@types/node': 18.19.115
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
