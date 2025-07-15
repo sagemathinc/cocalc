@@ -74,6 +74,7 @@ import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 import { forkedConatServer } from "./start-server";
 import { stickyChoice } from "./sticky";
 import { EventEmitter } from "events";
+import { Metrics } from "../types";
 
 const logger = getLogger("conat:core:server");
 
@@ -308,6 +309,10 @@ export class ConatServer extends EventEmitter {
       resource: RESOURCE,
       log: (...args) => this.log("usage", ...args),
     });
+  };
+
+  public getUsage = (): Metrics => {
+    return this.usage.getMetrics();
   };
 
   // this is for the Kubernetes health check -- I haven't
@@ -602,7 +607,9 @@ export class ConatServer extends EventEmitter {
       return;
     }
     if (!(await this.isAllowed({ user, subject, type: "sub" }))) {
-      const message = `permission denied subscribing to '${subject}' from ${JSON.stringify(user)}`;
+      const message = `permission denied subscribing to '${subject}' from ${JSON.stringify(
+        user,
+      )}`;
       this.log(message);
       throw new ConatError(message, {
         code: 403,
@@ -706,7 +713,9 @@ export class ConatServer extends EventEmitter {
     }
 
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
-      const message = `permission denied publishing to '${subject}' from ${JSON.stringify(from)}`;
+      const message = `permission denied publishing to '${subject}' from ${JSON.stringify(
+        from,
+      )}`;
       this.log(message);
       throw new ConatError(message, {
         // this is the http code for permission denied, and having this
@@ -950,7 +959,9 @@ export class ConatServer extends EventEmitter {
           return;
         }
         if (!(await this.isAllowed({ user, subject, type: "pub" }))) {
-          const message = `permission denied waiting for interest in '${subject}' from ${JSON.stringify(user)}`;
+          const message = `permission denied waiting for interest in '${subject}' from ${JSON.stringify(
+            user,
+          )}`;
           this.log(message);
           respond({ error: message, code: 403 });
         }
@@ -1791,7 +1802,9 @@ export function updateSticky(update: StickyUpdate, sticky: Sticky): boolean {
 function getServerAddress(options: Options) {
   const port = options.port;
   const path = options.path?.slice(0, -"/conat".length) ?? "";
-  return `http${options.ssl || port == 443 ? "s" : ""}://${options.clusterIpAddress ?? "localhost"}:${port}${path}`;
+  return `http${options.ssl || port == 443 ? "s" : ""}://${
+    options.clusterIpAddress ?? "localhost"
+  }:${port}${path}`;
 }
 
 /*
