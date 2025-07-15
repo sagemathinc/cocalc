@@ -1027,14 +1027,11 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     this.dbg("set_initialized")({ error, read_only, size });
     const init = { time: this.client.server_time(), size, error };
-    for (let i = 0; i < 3; i++) {
-      await this.set_syncstring_table({
-        init,
-        read_only,
-        last_active: this.client.server_time(),
-      });
-      await delay(1000);
-    }
+    await this.set_syncstring_table({
+      init,
+      read_only,
+      last_active: this.client.server_time(),
+    });
   };
 
   /* List of logical timestamps of the versions of this string in the sync
@@ -1463,7 +1460,7 @@ export class SyncDoc extends EventEmitter {
     log("update interest");
     this.initInterestLoop();
 
-    log("ensure syncstring exists in database (if not using NATS)");
+    log("ensure syncstring exists");
     this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 

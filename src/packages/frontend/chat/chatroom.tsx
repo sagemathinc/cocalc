@@ -143,6 +143,9 @@ export function ChatRoom({
   }
 
   function renderFilterRecent() {
+    if (messages == null || messages.size <= 5) {
+      return null;
+    }
     return (
       <Tooltip title="Only show recent threads.">
         <Select
@@ -224,7 +227,7 @@ export function ChatRoom({
   }
 
   function render_button_row() {
-    if (messages == null) {
+    if (messages == null || messages.size <= 5) {
       return null;
     }
     return (
@@ -235,9 +238,6 @@ export function ChatRoom({
           style={{
             margin: 0,
             width: "100%",
-            ...(messages.size >= 2
-              ? undefined
-              : { visibility: "hidden", height: 0 }),
           }}
         />
         {renderFilterRecent()}
