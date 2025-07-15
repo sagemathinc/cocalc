@@ -31,27 +31,31 @@ Then in another terminal, make a client connected to each:
 
 */
 
+import { hostname } from "node:os";
+import { join } from "node:path";
+
+import basePath from "@cocalc/backend/base-path";
+import "@cocalc/backend/conat";
+import "@cocalc/backend/conat/persist"; // initializes context
+import {
+  conatClusterName as clusterName,
+  conatClusterHealthPort,
+  conatClusterPort,
+  conatPassword,
+  conatSocketioCount,
+} from "@cocalc/backend/data";
+import { getLogger } from "@cocalc/backend/logger";
+import { secureRandomString } from "@cocalc/backend/misc";
+import port from "@cocalc/backend/port";
+import type { ConatServer } from "@cocalc/conat/core/server";
 import {
   init as createConatServer,
   type Options,
 } from "@cocalc/conat/core/server";
 import { getUser, isAllowed } from "./auth";
-import { secureRandomString } from "@cocalc/backend/misc";
-import {
-  conatPassword,
-  conatSocketioCount,
-  conatClusterPort,
-  conatClusterName as clusterName,
-} from "@cocalc/backend/data";
-import basePath from "@cocalc/backend/base-path";
-import port from "@cocalc/backend/port";
-import { join } from "path";
-import "@cocalc/backend/conat";
-import "@cocalc/backend/conat/persist"; // initializes context
 import { dnsScan, localAddress, SCAN_INTERVAL } from "./dns-scan";
-import { health } from "./health";
-import { hostname } from "node:os";
-import { getLogger } from "@cocalc/backend/logger";
+import { handleHealth } from "./health";
+import { initMetrics, handleMetrics } from "./metrics";
 
 const logger = getLogger("conat-server");
 
@@ -95,9 +99,8 @@ export async function init(
     opts.forgetClusterNodeInterval = 4 * SCAN_INTERVAL;
     const server = createConatServer(opts);
     // enable dns scanner
-    dnsScan(server);
-    // enable health checks
-    health(server);
+    dnsScan(server); // we don't await it, it runs forever
+    await startVitalsServer(server);
     return server;
   }
 
@@ -114,4 +117,22 @@ export async function init(
       id: "node",
     });
   }
+}
+
+async function startVitalsServer(server: ConatServer) {
+  // create shared HTTP server for health and metrics endpoints
+  const { createServer } = await import("http");
+  const vitalsServer = createServer((req, res) => {
+    if (req.method === "GET" && req.url === "/health") {
+      handleHealth(server, req, res);
+    } else if (req.method === "GET" && req.url === "/metrics") {
+      handleMetrics(req, res);
+    } else {
+      res.statusCode = 404;
+      res.end("Not Found");
+    }
+  });
+  vitalsServer.listen(conatClusterHealthPort);
+  logger.debug(`starting vitals server on port ${conatClusterHealthPort}`);
+  initMetrics(server); // start prometheus metrics collection
 }
