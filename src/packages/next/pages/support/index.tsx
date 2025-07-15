@@ -74,38 +74,18 @@ const dataSource = [
     ),
   },
   {
-    link: "/support/chatgpt",
-    title: "ChatGPT Suppport",
-    logo: "robot",
-    hide: (customize) => !customize.openaiEnabled || !customize.onCoCalcCom,
-    description: (
-      <>
-        Our <A href="/support/chatgpt">integrated ChatGPT support</A> is free
-        and often very helpful since it knows so much about the open source
-        software in CoCalc.
-        <ChatGPTHelp
-          style={{ marginTop: "15px" }}
-          size="large"
-          tag="support-index"
-        />
-      </>
-    ),
-  },
-  {
     link: "/support/community",
     title: "CoCalc Community Support",
     logo: "users",
     description: (
       <>
-        <A href="https://github.com/sagemathinc/cocalc/discussions">
-          Join a discussion
-        </A>{" "}
-        or{" "}
+        <A href="https://discord.gg/EugdaJZ8">Join our Discord server</A> or{" "}
         <A href="https://groups.google.com/forum/?fromgroups#!forum/cocalc">
           post to the mailing list.{" "}
         </A>
         <SocialMediaIconList
           links={{
+            discord: "https://discord.gg/EugdaJZ8",
             facebook: "https://www.facebook.com/CoCalcOnline",
             github: "https://github.com/sagemathinc/cocalc",
             linkedin: "https://www.linkedin.com/company/sagemath-inc./",
@@ -113,6 +93,21 @@ const dataSource = [
             youtube: "https://www.youtube.com/c/SagemathCloud",
           }}
           iconFontSize={20}
+        />
+      </>
+    ),
+  },
+  {
+    link: "/support/chatgpt",
+    title: "ChatGPT",
+    logo: "robot",
+    hide: (customize) => !customize.openaiEnabled || !customize.onCoCalcCom,
+    description: (
+      <>
+        <ChatGPTHelp
+          style={{ marginTop: "15px" }}
+          size="large"
+          tag="support-index"
         />
       </>
     ),
