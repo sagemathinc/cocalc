@@ -5,7 +5,7 @@ A subvolume
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
 import { exists, listdir, mkdirp, sudo } from "./util";
-import { join } from "path";
+import { join, normalize } from "path";
 import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
 //import { human_readable_size } from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
@@ -290,6 +290,76 @@ export class Subvolume {
       .split("\n")
       .map((x) => x.split(" ").slice(-1)[0])
       .filter((x) => x);
+  };
+
+  bupRestore = async (path: string) => {
+    path = normalize(path);
+    // outdir -- path relative to subvolume
+    // path -- /branch/revision/path/to/dir
+    await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.filesystem.bup,
+        "restore",
+        "-C",
+        this.path, //join(this.path, outdir),
+        join(`/${this.name}`, path),
+        "--quiet",
+      ],
+    });
+  };
+
+  bupLs = async (
+    path: string,
+  ): Promise<
+    {
+      path: string;
+      size: number;
+      timestamp: number;
+      isdir: boolean;
+    }[]
+  > => {
+    path = normalize(path);
+    const { stdout } = await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.filesystem.bup,
+        "ls",
+        "--almost-all",
+        "--file-type",
+        "-l",
+        join(`/${this.name}`, path),
+      ],
+    });
+    const v: {
+      path: string;
+      size: number;
+      timestamp: number;
+      isdir: boolean;
+    }[] = [];
+    for (const x of stdout.split("\n")) {
+      // [-rw-------","6b851643360e435eb87ef9a6ab64a8b1/6b851643360e435eb87ef9a6ab64a8b1","5","2025-07-15","06:12","a.txt"]
+      const w = x.split(/\s+/);
+      if (w.length >= 6) {
+        let isdir, path;
+        if (w[5].endsWith("@") || w[5].endsWith("=") || w[5].endsWith("|")) {
+          w[5] = w[5].slice(0, -1);
+        }
+        if (w[5].endsWith("/")) {
+          isdir = true;
+          path = w[5].slice(0, -1);
+        } else {
+          path = w[5];
+          isdir = false;
+        }
+        const size = parseInt(w[2]);
+        const timestamp = new Date(w[3] + "T" + w[4]).valueOf();
+        v.push({ path, size, timestamp, isdir });
+      }
+    }
+    return v;
   };
 
   bupPrune = async ({

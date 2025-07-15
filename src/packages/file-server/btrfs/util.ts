@@ -69,3 +69,19 @@ export async function isdir(path: string) {
   const { stdout } = await sudo({ command: "stat", args: ["-c", "%F", path] });
   return stdout.trim() == "directory";
 }
+
+export function parseBupTime(s: string): Date {
+  const [year, month, day, time] = s.split("-");
+  const hours = time.slice(0, 2);
+  const minutes = time.slice(2, 4);
+  const seconds = time.slice(4, 6);
+
+  return new Date(
+    Number(year),
+    Number(month) - 1, // JS months are 0-based
+    Number(day),
+    Number(hours),
+    Number(minutes),
+    Number(seconds),
+  );
+}

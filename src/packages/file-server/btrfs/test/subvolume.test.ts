@@ -1,8 +1,9 @@
 import { before, after, fs, sudo } from "./setup";
-import { readFile, writeFile, unlink } from "fs/promises";
+import { mkdir, readFile, writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { randomBytes } from "crypto";
+import { parseBupTime } from "../util";
 
 beforeAll(before);
 
@@ -89,9 +90,51 @@ describe("test snapshots", () => {
   });
 });
 
-// describe("test bup backups", ()=>{
-//   let vol;
-//   it('creates a volume')
-// })
+describe("test bup backups", () => {
+  let vol;
+  it("creates a volume", async () => {
+    vol = await fs.subvolume("bup-test");
+    await writeFile(join(vol.path, "a.txt"), "hello");
+  });
+
+  it("create a bup backup", async () => {
+    await vol.createBupBackup();
+  });
+
+  it("list bup backups of this vol -- there are 2, one for the date and 'latest'", async () => {
+    const v = await vol.bupBackups();
+    expect(v.length).toBe(2);
+    const t = parseBupTime(v[0]);
+    expect(Math.abs(t.valueOf() - Date.now())).toBeLessThan(10_000);
+  });
+
+  it("confirm a.txt is in our backup", async () => {
+    const x = await vol.bupLs("latest");
+    expect(x).toEqual([
+      { path: "a.txt", size: 5, timestamp: x[0].timestamp, isdir: false },
+    ]);
+  });
+
+  it("restore a.txt from our backup", async () => {
+    await writeFile(join(vol.path, "a.txt"), "hello2");
+    await vol.bupRestore("latest/a.txt");
+    expect(await readFile(join(vol.path, "a.txt"), "utf8")).toEqual("hello");
+  });
+
+  it("prune bup backups does nothing since we have so few", async () => {
+    await vol.bupPrune();
+    expect((await vol.bupBackups()).length).toBe(2);
+  });
+
+  it("add a directory and back up", async () => {
+    await mkdir(join(vol.path, "mydir"));
+    await vol.createBupBackup();
+    const x = await vol.bupLs("latest");
+    expect(x).toEqual([
+      { path: "a.txt", size: 5, timestamp: x[0].timestamp, isdir: false },
+      { path: "mydir", size: 0, timestamp: x[1].timestamp, isdir: true },
+    ]);
+  });
+});
 
 afterAll(after);
