@@ -125,11 +125,11 @@ describe("the filesystem operations", () => {
 
   it("make a file readonly, then change it back", async () => {
     await vol.fs.writeFile("c.txt", "hi");
-    await vol.fs.chmod("c.txt", "444");
+    await vol.fs.chmod("c.txt", "440");
     expect(async () => {
       await vol.fs.appendFile("c.txt", " there");
     }).rejects.toThrow("EACCES");
-    await vol.fs.chmod("c.txt", "666");
+    await vol.fs.chmod("c.txt", "660");
     await vol.fs.appendFile("c.txt", " there");
   });
 

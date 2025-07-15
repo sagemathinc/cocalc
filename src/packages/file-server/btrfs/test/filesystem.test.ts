@@ -83,4 +83,23 @@ describe("operations with subvolumes", () => {
   });
 });
 
+describe("clone of a subvolume with snapshots should have no snapshots", () => {
+  it("creates a subvolume, a file, and a snapshot", async () => {
+    const x = await fs.subvolumes.get("my-volume");
+    await x.fs.writeFile("abc.txt", "hi");
+    await x.snapshots.create("my-snap");
+  });
+
+  it("clones my-volume", async () => {
+    await fs.subvolumes.clone("my-volume", "my-clone");
+  });
+
+  it("clone has no snapshots", async () => {
+    const clone = await fs.subvolumes.get("my-clone");
+    expect(await clone.fs.readFile("abc.txt", "utf8")).toEqual("hi");
+    expect(await clone.snapshots.ls()).toEqual([]);
+    await clone.snapshots.create("my-clone-snap");
+  });
+});
+
 afterAll(after);

@@ -5,7 +5,7 @@ import { SNAPSHOTS } from "./subvolume-snapshots";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { join, normalize } from "path";
 import { btrfs } from "./util";
-import { rename, readdir, rm, stat } from "fs/promises";
+import { chmod, rename, readdir, rm, stat } from "fs/promises";
 import { executeCode } from "@cocalc/backend/execute-code";
 
 const RESERVED = new Set(["bup", SNAPSHOTS]);
@@ -48,14 +48,11 @@ export class Subvolumes {
     );
     const snapdir = join(this.filesystem.opts.mount, dest, SNAPSHOTS);
     if (await exists(snapdir)) {
-      const snapshots = await readdir(snapdir);
-      const f = async (x) => {
-        await rm(join(this.filesystem.opts.mount, dest, SNAPSHOTS, x), {
-          recursive: true,
-          force: true,
-        });
-      };
-      await Promise.all(snapshots.map(f));
+      await chmod(snapdir, "0700");
+      await rm(snapdir, {
+        recursive: true,
+        force: true,
+      });
     }
     const src = await this.get(source);
     const dst = await this.get(dest);
