@@ -4,10 +4,12 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { exists, listdir, mkdirp, sudo } from "./util";
+import { readFile, writeFile, unlink } from "node:fs/promises";
+import { exists, isdir, listdir, mkdirp, sudo } from "./util";
 import { join, normalize } from "path";
 import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
-//import { human_readable_size } from "@cocalc/util/misc";
+import { DirectoryListingEntry } from "@cocalc/util/types";
+import getListing from "@cocalc/backend/get-listing";
 import getLogger from "@cocalc/backend/logger";
 
 export const SNAPSHOTS = ".snapshots";
@@ -23,10 +25,11 @@ interface Options {
 }
 
 export class Subvolume {
-  private filesystem: Filesystem;
   public readonly name: string;
-  public readonly path: string;
-  public readonly snapshotsDir: string;
+
+  private filesystem: Filesystem;
+  private readonly path: string;
+  private readonly snapshotsDir: string;
 
   constructor({ filesystem, name }: Options) {
     this.filesystem = filesystem;
@@ -69,6 +72,72 @@ export class Subvolume {
       args: [`${this.filesystem.opts.uid}:${this.filesystem.opts.uid}`, path],
     });
   };
+
+  // this should provide a path that is guaranteed to be
+  // inside this.path on the filesystem or throw error
+  // [ ] TODO: not sure if the code here is sufficient!!
+  private normalize = (path: string) => {
+    return join(this.path, normalize(path));
+  };
+
+  /////////////
+  // Files
+  /////////////
+  ls = async (
+    path: string,
+    { hidden, limit }: { hidden?: boolean; limit?: number } = {},
+  ): Promise<DirectoryListingEntry[]> => {
+    path = normalize(path);
+    return await getListing(this.normalize(path), hidden, {
+      limit,
+      home: "/",
+    });
+  };
+
+  readFile = async (path: string, encoding?: any): Promise<string | Buffer> => {
+    path = normalize(path);
+    return await readFile(this.normalize(path), encoding);
+  };
+
+  writeFile = async (path: string, data: string | Buffer) => {
+    path = normalize(path);
+    return await writeFile(this.normalize(path), data);
+  };
+
+  unlink = async (path: string) => {
+    await unlink(this.normalize(path));
+  };
+
+  rsync = async ({
+    src,
+    target,
+    args = ["-axH"],
+    timeout = 5 * 60 * 1000,
+  }: {
+    src: string;
+    target: string;
+    args?: string[];
+    timeout?: number;
+  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
+    let srcPath = this.normalize(src);
+    let targetPath = this.normalize(target);
+    if (!srcPath.endsWith("/") && (await isdir(srcPath))) {
+      srcPath += "/";
+      if (!targetPath.endsWith("/")) {
+        targetPath += "/";
+      }
+    }
+    return await sudo({
+      command: "rsync",
+      args: [...args, srcPath, targetPath],
+      err_on_exit: false,
+      timeout: timeout / 1000,
+    });
+  };
+
+  /////////////
+  // QUOTA
+  /////////////
 
   private quotaInfo = async () => {
     const { stdout } = await sudo({
@@ -148,6 +217,13 @@ export class Subvolume {
       }
     }
     return { used, free, size };
+  };
+
+  /////////////
+  // SNAPSHOTS
+  /////////////
+  snapshotPath = (snapshot: string, ...segments) => {
+    return join(SNAPSHOTS, snapshot, ...segments);
   };
 
   private makeSnapshotsDir = async () => {
@@ -233,6 +309,13 @@ export class Subvolume {
     return snapGen < pathGen;
   };
 
+  /////////////
+  // BACKUPS
+  // There is a single global dedup'd backup archive stored in the btrfs filesystem.
+  // Obviously, admins should rsync this regularly to a separate location as a genuine
+  // backup strategy.
+  /////////////
+
   // create a new bup backup
   createBupBackup = async ({
     // timeout used for bup index and bup save commands
@@ -304,7 +387,7 @@ export class Subvolume {
     const i = path.indexOf("/"); // remove the commit name
     await sudo({
       command: "rm",
-      args: ["-rf", join(this.path, path.slice(i + 1))],
+      args: ["-rf", this.normalize(path.slice(i + 1))],
     });
     await sudo({
       command: "bup",
@@ -320,16 +403,7 @@ export class Subvolume {
     });
   };
 
-  bupLs = async (
-    path: string,
-  ): Promise<
-    {
-      path: string;
-      size: number;
-      timestamp: number;
-      isdir: boolean;
-    }[]
-  > => {
+  bupLs = async (path: string): Promise<DirectoryListingEntry[]> => {
     path = normalize(path);
     const { stdout } = await sudo({
       command: "bup",
@@ -343,30 +417,25 @@ export class Subvolume {
         join(`/${this.name}`, path),
       ],
     });
-    const v: {
-      path: string;
-      size: number;
-      timestamp: number;
-      isdir: boolean;
-    }[] = [];
+    const v: DirectoryListingEntry[] = [];
     for (const x of stdout.split("\n")) {
       // [-rw-------","6b851643360e435eb87ef9a6ab64a8b1/6b851643360e435eb87ef9a6ab64a8b1","5","2025-07-15","06:12","a.txt"]
       const w = x.split(/\s+/);
       if (w.length >= 6) {
-        let isdir, path;
+        let isdir, name;
         if (w[5].endsWith("@") || w[5].endsWith("=") || w[5].endsWith("|")) {
           w[5] = w[5].slice(0, -1);
         }
         if (w[5].endsWith("/")) {
           isdir = true;
-          path = w[5].slice(0, -1);
+          name = w[5].slice(0, -1);
         } else {
-          path = w[5];
+          name = w[5];
           isdir = false;
         }
         const size = parseInt(w[2]);
-        const timestamp = new Date(w[3] + "T" + w[4]).valueOf();
-        v.push({ path, size, timestamp, isdir });
+        const mtime = new Date(w[3] + "T" + w[4]).valueOf() / 1000;
+        v.push({ name, size, mtime, isdir });
       }
     }
     return v;
@@ -391,6 +460,18 @@ export class Subvolume {
       ],
     });
   };
+
+  /////////////
+  // BTRFS send/recv
+  // Not used.  Instead we will rely on bup (and snapshots of the underlying disk) for backups, since:
+  //  - much easier to check they are valid
+  //  - decoupled from any btrfs issues
+  //  - not tied to any specific filesystem at all
+  //  - easier to offsite via incremntal rsync
+  //  - much more space efficient with *global* dedup and compression
+  //  - bup is really just git, which is very proven
+  // The drawback is speed.
+  /////////////
 
   // this was just a quick proof of concept -- I don't like it.  Should switch to using
   // timestamps and a lock.
