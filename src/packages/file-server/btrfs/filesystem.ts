@@ -65,7 +65,6 @@ export class Filesystem {
     await mkdirp([this.opts.mount]);
     await this.initDevice();
     await this.mountFilesystem();
-    await sudo({ command: "chmod", args: ["a+rx", this.opts.mount] });
     await btrfs({
       args: ["quota", "enable", "--simple", this.opts.mount],
     });

@@ -4,8 +4,8 @@ import getLogger from "@cocalc/backend/logger";
 import { SNAPSHOTS } from "./subvolume-snapshots";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { join, normalize } from "path";
-import { btrfs } from "./util";
-import { chmod, rename, readdir, rm, stat } from "fs/promises";
+import { btrfs, isdir } from "./util";
+import { chmod, rename, rm } from "node:fs/promises";
 import { executeCode } from "@cocalc/backend/execute-code";
 
 const RESERVED = new Set(["bup", SNAPSHOTS]);
@@ -112,8 +112,4 @@ export class Subvolumes {
       timeout: timeout / 1000,
     });
   };
-}
-
-async function isdir(path: string) {
-  return (await stat(path)).isDirectory();
 }

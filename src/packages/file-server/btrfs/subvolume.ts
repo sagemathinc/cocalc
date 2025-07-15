@@ -4,12 +4,14 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { exists, sudo } from "./util";
+import { sudo } from "./util";
 import { join, normalize } from "path";
 import { SubvolumeFilesystem } from "./subvolume-fs";
 import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:btrfs:subvolume");

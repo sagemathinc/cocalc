@@ -2,8 +2,8 @@ import { before, after, fs } from "./setup";
 
 beforeAll(before);
 
-//const log = console.log;
-const log = (..._args) => {};
+const DEBUG = false;
+const log = DEBUG ? console.log : (..._args) => {};
 
 describe("stress operations with subvolumes", () => {
   const count1 = 10;
