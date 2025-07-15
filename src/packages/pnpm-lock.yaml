@@ -295,6 +295,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      awaiting:
+        specifier: ^3.0.0
+        version: 3.0.0
     devDependencies:
       '@types/jest':
         specifier: ^29.5.14

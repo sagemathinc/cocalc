@@ -6,6 +6,7 @@ import process from "node:process";
 import { chmod, mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
+import { until } from "@cocalc/util/async-utils";
 
 export let fs: Filesystem;
 let tempDir;
@@ -26,8 +27,13 @@ export async function before() {
 }
 
 export async function after() {
-  try {
-    await fs.unmount();
-  } catch {}
+  await until(async () => {
+    try {
+      await fs.unmount();
+      return true;
+    } catch {
+      return false;
+    }
+  });
   await rm(tempDir, { force: true, recursive: true });
 }

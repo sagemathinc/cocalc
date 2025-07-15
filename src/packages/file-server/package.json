@@ -29,7 +29,8 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/file-server": "workspace:*",
-    "@cocalc/util": "workspace:*"
+    "@cocalc/util": "workspace:*",
+    "awaiting": "^3.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

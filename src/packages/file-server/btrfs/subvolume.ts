@@ -4,24 +4,16 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import {
-  exists,
-  listdir,
-  mkdirp,
-  sudo,
-} from "./util";
+import { exists, listdir, mkdirp, sudo } from "./util";
 import { join } from "path";
 import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
-import { human_readable_size } from "@cocalc/util/misc";
+//import { human_readable_size } from "@cocalc/util/misc";
+import getLogger from "@cocalc/backend/logger";
 
 export const SNAPSHOTS = ".snapshots";
 const SEND_SNAPSHOT_PREFIX = "send-";
-
 const BUP_SNAPSHOT = "temp-bup-snapshot";
-
 const PAD = 4;
-
-import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:storage-btrfs:subvolume");
 
@@ -88,6 +80,20 @@ export class Subvolume {
     return x["qgroup-show"][0];
   };
 
+  quota = async (): Promise<{
+    size: number;
+    used: number;
+  }> => {
+    let { max_referenced: size, referenced: used } = await this.quotaInfo();
+    if (size == "none") {
+      size = null;
+    }
+    return {
+      used,
+      size,
+    };
+  };
+
   size = async (size: string | number) => {
     if (!size) {
       throw Error("size must be specified");
@@ -98,23 +104,50 @@ export class Subvolume {
     });
   };
 
+  du = async () => {
+    return await sudo({
+      command: "btrfs",
+      args: ["filesystem", "du", "-s", this.path],
+    });
+  };
+
   usage = async (): Promise<{
+    // used and free in bytes
+    used: number;
+    free: number;
     size: number;
-    usage: number;
-    human: { size: string; usage: string };
   }> => {
-    let { max_referenced: size, referenced: usage } = await this.quotaInfo();
-    if (size == "none") {
-      size = null;
+    const { stdout } = await sudo({
+      command: "btrfs",
+      args: ["filesystem", "usage", "-b", this.path],
+    });
+    let used: number = -1;
+    let free: number = -1;
+    let size: number = -1;
+    for (const x of stdout.split("\n")) {
+      if (used == -1) {
+        const i = x.indexOf("Used:");
+        if (i != -1) {
+          used = parseInt(x.split(":")[1].trim());
+          continue;
+        }
+      }
+      if (free == -1) {
+        const i = x.indexOf("Free (statfs, df):");
+        if (i != -1) {
+          free = parseInt(x.split(":")[1].trim());
+          continue;
+        }
+      }
+      if (size == -1) {
+        const i = x.indexOf("Device size:");
+        if (i != -1) {
+          size = parseInt(x.split(":")[1].trim());
+          continue;
+        }
+      }
     }
-    return {
-      usage,
-      size,
-      human: {
-        usage: human_readable_size(usage),
-        size: size != null ? human_readable_size(size) : size,
-      },
-    };
+    return { used, free, size };
   };
 
   private makeSnapshotsDir = async () => {
