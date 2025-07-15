@@ -152,4 +152,4 @@ describe("test bup backups", () => {
   });
 });
 
-//afterAll(after);
+afterAll(after);
