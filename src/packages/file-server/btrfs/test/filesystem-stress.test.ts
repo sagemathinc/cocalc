@@ -1,6 +1,4 @@
 import { before, after, fs } from "./setup";
-import { writeFile } from "fs/promises";
-import { join } from "path";
 
 beforeAll(before);
 
@@ -45,7 +43,7 @@ describe("stress operations with subvolumes", () => {
   it("write a file to each volume", async () => {
     for (const name of await fs.list()) {
       const vol = await fs.subvolume(name);
-      await writeFile(join(vol.path, "a.txt"), "hi");
+      await vol.writeFile("a.txt", "hi");
     }
   });
 

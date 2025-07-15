@@ -35,7 +35,8 @@ async function ensureMoreLoops() {
 export async function before() {
   try {
     const command = `umount ${join(tmpdir(), TEMP_PREFIX)}*/mnt`;
-    // attempt to unmount any mounts left from previous runs
+    // attempt to unmount any mounts left from previous runs.
+    // TODO: this could impact runs in parallel
     await sudo({ command, bash: true });
   } catch {}
   await ensureMoreLoops();

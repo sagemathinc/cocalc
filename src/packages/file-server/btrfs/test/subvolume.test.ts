@@ -49,6 +49,129 @@ describe("setting and getting quota of a subvolume", () => {
   });
 });
 
+describe("the filesystem operations", () => {
+  let vol;
+
+  it("creates a volume and get empty listing", async () => {
+    vol = await fs.subvolume("fs");
+    expect(await vol.ls("")).toEqual([]);
+  });
+
+  it("error listing non-existent path", async () => {
+    vol = await fs.subvolume("fs");
+    expect(async () => {
+      await vol.ls("no-such-path");
+    }).rejects.toThrow("ENOENT");
+  });
+
+  it("creates a text file to it", async () => {
+    await vol.writeFile("a.txt", "hello");
+    const ls = await vol.ls("");
+    expect(ls).toEqual([{ name: "a.txt", mtime: ls[0].mtime, size: 5 }]);
+  });
+
+  it("read the file we just created as utf8", async () => {
+    expect(await vol.readFile("a.txt", "utf8")).toEqual("hello");
+  });
+
+  it("read the file we just created as a binary buffer", async () => {
+    expect(await vol.readFile("a.txt")).toEqual(Buffer.from("hello"));
+  });
+
+  it("stat the file we just created", async () => {
+    const s = await vol.stat("a.txt");
+    expect(s.size).toBe(5);
+    expect(Math.abs(s.mtimeMs - Date.now())).toBeLessThan(60_000);
+  });
+
+  let origStat;
+  it("snapshot filesystem and see file is in snapshot", async () => {
+    await vol.createSnapshot("snap");
+    const s = await vol.ls(vol.snapshotPath("snap"));
+    expect(s).toEqual([{ name: "a.txt", mtime: s[0].mtime, size: 5 }]);
+
+    const stat = await vol.stat("a.txt");
+    origStat = stat;
+    expect(stat.mtimeMs / 1000).toBeCloseTo(s[0].mtime);
+  });
+
+  it("unlink (delete) our file", async () => {
+    await vol.unlink("a.txt");
+    expect(await vol.ls("")).toEqual([]);
+  });
+
+  it("snapshot still exists", async () => {
+    expect(await vol.exists(vol.snapshotPath("snap", "a.txt")));
+  });
+
+  it("copy file from snapshot and note it has the same mode as before (so much nicer than what happens with zfs)", async () => {
+    await vol.copyFile(vol.snapshotPath("snap", "a.txt"), "a.txt");
+    const stat = await vol.stat("a.txt");
+    expect(stat.mode).toEqual(origStat.mode);
+  });
+
+  it("create and copy a folder", async () => {
+    await vol.mkdir("my-folder");
+    await vol.writeFile("my-folder/foo.txt", "foo");
+    await vol.cp("my-folder", "folder2", { recursive: true });
+    expect(await vol.readFile("folder2/foo.txt", "utf8")).toEqual("foo");
+  });
+
+  it("append to a file", async () => {
+    await vol.writeFile("b.txt", "hell");
+    await vol.appendFile("b.txt", "-o");
+    expect(await vol.readFile("b.txt", "utf8")).toEqual("hell-o");
+  });
+
+  it("make a file readonly, then change it back", async () => {
+    await vol.writeFile("c.txt", "hi");
+    await vol.chmod("c.txt", "444");
+    expect(async () => {
+      await vol.appendFile("c.txt", " there");
+    }).rejects.toThrow("EACCES");
+    await vol.chmod("c.txt", "666");
+    await vol.appendFile("c.txt", " there");
+  });
+
+  it("realpath of a symlink", async () => {
+    await vol.writeFile("real.txt", "i am real");
+    await vol.symlink("real.txt", "link.txt");
+    expect(await vol.realpath("link.txt")).toBe("real.txt");
+  });
+
+  it("watch for changes", async () => {
+    await vol.writeFile("w.txt", "hi");
+    const ac = new AbortController();
+    const { signal } = ac;
+    const watcher = vol.watch("w.txt", { signal });
+    vol.appendFile("w.txt", " there");
+    const { value, done } = await watcher.next();
+    expect(done).toBe(false);
+    expect(value).toEqual({ eventType: "change", filename: "w.txt" });
+    ac.abort();
+
+    expect(async () => {
+      await watcher.next();
+    }).rejects.toThrow("aborted");
+  });
+
+  it("rename a file", async () => {
+    await vol.writeFile("old", "hi");
+    await vol.rename("old", "new");
+    expect(await vol.readFile("new", "utf8")).toEqual("hi");
+  });
+
+  it("create and remove a directory", async () => {
+    await vol.mkdir("path");
+    await vol.rmdir("path");
+  });
+
+  it("create a directory recursively and remove", async () => {
+    await vol.mkdir("path/to/stuff", { recursive: true });
+    await vol.rm("path", { recursive: true });
+  });
+});
+
 describe("test snapshots", () => {
   let vol;
   it("creates a volume and write a file to it", async () => {

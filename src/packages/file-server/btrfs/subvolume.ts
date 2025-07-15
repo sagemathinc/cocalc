@@ -4,13 +4,33 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { readFile, writeFile, unlink } from "node:fs/promises";
+import {
+  appendFile,
+  chmod,
+  cp,
+  copyFile,
+  link,
+  readFile,
+  realpath,
+  rename,
+  rm,
+  rmdir,
+  mkdir,
+  stat,
+  symlink,
+  truncate,
+  writeFile,
+  unlink,
+  utimes,
+  watch,
+} from "node:fs/promises";
 import { exists, isdir, listdir, mkdirp, sudo } from "./util";
 import { join, normalize } from "path";
 import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import getListing from "@cocalc/backend/get-listing";
 import getLogger from "@cocalc/backend/logger";
+import { exists as pathExists } from "@cocalc/backend/misc/async-utils-node";
 
 export const SNAPSHOTS = ".snapshots";
 const SEND_SNAPSHOT_PREFIX = "send-";
@@ -104,8 +124,71 @@ export class Subvolume {
     return await writeFile(this.normalize(path), data);
   };
 
+  appendFile = async (path: string, data: string | Buffer, encoding?) => {
+    path = normalize(path);
+    return await appendFile(this.normalize(path), data, encoding);
+  };
+
   unlink = async (path: string) => {
     await unlink(this.normalize(path));
+  };
+
+  stat = async (path: string) => {
+    return await stat(this.normalize(path));
+  };
+
+  exists = async (path: string) => {
+    return await pathExists(this.normalize(path));
+  };
+
+  // hard link
+  link = async (existingPath: string, newPath: string) => {
+    return await link(this.normalize(existingPath), this.normalize(newPath));
+  };
+
+  symlink = async (target: string, path: string) => {
+    return await symlink(this.normalize(target), this.normalize(path));
+  };
+
+  realpath = async (path: string) => {
+    const x = await realpath(this.normalize(path));
+    return x.slice(this.path.length + 1);
+  };
+
+  rename = async (oldPath: string, newPath: string) => {
+    await rename(this.normalize(oldPath), this.normalize(newPath));
+  };
+
+  utimes = async (
+    path: string,
+    atime: number | string | Date,
+    mtime: number | string | Date,
+  ) => {
+    await utimes(this.normalize(path), atime, mtime);
+  };
+
+  watch = (filename: string, options?) => {
+    return watch(this.normalize(filename), options);
+  };
+
+  truncate = async (path: string, len?: number) => {
+    await truncate(this.normalize(path), len);
+  };
+
+  copyFile = async (src: string, dest: string) => {
+    await copyFile(this.normalize(src), this.normalize(dest));
+  };
+
+  cp = async (src: string, dest: string, options?) => {
+    await cp(this.normalize(src), this.normalize(dest), options);
+  };
+
+  chmod = async (path: string, mode: string | number) => {
+    await chmod(this.normalize(path), mode);
+  };
+
+  mkdir = async (path: string, options?) => {
+    await mkdir(this.normalize(path), options);
   };
 
   rsync = async ({
@@ -133,6 +216,14 @@ export class Subvolume {
       err_on_exit: false,
       timeout: timeout / 1000,
     });
+  };
+
+  rmdir = async (path: string, options?) => {
+    await rmdir(this.normalize(path), options);
+  };
+
+  rm = async (path: string, options?) => {
+    await rm(this.normalize(path), options);
   };
 
   /////////////
