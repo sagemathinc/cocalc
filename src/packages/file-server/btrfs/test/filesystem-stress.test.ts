@@ -43,7 +43,7 @@ describe("stress operations with subvolumes", () => {
   it("write a file to each volume", async () => {
     for (const name of await fs.list()) {
       const vol = await fs.subvolume(name);
-      await vol.writeFile("a.txt", "hi");
+      await vol.fs.writeFile("a.txt", "hi");
     }
   });
 

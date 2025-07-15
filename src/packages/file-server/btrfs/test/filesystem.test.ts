@@ -61,16 +61,16 @@ describe("operations with subvolumes", () => {
   it("rsync an actual file", async () => {
     const sagemath = await fs.subvolume("sagemath");
     const cython = await fs.subvolume("cython");
-    await sagemath.writeFile("README.md", "hi");
+    await sagemath.fs.writeFile("README.md", "hi");
     await fs.rsync({ src: "sagemath", target: "cython" });
-    const copy = await cython.readFile("README.md", "utf8");
+    const copy = await cython.fs.readFile("README.md", "utf8");
     expect(copy).toEqual("hi");
   });
 
   it("clone a subvolume with contents", async () => {
     await fs.cloneSubvolume("cython", "pyrex");
     const pyrex = await fs.subvolume("pyrex");
-    const clone = await pyrex.readFile("README.md", "utf8");
+    const clone = await pyrex.fs.readFile("README.md", "utf8");
     expect(clone).toEqual("hi");
   });
 });

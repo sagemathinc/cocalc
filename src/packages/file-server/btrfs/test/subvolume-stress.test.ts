@@ -55,7 +55,7 @@ describe(`create ${numFiles} files`, () => {
     log(
       `created ${Math.round((numFiles / (Date.now() - start)) * 1000)} files per second in serial`,
     );
-    const v = await vol.ls("");
+    const v = await vol.fs.ls("");
     const w = v.map(({ name }) => name);
     expect(w.sort()).toEqual(names.sort());
   });
@@ -74,7 +74,7 @@ describe(`create ${numFiles} files`, () => {
       `created ${Math.round((numFiles / (Date.now() - start)) * 1000)} files per second in parallel`,
     );
     const t0 = Date.now();
-    const v = await vol.ls("p");
+    const v = await vol.fs.ls("p");
     log("get listing of files took", Date.now() - t0, "ms");
     const w = v.map(({ name }) => name);
     expect(w.sort()).toEqual(names.sort());
