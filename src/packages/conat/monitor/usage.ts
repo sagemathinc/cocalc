@@ -1,8 +1,10 @@
-import json from "json-stable-stringify";
 import { EventEmitter } from "events";
-import type { JSONValue } from "@cocalc/util/types";
-import { ConatError } from "@cocalc/conat/core/client";
+import json from "json-stable-stringify";
+
 import { getLogger } from "@cocalc/conat/client";
+import { ConatError } from "@cocalc/conat/core/client";
+import type { JSONValue } from "@cocalc/util/types";
+import { Metrics } from "../types";
 
 const logger = getLogger("monitor:usage");
 
@@ -17,6 +19,9 @@ export class UsageMonitor extends EventEmitter {
   private options: Options;
   private total = 0;
   private perUser: { [user: string]: number } = {};
+  // metrics will be picked up periodically and exposed via e.g. prometheus
+  private countDeny = 0;
+  private metrics: Metrics = {};
 
   constructor(options: Options) {
     super();
@@ -38,25 +43,51 @@ export class UsageMonitor extends EventEmitter {
 
   private initLogging = () => {
     const { log } = this.options;
-    if (log == null) {
-      return;
-    }
+
+    // Record metrics for all events (even if logging is disabled)
     this.on("total", (total, limit) => {
-      log("usage", this.options.resource, { total, limit });
+      this.metrics["total:count"] = total;
+      this.metrics["total:limit"] = limit;
+      if (log) {
+        log("usage", this.options.resource, { total, limit });
+      }
     });
     this.on("add", (user, count, limit) => {
-      log("usage", this.options.resource, "add", { user, count, limit });
+      // this.metrics["add:count"] = count;
+      // this.metrics["add:limit"] = limit;
+      if (log) {
+        log("usage", this.options.resource, "add", { user, count, limit });
+      }
     });
     this.on("delete", (user, count, limit) => {
-      log("usage", this.options.resource, "delete", { user, count, limit });
+      // this.metrics["delete:count"] = count;
+      // this.metrics["delete:limit"] = limit;
+      if (log) {
+        log("usage", this.options.resource, "delete", { user, count, limit });
+      }
     });
     this.on("deny", (user, limit, type) => {
-      log("usage", this.options.resource, "not allowed due to hitting limit", {
-        type,
-        user,
-        limit,
-      });
+      this.countDeny += 1;
+      this.metrics["deny:count"] = this.countDeny;
+      this.metrics["deny:limit"] = limit;
+      if (log) {
+        log(
+          "usage",
+          this.options.resource,
+          "not allowed due to hitting limit",
+          {
+            type,
+            user,
+            limit,
+          },
+        );
+      }
     });
+  };
+
+  // we return a copy
+  getMetrics = () => {
+    return { ...this.metrics };
   };
 
   add = (user: JSONValue) => {

@@ -159,7 +159,8 @@ export class Subvolume {
     await sudo({ command: "chmod", args: ["a-w", this.snapshotsDir] });
   };
 
-  createSnapshot = async (name: string) => {
+  createSnapshot = async (name?: string) => {
+    name ??= new Date().toISOString();
     logger.debug("createSnapshot", { name, subvolume: this.name });
     await this.makeSnapshotsDir();
     await sudo({
@@ -293,9 +294,18 @@ export class Subvolume {
   };
 
   bupRestore = async (path: string) => {
+    // path -- branch/revision/path/to/dir
+    if (path.startsWith("/")) {
+      path = path.slice(1);
+    }
     path = normalize(path);
-    // outdir -- path relative to subvolume
-    // path -- /branch/revision/path/to/dir
+    // ... but to avoid potential data loss, we make a snapshot before deleting it.
+    await this.createSnapshot();
+    const i = path.indexOf("/"); // remove the commit name
+    await sudo({
+      command: "rm",
+      args: ["-rf", join(this.path, path.slice(i + 1))],
+    });
     await sudo({
       command: "bup",
       args: [
@@ -303,7 +313,7 @@ export class Subvolume {
         this.filesystem.bup,
         "restore",
         "-C",
-        this.path, //join(this.path, outdir),
+        this.path,
         join(`/${this.name}`, path),
         "--quiet",
       ],

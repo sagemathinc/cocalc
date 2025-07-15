@@ -1609,10 +1609,10 @@ importers:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
       sass:
-        specifier: ^1.57.1
+        specifier: ^1.89.2
         version: 1.89.2
       sass-loader:
-        specifier: ^16.0.2
+        specifier: ^16.0.5
         version: 16.0.5(@rspack/core@1.4.6(@swc/helpers@0.5.15))(sass@1.89.2)(webpack@5.100.1)
       script-loader:
         specifier: ^0.7.2

@@ -7,7 +7,6 @@ import { parseBupTime } from "../util";
 
 beforeAll(before);
 
-jest.setTimeout(20000);
 describe("setting and getting quota of a subvolume", () => {
   let vol;
   it("set the quota of a subvolume to 5 M", async () => {
@@ -128,6 +127,7 @@ describe("test bup backups", () => {
 
   it("add a directory and back up", async () => {
     await mkdir(join(vol.path, "mydir"));
+    await writeFile(join(vol.path, "mydir", "file.txt"), "hello3");
     await vol.createBupBackup();
     const x = await vol.bupLs("latest");
     expect(x).toEqual([
@@ -135,6 +135,21 @@ describe("test bup backups", () => {
       { path: "mydir", size: 0, timestamp: x[1].timestamp, isdir: true },
     ]);
   });
+
+  it("change file in the directory, then restore from backup whole dir", async () => {
+    await writeFile(join(vol.path, "mydir", "file.txt"), "changed");
+    await vol.bupRestore("latest/mydir");
+    expect(await readFile(join(vol.path, "mydir", "file.txt"), "utf8")).toEqual(
+      "hello3",
+    );
+  });
+
+  it("most recent snapshot has a backup before the restore", async () => {
+    const s = await vol.snapshots();
+    const recent = s.slice(-1)[0];
+    const p = join(vol.snapshotsDir, recent, "mydir", "file.txt");
+    expect(await readFile(p, "utf8")).toEqual("changed");
+  });
 });
 
-afterAll(after);
+//afterAll(after);

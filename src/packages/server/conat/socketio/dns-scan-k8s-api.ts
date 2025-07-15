@@ -1,36 +1,29 @@
 import { readFile } from "fs/promises";
 import * as https from "https";
 
+import type { PodInfos } from "./dns-scan";
+
 // Define the options interface for type safety
 interface ListPodsOptions {
   labelSelector?: string; // e.g. "app=foo,env=prod"
 }
 
 let NAMESPACE: string | null = null;
-let CA: Buffer | null = null;
+let CA: string | null = null;
+
+async function readK8sFile(filename: string): Promise<string> {
+  const basePath = "/var/run/secrets/kubernetes.io/serviceaccount";
+  return (await readFile(`${basePath}/${filename}`, "utf8")).trim();
+}
 
 async function listPods(options: ListPodsOptions = {}): Promise<any> {
   let token: string;
   try {
-    NAMESPACE =
-      NAMESPACE ??
-      (
-        await readFile(
-          "/var/run/secrets/kubernetes.io/serviceaccount/namespace",
-          "utf8",
-        )
-      ).trim();
-    CA =
-      CA ??
-      (await readFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"));
+    NAMESPACE ??= await readK8sFile("namespace");
+    CA ??= await readK8sFile("ca.crt");
 
     // Read service account details, token could be rotated, so read every time
-    token = (
-      await readFile(
-        "/var/run/secrets/kubernetes.io/serviceaccount/token",
-        "utf8",
-      )
-    ).trim();
+    token = await readK8sFile("token");
   } catch (err) {
     throw new Error(`Failed to read service account files: ${err}`);
   }
@@ -88,11 +81,9 @@ async function listPods(options: ListPodsOptions = {}): Promise<any> {
   });
 }
 
-export async function getAddressesFromK8sApi(): Promise<
-  { name: string; podIP: string }[]
-> {
+export async function getAddressesFromK8sApi(): Promise<PodInfos> {
   const res = await listPods({ labelSelector: "run=hub-conat-router" });
-  const ret: { name: string; podIP: string }[] = [];
+  const ret: PodInfos = [];
   for (const pod of res.items) {
     const name = pod.metadata?.name;
     const podIP = pod.status?.podIP;
