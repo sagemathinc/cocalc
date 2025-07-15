@@ -1,8 +1,6 @@
-import { before, after, fs, sudo } from "./setup";
-import { readFile, writeFile, unlink } from "fs/promises";
+import { before, after, fs } from "./setup";
+import { writeFile } from "fs/promises";
 import { join } from "path";
-import { wait } from "@cocalc/backend/conat/test/util";
-import { randomBytes } from "crypto";
 
 beforeAll(before);
 //const log = console.log;
