@@ -6,9 +6,9 @@ import { type DirectoryListingEntry } from "@cocalc/util/types";
 import { SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 
 export const SNAPSHOTS = ".snapshots";
-const logger = getLogger("file-server:storage-btrfs:subvolume-snapshot");
+const logger = getLogger("file-server:storage-btrfs:subvolume-snapshots");
 
-export class SubvolumeSnapshot {
+export class SubvolumeSnapshots {
   public readonly snapshotsDir: string;
 
   constructor(public subvolume: Subvolume) {
@@ -80,7 +80,7 @@ export class SubvolumeSnapshot {
 
   // update the rolling snapshots schedule
   update = async (counts?: Partial<SnapshotCounts>) => {
-    return await updateRollingSnapshots({ snapshot: this, counts });
+    return await updateRollingSnapshots({ snapshots: this, counts });
   };
 
   // has newly written changes since last snapshot

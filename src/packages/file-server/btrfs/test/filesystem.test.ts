@@ -30,7 +30,7 @@ describe("operations with subvolumes", () => {
     const vol = await fs.subvolume("cocalc");
     expect(vol.name).toBe("cocalc");
     // it has no snapshots
-    expect(await vol.snapshot.ls()).toEqual([]);
+    expect(await vol.snapshots.ls()).toEqual([]);
   });
 
   it("our subvolume is in the list", async () => {

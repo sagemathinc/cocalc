@@ -14,7 +14,7 @@ a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({devic
 import refCache from "@cocalc/util/refcache";
 import { exists, isdir, listdir, mkdirp, rmdir, sudo } from "./util";
 import { subvolume, type Subvolume } from "./subvolume";
-import { SNAPSHOTS } from "./subvolume-snapshot";
+import { SNAPSHOTS } from "./subvolume-snapshots";
 import { join, normalize } from "path";
 
 // default size of btrfs filesystem if creating an image file.

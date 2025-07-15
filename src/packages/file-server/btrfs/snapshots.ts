@@ -1,4 +1,4 @@
-import { type SubvolumeSnapshot } from "./subvolume-snapshot";
+import { type SubvolumeSnapshots } from "./subvolume-snapshots";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:storage-btrfs:snapshots");
@@ -30,17 +30,17 @@ export interface SnapshotCounts {
 }
 
 export async function updateRollingSnapshots({
-  snapshot,
+  snapshots,
   counts,
 }: {
-  snapshot: SubvolumeSnapshot;
+  snapshots: SubvolumeSnapshots;
   counts?: Partial<SnapshotCounts>;
 }) {
   counts = { ...DEFAULT_SNAPSHOT_COUNTS, ...counts };
 
-  const changed = await snapshot.hasUnsavedChanges();
+  const changed = await snapshots.hasUnsavedChanges();
   logger.debug("updateRollingSnapshots", {
-    name: snapshot.subvolume.name,
+    name: snapshots.subvolume.name,
     counts,
     changed,
   });
@@ -50,18 +50,18 @@ export async function updateRollingSnapshots({
   }
 
   // get exactly the iso timestamp snapshot names:
-  const snapshots = (await snapshot.ls())
+  const snapshotNames = (await snapshots.ls())
     .map((x) => x.name)
     .filter((name) => DATE_REGEXP.test(name));
-  snapshots.sort();
-  if (snapshots.length > 0) {
-    const age = Date.now() - new Date(snapshots.slice(-1)[0]).valueOf();
+  snapshotNames.sort();
+  if (snapshotNames.length > 0) {
+    const age = Date.now() - new Date(snapshotNames.slice(-1)[0]).valueOf();
     for (const key in SNAPSHOT_INTERVALS_MS) {
       if (counts[key]) {
         if (age < SNAPSHOT_INTERVALS_MS[key]) {
           // no need to snapshot since there is already a sufficiently recent snapshot
           logger.debug("updateRollingSnapshots: no need to snapshot", {
-            name: snapshot.subvolume.name,
+            name: snapshots.subvolume.name,
           });
           return;
         }
@@ -73,13 +73,13 @@ export async function updateRollingSnapshots({
 
   // make a new snapshot
   const name = new Date().toISOString();
-  await snapshot.create(name);
+  await snapshots.create(name);
   // delete extra snapshots
-  snapshots.push(name);
-  const toDelete = snapshotsToDelete({ counts, snapshots });
+  snapshotNames.push(name);
+  const toDelete = snapshotsToDelete({ counts, snapshots: snapshotNames });
   for (const expired of toDelete) {
     try {
-      await snapshot.delete(expired);
+      await snapshots.delete(expired);
     } catch {
       // some snapshots can't be deleted, e.g., they were used for the last send.
     }

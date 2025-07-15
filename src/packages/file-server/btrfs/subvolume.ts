@@ -8,7 +8,7 @@ import { exists, listdir, mkdirp, sudo } from "./util";
 import { join, normalize } from "path";
 import { SubvolumeFilesystem } from "./subvolume-fs";
 import { SubvolumeBup } from "./subvolume-bup";
-import { SubvolumeSnapshot } from "./subvolume-snapshot";
+import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import getLogger from "@cocalc/backend/logger";
 
 const SEND_SNAPSHOT_PREFIX = "send-";
@@ -28,7 +28,7 @@ export class Subvolume {
   public readonly path: string;
   public readonly fs: SubvolumeFilesystem;
   public readonly bup: SubvolumeBup;
-  public readonly snapshot: SubvolumeSnapshot;
+  public readonly snapshots: SubvolumeSnapshots;
 
   constructor({ filesystem, name }: Options) {
     this.filesystem = filesystem;
@@ -36,7 +36,7 @@ export class Subvolume {
     this.path = join(filesystem.opts.mount, name);
     this.fs = new SubvolumeFilesystem(this);
     this.bup = new SubvolumeBup(this);
-    this.snapshot = new SubvolumeSnapshot(this);
+    this.snapshots = new SubvolumeSnapshots(this);
   }
 
   init = async () => {
@@ -187,7 +187,7 @@ export class Subvolume {
     const streams = new Set(
       await listdir(join(this.filesystem.streams, this.name)),
     );
-    const allSnapshots = (await this.snapshot.ls()).map((x) => x.name);
+    const allSnapshots = (await this.snapshots.ls()).map((x) => x.name);
     const snapshots = allSnapshots.filter(
       (x) => x.startsWith(SEND_SNAPSHOT_PREFIX) && streams.has(x),
     );
@@ -207,22 +207,22 @@ export class Subvolume {
     }
     const send = `${SEND_SNAPSHOT_PREFIX}${seq}`;
     if (allSnapshots.includes(send)) {
-      await this.snapshot.delete(send);
+      await this.snapshots.delete(send);
     }
-    await this.snapshot.create(send);
+    await this.snapshots.create(send);
     await sudo({
       command: "btrfs",
       args: [
         "send",
         "--compressed-data",
-        join(this.snapshot.path(), send),
-        ...(last ? ["-p", this.snapshot.path(parent)] : []),
+        join(this.snapshots.path(), send),
+        ...(last ? ["-p", this.snapshots.path(parent)] : []),
         "-f",
         join(this.filesystem.streams, this.name, send),
       ],
     });
     if (parent) {
-      await this.snapshot.delete(parent);
+      await this.snapshots.delete(parent);
     }
   };
 

@@ -86,8 +86,8 @@ describe("the filesystem operations", () => {
 
   let origStat;
   it("snapshot filesystem and see file is in snapshot", async () => {
-    await vol.snapshot.create("snap");
-    const s = await vol.fs.ls(vol.snapshot.path("snap"));
+    await vol.snapshots.create("snap");
+    const s = await vol.fs.ls(vol.snapshots.path("snap"));
     expect(s).toEqual([{ name: "a.txt", mtime: s[0].mtime, size: 5 }]);
 
     const stat = await vol.fs.stat("a.txt");
@@ -101,11 +101,11 @@ describe("the filesystem operations", () => {
   });
 
   it("snapshot still exists", async () => {
-    expect(await vol.fs.exists(vol.snapshot.path("snap", "a.txt")));
+    expect(await vol.fs.exists(vol.snapshots.path("snap", "a.txt")));
   });
 
   it("copy file from snapshot and note it has the same mode as before (so much nicer than what happens with zfs)", async () => {
-    await vol.fs.copyFile(vol.snapshot.path("snap", "a.txt"), "a.txt");
+    await vol.fs.copyFile(vol.snapshots.path("snap", "a.txt"), "a.txt");
     const stat = await vol.fs.stat("a.txt");
     expect(stat.mode).toEqual(origStat.mode);
   });
@@ -179,50 +179,50 @@ describe("test snapshots", () => {
 
   it("creates a volume and write a file to it", async () => {
     vol = await fs.subvolume("snapper");
-    expect(await vol.snapshot.hasUnsavedChanges()).toBe(false);
+    expect(await vol.snapshots.hasUnsavedChanges()).toBe(false);
     await vol.fs.writeFile("a.txt", "hello");
-    expect(await vol.snapshot.hasUnsavedChanges()).toBe(true);
+    expect(await vol.snapshots.hasUnsavedChanges()).toBe(true);
   });
 
   it("snapshot the volume", async () => {
-    expect(await vol.snapshot.ls()).toEqual([]);
-    await vol.snapshot.create("snap1");
-    expect((await vol.snapshot.ls()).map((x) => x.name)).toEqual(["snap1"]);
-    expect(await vol.snapshot.hasUnsavedChanges()).toBe(false);
+    expect(await vol.snapshots.ls()).toEqual([]);
+    await vol.snapshots.create("snap1");
+    expect((await vol.snapshots.ls()).map((x) => x.name)).toEqual(["snap1"]);
+    expect(await vol.snapshots.hasUnsavedChanges()).toBe(false);
   });
 
   it("create a file see that we know there are unsaved changes", async () => {
     await vol.fs.writeFile("b.txt", "world");
     await sudo({ command: "sync" });
-    expect(await vol.snapshot.hasUnsavedChanges()).toBe(true);
+    expect(await vol.snapshots.hasUnsavedChanges()).toBe(true);
   });
 
   it("delete our file, but then read it in a snapshot", async () => {
     await vol.fs.unlink("a.txt");
     const b = await vol.fs.readFile(
-      vol.snapshot.path("snap1", "a.txt"),
+      vol.snapshots.path("snap1", "a.txt"),
       "utf8",
     );
     expect(b).toEqual("hello");
   });
 
   it("verifies snapshot exists", async () => {
-    expect(await vol.snapshot.exists("snap1")).toBe(true);
-    expect(await vol.snapshot.exists("snap2")).toBe(false);
+    expect(await vol.snapshots.exists("snap1")).toBe(true);
+    expect(await vol.snapshots.exists("snap2")).toBe(false);
   });
 
   it("lock our snapshot and confirm it prevents deletion", async () => {
-    await vol.snapshot.lock("snap1");
+    await vol.snapshots.lock("snap1");
     expect(async () => {
-      await vol.snapshot.delete("snap1");
+      await vol.snapshots.delete("snap1");
     }).rejects.toThrow("locked");
   });
 
   it("unlock our snapshot and delete it", async () => {
-    await vol.snapshot.unlock("snap1");
-    await vol.snapshot.delete("snap1");
-    expect(await vol.snapshot.exists("snap1")).toBe(false);
-    expect(await vol.snapshot.ls()).toEqual([]);
+    await vol.snapshots.unlock("snap1");
+    await vol.snapshots.delete("snap1");
+    expect(await vol.snapshots.exists("snap1")).toBe(false);
+    expect(await vol.snapshots.ls()).toEqual([]);
   });
 });
 
@@ -286,9 +286,9 @@ describe.only("test bup backups", () => {
   });
 
   it("most recent snapshot has a backup before the restore", async () => {
-    const s = await vol.snapshot.ls();
+    const s = await vol.snapshots.ls();
     const recent = s.slice(-1)[0].name;
-    const p = vol.snapshot.path(recent, "mydir", "file.txt");
+    const p = vol.snapshots.path(recent, "mydir", "file.txt");
     expect(await vol.fs.readFile(p, "utf8")).toEqual("changed");
   });
 });
