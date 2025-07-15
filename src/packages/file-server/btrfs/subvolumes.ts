@@ -8,7 +8,7 @@ import { btrfs } from "./util";
 import { rename, readdir, rm, stat } from "fs/promises";
 import { executeCode } from "@cocalc/backend/execute-code";
 
-const RESERVED = new Set(["bup", "recv", "streams", SNAPSHOTS]);
+const RESERVED = new Set(["bup", SNAPSHOTS]);
 
 const logger = getLogger("file-server:btrfs:subvolumes");
 

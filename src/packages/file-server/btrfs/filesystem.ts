@@ -12,9 +12,12 @@ a = require('@cocalc/file-server/btrfs'); fs = await a.filesystem({device:'/tmp/
 */
 
 import refCache from "@cocalc/util/refcache";
-import { exists, mkdirp, btrfs, sudo } from "./util";
+import { mkdirp, btrfs, sudo } from "./util";
 import { join } from "path";
 import { Subvolumes } from "./subvolumes";
+import { mkdir } from "fs/promises";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 // default size of btrfs filesystem if creating an image file.
 const DEFAULT_FILESYSTEM_SIZE = "10G";
@@ -45,7 +48,6 @@ export interface Options {
 export class Filesystem {
   public readonly opts: Options;
   public readonly bup: string;
-  public readonly streams: string;
   public readonly subvolumes: Subvolumes;
 
   constructor(opts: Options) {
@@ -56,25 +58,29 @@ export class Filesystem {
     };
     this.opts = opts;
     this.bup = join(this.opts.mount, "bup");
-    this.streams = join(this.opts.mount, "streams");
     this.subvolumes = new Subvolumes(this);
   }
 
   init = async () => {
-    await mkdirp(
-      [this.opts.mount, this.streams, this.bup].filter((x) => x) as string[],
-    );
+    await mkdirp([this.opts.mount]);
     await this.initDevice();
     await this.mountFilesystem();
     await sudo({ command: "chmod", args: ["a+rx", this.opts.mount] });
     await btrfs({
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
+    await this.initBup();
+  };
+
+  unmount = async () => {
     await sudo({
-      bash: true,
-      command: `BUP_DIR=${this.bup} bup init`,
+      command: "umount",
+      args: [this.opts.mount],
+      err_on_exit: true,
     });
   };
+
+  close = () => {};
 
   private initDevice = async () => {
     if (!isImageFile(this.opts.device)) {
@@ -125,6 +131,10 @@ export class Filesystem {
     }
   };
 
+  private formatDevice = async () => {
+    await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
+  };
+
   private _mountFilesystem = async () => {
     const args: string[] = isImageFile(this.opts.device) ? ["-o", "loop"] : [];
     args.push(
@@ -162,19 +172,16 @@ export class Filesystem {
     return { stderr, exit_code };
   };
 
-  unmount = async () => {
-    await sudo({
-      command: "umount",
-      args: [this.opts.mount],
-      err_on_exit: true,
+  private initBup = async () => {
+    if (!(await exists(this.bup))) {
+      await mkdir(this.bup);
+    }
+    await executeCode({
+      command: "bup",
+      args: ["init"],
+      env: { BUP_DIR: this.bup },
     });
   };
-
-  private formatDevice = async () => {
-    await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
-  };
-
-  close = () => {};
 }
 
 function isImageFile(name: string) {
