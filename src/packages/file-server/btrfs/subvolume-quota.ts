@@ -2,7 +2,7 @@ import { type Subvolume } from "./subvolume";
 import { btrfs } from "./util";
 import getLogger from "@cocalc/backend/logger";
 
-const logger = getLogger("file-server:storage-btrfs:subvolume-quota");
+const logger = getLogger("file-server:btrfs:subvolume-quota");
 
 export class SubvolumeQuota {
   constructor(public subvolume: Subvolume) {}

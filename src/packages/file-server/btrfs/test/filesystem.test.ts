@@ -15,61 +15,69 @@ describe("some basic tests", () => {
   });
 
   it("lists the subvolumes (there are none)", async () => {
-    expect(await fs.list()).toEqual([]);
+    expect(await fs.subvolumes.list()).toEqual([]);
   });
 });
 
 describe("operations with subvolumes", () => {
   it("can't use a reserved subvolume name", async () => {
     expect(async () => {
-      await fs.subvolume("bup");
+      await fs.subvolumes.get("bup");
     }).rejects.toThrow("is reserved");
   });
 
   it("creates a subvolume", async () => {
-    const vol = await fs.subvolume("cocalc");
+    const vol = await fs.subvolumes.get("cocalc");
     expect(vol.name).toBe("cocalc");
     // it has no snapshots
     expect(await vol.snapshots.ls()).toEqual([]);
   });
 
   it("our subvolume is in the list", async () => {
-    expect(await fs.list()).toEqual(["cocalc"]);
+    expect(await fs.subvolumes.list()).toEqual(["cocalc"]);
   });
 
   it("create another two subvolumes", async () => {
-    await fs.subvolume("sagemath");
-    await fs.subvolume("a-math");
+    await fs.subvolumes.get("sagemath");
+    await fs.subvolumes.get("a-math");
     // list is sorted:
-    expect(await fs.list()).toEqual(["a-math", "cocalc", "sagemath"]);
+    expect(await fs.subvolumes.list()).toEqual([
+      "a-math",
+      "cocalc",
+      "sagemath",
+    ]);
   });
 
   it("delete a subvolume", async () => {
-    await fs.deleteSubvolume("a-math");
-    expect(await fs.list()).toEqual(["cocalc", "sagemath"]);
+    await fs.subvolumes.delete("a-math");
+    expect(await fs.subvolumes.list()).toEqual(["cocalc", "sagemath"]);
   });
 
   it("clone a subvolume", async () => {
-    await fs.cloneSubvolume("sagemath", "cython");
-    expect(await fs.list()).toEqual(["cocalc", "cython", "sagemath"]);
+    await fs.subvolumes.clone("sagemath", "cython");
+    expect(await fs.subvolumes.list()).toEqual([
+      "cocalc",
+      "cython",
+      "sagemath",
+    ]);
   });
 
   it("rsync from one volume to another", async () => {
-    await fs.rsync({ src: "sagemath", target: "cython" });
+    await fs.subvolumes.rsync({ src: "sagemath", target: "cython" });
   });
 
   it("rsync an actual file", async () => {
-    const sagemath = await fs.subvolume("sagemath");
-    const cython = await fs.subvolume("cython");
+    const sagemath = await fs.subvolumes.get("sagemath");
+    const cython = await fs.subvolumes.get("cython");
     await sagemath.fs.writeFile("README.md", "hi");
-    await fs.rsync({ src: "sagemath", target: "cython" });
+    await fs.subvolumes.rsync({ src: "sagemath", target: "cython" });
     const copy = await cython.fs.readFile("README.md", "utf8");
     expect(copy).toEqual("hi");
   });
 
   it("clone a subvolume with contents", async () => {
-    await fs.cloneSubvolume("cython", "pyrex");
-    const pyrex = await fs.subvolume("pyrex");
+    await fs.subvolumes.clone("cython", "pyrex");
+    const pyrex = await fs.subvolumes.get("pyrex");
     const clone = await pyrex.fs.readFile("README.md", "utf8");
     expect(clone).toEqual("hi");
   });

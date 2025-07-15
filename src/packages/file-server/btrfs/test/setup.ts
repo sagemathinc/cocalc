@@ -2,7 +2,6 @@ import {
   filesystem,
   type Filesystem,
 } from "@cocalc/file-server/btrfs/filesystem";
-import process from "node:process";
 import { chmod, mkdtemp, mkdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
@@ -50,7 +49,6 @@ export async function before() {
     device: join(tempDir, "btrfs.img"),
     formatIfNeeded: true,
     mount: join(tempDir, "mnt"),
-    uid: process.getuid?.(),
   });
 }
 

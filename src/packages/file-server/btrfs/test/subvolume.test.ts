@@ -10,7 +10,7 @@ beforeAll(before);
 describe("setting and getting quota of a subvolume", () => {
   let vol: Subvolume;
   it("set the quota of a subvolume to 5 M", async () => {
-    vol = await fs.subvolume("q");
+    vol = await fs.subvolumes.get("q");
     await vol.quota.set("5M");
 
     const { size, used } = await vol.quota.get();
@@ -53,12 +53,12 @@ describe("the filesystem operations", () => {
   let vol: Subvolume;
 
   it("creates a volume and get empty listing", async () => {
-    vol = await fs.subvolume("fs");
+    vol = await fs.subvolumes.get("fs");
     expect(await vol.fs.ls("")).toEqual([]);
   });
 
   it("error listing non-existent path", async () => {
-    vol = await fs.subvolume("fs");
+    vol = await fs.subvolumes.get("fs");
     expect(async () => {
       await vol.fs.ls("no-such-path");
     }).rejects.toThrow("ENOENT");
@@ -178,7 +178,7 @@ describe("test snapshots", () => {
   let vol: Subvolume;
 
   it("creates a volume and write a file to it", async () => {
-    vol = await fs.subvolume("snapper");
+    vol = await fs.subvolumes.get("snapper");
     expect(await vol.snapshots.hasUnsavedChanges()).toBe(false);
     await vol.fs.writeFile("a.txt", "hello");
     expect(await vol.snapshots.hasUnsavedChanges()).toBe(true);
@@ -229,7 +229,7 @@ describe("test snapshots", () => {
 describe.only("test bup backups", () => {
   let vol: Subvolume;
   it("creates a volume", async () => {
-    vol = await fs.subvolume("bup-test");
+    vol = await fs.subvolumes.get("bup-test");
     await vol.fs.writeFile("a.txt", "hello");
   });
 

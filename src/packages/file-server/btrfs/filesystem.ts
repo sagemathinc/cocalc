@@ -1,5 +1,5 @@
 /*
-A BTRFS Filesystem
+BTRFS Filesystem
 
 DEVELOPMENT:
 
@@ -7,15 +7,14 @@ Start node, then:
 
 DEBUG="cocalc:*file-server*" DEBUG_CONSOLE=yes node
 
-a = require('@cocalc/file-server/storage-btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', formatIfNeeded:true, mount:'/mnt/btrfs', uid:293597964})
+a = require('@cocalc/file-server/btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', formatIfNeeded:true, mount:'/mnt/btrfs', uid:293597964})
 
 */
 
 import refCache from "@cocalc/util/refcache";
-import { exists, isdir, listdir, mkdirp, rmdir, sudo } from "./util";
-import { subvolume, type Subvolume } from "./subvolume";
-import { SNAPSHOTS } from "./subvolume-snapshots";
-import { join, normalize } from "path";
+import { exists, mkdirp, btrfs, sudo } from "./util";
+import { join } from "path";
+import { Subvolumes } from "./subvolumes";
 
 // default size of btrfs filesystem if creating an image file.
 const DEFAULT_FILESYSTEM_SIZE = "10G";
@@ -24,8 +23,6 @@ const DEFAULT_FILESYSTEM_SIZE = "10G";
 export const DEFAULT_SUBVOLUME_SIZE = "1G";
 
 const MOUNT_ERROR = "wrong fs type, bad option, bad superblock";
-
-const RESERVED = new Set(["bup", "recv", "streams", SNAPSHOTS]);
 
 export interface Options {
   // the underlying block device.
@@ -40,9 +37,6 @@ export interface Options {
   // where the btrfs filesystem is mounted
   mount: string;
 
-  // all subvolumes will have this owner
-  uid?: number;
-
   // default size of newly created subvolumes
   defaultSize?: string | number;
   defaultFilesystemSize?: string | number;
@@ -52,6 +46,7 @@ export class Filesystem {
   public readonly opts: Options;
   public readonly bup: string;
   public readonly streams: string;
+  public readonly subvolumes: Subvolumes;
 
   constructor(opts: Options) {
     opts = {
@@ -62,6 +57,7 @@ export class Filesystem {
     this.opts = opts;
     this.bup = join(this.opts.mount, "bup");
     this.streams = join(this.opts.mount, "streams");
+    this.subvolumes = new Subvolumes(this);
   }
 
   init = async () => {
@@ -71,8 +67,7 @@ export class Filesystem {
     await this.initDevice();
     await this.mountFilesystem();
     await sudo({ command: "chmod", args: ["a+rx", this.opts.mount] });
-    await sudo({
-      command: "btrfs",
+    await btrfs({
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
     await sudo({
@@ -95,8 +90,7 @@ export class Filesystem {
   };
 
   info = async (): Promise<{ [field: string]: string }> => {
-    const { stdout } = await sudo({
-      command: "btrfs",
+    const { stdout } = await btrfs({
       args: ["subvolume", "show", this.opts.mount],
     });
     const obj: { [field: string]: string } = {};
@@ -108,7 +102,6 @@ export class Filesystem {
     return obj;
   };
 
-  //
   private mountFilesystem = async () => {
     try {
       await this.info();
@@ -148,11 +141,25 @@ export class Filesystem {
       "btrfs",
       this.opts.mount,
     );
-    return await sudo({
-      command: "mount",
-      args,
+    {
+      const { stderr, exit_code } = await sudo({
+        command: "mount",
+        args,
+        err_on_exit: false,
+      });
+      if (exit_code) {
+        return { stderr, exit_code };
+      }
+    }
+    const { stderr, exit_code } = await sudo({
+      command: "chown",
+      args: [
+        `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
+        this.opts.mount,
+      ],
       err_on_exit: false,
     });
+    return { stderr, exit_code };
   };
 
   unmount = async () => {
@@ -167,108 +174,7 @@ export class Filesystem {
     await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
   };
 
-  close = () => {
-    // nothing, yet
-  };
-
-  subvolume = async (name: string): Promise<Subvolume> => {
-    if (RESERVED.has(name)) {
-      throw Error(`${name} is reserved`);
-    }
-    return await subvolume({ filesystem: this, name });
-  };
-
-  // create a subvolume by cloning an existing one.
-  cloneSubvolume = async (source: string, name: string) => {
-    if (RESERVED.has(name)) {
-      throw Error(`${name} is reserved`);
-    }
-    if (!(await exists(join(this.opts.mount, source)))) {
-      throw Error(`subvolume ${source} does not exist`);
-    }
-    if (await exists(join(this.opts.mount, name))) {
-      throw Error(`subvolume ${name} already exists`);
-    }
-    await sudo({
-      command: "btrfs",
-      args: [
-        "subvolume",
-        "snapshot",
-        join(this.opts.mount, source),
-        join(this.opts.mount, source, name),
-      ],
-    });
-    await sudo({
-      command: "mv",
-      args: [join(this.opts.mount, source, name), join(this.opts.mount, name)],
-    });
-    const snapdir = join(this.opts.mount, name, SNAPSHOTS);
-    if (await exists(snapdir)) {
-      const snapshots = await listdir(snapdir);
-      await rmdir(
-        snapshots.map((x) => join(this.opts.mount, name, SNAPSHOTS, x)),
-      );
-    }
-    const src = await this.subvolume(source);
-    const vol = await this.subvolume(name);
-    const { size } = await src.quota.get();
-    if (size) {
-      await vol.quota.set(size);
-    }
-    return vol;
-  };
-
-  deleteSubvolume = async (name: string) => {
-    await sudo({
-      command: "btrfs",
-      args: ["subvolume", "delete", join(this.opts.mount, name)],
-    });
-  };
-
-  list = async (): Promise<string[]> => {
-    const { stdout } = await sudo({
-      command: "btrfs",
-      args: ["subvolume", "list", this.opts.mount],
-    });
-    return stdout
-      .split("\n")
-      .map((x) => x.split(" ").slice(-1)[0])
-      .filter((x) => x)
-      .sort();
-  };
-
-  rsync = async ({
-    src,
-    target,
-    args = ["-axH"],
-    timeout = 5 * 60 * 1000,
-  }: {
-    src: string;
-    target: string;
-    args?: string[];
-    timeout?: number;
-  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
-    let srcPath = normalize(join(this.opts.mount, src));
-    if (!srcPath.startsWith(this.opts.mount)) {
-      throw Error("suspicious source");
-    }
-    let targetPath = normalize(join(this.opts.mount, target));
-    if (!targetPath.startsWith(this.opts.mount)) {
-      throw Error("suspicious target");
-    }
-    if (!srcPath.endsWith("/") && (await isdir(srcPath))) {
-      srcPath += "/";
-      if (!targetPath.endsWith("/")) {
-        targetPath += "/";
-      }
-    }
-    return await sudo({
-      command: "rsync",
-      args: [...args, srcPath, targetPath],
-      err_on_exit: false,
-      timeout: timeout / 1000,
-    });
-  };
+  close = () => {};
 }
 
 function isImageFile(name: string) {

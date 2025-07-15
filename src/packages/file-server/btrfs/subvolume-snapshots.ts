@@ -6,7 +6,7 @@ import { type DirectoryListingEntry } from "@cocalc/util/types";
 import { SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 
 export const SNAPSHOTS = ".snapshots";
-const logger = getLogger("file-server:storage-btrfs:subvolume-snapshots");
+const logger = getLogger("file-server:btrfs:subvolume-snapshots");
 
 export class SubvolumeSnapshots {
   public readonly snapshotsDir: string;

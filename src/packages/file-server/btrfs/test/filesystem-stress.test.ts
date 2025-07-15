@@ -10,7 +10,7 @@ describe("stress operations with subvolumes", () => {
   it(`create ${count1} subvolumes in serial`, async () => {
     const t = Date.now();
     for (let i = 0; i < count1; i++) {
-      await fs.subvolume(`${i}`);
+      await fs.subvolumes.get(`${i}`);
     }
     log(
       `created ${Math.round((count1 / (Date.now() - t)) * 1000)} subvolumes per second serial`,
@@ -18,7 +18,7 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("list them and confirm", async () => {
-    const v = await fs.list();
+    const v = await fs.subvolumes.list();
     expect(v.length).toBe(count1);
   });
 
@@ -27,7 +27,7 @@ describe("stress operations with subvolumes", () => {
     const v: any[] = [];
     const t = Date.now();
     for (let i = 0; i < count2; i++) {
-      v.push(fs.subvolume(`p-${i}`));
+      v.push(fs.subvolumes.get(`p-${i}`));
     }
     await Promise.all(v);
     log(
@@ -36,13 +36,13 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("list them and confirm", async () => {
-    const v = await fs.list();
+    const v = await fs.subvolumes.list();
     expect(v.length).toBe(count1 + count2);
   });
 
   it("write a file to each volume", async () => {
-    for (const name of await fs.list()) {
-      const vol = await fs.subvolume(name);
+    for (const name of await fs.subvolumes.list()) {
+      const vol = await fs.subvolumes.get(name);
       await vol.fs.writeFile("a.txt", "hi");
     }
   });
@@ -50,7 +50,7 @@ describe("stress operations with subvolumes", () => {
   it("clone the first group in serial", async () => {
     const t = Date.now();
     for (let i = 0; i < count1; i++) {
-      await fs.cloneSubvolume(`${i}`, `clone-of-${i}`);
+      await fs.subvolumes.clone(`${i}`, `clone-of-${i}`);
     }
     log(
       `cloned ${Math.round((count1 / (Date.now() - t)) * 1000)} subvolumes per second serial`,
@@ -61,7 +61,7 @@ describe("stress operations with subvolumes", () => {
     const t = Date.now();
     const v: any[] = [];
     for (let i = 0; i < count2; i++) {
-      v.push(fs.cloneSubvolume(`p-${i}`, `clone-of-p-${i}`));
+      v.push(fs.subvolumes.clone(`p-${i}`, `clone-of-p-${i}`));
     }
     await Promise.all(v);
     log(
@@ -72,7 +72,7 @@ describe("stress operations with subvolumes", () => {
   it("delete the first batch serial", async () => {
     const t = Date.now();
     for (let i = 0; i < count1; i++) {
-      await fs.deleteSubvolume(`${i}`);
+      await fs.subvolumes.delete(`${i}`);
     }
     log(
       `deleted ${Math.round((count1 / (Date.now() - t)) * 1000)} subvolumes per second serial`,
@@ -83,7 +83,7 @@ describe("stress operations with subvolumes", () => {
     const v: any[] = [];
     const t = Date.now();
     for (let i = 0; i < count2; i++) {
-      v.push(fs.deleteSubvolume(`p-${i}`));
+      v.push(fs.subvolumes.delete(`p-${i}`));
     }
     await Promise.all(v);
     log(

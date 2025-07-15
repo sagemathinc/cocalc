@@ -12,7 +12,7 @@ import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
 import getLogger from "@cocalc/backend/logger";
 
-const logger = getLogger("file-server:storage-btrfs:subvolume");
+const logger = getLogger("file-server:btrfs:subvolume");
 
 interface Options {
   filesystem: Filesystem;
@@ -62,15 +62,16 @@ export class Subvolume {
     delete this.path;
     // @ts-ignore
     delete this.snapshotsDir;
+    for (const sub of ["fs", "bup", "snapshots", "quota"]) {
+      this[sub].close?.();
+      delete this[sub];
+    }
   };
 
   private chown = async (path: string) => {
-    if (!this.filesystem.opts.uid) {
-      return;
-    }
     await sudo({
       command: "chown",
-      args: [`${this.filesystem.opts.uid}:${this.filesystem.opts.uid}`, path],
+      args: [`${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`, path],
     });
   };
 
@@ -84,6 +85,7 @@ export class Subvolume {
 
 const cache = refCache<Options & { noCache?: boolean }, Subvolume>({
   name: "btrfs-subvolumes",
+  createKey: ({ name }) => name,
   createObject: async (options: Options) => {
     const subvolume = new Subvolume(options);
     await subvolume.init();

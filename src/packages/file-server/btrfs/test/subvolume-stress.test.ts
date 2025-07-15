@@ -14,7 +14,7 @@ beforeAll(before);
 describe(`stress test creating ${numSnapshots} snapshots`, () => {
   let vol: Subvolume;
   it("creates a volume and write a file to it", async () => {
-    vol = await fs.subvolume("stress");
+    vol = await fs.subvolumes.get("stress");
   });
 
   it(`create file and snapshot the volume ${numSnapshots} times`, async () => {
@@ -45,7 +45,7 @@ describe(`stress test creating ${numSnapshots} snapshots`, () => {
 describe(`create ${numFiles} files`, () => {
   let vol: Subvolume;
   it("creates a volume", async () => {
-    vol = await fs.subvolume("many-files");
+    vol = await fs.subvolumes.get("many-files");
   });
 
   it(`creates ${numFiles} files`, async () => {

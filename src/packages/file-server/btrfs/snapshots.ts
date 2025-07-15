@@ -1,7 +1,7 @@
 import { type SubvolumeSnapshots } from "./subvolume-snapshots";
 import getLogger from "@cocalc/backend/logger";
 
-const logger = getLogger("file-server:storage-btrfs:snapshots");
+const logger = getLogger("file-server:btrfs:snapshots");
 
 const DATE_REGEXP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 

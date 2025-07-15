@@ -27,7 +27,7 @@ import getLogger from "@cocalc/backend/logger";
 
 const BUP_SNAPSHOT = "temp-bup-snapshot";
 
-const logger = getLogger("file-server:storage-btrfs:subvolume-bup");
+const logger = getLogger("file-server:btrfs:subvolume-bup");
 
 export class SubvolumeBup {
   constructor(private subvolume: Subvolume) {}
