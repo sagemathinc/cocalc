@@ -4,15 +4,13 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { exists, listdir, mkdirp, sudo } from "./util";
+import { exists, sudo } from "./util";
 import { join, normalize } from "path";
 import { SubvolumeFilesystem } from "./subvolume-fs";
 import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
+import { SubvolumeQuota } from "./subvolume-quota";
 import getLogger from "@cocalc/backend/logger";
-
-const SEND_SNAPSHOT_PREFIX = "send-";
-const PAD = 4;
 
 const logger = getLogger("file-server:storage-btrfs:subvolume");
 
@@ -29,6 +27,7 @@ export class Subvolume {
   public readonly fs: SubvolumeFilesystem;
   public readonly bup: SubvolumeBup;
   public readonly snapshots: SubvolumeSnapshots;
+  public readonly quota: SubvolumeQuota;
 
   constructor({ filesystem, name }: Options) {
     this.filesystem = filesystem;
@@ -37,6 +36,7 @@ export class Subvolume {
     this.fs = new SubvolumeFilesystem(this);
     this.bup = new SubvolumeBup(this);
     this.snapshots = new SubvolumeSnapshots(this);
+    this.quota = new SubvolumeQuota(this);
   }
 
   init = async () => {
@@ -47,7 +47,7 @@ export class Subvolume {
         args: ["subvolume", "create", this.path],
       });
       await this.chown(this.path);
-      await this.size(
+      await this.quota.set(
         this.filesystem.opts.defaultSize ?? DEFAULT_SUBVOLUME_SIZE,
       );
     }
@@ -80,163 +80,6 @@ export class Subvolume {
   normalize = (path: string) => {
     return join(this.path, normalize(path));
   };
-
-  /////////////
-  // QUOTA
-  /////////////
-
-  private quotaInfo = async () => {
-    const { stdout } = await sudo({
-      verbose: false,
-      command: "btrfs",
-      args: ["--format=json", "qgroup", "show", "-reF", this.path],
-    });
-    const x = JSON.parse(stdout);
-    return x["qgroup-show"][0];
-  };
-
-  quota = async (): Promise<{
-    size: number;
-    used: number;
-  }> => {
-    let { max_referenced: size, referenced: used } = await this.quotaInfo();
-    if (size == "none") {
-      size = null;
-    }
-    return {
-      used,
-      size,
-    };
-  };
-
-  size = async (size: string | number) => {
-    if (!size) {
-      throw Error("size must be specified");
-    }
-    await sudo({
-      command: "btrfs",
-      args: ["qgroup", "limit", `${size}`, this.path],
-    });
-  };
-
-  du = async () => {
-    return await sudo({
-      command: "btrfs",
-      args: ["filesystem", "du", "-s", this.path],
-    });
-  };
-
-  usage = async (): Promise<{
-    // used and free in bytes
-    used: number;
-    free: number;
-    size: number;
-  }> => {
-    const { stdout } = await sudo({
-      command: "btrfs",
-      args: ["filesystem", "usage", "-b", this.path],
-    });
-    let used: number = -1;
-    let free: number = -1;
-    let size: number = -1;
-    for (const x of stdout.split("\n")) {
-      if (used == -1) {
-        const i = x.indexOf("Used:");
-        if (i != -1) {
-          used = parseInt(x.split(":")[1].trim());
-          continue;
-        }
-      }
-      if (free == -1) {
-        const i = x.indexOf("Free (statfs, df):");
-        if (i != -1) {
-          free = parseInt(x.split(":")[1].trim());
-          continue;
-        }
-      }
-      if (size == -1) {
-        const i = x.indexOf("Device size:");
-        if (i != -1) {
-          size = parseInt(x.split(":")[1].trim());
-          continue;
-        }
-      }
-    }
-    return { used, free, size };
-  };
-
-  /////////////
-  // BTRFS send/recv
-  // Not used.  Instead we will rely on bup (and snapshots of the underlying disk) for backups, since:
-  //  - much easier to check they are valid
-  //  - decoupled from any btrfs issues
-  //  - not tied to any specific filesystem at all
-  //  - easier to offsite via incremntal rsync
-  //  - much more space efficient with *global* dedup and compression
-  //  - bup is really just git, which is very proven
-  // The drawback is speed.
-  /////////////
-
-  // this was just a quick proof of concept -- I don't like it.  Should switch to using
-  // timestamps and a lock.
-  // To recover these, doing recv for each in order does work.  Then you have to
-  // snapshot all of the results to move them.  It's awkward, but efficient
-  // and works fine.
-  send = async () => {
-    await mkdirp([join(this.filesystem.streams, this.name)]);
-    const streams = new Set(
-      await listdir(join(this.filesystem.streams, this.name)),
-    );
-    const allSnapshots = (await this.snapshots.ls()).map((x) => x.name);
-    const snapshots = allSnapshots.filter(
-      (x) => x.startsWith(SEND_SNAPSHOT_PREFIX) && streams.has(x),
-    );
-    const nums = snapshots.map((x) =>
-      parseInt(x.slice(SEND_SNAPSHOT_PREFIX.length)),
-    );
-    nums.sort();
-    const last = nums.slice(-1)[0];
-    let seq, parent;
-    if (last) {
-      seq = `${last + 1}`.padStart(PAD, "0");
-      const l = `${last}`.padStart(PAD, "0");
-      parent = `${SEND_SNAPSHOT_PREFIX}${l}`;
-    } else {
-      seq = "1".padStart(PAD, "0");
-      parent = "";
-    }
-    const send = `${SEND_SNAPSHOT_PREFIX}${seq}`;
-    if (allSnapshots.includes(send)) {
-      await this.snapshots.delete(send);
-    }
-    await this.snapshots.create(send);
-    await sudo({
-      command: "btrfs",
-      args: [
-        "send",
-        "--compressed-data",
-        join(this.snapshots.path(), send),
-        ...(last ? ["-p", this.snapshots.path(parent)] : []),
-        "-f",
-        join(this.filesystem.streams, this.name, send),
-      ],
-    });
-    if (parent) {
-      await this.snapshots.delete(parent);
-    }
-  };
-
-  //   recv = async (target: string) => {
-  //     const streamsDir = join(this.filesystem.streams, this.name);
-  //     const streams = await listdir(streamsDir);
-  //     streams.sort();
-  //     for (const stream of streams) {
-  //       await sudo({
-  //         command: "btrfs",
-  //         args: ["recv", "-f", join(streamsDir, stream)],
-  //       });
-  //     }
-  //   };
 }
 
 const cache = refCache<Options & { noCache?: boolean }, Subvolume>({

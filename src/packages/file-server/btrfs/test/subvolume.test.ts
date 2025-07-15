@@ -11,9 +11,9 @@ describe("setting and getting quota of a subvolume", () => {
   let vol: Subvolume;
   it("set the quota of a subvolume to 5 M", async () => {
     vol = await fs.subvolume("q");
-    await vol.size("5M");
+    await vol.quota.set("5M");
 
-    const { size, used } = await vol.quota();
+    const { size, used } = await vol.quota.get();
     expect(size).toBe(5 * 1024 * 1024);
     expect(used).toBe(0);
   });
@@ -29,11 +29,11 @@ describe("setting and getting quota of a subvolume", () => {
     await wait({
       until: async () => {
         await sudo({ command: "sync" });
-        const { used } = await vol.usage();
+        const { used } = await vol.quota.usage();
         return used > 0;
       },
     });
-    const { used } = await vol.usage();
+    const { used } = await vol.quota.usage();
     expect(used).toBeGreaterThan(0);
 
     const v = await vol.fs.ls("");

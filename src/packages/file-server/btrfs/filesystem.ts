@@ -211,9 +211,9 @@ export class Filesystem {
     }
     const src = await this.subvolume(source);
     const vol = await this.subvolume(name);
-    const { size } = await src.usage();
+    const { size } = await src.quota.get();
     if (size) {
-      await vol.size(size);
+      await vol.quota.set(size);
     }
     return vol;
   };

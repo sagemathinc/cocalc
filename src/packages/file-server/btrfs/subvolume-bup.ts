@@ -1,3 +1,24 @@
+/*
+
+BUP Architecture:
+
+There is a single global dedup'd backup archive stored in the btrfs filesystem.
+Obviously, admins should rsync this regularly to a separate location as a genuine
+backup strategy.
+
+NOTE: we use bup instead of btrfs send/recv !
+
+Not used.  Instead we will rely on bup (and snapshots of the underlying disk) for backups, since:
+ - much easier to check they are valid
+ - decoupled from any btrfs issues
+ - not tied to any specific filesystem at all
+ - easier to offsite via incremental rsync
+ - much more space efficient with *global* dedup and compression
+ - bup is really just git, which is much more proven than even btrfs
+
+The drawback is speed, but that can be managed.
+*/
+
 import { type DirectoryListingEntry } from "@cocalc/util/types";
 import { type Subvolume } from "./subvolume";
 import { sudo, parseBupTime } from "./util";
@@ -10,13 +31,6 @@ const logger = getLogger("file-server:storage-btrfs:subvolume-bup");
 
 export class SubvolumeBup {
   constructor(private subvolume: Subvolume) {}
-
-  /////////////
-  // BACKUPS
-  // There is a single global dedup'd backup archive stored in the btrfs filesystem.
-  // Obviously, admins should rsync this regularly to a separate location as a genuine
-  // backup strategy.
-  /////////////
 
   // create a new bup backup
   save = async ({
