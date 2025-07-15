@@ -803,7 +803,7 @@ export class NotebookFrameActions {
   }
 
   public set_error(error: string): void {
-    this.frame_tree_actions.set_error(error, undefined, this.frame_id);
+    this.frame_tree_actions.set_error(error);
   }
 
   public async command(name: string): Promise<void> {
