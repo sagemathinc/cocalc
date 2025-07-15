@@ -7,13 +7,12 @@ import refCache from "@cocalc/util/refcache";
 import { exists, listdir, mkdirp, sudo } from "./util";
 import { join, normalize } from "path";
 import { updateRollingSnapshots, type SnapshotCounts } from "./snapshots";
-import { type DirectoryListingEntry } from "@cocalc/util/types";
-import getLogger from "@cocalc/backend/logger";
 import { SubvolumeFilesystem } from "./subvolume-fs";
+import { SubvolumeBup } from "./subvolume-bup";
+import getLogger from "@cocalc/backend/logger";
 
 export const SNAPSHOTS = ".snapshots";
 const SEND_SNAPSHOT_PREFIX = "send-";
-const BUP_SNAPSHOT = "temp-bup-snapshot";
 const PAD = 4;
 
 const logger = getLogger("file-server:storage-btrfs:subvolume");
@@ -26,10 +25,11 @@ interface Options {
 export class Subvolume {
   public readonly name: string;
 
-  private filesystem: Filesystem;
+  public readonly filesystem: Filesystem;
   public readonly path: string;
   public readonly snapshotsDir: string;
   public readonly fs: SubvolumeFilesystem;
+  public readonly bup: SubvolumeBup;
 
   constructor({ filesystem, name }: Options) {
     this.filesystem = filesystem;
@@ -37,6 +37,7 @@ export class Subvolume {
     this.path = join(filesystem.opts.mount, name);
     this.snapshotsDir = join(this.path, SNAPSHOTS);
     this.fs = new SubvolumeFilesystem(this);
+    this.bup = new SubvolumeBup(this);
   }
 
   init = async () => {
@@ -80,10 +81,6 @@ export class Subvolume {
   normalize = (path: string) => {
     return join(this.path, normalize(path));
   };
-
-  /////////////
-  // Files
-  /////////////
 
   /////////////
   // QUOTA
@@ -257,158 +254,6 @@ export class Subvolume {
       join(this.snapshotsDir, s[s.length - 1]),
     );
     return snapGen < pathGen;
-  };
-
-  /////////////
-  // BACKUPS
-  // There is a single global dedup'd backup archive stored in the btrfs filesystem.
-  // Obviously, admins should rsync this regularly to a separate location as a genuine
-  // backup strategy.
-  /////////////
-
-  // create a new bup backup
-  createBupBackup = async ({
-    // timeout used for bup index and bup save commands
-    timeout = 30 * 60 * 1000,
-  }: { timeout?: number } = {}) => {
-    if (await this.snapshotExists(BUP_SNAPSHOT)) {
-      logger.debug(`createBupBackup: deleting existing ${BUP_SNAPSHOT}`);
-      await this.deleteSnapshot(BUP_SNAPSHOT);
-    }
-    try {
-      logger.debug(
-        `createBupBackup: creating ${BUP_SNAPSHOT} to get a consistent backup`,
-      );
-      await this.createSnapshot(BUP_SNAPSHOT);
-      const target = join(this.snapshotsDir, BUP_SNAPSHOT);
-      logger.debug(`createBupBackup: indexing ${BUP_SNAPSHOT}`);
-      await sudo({
-        command: "bup",
-        args: [
-          "-d",
-          this.filesystem.bup,
-          "index",
-          "--exclude",
-          join(target, ".snapshots"),
-          "-x",
-          target,
-        ],
-        timeout,
-      });
-      logger.debug(`createBupBackup: saving ${BUP_SNAPSHOT}`);
-      await sudo({
-        command: "bup",
-        args: [
-          "-d",
-          this.filesystem.bup,
-          "save",
-          "--strip",
-          "-n",
-          this.name,
-          target,
-        ],
-        timeout,
-      });
-    } finally {
-      logger.debug(`createBupBackup: deleting temporary ${BUP_SNAPSHOT}`);
-      await this.deleteSnapshot(BUP_SNAPSHOT);
-    }
-  };
-
-  bupBackups = async (): Promise<string[]> => {
-    const { stdout } = await sudo({
-      command: "bup",
-      args: ["-d", this.filesystem.bup, "ls", this.name],
-    });
-    return stdout
-      .split("\n")
-      .map((x) => x.split(" ").slice(-1)[0])
-      .filter((x) => x);
-  };
-
-  bupRestore = async (path: string) => {
-    // path -- branch/revision/path/to/dir
-    if (path.startsWith("/")) {
-      path = path.slice(1);
-    }
-    path = normalize(path);
-    // ... but to avoid potential data loss, we make a snapshot before deleting it.
-    await this.createSnapshot();
-    const i = path.indexOf("/"); // remove the commit name
-    await sudo({
-      command: "rm",
-      args: ["-rf", this.normalize(path.slice(i + 1))],
-    });
-    await sudo({
-      command: "bup",
-      args: [
-        "-d",
-        this.filesystem.bup,
-        "restore",
-        "-C",
-        this.path,
-        join(`/${this.name}`, path),
-        "--quiet",
-      ],
-    });
-  };
-
-  bupLs = async (path: string): Promise<DirectoryListingEntry[]> => {
-    path = normalize(path);
-    const { stdout } = await sudo({
-      command: "bup",
-      args: [
-        "-d",
-        this.filesystem.bup,
-        "ls",
-        "--almost-all",
-        "--file-type",
-        "-l",
-        join(`/${this.name}`, path),
-      ],
-    });
-    const v: DirectoryListingEntry[] = [];
-    for (const x of stdout.split("\n")) {
-      // [-rw-------","6b851643360e435eb87ef9a6ab64a8b1/6b851643360e435eb87ef9a6ab64a8b1","5","2025-07-15","06:12","a.txt"]
-      const w = x.split(/\s+/);
-      if (w.length >= 6) {
-        let isdir, name;
-        if (w[5].endsWith("@") || w[5].endsWith("=") || w[5].endsWith("|")) {
-          w[5] = w[5].slice(0, -1);
-        }
-        if (w[5].endsWith("/")) {
-          isdir = true;
-          name = w[5].slice(0, -1);
-        } else {
-          name = w[5];
-          isdir = false;
-        }
-        const size = parseInt(w[2]);
-        const mtime = new Date(w[3] + "T" + w[4]).valueOf() / 1000;
-        v.push({ name, size, mtime, isdir });
-      }
-    }
-    return v;
-  };
-
-  bupPrune = async ({
-    dailies = "1w",
-    monthlies = "4m",
-    all = "3d",
-  }: { dailies?: string; monthlies?: string; all?: string } = {}) => {
-    await sudo({
-      command: "bup",
-      args: [
-        "-d",
-        this.filesystem.bup,
-        "prune-older",
-        `--keep-dailies-for=${dailies}`,
-        `--keep-monthlies-for=${monthlies}`,
-        `--keep-all-for=${all}`,
-        "--unsafe",
-        this.name,
-      ],
-    });
   };
 
   /////////////

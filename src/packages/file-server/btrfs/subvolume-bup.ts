@@ -1,0 +1,178 @@
+import { type DirectoryListingEntry } from "@cocalc/util/types";
+import { type Subvolume } from "./subvolume";
+import { sudo, parseBupTime } from "./util";
+import { join, normalize } from "path";
+import getLogger from "@cocalc/backend/logger";
+
+const BUP_SNAPSHOT = "temp-bup-snapshot";
+
+const logger = getLogger("file-server:storage-btrfs:subvolume-bup");
+
+export class SubvolumeBup {
+  constructor(private subvolume: Subvolume) {}
+
+  /////////////
+  // BACKUPS
+  // There is a single global dedup'd backup archive stored in the btrfs filesystem.
+  // Obviously, admins should rsync this regularly to a separate location as a genuine
+  // backup strategy.
+  /////////////
+
+  // create a new bup backup
+  save = async ({
+    // timeout used for bup index and bup save commands
+    timeout = 30 * 60 * 1000,
+  }: { timeout?: number } = {}) => {
+    if (await this.subvolume.snapshotExists(BUP_SNAPSHOT)) {
+      logger.debug(`createBupBackup: deleting existing ${BUP_SNAPSHOT}`);
+      await this.subvolume.deleteSnapshot(BUP_SNAPSHOT);
+    }
+    try {
+      logger.debug(
+        `createBackup: creating ${BUP_SNAPSHOT} to get a consistent backup`,
+      );
+      await this.subvolume.createSnapshot(BUP_SNAPSHOT);
+      const target = this.subvolume.normalize(
+        this.subvolume.snapshotPath(BUP_SNAPSHOT),
+      );
+
+      logger.debug(`createBupBackup: indexing ${BUP_SNAPSHOT}`);
+      await sudo({
+        command: "bup",
+        args: [
+          "-d",
+          this.subvolume.filesystem.bup,
+          "index",
+          "--exclude",
+          join(target, ".snapshots"),
+          "-x",
+          target,
+        ],
+        timeout,
+      });
+
+      logger.debug(`createBackup: saving ${BUP_SNAPSHOT}`);
+      await sudo({
+        command: "bup",
+        args: [
+          "-d",
+          this.subvolume.filesystem.bup,
+          "save",
+          "--strip",
+          "-n",
+          this.subvolume.name,
+          target,
+        ],
+        timeout,
+      });
+    } finally {
+      logger.debug(`createBupBackup: deleting temporary ${BUP_SNAPSHOT}`);
+      await this.subvolume.deleteSnapshot(BUP_SNAPSHOT);
+    }
+  };
+
+  restore = async (path: string) => {
+    // path -- branch/revision/path/to/dir
+    if (path.startsWith("/")) {
+      path = path.slice(1);
+    }
+    path = normalize(path);
+    // ... but to avoid potential data loss, we make a snapshot before deleting it.
+    await this.subvolume.createSnapshot();
+    const i = path.indexOf("/"); // remove the commit name
+    // remove the target we're about to restore
+    await this.subvolume.fs.rm(path.slice(i + 1), { recursive: true });
+    await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.subvolume.filesystem.bup,
+        "restore",
+        "-C",
+        this.subvolume.path,
+        join(`/${this.subvolume.name}`, path),
+        "--quiet",
+      ],
+    });
+  };
+
+  ls = async (path: string = ""): Promise<DirectoryListingEntry[]> => {
+    if (!path) {
+      const { stdout } = await sudo({
+        command: "bup",
+        args: ["-d", this.subvolume.filesystem.bup, "ls", this.subvolume.name],
+      });
+      const v: DirectoryListingEntry[] = [];
+      let newest = 0;
+      for (const x of stdout.trim().split("\n")) {
+        const name = x.split(" ").slice(-1)[0];
+        if (name == "latest") {
+          continue;
+        }
+        const mtime = parseBupTime(name).valueOf() / 1000;
+        newest = Math.max(mtime, newest);
+        v.push({ name, isdir: true, mtime });
+      }
+      if (v.length > 0) {
+        v.push({ name: "latest", isdir: true, mtime: newest });
+      }
+      return v;
+    }
+
+    path = normalize(path);
+    const { stdout } = await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.subvolume.filesystem.bup,
+        "ls",
+        "--almost-all",
+        "--file-type",
+        "-l",
+        join(`/${this.subvolume.name}`, path),
+      ],
+    });
+    const v: DirectoryListingEntry[] = [];
+    for (const x of stdout.split("\n")) {
+      // [-rw-------","6b851643360e435eb87ef9a6ab64a8b1/6b851643360e435eb87ef9a6ab64a8b1","5","2025-07-15","06:12","a.txt"]
+      const w = x.split(/\s+/);
+      if (w.length >= 6) {
+        let isdir, name;
+        if (w[5].endsWith("@") || w[5].endsWith("=") || w[5].endsWith("|")) {
+          w[5] = w[5].slice(0, -1);
+        }
+        if (w[5].endsWith("/")) {
+          isdir = true;
+          name = w[5].slice(0, -1);
+        } else {
+          name = w[5];
+          isdir = false;
+        }
+        const size = parseInt(w[2]);
+        const mtime = new Date(w[3] + "T" + w[4]).valueOf() / 1000;
+        v.push({ name, size, mtime, isdir });
+      }
+    }
+    return v;
+  };
+
+  prune = async ({
+    dailies = "1w",
+    monthlies = "4m",
+    all = "3d",
+  }: { dailies?: string; monthlies?: string; all?: string } = {}) => {
+    await sudo({
+      command: "bup",
+      args: [
+        "-d",
+        this.subvolume.filesystem.bup,
+        "prune-older",
+        `--keep-dailies-for=${dailies}`,
+        `--keep-monthlies-for=${monthlies}`,
+        `--keep-all-for=${all}`,
+        "--unsafe",
+        this.subvolume.name,
+      ],
+    });
+  };
+}

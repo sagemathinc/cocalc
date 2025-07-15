@@ -1,6 +1,7 @@
 import { before, after, fs } from "./setup";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
+import { type Subvolume } from "../subvolume";
 
 const DEBUG = false;
 const log = DEBUG ? console.log : (..._args) => {};
@@ -11,7 +12,7 @@ const numFiles = 1000;
 beforeAll(before);
 
 describe(`stress test creating ${numSnapshots} snapshots`, () => {
-  let vol;
+  let vol: Subvolume;
   it("creates a volume and write a file to it", async () => {
     vol = await fs.subvolume("stress");
   });
@@ -40,7 +41,7 @@ describe(`stress test creating ${numSnapshots} snapshots`, () => {
 });
 
 describe(`create ${numFiles} files`, () => {
-  let vol;
+  let vol: Subvolume;
   it("creates a volume", async () => {
     vol = await fs.subvolume("many-files");
   });
