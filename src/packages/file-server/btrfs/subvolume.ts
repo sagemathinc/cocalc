@@ -219,7 +219,11 @@ export class Subvolume {
     const s = await this.snapshots();
     if (s.length == 0) {
       // more than just the SNAPSHOTS directory?
-      return (await listdir(this.path)).length > 1;
+      const v = await listdir(this.path);
+      if (v.length == 0 || (v.length == 1 && v[0] == this.snapshotsDir)) {
+        return false;
+      }
+      return true;
     }
     const pathGen = await getGeneration(this.path);
     const snapGen = await getGeneration(

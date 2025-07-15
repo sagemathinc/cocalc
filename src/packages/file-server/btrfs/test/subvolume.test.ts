@@ -1,7 +1,6 @@
-import { before, after, fs } from "./setup";
-import { writeFile } from "fs/promises";
+import { before, after, fs, sudo } from "./setup";
+import { readFile, writeFile, unlink } from "fs/promises";
 import { join } from "path";
-import { delay } from "awaiting";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { randomBytes } from "crypto";
 
@@ -24,7 +23,7 @@ describe("setting and getting quota of a subvolume", () => {
     await writeFile(join(vol.path, "buf"), buf);
     await wait({
       until: async () => {
-        await delay(1000);
+        await sudo({ command: "sync" });
         const { used } = await vol.usage();
         return used > 0;
       },
@@ -40,6 +39,56 @@ describe("setting and getting quota of a subvolume", () => {
       await writeFile(b, buf2);
     }).rejects.toThrow("write");
   });
+});
+
+describe("test snapshots", () => {
+  let vol;
+  it("creates a volume and write a file to it", async () => {
+    vol = await fs.subvolume("snapper");
+    expect(await vol.hasUnsavedChanges()).toBe(false);
+    await writeFile(join(vol.path, "a.txt"), "hello");
+    expect(await vol.hasUnsavedChanges()).toBe(true);
+  });
+
+  it("snapshot the volume", async () => {
+    expect(await vol.snapshots()).toEqual([]);
+    await vol.createSnapshot("snap1");
+    expect(await vol.snapshots()).toEqual(["snap1"]);
+    expect(await vol.hasUnsavedChanges()).toBe(false);
+  });
+
+  it("create a file see that we know there are unsaved changes", async () => {
+    await writeFile(join(vol.path, "b.txt"), "world");
+    await sudo({ command: "sync" });
+    expect(await vol.hasUnsavedChanges()).toBe(true);
+  });
+
+  it("delete our file, but then read it in a snapshot", async () => {
+    await unlink(join(vol.path, "a.txt"));
+    const b = await readFile(join(vol.snapshotsDir, "snap1", "a.txt"), "utf8");
+    expect(b).toEqual("hello");
+  });
+
+  it("verifies snapshot exists", async () => {
+    expect(await vol.snapshotExists("snap1")).toBe(true);
+    expect(await vol.snapshotExists("snap2")).toBe(false);
+  });
+
+  it("lock our snapshot and confirm it prevents deletion", async () => {
+    await vol.lockSnapshot("snap1");
+    expect(async () => {
+      await vol.deleteSnapshot("snap1");
+    }).rejects.toThrow("locked");
+  });
+
+  it("unlock our snapshot and delete it", async () => {
+    await vol.unlockSnapshot("snap1");
+    await vol.deleteSnapshot("snap1");
+    expect(await vol.snapshotExists("snap1")).toBe(false);
+    expect(await vol.snapshots()).toEqual([]);
+  });
+
+
 });
 
 afterAll(after);

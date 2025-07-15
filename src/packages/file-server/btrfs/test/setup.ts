@@ -7,6 +7,8 @@ import { chmod, mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 import { until } from "@cocalc/util/async-utils";
+export { sudo } from "../util";
+export { delay } from "awaiting";
 
 export let fs: Filesystem;
 let tempDir;
