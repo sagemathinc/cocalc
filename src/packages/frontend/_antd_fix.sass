@@ -8,20 +8,20 @@
 // This is mainly meant to be temporary, so that we keep the
 // overall global bootstrap style.
 
-@import colors
+@use 'colors'
 
 // make the color consistent with antd again, since bootstrap sets
 // it to something else.  We want this to be consistent with our nextjs
 // landing pages.
 a
-  color: $COL_ANTD_LINK_BLUE
+  color: colors.$COL_ANTD_LINK_BLUE
 
 html
   overflow: hidden
 
 .ant-popover-content
   .ant-popover-arrow
-    border-color: $COL_GRAY_L !important
+    border-color: colors.$COL_GRAY_L !important
     z-index: -1 !important
 
 .ant-popover-inner-content>.cocalc-account-button-dropdown-links
