@@ -501,7 +501,7 @@ export function trunc_left<T>(
   sArg: T,
   max_length = 1024,
   ellipsis = ELLIPSIS,
-): T | string  {
+): T | string {
   if (sArg == null) {
     return sArg;
   }
@@ -2300,9 +2300,6 @@ export function sanitize_html_attributes($, node): void {
     }
   });
 }
-
-// cocalc analytics cookie name
-export const analytics_cookie_name = "CC_ANA";
 
 // convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
 // to a canonical name.

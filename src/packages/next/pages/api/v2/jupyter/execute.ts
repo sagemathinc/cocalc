@@ -23,7 +23,8 @@ The OUTPUT is:
 import { execute } from "@cocalc/server/jupyter/execute";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
-import { analytics_cookie_name } from "@cocalc/util/misc";
+
+import { ANALYTICS_COOKIE_NAME, ANALYTICS_ENABLED } from "@cocalc/util/consts";
 
 export default async function handle(req, res) {
   try {
@@ -39,7 +40,9 @@ async function doIt(req) {
   const { input, kernel, history, tag, noCache, hash, project_id, path } =
     getParams(req);
   const account_id = await getAccountId(req);
-  const analytics_cookie = req.cookies[analytics_cookie_name];
+  const analytics_cookie = ANALYTICS_ENABLED
+    ? req.cookies[ANALYTICS_COOKIE_NAME]
+    : undefined;
   return await execute({
     account_id,
     project_id,
