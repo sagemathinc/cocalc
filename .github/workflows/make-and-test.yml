@@ -91,12 +91,8 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - name: Download and install Valkey
-        run: |
-          VALKEY_VERSION=8.1.2
-          curl -LO https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
-          tar -xzf valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
-          sudo cp valkey-${VALKEY_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
+      - name: Install btrfs-progs
+        run: sudo apt-get update && sudo apt-get install -y btrfs-progs
 
       - name: Set up Python venv and Jupyter kernel
         run: |

@@ -18,7 +18,7 @@
     "version-check": "pip3 install typing_extensions mypy  || pip3 install --break-system-packages typing_extensions mypy && ./workspaces.py version-check && mypy scripts/check_npm_packages.py",
     "test-parallel": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r --parallel test",
     "test": "unset DEBUG && pnpm run depcheck && pnpm run version-check && ./workspaces.py test",
-    "test-github-ci": "unset DEBUG && pnpm run depcheck && pnpm run version-check && ./workspaces.py test --exclude=jupyter,file-server --retries=1",
+    "test-github-ci": "unset DEBUG && pnpm run depcheck && pnpm run version-check && ./workspaces.py test --exclude=jupyter --retries=1",
     "depcheck": "cd packages && pnpm run -r --parallel depcheck",
     "prettier-all": "cd packages/",
     "local-ci": "./scripts/ci.sh",
