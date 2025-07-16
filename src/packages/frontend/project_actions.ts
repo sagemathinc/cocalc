@@ -74,8 +74,8 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "@cocalc/frontend/project/page/flyouts/utils";
-import { getValidVBAROption } from "@cocalc/frontend/project/page/vbar";
-import { VBAR_KEY } from "@cocalc/frontend/project/page/vbar-consts";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
@@ -550,8 +550,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
+        const actBar = account_store?.getIn([
+          "other_settings",
+          ACTIVITY_BAR_KEY,
+        ]);
+        const flyoutsDefault = getValidActivityBarOption(actBar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
@@ -1493,7 +1496,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       most_recent_file_click: undefined,
     });
-    this.fetch_directory_listing({ path });
+
+    store.get_listings().watch(path, true);
   };
 
   setComputeServerId = (compute_server_id: number) => {
@@ -1522,9 +1526,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -1554,9 +1557,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Update the directory listing cache for the given path.
   // Uses current path if path not provided.
-  async fetch_directory_listing(opts?): Promise<void> {
+  fetch_directory_listing = async (opts?): Promise<void> => {
     await fetchDirectoryListing(this, opts);
-  }
+  };
 
   public async fetch_directory_listing_directly(
     path: string,
@@ -2308,8 +2311,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -2682,11 +2685,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
   // that extension.  Throws an Error if the path name is invalid.
-  public construct_absolute_path(
+  construct_absolute_path = (
     name: string,
     current_path?: string,
     ext?: string,
-  ) {
+  ): string => {
     if (name.length === 0) {
       throw Error("Cannot use empty filename");
     }
@@ -2700,7 +2703,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       s = `${s}.${ext}`;
     }
     return s;
-  }
+  };
 
   async create_folder(opts: {
     name: string;
@@ -2834,6 +2837,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.log({ event: "file_action", action: "created", files: [p] });
+    if (ext) {
+      redux.getActions("account")?.addTag(`create-${ext}`);
+    }
     if (opts.switch_over) {
       this.open_file({
         path: p,

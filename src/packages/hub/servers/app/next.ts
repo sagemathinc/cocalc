@@ -11,7 +11,6 @@ import { join } from "path";
 
 // @ts-ignore -- TODO: typescript doesn't like @cocalc/next/init (it is a js file).
 import initNextServer from "@cocalc/next/init";
-
 import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/hub/logger";
 import handleRaw from "@cocalc/next/lib/share/handle-raw";

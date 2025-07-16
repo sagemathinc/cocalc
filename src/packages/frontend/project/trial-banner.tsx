@@ -177,7 +177,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       if (allow_run === false) {
         return (
           <span>
-            There are too many free trial projects running right now.
+            There are too many free projects running right now.
             <br />
             Try again later or {renderBuyAndUpgrade()}.
           </span>
@@ -194,7 +194,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         );
         return (
           <span>
-            {intro} The trial period of this project ended.{" "}
+            {intro}{" "}
             {renderBuyAndUpgrade("Buy a license")}.
           </span>
         );
@@ -225,7 +225,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
           <span style={{ fontSize: style.fontSize }}>
             <Icon name="info-circle" />{" "}
             <A href={DOC_TRIAL} style={a_style_more}>
-              Trial projects
+              Free projects
             </A>
             {"..."}
           </span>
@@ -455,7 +455,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         onCancel={() => setShowInfo(false)}
       >
         <Paragraph>
-          <A href={"https://doc.cocalc.com/trial.html"}>Trial projects</A> have
+          <A href={"https://doc.cocalc.com/trial.html"}>Free projects</A> have
           a maximum uptime of {limit_min} minutes. After that period, the
           project will stop and interrupt your work.
         </Paragraph>

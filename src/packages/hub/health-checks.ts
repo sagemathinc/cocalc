@@ -6,14 +6,14 @@
 // endpoints for various health checks
 
 import getLogger from "@cocalc/backend/logger";
-const { new_counter } = require("@cocalc/hub/metrics-recorder");
+import { new_counter } from "@cocalc/server/metrics/metrics-recorder";
 import { howLongDisconnectedMins } from "@cocalc/database/postgres/record-connect-error";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { seconds2hms } from "@cocalc/util/misc";
 import express, { Response } from "express";
 import { createServer, Server } from "net";
 import { isFloat } from "validator";
-import { database_is_working } from "./hub_register";
+import { database_is_working } from "@cocalc/server/metrics/hub_register";
 const logger = getLogger("hub:healthcheck");
 const { debug: L } = logger;
 

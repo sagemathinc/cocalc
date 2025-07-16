@@ -931,7 +931,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
     project_id: string,
     options: { disablePayAsYouGo?: boolean } = {},
   ): Promise<boolean> => {
-    if (!(await allow_project_to_run(project_id))) {
+    if (
+      !(await allow_project_to_run(project_id)) ||
+      !store.getIn(["project_map", project_id])
+    ) {
       return false;
     }
     if (!options.disablePayAsYouGo) {

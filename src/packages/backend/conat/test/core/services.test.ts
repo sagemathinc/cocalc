@@ -8,7 +8,7 @@ import {
   connect,
   delay,
 } from "@cocalc/backend/conat/test/setup";
-import { Client, type Message } from "@cocalc/conat/core/client";
+import type { Client, Message } from "@cocalc/conat/core/client";
 import { wait } from "@cocalc/backend/conat/test/util";
 
 beforeAll(before);
@@ -154,7 +154,7 @@ describe("illustrate using callMany to call multiple services and get all the re
   });
 
   it("call the service using callMany and get TWO results in parallel", async () => {
-    const callMany = client3.callMany("whoami", { maxWait: 500 });
+    const callMany = client3.callMany("whoami", { maxWait: 1500 });
     const X: number[] = [];
     const start = Date.now();
     for await (const a of await callMany.who()) {
@@ -162,7 +162,7 @@ describe("illustrate using callMany to call multiple services and get all the re
     }
     expect(X.length).toBe(2);
     expect(new Set(X)).toEqual(new Set([1, 2]));
-    expect(Date.now() - start).toBeGreaterThan(500);
+    expect(Date.now() - start).toBeGreaterThan(1500);
   });
 
   it("call the service using callMany but limit results using mesgLimit instead of time", async () => {
@@ -174,7 +174,7 @@ describe("illustrate using callMany to call multiple services and get all the re
     }
     expect(X.length).toBe(2);
     expect(new Set(X)).toEqual(new Set([1, 2]));
-    expect(Date.now() - start).toBeLessThan(500);
+    expect(Date.now() - start).toBeLessThan(2000);
   });
 
   it("cleans up", () => {

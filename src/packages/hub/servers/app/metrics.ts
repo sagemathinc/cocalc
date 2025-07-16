@@ -4,7 +4,7 @@ Express middleware for recording metrics about response time to requests.
 
 import { dirname } from "path";
 import { Router } from "express";
-const { get, new_histogram } = require("@cocalc/hub/metrics-recorder");
+import { get, new_histogram } from "@cocalc/server/metrics/metrics-recorder";
 import { join } from "path";
 import basePath from "@cocalc/backend/base-path";
 import getPool from "@cocalc/database/pool";

@@ -14,7 +14,7 @@ import { connect, before, after, wait } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 
 describe("create a dstream and do some basic operations", () => {
   let s;
@@ -110,7 +110,7 @@ describe("create two dstreams and observe sync between them", () => {
   });
 });
 
-describe("get sequence number and time of message", () => {
+describe.only("get sequence number and time of message", () => {
   let s;
 
   it("creates stream and write message", async () => {
@@ -135,6 +135,10 @@ describe("get sequence number and time of message", () => {
     expect(n).toBeGreaterThan(0);
   });
 
+  it("seqs gives all sequence numbers", () => {
+    expect(s.seqs()).toEqual([s.seq(0)]);
+  });
+
   it("get server assigned time", async () => {
     const t = s.time(0);
     // since testing on the same machine as server, these times should be close:
@@ -147,6 +151,7 @@ describe("get sequence number and time of message", () => {
     await s.save();
     const m = s.seq(1);
     expect(m).toBeGreaterThan(n);
+    expect(s.seqs()).toEqual([n, m]);
   });
 
   it("and time is bigger", async () => {

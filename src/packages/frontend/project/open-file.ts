@@ -6,12 +6,9 @@
 // Implement the open_file actions for opening one single file in a project.
 
 import { callback } from "awaiting";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
-import { dialogs } from "@cocalc/frontend/i18n";
-import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
@@ -26,7 +23,6 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { SITE_NAME } from "@cocalc/util/theme";
-import { ensure_project_running } from "./project-start-warning";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
@@ -146,19 +142,6 @@ export async function open_file(
     opts.fragmentId = Fragment.decode(location.hash);
   }
 
-  const intl = await getIntl();
-  if (!tabIsOpened()) {
-    return;
-  }
-  const what = intl.formatMessage(dialogs.project_open_file_what, {
-    path: opts.path,
-  });
-
-  if (!(await ensure_project_running(actions.project_id, what))) {
-    if (!actions.open_files) return; // closed
-    actions.open_files.delete(opts.path);
-    return;
-  }
   if (!tabIsOpened()) {
     return;
   }

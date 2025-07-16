@@ -4,8 +4,8 @@ import { init as initChangefeedServer } from "@cocalc/database/conat/changefeed-
 import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
-import { initPersistServer } from "@cocalc/backend/conat/persist";
-import { conatPersistCount, conatApiCount } from "@cocalc/backend/data";
+export { initConatPersist } from "./persist";
+import { conatApiCount } from "@cocalc/backend/data";
 
 export { loadConatConfiguration };
 
@@ -19,16 +19,6 @@ export async function initConatChangefeedServer() {
   initChangefeedServer();
 }
 
-export async function initConatPersist() {
-  logger.debug("initPersistServer: sqlite3 stream persistence", {
-    conatPersistCount,
-  });
-  await loadConatConfiguration();
-  for (let i = 0; i < conatPersistCount; i++) {
-    initPersistServer();
-  }
-}
-
 export async function initConatApi() {
   logger.debug("initConatApi: the central api services", { conatApiCount });
   await loadConatConfiguration();
@@ -39,9 +29,4 @@ export async function initConatApi() {
   }
   initLLM();
   createTimeService();
-}
-
-export async function initConatCore() {
-  logger.debug("initConatApi: socketio websocsocket server on a port");
-  await loadConatConfiguration();
 }

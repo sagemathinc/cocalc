@@ -43,7 +43,7 @@ export const RAW_MAX_SIZE_BYTES = 10000000; // 10MB
 export async function rawText(
   githubOrg: string,
   githubRepo: string,
-  segments: string[]
+  segments: string[],
 ): Promise<string> {
   const url = rawURL(githubOrg, githubRepo, segments);
   //console.log("raw:", { url });
@@ -53,10 +53,10 @@ export async function rawText(
 function rawURL(
   githubOrg: string,
   githubRepo: string,
-  segments: string[]
+  segments: string[],
 ): string {
   return `https://raw.githubusercontent.com/${githubOrg}/${githubRepo}/${join(
-    ...segments.slice(1)
+    ...segments.slice(1),
   )}`;
 }
 
@@ -77,22 +77,46 @@ interface GithubFile {
 async function credentials(): Promise<{
   github_username?: string;
   github_token?: string;
+  github_block?: string;
 }> {
   const pool = getPool("long");
   const { rows } = await pool.query(
-    "SELECT name, value FROM server_settings WHERE name='github_username' OR name='github_token'"
+    "SELECT name, value FROM server_settings WHERE name='github_username' OR name='github_token' OR name='github_block'",
   );
-  let result: { github_username?: string; github_token?: string } = {};
+  let result: {
+    github_username?: string;
+    github_token?: string;
+    github_block?: string;
+  } = {};
   for (const row of rows) {
     result[row.name] = row.value;
   }
   return result;
 }
 
+function isBlocked(path: string, github_block?: string) {
+  if (!github_block) {
+    return false;
+  }
+  const path1 = path.toLowerCase();
+  for (const x of github_block.split(",")) {
+    const y = x.trim().toLowerCase();
+    if (path1.includes(y)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export async function api(path: string): Promise<any> {
   const url = `https://api.github.com/${path}`;
   const options: any = {};
-  const { github_username, github_token } = await credentials();
+  const { github_username, github_token, github_block } = await credentials();
+  if (isBlocked(path, github_block)) {
+    throw Error(
+      `Path '${path}' is blocked by the site admins.  If you think this is a mistake, please contact support.`,
+    );
+  }
   if (github_username && github_token) {
     options.headers = new Headers({
       Authorization: "Basic " + encode(`${github_username}:${github_token}`),
@@ -120,7 +144,7 @@ export async function api(path: string): Promise<any> {
 export async function contents(
   githubOrg: string,
   githubRepo: string,
-  segments: string[]
+  segments: string[],
 ): Promise<GithubFile[]> {
   let ref, path;
   if (segments.length == 0) {
@@ -134,11 +158,11 @@ export async function contents(
   const result = await api(
     `repos/${githubOrg}/${githubRepo}/contents/${path}${
       ref ? "?ref=" + ref : ""
-    }`
+    }`,
   );
   if (result.name != null) {
     throw Error(
-      "only use contents to get directory listing, not to get file contents"
+      "only use contents to get directory listing, not to get file contents",
     );
   }
   return result;
@@ -146,7 +170,7 @@ export async function contents(
 
 export async function defaultBranch(
   githubOrg: string,
-  githubRepo: string
+  githubRepo: string,
 ): Promise<string> {
   return (await api(`repos/${githubOrg}/${githubRepo}`)).default_branch;
 }

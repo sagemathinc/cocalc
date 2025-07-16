@@ -50,7 +50,6 @@ const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 const Modes = ["markdown", "editor"] as const;
 export type Mode = (typeof Modes)[number];
 
-
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
 
 function getLocalStorageMode(): Mode | undefined {
@@ -134,7 +133,7 @@ interface Props {
   // refresh codemirror if this changes
   refresh?: any;
 
-  overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
+  overflowEllipsis?: boolean; // if true (the default!), show "..." button popping up all menu entries
 
   dirtyRef?: MutableRefObject<boolean>; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).
 
@@ -176,7 +175,7 @@ export default function MultiMarkdownInput({
   onUndo,
   onUploadEnd,
   onUploadStart,
-  overflowEllipsis = false,
+  overflowEllipsis = true,
   placeholder,
   refresh,
   registerEditor,
@@ -287,7 +286,7 @@ export default function MultiMarkdownInput({
     };
   }, [mode]);
 
-  function toggleEditBarPopupver() {
+  function toggleEditBarPopover() {
     setEditBarPopover(!editBarPopover);
   }
 
@@ -352,8 +351,8 @@ export default function MultiMarkdownInput({
               color: COLORS.GRAY_M,
               ...(mode == "editor" || hideHelp
                 ? {
-                    position: "absolute",
-                    right: 0,
+                    float: "right",
+                    position: "relative",
                     zIndex: 1,
                   }
                 : { float: "right" }),
@@ -390,7 +389,7 @@ export default function MultiMarkdownInput({
               onChange={(e) => {
                 const mode = e.target.value;
                 if (mode === "menu") {
-                  toggleEditBarPopupver();
+                  toggleEditBarPopover();
                 } else {
                   setMode(mode as Mode);
                 }

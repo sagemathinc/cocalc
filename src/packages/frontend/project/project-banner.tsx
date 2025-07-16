@@ -41,49 +41,54 @@ export function ProjectWarningBanner() {
   const noMemberHosting: boolean = !runQuota?.member_host;
   const noInternet: boolean = !runQuota?.network;
 
-  // fallback case for showBanner
-  function showNoInternetBanner(): boolean {
-    if (dismissedInternetWarning) {
-      return false;
-    }
-    if (projectIsRunning && noInternet) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  function showTrialBanner(): boolean {
+  function hideAllWarnings(): boolean {
     if (!projectIsRunning) {
       // if the project is not running, we don't show the trial banner
-      return false;
-    }
-    // paying users are allowed to have a setting to hide banner unconditionally
-    if (other_settings?.get("no_free_warnings")) {
-      return false;
+      return true;
     }
     if (!is_commercial) {
-      return false;
+      return true;
+    }
+    if (isSandbox) {
+      // don't bother for sandbox project, since users can't upgrade it anyways.
+      return true;
     }
     if (is_anonymous) {
       // No need to provide all these warnings and scare anonymous users, who are just
       // playing around for the first time (and probably wouldn't read this, and should
       // assume strong limitations since they didn't even make an account).
+      return true;
+    }
+    return false;
+  }
+
+  function showNoInternetBanner(): boolean {
+    if (hideAllWarnings()) return false;
+
+    if (dismissedInternetWarning) {
       return false;
     }
-    if (isSandbox) {
-      // don't bother for sandbox project, since users can't upgrade it anyways.
+    if (noInternet) {
+      return true;
+    }
+    return false;
+  }
+
+  function showTrialBanner(): boolean {
+    if (hideAllWarnings()) return false;
+
+    // paying users are allowed to have a setting to hide banner unconditionally
+    if (other_settings?.get("no_free_warnings")) {
       return false;
     }
-    // we exclude students
+    // we exclude students, but still show a warning about internet (see above)
     if (isPaidStudentPayProject) {
       return false;
     }
-    if (!noMemberHosting) {
-      return false;
+    if (noMemberHosting) {
+      return true;
     }
-    // if none of the above cases apply, we show the trial banner
-    return true;
+    return false;
   }
 
   if (projectIsRunning == null) {

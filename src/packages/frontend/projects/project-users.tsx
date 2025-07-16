@@ -6,13 +6,16 @@
 /*
 Showing list of users of a project
 */
-import { Component, redux, rclass, rtypes } from "../app-framework";
-import { UserMap } from "../todo-types";
-
-const { User } = require("../users");
-
-import { r_join } from "../components/r_join";
-import { Loading } from "../components/loading";
+import {
+  Component,
+  redux,
+  rclass,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
+import { UserMap } from "@cocalc/frontend/todo-types";
+import { User } from "@cocalc/frontend/users";
+import { r_join } from "@cocalc/frontend/components/r_join";
+import { Loading } from "@cocalc/frontend/components/loading";
 
 interface ReactProps {
   project: any;
@@ -69,7 +72,7 @@ export const ProjectUsers = rclass<ReactProps>(
             last_active={user.last_active}
             account_id={user.account_id}
             user_map={this.props.user_map}
-          />
+          />,
         );
       }
       if (v.length > 0) {
@@ -80,5 +83,5 @@ export const ProjectUsers = rclass<ReactProps>(
         return <span />;
       }
     }
-  }
+  },
 );

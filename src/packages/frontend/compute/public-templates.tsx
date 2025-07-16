@@ -313,7 +313,7 @@ export default function PublicTemplates({
   if (loading) {
     return (
       <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
-        Loading Templates... <Spin />
+        Loading Templates... <Spin delay={3000} />
       </div>
     );
   }

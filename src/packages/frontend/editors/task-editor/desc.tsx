@@ -137,7 +137,7 @@ export const Description: React.FC<Props> = React.memo(
           style={{
             position: "absolute",
             right: "25px",
-            bottom: 0,
+            bottom: "-10px",
             background: "white",
             zIndex: 1,
           }}

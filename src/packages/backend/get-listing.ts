@@ -4,7 +4,7 @@
  */
 
 /*
-Server directory listing through the HTTP server and Websocket API.
+This is used by backends to serve directory listings to clients:
 
 {files:[..., {size:?,name:?,mtime:?,isdir:?}]}
 

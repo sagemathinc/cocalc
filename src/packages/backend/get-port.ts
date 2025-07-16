@@ -1,7 +1,7 @@
 import { createServer } from "http";
 
 export default async function getPort(): Promise<number> {
-  return new Promise((resolve, reject) => {
+  const port = await new Promise((resolve, reject) => {
     const server = createServer();
     server.listen(0, () => {
       const address = server.address();
@@ -14,6 +14,7 @@ export default async function getPort(): Promise<number> {
     });
     server.on("error", reject);
   });
+  return port as number;
 }
 
 export async function getPorts(n: number): Promise<number[]> {

@@ -17,8 +17,9 @@ tmux send-keys -t mysession:2 'pnpm rspack' C-m
 
 else
 
-sleep 2
-tmux send-keys -t mysession:2 '$PWD/scripts/memory_monitor.py' C-m
+# no longer needed, due to using rspack for nextjs
+#sleep 2
+#tmux send-keys -t mysession:2 '$PWD/scripts/memory_monitor.py' C-m
 fi
 
 tmux attach -t mysession:1

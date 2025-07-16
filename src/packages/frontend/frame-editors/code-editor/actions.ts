@@ -25,7 +25,6 @@ import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { List, Map, fromJS, Set as iSet } from "immutable";
 import { debounce } from "lodash";
-
 import {
   Actions as BaseActions,
   Rendered,
@@ -74,6 +73,7 @@ import {
   history_path,
   len,
   uuid,
+  path_split,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { set_account_table } from "../../account/util";
@@ -110,6 +110,8 @@ import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 import { log_opened_time } from "@cocalc/frontend/project/open-file";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
+import { alert_message } from "@cocalc/frontend/alerts";
 
 interface gutterMarkerParams {
   line: number;
@@ -1237,6 +1239,9 @@ export class Actions<
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
     if (explicit) {
+      if (!(await this.ensureProjectIsRunning(`save ${this.path} to disk`))) {
+        return;
+      }
       const account: any = this.redux.getStore("account");
       if (
         account &&
@@ -1636,8 +1641,15 @@ export class Actions<
     }
 
     if (this._syncstring.get_state() != "ready") {
-      await once(this._syncstring, "ready");
-      if (this.isClosed()) return;
+      try {
+        await once(this._syncstring, "ready");
+      } catch {
+        // never made it
+        return;
+      }
+      if (this.isClosed()) {
+        return;
+      }
     }
 
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
@@ -1751,7 +1763,12 @@ export class Actions<
     const state = syncdoc.get_state();
     if (state == "closed") return false;
     if (state == "init") {
-      await once(syncdoc, "ready");
+      try {
+        await once(syncdoc, "ready");
+      } catch {
+        // never mode it
+        return false;
+      }
       if (this.isClosed()) return false;
     }
     return true;
@@ -1900,31 +1917,30 @@ export class Actions<
     }
   }
 
-  // big scary error shown at top
-  public set_error(
-    error?: object | string,
-    style?: ErrorStyles,
-    _id?: string, // id - not currently used, but would be for frame-specific error.
-  ): void {
+  private formatError = (error?: object | string): string | undefined => {
     if (error === undefined) {
-      this.setState({ error });
-    } else {
-      if (typeof error === "object") {
-        const e = (error as any).message;
-        if (e === undefined) {
-          let e = JSON.stringify(error);
-          if (e === "{}") {
-            e = `${error}`;
-          }
-        }
-        if (typeof e != "string") throw Error("bug"); // make typescript happy
-        error = e;
-      }
-      if (IS_TIMEOUT_CALLING_PROJECT(error)) {
-        error = TIMEOUT_CALLING_PROJECT_MSG;
-      }
-      this.setState({ error });
+      return "";
     }
+    if (IS_TIMEOUT_CALLING_PROJECT(error)) {
+      return TIMEOUT_CALLING_PROJECT_MSG;
+    }
+    if (typeof error == "string") {
+      return error;
+    }
+    const e = (error as any).message;
+    if (e === undefined) {
+      let e = JSON.stringify(error);
+      if (e === "{}") {
+        e = `${error}`;
+      }
+    }
+    return e;
+  };
+
+  // big scary error shown at top
+  topError(error?: object | string, style?: ErrorStyles): void {
+    const e = this.formatError(error);
+    this.setState({ error: e });
 
     switch (style) {
       case "monospace":
@@ -1932,6 +1948,31 @@ export class Actions<
         break;
       default:
         this.setState({ errorstyle: undefined });
+    }
+  }
+
+  set_error(error?: object | string, _style?: ErrorStyles): void {
+    // show the error at the a toast if this path is the focused one; otherwise,
+    // do not show the error at all.  We have shown a lot of useless errors
+    //  and now we will show less, and in a minimally harmful way.
+    if (this.redux.getStore("page").get("active_top_tab") != this.project_id) {
+      return;
+    }
+    if (
+      !this.redux
+        .getProjectStore(this.project_id)
+        .get("active_project_tab")
+        .includes(this.path)
+    ) {
+      return;
+    }
+    const e = this.formatError(error);
+    if (e) {
+      alert_message({
+        type: "error",
+        title: path_split(this.path).tail,
+        message: e,
+      });
     }
   }
 
@@ -2159,6 +2200,10 @@ export class Actions<
       this.set_status("");
     }
   }
+
+  ensureProjectIsRunning = async (what: string): Promise<boolean> => {
+    return await ensure_project_running(this.project_id, what);
+  };
 
   public format_support_for_syntax(
     available_features: AvailableFeatures,
@@ -3125,5 +3170,21 @@ export class Actions<
         await delay(d);
       }
     }
+  }
+
+  foldAIThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads(true);
+  }
+
+  foldAllThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads();
   }
 }

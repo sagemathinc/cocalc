@@ -9,7 +9,6 @@ import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
-
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import {
@@ -38,7 +37,7 @@ const LINE: CSSProperties = { margin: "15px 0" } as const;
 interface SignUpProps {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
-  onSuccess?: (opts?: {}) => void; // if given, call after sign up *succeeds*.
+  onSuccess?: () => void; // if given, call after sign up *succeeds*.
   has_site_license?: boolean;
   publicPathId?: string;
   showSignIn?: boolean;
@@ -173,7 +172,7 @@ function SignUp0({
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
       } else {
-        onSuccess?.({});
+        onSuccess?.();
       }
     } catch (err) {
       setIssues({ error: `${err}` });

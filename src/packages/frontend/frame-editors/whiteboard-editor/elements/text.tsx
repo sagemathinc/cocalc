@@ -34,15 +34,6 @@ export default function Text(props: Props) {
         editBarStyle: {
           visibility:
             !props.focused || mode == "markdown" ? "hidden" : undefined,
-          top: `${-55 - 5}px`,
-          left: "-24px",
-          position: "absolute",
-          boxShadow: "1px 3px 5px #ccc",
-          margin: "5px",
-          minWidth: "500px",
-          background: "white",
-          fontFamily: "sans-serif",
-          paddingRight: 0, // undoing a temporary hack
         },
         modeSwitchStyle: {
           top: "-82px",
@@ -170,7 +161,7 @@ function EditText({
           2 * PADDING +
           2 +
           15,
-        MIN_HEIGHT
+        MIN_HEIGHT,
       );
       actions.setElement({
         obj: { id: element.id, h: height },
@@ -208,7 +199,7 @@ function EditText({
         // still want to consider it focused, e.g., editing math and code
         // cells, and clicking a checkbox.
       }}
-      value={element.str ? element.str : element.data?.initStr ?? ""}
+      value={element.str ? element.str : (element.data?.initStr ?? "")}
       fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
       onChange={() => {
         /* MultiMarkdownInput's onChange is debounced by default */

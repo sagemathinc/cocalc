@@ -46,48 +46,72 @@ export class ConatSocketServer extends ConatSocketBase {
       if (this.state == ("closed" as any)) {
         return;
       }
-      const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
-      const id = mesg.subject.split(".").slice(-1)[0];
-      let socket = this.sockets[id];
-
-      if (socket === undefined) {
-        if (cmd == "close") {
-          // already closed
-          continue;
-        }
-        // not connected yet -- anything except a connect message is ignored.
-        if (cmd != "connect") {
+      (async () => {
+        try {
+          await this.handleMesg(mesg);
+        } catch (err) {
           logger.debug(
-            "ignoring data from not-connected socket -- telling it to close",
-            { id, cmd },
+            `WARNING -- unexpected issue handling connection -- ${err}`,
           );
-          this.client.publishSync(clientSubject(mesg.subject), null, {
-            headers: { [SOCKET_HEADER_CMD]: "close" },
-          });
-          continue;
         }
-        // new connection
-        socket = new ServerSocket({
-          conatSocket: this,
-          id,
-          subject: mesg.subject,
-        });
-        this.sockets[id] = socket;
-        this.emit("connection", socket);
-      }
-
-      if (cmd !== undefined) {
-        // note: test this first since it is also a request
-        // a special internal control command
-        this.handleCommandFromClient({ socket, cmd: cmd as Command, mesg });
-      } else if (mesg.isRequest()) {
-        // a request to support the socket.on('request', (mesg) => ...) protocol:
-        socket.emit("request", mesg);
-      } else {
-        socket.receiveDataFromClient(mesg);
-      }
+      })();
     }
   }
+
+  private handleMesg = async (mesg) => {
+    if (this.state == ("closed" as any)) {
+      return;
+    }
+    const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
+    const id = mesg.subject.split(".").slice(-1)[0];
+    let socket = this.sockets[id];
+
+    if (socket === undefined) {
+      if (cmd == "close") {
+        // already closed
+        return;
+      }
+      // not connected yet -- anything except a connect message is ignored.
+      if (cmd != "connect") {
+        logger.debug(
+          "ignoring data from not-connected socket -- telling it to close",
+          { id, cmd },
+        );
+        this.client.publishSync(clientSubject(mesg.subject), null, {
+          headers: { [SOCKET_HEADER_CMD]: "close" },
+        });
+        return;
+      }
+      // new connection
+      socket = new ServerSocket({
+        conatSocket: this,
+        id,
+        subject: mesg.subject,
+      });
+      this.sockets[id] = socket;
+      // in a cluster, it's critical that the other side is visible
+      // before we start sending messages, since otherwise first
+      // message is likely to be dropped if client is on another node.
+      try {
+        await this.client.waitForInterest(socket.clientSubject);
+      } catch {}
+      if (this.state == ("closed" as any)) {
+        return;
+      }
+      this.emit("connection", socket);
+    }
+
+    if (cmd !== undefined) {
+      // note: test this first since it is also a request
+      // a special internal control command
+      this.handleCommandFromClient({ socket, cmd: cmd as Command, mesg });
+    } else if (mesg.isRequest()) {
+      // a request to support the socket.on('request', (mesg) => ...) protocol:
+      socket.emit("request", mesg);
+    } else {
+      socket.receiveDataFromClient(mesg);
+    }
+  };
 
   private async deleteDeadSockets() {
     while (this.state != "closed") {
@@ -166,7 +190,9 @@ export class ConatSocketServer extends ConatSocketBase {
       delete this.sockets[id];
       mesg.respondSync("closed");
     } else if (cmd == "connect") {
-      mesg.respondSync("connected");
+      // very important that connected is successfully delivered, so do not use respondSync.
+      // Using respond waits for interest.
+      mesg.respond("connected", { noThrow: true });
     } else {
       mesg.respondSync({ error: `unknown command - '${cmd}'` });
     }

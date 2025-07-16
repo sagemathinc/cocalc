@@ -47,6 +47,12 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 
+// give up on trying to load account info and redirect to landing page.
+// Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
+// to slow network or some backend failure that times and retires involvin
+// changefeeds.
+const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
+
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
 
@@ -344,7 +350,7 @@ function RedirectToNextApp({}) {
         window.location.href = appBasePath;
       }
     };
-    setTimeout(f, 10000);
+    setTimeout(f, LOAD_ACCOUNT_INFO_TIMEOUT);
   }, []);
 
   return <Loading theme="medium" />;

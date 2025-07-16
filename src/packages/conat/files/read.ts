@@ -149,6 +149,9 @@ export async function* readFile({
     subject,
     { path },
     {
+      // waitForInterest is extremely important because of the timing
+      // of how readFile gets used by writeFile in write.ts.
+      waitForInterest: true,
       maxWait,
     },
   )) {

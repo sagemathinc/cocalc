@@ -366,10 +366,15 @@ export class SyncDoc extends EventEmitter {
           log("initAll succeeded");
           return true;
         } catch (err) {
-          console.trace(err);
+          if (this.isClosed()) {
+            return true;
+          }
           const m = `WARNING: problem initializing ${this.path} -- ${err}`;
           log(m);
-          // log always:
+          if (DEBUG) {
+            console.trace(err);
+          }
+          // log always
           console.log(m);
         }
         log("wait then try again");
@@ -696,6 +701,8 @@ export class SyncDoc extends EventEmitter {
     this.on("user-change", this.throttled_file_use as any);
   };
 
+  isClosed = () => (this.state ?? "closed") == "closed";
+
   private set_state = (state: State): void => {
     this.state = state;
     this.emit(state);
@@ -1020,14 +1027,11 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     this.dbg("set_initialized")({ error, read_only, size });
     const init = { time: this.client.server_time(), size, error };
-    for (let i = 0; i < 3; i++) {
-      await this.set_syncstring_table({
-        init,
-        read_only,
-        last_active: this.client.server_time(),
-      });
-      await delay(1000);
-    }
+    await this.set_syncstring_table({
+      init,
+      read_only,
+      last_active: this.client.server_time(),
+    });
   };
 
   /* List of logical timestamps of the versions of this string in the sync
@@ -1456,7 +1460,7 @@ export class SyncDoc extends EventEmitter {
     log("update interest");
     this.initInterestLoop();
 
-    log("ensure syncstring exists in database (if not using NATS)");
+    log("ensure syncstring exists");
     this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 
@@ -1582,7 +1586,7 @@ export class SyncDoc extends EventEmitter {
     }
     assertDefined(this.patch_list);
     if (init.size == null) {
-      // don't crash but warn at least.  
+      // don't crash but warn at least.
       console.warn("SYNC BUG -- init.size must be defined", { init });
     }
     if (
@@ -2262,7 +2266,7 @@ export class SyncDoc extends EventEmitter {
     // a snapshot at the same time -- this would waste a little space
     // in the stream, but is otherwise harmless, since the snapshots
     // are identical.
-    this.snapshot_if_necessary();
+    this.snapshotIfNecessary();
   };
 
   private dstream = () => {
@@ -2364,10 +2368,15 @@ export class SyncDoc extends EventEmitter {
   });
 
   // Have a snapshot every this.snapshot_interval patches, except
-  // for the very last interval.
-  private snapshot_if_necessary = async (): Promise<void> => {
-    if (this.get_state() !== "ready") return;
-    const dbg = this.dbg("snapshot_if_necessary");
+  // for the very last interval.  Throttle so we don't try to make
+  // snapshots too frequently, as making them is always optional and
+  // now part of the UI.
+  private snapshotIfNecessary = throttle(async (): Promise<void> => {
+    if (this.get_state() !== "ready") {
+      // especially important due to throttle
+      return;
+    }
+    const dbg = this.dbg("snapshotIfNecessary");
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });
@@ -2390,7 +2399,7 @@ export class SyncDoc extends EventEmitter {
     } else {
       dbg("no need to make a snapshot yet");
     }
-  };
+  }, 60000);
 
   /*- x - patch object
     - patch: if given will be used as an actual patch

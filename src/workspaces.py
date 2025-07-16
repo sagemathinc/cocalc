@@ -64,7 +64,10 @@ def cmd(s: str,
     home: str = os.path.abspath(os.curdir)
     try:
         handle_path(s, path, verbose)
-        if os.system(s):
+        n = os.system(s)
+        if n == 2:
+            raise KeyboardInterrupt
+        if n:
             msg = f"Error executing '{s}'"
             if noerr:
                 print(msg)
@@ -250,12 +253,12 @@ def install(args) -> None:
     try:
         if v != allp:
             shutil.copy(ws, tmp)
-            s = open(ws,'r').read() + '\n'
+            s = open(ws, 'r').read() + '\n'
             for package in allp:
                 if package not in v:
-                     s += '  - "!%s"\n'%package.split('/')[-1]
+                    s += '  - "!%s"\n' % package.split('/')[-1]
 
-            open(ws,'w').write(s)
+            open(ws, 'w').write(s)
 
         print("install packages")
         # much faster special case
@@ -272,6 +275,69 @@ def install(args) -> None:
     finally:
         if os.path.exists(tmp):
             shutil.move(tmp, ws)
+
+
+def test(args) -> None:
+    CUR = os.path.abspath('.')
+    flaky = []
+    fails = []
+    success = []
+
+    def status():
+        print("Status: ", {
+            "flaky": flaky,
+            "fails": fails,
+            "success": success
+        })
+
+    v = packages(args)
+    v.sort()
+    n = 0
+    for path in v:
+        n += 1
+        package_path = os.path.join(CUR, path)
+        if package_path.endswith('packages/'):
+            continue
+
+        def f():
+            print("\n" * 3)
+            print("*" * 40)
+            print("*")
+            status()
+            print(f"TESTING {n}/{len(v)}: {path}")
+            print("*")
+            print("*" * 40)
+            cmd("pnpm run --if-present test", package_path)
+            success.append(path)
+
+        worked = False
+        for i in range(args.retries+1):
+            try:
+                f()
+                worked = True
+                break
+            except KeyboardInterrupt:
+                print("SIGINT -- ending test suite")
+                status()
+                return
+            except Exception as err:
+                print(err)
+                flaky.append(path)
+                print(f"ERROR testing {path}")
+                if args.retries - i >= 1:
+                    print(f"Trying {path} again at most {args.retries - i} more times")
+        if not worked:
+            fails.append(path)
+
+    status()
+    if len(flaky) > 0:
+        print("Flaky test suites:", flaky)
+
+    if len(fails) == 0:
+        print("ALL TESTS PASSED!")
+    else:
+        print("TESTS failed in the following packages -- ", fails)
+        raise RuntimeError(f"Test Suite Failed {fails}")
 
 
 # Build all the packages that need to be built.
@@ -504,6 +570,16 @@ def main() -> None:
     subparser = subparsers.add_parser(
         'version-check', help='version consistency checks across packages')
     subparser.set_defaults(func=version_check)
+
+    subparser = subparsers.add_parser('test', help='test all packages')
+    subparser.add_argument(
+        "-r",
+        "--retries",
+        type=int,
+        default=2,
+        help="how many times to retry a failed test suite before giving up; set to 0 to NOT retry")
+    packages_arg(subparser)
+    subparser.set_defaults(func=test)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

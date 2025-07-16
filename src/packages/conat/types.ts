@@ -9,3 +9,8 @@ export interface Location {
 
   path?: string;
 }
+
+type EventType = "total" | "add" | "delete" | "deny";
+type ValueType = "count" | "limit";
+type MetricKey = `${EventType}:${ValueType}`;
+export type Metrics = { [K in MetricKey]?: number };

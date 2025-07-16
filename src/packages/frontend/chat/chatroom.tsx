@@ -7,10 +7,9 @@ import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { FormattedMessage } from "react-intl";
 
-import { ButtonGroup, Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
+import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
-  redux,
   useEditorRedux,
   useEffect,
   useRef,
@@ -18,18 +17,15 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
-import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
-import VideoChatButton from "./video/launch-button";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -69,7 +65,6 @@ export function ChatRoom({
   actions,
   project_id,
   path,
-  is_visible,
   font_size,
   desc,
 }: EditorComponentProps) {
@@ -142,17 +137,15 @@ export function ChatRoom({
     );
   }
 
-  function render_video_chat_button() {
-    if (project_id == null || path == null) return;
-    return <VideoChatButton actions={actions} />;
-  }
-
   function isValidFilterRecentCustom(): boolean {
     const v = parseFloat(filterRecentHCustom);
     return isFinite(v) && v >= 0;
   }
 
   function renderFilterRecent() {
+    if (messages == null || messages.size <= 5) {
+      return null;
+    }
     return (
       <Tooltip title="Only show recent threads.">
         <Select
@@ -234,27 +227,20 @@ export function ChatRoom({
   }
 
   function render_button_row() {
-    if (messages == null) {
+    if (messages == null || messages.size <= 5) {
       return null;
     }
     return (
-      <Space style={{ width: "100%", marginTop: "3px" }} wrap>
+      <Space style={{ marginTop: "5px", marginLeft: "15px" }} wrap>
         <Filter
           actions={actions}
           search={search}
           style={{
             margin: 0,
             width: "100%",
-            ...(messages.size >= 2
-              ? undefined
-              : { visibility: "hidden", height: 0 }),
           }}
         />
         {renderFilterRecent()}
-        <ButtonGroup style={{ marginLeft: "5px" }}>
-          {render_video_chat_button()}
-        </ButtonGroup>
-        <FoldAllThreads actions={actions} shortLabel={false} />
       </Space>
     );
   }
@@ -379,28 +365,13 @@ export function ChatRoom({
   if (messages == null || input == null) {
     return <Loading theme={"medium"} />;
   }
-  // remove frameContext once the chatroom is part of a frame tree.
-  // we need this now, e.g., since some markdown editing components
-  // for input assume in a frame tree, e.g., to fix
-  //  https://github.com/sagemathinc/cocalc/issues/7554
   return (
-    <FrameContext.Provider
-      value={
-        {
-          project_id,
-          path,
-          isVisible: !!is_visible,
-          redux,
-        } as any
-      }
+    <div
+      onMouseMove={mark_as_read}
+      onClick={mark_as_read}
+      className="smc-vfill"
     >
-      <div
-        onMouseMove={mark_as_read}
-        onClick={mark_as_read}
-        className="smc-vfill"
-      >
-        {render_body()}
-      </div>
-    </FrameContext.Provider>
+      {render_body()}
+    </div>
   );
 }

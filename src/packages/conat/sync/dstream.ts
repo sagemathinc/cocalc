@@ -57,9 +57,12 @@ export interface DStreamOptions {
   client?: Client;
   noAutosave?: boolean;
   ephemeral?: boolean;
+  sync?: boolean;
 
   noCache?: boolean;
   noInventory?: boolean;
+
+  service?: string;
 }
 
 export class DStream<T = any> extends EventEmitter {
@@ -208,6 +211,15 @@ export class DStream<T = any> extends EventEmitter {
     if (n < v.length + this.raw.length) {
       return parseInt(v[n - this.raw.length]);
     }
+  };
+
+  // all sequences numbers of messages
+  seqs = (): number[] => {
+    const seqs = this.raw.map(({ seq }) => seq);
+    for (const seq in this.saved) {
+      seqs.push(parseInt(seq));
+    }
+    return seqs;
   };
 
   time = (n: number): Date | undefined => {
@@ -454,7 +466,11 @@ export class DStream<T = any> extends EventEmitter {
       let inv: Inventory | undefined = undefined;
       try {
         const { account_id, project_id, desc } = this.opts;
-        const inv = await inventory({ account_id, project_id });
+        const inv = await inventory({
+          account_id,
+          project_id,
+          service: this.opts.service,
+        });
         if (this.isClosed()) {
           return;
         }
@@ -487,8 +503,9 @@ export const cache = refCache<DStreamOptions, DStream>({
     if (!options.name) {
       throw Error("name must be specified");
     }
-    const { name, account_id, project_id } = options;
-    return jsonStableStringify({ name, account_id, project_id })!;
+    const { name, account_id, project_id, client } = options;
+    const id = client?.id;
+    return jsonStableStringify({ name, account_id, project_id, id })!;
   },
   createObject: async (options: DStreamOptions) => {
     if (options.client == null) {

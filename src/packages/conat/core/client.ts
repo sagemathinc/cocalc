@@ -22,6 +22,22 @@ much better in so many ways:
      - JsonCodec: uses JSON.stringify and TextEncoder.  This does not work
        with Buffer or Date and is less compact, but can be very fast.
 
+- One BIG DIFFERENCE from Nats is that when a message is sent the sender
+  can optionally find out how many clients received it.  They can also wait
+  until there is interest and send the message again.  This is automated so
+  it's very easy to use, and it makes writing distributed services without
+  race conditions making them broken temporarily much easier.  HOWEVER,
+  there is one caveat -- if as an admin you create a "tap", i.e., you
+  subscribe to all messages matching some pattern just to see what's going
+  on, then currently that counts in the delivery count and interest, and that
+  would then cause these race conditions to happen again. E.g., a user
+  signs in, subscribes to their INBOX, sends a request, and gets a response
+  to that inbox, but does this all quickly, and in a cluster, the server doesn't
+  see the inbox yet, so it fails.  As a workaround, subscriptions to the
+  subject pattern '>' are invisible, so you can always tap into '>' for debugging
+  purposes.  TODO: implement a general way of making an invisible subscriber that
+  doesn't count.
+
 
 THE CORE API
 
@@ -31,8 +47,8 @@ same, but it is close).  It's basically a symmetrical pub/sub/reqest/respond mod
 for messaging on which you can build distributed systems.  The tricky part, which
 NATS.js gets wrong (in my opinion), is implementing  this in a way that is robust
 and scalable, in terms for authentication, real world browser connectivity and
-so on.  Our approach is to use proven mature technology like socket.io, sqlite
-and valkey, instead of writing everything from scratch.
+so on.  Our approach is to use proven mature technology like socket.io and sqlite,
+instead of writing everything from scratch.
 
 Clients: We view all clients as plugged into a common "dial tone",
 except for optional permissions that are configured when starting the server.
@@ -114,17 +130,22 @@ MUST NEVER throw an error or silently end when the connection is dropped
 then resumed, or the server is restarted, or the client connects to
 a different server!  These situations can, of course, result in missing
 some messages, but that's understood.  There are no guarantees at all with
-a subscription that every message is received.  That said, we have enabled
-connectionStateRecovery (and added special conat support for it) so no messages
-are dropped for temporary disconnects, even up to several minutes,
-and even in valkey cluster mode!  Finally, any time a client disconnects
-and reconnects, the client ensures that all subscriptions exist for it on the server
-via a sync process.
+a subscription that every message is received.  Finally, any time a client
+disconnects and reconnects, the client ensures that all subscriptions
+exist for it on the server via a sync process.
 
 Subscription robustness is a major difference with NATS.js, which would
 mysteriously terminate subscriptions for a variety of reasons, meaning that any
 code using subscriptions had to be wrapped in ugly complexity to be
 usable in production.
+
+INTEREST AWARENESS: In Conat there is a cluster-aware event driving way to
+wait for interest in a subject.  This is an extremely useful extension to
+NATS functionality, since it makes it much easier to dynamically setup
+a client and a server and exchange messages without having to poll and fail
+potentially a few times.  This makes certain operations involving complicated
+steps behind the scenes -- upload a file, open a file to edit with sync, etc. --
+feel more responsive.
 
 USAGE:
 
@@ -204,7 +225,6 @@ import * as msgpack from "@msgpack/msgpack";
 import { randomId } from "@cocalc/conat/names";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
-import { callback } from "awaiting";
 import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
@@ -238,7 +258,9 @@ import {
   createSyncTable,
 } from "@cocalc/conat/sync/synctable";
 
-export const MAX_INTEREST_TIMEOUT = 90000;
+export const MAX_INTEREST_TIMEOUT = 90_000;
+
+const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 30_000;
 
 const MSGPACK_ENCODER_OPTIONS = {
   // ignoreUndefined is critical so database queries work properly, and
@@ -253,13 +275,14 @@ export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // half the chunk size... because there is no way to know if recipients will be
   // using long polling to RECEIVE messages.  Not insurmountable.
   transports: ["websocket"],
+  rememberUpgrade: true,
 
   // nodejs specific for project/compute server in some settings
   rejectUnauthorized: false,
 
   reconnection: true,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 15000,
+  reconnectionDelay: process.env.COCALC_TEST_MODE ? 50 : 500,
+  reconnectionDelayMax: process.env.COCALC_TEST_MODE ? 500 : 15000,
   reconnectionAttempts: 9999999999, // infinite
 };
 
@@ -280,6 +303,7 @@ interface Options {
   //
   address?: string;
   inboxPrefix?: string;
+  systemAccountPassword?: string;
 }
 
 export type ClientOptions = Options & {
@@ -294,10 +318,13 @@ const MAX_HEADER_SIZE = 100000;
 const STATS_LOOP = 5000;
 
 // fairly long since this is to avoid leaks, not for responsiveness in the UI.
-export const DEFAULT_SUBSCRIPTION_TIMEOUT = 60000;
+export const DEFAULT_SUBSCRIPTION_TIMEOUT = 60_000;
 
-export let DEFAULT_REQUEST_TIMEOUT = 7500;
-export let DEFAULT_PUBLISH_TIMEOUT = 7500;
+// long so servers don't get DOS's on startup, etc.  Also, we use interest-based
+// checks when publish and request fail, so we're not depending on these to
+// fail as part of the normal startup process for anything.
+export let DEFAULT_REQUEST_TIMEOUT = 30_000;
+export let DEFAULT_PUBLISH_TIMEOUT = 30_000;
 
 export function setDefaultTimeouts({
   request = DEFAULT_REQUEST_TIMEOUT,
@@ -321,11 +348,13 @@ interface SubscriptionOptions {
   queue?: string;
   // sticky: when a choice from a queue group is made, the same choice is always made
   // in the future for any message with subject matching subject with the last segment
-  // replaced by a *, until the target goes away. Setting this just sets the queue
-  // option to STICKY_QUEUE_GROUP.
+  // replaced by a *, until the target for the choice goes away. Setting this just
+  // sets the queue option to the constant string STICKY_QUEUE_GROUP.
   //
-  // Examples of subjects matching except possibly last segment are
-  //             foo.bar.lJcBSieLn and foo.bar.ZzsDC376ge
+  // Examples of two subjects matching "except possibly last segments" are
+  //          - foo.bar.lJcBSieLn
+  //          - foo.bar.ZzsDC376ge
+  //
   // You can put anything random in the last segment and all messages
   // that match foo.bar.* get the same choice from the queue group.
   // The idea is that *when* the message with subject foo.bar.lJcBSieLn gets
@@ -333,8 +362,30 @@ interface SubscriptionOptions {
   // that message.  It remembers the choice, and so long as that target is subscribed,
   // it sends any message matching foo.bar.* to that same target.
   // This is used in our implementation of persistent socket connections that
-  // are built on pub/sub.  The underlying implementation uses consistent
-  // hashing and messages to sync state of the servers.
+  // are built on pub/sub.
+
+  // The underlying implementation uses (1) consistent hashing and (2) a stream
+  // to sync state of the servers.
+  //
+  // If the members of the sticky queue group have been stable for a while (e.g., a minute)
+  // then all servers in a local cluster have the same list of subscribers in the sticky
+  // queue group, and using consistent hashing any server will make the same choice of
+  // where to route messages.  If the members of the sticky queue group are dynamically changing,
+  // it is possible for an inconsistent choice to be made.  If this happens, it will be fixed
+  // within a few seconds. During that time, it's possible a virtual conat socket
+  // connection could get created then destroyed a few seconds laters, due to the sticky
+  // assignment changing.
+  //
+  // The following isn't implemented yet -- one idea.  Another idea would be the stickiness
+  // is local to a cluster. Not sure!
+  // Regarding a *supercluster*, if no choice has already been made in any cluster for
+  // a given subject (except last segment), then a choice is made using consistent hashing
+  // from the subscribers in the *nearest* cluster that has at least one subscriber.
+  // If choices are made simultaneously across the supercluster, then it is likely that
+  // they are inconsistent.  As soon as these choices are visible, they are resolved, with
+  // the tie broken using lexicographic sort of the "socketio room" (this is a
+  // random string that is used to send messages to a subscriber).
+
   sticky?: boolean;
   respond?: Function;
   // timeout to create the subscription -- this may wait *until* you connect before
@@ -348,16 +399,10 @@ interface SubscriptionOptions {
 // JsonCodec to handle Date's properly, don't change this!!
 const DEFAULT_ENCODING = DataEncoding.MsgPack;
 
-function cocalcServerToSocketioAddress(url?: string): {
+function cocalcServerToSocketioAddress(url: string): {
   address: string;
   path: string;
 } {
-  url = url ?? process.env.CONAT_SERVER;
-  if (!url) {
-    throw Error(
-      "Must give Conat server address or set CONAT_SERVER environment variable",
-    );
-  }
   const u = new URL(url, "http://dummy.org");
   const address = u.origin;
   const path = join(u.pathname, "conat");
@@ -372,6 +417,7 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
+  //console.trace("connect", opts);
   if (!opts.address) {
     const x = cache.one();
     if (x != null) {
@@ -422,12 +468,20 @@ export class Client extends EventEmitter {
 
   constructor(options: ClientOptions) {
     super();
-    this.setMaxListeners(1000);
+    if (!options.address) {
+      if (!process.env.CONAT_SERVER) {
+        throw Error(
+          "Must specificy address or set CONAT_SERVER environment variable",
+        );
+      }
+      options = { ...options, address: process.env.CONAT_SERVER };
+    }
     this.options = options;
+    this.setMaxListeners(1000);
 
     // for socket.io the address has no base url
     const { address, path } = cocalcServerToSocketioAddress(
-      this.options.address,
+      this.options.address!,
     );
     logger.debug(`Conat: Connecting to ${this.options.address}...`);
     //     if (options.extraHeaders == null) {
@@ -435,8 +489,25 @@ export class Client extends EventEmitter {
     //     }
     this.conn = connectToSocketIO(address, {
       ...DEFAULT_SOCKETIO_CLIENT_OPTIONS,
+      // it is necessary to manually managed reconnects due to a bugs
+      // in socketio that has stumped their devs
+      //   -- https://github.com/socketio/socket.io/issues/5197
+      // So no matter what options are set, we never use socketio's
+      // reconnection logic. if options.reconnection is true or
+      // not given, then we implement (in this file) reconnect ourselves.
+      // The browser frontend explicit sets options.reconnection false
+      // and uses its own logic.
       ...options,
+      ...(options.systemAccountPassword
+        ? {
+            extraHeaders: {
+              ...options.extraHeaders,
+              Cookie: `sys=${options.systemAccountPassword}`,
+            },
+          }
+        : undefined),
       path,
+      reconnection: true,
     });
 
     this.conn.on("info", (info) => {
@@ -461,35 +532,56 @@ export class Client extends EventEmitter {
         ...args,
       );
     });
-    this.conn.on("disconnect", () => {
+    this.conn.on("disconnect", async () => {
+      if (this.isClosed()) {
+        return;
+      }
       this.stats.recv0 = { messages: 0, bytes: 0 }; // reset on disconnect
       this.setState("disconnected");
       this.disconnectAllSockets();
     });
+    this.conn.io.connect();
     this.initInbox();
     this.statsLoop();
   }
 
+  cluster = async () => {
+    return await this.conn.timeout(10000).emitWithAck("cluster");
+  };
+
   disconnect = () => {
+    if (this.isClosed()) {
+      return;
+    }
     this.disconnectAllSockets();
     // @ts-ignore
     setTimeout(() => this.conn.io.disconnect(), 1);
   };
 
-  waitUntilSignedIn = reuseInFlight(async () => {
-    // not "signed in" if --
-    //   - not connected, or
-    //   - no info at all (which gets sent on sign in)
-    //   - or the user is {error:....}, which is what happens when sign in fails
-    //     e.g., do to an expired cookie
-    if (
-      this.info == null ||
-      this.state != "connected" ||
-      this.info?.user?.error
-    ) {
-      await once(this, "info");
-    }
-  });
+  // this has NO timeout by default
+  waitUntilSignedIn = reuseInFlight(
+    async ({ timeout }: { timeout?: number } = {}) => {
+      // not "signed in" if --
+      //   - not connected, or
+      //   - no info at all (which gets sent on sign in)
+      //   - or the user is {error:....}, which is what happens when sign in fails
+      //     e.g., do to an expired cookie
+      if (
+        this.info == null ||
+        this.state != "connected" ||
+        this.info?.user?.error
+      ) {
+        await once(this, "info", timeout);
+      }
+      if (
+        this.info == null ||
+        this.state != "connected" ||
+        this.info?.user?.error
+      ) {
+        throw Error("failed to sign in");
+      }
+    },
+  );
 
   private statsLoop = async () => {
     await until(
@@ -528,20 +620,14 @@ export class Client extends EventEmitter {
       );
     }
     timeout = Math.min(timeout, MAX_INTEREST_TIMEOUT);
-    const f = (cb) => {
-      this.conn
+    try {
+      const response = await this.conn
         .timeout(timeout ? timeout : 10000)
-        .emit("wait-for-interest", { subject, timeout }, (err, response) => {
-          if (err) {
-            cb(err);
-          } else if (response.error) {
-            cb(new ConatError(response.error, { code: response.code }));
-          } else {
-            cb(undefined, response);
-          }
-        });
-    };
-    return await callback(f);
+        .emitWithAck("wait-for-interest", { subject, timeout });
+      return response;
+    } catch (err) {
+      throw toConatError(err);
+    }
   };
 
   recvStats = (bytes: number) => {
@@ -747,11 +833,9 @@ export class Client extends EventEmitter {
     let stable = true;
     if (missing.length > 0) {
       stable = false;
-      const resp = await callback(
-        this.conn.timeout(timeout).emit.bind(this.conn),
-        "subscribe",
-        missing,
-      );
+      const resp = await this.conn
+        .timeout(timeout)
+        .emitWithAck("subscribe", missing);
       // some subscription could fail due to permissions changes, e.g., user got
       // removed from a project.
       for (let i = 0; i < missing.length; i++) {
@@ -771,11 +855,7 @@ export class Client extends EventEmitter {
       }
     }
     if (extra.length > 0) {
-      await callback(
-        this.conn.timeout(timeout).emit.bind(this.conn),
-        "unsubscribe",
-        extra,
-      );
+      await this.conn.timeout(timeout).emitWithAck("unsubscribe", extra);
       stable = false;
     }
     return stable;
@@ -786,11 +866,9 @@ export class Client extends EventEmitter {
   private getSubscriptions = async (
     timeout = DEFAULT_REQUEST_TIMEOUT,
   ): Promise<Set<string>> => {
-    const subs = await callback(
-      this.conn.timeout(timeout).emit.bind(this.conn),
-      "subscriptions",
-      null,
-    );
+    const subs = await this.conn
+      .timeout(timeout)
+      .emitWithAck("subscriptions", null);
     return new Set(subs);
   };
 
@@ -856,7 +934,7 @@ export class Client extends EventEmitter {
       }
       if (queue == STICKY_QUEUE_GROUP) {
         throw Error(
-          `can only have one sticky subscription per client -- subject='${subject}'`,
+          `can only have one sticky subscription with given subject pattern per client -- subject='${subject}'`,
         );
       }
       sub.refCount += 1;
@@ -878,30 +956,29 @@ export class Client extends EventEmitter {
     this.stats.subs++;
     let promise;
     if (confirm) {
-      const f = (cb) => {
-        const handle = (response) => {
-          if (response?.error) {
-            cb(new ConatError(response.error, { code: response.code }));
+      const f = async () => {
+        let response;
+        try {
+          if (timeout) {
+            response = await this.conn
+              .timeout(timeout)
+              .emitWithAck("subscribe", { subject, queue });
           } else {
-            cb(response?.error, response);
-          }
-        };
-        if (timeout) {
-          this.conn
-            .timeout(timeout)
-            .emit("subscribe", { subject, queue }, (err, response) => {
-              if (err) {
-                handle({ error: `${err}`, code: 408 });
-              } else {
-                handle(response);
-              }
+            // this should never be used -- see above
+            response = await this.conn.emitWithAck("subscribe", {
+              subject,
+              queue,
             });
-        } else {
-          // this should never be used -- see above
-          this.conn.emit("subscribe", { subject, queue }, handle);
+          }
+        } catch (err) {
+          throw toConatError(err);
         }
+        if (response?.error) {
+          throw new ConatError(response.error, { code: response.code });
+        }
+        return response;
       };
-      promise = callback(f);
+      promise = f();
     } else {
       this.conn.emit("subscribe", { subject, queue });
       promise = undefined;
@@ -1022,9 +1099,14 @@ export class Client extends EventEmitter {
           throw Error(`${name} not defined`);
         }
         const result = await f.apply(mesg, args);
-        mesg.respondSync(result);
+        // use await mesg.respond so waitForInterest is on, which is almost always
+        // good for services.
+        await mesg.respond(result);
       } catch (err) {
-        mesg.respondSync(null, { headers: { error: `${err}` } });
+        await mesg.respond(null, {
+          noThrow: true, // we're not catching this one
+          headers: { error: `${err}` },
+        });
       }
     };
     const loop = async () => {
@@ -1102,13 +1184,14 @@ export class Client extends EventEmitter {
       // already closed
       return { bytes: 0 };
     }
-    return this._publish(subject, mesg, opts);
+    // must NOT confirm
+    return this._publish(subject, mesg, { ...opts, confirm: false });
   };
 
   publish = async (
     subject: string,
     mesg,
-    opts?: PublishOptions,
+    opts: PublishOptions = {},
   ): Promise<{
     // bytes encoded (doesn't count some extra wrapping)
     bytes: number;
@@ -1123,12 +1206,46 @@ export class Client extends EventEmitter {
       return { bytes: 0, count: 0 };
     }
     await this.waitUntilSignedIn();
+    const start = Date.now();
     const { bytes, getCount, promise } = this._publish(subject, mesg, {
       ...opts,
       confirm: true,
     });
     await promise;
-    return { bytes, count: getCount?.()! };
+    let count = getCount?.()!;
+
+    if (
+      opts.waitForInterest &&
+      count != null &&
+      count == 0 &&
+      !this.isClosed() &&
+      (opts.timeout == null || Date.now() - start <= opts.timeout)
+    ) {
+      let timeout = opts.timeout ?? DEFAULT_WAIT_FOR_INTEREST_TIMEOUT;
+      await this.waitForInterest(subject, {
+        timeout: timeout ? timeout - (Date.now() - start) : undefined,
+      });
+      if (this.isClosed()) {
+        return { bytes, count };
+      }
+      const elapsed = Date.now() - start;
+      timeout -= elapsed;
+      // client and there is interest
+      if (timeout <= 500) {
+        // but... not enough time left to try again even if there is interest,
+        // i.e., will fail anyways due to network latency
+        return { bytes, count };
+      }
+      const { getCount, promise } = this._publish(subject, mesg, {
+        ...opts,
+        timeout,
+        confirm: true,
+      });
+      await promise;
+      count = getCount?.()!;
+    }
+
+    return { bytes, count };
   };
 
   private _publish = (
@@ -1140,6 +1257,7 @@ export class Client extends EventEmitter {
       encoding = DEFAULT_ENCODING,
       confirm,
       timeout = DEFAULT_PUBLISH_TIMEOUT,
+      noThrow,
     }: PublishOptions & { confirm?: boolean } = {},
   ) => {
     if (this.isClosed()) {
@@ -1181,45 +1299,39 @@ export class Client extends EventEmitter {
         done,
         encoding,
         raw.slice(i, i + chunkSize),
+        // position v[6] is used for clusters
       ];
       if (done && headers) {
         v.push(headers);
       }
       if (confirm) {
-        let done = false;
-        const f = (cb) => {
-          const handle = (response) => {
-            // console.log("_publish", { done, subject, mesg, headers, confirm });
-            if (response?.error) {
-              cb(new ConatError(response.error, { code: response.code }));
-            } else {
-              cb(response?.error, response);
-            }
-          };
+        const f = async () => {
           if (timeout) {
-            const timer = setTimeout(() => {
-              done = true;
-              cb(new ConatError("timeout", { code: 408 }));
-            }, timeout);
-
-            this.conn.timeout(timeout).emit("publish", v, (err, response) => {
-              if (done) {
-                return;
-              }
-              clearTimeout(timer);
-              if (err) {
-                handle({ error: `${err}`, code: 408 });
+            try {
+              const response = await this.conn
+                .timeout(timeout)
+                .emitWithAck("publish", v);
+              if (response?.error) {
+                throw new ConatError(response.error, { code: response.code });
               } else {
-                handle(response);
+                return response;
               }
-            });
+            } catch (err) {
+              throw toConatError(err);
+            }
           } else {
-            this.conn.emit("publish", v, handle);
+            return await this.conn.emitWithAck("publish", v);
           }
         };
         const promise = (async () => {
-          const response = await callback(f);
-          count = Math.max(count, response.count ?? 0);
+          try {
+            const response = await f();
+            count = Math.max(count, response.count ?? 0);
+          } catch (err) {
+            if (!noThrow) {
+              throw err;
+            }
+          }
         })();
         promises.push(promise);
       } else {
@@ -1242,19 +1354,11 @@ export class Client extends EventEmitter {
   request = async (
     subject: string,
     mesg: any,
-    {
-      timeout = DEFAULT_REQUEST_TIMEOUT,
-      // waitForInterest -- if publish fails due to no receivers and
-      // waitForInterest is true, will wait until there is a receiver
-      // and publish again:
-      waitForInterest = false,
-      ...options
-    }: PublishOptions & { timeout?: number; waitForInterest?: boolean } = {},
+    { timeout = DEFAULT_REQUEST_TIMEOUT, ...options }: PublishOptions = {},
   ): Promise<Message> => {
     if (timeout <= 0) {
       throw Error("timeout must be positive");
     }
-    const start = Date.now();
     const inbox = await this.getInbox();
     const inboxSubject = this.temporaryInboxSubject();
     const sub = new EventIterator<Message>(inbox, inboxSubject, {
@@ -1269,39 +1373,13 @@ export class Client extends EventEmitter {
       headers: { ...options?.headers, [REPLY_HEADER]: inboxSubject },
     };
     const { count } = await this.publish(subject, mesg, opts);
-
     if (!count) {
-      const giveUp = () => {
-        sub.stop();
-        throw new ConatError(
-          `request -- no subscribers matching '${subject}'`,
-          {
-            code: 503,
-          },
-        );
-      };
-      if (waitForInterest) {
-        await this.waitForInterest(subject, { timeout });
-        if (this.state == "closed") {
-          throw Error("closed");
-        }
-        const remaining = timeout - (Date.now() - start);
-        if (remaining <= 1000) {
-          throw new ConatError("timeout", { code: 408 });
-        }
-        // no error so there is very likely now interest, so we publish again:
-        const { count } = await this.publish(subject, mesg, {
-          ...opts,
-          timeout: remaining,
-        });
-        if (!count) {
-          giveUp();
-        }
-      } else {
-        giveUp();
-      }
+      sub.stop();
+      // if you hit this, consider using the option waitForInterest:true
+      throw new ConatError(`request -- no subscribers matching '${subject}'`, {
+        code: 503,
+      });
     }
-
     for await (const resp of sub) {
       sub.stop();
       return resp;
@@ -1367,16 +1445,16 @@ export class Client extends EventEmitter {
   };
 
   sync = {
-    dkv: async (opts: DKVOptions): Promise<DKV> =>
-      await dkv({ ...opts, client: this }),
-    akv: async (opts: DKVOptions): Promise<AKV> =>
-      await akv({ ...opts, client: this }),
-    dko: async (opts: DKVOptions): Promise<DKO> =>
-      await dko({ ...opts, client: this }),
-    dstream: async (opts: DStreamOptions): Promise<DStream> =>
-      await dstream({ ...opts, client: this }),
-    astream: async (opts: DStreamOptions): Promise<AStream> =>
-      await astream({ ...opts, client: this }),
+    dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
+      await dkv<T>({ ...opts, client: this }),
+    akv: async <T,>(opts: DKVOptions): Promise<AKV<T>> =>
+      await akv<T>({ ...opts, client: this }),
+    dko: async <T,>(opts: DKVOptions): Promise<DKO<T>> =>
+      await dko<T>({ ...opts, client: this }),
+    dstream: async <T,>(opts: DStreamOptions): Promise<DStream<T>> =>
+      await dstream<T>({ ...opts, client: this }),
+    astream: async <T,>(opts: DStreamOptions): Promise<AStream<T>> =>
+      await astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
   };
@@ -1442,6 +1520,9 @@ export class Client extends EventEmitter {
   };
 
   private disconnectAllSockets = () => {
+    if (this.state == "closed") {
+      return;
+    }
     for (const subject in this.sockets.servers) {
       this.sockets.servers[subject].disconnect();
     }
@@ -1464,6 +1545,43 @@ export class Client extends EventEmitter {
   };
 
   message = (mesg, options?) => messageData(mesg, options);
+
+  bench = {
+    publish: async (n: number = 1000, subject = "bench"): Promise<number> => {
+      const t0 = Date.now();
+      console.log(`publishing ${n} messages to`, { subject });
+      for (let i = 0; i < n - 1; i++) {
+        this.publishSync(subject, null);
+      }
+      // then send one final message and wait for an ack.
+      // since messages are in order, we know that all other
+      // messages were delivered to the server.
+      const { count } = await this.publish(subject, null);
+      console.log("listeners: ", count);
+      const t1 = Date.now();
+      const rate = Math.round((n / (t1 - t0)) * 1000);
+      console.log(rate, "messages per second delivered");
+      return rate;
+    },
+
+    subscribe: async (n: number = 1000, subject = "bench"): Promise<number> => {
+      const sub = await this.subscribe(subject);
+      // send the data
+      for (let i = 0; i < n; i++) {
+        this.publishSync(subject, null);
+      }
+      const t0 = Date.now();
+      let i = 0;
+      for await (const _ of sub) {
+        i += 1;
+        if (i >= n) {
+          break;
+        }
+      }
+      const t1 = Date.now();
+      return Math.round((n / (t1 - t0)) * 1000);
+    },
+  };
 }
 
 interface PublishOptions {
@@ -1474,8 +1592,25 @@ interface PublishOptions {
   // encoded message (using encoding) and any mesg parameter
   // is *IGNORED*.
   raw?;
+
   // timeout used when publishing a message and awaiting a response.
   timeout?: number;
+
+  // waitForInterest -- if publishing async so its possible to tell whether or not
+  // there were any recipients, and there were NO recipients, it will wait until
+  // there is a recipient and send again.  This does NOT use polling, but instead
+  // uses a cluster aware and fully event based primitive in the server.
+  // There is thus only a speed penality doing this on failure and never
+  // on success.  Note that waitForInterest always has a timeout, defaulting
+  // to DEFAULT_WAIT_FOR_INTEREST_TIMEOUT if above timeout not given.
+  waitForInterest?: boolean;
+
+  // noThrow -- if set and publishing would throw an exception, it is
+  // instead silently dropped and undefined is returned instead.
+  // Use this where you might want to use publishSync, but still want
+  // to ensure there is interest; however, it's not important to know
+  // if there was an error sending.
+  noThrow?: boolean;
 }
 
 interface RequestManyOptions extends PublishOptions {
@@ -1753,7 +1888,13 @@ export class Message<T = any> extends MessageData<T> {
     if (!subject) {
       return { bytes: 0, count: 0 };
     }
-    return await this.client.publish(subject, mesg, opts);
+    return await this.client.publish(subject, mesg, {
+      // we *always* wait for interest for sync respond, since
+      // it is by far the most likely situation where it wil be needed, due
+      // to inboxes when users first sign in.
+      waitForInterest: true,
+      ...opts,
+    });
   };
 }
 
@@ -1783,4 +1924,16 @@ function isEmpty(obj: object): boolean {
     return false;
   }
   return true;
+}
+
+function toConatError(socketIoError) {
+  // only errors are "disconnected" and a timeout
+  const e = `${socketIoError}`;
+  if (e.includes("disconnected")) {
+    return e;
+  } else {
+    return new ConatError(`timeout - ${e}`, {
+      code: 408,
+    });
+  }
 }

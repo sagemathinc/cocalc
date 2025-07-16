@@ -564,8 +564,8 @@ export class JupyterKernel
       return;
     }
     try {
+      process.kill(-pid, signal); // negative to signal the process group
       this.clear_execute_code_queue();
-      process.kill(-pid, signal); // negative to kill the process group
     } catch (err) {
       dbg(`error: ${err}`);
     }
@@ -576,6 +576,7 @@ export class JupyterKernel
     if (this._state === "closed") {
       return;
     }
+    this.signal("SIGKILL");
     if (this.sockets != null) {
       this.sockets.close();
       delete this.sockets;

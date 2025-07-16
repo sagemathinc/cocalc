@@ -23,6 +23,7 @@ export const system = {
   deletePassport: authFirst,
 
   adminSalesloftSync: authFirst,
+  userSalesloftSync: authFirst,
 };
 
 export interface System {
@@ -102,6 +103,8 @@ export interface System {
     account_id?: string;
     account_ids: string[];
   }) => Promise<void>;
+
+  userSalesloftSync: (opts: { account_id?: string }) => Promise<void>;
 
   sendEmailVerification: (opts: {
     account_id?: string;
