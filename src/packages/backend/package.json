@@ -20,7 +20,7 @@
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
-    "test:report": "pnpm exec jest --forceExit --reporters=default --reporters=jest-junit",
+    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "test-conat": " pnpm exec jest --forceExit conat",
     "test-conat:report": " pnpm exec jest --forceExit conat --reporters=default --reporters=jest-junit",
     "testp": "pnpm exec jest --forceExit",

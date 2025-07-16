@@ -16,6 +16,7 @@
     "build": "rm -rf build dist && mkdir build && cp -rv *.json *.py *.js build/ && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
     "postinstall": "./postinstall.js",
     "test": "../node_modules/.bin/jest",
+    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "prepublishOnly": "npm test"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/cdn",

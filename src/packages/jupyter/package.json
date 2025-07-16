@@ -24,6 +24,7 @@
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit --maxWorkers=1",
+    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "depcheck": "pnpx depcheck",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },

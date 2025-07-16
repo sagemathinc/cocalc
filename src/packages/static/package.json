@@ -20,6 +20,7 @@
     "build-dev": "pnpm run build0 && NODE_ENV=development pnpm rspack build",
     "watch": "NO_RSPACK_DEV_SERVER=yes NODE_ENV=development pnpm rspack build -w",
     "test": "pnpm exec jest",
+    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "prepublishOnly": "pnpm test"
   },
   "repository": {

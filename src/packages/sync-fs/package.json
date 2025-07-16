@@ -20,6 +20,7 @@
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit --runInBand",
+    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "depcheck": "pnpx depcheck"
   },
   "author": "SageMath, Inc.",
