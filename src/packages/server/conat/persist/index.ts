@@ -1,6 +1,7 @@
-import { loadConatConfiguration } from "./configuration";
+import { loadConatConfiguration } from "../configuration";
 import { initPersistServer } from "@cocalc/backend/conat/persist";
 import { conatPersistCount } from "@cocalc/backend/data";
+import { createForkedPersistServer } from "./start-server";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -28,8 +29,8 @@ async function createPersistCluster() {
     conatPersistCount,
     "nodes",
   );
-  await loadConatConfiguration();
   for (let i = 0; i < conatPersistCount; i++) {
-    initPersistServer();
+    logger.debug("initPersistServer: starting node ", i);
+    createForkedPersistServer();
   }
 }
