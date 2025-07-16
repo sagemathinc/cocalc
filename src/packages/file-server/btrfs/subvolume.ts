@@ -6,10 +6,10 @@ import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
 import { sudo } from "./util";
 import { join, normalize } from "path";
-import { SubvolumeFilesystem } from "./subvolume-fs";
 import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
+import { SandboxedFilesystem } from "../fs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 import getLogger from "@cocalc/backend/logger";
@@ -26,7 +26,7 @@ export class Subvolume {
 
   public readonly filesystem: Filesystem;
   public readonly path: string;
-  public readonly fs: SubvolumeFilesystem;
+  public readonly fs: SandboxedFilesystem;
   public readonly bup: SubvolumeBup;
   public readonly snapshots: SubvolumeSnapshots;
   public readonly quota: SubvolumeQuota;
@@ -35,7 +35,7 @@ export class Subvolume {
     this.filesystem = filesystem;
     this.name = name;
     this.path = join(filesystem.opts.mount, name);
-    this.fs = new SubvolumeFilesystem(this);
+    this.fs = new SandboxedFilesystem(this.path);
     this.bup = new SubvolumeBup(this);
     this.snapshots = new SubvolumeSnapshots(this);
     this.quota = new SubvolumeQuota(this);
