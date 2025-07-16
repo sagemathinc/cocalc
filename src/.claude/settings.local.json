@@ -9,7 +9,9 @@
       "Bash(tsc --noEmit)",
       "Bash(git fetch:*)",
       "Bash(git merge:*)",
-      "Bash(prettier -w:*)"
+      "Bash(prettier -w:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": []
   }

@@ -34,7 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Package-Specific Commands
 
-- `cd packages/[package] && pnpm tsc` - TypeScript compilation for a specific package
+- `cd packages/[package] && pnpm build` - Build and compile a specific package
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - `cd packages/[package] && pnpm build` - Build a specific package
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the dependency package before typechecking dependent packages
@@ -42,7 +42,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Development
 
 - After code changes, run `pretter -w [filename]` to ensure consistent styling
-- After TypeScript or `*.tsx` changes, run `pnpm tsc` in the relevant package directory
+- After TypeScript or `*.tsx` changes, run `pnpm build` in the relevant package directory
 
 ## Architecture Overview
 
@@ -120,14 +120,14 @@ CoCalc is organized as a monorepo with key packages:
 
 ### Development Workflow
 
-1. Changes to TypeScript require compilation (`pnpm tsc` in relevant package)
+1. Changes to TypeScript require compilation (`pnpm build` in relevant package)
 2. Database must be running before starting hub
 3. Hub coordinates all services and should be restarted after changes
 4. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
 
 # Workflow
 
-- Be sure to typecheck when you're done making a series of code changes
+- Be sure to build when you're done making a series of code changes
 - Prefer running single tests, and not the whole test suite, for performance
 
 ## Git Workflow

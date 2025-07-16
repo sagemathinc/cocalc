@@ -13,4 +13,4 @@ export { DUMMY_SECRET } from "./project";
 
 export { SERVER_SETTINGS_ENV_PREFIX } from "./server_settings";
 
-export { ANALYTICS_COOKIE_NAME, ANALYTICS_ENABLED } from "./tracking";
+export { ANALYTICS_COOKIE_NAME } from "./tracking";

@@ -5,6 +5,3 @@
 
 // Cookie name for analytics tracking
 export const ANALYTICS_COOKIE_NAME = "CC_ANA";
-
-// Global flag to disable analytics tracking
-export const ANALYTICS_ENABLED: boolean = false;

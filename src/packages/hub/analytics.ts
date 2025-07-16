@@ -22,7 +22,7 @@ import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { ANALYTICS_COOKIE_NAME, ANALYTICS_ENABLED } from "@cocalc/util/consts";
+import { ANALYTICS_COOKIE_NAME } from "@cocalc/util/consts";
 
 import { getLogger } from "./logger";
 
@@ -243,6 +243,7 @@ export async function initAnalytics(
   const DNS = settings.dns;
   const dns_parsed = parseDomain(DNS);
   const pii_retention = settings.pii_retention;
+  const analytics_enabled = settings.analytics_cookie;
 
   if (
     dns_parsed.type !== ParseResultType.Listed &&
@@ -288,9 +289,9 @@ export async function initAnalytics(
       `/analytics.js GET analytics_cookie='${req.cookies[ANALYTICS_COOKIE_NAME]}'`,
     );
 
-    if (!req.cookies[ANALYTICS_COOKIE_NAME] && ANALYTICS_ENABLED) {
+    if (!req.cookies[ANALYTICS_COOKIE_NAME] && analytics_enabled) {
       // No analytics cookie is set and cookies are enabled, so we set one.
-      // When ANALYTICS_ENABLED is false, we skip setting cookies to enable
+      // When analytics_enabled is false, we skip setting cookies to enable
       // cookieless tracking for better privacy.
       setAnalyticsCookie(res /* DNS */);
     }
@@ -298,7 +299,7 @@ export async function initAnalytics(
     // Return NOOP if DNS is invalid, or if cookies are enabled and already exist
     if (
       dns_parsed.type !== ParseResultType.Listed ||
-      (ANALYTICS_ENABLED && req.cookies[ANALYTICS_COOKIE_NAME])
+      (analytics_enabled && req.cookies[ANALYTICS_COOKIE_NAME])
     ) {
       // cache for 6 hours -- max-age has unit seconds
       res.header(
@@ -320,7 +321,7 @@ export async function initAnalytics(
     res.write(`var NAME = '${ANALYTICS_COOKIE_NAME}';\n`);
     res.write(`var ID = '${uuid()}';\n`);
     res.write(`var DOMAIN = '${DOMAIN}';\n`);
-    res.write(`var ANALYTICS_ENABLED = ${ANALYTICS_ENABLED};\n`);
+    res.write(`var ANALYTICS_ENABLED = ${analytics_enabled};\n`);
     //  BASE_PATH
     if (req.query.fqd === "false") {
       res.write(`var PREFIX = '${base_path}';\n`);

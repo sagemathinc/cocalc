@@ -20,13 +20,16 @@ The OUTPUT is:
 - a list of messages that describe the output of the last code execution.
 
 */
+import type { Request, Response } from "express";
+
 import { execute } from "@cocalc/server/jupyter/execute";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
-import { ANALYTICS_COOKIE_NAME, ANALYTICS_ENABLED } from "@cocalc/util/consts";
+import { ANALYTICS_COOKIE_NAME } from "@cocalc/util/consts";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
-export default async function handle(req, res) {
+export default async function handle(req: Request, res: Response) {
   try {
     const result = await doIt(req);
     res.json({ ...result, success: true });
@@ -36,11 +39,12 @@ export default async function handle(req, res) {
   }
 }
 
-async function doIt(req) {
+async function doIt(req: Request) {
   const { input, kernel, history, tag, noCache, hash, project_id, path } =
     getParams(req);
   const account_id = await getAccountId(req);
-  const analytics_cookie = ANALYTICS_ENABLED
+  const { analytics_cookie: analytics_enabled } = await getServerSettings();
+  const analytics_cookie = analytics_enabled
     ? req.cookies[ANALYTICS_COOKIE_NAME]
     : undefined;
   return await execute({
