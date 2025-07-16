@@ -11,7 +11,9 @@
       "Bash(git merge:*)",
       "Bash(prettier -w:*)",
       "Bash(git push:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(git grep:*)",
+      "Bash(pnpm test:*)"
     ],
     "deny": []
   }

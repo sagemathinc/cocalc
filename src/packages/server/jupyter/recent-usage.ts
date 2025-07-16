@@ -8,22 +8,22 @@ import getPool from "@cocalc/database/pool";
 type QueryArgs = {
   period: string;
   account_id?: string;
-  analytics_cookie?: string;
+  anonymous_id?: string;
   cache?: "short" | "medium" | "long";
 };
 
 export default async function recentUsage({
   period,
   account_id,
-  analytics_cookie,
+  anonymous_id,
   cache,
 }: QueryArgs): Promise<number> {
   let queryArgs;
 
   if (account_id) {
     queryArgs = buildAccountIdQuery(period, account_id);
-  } else if (analytics_cookie) {
-    queryArgs = buildAnalyticsCookieQuery(period, analytics_cookie);
+  } else if (anonymous_id) {
+    queryArgs = buildAnalyticsCookieQuery(period, anonymous_id);
   } else {
     queryArgs = buildOverallUsageQuery(period);
   }
@@ -34,7 +34,7 @@ export default async function recentUsage({
 async function getUsageForQuery(
   query: string,
   args: any[],
-  cache?: QueryArgs["cache"]
+  cache?: QueryArgs["cache"],
 ): Promise<number> {
   const pool = getPool(cache);
   const { rows } = await pool.query(query, args);
@@ -43,7 +43,7 @@ async function getUsageForQuery(
 
 function buildAccountIdQuery(
   period: string,
-  account_id: string
+  account_id: string,
 ): [string, any[]] {
   const query = `SELECT SUM(total_time_s) AS usage FROM jupyter_api_log WHERE created >= NOW() - INTERVAL '${period}' AND account_id=$1 AND project_id IS NULL AND path IS NULL`;
   const args = [account_id];
@@ -52,10 +52,11 @@ function buildAccountIdQuery(
 
 function buildAnalyticsCookieQuery(
   period: string,
-  analytics_cookie: string
+  anonymous_id: string,
 ): [string, any[]] {
+  // query uses analytics_cookie before generalizing to an anonymous ID
   const query = `SELECT SUM(total_time_s) AS usage FROM jupyter_api_log WHERE created >= NOW() - INTERVAL '${period}' AND analytics_cookie=$1 AND project_id IS NULL AND path IS NULL`;
-  const args = [analytics_cookie];
+  const args = [anonymous_id];
   return [query, args];
 }
 

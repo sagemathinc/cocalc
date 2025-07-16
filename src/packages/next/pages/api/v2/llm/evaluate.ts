@@ -3,11 +3,10 @@
 
 import type { Request, Response } from "express";
 
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { evaluate } from "@cocalc/server/llm/index";
-import { ANALYTICS_COOKIE_NAME } from "@cocalc/util/consts";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
+import { getAnonymousID } from "lib/user-id";
 
 export default async function handle(req: Request, res: Response) {
   try {
@@ -22,14 +21,11 @@ export default async function handle(req: Request, res: Response) {
 async function doIt(req: Request) {
   const { input, system, history, model, tag } = getParams(req);
   const account_id = await getAccountId(req);
-  const { analytics_cookie: analytics_enabled } = await getServerSettings();
-  const analytics_cookie = analytics_enabled
-    ? req.cookies[ANALYTICS_COOKIE_NAME]
-    : undefined;
+  const anonymous_id = await getAnonymousID(req);
   return {
     output: await evaluate({
       account_id,
-      analytics_cookie,
+      anonymous_id,
       input,
       system,
       history,

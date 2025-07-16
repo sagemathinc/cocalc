@@ -35,9 +35,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Package-Specific Commands
 
 - `cd packages/[package] && pnpm build` - Build and compile a specific package
+  - for packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
+- `cd packages/[package] && pnpm tsc:watch` - TypeScript compilation in watch mode for a specific package
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - `cd packages/[package] && pnpm build` - Build a specific package
-- **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the dependency package before typechecking dependent packages
+- **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
 ### Development
 
