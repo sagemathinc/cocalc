@@ -103,22 +103,36 @@ export function UsageAndDuration(props: Props) {
 
   function renderUsage() {
     if (!showUsage) return;
-    return (
-      <Form.Item
-        name="user"
-        initialValue={
-          type === "course"
-            ? "academic"
-            : isAcademic(profile?.email_address)
-            ? "academic"
-            : "business"
-        }
-        label={"Usage"}
-        extra={renderUsageExplanation()}
-      >
-        {renderUsageItem()}
-      </Form.Item>
-    );
+
+    switch (type) {
+      case "course":
+        return (
+          <Form.Item
+            name="user"
+            initialValue="academic"
+            label={"Usage"}
+            extra={renderUsageExplanation()}
+          >
+            <Input type="hidden" value="academic" />
+            Academic
+          </Form.Item>
+        );
+      case "license":
+        return (
+          <Form.Item
+            name="user"
+            initialValue={
+              isAcademic(profile?.email_address) ? "academic" : "business"
+            }
+            label={"Usage"}
+            extra={renderUsageExplanation()}
+          >
+            {renderUsageItem()}
+          </Form.Item>
+        );
+      default:
+        unreachable(type);
+    }
   }
 
   function renderRangeSelector(getFieldValue) {
@@ -157,12 +171,13 @@ export function UsageAndDuration(props: Props) {
     }
     return (
       <Form.Item
-        label={type === "course" ? "Start/End" : "License Term"}
+        label={type === "course" ? "Course Dates" : "License Term"}
         name="range"
         rules={[{ required: true }]}
         help={invalidRange ? "Please enter a valid license range." : ""}
         validateStatus={invalidRange ? "error" : "success"}
         style={{ paddingBottom: "30px" }}
+        extra={type === "course" ? renderDurationExplanation() : undefined}
       >
         <DateRange
           disabled={disabled}
@@ -265,13 +280,8 @@ export function UsageAndDuration(props: Props) {
     switch (type) {
       case "course":
         return (
-          <Form.Item
-            name="period"
-            initialValue={init}
-            label="Period"
-            extra={renderDurationExplanation()}
-          >
-            Select the start and end date of your course below.
+          <Form.Item name="period" initialValue={init} hidden>
+            <Input type="hidden" value="range" />
           </Form.Item>
         );
 

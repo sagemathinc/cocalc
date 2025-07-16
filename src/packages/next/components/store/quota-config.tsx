@@ -3,12 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect, useRef, useState, type JSX } from "react";
-
-import { Icon } from "@cocalc/frontend/components/icon";
-import { displaySiteLicense } from "@cocalc/util/consts/site-license";
-import { plural, unreachable } from "@cocalc/util/misc";
-import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
 import {
   Alert,
   Button,
@@ -22,6 +16,14 @@ import {
   Tabs,
   Typography,
 } from "antd";
+import { useEffect, useRef, useState, type JSX } from "react";
+
+import { HelpIcon } from "@cocalc/frontend/components/help-icon";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { displaySiteLicense } from "@cocalc/util/consts/site-license";
+import { plural, unreachable } from "@cocalc/util/misc";
+import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
+
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { CSS, Paragraph } from "components/misc";
 import A from "components/misc/A";
@@ -369,6 +371,20 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderIdleTimeoutWithHelp(text?: string) {
+    return (
+      <HelpIcon title="Idle Timeout" extra={text || "idle timeout"}>
+        The idle timeout determines how long your project stays running after
+        you stop using it. For example, if you work in your project for 2 hours,
+        it will keep running during that time. When you close your browser or
+        stop working, the project will automatically shut down after the idle
+        timeout period. Don't worry - your files are always saved and you can
+        restart the project anytime to continue your work exactly where you left
+        off.
+      </HelpIcon>
+    );
+  }
+
   function presetsCommon() {
     if (!showExplanations) return null;
     return (
@@ -400,27 +416,28 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     const p = preset != null ? COURSE[preset] : undefined;
     let presetInfo: JSX.Element | undefined = undefined;
     if (p != null) {
-      const { name, cpu, disk, ram, uptime, note } = p;
+      const { name, cpu, disk, ram, uptime, note, details } = p;
       const basic = (
         <>
-          provides up to{" "}
+          Each student project will be outfitted with up to{" "}
           <Text strong>
             {cpu} {plural(cpu, "vCPU")}
           </Text>
           , <Text strong>{ram} GB memory</Text>, and{" "}
-          <Text strong>{disk} GB disk space</Text> for each project.
-        </>
-      );
-      const ut = (
-        <>
-          the project's{" "}
-          <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
+          <Text strong>{disk} GB disk space</Text> with an{" "}
+          <Text strong>
+            {renderIdleTimeoutWithHelp()} of {displaySiteLicense(uptime)}
+          </Text>
+          .
         </>
       );
       presetInfo = (
-        <Paragraph>
-          <strong>{name}</strong> {basic} Additionally, {ut}. {note}
-        </Paragraph>
+        <>
+          <Paragraph>
+            <strong>{name}:</strong> {note} {basic}
+          </Paragraph>
+          <Paragraph type="secondary">{details}</Paragraph>
+        </>
       );
     }
 
@@ -430,7 +447,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <Radio.Group
             size="large"
             value={preset}
-            onChange={(e) => onPresetChange(e.target.value)}
+            onChange={(e) => onPresetChange(COURSE, e.target.value)}
           >
             <Space direction="vertical">
               {(Object.keys(COURSE) as Array<Preset>).map((p) => {
@@ -447,7 +464,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             </Space>
           </Radio.Group>
         </Form.Item>
-        {presetInfo}
+        <Form.Item label={null}>{presetInfo}</Form.Item>
       </>
     );
   }
@@ -470,7 +487,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       const ut = (
         <>
           the project's{" "}
-          <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
+          <Text strong>
+            {renderIdleTimeoutWithHelp()} is {displaySiteLicense(uptime)}
+          </Text>
         </>
       );
       presetInfo = (
@@ -486,7 +505,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <Radio.Group
             size="large"
             value={preset}
-            onChange={(e) => onPresetChange(e.target.value)}
+            onChange={(e) => onPresetChange(PRESETS, e.target.value)}
           >
             <Space direction="vertical">
               {(Object.keys(PRESETS) as Array<Preset>).map((p) => {
@@ -522,7 +541,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           icon={icon}
           style={{ flex: 1 }}
           active={active}
-          onClick={() => onPresetChange(p)}
+          onClick={() => onPresetChange(PRESETS, p)}
         >
           <Paragraph>
             <strong>{name}</strong> {descr}.
@@ -533,7 +552,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <Line amount={disk} desc={"Disk space"} indent={false} />
           <Line
             amount={displaySiteLicense(uptime)}
-            desc={"Idle timeout"}
+            desc={renderIdleTimeoutWithHelp("Idle timeout")}
             indent={false}
           />
           <Divider />
@@ -553,7 +572,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           ) : undefined}
           <Paragraph style={{ marginTop: "20px", textAlign: "center" }}>
             <Button
-              onClick={() => onPresetChange(p)}
+              onClick={() => onPresetChange(PRESETS, p)}
               size="large"
               type={active ? "primary" : undefined}
             >
@@ -588,11 +607,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function onPresetChange(val: Preset) {
+  function onPresetChange(
+    preset: { [key: string]: PresetConfig },
+    val: Preset,
+  ) {
     if (val == null || setPreset == null) return;
     setPreset(val);
     setPresetAdjusted?.(false);
-    const presetData = PRESETS[val];
+    const presetData = preset[val];
     if (presetData != null) {
       const { cpu, ram, disk, uptime = "short", member = true } = presetData;
       form.setFieldsValue({ uptime, member, cpu, ram, disk });

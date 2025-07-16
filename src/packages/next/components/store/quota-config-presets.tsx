@@ -208,7 +208,7 @@ export const COURSE = {
       "Edit LaTeX, Markdown, R Documents, and use VS Code,",
       `${STANDARD_DISK} GB disk space is sufficient to store many files and small datasets.`,
     ],
-    note: <Paragraph type="secondary">TODO NOTE</Paragraph>,
+    note: <>Suitable for most courses.</>,
     details: (
       <>
         You can run a couple of Jupyter Notebooks in a project at once,
@@ -224,4 +224,30 @@ export const COURSE = {
     uptime: "short",
     member: true,
   },
-} as const satisfies { [key in "standard"]: PresetConfig };
+  advanced: {
+    icon: "rocket",
+    name: "Advanced",
+    descr: "provides higher quotas for more intensive course work",
+    expect: [
+      "Run more Jupyter Notebooks simultaneously,",
+      "Handle memory-intensive computations,",
+      "Longer idle timeout for extended work sessions,",
+      "Sufficient resources for advanced coursework.",
+    ],
+    note: <>For intense computations requiring more resources.</>,
+    details: (
+      <>
+        This configuration provides enhanced resources for more demanding
+        coursework. With 1 CPU, 8GB RAM, and a 2-hour idle timeout, students can
+        work on memory-intensive projects and longer computational tasks without
+        interruption. Ideal for advanced programming, data science, and
+        research-oriented courses.
+      </>
+    ),
+    cpu: 1,
+    ram: 8,
+    disk: 2 * STANDARD_DISK,
+    uptime: "medium",
+    member: true,
+  },
+} as const satisfies { [key in "standard" | "advanced"]: PresetConfig };
