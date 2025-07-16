@@ -23,6 +23,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
 import { plural, unreachable } from "@cocalc/util/misc";
 import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { CSS, Paragraph } from "components/misc";
@@ -35,7 +36,6 @@ import {
   Preset,
   PresetConfig,
 } from "./quota-config-presets";
-import type { LicenseType } from "./types";
 
 const { Text } = Typography;
 
@@ -62,7 +62,7 @@ interface Props {
   setPreset?: (preset: Preset | null) => void;
   presetAdjusted?: boolean;
   setPresetAdjusted?: (adjusted: boolean) => void;
-  type: LicenseType;
+  source: LicenseSource;
 }
 
 export const QuotaConfig: React.FC<Props> = (props: Props) => {
@@ -78,7 +78,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     setPreset,
     presetAdjusted,
     setPresetAdjusted,
-    type,
+    source,
   } = props;
 
   const presetsRef = useRef<HTMLDivElement>(null);
@@ -114,13 +114,13 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (boost) {
       return "Booster";
     } else {
-      switch (type) {
+      switch (source) {
         case "license":
           return "Quota Upgrades";
         case "course":
           return "Project Upgrades";
         default:
-          unreachable(type);
+          unreachable(source);
       }
     }
   }
@@ -443,7 +443,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
     return (
       <>
-        <Form.Item label="Preset">
+        <Form.Item label="Presets">
           <Radio.Group
             size="large"
             value={preset}
@@ -650,7 +650,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         </>
       );
     } else {
-      switch (type) {
+      switch (source) {
         case "license":
           return (
             <Tabs
@@ -687,7 +687,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         case "course":
           return renderCoursePresets();
         default:
-          unreachable(type);
+          unreachable(source);
       }
     }
   }

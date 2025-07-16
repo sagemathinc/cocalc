@@ -15,6 +15,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -33,7 +34,6 @@ import { RunLimit } from "./run-limit";
 import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
-import { LicenseType } from "./types";
 import { UsageAndDuration } from "./usage-and-duration";
 
 const DEFAULT_PRESET: Preset = "standard";
@@ -48,12 +48,12 @@ const STYLE: React.CSSProperties = {
 
 interface Props {
   noAccount: boolean;
-  type: LicenseType;
+  source: LicenseSource;
 }
 
 // depending on the type, this either purchases a license with all settings,
 // or a license for a course with a subset of controls.
-export default function SiteLicense({ noAccount, type }: Props) {
+export default function SiteLicense({ noAccount, source }: Props) {
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
 
@@ -77,13 +77,13 @@ export default function SiteLicense({ noAccount, type }: Props) {
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit License in Shopping Cart"
-          : type === "course"
+          : source === "course"
           ? "Purchase a License for a Course"
           : "Configure a License"}
       </Title>
       {router.query.id == null && (
         <>
-          {type === "license" && (
+          {source === "license" && (
             <div>
               <Paragraph style={{ fontSize: "12pt" }}>
                 <A href="https://doc.cocalc.com/licenses.html">
@@ -109,16 +109,16 @@ export default function SiteLicense({ noAccount, type }: Props) {
               </Paragraph>
             </div>
           )}
-          {type === "course" && (
+          {source === "course" && (
             <div>
               <Paragraph style={{ fontSize: "12pt" }}>
-                When you teach your course on CoCalc, you benefit from a
-                managed, reliable platform used by tens of thousands of students
-                since 2013. Each student works in an isolated workspace
-                (project), with options for group work. File-based assignments
-                are handed out to students and collected when completed. You can
-                easily monitor progress, review editing history, and assist
-                students directly. For more information, please consult the{" "}
+                Teaching with CoCalc makes your course management effortless.
+                Students work in their own secure spaces where you can
+                distribute assignments, track their progress in real-time, and
+                provide help directly within their work environment. No software
+                installation required for students – everything runs in the
+                browser. Used by thousands of instructors since 2013. Learn more
+                in our{" "}
                 <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
                   instructor guide
                 </A>
@@ -131,7 +131,7 @@ export default function SiteLicense({ noAccount, type }: Props) {
       <CreateSiteLicense
         showInfoBar={scrollY > offsetHeader}
         noAccount={noAccount}
-        type={type}
+        source={source}
       />
     </>
   );
@@ -143,9 +143,9 @@ export default function SiteLicense({ noAccount, type }: Props) {
 function CreateSiteLicense({
   showInfoBar = false,
   noAccount = false,
-  type,
+  source,
 }: {
-  type: LicenseType;
+  source: LicenseSource;
   noAccount: boolean;
   showInfoBar: boolean;
 }) {
@@ -258,7 +258,7 @@ function CreateSiteLicense({
       cartError={cartError}
       setCartError={setCartError}
       noAccount={noAccount}
-      type={type}
+      source={source}
     />
   );
 
@@ -285,6 +285,10 @@ function CreateSiteLicense({
         onValuesChange={onLicenseChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
+        {/* Hidden form item to track which page (license or course) created this license */}
+        <Form.Item name="source" initialValue={source} noStyle>
+          <Input type="hidden" />
+        </Form.Item>
         <ToggleExplanations
           showExplanations={showExplanations}
           setShowExplanations={setShowExplanations}
@@ -297,16 +301,16 @@ function CreateSiteLicense({
           showExplanations={showExplanations}
           form={form}
           onChange={onLicenseChange}
-          type={type}
+          source={source}
         />
         <RunLimit
-          type={type}
+          source={source}
           showExplanations={showExplanations}
           form={form}
           onChange={onLicenseChange}
         />
         <QuotaConfig
-          type={type}
+          source={source}
           boost={false}
           form={form}
           onChange={onLicenseChange}

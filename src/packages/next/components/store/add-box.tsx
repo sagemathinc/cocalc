@@ -7,15 +7,17 @@
 Add a cash voucher to your shopping cart.
 */
 import { useState, type JSX } from "react";
+import { Alert, Button, Spin } from "antd";
+
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { round2up } from "@cocalc/util/misc";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { Alert, Button, Spin } from "antd";
 import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { decimalDivide } from "@cocalc/util/stripe/calc";
-import { LicenseType } from "./types";
+
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 
 export const ADD_STYLE = {
   display: "inline-block",
@@ -38,7 +40,7 @@ interface Props {
   dedicatedItem?: boolean;
   disabled?: boolean;
   noAccount: boolean;
-  type: LicenseType;
+  source: LicenseSource;
 }
 
 export function AddBox({
@@ -50,7 +52,7 @@ export function AddBox({
   dedicatedItem = false,
   noAccount,
   disabled = false,
-  type,
+  source,
 }: Props) {
   if (cost?.input.type == "cash-voucher") {
     return null;
@@ -80,7 +82,7 @@ export function AddBox({
         message={
           <>
             {money(round2up(costPer))}{" "}
-            <b>per {type === "course" ? "student" : "project"}</b>{" "}
+            <b>per {source === "course" ? "student" : "project"}</b>{" "}
             {!!cost.period && cost.period != "range" ? cost.period : ""}
           </>
         }

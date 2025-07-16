@@ -5,10 +5,11 @@
 
 import { Divider, Form } from "antd";
 
+import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
-import { LicenseType } from "./types";
-import { unreachable } from "@cocalc/util/misc";
+
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 
 export const MAX_ALLOWED_RUN_LIMIT = 10000;
 
@@ -18,7 +19,7 @@ interface RunLimitProps {
   onChange: () => void;
   disabled?: boolean;
   boost?: boolean;
-  type: LicenseType;
+  source: LicenseSource;
 }
 
 export function RunLimit({
@@ -27,12 +28,12 @@ export function RunLimit({
   onChange,
   disabled = false,
   boost = false,
-  type,
+  source,
 }: RunLimitProps) {
   function extra() {
     if (!showExplanations) return;
 
-    switch (type) {
+    switch (source) {
       case "license":
         return (
           <div style={{ marginTop: "5px" }}>
@@ -70,11 +71,11 @@ export function RunLimit({
         );
 
       default:
-        unreachable(type);
+        unreachable(source);
     }
   }
 
-  switch (type) {
+  switch (source) {
     case "license":
       return (
         <>
@@ -86,7 +87,7 @@ export function RunLimit({
             extra={extra()}
           >
             <EditRunLimit
-              type={type}
+              type={source}
               disabled={disabled}
               onChange={(run_limit) => {
                 form.setFieldsValue({ run_limit });
@@ -108,7 +109,7 @@ export function RunLimit({
             extra={extra()}
           >
             <EditRunLimit
-              type={type}
+              type={source}
               disabled={disabled}
               onChange={(run_limit) => {
                 form.setFieldsValue({ run_limit });
@@ -120,7 +121,7 @@ export function RunLimit({
       );
 
     default:
-      unreachable(type);
+      unreachable(source);
   }
 }
 
@@ -133,7 +134,7 @@ function EditRunLimit({
   value?: number;
   onChange: (run_limit: number) => void;
   disabled?: boolean;
-  type: LicenseType;
+  type: LicenseSource;
 }) {
   return (
     <IntegerSlider

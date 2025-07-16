@@ -123,9 +123,9 @@ export default function StoreLayout({ page }: Props) {
 
     switch (main) {
       case "site-license":
-        return <SiteLicense noAccount={noAccount} type="license" />;
+        return <SiteLicense noAccount={noAccount} source="license" />;
       case "course":
-        return <SiteLicense noAccount={noAccount} type="course" />;
+        return <SiteLicense noAccount={noAccount} source="course" />;
       case "cart":
         return requireAccount(Cart);
       case "checkout":

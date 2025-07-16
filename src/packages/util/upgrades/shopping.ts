@@ -26,8 +26,12 @@ export type VMCostProps = {
   dedicated_vm: DedicatedVM;
 };
 
+// the store's source page from where a site-license has been created
+export type LicenseSource = "license" | "course";
+
 export type QuotaCostProps = {
   type: "quota";
+  source?: LicenseSource;
   user: User;
   run_limit: number;
   period: Period;

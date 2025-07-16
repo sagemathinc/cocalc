@@ -11,7 +11,8 @@ import { Subscription } from "@cocalc/util/licenses/purchase/types";
 import { isAcademic, unreachable } from "@cocalc/util/misc";
 import DateRange from "components/misc/date-range";
 import useProfile from "lib/hooks/profile";
-import { LicenseType } from "./types";
+
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 
 type Duration = "all" | "subscriptions" | "monthly" | "yearly" | "range";
 
@@ -24,7 +25,7 @@ interface Props {
   duration?: Duration;
   discount?: boolean;
   extraDuration?: ReactNode;
-  type: LicenseType;
+  source: LicenseSource;
 }
 
 function getTimezoneFromDate(
@@ -49,7 +50,7 @@ export function UsageAndDuration(props: Props) {
     showUsage = true,
     discount = true,
     extraDuration,
-    type,
+    source,
   } = props;
 
   //const duration: Duration = type === "license" ? "all" : "range";
@@ -62,7 +63,7 @@ export function UsageAndDuration(props: Props) {
     const ac = (
       <>Academic users receive a 40% discount off the standard price.</>
     );
-    switch (type) {
+    switch (source) {
       case "license":
         return (
           <>
@@ -73,12 +74,12 @@ export function UsageAndDuration(props: Props) {
       case "course":
         return ac;
       default:
-        unreachable(type);
+        unreachable(source);
     }
   }
 
   function renderUsageItem() {
-    switch (type) {
+    switch (source) {
       case "license":
         return (
           <Radio.Group disabled={disabled}>
@@ -97,14 +98,14 @@ export function UsageAndDuration(props: Props) {
         return <>Academic</>;
 
       default:
-        unreachable(type);
+        unreachable(source);
     }
   }
 
   function renderUsage() {
     if (!showUsage) return;
 
-    switch (type) {
+    switch (source) {
       case "course":
         return (
           <Form.Item
@@ -131,7 +132,7 @@ export function UsageAndDuration(props: Props) {
           </Form.Item>
         );
       default:
-        unreachable(type);
+        unreachable(source);
     }
   }
 
@@ -145,7 +146,7 @@ export function UsageAndDuration(props: Props) {
     if (invalidRange) {
       const start = new Date();
       const dayMs = 1000 * 60 * 60 * 24;
-      const daysDelta = type === "course" ? 4 * 30 : 30;
+      const daysDelta = source === "course" ? 4 * 30 : 30;
       const end = new Date(start.valueOf() + dayMs * daysDelta);
       range = [start, end];
       form.setFieldsValue({ range });
@@ -171,13 +172,13 @@ export function UsageAndDuration(props: Props) {
     }
     return (
       <Form.Item
-        label={type === "course" ? "Course Dates" : "License Term"}
+        label={source === "course" ? "Course Dates" : "License Term"}
         name="range"
         rules={[{ required: true }]}
         help={invalidRange ? "Please enter a valid license range." : ""}
         validateStatus={invalidRange ? "error" : "success"}
         style={{ paddingBottom: "30px" }}
-        extra={type === "course" ? renderDurationExplanation() : undefined}
+        extra={source === "course" ? renderDurationExplanation() : undefined}
       >
         <DateRange
           disabled={disabled}
@@ -251,7 +252,7 @@ export function UsageAndDuration(props: Props) {
       </i>
     );
 
-    switch (type) {
+    switch (source) {
       case "course":
         return <>{tz}</>;
 
@@ -269,15 +270,19 @@ export function UsageAndDuration(props: Props) {
           </>
         );
       default:
-        unreachable(type);
+        unreachable(source);
     }
   }
 
   function renderPeriod() {
     const init =
-      type === "course" ? "range" : duration === "range" ? "range" : "monthly";
+      source === "course"
+        ? "range"
+        : duration === "range"
+        ? "range"
+        : "monthly";
 
-    switch (type) {
+    switch (source) {
       case "course":
         return (
           <Form.Item name="period" initialValue={init} hidden>
@@ -303,7 +308,7 @@ export function UsageAndDuration(props: Props) {
         );
 
       default:
-        unreachable(type);
+        unreachable(source);
     }
   }
 

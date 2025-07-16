@@ -5,7 +5,10 @@
       "Bash(pnpm build:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(prettier -w:*)"
+      "Bash(prettier -w:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(pnpm ts-build:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }
