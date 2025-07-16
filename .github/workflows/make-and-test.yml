@@ -91,8 +91,8 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - name: Install btrfs-progs
-        run: sudo apt-get update && sudo apt-get install -y btrfs-progs
+      - name: Install btrfs-progs and bup for @cocalc/file-server
+        run: sudo apt-get update && sudo apt-get install -y btrfs-progs bup
 
       - name: Set up Python venv and Jupyter kernel
         run: |
