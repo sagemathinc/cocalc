@@ -248,6 +248,16 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: GOOGLE_AI_COLOR,
     category: "ai",
   },
+  "google-gemini-2.5-flash-8k": {
+    display: LLM_USERNAMES["gemini-2.5-flash-8k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
+  "google-gemini-2.5-pro-8k": {
+    display: LLM_USERNAMES["gemini-2.5-pro-8k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
   "anthropic-claude-3-opus": {
     display: LLM_USERNAMES["claude-3-opus"],
     color: "#181818",
@@ -285,6 +295,26 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
   "anthropic-claude-3-haiku-8k": {
     display: LLM_USERNAMES["claude-3-haiku-8k"],
+    color: "#181818",
+    category: "ai",
+  },
+  "anthropic-claude-3-5-haiku-8k": {
+    display: LLM_USERNAMES["claude-3-5-haiku-8k"],
+    color: "#181818",
+    category: "ai",
+  },
+  "anthropic-claude-3-7-sonnet-4k": {
+    display: LLM_USERNAMES["claude-3-7-sonnet-4k"],
+    color: "#181818",
+    category: "ai",
+  },
+  "anthropic-claude-4-sonnet-8k": {
+    display: LLM_USERNAMES["claude-4-sonnet-8k"],
+    color: "#181818",
+    category: "ai",
+  },
+  "anthropic-claude-4-opus-8k": {
+    display: LLM_USERNAMES["claude-4-opus-8k"],
     color: "#181818",
     category: "ai",
   },

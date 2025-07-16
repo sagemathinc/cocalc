@@ -157,6 +157,8 @@ export const GOOGLE_MODELS = [
   "gemini-1.5-pro", // works now with langchaing
   "gemini-2.0-flash-8k",
   "gemini-2.0-flash-lite-8k",
+  "gemini-2.5-flash-8k",
+  "gemini-2.5-pro-8k",
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
@@ -168,33 +170,39 @@ export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-1.5-flash-8k": "gemini-1.5-flash-latest",
   "gemini-2.0-flash-8k": "gemini-2.0-flash",
   "gemini-2.0-flash-lite-8k": "gemini-2.0-flash-lite",
+  "gemini-2.5-flash-8k": "gemini-2.5-flash-latest",
+  "gemini-2.5-pro-8k": "gemini-2.5-pro-latest",
 } as const;
 
-// https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
+// https://docs.anthropic.com/en/docs/about-claude/models/overview -- stable names for the modesl ...
 export const ANTHROPIC_MODELS = [
   "claude-3-5-sonnet",
   "claude-3-5-sonnet-4k", // added 2024-06-24
+  "claude-3-5-haiku-8k",
   "claude-3-haiku",
   "claude-3-haiku-8k", // limited context window, offered for free
   "claude-3-sonnet",
   "claude-3-sonnet-4k", // limited context window, offered for free
-  "claude-3-opus-8k", // same issue as the large GPT models, limit the context window to limit spending
+  "claude-3-7-sonnet-4k",
   "claude-3-opus",
+  "claude-3-opus-8k", // same issue as the large GPT models, limit the context window to limit spending
+  "claude-4-sonnet-8k",
+  "claude-4-opus-8k",
 ] as const;
-const CLAUDE_SONNET_VERSION = "20240229";
-const CLAUDE_HAIKU_VERSION = "20240307";
-const CLAUDE_OPUS_VERSION = "20240229";
-const CLAUDE_SONNET_3_5_VERSION = "20240620";
-// ... and we add a version number (there is no "*-latest") when dispatching on the backend
+// https://docs.anthropic.com/en/docs/about-claude/models/overview#model-aliases
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string } = {
-  "claude-3-sonnet-4k": CLAUDE_SONNET_VERSION,
-  "claude-3-opus": CLAUDE_OPUS_VERSION,
-  "claude-3-opus-8k": CLAUDE_OPUS_VERSION,
-  "claude-3-sonnet": CLAUDE_SONNET_VERSION,
-  "claude-3-5-sonnet": CLAUDE_SONNET_3_5_VERSION,
-  "claude-3-5-sonnet-4k": CLAUDE_SONNET_3_5_VERSION,
-  "claude-3-haiku": CLAUDE_HAIKU_VERSION,
-  "claude-3-haiku-8k": CLAUDE_HAIKU_VERSION,
+  "claude-3-5-sonnet": "claude-3-5-sonnet",
+  "claude-3-5-sonnet-4k": "claude-3-5-sonnet",
+  "claude-3-5-haiku-8k": "claude-3-5-haiku",
+  "claude-3-haiku": "claude-3-haiku",
+  "claude-3-haiku-8k": "claude-3-haiku",
+  "claude-3-sonnet": "claude-3-sonnet",
+  "claude-3-sonnet-4k": "claude-3-sonnet",
+  "claude-3-7-sonnet-4k": "claude-3-7-sonnet",
+  "claude-3-opus": "claude-3-opus",
+  "claude-3-opus-8k": "claude-3-opus",
+  "claude-4-sonnet-8k": "claude-4-sonnet",
+  "claude-4-opus-8k": "claude-4-opus",
 } as const;
 export const ANTHROPIC_PREFIX = "anthropic-";
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
@@ -251,7 +259,9 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gemini-1.5-pro-8k" ||
       //m === "gemini-1.5-flash-8k" ||
       m === "gemini-2.0-flash-8k" ||
-      m === "gemini-2.0-flash-lite-8k",
+      m === "gemini-2.0-flash-lite-8k" ||
+      m === "gemini-2.5-flash-8k" ||
+      m === "gemini-2.5-pro-8k",
   ),
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
@@ -259,7 +269,11 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
     return (
       m === "claude-3-opus-8k" ||
       m === "claude-3-5-sonnet-4k" ||
-      m === "claude-3-haiku-8k"
+      m === "claude-3-5-haiku-8k" ||
+      m === "claude-3-haiku-8k" ||
+      m === "claude-3-7-sonnet-4k" ||
+      m === "claude-4-sonnet-8k" ||
+      m === "claude-4-opus-8k"
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
@@ -742,16 +756,22 @@ export const LLM_USERNAMES: LLM2String = {
   "gemini-1.5-flash-8k": "Gemini 1.5 Flash",
   "gemini-2.0-flash-8k": "Gemini 2.0 Flash",
   "gemini-2.0-flash-lite-8k": "Gemini 2.0 Flash Lite",
+  "gemini-2.5-flash-8k": "Gemini 2.5 Flash",
+  "gemini-2.5-pro-8k": "Gemini 2.5 Pro",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
-  "claude-3-haiku": "Claude 3 Haiku 200k",
+  "claude-3-haiku": "Claude 3 Haiku",
   "claude-3-haiku-8k": "Claude 3 Haiku",
   "claude-3-sonnet": "Claude 3 Sonnet 200k",
   "claude-3-sonnet-4k": "Claude 3 Sonnet",
-  "claude-3-5-sonnet": "Claude 3.5 Sonnet 200k",
+  "claude-3-5-sonnet": "Claude 3.5 Sonnet",
   "claude-3-5-sonnet-4k": "Claude 3.5 Sonnet",
-  "claude-3-opus": "Claude 3 Opus 200k",
+  "claude-3-5-haiku-8k": "Claude 3.5 Haiku",
+  "claude-3-7-sonnet-4k": "Claude 3.7 Sonnet",
+  "claude-4-sonnet-8k": "Claude 4 Sonnet",
+  "claude-4-opus-8k": "Claude 4 Opus",
+  "claude-3-opus": "Claude 3 Opus",
   "claude-3-opus-8k": "Claude 3 Opus",
 } as const;
 
@@ -803,6 +823,10 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 2.0 Flash Generative AI model (8k token context)",
   "gemini-2.0-flash-lite-8k":
     "Google's Gemini 2.0 Flash Lite Generative AI model (8k token context)",
+  "gemini-2.5-flash-8k":
+    "Google's Gemini 2.5 Flash Generative AI model (8k token context)",
+  "gemini-2.5-pro-8k":
+    "Google's Gemini 2.5 Pro Generative AI model (8k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -815,10 +839,18 @@ export const LLM_DESCR: LLM2String = {
     "Fastest model, lightweight actions (Anthropic, 8k token context)",
   "claude-3-5-sonnet":
     "Our most intelligent model (Anthropic, 200k token context)",
+  "claude-3-sonnet":
+    "Our most intelligent model (Anthropic, 200k token context)",
   "claude-3-5-sonnet-4k":
     "Our most intelligent model (Anthropic, 4k token context)",
-  "claude-3-sonnet":
-    "Best combination of performance and speed (Anthropic, 200k token context)",
+  "claude-3-5-haiku-8k":
+    "Fastest model, lightweight actions (Anthropic, 8k token context)",
+  "claude-3-7-sonnet-4k":
+    "Our most intelligent model (Anthropic, 4k token context)",
+  "claude-4-sonnet-8k":
+    "Best combination of performance and speed (Anthropic, 8k token context)",
+  "claude-4-opus-8k":
+    "Excels at writing and complex tasks (Anthropic, 8k token context)",
   "claude-3-sonnet-4k":
     "Best combination of performance and speed (Anthropic, 4k token context)",
   "claude-3-opus":
@@ -1057,6 +1089,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 8_000,
     free: true,
   },
+  "gemini-2.5-flash-8k": {
+    prompt_tokens: usd1Mtokens(0.3),
+    completion_tokens: usd1Mtokens(2.5),
+    max_tokens: 8_000,
+    free: true,
+  },
+  "gemini-2.5-pro-8k": {
+    prompt_tokens: usd1Mtokens(0.31),
+    completion_tokens: usd1Mtokens(2.5),
+    max_tokens: 8_000,
+    free: true,
+  },
   // https://mistral.ai/technology/
   "mistral-small-latest": {
     prompt_tokens: usd1Mtokens(0.2),
@@ -1122,7 +1166,31 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "claude-3-haiku": {
     prompt_tokens: usd1Mtokens(0.8),
     completion_tokens: usd1Mtokens(4),
-    max_tokens: 200_000,
+    max_tokens: 8_000, // limited to 8k tokens, offered for free
+    free: true,
+  },
+  "claude-3-5-haiku-8k": {
+    prompt_tokens: usd1Mtokens(0.8),
+    completion_tokens: usd1Mtokens(4),
+    max_tokens: 8_000,
+    free: true,
+  },
+  "claude-3-7-sonnet-4k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 4_000,
+    free: false,
+  },
+  "claude-4-sonnet-8k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "claude-4-opus-8k": {
+    prompt_tokens: usd1Mtokens(15),
+    completion_tokens: usd1Mtokens(75),
+    max_tokens: 8_000,
     free: false,
   },
 } as const;
