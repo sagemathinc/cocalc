@@ -23,10 +23,13 @@ async function ensureMoreLoops() {
       await stat(`/dev/loop${i}`);
       continue;
     } catch {}
-    await sudo({
-      command: "mknod",
-      args: ["-m660", `/dev/loop${i}`, "b", "7", `${i}`],
-    });
+    try {
+      // also try/catch this because ensureMoreLoops happens in parallel many times at once...
+      await sudo({
+        command: "mknod",
+        args: ["-m660", `/dev/loop${i}`, "b", "7", `${i}`],
+      });
+    } catch {}
     await sudo({ command: "chown", args: ["root:disk", `/dev/loop${i}`] });
   }
 }
