@@ -11,6 +11,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "./build.sh",
     "test": "../node_modules/.bin/jest",
+    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "prepublishOnly": "pnpm test"
   },
   "keywords": ["cocalc"],

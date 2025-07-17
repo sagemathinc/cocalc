@@ -10,14 +10,19 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
+    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "test-conat": " pnpm exec jest --forceExit conat",
+    "test-conat:report": " pnpm exec jest --forceExit conat --reporters=default --reporters=jest-junit",
     "testp": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test",
@@ -28,7 +33,12 @@
     "conat-persist": "DEBUG=cocalc:*  node ./bin/conat-persist.cjs",
     "conat-test-server": "node ./bin/conat-test-server.cjs"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
@@ -57,6 +67,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
-    "@types/node": "^18.16.14"
+    "@types/node": "^18.16.14",
+    "jest-junit": "^16.0.0"
   }
 }
