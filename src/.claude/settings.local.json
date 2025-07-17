@@ -12,7 +12,10 @@
       "WebFetch(domain:cocalc.com)",
       "WebFetch(domain:doc.cocalc.com)",
       "Bash(npm show:*)",
-      "Bash(prettier -w:*)"
+      "Bash(prettier -w:*)",
+      "Bash(npx tsc:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh:*)"
     ],
     "deny": []
   }
