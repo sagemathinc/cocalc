@@ -38,7 +38,11 @@ const QUERY = {
 function checkAnswer(answer) {
   const { output, total_tokens, completion_tokens, prompt_tokens } = answer;
   expect(output).toContain("100");
-  expect(total_tokens).toEqual(prompt_tokens + completion_tokens);
+  // total tokens is more than that sume for "thinking" models like gemini 2.5
+  // because thinking tokens are not part of this
+  expect(total_tokens).toBeGreaterThanOrEqual(
+    prompt_tokens + completion_tokens,
+  );
   expect(prompt_tokens).toBeGreaterThan(5);
   expect(completion_tokens).toBeGreaterThan(0);
 }
