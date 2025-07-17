@@ -4,12 +4,12 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { sudo } from "./util";
-import { join, normalize } from "path";
+import { isdir, sudo } from "./util";
+import { join } from "path";
 import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
-import { SandboxedFilesystem } from "../fs";
+import { SandboxedFilesystem } from "../fs/sandbox";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 import getLogger from "@cocalc/backend/logger";
@@ -77,11 +77,35 @@ export class Subvolume {
     });
   };
 
-  // this should provide a path that is guaranteed to be
-  // inside this.path on the filesystem or throw error
-  // [ ] TODO: not sure if the code here is sufficient!!
-  normalize = (path: string) => {
-    return join(this.path, normalize(path));
+  rsync = async ({
+    src,
+    target,
+    timeout = 5 * 60 * 1000,
+  }: {
+    src: string;
+    target: string;
+    timeout?: number;
+  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
+    let srcPath = this.fs.safeAbsPath(src);
+    let targetPath = this.fs.safeAbsPath(target);
+    if (src.endsWith("/")) {
+      srcPath += "/";
+    }
+    if (target.endsWith("/")) {
+      targetPath += "/";
+    }
+    if (!srcPath.endsWith("/") && (await isdir(srcPath))) {
+      srcPath += "/";
+      if (!targetPath.endsWith("/")) {
+        targetPath += "/";
+      }
+    }
+    return await sudo({
+      command: "rsync",
+      args: [srcPath, targetPath],
+      err_on_exit: false,
+      timeout: timeout / 1000,
+    });
   };
 }
 

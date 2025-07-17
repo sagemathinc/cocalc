@@ -46,7 +46,7 @@ export class SubvolumeBup {
         `createBackup: creating ${BUP_SNAPSHOT} to get a consistent backup`,
       );
       await this.subvolume.snapshots.create(BUP_SNAPSHOT);
-      const target = this.subvolume.normalize(
+      const target = this.subvolume.fs.safeAbsPath(
         this.subvolume.snapshots.path(BUP_SNAPSHOT),
       );
 
@@ -133,7 +133,9 @@ export class SubvolumeBup {
       return v;
     }
 
-    path = normalize(path);
+    path = this.subvolume.fs
+      .safeAbsPath(path)
+      .slice(this.subvolume.path.length);
     const { stdout } = await sudo({
       command: "bup",
       args: [

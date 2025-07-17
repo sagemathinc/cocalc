@@ -1,7 +1,14 @@
 /*
 Given a path to a folder on the filesystem, this provides
-a wrapper class with an API very similar to the fs/promises modules,
+a wrapper class with an API similar to the fs/promises modules,
 but which only allows access to files in that folder.
+It's a bit simpler with return data that is always
+serializable.
+
+Absolute and relative paths are considered as relative to the input folder path.
+
+REFERENCE: We don't use https://github.com/metarhia/sandboxed-fs, but did
+look at the code.
 */
 
 import {
@@ -10,6 +17,7 @@ import {
   cp,
   copyFile,
   link,
+  readdir,
   readFile,
   realpath,
   rename,
@@ -27,14 +35,13 @@ import {
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { type DirectoryListingEntry } from "@cocalc/util/types";
 import getListing from "@cocalc/backend/get-listing";
-import { isdir, sudo } from "../btrfs/util";
 import { join, resolve } from "path";
 
 export class SandboxedFilesystem {
   // path should be the path to a FOLDER on the filesystem (not a file)
   constructor(public readonly path: string) {}
 
-  private safeAbsPath = (path: string) => {
+  safeAbsPath = (path: string) => {
     if (typeof path != "string") {
       throw Error(`path must be a string but is of type ${typeof path}`);
     }
@@ -87,7 +94,11 @@ export class SandboxedFilesystem {
     return await readFile(this.safeAbsPath(path), encoding);
   };
 
-  realpath = async (path: string) => {
+  readdir = async (path: string): Promise<string[]> => {
+    return await readdir(this.safeAbsPath(path));
+  };
+
+  realpath = async (path: string): Promise<string> => {
     const x = await realpath(this.safeAbsPath(path));
     return x.slice(this.path.length + 1);
   };
@@ -102,37 +113,6 @@ export class SandboxedFilesystem {
 
   rmdir = async (path: string, options?) => {
     await rmdir(this.safeAbsPath(path), options);
-  };
-
-  rsync = async ({
-    src,
-    target,
-    timeout = 5 * 60 * 1000,
-  }: {
-    src: string;
-    target: string;
-    timeout?: number;
-  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
-    let srcPath = this.safeAbsPath(src);
-    let targetPath = this.safeAbsPath(target);
-    if (src.endsWith("/")) {
-      srcPath += "/";
-    }
-    if (target.endsWith("/")) {
-      targetPath += "/";
-    }
-    if (!srcPath.endsWith("/") && (await isdir(srcPath))) {
-      srcPath += "/";
-      if (!targetPath.endsWith("/")) {
-        targetPath += "/";
-      }
-    }
-    return await sudo({
-      command: "rsync",
-      args: [srcPath, targetPath],
-      err_on_exit: false,
-      timeout: timeout / 1000,
-    });
   };
 
   stat = async (path: string) => {
