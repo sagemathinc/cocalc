@@ -15,14 +15,15 @@ any value to a spammer so it's very unlikely to be exploited maliciously.
 I did add throttling to the api handler.
 */
 
-import { isValidUUID } from "@cocalc/util/misc";
+import dayjs from "dayjs";
+
 import getPool from "@cocalc/database/pool";
 import {
-  ProductType,
   ProductDescription,
+  ProductType,
 } from "@cocalc/util/db-schema/shopping-cart-items";
+import { isValidUUID } from "@cocalc/util/misc";
 import { getItem } from "./get";
-import dayjs from "dayjs";
 //import { getLogger } from "@cocalc/backend/logger";
 
 //const logger = getLogger("server:shopping:cart:add");

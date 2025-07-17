@@ -8,11 +8,14 @@ Create a new site license.
 */
 import { Form, Input } from "antd";
 import { isEmpty } from "lodash";
+import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -20,7 +23,6 @@ import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useScrollY } from "lib/use-scroll-y";
-import { useRouter } from "next/router";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { InfoBar } from "./cost-info-bar";
@@ -46,9 +48,12 @@ const STYLE: React.CSSProperties = {
 
 interface Props {
   noAccount: boolean;
+  source: LicenseSource;
 }
 
-export default function SiteLicense({ noAccount }: Props) {
+// depending on the type, this either purchases a license with all settings,
+// or a license for a course with a subset of controls.
+export default function SiteLicense({ noAccount, source }: Props) {
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
 
@@ -72,37 +77,61 @@ export default function SiteLicense({ noAccount }: Props) {
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit License in Shopping Cart"
+          : source === "course"
+          ? "Purchase a License for a Course"
           : "Configure a License"}
       </Title>
       {router.query.id == null && (
-        <div>
-          <Paragraph style={{ fontSize: "12pt" }}>
-            <A href="https://doc.cocalc.com/licenses.html">
-              <SiteName /> licenses
-            </A>{" "}
-            allow you to upgrade projects to run more quickly, have network
-            access, more disk space and memory. Licenses cover a wide range of
-            use cases, ranging from a single hobbyist project to thousands of
-            simultaneous users across a large organization.
-          </Paragraph>
+        <>
+          {source === "license" && (
+            <div>
+              <Paragraph style={{ fontSize: "12pt" }}>
+                <A href="https://doc.cocalc.com/licenses.html">
+                  <SiteName /> licenses
+                </A>{" "}
+                allow you to upgrade projects to run more quickly, have network
+                access, more disk space and memory. Licenses cover a wide range
+                of use cases, ranging from a single hobbyist project to
+                thousands of simultaneous users across a large organization.
+              </Paragraph>
 
-          <Paragraph style={{ fontSize: "12pt" }}>
-            Create a license using the form below then add it to your{" "}
-            <A href="/store/cart">shopping cart</A>. If you aren't sure exactly
-            what to buy, you can always edit your licenses later. Subscriptions
-            are also flexible and can be{" "}
-            <A
-              href="https://doc.cocalc.com/account/purchases.html#recent-updates-to-subscriptions"
-              external
-            >
-              edited at any time.{" "}
-            </A>
-          </Paragraph>
-        </div>
+              <Paragraph style={{ fontSize: "12pt" }}>
+                Create a license using the form below then add it to your{" "}
+                <A href="/store/cart">shopping cart</A>. If you aren't sure
+                exactly what to buy, you can always edit your licenses later.
+                Subscriptions are also flexible and can be{" "}
+                <A
+                  href="https://doc.cocalc.com/account/purchases.html#recent-updates-to-subscriptions"
+                  external
+                >
+                  edited at any time.{" "}
+                </A>
+              </Paragraph>
+            </div>
+          )}
+          {source === "course" && (
+            <div>
+              <Paragraph style={{ fontSize: "12pt" }}>
+                Teaching with CoCalc makes your course management effortless.
+                Students work in their own secure spaces where you can
+                distribute assignments, track their progress in real-time, and
+                provide help directly within their work environment. No software
+                installation required for students – everything runs in the
+                browser. Used by thousands of instructors since 2013. Learn more
+                in our{" "}
+                <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
+                  instructor guide
+                </A>
+                .
+              </Paragraph>
+            </div>
+          )}
+        </>
       )}
       <CreateSiteLicense
         showInfoBar={scrollY > offsetHeader}
         noAccount={noAccount}
+        source={source}
       />
     </>
   );
@@ -111,7 +140,15 @@ export default function SiteLicense({ noAccount }: Props) {
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
+function CreateSiteLicense({
+  showInfoBar = false,
+  noAccount = false,
+  source,
+}: {
+  source: LicenseSource;
+  noAccount: boolean;
+  showInfoBar: boolean;
+}) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
@@ -152,6 +189,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
 
   function onLicenseChange() {
     const vals = form.getFieldsValue(true);
+    // console.log("form vals=", vals);
     encodeFormValues(router, vals, "regular");
     setCost(computeCost(vals));
 
@@ -220,6 +258,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
       cartError={cartError}
       setCartError={setCartError}
       noAccount={noAccount}
+      source={source}
     />
   );
 
@@ -246,6 +285,10 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         onValuesChange={onLicenseChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
+        {/* Hidden form item to track which page (license or course) created this license */}
+        <Form.Item name="source" initialValue={source} noStyle>
+          <Input type="hidden" />
+        </Form.Item>
         <ToggleExplanations
           showExplanations={showExplanations}
           setShowExplanations={setShowExplanations}
@@ -258,13 +301,16 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           showExplanations={showExplanations}
           form={form}
           onChange={onLicenseChange}
+          source={source}
         />
         <RunLimit
+          source={source}
           showExplanations={showExplanations}
           form={form}
           onChange={onLicenseChange}
         />
         <QuotaConfig
+          source={source}
           boost={false}
           form={form}
           onChange={onLicenseChange}

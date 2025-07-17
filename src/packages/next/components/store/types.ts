@@ -1,5 +1,6 @@
 export const StorePages = [
   "site-license",
+  "course",
   "boost",
   "dedicated",
   "cart",

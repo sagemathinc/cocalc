@@ -3,22 +3,23 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import createLicense from "@cocalc/server/licenses/purchase/create-license";
-import createAccount from "@cocalc/server/accounts/create-account";
-import editLicenseOwner from "./edit-license-owner";
-import editLicense from "./edit-license";
-import getLicense from "@cocalc/server/licenses/get-license";
-import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
-import createPurchase from "./create-purchase";
-import { uuid } from "@cocalc/util/misc";
-import getPool, {
-  initEphemeralDatabase,
-  getPoolClient,
-} from "@cocalc/database/pool";
 import dayjs from "dayjs";
-import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
+
+import getPool, {
+  getPoolClient,
+  initEphemeralDatabase,
+} from "@cocalc/database/pool";
+import createAccount from "@cocalc/server/accounts/create-account";
+import getLicense from "@cocalc/server/licenses/get-license";
+import createLicense from "@cocalc/server/licenses/purchase/create-license";
+import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { uuid } from "@cocalc/util/misc";
+import createPurchase from "./create-purchase";
+import editLicense from "./edit-license";
+import editLicenseOwner from "./edit-license-owner";
 import getSubscriptions from "./get-subscriptions";
+import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { license0 } from "./test-data";
 
 beforeAll(async () => {

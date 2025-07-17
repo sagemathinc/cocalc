@@ -22,7 +22,7 @@ import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
 // Various support functions for storing quota parameters as a query parameter in the browser URL
 
 export function encodeRange(
-  vals: [Date | string | undefined, Date | string | undefined]
+  vals: [Date | string | undefined, Date | string | undefined],
 ): string {
   const [start, end] = vals;
   if (start == null || end == null) {
@@ -75,7 +75,7 @@ const DEDICATED_FIELDS = [
 ] as const;
 
 function getFormFields(
-  type: "regular" | "boost" | "dedicated"
+  type: "regular" | "boost" | "dedicated",
 ): readonly string[] {
   switch (type) {
     case "regular":
@@ -87,13 +87,16 @@ function getFormFields(
 }
 
 export const ALL_FIELDS: Set<string> = new Set(
-  REGULAR_FIELDS.concat(DEDICATED_FIELDS as any).concat(["type" as any])
+  REGULAR_FIELDS.concat(DEDICATED_FIELDS as any).concat([
+    "type",
+    "source",
+  ] as any),
 );
 
 export function encodeFormValues(
   router: NextRouter,
   vals: any,
-  type: "regular" | "boost" | "dedicated"
+  type: "regular" | "boost" | "dedicated",
 ): void {
   const { query } = router;
   for (const key in vals) {
@@ -120,7 +123,7 @@ function decodeValue(val): boolean | number | string | DateRange {
 
 function fixNumVal(
   val: any,
-  param: { min: number; max: number; dflt: number }
+  param: { min: number; max: number; dflt: number },
 ): number {
   if (typeof val !== "number") {
     return param.dflt;
@@ -136,7 +139,7 @@ function fixNumVal(
  */
 export function decodeFormValues(
   router: NextRouter,
-  type: "regular" | "boost" | "dedicated"
+  type: "regular" | "boost" | "dedicated",
 ): {
   [key: string]: string | number | boolean;
 } {
