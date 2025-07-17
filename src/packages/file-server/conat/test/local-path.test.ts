@@ -77,9 +77,10 @@ describe("use the simple fileserver", () => {
     await fs.mkdir("xyz");
     const s = await fs.stat("xyz");
     expect(s.isDirectory()).toBe(true);
+    expect(s.isFile()).toBe(false);
   });
 
-  it("creating a symlink works", async () => {
+  it("creating a symlink works (and using lstat)", async () => {
     await fs.writeFile("source1", "the source");
     await fs.symlink("source1", "target1");
     expect(await fs.readFile("target1", "utf8")).toEqual("the source");

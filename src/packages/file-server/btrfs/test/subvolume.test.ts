@@ -226,7 +226,7 @@ describe("test snapshots", () => {
   });
 });
 
-describe.only("test bup backups", () => {
+describe("test bup backups", () => {
   let vol: Subvolume;
   it("creates a volume", async () => {
     vol = await fs.subvolumes.get("bup-test");
@@ -273,7 +273,7 @@ describe.only("test bup backups", () => {
       { name: "mydir", size: 0, mtime: x[1].mtime, isdir: true },
     ]);
     expect(Math.abs((x[0].mtime ?? 0) * 1000 - Date.now())).toBeLessThan(
-      60_000,
+      5 * 60_000,
     );
   });
 

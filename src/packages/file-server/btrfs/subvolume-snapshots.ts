@@ -27,7 +27,7 @@ export class SubvolumeSnapshots {
       return;
     }
     await this.subvolume.fs.mkdir(SNAPSHOTS);
-    await this.subvolume.fs.chmod(SNAPSHOTS, "0550");
+    await this.subvolume.fs.chmod(SNAPSHOTS, "0700");
   };
 
   create = async (name?: string) => {
