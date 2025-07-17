@@ -20,6 +20,8 @@ import { enableModels, setupAPIKeys, test_llm } from "./shared";
 import { evaluateGoogleGenAI } from "..";
 import { getClient } from "../client";
 
+const LLM_TIMEOUT = 10_000;
+
 beforeAll(async () => {
   await initEphemeralDatabase();
   await setupAPIKeys();
@@ -75,27 +77,55 @@ async function llmGoogle(model: LanguageModelCore) {
 
 // write a test in jest that fails
 test_llm("openai")("OpenAI", () => {
-  test("gpt3.5 works", async () => {
-    llmOpenAI("gpt-3.5-turbo");
-  });
-  test("gpt 4 works", async () => {
-    llmOpenAI("gpt-4");
-  });
-  test("gpt 4 turbo works", async () => {
-    llmOpenAI("gpt-4-turbo-8k");
-  });
-  test("gpt 4 omni works", async () => {
-    llmOpenAI("gpt-4o-8k");
-  });
-  test("gpt 4o mini works", async () => {
-    llmOpenAI("gpt-4o-mini-8k");
-  });
-  test("gpt 4.1 works", async () => {
-    llmOpenAI("gpt-4.1");
-  });
-  test("gpt 4.1 mini works", async () => {
-    llmOpenAI("gpt-4.1-mini");
-  });
+  test(
+    "gpt3.5 works",
+    async () => {
+      llmOpenAI("gpt-3.5-turbo");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gpt 4 works",
+    async () => {
+      llmOpenAI("gpt-4");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gpt 4 turbo works",
+    async () => {
+      llmOpenAI("gpt-4-turbo-8k");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gpt 4 omni works",
+    async () => {
+      llmOpenAI("gpt-4o-8k");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gpt 4o mini works",
+    async () => {
+      llmOpenAI("gpt-4o-mini-8k");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gpt 4.1 works",
+    async () => {
+      llmOpenAI("gpt-4.1");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gpt 4.1 mini works",
+    async () => {
+      llmOpenAI("gpt-4.1-mini");
+    },
+    LLM_TIMEOUT,
+  );
 
   // test("gpt o1", async () => {
   //   llmOpenAI("o1-8k");
@@ -107,21 +137,41 @@ test_llm("openai")("OpenAI", () => {
 
 // ATTN: does not work everywhere around, geolocation matters
 test_llm("google")("Google GenAI", () => {
-  test("gemini 1.5 pro works", async () => {
-    llmGoogle("gemini-1.5-pro");
-  });
-  test("gemini 2.0 flash works", async () => {
-    llmGoogle("gemini-2.0-flash-8k");
-  });
-  test("gemini 2.0 flash lite works", async () => {
-    llmGoogle("gemini-2.0-flash-lite-8k");
-  });
-  test("gemini 2.5 flash works", async () => {
-    llmGoogle("gemini-2.5-flash-8k");
-  });
-  test("gemini 2.5 pro works", async () => {
-    llmGoogle("gemini-2.5-pro-8k");
-  });
+  test(
+    "gemini 1.5 pro works",
+    async () => {
+      llmGoogle("gemini-1.5-pro");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gemini 2.0 flash works",
+    async () => {
+      llmGoogle("gemini-2.0-flash-8k");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gemini 2.0 flash lite works",
+    async () => {
+      llmGoogle("gemini-2.0-flash-lite-8k");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gemini 2.5 flash works",
+    async () => {
+      llmGoogle("gemini-2.5-flash-8k");
+    },
+    LLM_TIMEOUT,
+  );
+  test(
+    "gemini 2.5 pro works",
+    async () => {
+      llmGoogle("gemini-2.5-pro-8k");
+    },
+    LLM_TIMEOUT,
+  );
 });
 
 test_llm("mistralai")("Mistral AI", () => {
@@ -132,10 +182,14 @@ test_llm("mistralai")("Mistral AI", () => {
   });
 
   // segaults – no clue why. happens with version 0.2.0
-  test.skip("basics", async () => {
-    const answer = await evaluateMistral({ model, ...QUERY });
-    checkAnswer(answer);
-  });
+  test.skip(
+    "basics",
+    async () => {
+      const answer = await evaluateMistral({ model, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
 });
 
 test_llm("anthropic")("Anthropic", () => {
@@ -149,18 +203,30 @@ test_llm("anthropic")("Anthropic", () => {
     expect(isAnthropicModel(opus)).toBe(true);
   });
 
-  test("haiku", async () => {
-    const answer = await evaluateAnthropic({ model: haiku, ...QUERY });
-    checkAnswer(answer);
-  });
+  test(
+    "haiku",
+    async () => {
+      const answer = await evaluateAnthropic({ model: haiku, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
 
-  test("sonnet", async () => {
-    const answer = await evaluateAnthropic({ model: sonnet, ...QUERY });
-    checkAnswer(answer);
-  });
+  test(
+    "sonnet",
+    async () => {
+      const answer = await evaluateAnthropic({ model: sonnet, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
 
-  test("opus", async () => {
-    const answer = await evaluateAnthropic({ model: opus, ...QUERY });
-    checkAnswer(answer);
-  });
+  test(
+    "opus",
+    async () => {
+      const answer = await evaluateAnthropic({ model: opus, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
 });

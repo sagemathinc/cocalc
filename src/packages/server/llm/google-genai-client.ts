@@ -163,7 +163,6 @@ export class GoogleGenAIClient {
     // Check for usage metadata from LangChain first (more accurate, includes thinking tokens)
     const usage_metadata = finalResult?.usage_metadata;
     log.debug("usage_metadata", usage_metadata);
-     console.log("usage_metadata", usage_metadata);
 
     if (usage_metadata) {
       const { input_tokens, output_tokens, total_tokens } = usage_metadata;
