@@ -110,6 +110,10 @@ export class GoogleGenAIClient {
       model: modelName,
       apiKey: this.apiKey,
       maxOutputTokens: maxTokens,
+      // Only enable thinking tokens for Gemini 2.5 models
+      ...(modelName === "gemini-2.5-flash" || modelName === "gemini-2.5-pro"
+        ? { maxReasoningTokens: 1024 }
+        : {}),
       streaming: true,
     });
 
@@ -155,8 +159,9 @@ export class GoogleGenAIClient {
       ...history.map(({ content }) => content),
     ]);
 
-    const { totalTokens: completion_tokens } =
-      await geminiPro.countTokens(output);
+    const { totalTokens: completion_tokens } = await geminiPro.countTokens(
+      output,
+    );
 
     log.debug("chatGemini successful", { prompt_tokens, completion_tokens });
 

@@ -112,6 +112,12 @@ test_llm("google")("Google GenAI", () => {
   test("gemini 2.0 flash lite works", async () => {
     llmGoogle("gemini-2.0-flash-lite-8k");
   });
+  test("gemini 2.5 flash works", async () => {
+    llmGoogle("gemini-2.5-flash-8k");
+  });
+  test("gemini 2.5 pro works", async () => {
+    llmGoogle("gemini-2.5-pro-8k");
+  });
 });
 
 test_llm("mistralai")("Mistral AI", () => {
@@ -129,12 +135,14 @@ test_llm("mistralai")("Mistral AI", () => {
 });
 
 test_llm("anthropic")("Anthropic", () => {
-  const haiku: AnthropicModel = "claude-3-haiku";
-  const sonnet: AnthropicModel = "claude-3-5-sonnet-4k";
-  const opus: AnthropicModel = "claude-3-opus-8k";
+  const haiku: AnthropicModel = "claude-3-5-haiku-8k";
+  const sonnet: AnthropicModel = "claude-4-sonnet-8k";
+  const opus: AnthropicModel = "claude-4-opus-8k";
 
   test("model", () => {
     expect(isAnthropicModel(haiku)).toBe(true);
+    expect(isAnthropicModel(sonnet)).toBe(true);
+    expect(isAnthropicModel(opus)).toBe(true);
   });
 
   test("haiku", async () => {

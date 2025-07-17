@@ -19,18 +19,11 @@ import { numTokens } from "./chatgpt-numtokens";
 const log = getLogger("llm:anthropic");
 
 function getModelName(model: AnthropicModel): string {
-  // The -4k and -8k variants have a limited context window (by us here) while offered for free
-  if (model === "claude-3-sonnet-4k") {
-    model = "claude-3-sonnet";
-  } else if (model === "claude-3-haiku-8k") {
-    model = "claude-3-haiku";
-  } else if (model === "claude-3-opus-8k") {
-    model = "claude-3-opus";
-  } else if (model === "claude-3-5-sonnet-4k") {
-    model = "claude-3-5-sonnet";
+  const id = ANTHROPIC_VERSION[model];
+  if (id == null) {
+    throw new Error(`Anthropic model ${model} is no longer supported`);
   }
-  // now we have a valid name, and we have to append their static version number
-  return `${model}-${ANTHROPIC_VERSION[model]}`;
+  return id;
 }
 
 interface AnthropicOpts {

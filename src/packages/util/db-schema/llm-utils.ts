@@ -170,8 +170,8 @@ export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-1.5-flash-8k": "gemini-1.5-flash-latest",
   "gemini-2.0-flash-8k": "gemini-2.0-flash",
   "gemini-2.0-flash-lite-8k": "gemini-2.0-flash-lite",
-  "gemini-2.5-flash-8k": "gemini-2.5-flash-latest",
-  "gemini-2.5-pro-8k": "gemini-2.5-pro-latest",
+  "gemini-2.5-flash-8k": "gemini-2.5-flash",
+  "gemini-2.5-pro-8k": "gemini-2.5-pro",
 } as const;
 
 // https://docs.anthropic.com/en/docs/about-claude/models/overview -- stable names for the modesl ...
@@ -189,18 +189,19 @@ export const ANTHROPIC_MODELS = [
   "claude-4-opus-8k",
 ] as const;
 // https://docs.anthropic.com/en/docs/about-claude/models/overview#model-aliases
-export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string } = {
-  "claude-3-5-sonnet": "claude-3-5-sonnet",
-  "claude-3-5-sonnet-4k": "claude-3-5-sonnet",
-  "claude-3-5-haiku-8k": "claude-3-5-haiku",
-  "claude-3-haiku": "claude-3-haiku",
-  "claude-3-haiku-8k": "claude-3-haiku",
-  "claude-3-sonnet": "claude-3-sonnet",
-  "claude-3-sonnet-4k": "claude-3-sonnet",
-  "claude-3-opus": "claude-3-opus",
-  "claude-3-opus-8k": "claude-3-opus",
-  "claude-4-sonnet-8k": "claude-4-sonnet",
-  "claude-4-opus-8k": "claude-4-opus",
+// if it points to null, the model is no longer supported
+export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
+  "claude-3-5-sonnet": "claude-3-5-sonnet-latest",
+  "claude-3-5-sonnet-4k": "claude-3-5-sonnet-latest",
+  "claude-3-5-haiku-8k": "claude-3-5-haiku-latest",
+  "claude-3-haiku": "claude-3-haiku-20240307",
+  "claude-3-haiku-8k": "claude-3-haiku-20240307",
+  "claude-4-sonnet-8k": "claude-sonnet-4-0",
+  "claude-4-opus-8k": "claude-opus-4-0",
+  "claude-3-sonnet": null,
+  "claude-3-sonnet-4k": null,
+  "claude-3-opus": null,
+  "claude-3-opus-8k": null,
 } as const;
 export const ANTHROPIC_PREFIX = "anthropic-";
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
