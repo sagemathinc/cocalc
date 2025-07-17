@@ -5,11 +5,10 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Popconfirm, Row, Space } from "antd";
+import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -831,14 +830,16 @@ export default function Message({
           >
             <CancelText />
           </Button>
-          <Button
-            onClick={() => {
-              sendReply();
-            }}
-            type="primary"
-          >
-            <Icon name="reply" /> Reply (shift+enter)
-          </Button>
+          <Tooltip title="Send Reply (shift+enter)">
+            <Button
+              onClick={() => {
+                sendReply();
+              }}
+              type="primary"
+            >
+              <Icon name="reply" /> Reply
+            </Button>
+          </Tooltip>
           {costEstimate?.get("date") == replyDate && (
             <LLMCostEstimationChat
               costEstimate={costEstimate?.toJS()}
