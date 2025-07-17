@@ -167,41 +167,68 @@ export default function SideChat({
 
       <div>
         {input.trim() ? (
-          <Flex vertical={false} align="center" justify="space-between">
-            <Tooltip title="Send message (shift+enter)">
-              <Space>
-                {lastVisible && (
+          <Flex
+            vertical={false}
+            align="center"
+            justify="space-between"
+            style={{ margin: "5px" }}
+          >
+            <Space>
+              {lastVisible && (
+                <Tooltip title="Reply to the current thread (shift+enter)">
                   <Button
-                    disabled={!input.trim()}
+                    disabled={!input.trim() || actions == null}
                     type="primary"
                     onClick={() => {
                       sendChat({ reply_to: new Date(lastVisible) });
                     }}
                   >
-                    <Icon name="reply" /> Reply (shift+enter)
+                    <Icon name="reply" /> Reply
                   </Button>
-                )}
+                </Tooltip>
+              )}
+              <Tooltip
+                title={
+                  lastVisible
+                    ? "Start a new thread"
+                    : "Start a new thread (shift+enter)"
+                }
+              >
                 <Button
                   type={!lastVisible ? "primary" : undefined}
-                  style={{ margin: "5px 0 5px 5px" }}
+                  style={{ marginLeft: "5px" }}
                   onClick={() => {
                     sendChat();
                     user_activity("side_chat", "send_chat", "click");
                   }}
-                  disabled={!input?.trim()}
+                  disabled={!input?.trim() || actions == null}
                 >
                   <Icon name="paper-plane" />
-                  Start New Thread
+                  New Thread
                 </Button>
-              </Space>
-            </Tooltip>
-            {costEstimate?.get("date") == 0 && (
-              <LLMCostEstimationChat
-                compact
-                costEstimate={costEstimate?.toJS()}
-                style={{ margin: "5px" }}
-              />
-            )}
+              </Tooltip>
+            </Space>
+            <div style={{ flex: 1 }} />
+            <Space>
+              <Tooltip title={"Launch video chat specific to this document"}>
+                <Button
+                  disabled={actions == null}
+                  onClick={() => {
+                    actions?.frameTreeActions?.getVideoChat().startChatting();
+                  }}
+                >
+                  <Icon name="video-camera" />
+                  Video
+                </Button>
+              </Tooltip>
+              {costEstimate?.get("date") == 0 && (
+                <LLMCostEstimationChat
+                  compact
+                  costEstimate={costEstimate?.toJS()}
+                  style={{ margin: "5px" }}
+                />
+              )}
+            </Space>
           </Flex>
         ) : undefined}
         <ChatInput

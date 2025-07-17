@@ -356,6 +356,15 @@ export function ChatRoom({
                 defaultMessage={"Preview"}
               />
             </Button>
+            <div style={{ height: "5px" }} />
+            <Button
+              style={{ height: "47.5px" }}
+              onClick={() => {
+                actions?.frameTreeActions?.getVideoChat().startChatting();
+              }}
+            >
+              <Icon name="video-camera" /> Video
+            </Button>
           </div>
         </div>
       </div>

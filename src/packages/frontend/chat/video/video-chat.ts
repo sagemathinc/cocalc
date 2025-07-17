@@ -3,6 +3,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { len, trunc_middle } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
 import { open_new_tab } from "../../misc/open-browser-tab";
+import { getSideChatActions } from "@cocalc/frontend/frame-editors/generic/chat";
 
 const VIDEO_CHAT_SERVER = "https://meet.jit.si";
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
@@ -83,8 +84,19 @@ export class VideoChat {
   };
 
   startChatting = () => {
-    redux.getActions("file_use")?.mark_file(this.project_id, this.path, "chat");
     this.openVideoChatWindow();
+    redux.getActions("file_use")?.mark_file(this.project_id, this.path, "chat");
+    const sideChatActions =
+      getSideChatActions({
+        project_id: this.project_id,
+        path: this.path,
+      }) ??
+      redux.getEditorActions(this.project_id, this.path)?.getChatActions();
+    sideChatActions?.sendChat({
+      input: `[${this.getUserName()} joined Video Chat](${this.url()})`,
+    });
+    setTimeout(() => sideChatActions?.scrollToBottom(), 100);
+    setTimeout(() => sideChatActions?.scrollToBottom(), 1000);
   };
 
   // The canonical secret chatroom id.
