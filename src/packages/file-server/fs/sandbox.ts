@@ -15,8 +15,10 @@ import {
   appendFile,
   chmod,
   cp,
+  constants,
   copyFile,
   link,
+  lstat,
   readdir,
   readFile,
   realpath,
@@ -56,6 +58,10 @@ export class SandboxedFilesystem {
     await chmod(this.safeAbsPath(path), mode);
   };
 
+  constants = async (): Promise<{ [key: string]: number }> => {
+    return constants;
+  };
+
   copyFile = async (src: string, dest: string) => {
     await copyFile(this.safeAbsPath(src), this.safeAbsPath(dest));
   };
@@ -84,6 +90,10 @@ export class SandboxedFilesystem {
       limit,
       home: "/",
     });
+  };
+
+  lstat = async (path: string) => {
+    return await lstat(this.safeAbsPath(path));
   };
 
   mkdir = async (path: string, options?) => {

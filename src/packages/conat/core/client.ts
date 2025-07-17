@@ -1133,7 +1133,11 @@ export class Client extends EventEmitter {
     return new Proxy(
       {},
       {
-        get: (_, name) => {
+        get: (target, name) => {
+          const s = target[String(name)];
+          if (s !== undefined) {
+            return s;
+          }
           if (typeof name !== "string") {
             return undefined;
           }

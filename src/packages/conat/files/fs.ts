@@ -4,10 +4,12 @@ import { conat } from "@cocalc/conat/client";
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
   chmod: (path: string, mode: string | number) => Promise<void>;
+  constants: () => Promise<{ [key: string]: number }>;
   copyFile: (src: string, dest: string) => Promise<void>;
   cp: (src: string, dest: string, options?) => Promise<void>;
   exists: (path: string) => Promise<void>;
   link: (existingPath: string, newPath: string) => Promise<void>;
+  lstat: (path: string) => Promise<IStats>;
   mkdir: (path: string, options?) => Promise<void>;
   readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
   readdir: (path: string) => Promise<string[]>;
@@ -15,7 +17,7 @@ export interface Filesystem {
   rename: (oldPath: string, newPath: string) => Promise<void>;
   rm: (path: string, options?) => Promise<void>;
   rmdir: (path: string, options?) => Promise<void>;
-  stat: (path: string) => Promise<Stats>;
+  stat: (path: string) => Promise<IStats>;
   symlink: (target: string, path: string) => Promise<void>;
   truncate: (path: string, len?: number) => Promise<void>;
   unlink: (path: string) => Promise<void>;
@@ -27,7 +29,7 @@ export interface Filesystem {
   writeFile: (path: string, data: string | Buffer) => Promise<void>;
 }
 
-export interface Stats {
+interface IStats {
   dev: number;
   ino: number;
   mode: number;
@@ -48,6 +50,48 @@ export interface Stats {
   birthtime: Date;
 }
 
+class Stats {
+  dev: number;
+  ino: number;
+  mode: number;
+  nlink: number;
+  uid: number;
+  gid: number;
+  rdev: number;
+  size: number;
+  blksize: number;
+  blocks: number;
+  atimeMs: number;
+  mtimeMs: number;
+  ctimeMs: number;
+  birthtimeMs: number;
+  atime: Date;
+  mtime: Date;
+  ctime: Date;
+  birthtime: Date;
+
+  constructor(private constants: { [key: string]: number }) {}
+
+  isSymbolicLink = () =>
+    (this.mode & this.constants.S_IFMT) === this.constants.S_IFLNK;
+
+  isFile = () => (this.mode & this.constants.S_IFMT) === this.constants.S_IFREG;
+
+  isDirectory = () =>
+    (this.mode & this.constants.S_IFMT) === this.constants.S_IFDIR;
+
+  isBlockDevice = () =>
+    (this.mode & this.constants.S_IFMT) === this.constants.S_IFBLK;
+
+  isCharacterDevice = () =>
+    (this.mode & this.constants.S_IFMT) === this.constants.S_IFCHR;
+
+  isFIFO = () => (this.mode & this.constants.S_IFMT) === this.constants.S_IFIFO;
+
+  isSocket = () =>
+    (this.mode & this.constants.S_IFMT) === this.constants.S_IFSOCK;
+}
+
 interface Options {
   service: string;
   client?: Client;
@@ -64,6 +108,9 @@ export async function fsServer({ service, fs, client }: Options) {
       async chmod(path: string, mode: string | number) {
         await (await fs(this.subject)).chmod(path, mode);
       },
+      async constants(): Promise<{ [key: string]: number }> {
+        return await (await fs(this.subject)).constants();
+      },
       async copyFile(src: string, dest: string) {
         await (await fs(this.subject)).copyFile(src, dest);
       },
@@ -71,10 +118,13 @@ export async function fsServer({ service, fs, client }: Options) {
         await (await fs(this.subject)).cp(src, dest, options);
       },
       async exists(path: string) {
-        await (await fs(this.subject)).exists(path);
+        return await (await fs(this.subject)).exists(path);
       },
       async link(existingPath: string, newPath: string) {
         await (await fs(this.subject)).link(existingPath, newPath);
+      },
+      async lstat(path: string): Promise<IStats> {
+        return await (await fs(this.subject)).lstat(path);
       },
       async mkdir(path: string, options?) {
         await (await fs(this.subject)).mkdir(path, options);
@@ -89,35 +139,35 @@ export async function fsServer({ service, fs, client }: Options) {
         return await (await fs(this.subject)).realpath(path);
       },
       async rename(oldPath: string, newPath: string) {
-        return await (await fs(this.subject)).rename(oldPath, newPath);
+        await (await fs(this.subject)).rename(oldPath, newPath);
       },
       async rm(path: string, options?) {
-        return await (await fs(this.subject)).rm(path, options);
+        await (await fs(this.subject)).rm(path, options);
       },
       async rmdir(path: string, options?) {
-        return await (await fs(this.subject)).rmdir(path, options);
+        await (await fs(this.subject)).rmdir(path, options);
       },
-      async stat(path: string): Promise<Stats> {
+      async stat(path: string): Promise<IStats> {
         return await (await fs(this.subject)).stat(path);
       },
       async symlink(target: string, path: string) {
-        return await (await fs(this.subject)).symlink(target, path);
+        await (await fs(this.subject)).symlink(target, path);
       },
       async truncate(path: string, len?: number) {
-        return await (await fs(this.subject)).truncate(path, len);
+        await (await fs(this.subject)).truncate(path, len);
       },
       async unlink(path: string) {
-        return await (await fs(this.subject)).unlink(path);
+        await (await fs(this.subject)).unlink(path);
       },
       async utimes(
         path: string,
         atime: number | string | Date,
         mtime: number | string | Date,
       ) {
-        return await (await fs(this.subject)).utimes(path, atime, mtime);
+        await (await fs(this.subject)).utimes(path, atime, mtime);
       },
       async writeFile(path: string, data: string | Buffer) {
-        return await (await fs(this.subject)).writeFile(path, data);
+        await (await fs(this.subject)).writeFile(path, data);
       },
     },
   );
@@ -130,5 +180,30 @@ export function fsClient({
   client?: Client;
   subject: string;
 }) {
-  return (client ?? conat()).call<Filesystem>(subject);
+  let call = (client ?? conat()).call<Filesystem>(subject);
+
+  let constants: any = null;
+  const stat0 = call.stat.bind(call);
+  call.stat = async (path: string) => {
+    const s = await stat0(path);
+    constants = constants ?? (await call.constants());
+    const stats = new Stats(constants);
+    for (const k in s) {
+      stats[k] = s[k];
+    }
+    return stats;
+  };
+
+  const lstat0 = call.lstat.bind(call);
+  call.lstat = async (path: string) => {
+    const s = await lstat0(path);
+    constants = constants ?? (await call.constants());
+    const stats = new Stats(constants);
+    for (const k in s) {
+      stats[k] = s[k];
+    }
+    return stats;
+  };
+
+  return call;
 }
