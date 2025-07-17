@@ -95,7 +95,7 @@ export async function evaluateMistral(
     if (typeof content !== "string") continue;
     output += content;
     opts.stream?.(content);
-    
+
     // Collect the final result to check for usage metadata
     if (finalResult) {
       finalResult = concat(finalResult, chunk);
@@ -117,7 +117,7 @@ export async function evaluateMistral(
       output_tokens,
       total_tokens,
     });
-    
+
     return {
       output,
       total_tokens,

@@ -53,7 +53,7 @@ export async function evaluateCustomOpenAI(
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],
-    new MessagesPlaceholder("chat_history"),
+    new MessagesPlaceholder("history"),
     ["human", "{input}"],
   ]);
 
@@ -65,11 +65,10 @@ export async function evaluateCustomOpenAI(
     runnable: chain,
     config: { configurable: { sessionId: "ignored" } },
     inputMessagesKey: "input",
-    historyMessagesKey: "chat_history",
+    historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -86,7 +85,7 @@ export async function evaluateCustomOpenAI(
     }
     output += content;
     opts.stream?.(content);
-    
+
     // Collect the final result to check for usage metadata
     if (finalResult) {
       finalResult = concat(finalResult, chunk);
@@ -109,7 +108,7 @@ export async function evaluateCustomOpenAI(
       output_tokens,
       total_tokens,
     });
-    
+
     return {
       output,
       total_tokens,

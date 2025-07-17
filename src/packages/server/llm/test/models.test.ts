@@ -175,17 +175,38 @@ test_llm("google")("Google GenAI", () => {
 });
 
 test_llm("mistralai")("Mistral AI", () => {
-  const model: MistralModel = "mistral-small-latest";
+  const small: MistralModel = "mistral-small-latest";
+  const medium: MistralModel = "mistral-medium-latest";
+  const large: MistralModel = "mistral-large-latest";
 
   test("model", () => {
-    expect(isMistralModel(model)).toBe(true);
+    expect(isMistralModel(small)).toBe(true);
+    expect(isMistralModel(medium)).toBe(true);
+    expect(isMistralModel(large)).toBe(true);
   });
 
-  // segaults – no clue why. happens with version 0.2.0
-  test.skip(
-    "basics",
+  test(
+    "small",
     async () => {
-      const answer = await evaluateMistral({ model, ...QUERY });
+      const answer = await evaluateMistral({ model: small, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+
+  test(
+    "medium",
+    async () => {
+      const answer = await evaluateMistral({ model: medium, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+
+  test(
+    "large",
+    async () => {
+      const answer = await evaluateMistral({ model: large, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,

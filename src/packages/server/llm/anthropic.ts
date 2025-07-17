@@ -100,9 +100,8 @@ export async function evaluateAnthropic(
     inputMessagesKey: "input",
     historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -117,7 +116,7 @@ export async function evaluateAnthropic(
     if (typeof content !== "string") continue;
     output += content;
     opts.stream?.(content);
-    
+
     // Collect the final result to check for usage metadata
     if (finalResult) {
       finalResult = concat(finalResult, chunk);
@@ -139,7 +138,7 @@ export async function evaluateAnthropic(
       output_tokens,
       total_tokens,
     });
-    
+
     return {
       output,
       total_tokens,

@@ -44,9 +44,11 @@ export async function evaluateOllama(
 
   const ollama = client ?? (await getOllama(model));
 
+  const historyMessagesKey = "history";
+
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],
-    new MessagesPlaceholder("chat_history"),
+    new MessagesPlaceholder(historyMessagesKey),
     ["human", "{input}"],
   ]);
 
@@ -58,11 +60,10 @@ export async function evaluateOllama(
     runnable: chain,
     config: { configurable: { sessionId: "ignored" } },
     inputMessagesKey: "input",
-    historyMessagesKey: "chat_history",
+    historyMessagesKey,
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },

@@ -48,6 +48,7 @@ import type {
 } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { evaluateAnthropic } from "./anthropic";
+import { evaluateWithLangChain } from "./evaluate-lc";
 import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
 import { evaluateCustomOpenAI } from "./custom-openai";
@@ -63,6 +64,10 @@ const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
 
 const log = getLogger("llm");
+
+// Feature flag to use the new unified LangChain implementation
+const USE_NEWER_LC_IMPL =
+  (process.env.COCALC_LLM_USE_NEWER_LC_IMPL ?? "true") === "true";
 
 async function getDefaultModel(): Promise<LanguageModel> {
   return ((await getServerSettings()).default_llm ??
@@ -178,31 +183,52 @@ async function evaluateImpl({
 
   const { output, total_tokens, prompt_tokens, completion_tokens } =
     await (async () => {
-      if (isUserDefinedModel(model)) {
-        return await evaluateUserDefinedLLM(params, account_id);
-      } else if (isOllamaLLM(model)) {
-        return await evaluateOllama(params);
-      } else if (isCustomOpenAI(model)) {
-        return await evaluateCustomOpenAI(params);
-      } else if (isMistralModel(model)) {
-        return await evaluateMistral(params);
-      } else if (isAnthropicModel(model)) {
-        return await evaluateAnthropic(params);
-      } else if (isGoogleModel(model)) {
-        const client = await getClient(model);
-        if (!(client instanceof GoogleGenAIClient)) {
-          throw new Error("Wrong client. This should never happen. [GenAI]");
+      if (USE_NEWER_LC_IMPL) {
+        // Use the new unified LangChain implementation
+        if (isUserDefinedModel(model)) {
+          return await evaluateUserDefinedLLM(params, account_id);
+        } else if (isOllamaLLM(model)) {
+          return await evaluateOllama(params);
+        } else if (
+          isCustomOpenAI(model) ||
+          isMistralModel(model) ||
+          isAnthropicModel(model) ||
+          isGoogleModel(model) ||
+          isOpenAIModel(model)
+        ) {
+          // Use unified implementation for LangChain-based providers
+          return await evaluateWithLangChain(params);
+        } else {
+          throw new Error(`Unable to handel model '${model}'.`);
         }
-        return await evaluateGoogleGenAI({ ...params, client });
-      } else if (isOpenAIModel(model)) {
-        return await evaluateOpenAILC(params);
       } else {
-        throw new Error(`Unable to handel model '${model}'.`);
-        // const client = await getClient(model);
-        // if (!(client instanceof OpenAI)) {
-        //   throw new Error("Wrong client. This should never happen. [OpenAI]");
-        // }
-        // return await evaluateOpenAI({ ...params, client });
+        // Use the original file-by-file implementation
+        if (isUserDefinedModel(model)) {
+          return await evaluateUserDefinedLLM(params, account_id);
+        } else if (isOllamaLLM(model)) {
+          return await evaluateOllama(params);
+        } else if (isCustomOpenAI(model)) {
+          return await evaluateCustomOpenAI(params);
+        } else if (isMistralModel(model)) {
+          return await evaluateMistral(params);
+        } else if (isAnthropicModel(model)) {
+          return await evaluateAnthropic(params);
+        } else if (isGoogleModel(model)) {
+          const client = await getClient(model);
+          if (!(client instanceof GoogleGenAIClient)) {
+            throw new Error("Wrong client. This should never happen. [GenAI]");
+          }
+          return await evaluateGoogleGenAI({ ...params, client });
+        } else if (isOpenAIModel(model)) {
+          return await evaluateOpenAILC(params);
+        } else {
+          throw new Error(`Unable to handel model '${model}'.`);
+          // const client = await getClient(model);
+          // if (!(client instanceof OpenAI)) {
+          //   throw new Error("Wrong client. This should never happen. [OpenAI]");
+          // }
+          // return await evaluateOpenAI({ ...params, client });
+        }
       }
     })();
 

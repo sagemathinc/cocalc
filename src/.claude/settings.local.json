@@ -11,7 +11,8 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:cocalc.com)",
       "WebFetch(domain:doc.cocalc.com)",
-      "Bash(npm show:*)"
+      "Bash(npm show:*)",
+      "Bash(prettier -w:*)"
     ],
     "deny": []
   }
