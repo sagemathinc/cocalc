@@ -155,10 +155,10 @@ export const GOOGLE_MODELS = [
   "gemini-1.0-ultra", // hangs
   "gemini-1.5-pro-8k", // works now with langchaing
   "gemini-1.5-pro", // works now with langchaing
-  "gemini-2.0-flash-8k",
-  "gemini-2.0-flash-lite-8k",
   "gemini-2.5-flash-8k",
   "gemini-2.5-pro-8k",
+  "gemini-2.0-flash-8k",
+  "gemini-2.0-flash-lite-8k",
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
@@ -183,7 +183,6 @@ export const ANTHROPIC_MODELS = [
   "claude-3-haiku-8k", // limited context window, offered for free
   "claude-3-sonnet",
   "claude-3-sonnet-4k", // limited context window, offered for free
-  "claude-3-7-sonnet-4k",
   "claude-3-opus",
   "claude-3-opus-8k", // same issue as the large GPT models, limit the context window to limit spending
   "claude-4-sonnet-8k",
@@ -198,7 +197,6 @@ export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string } = {
   "claude-3-haiku-8k": "claude-3-haiku",
   "claude-3-sonnet": "claude-3-sonnet",
   "claude-3-sonnet-4k": "claude-3-sonnet",
-  "claude-3-7-sonnet-4k": "claude-3-7-sonnet",
   "claude-3-opus": "claude-3-opus",
   "claude-3-opus-8k": "claude-3-opus",
   "claude-4-sonnet-8k": "claude-4-sonnet",
@@ -256,9 +254,8 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   google: GOOGLE_MODELS.filter(
     (m) =>
       // we only enable 1.5 pro and 1.5 flash with a limited context window.
-      m === "gemini-1.5-pro-8k" ||
+      //m === "gemini-1.5-pro-8k" ||
       //m === "gemini-1.5-flash-8k" ||
-      m === "gemini-2.0-flash-8k" ||
       m === "gemini-2.0-flash-lite-8k" ||
       m === "gemini-2.5-flash-8k" ||
       m === "gemini-2.5-pro-8k",
@@ -267,11 +264,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
-      m === "claude-3-opus-8k" ||
-      m === "claude-3-5-sonnet-4k" ||
       m === "claude-3-5-haiku-8k" ||
-      m === "claude-3-haiku-8k" ||
-      m === "claude-3-7-sonnet-4k" ||
       m === "claude-4-sonnet-8k" ||
       m === "claude-4-opus-8k"
     );
@@ -615,7 +608,7 @@ export function service2model_core(
 }
 
 // NOTE: do not use this – instead use server_settings.default_llm
-export const DEFAULT_MODEL: LanguageModel = "gemini-2.0-flash-8k";
+export const DEFAULT_MODEL: LanguageModel = "gemini-2.5-flash-8k";
 
 interface LLMVendor {
   name: LLMServiceName;
@@ -763,12 +756,11 @@ export const LLM_USERNAMES: LLM2String = {
   "mistral-large-latest": "Mistral AI Large",
   "claude-3-haiku": "Claude 3 Haiku",
   "claude-3-haiku-8k": "Claude 3 Haiku",
+  "claude-3-5-haiku-8k": "Claude 3 Haiku",
   "claude-3-sonnet": "Claude 3 Sonnet 200k",
   "claude-3-sonnet-4k": "Claude 3 Sonnet",
   "claude-3-5-sonnet": "Claude 3.5 Sonnet",
   "claude-3-5-sonnet-4k": "Claude 3.5 Sonnet",
-  "claude-3-5-haiku-8k": "Claude 3.5 Haiku",
-  "claude-3-7-sonnet-4k": "Claude 3.7 Sonnet",
   "claude-4-sonnet-8k": "Claude 4 Sonnet",
   "claude-4-opus-8k": "Claude 4 Opus",
   "claude-3-opus": "Claude 3 Opus",
@@ -845,8 +837,6 @@ export const LLM_DESCR: LLM2String = {
     "Our most intelligent model (Anthropic, 4k token context)",
   "claude-3-5-haiku-8k":
     "Fastest model, lightweight actions (Anthropic, 8k token context)",
-  "claude-3-7-sonnet-4k":
-    "Our most intelligent model (Anthropic, 4k token context)",
   "claude-4-sonnet-8k":
     "Best combination of performance and speed (Anthropic, 8k token context)",
   "claude-4-opus-8k":
@@ -1096,10 +1086,10 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: true,
   },
   "gemini-2.5-pro-8k": {
-    prompt_tokens: usd1Mtokens(0.31),
-    completion_tokens: usd1Mtokens(2.5),
+    prompt_tokens: usd1Mtokens(1.25),
+    completion_tokens: usd1Mtokens(10),
     max_tokens: 8_000,
-    free: true,
+    free: false,
   },
   // https://mistral.ai/technology/
   "mistral-small-latest": {
@@ -1149,7 +1139,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(15),
     max_tokens: 4_000, // limited to 4k tokens, offered for free
-    free: true,
+    free: false,
   },
   "claude-3-sonnet": {
     prompt_tokens: usd1Mtokens(3),
@@ -1174,12 +1164,6 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     completion_tokens: usd1Mtokens(4),
     max_tokens: 8_000,
     free: true,
-  },
-  "claude-3-7-sonnet-4k": {
-    prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(15),
-    max_tokens: 4_000,
-    free: false,
   },
   "claude-4-sonnet-8k": {
     prompt_tokens: usd1Mtokens(3),
