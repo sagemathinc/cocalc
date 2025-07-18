@@ -2,7 +2,6 @@
 The main hub express app.
 */
 
-import compression from "compression";
 import cookieParser from "cookie-parser";
 import express from "express";
 import ms from "ms";
@@ -32,6 +31,9 @@ import initRobots from "./robots";
 import basePath from "@cocalc/backend/base-path";
 import { initConatServer } from "@cocalc/server/conat/socketio";
 import { conatSocketioCount } from "@cocalc/backend/data";
+
+// NOTE: we are not using compression because that interferes with streaming file download,
+// and could be generally confusing.
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -79,12 +81,6 @@ export default async function init(opts: Options): Promise<{
   if (opts.nextServer) {
     app.use(vhostShare());
   }
-
-  // Enable compression, as suggested by
-  //   http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
-  // NOTE "Express runs everything in order" --
-  // https://github.com/expressjs/compression/issues/35#issuecomment-77076170
-  app.use(compression());
 
   app.use(cookieParser());
 
