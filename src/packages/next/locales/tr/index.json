@@ -1,5 +1,6 @@
 {
   "ar": "Arapça",
+  "br": "Portekizce (Brezilya)",
   "chat-text": "<p><strong><A>CoCalc'ın sohbet odaları</A></strong>, iletişimi ve işbirliğini geliştirmek için bir dizi özellik sunar:</p> <ul> <li>İşbirlikçileri doğrudan adreslemek veya bir dil modelini sorgulamak için <strong>@-bahsetmeleri</strong></li> <li>Duyguları ifade etmek için <strong>Emoticon</strong> desteği</li> <li>$ işaretleri arasında <strong>LaTeX formül</strong> gösterimi</li> <li>Konu düzenlemesini kolaylaştırmak için <strong>Konular</strong> ve <strong>Hashtagler</strong></li> <li>Yükleme veya sürükle-bırak yoluyla <strong>Görüntü ekleme</strong></li> <li>Metin biçimlendirme ve bağlantı ekleme için <strong>Markdown söz dizimi</strong></li> <li>Kullanıcıları yeni etkinliklerden haberdar etmek için zil simgesiyle <strong>Bildirimler</strong> sistemi</li> </ul>",
   "chat-title": "Sohbet Odaları",
   "compute-servers-text": "<p>CoCalc projelerinizi güçlü <strong>hesap sunucuları</strong> ile genişletin. Size çok daha fazla güç, GPU seçenekleri ve hesaplamalarınız için esneklik sunarlar. Projenizin içinden güçlü bir makine başlatın ve bağlanın, terminallerinize ve Jupyter Defterlerinize bu makinelerde çalışmasını söyleyin.</p><p>Bu sunucular isteğe bağlı olarak <strong>çok rekabetçi fiyatlı GPU desteği</strong> ile gelir, <strong>saniye başına faturalandırılır</strong> ve dosyalarınız projeniz ile sunucular arasında <strong>kesintisiz senkronize edilir</strong>.</p><p><A1>Belgeleri okuyun</A1> ve <A2>bazı uygulamaları inceleyin</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "Almanca",
   "en": "İngilizce",
   "es": "İspanyolca",
+  "eu": "Baskça",
   "fr": "Fransızca",
   "getting-started": "Başlarken",
   "gettingstarted-onprem": "Yerinde",

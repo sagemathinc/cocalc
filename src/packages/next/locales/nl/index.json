@@ -1,5 +1,6 @@
 {
   "ar": "Arabisch",
+  "br": "Portugees (Braziliaans)",
   "chat-text": "<p><strong><A>CoCalc's chatrooms</A></strong> bieden een scala aan functies om communicatie en samenwerking te verbeteren:</p> <ul> <li><strong>@-mentions</strong> voor het direct aanspreken van medewerkers of het bevragen van een taalmodel</li> <li><strong>Emoticons</strong> ondersteuning voor het uitdrukken van emoties</li> <li><strong>LaTeX-formule</strong> rendering tussen $ tekens</li> <li><strong>Threads</strong> en <strong>Hashtags</strong> voor eenvoudige organisatie van onderwerpen</li> <li><strong>Afbeeldinginvoeging</strong> via upload of slepen-en-neerzetten</li> <li><strong>Markdown-syntaxis</strong> voor tekstopmaak en linkinvoeging</li> <li><strong>Meldingssysteem</strong> met een belpictogram om gebruikers te waarschuwen voor nieuwe activiteit</li> </ul>",
   "chat-title": "Chatkamers",
   "compute-servers-text": "<p>Breid je CoCalc-projecten uit met krachtige <strong>compute-servers</strong>. Ze geven je veel meer kracht, GPU-opties en flexibiliteit voor je berekeningen. Vanuit je project kun je een krachtige machine opstarten en verbinden en je terminals en Jupyter Notebooks vertellen om op deze machines te draaien.</p><p>Deze servers worden optioneel geleverd met <strong>zeer concurrerend geprijsde GPU-ondersteuning</strong>, ze worden <strong>per seconde gefactureerd</strong> en je bestanden worden <strong>naadloos gesynchroniseerd</strong> tussen je project en servers.</p><p><A1>Lees de documentatie</A1> en <A2>bekijk enkele toepassingen</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "Duits",
   "en": "Nederlands",
   "es": "Spaans",
+  "eu": "Baskisch",
   "fr": "Frans",
   "getting-started": "Aan de slag",
   "gettingstarted-onprem": "Op locatie",

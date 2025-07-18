@@ -1,5 +1,6 @@
 {
   "ar": "阿拉伯语",
+  "br": "葡萄牙语（巴西）",
   "chat-text": "<p><strong><A>CoCalc 的聊天室</A></strong> 提供一系列功能以增强沟通与协作：</p> <ul> <li><strong>@-提及</strong> 直接与合作者联系或查询语言模型</li> <li><strong>表情符号</strong> 支持表达情感</li> <li><strong>LaTeX 公式</strong> 在 $ 符号之间渲染</li> <li><strong>线程</strong> 和 <strong>标签</strong> 便于主题组织</li> <li><strong>图片插入</strong> 通过上传或拖放</li> <li><strong>Markdown 语法</strong> 用于文本格式化和链接插入</li> <li>带有铃铛图标的 <strong>通知</strong> 系统提醒用户新活动</li> </ul>",
   "chat-title": "聊天室",
   "compute-servers-text": "<p>使用强大的<strong>计算服务器</strong>扩展您的CoCalc项目。它们为您的计算提供更多的性能、GPU选项和灵活性。在您的项目中，启动并连接到一台强大的机器，并让您的终端和Jupyter Notebooks在这些机器上运行。</p><p>这些服务器可以选择提供<strong>非常具有竞争力的GPU支持</strong>，按<strong>秒计费</strong>，您的文件在项目和服务器之间<strong>无缝同步</strong>。</p><p><A1>阅读文档</A1>并<A2>查看一些应用</A2>。</p>",
@@ -7,6 +8,7 @@
   "de": "德语",
   "en": "英语",
   "es": "西班牙语",
+  "eu": "巴斯克语",
   "fr": "法语",
   "getting-started": "入门",
   "gettingstarted-onprem": "本地部署",

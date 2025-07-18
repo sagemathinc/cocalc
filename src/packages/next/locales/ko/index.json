@@ -1,5 +1,6 @@
 {
   "ar": "아랍어",
+  "br": "포르투갈어 (브라질)",
   "chat-text": "<p><strong><A>CoCalc의 채팅룸</A></strong>은 의사소통과 협업을 향상시키기 위한 다양한 기능을 제공합니다:</p> <ul> <li>협업자를 직접 언급하거나 언어 모델에 질문하기 위한 <strong>@-멘션</strong></li> <li>감정 표현을 위한 <strong>이모티콘</strong> 지원</li> <li>$ 기호 사이에 <strong>LaTeX 수식</strong> 렌더링</li> <li>쉽게 주제를 조직화할 수 있는 <strong>스레드</strong>와 <strong>해시태그</strong></li> <li>업로드 또는 드래그 앤 드롭을 통한 <strong>이미지 삽입</strong></li> <li>텍스트 서식 지정 및 링크 삽입을 위한 <strong>마크다운 구문</strong></li> <li>새로운 활동에 대한 경고를 사용자에게 알리는 벨 아이콘이 있는 <strong>알림</strong> 시스템</li> </ul>",
   "chat-title": "채팅방",
   "compute-servers-text": "<p>강력한 <strong>컴퓨트 서버</strong>로 CoCalc 프로젝트를 확장하세요. 이 서버는 훨씬 더 많은 성능, GPU 옵션 및 유연성을 제공하여 계산을 처리합니다. 프로젝트 내에서 강력한 머신을 시작하고 연결하여 터미널과 Jupyter 노트북이 이 머신에서 실행되도록 하세요.</p><p>이 서버는 선택적으로 <strong>매우 경쟁력 있는 가격의 GPU 지원</strong>을 제공하며, <strong>초 단위로 청구</strong>되고 파일은 프로젝트와 서버 간에 <strong>원활하게 동기화</strong>됩니다.</p><p><A1>문서 읽기</A1> 및 <A2>응용 프로그램 확인</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "독일어",
   "en": "영어",
   "es": "스페인어",
+  "eu": "바스크어",
   "fr": "프랑스어",
   "getting-started": "시작하기",
   "gettingstarted-onprem": "온프레미스",

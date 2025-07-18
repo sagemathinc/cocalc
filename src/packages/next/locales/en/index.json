@@ -1,5 +1,6 @@
 {
   "ar": "Arabic",
+  "br": "Portuguese (Brazilian)",
   "chat-text": "<p><strong><A>CoCalc's chatrooms</A></strong> offer a range of features to enhance communication and collaboration:</p> <ul> <li><strong>@-mentions</strong> for directly addressing collaborators or querying a language model</li> <li><strong>Emoticons</strong> support for expressing emotions</li> <li><strong>LaTeX formula</strong> rendering between $ signs</li> <li><strong>Threads</strong> and <strong>Hashtags</strong> for easy topic organization</li> <li><strong>Image insertion</strong> via upload or drag-and-drop</li> <li><strong>Markdown syntax</strong> for text formatting and link insertion</li> <li><strong>Notifications</strong> system with a bell icon for alerting users to new activity</li> </ul>",
   "chat-title": "Chat Rooms",
   "compute-servers-text": "<p>Extend your CoCalc projects with <strong>compute servers</strong>. Spin up and connect to a powerful machine or GPU and run your terminals and Jupyter Notebooks on these machines.</p><p>These come with <strong>very competitively priced GPU support</strong>, they are <strong>billed by the second</strong> and your files are <strong>seamlessly synchronized</strong> between your project and servers.</p><p><A1>Read the docs</A1> and <A2>check out some applications</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "German",
   "en": "English",
   "es": "Spanish",
+  "eu": "Basque",
   "fr": "French",
   "getting-started": "Getting Started",
   "gettingstarted-onprem": "On-Premises",
@@ -37,7 +39,7 @@
   "open-world-text": "<ul> <li>CoCalc offers <strong>maximum flexibility</strong> with minimal restrictions, allowing users to install packages and run various environments like JupyterLab and VS Code.</li> <li>The platform emphasizes <strong>open source software</strong>, supporting a wide range of languages and tools including Python, R, Julia, LaTeX, and C++.</li> <li>CoCalc aims to <strong>reduce setup time</strong> for users, providing extensive software collections and easy expansion options compared to competitors.</li> <li>While the interface may seem complex due to its flexibility, CoCalc strives to balance <strong>simplicity and power</strong> by separating essential and advanced features.</li> </ul>",
   "open-world-title": "Open World Approach",
   "pl": "Polish",
-  "pt": "Portuguese",
+  "pt": "Portuguese (European)",
   "realtime-collaboration": "Realtime Collaboration",
   "realtime-collaboration-text": "<p>Whether you're working on academic research, data analysis, or educational content, CoCalc <strong>revolutionizes collaborative work on computational documents</strong>, eliminating the need for cumbersome file exchanges and time-consuming change reviews.</p><p>It supports a wide range of document types, including <strong>Jupyter Notebooks, LaTeX files, SageMath Worksheets, and Computational Whiteboards</strong>.</p> <p>As you work together, <strong>file changes are synchronized in real-time</strong>, and an automatic revision history is maintained. This feature allows you to easily track changes and revert to previous versions when needed, enhancing transparency and accountability in collaborative projects.</p>",
   "ru": "Russian",

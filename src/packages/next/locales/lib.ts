@@ -11,6 +11,8 @@ async function getIndexMessages(locale: Locale): Promise<I18nDictionary> {
       return (await import("locales/de/index.json")).default;
     case "es":
       return (await import("locales/es/index.json")).default;
+    case "eu":
+      return (await import("locales/eu/index.json")).default;
     case "zh":
       return (await import("locales/zh/index.json")).default;
     case "ru":
@@ -25,6 +27,8 @@ async function getIndexMessages(locale: Locale): Promise<I18nDictionary> {
       return (await import("locales/ja/index.json")).default;
     case "hi":
       return (await import("locales/hi/index.json")).default;
+    case "br":
+      return (await import("locales/br/index.json")).default;
     case "pt":
       return (await import("locales/pt/index.json")).default;
     case "ko":

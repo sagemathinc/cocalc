@@ -1,5 +1,6 @@
 {
   "ar": "Arab",
+  "br": "Portugál (braziliai)",
   "chat-text": "<p><strong><A>CoCalc chat szobái</A></strong> számos funkciót kínálnak a kommunikáció és együttműködés javítására:</p> <ul> <li><strong>@-említések</strong> a közvetlen megszólításhoz vagy egy nyelvi modell lekérdezéséhez</li> <li><strong>Emotikonek</strong> támogatása az érzelmek kifejezésére</li> <li><strong>LaTeX képlet</strong> megjelenítés $ jelek között</li> <li><strong>Szálak</strong> és <strong>Hashtagok</strong> a könnyű téma szervezéshez</li> <li><strong>Képbeillesztés</strong> feltöltés vagy húzás és ejtés útján</li> <li><strong>Markdown szintaxis</strong> szövegformázáshoz és link beillesztéséhez</li> <li><strong>Értesítések</strong> rendszer csengő ikonnal a felhasználók új tevékenységre való figyelmeztetésére</li> </ul>",
   "chat-title": "Csevegőszobák",
   "compute-servers-text": "<p>Bővítse CoCalc projektjeit erőteljes <strong>számítószerverekkel</strong>. Ezek sokkal nagyobb teljesítményt, GPU opciókat és rugalmasságot biztosítanak számításaihoz. Projektjén belül indítson el és csatlakozzon egy erőteljes géphez, és utasítsa termináljait és Jupyter Notebookjait, hogy ezeken a gépeken fussanak.</p><p>Ezek a szerverek opcionálisan <strong>nagyon versenyképes áron elérhető GPU támogatással</strong> érkeznek, <strong>másodperc alapon számlázva</strong>, és fájljai <strong>zökkenőmentesen szinkronizálódnak</strong> projektje és a szerverek között.</p><p><A1>Olvassa el a dokumentációt</A1> és <A2>nézzen meg néhány alkalmazást</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "Német",
   "en": "Angol",
   "es": "Spanyol",
+  "eu": "Baszk",
   "fr": "Francia",
   "getting-started": "Első lépések",
   "gettingstarted-onprem": "Helyszíni",
