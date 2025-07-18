@@ -86,8 +86,8 @@ export class Subvolume {
     target: string;
     timeout?: number;
   }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
-    let srcPath = this.fs.safeAbsPath(src);
-    let targetPath = this.fs.safeAbsPath(target);
+    let srcPath = await this.fs.safeAbsPath(src);
+    let targetPath = await this.fs.safeAbsPath(target);
     if (src.endsWith("/")) {
       srcPath += "/";
     }

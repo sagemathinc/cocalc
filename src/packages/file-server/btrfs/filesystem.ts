@@ -69,6 +69,7 @@ export class Filesystem {
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
     await this.initBup();
+    await this.sync();
   };
 
   sync = async () => {

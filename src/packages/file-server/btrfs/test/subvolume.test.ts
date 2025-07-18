@@ -143,7 +143,7 @@ describe("the filesystem operations", () => {
     await vol.fs.writeFile("w.txt", "hi");
     const ac = new AbortController();
     const { signal } = ac;
-    const watcher = vol.fs.watch("w.txt", { signal });
+    const watcher = await vol.fs.watch("w.txt", { signal });
     vol.fs.appendFile("w.txt", " there");
     // @ts-ignore
     const { value, done } = await watcher.next();

@@ -1,25 +1,28 @@
 import { localPathFileserver } from "../local-path";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 import { fsClient } from "@cocalc/conat/files/fs";
 import { randomId } from "@cocalc/conat/names";
 import { before, after, client } from "@cocalc/backend/conat/test/setup";
+import { uuid } from "@cocalc/util/misc";
 
 let tempDir;
+let tempDir2;
 beforeAll(async () => {
   await before();
   tempDir = await mkdtemp(join(tmpdir(), "cocalc-local-path"));
+  tempDir2 = await mkdtemp(join(tmpdir(), "cocalc-local-path-2"));
 });
 
-describe("use the simple fileserver", () => {
+describe("use all the standard api functions of fs", () => {
   const service = `fs-${randomId()}`;
   let server;
   it("creates the simple fileserver service", async () => {
     server = await localPathFileserver({ client, service, path: tempDir });
   });
 
-  const project_id = "6b851643-360e-435e-b87e-f9a6ab64a8b1";
+  const project_id = uuid();
   let fs;
   it("create a client", () => {
     fs = fsClient({ subject: `${service}.project-${project_id}` });
@@ -82,6 +85,27 @@ describe("use the simple fileserver", () => {
     expect(s.isFile()).toBe(false);
   });
 
+  it("readFile works", async () => {
+    await fs.writeFile("a", Buffer.from([1, 2, 3]));
+    const s = await fs.readFile("a");
+    expect(s).toEqual(Buffer.from([1, 2, 3]));
+
+    await fs.writeFile("b.txt", "conat");
+    const t = await fs.readFile("b.txt", "utf8");
+    expect(t).toEqual("conat");
+  });
+
+  it("readdir works", async () => {
+    await fs.mkdir("dirtest");
+    for (let i = 0; i < 5; i++) {
+      await fs.writeFile(`dirtest/${i}`, `${i}`);
+    }
+    const fire = "🔥.txt";
+    await fs.writeFile(join("dirtest", fire), "this is ️‍🔥!");
+    const v = await fs.readdir("dirtest");
+    expect(v).toEqual(["0", "1", "2", "3", "4", fire]);
+  });
+
   it("creating a symlink works (and using lstat)", async () => {
     await fs.writeFile("source1", "the source");
     await fs.symlink("source1", "target1");
@@ -99,10 +123,65 @@ describe("use the simple fileserver", () => {
     const stats0 = await fs.stat("source1");
     expect(stats0.isSymbolicLink()).toBe(false);
   });
-  
-  
 
   it("closes the service", () => {
+    server.close();
+  });
+});
+
+describe("security: dangerous symlinks can't be followed", () => {
+  const service = `fs-${randomId()}`;
+  let server;
+  it("creates the simple fileserver service", async () => {
+    server = await localPathFileserver({ client, service, path: tempDir2 });
+  });
+
+  const project_id = uuid();
+  const project_id2 = uuid();
+  let fs, fs2;
+  it("create two clients", () => {
+    fs = fsClient({ subject: `${service}.project-${project_id}` });
+    fs2 = fsClient({ subject: `${service}.project-${project_id2}` });
+  });
+
+  it("create a secret in one", async () => {
+    await fs.writeFile("password", "s3cr3t");
+    await fs2.writeFile("a", "init");
+  });
+
+  // This is setup bypassing security and is part of our threat model, due to users
+  // having full access internally to their sandbox fs.
+  it("directly create a file that is a symlink outside of the sandbox -- this should work", async () => {
+    await symlink(
+      join(tempDir2, project_id, "password"),
+      join(tempDir2, project_id2, "link"),
+    );
+    const s = await readFile(join(tempDir2, project_id2, "link"), "utf8");
+    expect(s).toBe("s3cr3t");
+  });
+
+  it("fails to read the symlink content via the api", async () => {
+    await expect(async () => {
+      await fs2.readFile("link", "utf8");
+    }).rejects.toThrow("outside of sandbox");
+  });
+
+  it("directly create a relative symlink ", async () => {
+    await symlink(
+      join("..", project_id, "password"),
+      join(tempDir2, project_id2, "link2"),
+    );
+    const s = await readFile(join(tempDir2, project_id2, "link2"), "utf8");
+    expect(s).toBe("s3cr3t");
+  });
+
+  it("fails to read the relative symlink content via the api", async () => {
+    await expect(async () => {
+      await fs2.readFile("link2", "utf8");
+    }).rejects.toThrow("outside of sandbox");
+  });
+
+  it("closes the server", () => {
     server.close();
   });
 });
@@ -110,4 +189,5 @@ describe("use the simple fileserver", () => {
 afterAll(async () => {
   await after();
   await rm(tempDir, { force: true, recursive: true });
+  // await rm(tempDir2, { force: true, recursive: true });
 });

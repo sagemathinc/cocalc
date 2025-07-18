@@ -48,7 +48,6 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("clone the first group in serial", async () => {
-    await fs.sync(); // needed on github actions
     const t = Date.now();
     for (let i = 0; i < count1; i++) {
       await fs.subvolumes.clone(`${i}`, `clone-of-${i}`);
@@ -59,7 +58,6 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("clone the second group in parallel", async () => {
-    await fs.sync(); // needed on github actions
     const t = Date.now();
     const v: any[] = [];
     for (let i = 0; i < count2; i++) {
@@ -94,7 +92,6 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("everything should be gone except the clones", async () => {
-    await fs.sync();
     const v = await fs.subvolumes.list();
     expect(v.length).toBe(count1 + count2);
   });
