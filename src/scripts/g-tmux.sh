@@ -12,14 +12,8 @@ sleep 2
 tmux send-keys -t mysession:1 'pnpm database' C-m
 
 if [ -n "$NO_RSPACK_DEV_SERVER" ]; then
-sleep 2
-tmux send-keys -t mysession:2 'pnpm rspack' C-m
-
-else
-
-# no longer needed, due to using rspack for nextjs
-#sleep 2
-#tmux send-keys -t mysession:2 '$PWD/scripts/memory_monitor.py' C-m
+    sleep 2
+    tmux send-keys -t mysession:2 'pnpm rspack' C-m
 fi
 
 tmux attach -t mysession:1
