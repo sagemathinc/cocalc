@@ -66,7 +66,7 @@ const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
 const log = getLogger("llm");
 
 // Feature flag to use the new unified LangChain implementation
-const USE_NEWER_LC_IMPL =
+export const USE_NEWER_LC_IMPL =
   (process.env.COCALC_LLM_USE_NEWER_LC_IMPL ?? "true") === "true";
 
 async function getDefaultModel(): Promise<LanguageModel> {

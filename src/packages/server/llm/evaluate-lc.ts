@@ -110,8 +110,7 @@ export const PROVIDER_CONFIGS = {
     },
     supportsStreaming: (model) =>
       !normalizeOpenAIModel(model).startsWith("o1-"),
-    getSystemRole: (model) =>
-      normalizeOpenAIModel(model).startsWith("o1-") ? "developer" : "system",
+    getSystemRole: (_model) => "system",
     shouldContinueOnNonString: true,
     getTokenCountFallback: async (input, output, historyTokens) => ({
       prompt_tokens: numTokens(input) + historyTokens,
@@ -316,11 +315,18 @@ export async function evaluateWithLangChain(
   const historyMessagesKey = "history";
 
   // Create prompt template
-  const prompt = ChatPromptTemplate.fromMessages([
-    [systemRole, system ?? ""],
-    new MessagesPlaceholder(historyMessagesKey),
-    ["human", "{input}"],
-  ]);
+  // For o1 models, omit the system message entirely since they don't support system roles
+  const isO1Model = model.includes("o1");
+  const prompt = isO1Model
+    ? ChatPromptTemplate.fromMessages([
+        new MessagesPlaceholder(historyMessagesKey),
+        ["human", system ? `${system}\n\n{input}` : "{input}"],
+      ])
+    : ChatPromptTemplate.fromMessages([
+        [systemRole, system ?? ""],
+        new MessagesPlaceholder(historyMessagesKey),
+        ["human", "{input}"],
+      ]);
 
   const chain = prompt.pipe(client);
 
@@ -333,9 +339,8 @@ export async function evaluateWithLangChain(
     inputMessagesKey: "input",
     historyMessagesKey,
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },

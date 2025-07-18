@@ -11,14 +11,15 @@ import {
   isMistralModel,
   isOpenAIModel,
 } from "@cocalc/util/db-schema/llm-utils";
-// import { evaluateMistral } from "../mistral";
+import { evaluateGoogleGenAI } from "..";
 import { evaluateAnthropic } from "../anthropic";
+import { getClient } from "../client";
+import { evaluateWithLangChain } from "../evaluate-lc";
 import { GoogleGenAIClient } from "../google-genai-client";
+import { USE_NEWER_LC_IMPL } from "../index";
 import { evaluateMistral } from "../mistral";
 import { evaluateOpenAILC } from "../openai-lc";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
-import { evaluateGoogleGenAI } from "..";
-import { getClient } from "../client";
 
 const LLM_TIMEOUT = 10_000;
 
@@ -54,10 +55,15 @@ async function llmOpenAI(model: LanguageModelCore) {
     throw new Error(`model: ${model} is not an OpenAI model`);
   }
 
-  const answer = await evaluateOpenAILC({
-    model,
-    ...QUERY,
-  });
+  const answer = USE_NEWER_LC_IMPL
+    ? await evaluateWithLangChain({
+        model,
+        ...QUERY,
+      })
+    : await evaluateOpenAILC({
+        model,
+        ...QUERY,
+      });
 
   checkAnswer(answer);
 }
@@ -66,12 +72,21 @@ async function llmGoogle(model: LanguageModelCore) {
   if (!isGoogleModel(model)) {
     throw new Error(`model: ${model} is not a Google model`);
   }
-  const client = (await getClient(model)) as GoogleGenAIClient;
-  const answer = await evaluateGoogleGenAI({
-    model,
-    client,
-    ...QUERY,
-  });
+
+  const answer = USE_NEWER_LC_IMPL
+    ? await evaluateWithLangChain({
+        model,
+        ...QUERY,
+      })
+    : await (async () => {
+        const client = (await getClient(model)) as GoogleGenAIClient;
+        return await evaluateGoogleGenAI({
+          model,
+          client,
+          ...QUERY,
+        });
+      })();
+
   checkAnswer(answer);
 }
 
@@ -80,59 +95,60 @@ test_llm("openai")("OpenAI", () => {
   test(
     "gpt3.5 works",
     async () => {
-      llmOpenAI("gpt-3.5-turbo");
+      await llmOpenAI("gpt-3.5-turbo");
     },
     LLM_TIMEOUT,
   );
   test(
     "gpt 4 works",
     async () => {
-      llmOpenAI("gpt-4");
+      await llmOpenAI("gpt-4");
     },
     LLM_TIMEOUT,
   );
   test(
     "gpt 4 turbo works",
     async () => {
-      llmOpenAI("gpt-4-turbo-8k");
+      await llmOpenAI("gpt-4-turbo-8k");
     },
     LLM_TIMEOUT,
   );
   test(
     "gpt 4 omni works",
     async () => {
-      llmOpenAI("gpt-4o-8k");
+      await llmOpenAI("gpt-4o-8k");
     },
     LLM_TIMEOUT,
   );
   test(
     "gpt 4o mini works",
     async () => {
-      llmOpenAI("gpt-4o-mini-8k");
+      await llmOpenAI("gpt-4o-mini-8k");
     },
     LLM_TIMEOUT,
   );
   test(
     "gpt 4.1 works",
     async () => {
-      llmOpenAI("gpt-4.1");
+      await llmOpenAI("gpt-4.1");
     },
     LLM_TIMEOUT,
   );
   test(
-    "gpt 4.1 mini works",
+    "openai 4.1 mini works",
     async () => {
       llmOpenAI("gpt-4.1-mini");
     },
     LLM_TIMEOUT,
   );
 
-  // test("gpt o1", async () => {
-  //   llmOpenAI("o1-8k");
-  // });
-  // test("gpt o1 mini works", async () => {
-  //   llmOpenAI("o1-mini-8k");
-  // });
+  test("openai o1", async () => {
+    await llmOpenAI("o1-8k");
+  });
+
+  test("gpt o1 mini works", async () => {
+    await llmOpenAI("o1-mini-8k");
+  });
 });
 
 // ATTN: does not work everywhere around, geolocation matters
@@ -140,35 +156,35 @@ test_llm("google")("Google GenAI", () => {
   test(
     "gemini 1.5 pro works",
     async () => {
-      llmGoogle("gemini-1.5-pro");
+      await llmGoogle("gemini-1.5-pro");
     },
     LLM_TIMEOUT,
   );
   test(
     "gemini 2.0 flash works",
     async () => {
-      llmGoogle("gemini-2.0-flash-8k");
+      await llmGoogle("gemini-2.0-flash-8k");
     },
     LLM_TIMEOUT,
   );
   test(
     "gemini 2.0 flash lite works",
     async () => {
-      llmGoogle("gemini-2.0-flash-lite-8k");
+      await llmGoogle("gemini-2.0-flash-lite-8k");
     },
     LLM_TIMEOUT,
   );
   test(
     "gemini 2.5 flash works",
     async () => {
-      llmGoogle("gemini-2.5-flash-8k");
+      await llmGoogle("gemini-2.5-flash-8k");
     },
     LLM_TIMEOUT,
   );
   test(
     "gemini 2.5 pro works",
     async () => {
-      llmGoogle("gemini-2.5-pro-8k");
+      await llmGoogle("gemini-2.5-pro-8k");
     },
     LLM_TIMEOUT,
   );
@@ -188,7 +204,9 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "small",
     async () => {
-      const answer = await evaluateMistral({ model: small, ...QUERY });
+      const answer = USE_NEWER_LC_IMPL
+        ? await evaluateWithLangChain({ model: small, ...QUERY })
+        : await evaluateMistral({ model: small, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -197,7 +215,9 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "medium",
     async () => {
-      const answer = await evaluateMistral({ model: medium, ...QUERY });
+      const answer = USE_NEWER_LC_IMPL
+        ? await evaluateWithLangChain({ model: medium, ...QUERY })
+        : await evaluateMistral({ model: medium, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -206,7 +226,9 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "large",
     async () => {
-      const answer = await evaluateMistral({ model: large, ...QUERY });
+      const answer = USE_NEWER_LC_IMPL
+        ? await evaluateWithLangChain({ model: large, ...QUERY })
+        : await evaluateMistral({ model: large, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -227,7 +249,9 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "haiku",
     async () => {
-      const answer = await evaluateAnthropic({ model: haiku, ...QUERY });
+      const answer = USE_NEWER_LC_IMPL
+        ? await evaluateWithLangChain({ model: haiku, ...QUERY })
+        : await evaluateAnthropic({ model: haiku, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -236,7 +260,9 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "sonnet",
     async () => {
-      const answer = await evaluateAnthropic({ model: sonnet, ...QUERY });
+      const answer = USE_NEWER_LC_IMPL
+        ? await evaluateWithLangChain({ model: sonnet, ...QUERY })
+        : await evaluateAnthropic({ model: sonnet, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -245,7 +271,9 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "opus",
     async () => {
-      const answer = await evaluateAnthropic({ model: opus, ...QUERY });
+      const answer = USE_NEWER_LC_IMPL
+        ? await evaluateWithLangChain({ model: opus, ...QUERY })
+        : await evaluateAnthropic({ model: opus, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
