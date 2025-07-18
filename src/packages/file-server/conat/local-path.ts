@@ -1,18 +1,20 @@
 import { fsServer } from "@cocalc/conat/files/fs";
-import { conat } from "@cocalc/backend/conat";
 import { SandboxedFilesystem } from "@cocalc/file-server/fs/sandbox";
 import { mkdir } from "fs/promises";
 import { join } from "path";
 import { isValidUUID } from "@cocalc/util/misc";
+import { type Client, getClient } from "@cocalc/conat/core/client";
 
 export function localPathFileserver({
   service,
   path,
+  client,
 }: {
   service: string;
   path: string;
+  client?: Client;
 }) {
-  const client = conat();
+  client ??= getClient();
   const server = fsServer({
     service,
     client,

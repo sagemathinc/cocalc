@@ -4,9 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "path";
 import { fsClient } from "@cocalc/conat/files/fs";
 import { randomId } from "@cocalc/conat/names";
+import { before, after, client } from "@cocalc/backend/conat/test/setup";
 
 let tempDir;
 beforeAll(async () => {
+  await before();
   tempDir = await mkdtemp(join(tmpdir(), "cocalc-local-path"));
 });
 
@@ -14,7 +16,7 @@ describe("use the simple fileserver", () => {
   const service = `fs-${randomId()}`;
   let server;
   it("creates the simple fileserver service", async () => {
-    server = await localPathFileserver({ service, path: tempDir });
+    server = await localPathFileserver({ client, service, path: tempDir });
   });
 
   const project_id = "6b851643-360e-435e-b87e-f9a6ab64a8b1";
@@ -104,5 +106,6 @@ describe("use the simple fileserver", () => {
 });
 
 afterAll(async () => {
+  await after();
   await rm(tempDir, { force: true, recursive: true });
 });
