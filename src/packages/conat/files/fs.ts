@@ -148,7 +148,16 @@ export async function fsServer({ service, fs, client }: Options) {
         await (await fs(this.subject)).rmdir(path, options);
       },
       async stat(path: string): Promise<IStats> {
-        return await (await fs(this.subject)).stat(path);
+        const s = await (await fs(this.subject)).stat(path);
+        return {
+          ...s,
+          // for some reason these times get corrupted on transport from the nodejs datastructure,
+          // so we make them standard Date objects.
+          atime: new Date(s.atime),
+          mtime: new Date(s.mtime),
+          ctime: new Date(s.ctime),
+          birthtime: new Date(s.birthtime),
+        };
       },
       async symlink(target: string, path: string) {
         await (await fs(this.subject)).symlink(target, path);

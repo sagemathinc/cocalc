@@ -1,5 +1,5 @@
 import { localPathFileserver } from "../local-path";
-import { mkdtemp, readFile, rm, symlink } from "node:fs/promises";
+import { link, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 import { fsClient } from "@cocalc/conat/files/fs";
@@ -106,7 +106,131 @@ describe("use all the standard api functions of fs", () => {
     expect(v).toEqual(["0", "1", "2", "3", "4", fire]);
   });
 
-  it("creating a symlink works (and using lstat)", async () => {
+  it("realpath works", async () => {
+    await fs.writeFile("file0", "file0");
+    await fs.symlink("file0", "file1");
+    expect(await fs.readFile("file1", "utf8")).toBe("file0");
+    const r = await fs.realpath("file1");
+    expect(r).toBe("file0");
+
+    await fs.writeFile("file2", "file2");
+    await fs.link("file2", "file3");
+    expect(await fs.readFile("file3", "utf8")).toBe("file2");
+    const r3 = await fs.realpath("file3");
+    expect(r3).toBe("file3");
+  });
+
+  it("rename a file", async () => {
+    await fs.writeFile("bella", "poo");
+    await fs.rename("bella", "bells");
+    expect(await fs.readFile("bells", "utf8")).toBe("poo");
+    await fs.mkdir("x");
+    await fs.rename("bells", "x/belltown");
+  });
+
+  it("rm a file", async () => {
+    await fs.writeFile("bella-to-rm", "poo");
+    await fs.rm("bella-to-rm");
+    expect(await fs.exists("bella-to-rm")).toBe(false);
+  });
+
+  it("rm a directory", async () => {
+    await fs.mkdir("rm-dir");
+    expect(async () => {
+      await fs.rm("rm-dir");
+    }).rejects.toThrow("Path is a directory");
+    await fs.rm("rm-dir", { recursive: true });
+    expect(await fs.exists("rm-dir")).toBe(false);
+  });
+
+  it("rm a nonempty directory", async () => {
+    await fs.mkdir("rm-dir2");
+    await fs.writeFile("rm-dir2/a", "a");
+    await fs.rm("rm-dir2", { recursive: true });
+    expect(await fs.exists("rm-dir2")).toBe(false);
+  });
+
+  it("rmdir empty directory", async () => {
+    await fs.mkdir("rm-dir3");
+    await fs.rmdir("rm-dir3");
+    expect(await fs.exists("rm-dir3")).toBe(false);
+  });
+
+  it("stat not existing path", async () => {
+    expect(async () => {
+      await fs.stat(randomId());
+    }).rejects.toThrow("no such file or directory");
+  });
+
+  it("stat a file", async () => {
+    await fs.writeFile("abc.txt", "hi");
+    const stat = await fs.stat("abc.txt");
+    expect(stat.size).toBe(2);
+    expect(stat.isFile()).toBe(true);
+    expect(stat.isSymbolicLink()).toBe(false);
+    expect(stat.isDirectory()).toBe(false);
+    expect(stat.isBlockDevice()).toBe(false);
+    expect(stat.isCharacterDevice()).toBe(false);
+    expect(stat.isSymbolicLink()).toBe(false);
+    expect(stat.isFIFO()).toBe(false);
+    expect(stat.isSocket()).toBe(false);
+  });
+
+  it("stat a directory", async () => {
+    await fs.mkdir("my-stat-dir");
+    const stat = await fs.stat("my-stat-dir");
+    expect(stat.isFile()).toBe(false);
+    expect(stat.isSymbolicLink()).toBe(false);
+    expect(stat.isDirectory()).toBe(true);
+    expect(stat.isBlockDevice()).toBe(false);
+    expect(stat.isCharacterDevice()).toBe(false);
+    expect(stat.isSymbolicLink()).toBe(false);
+    expect(stat.isFIFO()).toBe(false);
+    expect(stat.isSocket()).toBe(false);
+  });
+
+  it("stat a symlink", async () => {
+    await fs.writeFile("sl2", "the source");
+    await fs.symlink("sl2", "target-sl2");
+    const stat = await fs.stat("target-sl2");
+    // this is how stat works!
+    expect(stat.isFile()).toBe(true);
+    expect(stat.isSymbolicLink()).toBe(false);
+    // so use lstat
+    const lstat = await fs.lstat("target-sl2");
+    expect(lstat.isFile()).toBe(false);
+    expect(lstat.isSymbolicLink()).toBe(true);
+  });
+
+  it("truncate a file", async () => {
+    await fs.writeFile("t", "");
+    await fs.truncate("t", 10);
+    const s = await fs.stat("t");
+    expect(s.size).toBe(10);
+  });
+
+  it("delete a file with unlink", async () => {
+    await fs.writeFile("to-unlink", "");
+    await fs.unlink("to-unlink");
+    expect(await fs.exists("to-unlink")).toBe(false);
+  });
+
+  it("sets times of a file", async () => {
+    await fs.writeFile("my-times", "");
+    const statsBefore = await fs.stat("my-times");
+    const atime = Date.now() - 100_000;
+    const mtime = Date.now() - 10_000_000;
+    // NOTE: fs.utimes in nodejs takes *seconds*, not ms, hence
+    // dividing by 1000 here:
+    await fs.utimes("my-times", atime / 1000, mtime / 1000);
+    const s = await fs.stat("my-times");
+    expect(s.atimeMs).toBeCloseTo(atime);
+    expect(s.mtimeMs).toBeCloseTo(mtime);
+    expect(s.atime.valueOf()).toBeCloseTo(atime);
+    expect(s.mtime.valueOf()).toBeCloseTo(mtime);
+  });
+
+  it("creating a symlink works (as does using lstat)", async () => {
     await fs.writeFile("source1", "the source");
     await fs.symlink("source1", "target1");
     expect(await fs.readFile("target1", "utf8")).toEqual("the source");
@@ -151,34 +275,51 @@ describe("security: dangerous symlinks can't be followed", () => {
 
   // This is setup bypassing security and is part of our threat model, due to users
   // having full access internally to their sandbox fs.
-  it("directly create a file that is a symlink outside of the sandbox -- this should work", async () => {
+  it("directly create a dangerous file that is a symlink outside of the sandbox -- this should work", async () => {
     await symlink(
       join(tempDir2, project_id, "password"),
-      join(tempDir2, project_id2, "link"),
+      join(tempDir2, project_id2, "danger"),
     );
-    const s = await readFile(join(tempDir2, project_id2, "link"), "utf8");
+    const s = await readFile(join(tempDir2, project_id2, "danger"), "utf8");
     expect(s).toBe("s3cr3t");
   });
 
   it("fails to read the symlink content via the api", async () => {
     await expect(async () => {
-      await fs2.readFile("link", "utf8");
+      await fs2.readFile("danger", "utf8");
     }).rejects.toThrow("outside of sandbox");
   });
 
-  it("directly create a relative symlink ", async () => {
+  it("directly create a dangerous relative symlink ", async () => {
     await symlink(
       join("..", project_id, "password"),
-      join(tempDir2, project_id2, "link2"),
+      join(tempDir2, project_id2, "danger2"),
     );
-    const s = await readFile(join(tempDir2, project_id2, "link2"), "utf8");
+    const s = await readFile(join(tempDir2, project_id2, "danger2"), "utf8");
     expect(s).toBe("s3cr3t");
   });
 
   it("fails to read the relative symlink content via the api", async () => {
     await expect(async () => {
-      await fs2.readFile("link2", "utf8");
+      await fs2.readFile("danger2", "utf8");
     }).rejects.toThrow("outside of sandbox");
+  });
+
+  // This is not a vulnerability, because there's no way for the user
+  // to create a hard link like this from within an nfs mount (say)
+  // of their own folder.
+  it("directly create a hard link", async () => {
+    await link(
+      join(tempDir2, project_id, "password"),
+      join(tempDir2, project_id2, "danger3"),
+    );
+    const s = await readFile(join(tempDir2, project_id2, "danger3"), "utf8");
+    expect(s).toBe("s3cr3t");
+  });
+
+  it("a hardlink *can* get outside the sandbox", async () => {
+    const s = await fs2.readFile("danger3", "utf8");
+    expect(s).toBe("s3cr3t");
   });
 
   it("closes the server", () => {
@@ -189,5 +330,5 @@ describe("security: dangerous symlinks can't be followed", () => {
 afterAll(async () => {
   await after();
   await rm(tempDir, { force: true, recursive: true });
-  // await rm(tempDir2, { force: true, recursive: true });
+  await rm(tempDir2, { force: true, recursive: true });
 });

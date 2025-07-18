@@ -126,6 +126,7 @@ describe("the filesystem operations", () => {
   it("make a file readonly, then change it back", async () => {
     await vol.fs.writeFile("c.txt", "hi");
     await vol.fs.chmod("c.txt", "440");
+    await fs.sync();
     expect(async () => {
       await vol.fs.appendFile("c.txt", " there");
     }).rejects.toThrow("EACCES");
@@ -219,6 +220,7 @@ describe("test snapshots", () => {
   });
 
   it("unlock our snapshot and delete it", async () => {
+    await fs.sync();
     await vol.snapshots.unlock("snap1");
     await vol.snapshots.delete("snap1");
     expect(await vol.snapshots.exists("snap1")).toBe(false);
