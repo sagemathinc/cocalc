@@ -725,10 +725,7 @@ export class JupyterKernel
       dbg("queue is empty");
       return;
     }
-    dbg(
-      `queue has ${n} items; ensure kernel running`,
-      this._execute_code_queue,
-    );
+    dbg(`queue has ${n} items; ensure kernel running`);
     try {
       await this.ensure_running();
       await this._execute_code_queue[0].go();
