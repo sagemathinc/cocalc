@@ -73,6 +73,8 @@ import {
 import { projectSubject } from "@cocalc/conat/names";
 import { type Subscription } from "@cocalc/conat/core/client";
 import { type Readable } from "node:stream";
+import { getLogger } from "@cocalc/conat/client";
+const logger = getLogger("conat:files:write");
 
 function getWriteSubject({ project_id, compute_server_id }) {
   return projectSubject({
@@ -106,6 +108,7 @@ export async function createServer({
   createWriteStream: (path: string) => any;
 }) {
   const subject = getWriteSubject({ project_id, compute_server_id });
+  logger.debug("createServer", { subject });
   let sub = subs[subject];
   if (sub != null) {
     return;
@@ -141,6 +144,7 @@ async function handleMessage({
   let writeStream: null | Awaited<ReturnType<typeof createWriteStream>> = null;
   try {
     const { path, name, maxWait } = mesg.data;
+    logger.debug("handleMessage", { path, name, maxWait });
     writeStream = await createWriteStream(path);
     // console.log("created writeStream");
     writeStream.on("error", (err) => {
@@ -166,12 +170,15 @@ async function handleMessage({
       writeStream.write(chunk);
       chunks += 1;
       bytes += chunk.length;
+      logger.debug("handleMessage -- wrote", { path, name, bytes });
       // console.log("wrote ", bytes);
     }
     writeStream.end();
     writeStream.emit("rename");
     mesg.respondSync({ status: "success", bytes, chunks });
+    logger.debug("handleMessage -- SUCCESS", { path, name });
   } catch (err) {
+    logger.debug("handleMessage: ERROR", err);
     if (!error) {
       mesg.respondSync({ error: `${err}`, status: "error" });
       writeStream?.emit("remove");
@@ -194,6 +201,7 @@ export async function writeFile({
   stream,
   maxWait = 1000 * 60 * 10, // 10 minutes
 }): Promise<{ bytes: number; chunks: number }> {
+  logger.debug("writeFile", { project_id, compute_server_id, path, maxWait });
   const name = randomId();
   try {
     function createReadStream() {

@@ -129,7 +129,7 @@ async function handleMessage(api, subject, mesg) {
       await mesg.respond({ error: `Unknown service ${service}` });
     }
   } else {
-    handleApiRequest(request, mesg);
+    await handleApiRequest(request, mesg);
   }
 }
 
