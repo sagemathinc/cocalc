@@ -217,7 +217,6 @@ describe("use all the standard api functions of fs", () => {
 
   it("sets times of a file", async () => {
     await fs.writeFile("my-times", "");
-    const statsBefore = await fs.stat("my-times");
     const atime = Date.now() - 100_000;
     const mtime = Date.now() - 10_000_000;
     // NOTE: fs.utimes in nodejs takes *seconds*, not ms, hence
