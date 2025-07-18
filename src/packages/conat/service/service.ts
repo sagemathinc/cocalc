@@ -210,7 +210,12 @@ export class ConatService extends EventEmitter {
         await mesg.respond(resp);
       } catch (err) {
         const data = { error: `${err}` };
-        await mesg.respond(data);
+        try {
+          await mesg.respond(data);
+        } catch (err2) {
+          // do not crash on sending an error report:
+          logger.debug("WARNING: unable to send error", this.name, err, err2);
+        }
       }
     }
   };
