@@ -29,10 +29,10 @@ import {
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { isValidUUID } from "@cocalc/util/misc";
+import { isValidAnonymousID, isValidUUID } from "@cocalc/util/misc";
 import isValidAccount from "../accounts/is-valid-account";
 
-// These are tokens over a given period of time – summed by account/analytics_cookie or global.
+// These are tokens over a given period of time – summed by account/anonymous_id or global.
 const QUOTAS = {
   noAccount: process_env_int("COCALC_LLM_QUOTA_NO_ACCOUNT", 0),
   account: process_env_int("COCALC_LLM_QUOTA_ACCOUNT", 10 ** 5),
@@ -63,11 +63,11 @@ const prom_rejected = newCounter(
 // Throws an exception if the request should not be allowed.
 export async function checkForAbuse({
   account_id,
-  analytics_cookie,
+  anonymous_id,
   model,
 }: {
   account_id?: string;
-  analytics_cookie?: string;
+  anonymous_id?: string;
   model: LanguageModel;
 }): Promise<void> {
   if (!account_id) {
@@ -75,9 +75,9 @@ export async function checkForAbuse({
     // https://github.com/xtekky/gpt4free/tree/main/gpt4free/cocalc
     throw Error("You must create an account.");
   }
-  if (!isValidUUID(account_id) && !isValidUUID(analytics_cookie)) {
+  if (!isValidUUID(account_id) && !isValidAnonymousID(anonymous_id)) {
     // at least some amount of tracking.
-    throw Error("at least one of account_id or analytics_cookie must be set");
+    throw Error("at least one of account_id or anonymous_id must be set");
   }
 
   if (!isLanguageModel(model)) {
@@ -107,7 +107,7 @@ export async function checkForAbuse({
     cache: "short",
     period: "1 hour",
     account_id,
-    analytics_cookie,
+    anonymous_id,
   });
 
   // this fluctuates for each account, we'll tally up how often users end up in certain usage buckets
@@ -133,7 +133,7 @@ export async function checkForAbuse({
     );
   }
 
-  // Prevent more sophisticated abuse, e.g., changing analytics_cookie or account frequently,
+  // Prevent more sophisticated abuse, e.g., changing anonymous_id or account frequently,
   // or just a general huge surge in usage.
   const overallUsage = await recentUsage({ cache: "long", period: "1 hour" });
   prom_quota_global
@@ -152,12 +152,12 @@ export async function checkForAbuse({
 async function recentUsage({
   period,
   account_id,
-  analytics_cookie,
+  anonymous_id,
   cache,
 }: {
   period: string;
   account_id?: string;
-  analytics_cookie?: string;
+  anonymous_id?: string;
   // some caching so if user is hitting us a lot, we don't hit the database to
   // decide they are abusive -- at the same time, short enough that we notice.
   // Recommendation: "short"
@@ -171,9 +171,10 @@ async function recentUsage({
     }
     query = `SELECT SUM(total_tokens) AS usage FROM openai_chatgpt_log WHERE account_id=$1 AND time >= NOW() - INTERVAL '${period}'`;
     args = [account_id];
-  } else if (analytics_cookie) {
+  } else if (anonymous_id) {
+    // still setting analytics_cookie in the db query, because this was before generalizing to an anonymous_id string
     query = `SELECT SUM(total_tokens) AS usage FROM openai_chatgpt_log WHERE analytics_cookie=$1 AND time >= NOW() - INTERVAL '${period}'`;
-    args = [analytics_cookie];
+    args = [anonymous_id];
   } else {
     query = `SELECT SUM(total_tokens) AS usage FROM openai_chatgpt_log WHERE time >= NOW() - INTERVAL '${period}'`;
     args = [];

@@ -184,6 +184,7 @@ function custom_llm_display(value: string): string {
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
+  | "analytics_cookie"
   | "conat_heading"
   | "conat_password"
   | "stripe_heading"
@@ -404,6 +405,13 @@ export const EXTRAS: SettingsExtras = {
     ],
     to_val: pii_retention_parse,
     to_display: pii_retention_display,
+  },
+  analytics_cookie: {
+    name: "Analytics Cookie",
+    desc: "Tag browser sessions visiting a website via an analytics.js script with a cookie",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
   },
   stripe_heading: {
     // this is consmetic, otherwise it looks weird.
