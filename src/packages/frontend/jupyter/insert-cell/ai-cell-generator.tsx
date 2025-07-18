@@ -330,7 +330,7 @@ export function AIGenerateCodeCell({
         if (cancel.current) {
           // we abort this
           stream.removeAllListeners();
-          // singal "finalization"
+          // single "finalization"
           updateCells(answer);
           return;
         }

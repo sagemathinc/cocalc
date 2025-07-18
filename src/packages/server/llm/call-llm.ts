@@ -2,10 +2,12 @@ import { delay } from "awaiting";
 import type OpenAI from "openai";
 import getLogger from "@cocalc/backend/logger";
 import { OpenAIMessages, OpenAIModel } from "@cocalc/util/db-schema/llm-utils";
-import type { ChatOutput, Stream as StreamFunction } from "@cocalc/util/types/llm";
+import type {
+  ChatOutput,
+  Stream as StreamFunction,
+} from "@cocalc/util/types/llm";
 import { totalNumTokens } from "./chatgpt-numtokens";
 import type { Stream } from "openai/streaming";
-
 
 const log = getLogger("llm:call-llm");
 

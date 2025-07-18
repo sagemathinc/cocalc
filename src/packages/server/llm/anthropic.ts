@@ -1,9 +1,11 @@
 import { ChatAnthropic } from "@langchain/anthropic";
+import { AIMessageChunk } from "@langchain/core/messages";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
+import { concat } from "@langchain/core/utils/stream";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -19,18 +21,11 @@ import { numTokens } from "./chatgpt-numtokens";
 const log = getLogger("llm:anthropic");
 
 function getModelName(model: AnthropicModel): string {
-  // The -4k and -8k variants have a limited context window (by us here) while offered for free
-  if (model === "claude-3-sonnet-4k") {
-    model = "claude-3-sonnet";
-  } else if (model === "claude-3-haiku-8k") {
-    model = "claude-3-haiku";
-  } else if (model === "claude-3-opus-8k") {
-    model = "claude-3-opus";
-  } else if (model === "claude-3-5-sonnet-4k") {
-    model = "claude-3-5-sonnet";
+  const id = ANTHROPIC_VERSION[model];
+  if (id == null) {
+    throw new Error(`Anthropic model ${model} is no longer supported`);
   }
-  // now we have a valid name, and we have to append their static version number
-  return `${model}-${ANTHROPIC_VERSION[model]}`;
+  return id;
 }
 
 interface AnthropicOpts {
@@ -105,9 +100,8 @@ export async function evaluateAnthropic(
     inputMessagesKey: "input",
     historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -115,24 +109,57 @@ export async function evaluateAnthropic(
 
   const chunks = await chainWithHistory.stream({ input });
 
+  let finalResult: AIMessageChunk | undefined;
   let output = "";
   for await (const chunk of chunks) {
     const { content } = chunk;
     if (typeof content !== "string") continue;
     output += content;
     opts.stream?.(content);
+
+    // Collect the final result to check for usage metadata
+    if (finalResult) {
+      finalResult = concat(finalResult, chunk);
+    } else {
+      finalResult = chunk;
+    }
   }
 
   opts.stream?.(null);
 
-  // we use that GPT3 tokenizer to get an approximate number of tokens
-  const prompt_tokens = numTokens(input) + historyTokens;
-  const completion_tokens = numTokens(output);
+  // Check for usage metadata from LangChain first (more accurate)
+  const usage_metadata = finalResult?.usage_metadata;
+  log.debug("usage_metadata", usage_metadata);
 
-  return {
-    output,
-    total_tokens: prompt_tokens + completion_tokens,
-    completion_tokens,
-    prompt_tokens,
-  };
+  if (usage_metadata) {
+    const { input_tokens, output_tokens, total_tokens } = usage_metadata;
+    log.debug("evaluateAnthropic successful (using usage_metadata)", {
+      input_tokens,
+      output_tokens,
+      total_tokens,
+    });
+
+    return {
+      output,
+      total_tokens,
+      completion_tokens: output_tokens,
+      prompt_tokens: input_tokens,
+    };
+  } else {
+    // Fallback to manual token counting (approximation using GPT-3 tokenizer)
+    const prompt_tokens = numTokens(input) + historyTokens;
+    const completion_tokens = numTokens(output);
+
+    log.debug("evaluateAnthropic successful (using manual counting)", {
+      prompt_tokens,
+      completion_tokens,
+    });
+
+    return {
+      output,
+      total_tokens: prompt_tokens + completion_tokens,
+      completion_tokens,
+      prompt_tokens,
+    };
+  }
 }

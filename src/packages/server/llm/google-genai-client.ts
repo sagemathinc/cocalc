@@ -5,11 +5,13 @@
  */
 
 import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
+import { AIMessageChunk } from "@langchain/core/messages";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
+import { concat } from "@langchain/core/utils/stream";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -110,13 +112,14 @@ export class GoogleGenAIClient {
       model: modelName,
       apiKey: this.apiKey,
       maxOutputTokens: maxTokens,
+      // Only enable thinking tokens for Gemini 2.5 models
+      ...(modelName === "gemini-2.5-flash" || modelName === "gemini-2.5-pro"
+        ? { maxReasoningTokens: 1024 }
+        : {}),
       streaming: true,
     });
 
-    // However, we also count tokens, and for that we use "gemini-1.5-pro" only
-    const geminiPro: GenerativeModel = this.genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
-    });
+    // Token counting will be done using either usage_metadata or the actual model
 
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", system ?? ""],
@@ -139,32 +142,74 @@ export class GoogleGenAIClient {
 
     const chunks = await chainWithHistory.stream({ input });
 
+    let finalResult: AIMessageChunk | undefined;
     let output = "";
     for await (const chunk of chunks) {
       const { content } = chunk;
       if (typeof content !== "string") continue;
       output += content;
       stream?.(content);
+
+      // Collect the final result to check for usage metadata
+      if (finalResult) {
+        finalResult = concat(finalResult, chunk);
+      } else {
+        finalResult = chunk;
+      }
     }
 
     stream?.(null);
 
-    const { totalTokens: prompt_tokens } = await geminiPro.countTokens([
-      input,
-      system ?? "",
-      ...history.map(({ content }) => content),
-    ]);
+    // Check for usage metadata from LangChain first (more accurate, includes thinking tokens)
+    const usage_metadata = finalResult?.usage_metadata;
+    log.debug("usage_metadata", usage_metadata);
 
-    const { totalTokens: completion_tokens } =
-      await geminiPro.countTokens(output);
+    if (usage_metadata) {
+      const { input_tokens, output_tokens, total_tokens } = usage_metadata;
+      log.debug("chatGemini successful (using usage_metadata)", {
+        input_tokens,
+        output_tokens,
+        total_tokens,
+        usage_metadata, // Log full metadata to see what other fields might be available
+      });
 
-    log.debug("chatGemini successful", { prompt_tokens, completion_tokens });
+      // For now, return the standard ChatOutput format
+      // TODO: Consider extending ChatOutput interface to include thinking_tokens if available
+      return {
+        output,
+        total_tokens,
+        completion_tokens: output_tokens,
+        prompt_tokens: input_tokens,
+      };
+    } else {
+      // Fallback to manual token counting using the actual model (not hardcoded)
+      const tokenCountingModel: GenerativeModel = this.genAI.getGenerativeModel(
+        {
+          model: modelName,
+        },
+      );
 
-    return {
-      output,
-      total_tokens: prompt_tokens + completion_tokens,
-      completion_tokens,
-      prompt_tokens,
-    };
+      const { totalTokens: prompt_tokens } =
+        await tokenCountingModel.countTokens([
+          input,
+          system ?? "",
+          ...history.map(({ content }) => content),
+        ]);
+
+      const { totalTokens: completion_tokens } =
+        await tokenCountingModel.countTokens(output);
+
+      log.debug("chatGemini successful (using manual counting)", {
+        prompt_tokens,
+        completion_tokens,
+      });
+
+      return {
+        output,
+        total_tokens: prompt_tokens + completion_tokens,
+        completion_tokens,
+        prompt_tokens,
+      };
+    }
   }
 }
