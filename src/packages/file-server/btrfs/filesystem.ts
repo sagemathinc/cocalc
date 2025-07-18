@@ -71,6 +71,10 @@ export class Filesystem {
     await this.initBup();
   };
 
+  sync = async () => {
+    await btrfs({ args: ["filesystem", "sync", this.opts.mount] });
+  };
+
   unmount = async () => {
     await sudo({
       command: "umount",

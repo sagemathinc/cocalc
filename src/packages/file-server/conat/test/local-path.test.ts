@@ -99,6 +99,8 @@ describe("use the simple fileserver", () => {
     const stats0 = await fs.stat("source1");
     expect(stats0.isSymbolicLink()).toBe(false);
   });
+  
+  
 
   it("closes the service", () => {
     server.close();
