@@ -339,8 +339,9 @@ export async function evaluateWithLangChain(
     inputMessagesKey: "input",
     historyMessagesKey,
     getMessageHistory: async () => {
-      const { messageHistory, tokens } =
-        await transformHistoryToMessages(history);
+      const { messageHistory, tokens } = await transformHistoryToMessages(
+        history,
+      );
       historyTokens = tokens;
       return messageHistory;
     },

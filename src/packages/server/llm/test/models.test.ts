@@ -10,15 +10,23 @@ import {
   isGoogleModel,
   isMistralModel,
   isOpenAIModel,
+  UserDefinedLLM,
+  toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { evaluateGoogleGenAI } from "..";
 import { evaluateAnthropic } from "../anthropic";
 import { getClient } from "../client";
+import createAccount from "../../accounts/create-account";
+import { db } from "@cocalc/database";
+import { callback2 } from "@cocalc/util/async-utils";
+import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
+import { uuid } from "@cocalc/util/misc";
 import { evaluateWithLangChain } from "../evaluate-lc";
 import { GoogleGenAIClient } from "../google-genai-client";
 import { USE_NEWER_LC_IMPL } from "../index";
 import { evaluateMistral } from "../mistral";
 import { evaluateOpenAILC } from "../openai-lc";
+import { evaluateUserDefinedLLM } from "../user-defined";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
 
 const LLM_TIMEOUT = 10_000;
@@ -274,6 +282,221 @@ test_llm("anthropic")("Anthropic", () => {
       const answer = USE_NEWER_LC_IMPL
         ? await evaluateWithLangChain({ model: opus, ...QUERY })
         : await evaluateAnthropic({ model: opus, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+});
+
+// User-defined LLM tests
+describe("User-defined LLMs", () => {
+  const account_id = uuid();
+  let accountCreated = false;
+
+  beforeAll(async () => {
+    // Create test account only once for the entire describe block
+    if (!accountCreated) {
+      await createAccount({
+        email: `test-${account_id}@example.com`,
+        password: "testpass123",
+        firstName: "Test",
+        lastName: "User",
+        account_id,
+      });
+      accountCreated = true;
+    }
+
+    // Enable user-defined LLMs server setting
+    await callback2(db().set_server_setting, {
+      name: "user_defined_llm",
+      value: "yes",
+      readonly: true,
+    });
+  });
+
+  async function createUserDefinedLLMConfig(configs: UserDefinedLLM[]) {
+    const userDefinedLLMJson = JSON.stringify(configs);
+    const pool = getPool();
+    await pool.query(
+      `UPDATE accounts SET other_settings = jsonb_set(
+        COALESCE(other_settings, '{}'::jsonb),
+        '{${OTHER_SETTINGS_USERDEFINED_LLM}}',
+        to_jsonb($1::text)
+      ) WHERE account_id = $2`,
+      [userDefinedLLMJson, account_id],
+    );
+  }
+
+  // Test user-defined OpenAI model
+  test(
+    "user-defined OpenAI model works",
+    async () => {
+      const openaiKey = process.env.COCALC_TEST_OPENAI_KEY;
+      if (!openaiKey) {
+        console.log("Skipping user-defined OpenAI test - no API key");
+        return;
+      }
+
+      const config: UserDefinedLLM = {
+        id: 1,
+        service: "openai",
+        display: "Test GPT-4o Mini",
+        endpoint: "https://api.openai.com/v1",
+        model: "gpt-4o-mini",
+        apiKey: openaiKey,
+      };
+
+      await createUserDefinedLLMConfig([config]);
+
+      const userModel = toUserLLMModelName(config);
+      const answer = await evaluateUserDefinedLLM(
+        {
+          model: userModel,
+          ...QUERY,
+        },
+        account_id,
+      );
+
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+
+  // Test user-defined Google model
+  test(
+    "user-defined Google model works",
+    async () => {
+      const googleKey = process.env.COCALC_TEST_GOOGLE_GENAI_KEY;
+      if (!googleKey) {
+        console.log("Skipping user-defined Google test - no API key");
+        return;
+      }
+
+      const config: UserDefinedLLM = {
+        id: 2,
+        service: "google",
+        display: "Test Gemini Flash",
+        endpoint: "",
+        model: "gemini-1.5-flash",
+        apiKey: googleKey,
+      };
+
+      await createUserDefinedLLMConfig([config]);
+
+      const userModel = toUserLLMModelName(config);
+      const answer = await evaluateUserDefinedLLM(
+        {
+          model: userModel,
+          ...QUERY,
+        },
+        account_id,
+      );
+
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+
+  // Test user-defined Anthropic model
+  test(
+    "user-defined Anthropic model works",
+    async () => {
+      const anthropicKey = process.env.COCALC_TEST_ANTHROPIC_KEY;
+      if (!anthropicKey) {
+        console.log("Skipping user-defined Anthropic test - no API key");
+        return;
+      }
+
+      const config: UserDefinedLLM = {
+        id: 3,
+        service: "anthropic",
+        display: "claude-3-5-haiku-latest",
+        endpoint: "",
+        model: "claude-3-5-haiku-latest",
+        apiKey: anthropicKey,
+      };
+
+      await createUserDefinedLLMConfig([config]);
+
+      const userModel = toUserLLMModelName(config);
+      const answer = await evaluateUserDefinedLLM(
+        {
+          model: userModel,
+          ...QUERY,
+        },
+        account_id,
+      );
+
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+
+  // Test user-defined Mistral model
+  test(
+    "user-defined Mistral model works",
+    async () => {
+      const mistralKey = process.env.COCALC_TEST_MISTRAL_AI_KEY;
+      if (!mistralKey) {
+        console.log("Skipping user-defined Mistral test - no API key");
+        return;
+      }
+
+      const config: UserDefinedLLM = {
+        id: 4,
+        service: "mistralai",
+        display: "Test Mistral Small",
+        endpoint: "",
+        model: "mistral-small-latest",
+        apiKey: mistralKey,
+      };
+
+      await createUserDefinedLLMConfig([config]);
+
+      const userModel = toUserLLMModelName(config);
+      const answer = await evaluateUserDefinedLLM(
+        {
+          model: userModel,
+          ...QUERY,
+        },
+        account_id,
+      );
+
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+
+  // Test user-defined custom OpenAI model
+  test(
+    "user-defined custom OpenAI model works",
+    async () => {
+      const openaiKey = process.env.COCALC_TEST_OPENAI_KEY;
+      if (!openaiKey) {
+        console.log("Skipping user-defined custom OpenAI test - no API key");
+        return;
+      }
+
+      const config: UserDefinedLLM = {
+        id: 5,
+        service: "custom_openai",
+        display: "Test Custom GPT-4o",
+        endpoint: "https://api.openai.com/v1",
+        model: "gpt-4o",
+        apiKey: openaiKey,
+      };
+
+      await createUserDefinedLLMConfig([config]);
+
+      const userModel = toUserLLMModelName(config);
+      const answer = await evaluateUserDefinedLLM(
+        {
+          model: userModel,
+          ...QUERY,
+        },
+        account_id,
+      );
+
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
