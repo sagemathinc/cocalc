@@ -54,6 +54,25 @@ describe("make various attempts to break out of the sandbox", () => {
   });
 });
 
+describe.only("test watching a file and a folder in the sandbox", () => {
+  let fs;
+  it("creates sandbox", async () => {
+    await mkdir(join(tempDir, "test-watch"));
+    fs = new SandboxedFilesystem(join(tempDir, "test-watch"));
+    await fs.writeFile("x", "hi");
+  });
+
+  it("watches the file x for changes", async () => {
+    const w = await fs.watch("x");
+    await fs.appendFile("x", " there");
+    const x = await w.next();
+    expect(x).toEqual({
+      value: { eventType: "change", filename: "x" },
+      done: false,
+    });
+  });
+});
+
 afterAll(async () => {
   await rm(tempDir, { force: true, recursive: true });
 });

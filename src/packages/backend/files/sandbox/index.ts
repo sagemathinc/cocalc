@@ -61,13 +61,14 @@ import {
   writeFile,
   unlink,
   utimes,
-  watch,
 } from "node:fs/promises";
+import { watch } from "node:fs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { type DirectoryListingEntry } from "@cocalc/util/types";
 import getListing from "@cocalc/backend/get-listing";
 import { join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
+import { EventIterator } from "@cocalc/util/event-iterator";
 
 export class SandboxedFilesystem {
   // path should be the path to a FOLDER on the filesystem (not a file)
@@ -231,7 +232,16 @@ export class SandboxedFilesystem {
   };
 
   watch = async (filename: string, options?) => {
-    return watch(await this.safeAbsPath(filename), options);
+    // NOTE: in node v24 they fixed the fs/promises watch to have a queue, but previous
+    // versions were clearly badly implemented so we reimplement it from scratch
+    // using the non-promise watch.
+    const watcher = watch(await this.safeAbsPath(filename), options);
+    return new EventIterator(watcher, "change", {
+      map: (args) => {
+        // exact same api as new fs/promises watch
+        return { eventType: args[0], filename: args[1] };
+      },
+    });
   };
 
   writeFile = async (path: string, data: string | Buffer) => {
