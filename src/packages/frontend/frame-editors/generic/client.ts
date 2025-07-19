@@ -218,6 +218,7 @@ interface SyncstringOpts2 {
 }
 
 export function syncstring2(opts: SyncstringOpts2): SyncString {
+  // return webapp_client.conat_client.conat().sync.string(opts);
   const opts1: any = opts;
   opts1.client = webapp_client;
   return webapp_client.sync_client.sync_string(opts1);

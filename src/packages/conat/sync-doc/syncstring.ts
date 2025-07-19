@@ -1,6 +1,5 @@
 import { SyncClient } from "./sync-client";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
-import { once } from "@cocalc/util/async-utils";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 
 export interface SyncStringOptions {
@@ -13,20 +12,18 @@ export interface SyncStringOptions {
 
 export type { SyncString };
 
-export async function syncstring({
+export function syncstring({
   project_id,
   path,
   client,
   service,
-}: SyncStringOptions): Promise<SyncString> {
+}: SyncStringOptions): SyncString {
   const fs = client.fs({ service, project_id });
   const syncClient = new SyncClient(client);
-  const syncstring = new SyncString({
+  return new SyncString({
     project_id,
     path,
     client: syncClient,
     fs,
   });
-  await once(syncstring, "ready");
-  return syncstring;
 }

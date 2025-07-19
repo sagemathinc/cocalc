@@ -1494,9 +1494,8 @@ export class Client extends EventEmitter {
       await astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
-    string: async (
-      opts: Omit<SyncStringOptions, "client">,
-    ): Promise<SyncString> => await syncstring({ ...opts, client: this }),
+    string: (opts: Omit<SyncStringOptions, "client">): SyncString =>
+      syncstring({ ...opts, client: this }),
   };
 
   socket = {
