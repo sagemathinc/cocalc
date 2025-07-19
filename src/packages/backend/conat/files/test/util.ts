@@ -10,7 +10,7 @@ const servers: any[] = [];
 export async function createPathFileserver({
   service = `fs-${randomId()}`,
 }: { service?: string } = {}) {
-  const tempDir = await mkdtemp(join(tmpdir(), `cocalc-${randomId()}`));
+  const tempDir = await mkdtemp(join(tmpdir(), `cocalc-${randomId()}0`));
   tempDirs.push(tempDir);
   const server = await localPathFileserver({ client, service, path: tempDir });
   servers.push(server);

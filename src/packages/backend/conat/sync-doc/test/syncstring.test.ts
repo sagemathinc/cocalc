@@ -7,23 +7,24 @@ afterAll(after);
 describe("loading/saving syncstring to disk and setting values", () => {
   let s;
   const project_id = uuid();
-  let fs;
+  let fs, conat;
 
   it("creates the fs client", () => {
-    fs = getFS(project_id);
+    conat = connect();
+    fs = getFS(project_id, conat);
   });
 
   it("a syncstring associated to a file that does not exist on disk is initialized to the empty string", async () => {
-    s = await syncstring({ fs, project_id, path: "new.txt" });
+    s = await syncstring({ fs, project_id, path: "new.txt", conat });
     expect(s.to_str()).toBe("");
     expect(s.versions().length).toBe(0);
     s.close();
   });
 
   it("a syncstring for editing a file that already exists on disk is initialized to that file", async () => {
-    fs = getFS(project_id);
+    fs = getFS(project_id, conat);
     await fs.writeFile("a.txt", "hello");
-    s = await syncstring({ fs, project_id, path: "a.txt" });
+    s = await syncstring({ fs, project_id, path: "a.txt", conat });
     expect(s.fs).not.toEqual(undefined);
   });
 
@@ -61,17 +62,29 @@ describe("loading/saving syncstring to disk and setting values", () => {
   });
 });
 
-describe.only("sync with two copies of a syncstring", () => {
+describe("synchronized editing with two copies of a syncstring", () => {
   const project_id = uuid();
-  let s1, s2, fs;
+  let s1, s2, fs1, fs2, client1, client2;
 
   it("creates the fs client and two copies of a syncstring", async () => {
-    fs = getFS(project_id);
-    await fs.writeFile("a.txt", "hello");
-    s1 = await syncstring({ fs, project_id, path: "a.txt" });
-    s2 = await syncstring({ fs, project_id, path: "a.txt", conat: connect() });
-    expect(s1.to_str()).toBe("hello");
-    expect(s2.to_str()).toBe("hello");
+    client1 = connect();
+    client2 = connect();
+    fs1 = getFS(project_id, client1);
+    s1 = await syncstring({
+      fs: fs1,
+      project_id,
+      path: "a.txt",
+      conat: client1,
+    });
+    fs2 = getFS(project_id, client2);
+    s2 = await syncstring({
+      fs: fs2,
+      project_id,
+      path: "a.txt",
+      conat: client2,
+    });
+    expect(s1.to_str()).toBe("");
+    expect(s2.to_str()).toBe("");
     expect(s1 === s2).toBe(false);
   });
 
@@ -81,20 +94,26 @@ describe.only("sync with two copies of a syncstring", () => {
     await s1.save();
     await wait({
       until: () => {
-        console.log(s1.to_str(), s2.to_str());
-        console.log(s1.patches_table.dstream?.name, s2.patches_table.dstream?.name);
-        console.log(s1.patches_table.get(), s2.patches_table.get());
-        console.log(s1.patch_list.patches, s2.patch_list.patches);
         return s2.to_str() == "hello world";
       },
-      min: 2000,
     });
   });
 
-  it.skip("change second and see change reflected in first", async () => {
+  it("change second and see change reflected in first", async () => {
     s2.from_str("hello world!");
     s2.commit();
     await s2.save();
     await wait({ until: () => s1.to_str() == "hello world!" });
+  });
+
+  it("view the history from each", async () => {
+    expect(s1.versions().length).toEqual(2);
+    expect(s2.versions().length).toEqual(2);
+
+    const v1: string[] = [],
+      v2: string[] = [];
+    s1.show_history({ log: (x) => v1.push(x) });
+    s2.show_history({ log: (x) => v2.push(x) });
+    expect(v1).toEqual(v2);
   });
 });

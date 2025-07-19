@@ -9,7 +9,7 @@ import { randomId } from "@cocalc/conat/names";
 let tmp;
 beforeAll(async () => {
   await before();
-  tmp = await mkdtemp(join(tmpdir(), `cocalc-${randomId()}`));
+  tmp = await mkdtemp(join(tmpdir(), `cocalc-${randomId()}0`));
 });
 afterAll(async () => {
   await after();

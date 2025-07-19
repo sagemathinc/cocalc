@@ -393,10 +393,7 @@ export class ConatClient extends EventEmitter {
     query0,
     options?,
   ): Promise<ConatSyncTable> => {
-    const { query, table } = parseQueryWithOptions(query0, options);
-    if (options?.project_id != null && query[table][0]["project_id"] === null) {
-      query[table][0]["project_id"] = options.project_id;
-    }
+    const { query } = parseQueryWithOptions(query0, options);
     return await this.conat().sync.synctable({
       ...options,
       query,

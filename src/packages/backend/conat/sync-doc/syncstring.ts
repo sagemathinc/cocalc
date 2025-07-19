@@ -13,14 +13,13 @@ export default async function syncstring({
   fs: SyncDocFilesystem;
   project_id: string;
   path: string;
-  conat?: ConatClient;
+  conat: ConatClient;
 }) {
   const client = new Client(conat);
   const syncstring = new SyncString({
     project_id,
     path,
     client,
-    ephemeral: true,
     fs,
   });
   await once(syncstring, "ready");
