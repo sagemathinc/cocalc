@@ -54,7 +54,7 @@ describe("make various attempts to break out of the sandbox", () => {
   });
 });
 
-describe.only("test watching a file and a folder in the sandbox", () => {
+describe("test watching a file and a folder in the sandbox", () => {
   let fs;
   it("creates sandbox", async () => {
     await mkdir(join(tempDir, "test-watch"));
@@ -70,6 +70,32 @@ describe.only("test watching a file and a folder in the sandbox", () => {
       value: { eventType: "change", filename: "x" },
       done: false,
     });
+    w.end();
+  });
+
+  it("the maxQueue parameter limits the number of queue events", async () => {
+    const w = await fs.watch("x", { maxQueue: 2 });
+    expect(w.queueSize()).toBe(0);
+    // make many changes
+    await fs.appendFile("x", "0");
+    await fs.appendFile("x", "0");
+    await fs.appendFile("x", "0");
+    await fs.appendFile("x", "0");
+    // there will only be 2 available:
+    expect(w.queueSize()).toBe(2);
+    const x0 = await w.next();
+    expect(x0).toEqual({
+      value: { eventType: "change", filename: "x" },
+      done: false,
+    });
+    const x1 = await w.next();
+    expect(x1).toEqual({
+      value: { eventType: "change", filename: "x" },
+      done: false,
+    });
+    // one more next would hang...
+    expect(w.queueSize()).toBe(0);
+    w.end();
   });
 });
 

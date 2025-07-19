@@ -1,7 +1,7 @@
 /*
 LICENSE: MIT
 
-This is a slight fork  of 
+This is a slight fork  of
 
 https://github.com/sapphiredev/utilities/tree/main/packages/event-iterator
 
@@ -10,7 +10,7 @@ agree with the docs.  I can see why.   Upstream would capture ['arg1','arg2']]
 for an event emitter doing this
 
     emitter.emit('foo', 'arg1', 'arg2')
-    
+
 But for our application we only want 'arg1'.  I thus added a map option,
 which makes it easy to do what we want.
 */
@@ -46,6 +46,9 @@ export interface EventIteratorOptions<V> {
 
   // called when iterator ends -- use to do cleanup.
   onEnd?: (iter?: EventIterator<V>) => void;
+
+  // Specifies the number of events to queue between iterations of the <AsyncIterator> returned.
+  maxQueue?: number;
 }
 
 /**
@@ -100,6 +103,8 @@ export class EventIterator<V extends unknown>
    */
   readonly #limit: number;
 
+  readonly #maxQueue: number;
+
   /**
    * The timer to track when this will idle out.
    */
@@ -124,6 +129,7 @@ export class EventIterator<V extends unknown>
     this.event = event;
     this.map = options.map ?? ((args) => args);
     this.#limit = options.limit ?? Infinity;
+    this.#maxQueue = options.maxQueue ?? Infinity;
     this.#idle = options.idle;
     this.filter = options.filter ?? ((): boolean => true);
     this.onEnd = options.onEnd;
@@ -263,10 +269,17 @@ export class EventIterator<V extends unknown>
     try {
       const value = this.map(args);
       this.#queue.push(value);
+      while (this.#queue.length > this.#maxQueue && this.#queue.length > 0) {
+        this.#queue.shift();
+      }
     } catch (err) {
       this.err = err;
       // fake event to trigger handling of err
       this.emitter.emit(this.event);
     }
+  }
+
+  public queueSize(): number {
+    return this.#queue.length;
   }
 }

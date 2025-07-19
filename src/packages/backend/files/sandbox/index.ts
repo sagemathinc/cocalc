@@ -237,9 +237,13 @@ export class SandboxedFilesystem {
     // using the non-promise watch.
     const watcher = watch(await this.safeAbsPath(filename), options);
     return new EventIterator(watcher, "change", {
+      maxQueue: options?.maxQueue ?? 2048,
       map: (args) => {
         // exact same api as new fs/promises watch
         return { eventType: args[0], filename: args[1] };
+      },
+      onEnd: () => {
+        watcher.close();
       },
     });
   };
