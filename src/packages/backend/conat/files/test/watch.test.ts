@@ -42,13 +42,13 @@ describe("basic core of the async path watch functionality", () => {
     await fs.appendFile("a.txt", "foo");
     expect(await w.next()).toEqual({
       done: false,
-      value: [{ eventType: "change", filename: "a.txt" }, {}],
+      value: { eventType: "change", filename: "a.txt" },
     });
 
     await fs.appendFile("a.txt", "bar");
     expect(await w.next()).toEqual({
       done: false,
-      value: [{ eventType: "change", filename: "a.txt" }, {}],
+      value: { eventType: "change", filename: "a.txt" },
     });
   });
 

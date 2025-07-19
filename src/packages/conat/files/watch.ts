@@ -73,10 +73,11 @@ export async function watchClient({
   client: ConatClient;
   subject: string;
   path: string;
-  options: WatchOptions;
+  options?: WatchOptions;
 }) {
   const socket = await client.socket.connect(subject);
   const iter = new EventIterator(socket, "data", {
+    map: (args) => args[0],
     onEnd: () => {
       socket.close();
     },

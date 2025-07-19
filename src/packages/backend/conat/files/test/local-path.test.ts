@@ -254,6 +254,55 @@ describe("use all the standard api functions of fs", () => {
     const stats0 = await fs.stat("source1");
     expect(stats0.isSymbolicLink()).toBe(false);
   });
+
+  it("watch a file", async () => {
+    await fs.writeFile("a.txt", "hi");
+    const w = await fs.watch("a.txt");
+    await fs.appendFile("a.txt", " there");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "change", filename: "a.txt" },
+    });
+  });
+
+  it("watch a directory", async () => {
+    const FOLDER = randomId();
+    await fs.mkdir(FOLDER);
+    const w = await fs.watch(FOLDER);
+
+    await fs.writeFile(join(FOLDER, "x"), "hi");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "rename", filename: "x" },
+    });
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "change", filename: "x" },
+    });
+
+    await fs.appendFile(join(FOLDER, "x"), "xxx");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "change", filename: "x" },
+    });
+
+    await fs.writeFile(join(FOLDER, "z"), "there");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "rename", filename: "z" },
+    });
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "change", filename: "z" },
+    });
+
+    // this is correct -- from the node docs "On most platforms, 'rename' is emitted whenever a filename appears or disappears in the directory."
+    await fs.unlink(join(FOLDER, "z"));
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "rename", filename: "z" },
+    });
+  });
 });
 
 describe("security: dangerous symlinks can't be followed", () => {

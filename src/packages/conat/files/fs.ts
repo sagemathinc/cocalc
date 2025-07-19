@@ -1,5 +1,6 @@
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
+import { watchServer, watchClient } from "@cocalc/conat/files/watch";
 
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
@@ -27,6 +28,8 @@ export interface Filesystem {
     mtime: number | string | Date,
   ) => Promise<void>;
   writeFile: (path: string, data: string | Buffer) => Promise<void>;
+  // todo: typing
+  watch: (path: string, options?) => Promise<any>;
 }
 
 interface IStats {
@@ -99,87 +102,108 @@ interface Options {
 }
 
 export async function fsServer({ service, fs, client }: Options) {
-  return await (client ?? conat()).service<Filesystem & { subject?: string }>(
-    `${service}.*`,
-    {
-      async appendFile(path: string, data: string | Buffer, encoding?) {
-        await (await fs(this.subject)).appendFile(path, data, encoding);
-      },
-      async chmod(path: string, mode: string | number) {
-        await (await fs(this.subject)).chmod(path, mode);
-      },
-      async constants(): Promise<{ [key: string]: number }> {
-        return await (await fs(this.subject)).constants();
-      },
-      async copyFile(src: string, dest: string) {
-        await (await fs(this.subject)).copyFile(src, dest);
-      },
-      async cp(src: string, dest: string, options?) {
-        await (await fs(this.subject)).cp(src, dest, options);
-      },
-      async exists(path: string) {
-        return await (await fs(this.subject)).exists(path);
-      },
-      async link(existingPath: string, newPath: string) {
-        await (await fs(this.subject)).link(existingPath, newPath);
-      },
-      async lstat(path: string): Promise<IStats> {
-        return await (await fs(this.subject)).lstat(path);
-      },
-      async mkdir(path: string, options?) {
-        await (await fs(this.subject)).mkdir(path, options);
-      },
-      async readFile(path: string, encoding?) {
-        return await (await fs(this.subject)).readFile(path, encoding);
-      },
-      async readdir(path: string) {
-        return await (await fs(this.subject)).readdir(path);
-      },
-      async realpath(path: string) {
-        return await (await fs(this.subject)).realpath(path);
-      },
-      async rename(oldPath: string, newPath: string) {
-        await (await fs(this.subject)).rename(oldPath, newPath);
-      },
-      async rm(path: string, options?) {
-        await (await fs(this.subject)).rm(path, options);
-      },
-      async rmdir(path: string, options?) {
-        await (await fs(this.subject)).rmdir(path, options);
-      },
-      async stat(path: string): Promise<IStats> {
-        const s = await (await fs(this.subject)).stat(path);
-        return {
-          ...s,
-          // for some reason these times get corrupted on transport from the nodejs datastructure,
-          // so we make them standard Date objects.
-          atime: new Date(s.atime),
-          mtime: new Date(s.mtime),
-          ctime: new Date(s.ctime),
-          birthtime: new Date(s.birthtime),
-        };
-      },
-      async symlink(target: string, path: string) {
-        await (await fs(this.subject)).symlink(target, path);
-      },
-      async truncate(path: string, len?: number) {
-        await (await fs(this.subject)).truncate(path, len);
-      },
-      async unlink(path: string) {
-        await (await fs(this.subject)).unlink(path);
-      },
-      async utimes(
-        path: string,
-        atime: number | string | Date,
-        mtime: number | string | Date,
-      ) {
-        await (await fs(this.subject)).utimes(path, atime, mtime);
-      },
-      async writeFile(path: string, data: string | Buffer) {
-        await (await fs(this.subject)).writeFile(path, data);
-      },
+  client ??= conat();
+  const subject = `${service}.*`;
+  const watches: { [subject: string]: any } = {};
+  const sub = await client.service<Filesystem & { subject?: string }>(subject, {
+    async appendFile(path: string, data: string | Buffer, encoding?) {
+      await (await fs(this.subject)).appendFile(path, data, encoding);
     },
-  );
+    async chmod(path: string, mode: string | number) {
+      await (await fs(this.subject)).chmod(path, mode);
+    },
+    async constants(): Promise<{ [key: string]: number }> {
+      return await (await fs(this.subject)).constants();
+    },
+    async copyFile(src: string, dest: string) {
+      await (await fs(this.subject)).copyFile(src, dest);
+    },
+    async cp(src: string, dest: string, options?) {
+      await (await fs(this.subject)).cp(src, dest, options);
+    },
+    async exists(path: string) {
+      return await (await fs(this.subject)).exists(path);
+    },
+    async link(existingPath: string, newPath: string) {
+      await (await fs(this.subject)).link(existingPath, newPath);
+    },
+    async lstat(path: string): Promise<IStats> {
+      return await (await fs(this.subject)).lstat(path);
+    },
+    async mkdir(path: string, options?) {
+      await (await fs(this.subject)).mkdir(path, options);
+    },
+    async readFile(path: string, encoding?) {
+      return await (await fs(this.subject)).readFile(path, encoding);
+    },
+    async readdir(path: string) {
+      return await (await fs(this.subject)).readdir(path);
+    },
+    async realpath(path: string) {
+      return await (await fs(this.subject)).realpath(path);
+    },
+    async rename(oldPath: string, newPath: string) {
+      await (await fs(this.subject)).rename(oldPath, newPath);
+    },
+    async rm(path: string, options?) {
+      await (await fs(this.subject)).rm(path, options);
+    },
+    async rmdir(path: string, options?) {
+      await (await fs(this.subject)).rmdir(path, options);
+    },
+    async stat(path: string): Promise<IStats> {
+      const s = await (await fs(this.subject)).stat(path);
+      return {
+        ...s,
+        // for some reason these times get corrupted on transport from the nodejs datastructure,
+        // so we make them standard Date objects.
+        atime: new Date(s.atime),
+        mtime: new Date(s.mtime),
+        ctime: new Date(s.ctime),
+        birthtime: new Date(s.birthtime),
+      };
+    },
+    async symlink(target: string, path: string) {
+      await (await fs(this.subject)).symlink(target, path);
+    },
+    async truncate(path: string, len?: number) {
+      await (await fs(this.subject)).truncate(path, len);
+    },
+    async unlink(path: string) {
+      await (await fs(this.subject)).unlink(path);
+    },
+    async utimes(
+      path: string,
+      atime: number | string | Date,
+      mtime: number | string | Date,
+    ) {
+      await (await fs(this.subject)).utimes(path, atime, mtime);
+    },
+    async writeFile(path: string, data: string | Buffer) {
+      await (await fs(this.subject)).writeFile(path, data);
+    },
+    async watch() {
+      const subject = this.subject!;
+      if (watches[subject] != null) {
+        return;
+      }
+      const f = await fs(subject);
+      watches[subject] = watchServer({
+        client,
+        subject: subject!,
+        watch: f.watch,
+      });
+    },
+  });
+  return {
+    close: () => {
+      for (const subject in watches) {
+        watches[subject].close();
+        delete watches[subject];
+      }
+      sub.close();
+    },
+  };
 }
 
 export function fsClient({
@@ -189,7 +213,8 @@ export function fsClient({
   client?: Client;
   subject: string;
 }): Filesystem {
-  let call = (client ?? conat()).call<Filesystem>(subject);
+  client ??= conat();
+  let call = client.call<Filesystem>(subject);
 
   let constants: any = null;
   const stat0 = call.stat.bind(call);
@@ -212,6 +237,12 @@ export function fsClient({
       stats[k] = s[k];
     }
     return stats;
+  };
+
+  const ensureWatchServerExists = call.watch.bind(call);
+  call.watch = async (path: string, options?) => {
+    await ensureWatchServerExists(path, options);
+    return await watchClient({ client, subject, path, options });
   };
 
   return call;

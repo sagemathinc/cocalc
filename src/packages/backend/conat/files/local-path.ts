@@ -27,7 +27,7 @@ export async function localPathFileserver({
       return new SandboxedFilesystem(p);
     },
   });
-  return { server, client, path, service, close: () => server.end() };
+  return { server, client, path, service, close: () => server.close() };
 }
 
 function getProjectId(subject: string) {
