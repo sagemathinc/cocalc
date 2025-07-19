@@ -90,8 +90,7 @@ async function handleMessage(mesg, evaluate) {
   }) => {
     seq += 1;
     try {
-      // mesg.respondSync({ text, error, seq });
-      const { count } = await mesg.respond({ text, error, seq });
+      await mesg.respond({ text, error, seq });
     } catch (err) {
       logger.debug("WARNING: error sending response -- ", err);
       end();

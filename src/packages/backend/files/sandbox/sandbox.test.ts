@@ -126,6 +126,44 @@ describe("test watching a file and a folder in the sandbox", () => {
     const { done } = await w.next();
     expect(done).toBe(true);
   });
+
+  it("watches a directory", async () => {
+    await fs.mkdir("folder");
+    const w = await fs.watch("folder");
+
+    await fs.writeFile("folder/x", "hi");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "rename", filename: "x" },
+    });
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "change", filename: "x" },
+    });
+
+    await fs.appendFile("folder/x", "xxx");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "change", filename: "x" },
+    });
+
+    await fs.writeFile("folder/z", "there");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "rename", filename: "z" },
+    });
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "change", filename: "z" },
+    });
+
+    // this is correct -- from the node docs "On most platforms, 'rename' is emitted whenever a filename appears or disappears in the directory."
+    await fs.unlink("folder/z");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { eventType: "rename", filename: "z" },
+    });
+  });
 });
 
 afterAll(async () => {
