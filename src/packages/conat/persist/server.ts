@@ -59,7 +59,6 @@ import {
   type ConatSocketServer,
   type ServerSocket,
 } from "@cocalc/conat/socket";
-import { getLogger } from "@cocalc/conat/client";
 import type {
   StoredMessage,
   PersistentStream,
@@ -70,6 +69,7 @@ import { throttle } from "lodash";
 import { type SetOptions } from "./client";
 import { once } from "@cocalc/util/async-utils";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
+import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("persist:server");
 
