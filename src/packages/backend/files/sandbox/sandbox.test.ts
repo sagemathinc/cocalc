@@ -63,6 +63,7 @@ describe("test watching a file and a folder in the sandbox", () => {
   });
 
   it("watches the file x for changes", async () => {
+    await fs.writeFile("x", "hi");
     const w = await fs.watch("x");
     await fs.appendFile("x", " there");
     const x = await w.next();
@@ -74,6 +75,7 @@ describe("test watching a file and a folder in the sandbox", () => {
   });
 
   it("the maxQueue parameter limits the number of queue events", async () => {
+    await fs.writeFile("x", "hi");
     const w = await fs.watch("x", { maxQueue: 2 });
     expect(w.queueSize()).toBe(0);
     // make many changes
@@ -96,6 +98,33 @@ describe("test watching a file and a folder in the sandbox", () => {
     // one more next would hang...
     expect(w.queueSize()).toBe(0);
     w.end();
+  });
+
+  it("maxQueue with overflow throw", async () => {
+    await fs.writeFile("x", "hi");
+    const w = await fs.watch("x", { maxQueue: 2, overflow: "throw" });
+    await fs.appendFile("x", "0");
+    await fs.appendFile("x", "0");
+    await fs.appendFile("x", "0");
+    expect(async () => {
+      await w.next();
+    }).rejects.toThrow("maxQueue overflow");
+    w.end();
+  });
+
+  it("AbortController works", async () => {
+    const ac = new AbortController();
+    const { signal } = ac;
+    await fs.writeFile("x", "hi");
+    const w = await fs.watch("x", { signal });
+    await fs.appendFile("x", "0");
+    const e = await w.next();
+    expect(e.done).toBe(false);
+
+    // now abort
+    ac.abort();
+    const { done } = await w.next();
+    expect(done).toBe(true);
   });
 });
 

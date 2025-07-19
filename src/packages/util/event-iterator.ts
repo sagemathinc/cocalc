@@ -49,6 +49,11 @@ export interface EventIteratorOptions<V> {
 
   // Specifies the number of events to queue between iterations of the <AsyncIterator> returned.
   maxQueue?: number;
+
+  // Either 'ignore' or 'throw' when there are more events to be queued than maxQueue allows.
+  // 'ignore' means overflow events are dropped and a warning is emitted, while
+  // 'throw' means to throw an exception. Default: 'ignore'.
+  overflow?: "ignore" | "throw";
 }
 
 /**
@@ -104,6 +109,9 @@ export class EventIterator<V extends unknown>
   readonly #limit: number;
 
   readonly #maxQueue: number;
+  readonly #overflow?: "ignore" | "throw";
+
+  private resolveNext?: Function;
 
   /**
    * The timer to track when this will idle out.
@@ -130,6 +138,7 @@ export class EventIterator<V extends unknown>
     this.map = options.map ?? ((args) => args);
     this.#limit = options.limit ?? Infinity;
     this.#maxQueue = options.maxQueue ?? Infinity;
+    this.#overflow = options.overflow ?? "ignore";
     this.#idle = options.idle;
     this.filter = options.filter ?? ((): boolean => true);
     this.onEnd = options.onEnd;
@@ -158,6 +167,7 @@ export class EventIterator<V extends unknown>
    */
   public end(): void {
     if (this.#ended) return;
+    this.resolveNext?.();
     this.#ended = true;
     this.#queue = [];
 
@@ -171,14 +181,9 @@ export class EventIterator<V extends unknown>
   // aliases to match usage in NATS and CoCalc.
   close = this.end;
   stop = this.end;
-
-  drain(): void {
-    // just immediately end
-    this.end();
-    // [ ] TODO: for compat.  I'm not sure what this should be
-    // or if it matters...
-    // console.log("WARNING: TODO -- event-iterator drain not implemented");
-  }
+  // TODO/worry: drain doesn't do anything special to address outstanding
+  // requests like NATS did.  Probably this isn't the place for it...
+  drain = this.end;
 
   /**
    * The next value that's received from the EventEmitter.
@@ -232,10 +237,18 @@ export class EventIterator<V extends unknown>
 
       // Once it has received at least one value, we will clear the timer (if defined),
       // and resolve with the new value:
-      this.emitter.once(this.event, () => {
-        if (idleTimer) clearTimeout(idleTimer);
+      const handleEvent = () => {
+        delete this.resolveNext;
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+        }
         resolve(this.next());
-      });
+      };
+      this.emitter.once(this.event, handleEvent);
+      this.resolveNext = () => {
+        this.emitter.removeListener(this.event, handleEvent);
+        resolve({ done: true, value: undefined });
+      };
     });
   }
 
@@ -266,10 +279,16 @@ export class EventIterator<V extends unknown>
    * Pushes a value into the queue.
    */
   protected push(...args): void {
+    if (this.err) {
+      return;
+    }
     try {
       const value = this.map(args);
       this.#queue.push(value);
       while (this.#queue.length > this.#maxQueue && this.#queue.length > 0) {
+        if (this.#overflow == "throw") {
+          throw Error("maxQueue overflow");
+        }
         this.#queue.shift();
       }
     } catch (err) {

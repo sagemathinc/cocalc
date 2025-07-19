@@ -231,13 +231,24 @@ export class SandboxedFilesystem {
     await utimes(await this.safeAbsPath(path), atime, mtime);
   };
 
-  watch = async (filename: string, options?) => {
+  watch = async (
+    filename: string,
+    options?: {
+      persistent?: boolean;
+      recursive?: boolean;
+      encoding?: string;
+      signal?: AbortSignal;
+      maxQueue?: number;
+      overflow?: "ignore" | "throw";
+    },
+  ) => {
     // NOTE: in node v24 they fixed the fs/promises watch to have a queue, but previous
     // versions were clearly badly implemented so we reimplement it from scratch
     // using the non-promise watch.
-    const watcher = watch(await this.safeAbsPath(filename), options);
-    return new EventIterator(watcher, "change", {
+    const watcher = watch(await this.safeAbsPath(filename), options as any);
+    const iter = new EventIterator(watcher, "change", {
       maxQueue: options?.maxQueue ?? 2048,
+      overflow: options?.overflow,
       map: (args) => {
         // exact same api as new fs/promises watch
         return { eventType: args[0], filename: args[1] };
@@ -246,6 +257,11 @@ export class SandboxedFilesystem {
         watcher.close();
       },
     });
+    // AbortController signal can cause this
+    watcher.once("close", () => {
+      iter.end();
+    });
+    return iter;
   };
 
   writeFile = async (path: string, data: string | Buffer) => {

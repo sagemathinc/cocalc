@@ -14,6 +14,9 @@ how paying for that would work.
 import { conat } from "@cocalc/conat/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import type { Subscription } from "@cocalc/conat/core/client";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("conat:llm:server");
 
 export const SUBJECT = process.env.COCALC_TEST_MODE ? "llm-test" : "llm";
 
@@ -61,7 +64,7 @@ export async function close() {
   if (sub == null) {
     return;
   }
-  sub.drain();
+  sub.close();
   sub = null;
 }
 
@@ -77,24 +80,37 @@ async function listen(evaluate) {
 async function handleMessage(mesg, evaluate) {
   const options = mesg.data;
 
-  let seq = 0;
-  const respond = ({ text, error }: { text?: string; error?: string }) => {
-    mesg.respondSync({ text, error, seq });
+  let seq = -1;
+  const respond = async ({
+    text,
+    error,
+  }: {
+    text?: string;
+    error?: string;
+  }) => {
     seq += 1;
+    try {
+      // mesg.respondSync({ text, error, seq });
+      const { count } = await mesg.respond({ text, error, seq });
+    } catch (err) {
+      logger.debug("WARNING: error sending response -- ", err);
+      end();
+    }
   };
 
   let done = false;
-  const end = () => {
+  const end = async () => {
     if (done) return;
     done = true;
-    // end response stream with null payload.
-    mesg.respondSync(null);
+    // end response stream with null payload -- send sync, or it could
+    // get sent before the responses above, which would cancel them out!
+    await mesg.respond(null, { noThrow: true });
   };
 
-  const stream = (text?) => {
+  const stream = async (text?) => {
     if (done) return;
     if (text != null) {
-      respond({ text });
+      await respond({ text });
     } else {
       end();
     }

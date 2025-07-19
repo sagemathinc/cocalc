@@ -18,7 +18,7 @@ beforeAll(before);
 
 describe("create an llm server, client, and stub evaluator, and run an evaluation", () => {
   // define trivial evaluate
-  const OUTPUT = "Thanks for asing about ";
+  const OUTPUT = "Thanks for asking about ";
   async function evaluate({ input, stream }) {
     stream(OUTPUT);
     stream(input);
@@ -52,7 +52,7 @@ describe("create an llm server, client, and stub evaluator, and run an evaluatio
 
 describe("test an evaluate that throws an error half way through", () => {
   // define trivial evaluate
-  const OUTPUT = "Thanks for asing about ";
+  const OUTPUT = "Thanks for asking about ";
   const ERROR = "I give up";
   async function evaluate({ stream }) {
     stream(OUTPUT);
