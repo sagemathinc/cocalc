@@ -1,5 +1,4 @@
-import syncstring from "@cocalc/backend/conat/sync-doc/syncstring";
-import { before, after, getFS, uuid, wait, connect } from "./setup";
+import { before, after, uuid, wait, connect, syncstring, getFS } from "./setup";
 
 beforeAll(before);
 afterAll(after);
@@ -7,24 +6,24 @@ afterAll(after);
 describe("loading/saving syncstring to disk and setting values", () => {
   let s;
   const project_id = uuid();
-  let fs, conat;
+  let client;
 
   it("creates the fs client", () => {
-    conat = connect();
-    fs = getFS(project_id, conat);
+    client = connect();
   });
 
   it("a syncstring associated to a file that does not exist on disk is initialized to the empty string", async () => {
-    s = await syncstring({ fs, project_id, path: "new.txt", conat });
+    s = await syncstring({ project_id, path: "new.txt", client });
     expect(s.to_str()).toBe("");
     expect(s.versions().length).toBe(0);
     s.close();
   });
 
+  let fs;
   it("a syncstring for editing a file that already exists on disk is initialized to that file", async () => {
-    fs = getFS(project_id, conat);
+    fs = getFS(project_id, client);
     await fs.writeFile("a.txt", "hello");
-    s = await syncstring({ fs, project_id, path: "a.txt", conat });
+    s = await syncstring({ project_id, path: "a.txt", client });
     expect(s.fs).not.toEqual(undefined);
   });
 
@@ -64,24 +63,20 @@ describe("loading/saving syncstring to disk and setting values", () => {
 
 describe("synchronized editing with two copies of a syncstring", () => {
   const project_id = uuid();
-  let s1, s2, fs1, fs2, client1, client2;
+  let s1, s2, client1, client2;
 
   it("creates the fs client and two copies of a syncstring", async () => {
     client1 = connect();
     client2 = connect();
-    fs1 = getFS(project_id, client1);
     s1 = await syncstring({
-      fs: fs1,
       project_id,
       path: "a.txt",
-      conat: client1,
+      client: client1,
     });
-    fs2 = getFS(project_id, client2);
     s2 = await syncstring({
-      fs: fs2,
       project_id,
       path: "a.txt",
-      conat: client2,
+      client: client2,
     });
     expect(s1.to_str()).toBe("");
     expect(s2.to_str()).toBe("");

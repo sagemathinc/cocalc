@@ -10,11 +10,14 @@ import { PubSub } from "@cocalc/conat/sync/pubsub";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { type ConatSyncTable } from "@cocalc/conat/sync/synctable";
 
-export class Client extends EventEmitter implements Client0 {
-  private conat: ConatClient;
-  constructor(conat: ConatClient) {
+export class SyncClient extends EventEmitter implements Client0 {
+  private client: ConatClient;
+  constructor(client: ConatClient) {
     super();
-    this.conat = conat;
+    if (client == null) {
+      throw Error("client must be specified");
+    }
+    this.client = client;
   }
 
   is_project = (): boolean => false;
@@ -26,11 +29,11 @@ export class Client extends EventEmitter implements Client0 {
   };
 
   is_connected = (): boolean => {
-    return this.conat.isConnected();
+    return this.client.isConnected();
   };
 
   is_signed_in = (): boolean => {
-    return this.conat.isSignedIn();
+    return this.client.isSignedIn();
   };
 
   touch_project = (_): void => {};
@@ -43,18 +46,18 @@ export class Client extends EventEmitter implements Client0 {
 
   synctable_conat = async (query0, options?): Promise<ConatSyncTable> => {
     const { query } = parseQueryWithOptions(query0, options);
-    return await this.conat.sync.synctable({
+    return await this.client.sync.synctable({
       ...options,
       query,
     });
   };
 
   pubsub_conat = async (opts): Promise<PubSub> => {
-    return new PubSub({ client: this.conat, ...opts });
+    return new PubSub({ client: this.client, ...opts });
   };
 
   // account_id or project_id
-  client_id = (): string => this.conat.id;
+  client_id = (): string => this.client.id;
 
   server_time = (): Date => {
     return new Date();

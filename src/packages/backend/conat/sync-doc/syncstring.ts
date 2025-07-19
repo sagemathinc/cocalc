@@ -1,25 +1,30 @@
-import { Client } from "./client";
+import { SyncClient } from "./sync-client";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
-import { type SyncDocFilesystem } from "@cocalc/sync/editor/generic/sync-doc";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { fsClient } from "@cocalc/conat/files/fs";
 
 export default async function syncstring({
-  fs,
   project_id,
   path,
-  conat,
+  client,
+  // name of the file server that hosts this document:
+  service,
 }: {
-  fs: SyncDocFilesystem;
   project_id: string;
   path: string;
-  conat: ConatClient;
+  client: ConatClient;
+  service?: string;
 }) {
-  const client = new Client(conat);
+  const fs = fsClient({
+    subject: `${service}.project-${project_id}`,
+    client,
+  });
+  const syncClient = new SyncClient(client);
   const syncstring = new SyncString({
     project_id,
     path,
-    client,
+    client: syncClient,
     fs,
   });
   await once(syncstring, "ready");
