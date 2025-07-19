@@ -46,7 +46,6 @@ import {
   deleteRememberMe,
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
-import { fsClient } from "@cocalc/conat/files/fs";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -513,8 +512,6 @@ export class ConatClient extends EventEmitter {
   };
 
   refCacheInfo = () => refCacheInfo();
-
-  fsClient = (subject: string) => fsClient({ subject, client: this.conat() });
 }
 
 function setDeleted({ project_id, path, deleted }) {

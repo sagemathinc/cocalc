@@ -2903,9 +2903,6 @@ export class SyncDoc extends EventEmitter {
     if (this.fs != null) {
       return;
     }
-    if (this.client.path_exists == null) {
-      throw Error("legacy clients must define path_exists");
-    }
     const dbg = this.dbg("update_watch_path");
     if (this.file_watcher != null) {
       // clean up
@@ -2931,6 +2928,9 @@ export class SyncDoc extends EventEmitter {
     dbg("opening watcher...");
     if (this.state === "closed") {
       throw Error("must not be closed");
+    }
+    if (this.client.path_exists == null) {
+      throw Error("legacy clients must define path_exists");
     }
     this.watch_path = path;
     try {

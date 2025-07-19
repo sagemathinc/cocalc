@@ -63,7 +63,6 @@
     "zeromq": "^6.4.2"
   },
   "devDependencies": {
-    "@types/json-stable-stringify": "^1.0.32",
     "@types/node": "^18.16.14",
     "@types/node-cleanup": "^2.1.2"
   },

@@ -1,4 +1,4 @@
-import { before, after, uuid, wait, connect, syncstring, getFS } from "./setup";
+import { before, after, uuid, wait, connect, server } from "./setup";
 
 beforeAll(before);
 afterAll(after);
@@ -13,7 +13,11 @@ describe("loading/saving syncstring to disk and setting values", () => {
   });
 
   it("a syncstring associated to a file that does not exist on disk is initialized to the empty string", async () => {
-    s = await syncstring({ project_id, path: "new.txt", client });
+    s = await client.sync.string({
+      project_id,
+      path: "new.txt",
+      service: server.service,
+    });
     expect(s.to_str()).toBe("");
     expect(s.versions().length).toBe(0);
     s.close();
@@ -21,9 +25,13 @@ describe("loading/saving syncstring to disk and setting values", () => {
 
   let fs;
   it("a syncstring for editing a file that already exists on disk is initialized to that file", async () => {
-    fs = getFS(project_id, client);
+    fs = client.fs({ project_id, service: server.service });
     await fs.writeFile("a.txt", "hello");
-    s = await syncstring({ project_id, path: "a.txt", client });
+    s = await client.sync.string({
+      project_id,
+      path: "a.txt",
+      service: server.service,
+    });
     expect(s.fs).not.toEqual(undefined);
   });
 
@@ -68,15 +76,15 @@ describe("synchronized editing with two copies of a syncstring", () => {
   it("creates the fs client and two copies of a syncstring", async () => {
     client1 = connect();
     client2 = connect();
-    s1 = await syncstring({
+    s1 = await client1.sync.string({
       project_id,
       path: "a.txt",
-      client: client1,
+      service: server.service,
     });
-    s2 = await syncstring({
+    s2 = await client2.sync.string({
       project_id,
       path: "a.txt",
-      client: client2,
+      service: server.service,
     });
     expect(s1.to_str()).toBe("");
     expect(s2.to_str()).toBe("");

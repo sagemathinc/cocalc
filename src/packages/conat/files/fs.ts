@@ -1,6 +1,7 @@
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
 import { watchServer, watchClient } from "@cocalc/conat/files/watch";
+export const DEFAULT_FILE_SERVICE = "fs";
 
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;

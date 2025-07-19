@@ -11,7 +11,8 @@ import {
 import { type Filesystem } from "@cocalc/conat/files/fs";
 export { uuid } from "@cocalc/util/misc";
 import { fsClient } from "@cocalc/conat/files/fs";
-import syncstring0 from "@cocalc/backend/conat/sync-doc/syncstring";
+import { syncstring as syncstring0 } from "@cocalc/conat/sync-doc/syncstring";
+import { SyncString } from "@cocalc/sync/editor/string/sync";
 
 export { client0 as client };
 
@@ -29,7 +30,7 @@ export function getFS(project_id: string, client?): Filesystem {
   });
 }
 
-export async function syncstring(opts) {
+export async function syncstring(opts): Promise<SyncString> {
   return await syncstring0({ ...opts, service: server.service });
 }
 

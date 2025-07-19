@@ -1,20 +1,21 @@
-import { fsServer } from "@cocalc/conat/files/fs";
+import { fsServer, DEFAULT_FILE_SERVICE } from "@cocalc/conat/files/fs";
 import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
 import { mkdir } from "fs/promises";
 import { join } from "path";
 import { isValidUUID } from "@cocalc/util/misc";
-import { type Client, getClient } from "@cocalc/conat/core/client";
+import { type Client } from "@cocalc/conat/core/client";
+import { conat } from "@cocalc/backend/conat/conat";
 
 export async function localPathFileserver({
-  service,
   path,
+  service = DEFAULT_FILE_SERVICE,
   client,
 }: {
-  service: string;
   path: string;
+  service?: string;
   client?: Client;
 }) {
-  client ??= getClient();
+  client ??= conat();
   const server = await fsServer({
     service,
     client,

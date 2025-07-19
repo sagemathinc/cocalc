@@ -244,6 +244,12 @@ import {
 } from "@cocalc/conat/sync/dstream";
 import { akv, type AKV } from "@cocalc/conat/sync/akv";
 import { astream, type AStream } from "@cocalc/conat/sync/astream";
+import {
+  syncstring,
+  type SyncString,
+  type SyncStringOptions,
+} from "@cocalc/conat/sync-doc/syncstring";
+import { fsClient, DEFAULT_FILE_SERVICE } from "@cocalc/conat/files/fs";
 import TTL from "@isaacs/ttlcache";
 import {
   ConatSocketServer,
@@ -1462,6 +1468,19 @@ export class Client extends EventEmitter {
     return sub;
   };
 
+  fs = ({
+    project_id,
+    service = DEFAULT_FILE_SERVICE,
+  }: {
+    project_id: string;
+    service?: string;
+  }) => {
+    return fsClient({
+      subject: `${service}.project-${project_id}`,
+      client: this,
+    });
+  };
+
   sync = {
     dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
       await dkv<T>({ ...opts, client: this }),
@@ -1475,6 +1494,9 @@ export class Client extends EventEmitter {
       await astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
+    string: async (
+      opts: Omit<SyncStringOptions, "client">,
+    ): Promise<SyncString> => await syncstring({ ...opts, client: this }),
   };
 
   socket = {

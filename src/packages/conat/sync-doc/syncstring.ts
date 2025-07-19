@@ -2,24 +2,24 @@ import { SyncClient } from "./sync-client";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
-import { fsClient } from "@cocalc/conat/files/fs";
 
-export default async function syncstring({
-  project_id,
-  path,
-  client,
-  // name of the file server that hosts this document:
-  service,
-}: {
+export interface SyncStringOptions {
   project_id: string;
   path: string;
   client: ConatClient;
+  // name of the file server that hosts this document:
   service?: string;
-}) {
-  const fs = fsClient({
-    subject: `${service}.project-${project_id}`,
-    client,
-  });
+}
+
+export type { SyncString };
+
+export async function syncstring({
+  project_id,
+  path,
+  client,
+  service,
+}: SyncStringOptions): Promise<SyncString> {
+  const fs = client.fs({ service, project_id });
   const syncClient = new SyncClient(client);
   const syncstring = new SyncString({
     project_id,
