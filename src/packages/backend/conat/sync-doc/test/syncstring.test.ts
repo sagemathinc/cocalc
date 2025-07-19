@@ -38,6 +38,12 @@ describe("basic tests of a syncstring", () => {
     expect(s.versions().length).toBe(1);
   });
 
+  it("save value to disk", async () => {
+    await s.save_to_disk();
+    const disk = await fs.readFile("a.txt", "utf8");
+    expect(disk).toEqual("test");
+  });
+
   it("commit the value", () => {
     s.commit();
     expect(s.versions().length).toBe(2);

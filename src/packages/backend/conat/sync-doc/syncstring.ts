@@ -22,10 +22,6 @@ export default async function syncstring({
     ephemeral: true,
     fs,
   });
-  // replace save to disk, since otherwise unless string is empty,
-  // this will hang forever... and it is called on close.
-  // @ts-ignore
-  syncstring.save_to_disk = async () => Promise<void>;
   await once(syncstring, "ready");
   return syncstring;
 }

@@ -3188,6 +3188,17 @@ export class SyncDoc extends EventEmitter {
     return true;
   };
 
+  fsSaveToDisk = async () => {
+    const dbg = this.dbg("fsSaveToDisk");
+    if (this.client.is_deleted(this.path, this.project_id)) {
+      dbg("not saving to disk because deleted");
+      return;
+    }
+    dbg();
+    if (this.fs == null) throw Error("bug");
+    await this.fs.writeFile(this.path, this.to_str());
+  };
+
   /* Initiates a save of file to disk, then waits for the
      state to change. */
   save_to_disk = async (): Promise<void> => {
@@ -3200,6 +3211,9 @@ export class SyncDoc extends EventEmitter {
       // is difficult to ensure it all checks state
       // properly.
       return;
+    }
+    if (this.fs != null) {
+      return await this.fsSaveToDisk();
     }
     const dbg = this.dbg("save_to_disk");
     if (this.client.is_deleted(this.path, this.project_id)) {
