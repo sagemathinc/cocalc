@@ -1,5 +1,5 @@
 import { fsServer } from "@cocalc/conat/files/fs";
-import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
+import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
 import { mkdir } from "fs/promises";
 import { join } from "path";
 import { isValidUUID } from "@cocalc/util/misc";
