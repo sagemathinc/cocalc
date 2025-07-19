@@ -6,6 +6,7 @@
     "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
     "./conat": "./dist/conat/index.js",
+    "./sandbox": "./dist/sandbox/index.js",
     "./conat/sync/*": "./dist/conat/sync/*.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",

@@ -1,4 +1,4 @@
-import { SandboxedFilesystem } from "./sandbox";
+import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
