@@ -1714,6 +1714,13 @@ export class SyncDoc extends EventEmitter {
   };
 
   private pathExistsAndIsReadOnly = async (path): Promise<boolean> => {
+    if (this.client.path_exists == null) {
+      throw Error("legacy clients must define path_exists");
+    }
+    if (this.client.path_access == null) {
+      throw Error("legacy clients must define path_access");
+    }
+
     try {
       await callback2(this.client.path_access, {
         path,
@@ -1803,6 +1810,9 @@ export class SyncDoc extends EventEmitter {
   private load_from_disk_if_newer = async (): Promise<boolean> => {
     if (this.fs != null) {
       return await this.fsLoadFromDiskIfNewer();
+    }
+    if (this.client.path_exists == null) {
+      throw Error("legacy clients must define path_exists");
     }
     const last_changed = new Date(this.last_changed());
     const firstLoad = this.versions().length == 0;
@@ -2890,6 +2900,12 @@ export class SyncDoc extends EventEmitter {
   };
 
   private update_watch_path = async (path?: string): Promise<void> => {
+    if (this.fs != null) {
+      return;
+    }
+    if (this.client.path_exists == null) {
+      throw Error("legacy clients must define path_exists");
+    }
     const dbg = this.dbg("update_watch_path");
     if (this.file_watcher != null) {
       // clean up
@@ -3011,6 +3027,9 @@ export class SyncDoc extends EventEmitter {
   };
 
   private load_from_disk = async (): Promise<number> => {
+    if (this.client.path_exists == null) {
+      throw Error("legacy clients must define path_exists");
+    }
     const path = this.path;
     const dbg = this.dbg("load_from_disk");
     dbg();

@@ -104,10 +104,6 @@ export class Client extends EventEmitter implements Client0 {
     console.log("path_access", opts.path, opts.mode);
     opts.cb(true);
   }
-  path_exists(opts: { path: string; cb: Function }): void {
-    console.log("path_access", opts.path);
-    opts.cb(true);
-  }
   path_stat(opts: { path: string; cb: Function }): void {
     console.log("path_state", opts.path);
     opts.cb(true);
