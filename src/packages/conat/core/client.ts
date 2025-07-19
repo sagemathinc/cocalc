@@ -561,6 +561,10 @@ export class Client extends EventEmitter {
     setTimeout(() => this.conn.io.disconnect(), 1);
   };
 
+  isConnected = () => this.state == "connected";
+
+  isSignedIn = () => !!(this.info?.user && !this.info?.user?.error);
+
   // this has NO timeout by default
   waitUntilSignedIn = reuseInFlight(
     async ({ timeout }: { timeout?: number } = {}) => {

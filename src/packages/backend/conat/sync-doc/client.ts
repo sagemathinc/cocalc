@@ -4,14 +4,15 @@
  */
 
 import { EventEmitter } from "events";
-import { bind_methods, keys } from "@cocalc/util/misc";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0,
 } from "@cocalc/sync/editor/generic/types";
-import { SyncTable } from "@cocalc/sync/table/synctable";
-import { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
-import { once } from "@cocalc/util/async-utils";
+import { conat as conat0 } from "@cocalc/backend/conat/conat";
+import { parseQueryWithOptions } from "@cocalc/sync/table/util";
+import { PubSub } from "@cocalc/conat/sync/pubsub";
+import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { type ConatSyncTable } from "@cocalc/conat/sync/synctable";
 
 export class FileWatcher extends EventEmitter implements FileWatcher0 {
   private path: string;
@@ -20,94 +21,78 @@ export class FileWatcher extends EventEmitter implements FileWatcher0 {
     this.path = path;
     console.log("FileWatcher", this.path);
   }
-  public close(): void {}
+  close(): void {}
 }
 
 export class Client extends EventEmitter implements Client0 {
-  private _client_id: string;
-  private initial_get_query: { [table: string]: any[] };
-  public set_queries: any[] = [];
-
-  constructor(
-    initial_get_query: { [table: string]: any[] },
-    client_id: string,
-  ) {
+  private conat: ConatClient;
+  constructor(conat?: ConatClient) {
     super();
-    this._client_id = client_id;
-    this.initial_get_query = initial_get_query;
-    bind_methods(this, ["query", "dbg", "query_cancel"]);
+    this.conat = conat ?? conat0();
   }
 
-  public server_time(): Date {
-    return new Date();
-  }
+  is_project = (): boolean => false;
+  is_browser = (): boolean => true;
+  is_compute_server = (): boolean => false;
 
-  isTestClient = () => {
-    return true;
+  dbg = (_f: string) => {
+    return (..._) => {};
   };
 
-  public is_project(): boolean {
+  is_connected = (): boolean => {
+    return this.conat.isConnected();
+  };
+
+  is_signed_in = (): boolean => {
+    return this.conat.isSignedIn();
+  };
+
+  touch_project = (_): void => {};
+
+  is_deleted = (_filename: string, _project_id?: string): boolean => {
     return false;
-  }
+  };
 
-  public is_browser(): boolean {
-    return true;
-  }
+  set_deleted = (_filename: string, _project_id?: string): void => {};
 
-  public is_compute_server(): boolean {
-    return false;
-  }
+  synctable_conat = async (query0, options?): Promise<ConatSyncTable> => {
+    const { query } = parseQueryWithOptions(query0, options);
+    return await this.conat.sync.synctable({
+      ...options,
+      query,
+    });
+  };
 
-  public dbg(_f: string): Function {
-    //     return (...args) => {
-    //       console.log(_f, ...args);
-    //     };
-    return (..._) => {};
-  }
+  pubsub_conat = async (opts): Promise<PubSub> => {
+    return new PubSub({ client: this.conat, ...opts });
+  };
 
-  public mark_file(_opts: {
-    project_id: string;
-    path: string;
-    action: string;
-    ttl: number;
-  }): void {
-    //console.log("mark_file", opts);
-  }
+  // account_id or project_id
+  client_id = (): string => this.conat.id;
 
-  public log_error(opts: {
-    project_id: string;
-    path: string;
-    string_id: string;
-    error: any;
-  }): void {
-    console.log("log_error", opts);
-  }
+  server_time = (): Date => {
+    return new Date();
+  };
 
-  public query(opts): void {
-    if (opts.options && opts.options.length === 1 && opts.options[0].set) {
-      // set query
-      this.set_queries.push(opts);
-      opts.cb();
-    } else {
-      // get query -- returns predetermined result
-      const table = keys(opts.query)[0];
-      let result = this.initial_get_query[table];
-      if (result == null) {
-        result = [];
-      }
-      //console.log("GET QUERY ", table, result);
-      opts.cb(undefined, { query: { [table]: result } });
-    }
-  }
+  /////////////////////////////////
+  // EVERYTHING BELOW: TO REMOVE?
+  mark_file = (_): void => {};
 
-  path_access(opts: { path: string; mode: string; cb: Function }): void {
+  alert_message = (_): void => {};
+
+  sage_session = (_): void => {};
+
+  shell = (_): void => {};
+
+  path_access = (opts: { path: string; mode: string; cb: Function }): void => {
     console.log("path_access", opts.path, opts.mode);
     opts.cb(true);
-  }
-  path_stat(opts: { path: string; cb: Function }): void {
+  };
+  path_stat = (opts: { path: string; cb: Function }): void => {
     console.log("path_state", opts.path);
     opts.cb(true);
-  }
+  };
+
   async path_read(opts: {
     path: string;
     maxsize_MB?: number;
@@ -128,54 +113,10 @@ export class Client extends EventEmitter implements Client0 {
     return new FileWatcher(opts.path);
   }
 
-  public is_connected(): boolean {
-    return true;
-  }
+  log_error = (_): void => {};
 
-  public is_signed_in(): boolean {
-    return true;
-  }
-
-  public touch_project(_): void {}
-
-  public query_cancel(_): void {}
-
-  public alert_message(_): void {}
-
-  public is_deleted(_filename: string, _project_id?: string): boolean {
-    return false;
-  }
-
-  public set_deleted(_filename: string, _project_id?: string): void {}
-
-  async synctable_ephemeral(
-    _project_id: string,
-    query: any,
-    options: any,
-    throttle_changes?: number,
-  ): Promise<SyncTable> {
-    const s = new SyncTable(query, options, this, throttle_changes);
-    await once(s, "connected");
-    return s;
-  }
-
-  async synctable_conat(_query: any): Promise<SyncTable> {
-    throw Error("synctable_conat: not implemented");
-  }
-  async pubsub_conat(_query: any): Promise<SyncTable> {
-    throw Error("pubsub_conat: not implemented");
-  }
-
-  // account_id or project_id
-  public client_id(): string {
-    return this._client_id;
-  }
-
-  public sage_session({ path }): void {
-    console.log(`sage_session: path=${path}`);
-  }
-
-  public shell(opts: ExecuteCodeOptionsWithCallback): void {
-    console.log(`shell: opts=${JSON.stringify(opts)}`);
-  }
+  query = (_): void => {
+    throw Error("not implemented");
+  };
+  query_cancel = (_): void => {};
 }

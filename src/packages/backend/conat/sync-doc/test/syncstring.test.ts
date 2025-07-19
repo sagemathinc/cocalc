@@ -1,10 +1,10 @@
 import syncstring from "@cocalc/backend/conat/sync-doc/syncstring";
-import { before, after, getFS, uuid } from "./setup";
+import { before, after, getFS, uuid, wait, connect } from "./setup";
 
 beforeAll(before);
 afterAll(after);
 
-describe("basic tests of a syncstring", () => {
+describe("loading/saving syncstring to disk and setting values", () => {
   let s;
   const project_id = uuid();
   let fs;
@@ -58,5 +58,43 @@ describe("basic tests of a syncstring", () => {
   it("get first version", () => {
     expect(s.version(s.versions()[0]).to_str()).toBe("hello");
     expect(s.version(s.versions()[1]).to_str()).toBe("test");
+  });
+});
+
+describe.only("sync with two copies of a syncstring", () => {
+  const project_id = uuid();
+  let s1, s2, fs;
+
+  it("creates the fs client and two copies of a syncstring", async () => {
+    fs = getFS(project_id);
+    await fs.writeFile("a.txt", "hello");
+    s1 = await syncstring({ fs, project_id, path: "a.txt" });
+    s2 = await syncstring({ fs, project_id, path: "a.txt", conat: connect() });
+    expect(s1.to_str()).toBe("hello");
+    expect(s2.to_str()).toBe("hello");
+    expect(s1 === s2).toBe(false);
+  });
+
+  it("change one, commit and save, and see change reflected in the other", async () => {
+    s1.from_str("hello world");
+    s1.commit();
+    await s1.save();
+    await wait({
+      until: () => {
+        console.log(s1.to_str(), s2.to_str());
+        console.log(s1.patches_table.dstream?.name, s2.patches_table.dstream?.name);
+        console.log(s1.patches_table.get(), s2.patches_table.get());
+        console.log(s1.patch_list.patches, s2.patch_list.patches);
+        return s2.to_str() == "hello world";
+      },
+      min: 2000,
+    });
+  });
+
+  it.skip("change second and see change reflected in first", async () => {
+    s2.from_str("hello world!");
+    s2.commit();
+    await s2.save();
+    await wait({ until: () => s1.to_str() == "hello world!" });
   });
 });
