@@ -87,6 +87,22 @@ describe("use all the standard api functions of fs", () => {
     expect(t).toEqual("conat");
   });
 
+  it("the full error message structure is preserved exactly as in the nodejs library", async () => {
+    const path = randomId();
+    try {
+      await fs.readFile(path);
+    } catch (err) {
+      expect(err.message).toEqual(
+        `ENOENT: no such file or directory, open '${path}'`,
+      );
+      expect(err.message).toContain(path);
+      expect(err.code).toEqual("ENOENT");
+      expect(err.errno).toEqual(-2);
+      expect(err.path).toEqual(path);
+      expect(err.syscall).toEqual("open");
+    }
+  });
+
   it("readdir works", async () => {
     await fs.mkdir("dirtest");
     for (let i = 0; i < 5; i++) {

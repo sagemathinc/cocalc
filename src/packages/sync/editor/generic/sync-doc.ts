@@ -128,6 +128,7 @@ export type DataServer = "project" | "database";
 export interface SyncDocFilesystem {
   readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
   writeFile: (path: string, data: string | Buffer) => Promise<void>;
+  stat: (path: string) => Promise<any>; // todo
 }
 
 export interface SyncOpts0 {
@@ -272,6 +273,8 @@ export class SyncDoc extends EventEmitter {
   private useConat: boolean;
   legacy: LegacyHistory;
 
+  private fs?: SyncDocFilesystem;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -293,6 +296,7 @@ export class SyncDoc extends EventEmitter {
       "persistent",
       "data_server",
       "ephemeral",
+      "fs",
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
@@ -1505,31 +1509,34 @@ export class SyncDoc extends EventEmitter {
 
     log("file_use_interval");
     this.init_file_use_interval();
-
-    if (await this.isFileServer()) {
-      log("load_from_disk");
-      // This sets initialized, which is needed to be fully ready.
-      // We keep trying this load from disk until sync-doc is closed
-      // or it succeeds.  It may fail if, e.g., the file is too
-      // large or is not readable by the user. They are informed to
-      // fix the problem... and once they do (and wait up to 10s),
-      // this will finish.
-      //       if (!this.client.is_browser() && !this.client.is_project()) {
-      //         // FAKE DELAY!!!  Just to simulate flakiness / slow network!!!!
-      // await delay(3000);
-      //       }
-      await retry_until_success({
-        f: this.init_load_from_disk,
-        max_delay: 10000,
-        desc: "syncdoc -- load_from_disk",
-      });
-      log("done loading from disk");
+    if (this.fs != null) {
+      await this.fsLoadFromDisk();
     } else {
-      if (this.patch_list!.count() == 0) {
-        await Promise.race([
-          this.waitUntilFullyReady(),
-          once(this.patch_list!, "change"),
-        ]);
+      if (await this.isFileServer()) {
+        log("load_from_disk");
+        // This sets initialized, which is needed to be fully ready.
+        // We keep trying this load from disk until sync-doc is closed
+        // or it succeeds.  It may fail if, e.g., the file is too
+        // large or is not readable by the user. They are informed to
+        // fix the problem... and once they do (and wait up to 10s),
+        // this will finish.
+        //       if (!this.client.is_browser() && !this.client.is_project()) {
+        //         // FAKE DELAY!!!  Just to simulate flakiness / slow network!!!!
+        // await delay(3000);
+        //       }
+        await retry_until_success({
+          f: this.init_load_from_disk,
+          max_delay: 10000,
+          desc: "syncdoc -- load_from_disk",
+        });
+        log("done loading from disk");
+      } else {
+        if (this.patch_list!.count() == 0) {
+          await Promise.race([
+            this.waitUntilFullyReady(),
+            once(this.patch_list!, "change"),
+          ]);
+        }
       }
     }
     this.assert_not_closed("initAll -- load from disk");
@@ -1757,7 +1764,46 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
+  private fsLoadFromDiskIfNewer = async (): Promise<boolean> => {
+    // [ ] TODO: readonly handling...
+    if (this.fs == null) throw Error("bug");
+    const dbg = this.dbg("fsLoadFromDiskIfNewer");
+    let stats;
+    try {
+      stats = await this.fs.stat(this.path);
+    } catch (err) {
+      if (err.code == "ENOENT") {
+        // path does not exist -- nothing further to do
+        return false;
+      } else {
+        // no clue
+        return true;
+      }
+    }
+    dbg("path exists");
+    const lastChanged = new Date(this.last_changed());
+    const firstLoad = this.versions().length == 0;
+    if (firstLoad || stats.ctime > lastChanged) {
+      dbg(
+        `disk file changed more recently than edits, so loading ${stats.ctime} > ${lastChanged}; firstLoad=${firstLoad}`,
+      );
+      await this.fsLoadFromDisk();
+      if (firstLoad) {
+        dbg("emitting first-load event");
+        // this event is emited the first time the document is ever loaded from disk.
+        this.emit("first-load");
+      }
+      dbg("loaded");
+    } else {
+      dbg("stick with sync version");
+    }
+    return false;
+  };
+
   private load_from_disk_if_newer = async (): Promise<boolean> => {
+    if (this.fs != null) {
+      return await this.fsLoadFromDiskIfNewer();
+    }
     const last_changed = new Date(this.last_changed());
     const firstLoad = this.versions().length == 0;
     const dbg = this.dbg("load_from_disk_if_newer");
@@ -2936,6 +2982,32 @@ export class SyncDoc extends EventEmitter {
     dbg("delete: set_deleted and closing");
     await this.client.set_deleted(this.path, this.project_id);
     this.close();
+  };
+
+  private fsLoadFromDisk = async (): Promise<number> => {
+    if (this.fs == null) throw Error("bug");
+    const dbg = this.dbg("fsLoadFromDisk");
+
+    let size: number;
+    let contents;
+    try {
+      contents = await this.fs.readFile(this.path, "utf8");
+      dbg("file exists");
+      size = contents.length;
+      this.from_str(contents);
+    } catch (err) {
+      if (err.code == "ENOENT") {
+        dbg("file no longer exists -- setting to blank");
+        size = 0;
+        this.from_str("");
+      } else {
+        throw err;
+      }
+    }
+    // save new version to stream, which we just set via from_str
+    this.commit();
+    await this.save();
+    return size;
   };
 
   private load_from_disk = async (): Promise<number> => {

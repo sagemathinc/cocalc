@@ -188,7 +188,7 @@ export function fsClient({
 }: {
   client?: Client;
   subject: string;
-}) {
+}): Filesystem {
   let call = (client ?? conat()).call<Filesystem>(subject);
 
   let constants: any = null;

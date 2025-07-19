@@ -38,7 +38,6 @@ The problem is that 1 and 3 happen microseconds apart as separate calls to the f
 3. user somehow deletes "link" and replace it by a new file that is a symlink to "../{project_id}/.ssh/id_ed25519"
 4. We read from the file descriptor fd and get the contents of original "link" (or error).
 
-
 */
 
 import {
@@ -68,10 +67,31 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { type DirectoryListingEntry } from "@cocalc/util/types";
 import getListing from "@cocalc/backend/get-listing";
 import { join, resolve } from "path";
+import { replace_all } from "@cocalc/util/misc";
 
 export class SandboxedFilesystem {
   // path should be the path to a FOLDER on the filesystem (not a file)
-  constructor(public readonly path: string) {}
+  constructor(public readonly path: string) {
+    for (const f in this) {
+      if (f == "safeAbsPath" || f == "constructor" || f == "path") {
+        continue;
+      }
+      const orig = this[f];
+      // @ts-ignore
+      this[f] = async (...args) => {
+        try {
+          // @ts-ignore
+          return await orig(...args);
+        } catch (err) {
+          if (err.path) {
+            err.path = err.path.slice(this.path.length + 1);
+          }
+          err.message = replace_all(err.message, this.path + "/", "");
+          throw err;
+        }
+      };
+    }
+  }
 
   safeAbsPath = async (path: string): Promise<string> => {
     if (typeof path != "string") {

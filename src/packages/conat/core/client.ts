@@ -1106,9 +1106,16 @@ export class Client extends EventEmitter {
         // good for services.
         await mesg.respond(result);
       } catch (err) {
+        let error = err.message;
+        if (!error) {
+          error = `${err}`.slice("Error: ".length);
+        }
         await mesg.respond(null, {
-          noThrow: true, // we're not catching this one
-          headers: { error: `${err}` },
+          noThrow: true, // we're not catching this respond
+          headers: {
+            error,
+            error_attrs: JSON.parse(JSON.stringify(err)),
+          },
         });
       }
     };
@@ -1127,7 +1134,7 @@ export class Client extends EventEmitter {
     const call = async (name: string, args: any[]) => {
       const resp = await this.request(subject, [name, args], opts);
       if (resp.headers?.error) {
-        throw Error(`${resp.headers.error}`);
+        throw headerToError(resp.headers);
       } else {
         return resp.data;
       }
@@ -1943,4 +1950,14 @@ function toConatError(socketIoError) {
       code: 408,
     });
   }
+}
+
+export function headerToError(headers) {
+  const err = Error(headers.error);
+  if (headers.error_attrs) {
+    for (const field in headers.error_attrs) {
+      err[field] = headers.error_attrs[field];
+    }
+  }
+  return err;
 }
