@@ -6,6 +6,7 @@
     "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
     "./conat": "./dist/conat/index.js",
+    "./conat/sync/*": "./dist/conat/sync/*.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
@@ -34,6 +35,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
+    "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.12",
     "@types/jest": "^29.5.14",

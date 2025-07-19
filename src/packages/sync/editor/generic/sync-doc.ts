@@ -125,6 +125,11 @@ const DEBUG = false;
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
 
+export interface SyncDocFilesystem {
+  readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
+  writeFile: (path: string, data: string | Buffer) => Promise<void>;
+}
+
 export interface SyncOpts0 {
   project_id: string;
   path: string;
@@ -151,6 +156,9 @@ export interface SyncOpts0 {
 
   // which data/changefeed server to use
   data_server?: DataServer;
+
+  // optional filesystem interface.
+  fs?: SyncDocFilesystem;
 }
 
 export interface SyncOpts extends SyncOpts0 {
