@@ -1,31 +1,23 @@
-import { localPathFileserver } from "../local-path";
-import { link, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { link, readFile, symlink } from "node:fs/promises";
 import { join } from "path";
 import { fsClient } from "@cocalc/conat/files/fs";
 import { randomId } from "@cocalc/conat/names";
-import { before, after, client } from "@cocalc/backend/conat/test/setup";
+import { before, after } from "@cocalc/backend/conat/test/setup";
 import { uuid } from "@cocalc/util/misc";
+import { createPathFileserver, cleanupFileservers } from "./util";
 
-let tempDir;
-let tempDir2;
-beforeAll(async () => {
-  await before();
-  tempDir = await mkdtemp(join(tmpdir(), "cocalc-local-path"));
-  tempDir2 = await mkdtemp(join(tmpdir(), "cocalc-local-path-2"));
-});
+beforeAll(before);
 
 describe("use all the standard api functions of fs", () => {
-  const service = `fs-${randomId()}`;
   let server;
   it("creates the simple fileserver service", async () => {
-    server = await localPathFileserver({ client, service, path: tempDir });
+    server = await createPathFileserver();
   });
 
   const project_id = uuid();
   let fs;
   it("create a client", () => {
-    fs = fsClient({ subject: `${service}.project-${project_id}` });
+    fs = fsClient({ subject: `${server.service}.project-${project_id}` });
   });
 
   it("appendFile works", async () => {
@@ -246,25 +238,22 @@ describe("use all the standard api functions of fs", () => {
     const stats0 = await fs.stat("source1");
     expect(stats0.isSymbolicLink()).toBe(false);
   });
-
-  it("closes the service", () => {
-    server.close();
-  });
 });
 
 describe("security: dangerous symlinks can't be followed", () => {
-  const service = `fs-${randomId()}`;
   let server;
+  let tempDir;
   it("creates the simple fileserver service", async () => {
-    server = await localPathFileserver({ client, service, path: tempDir2 });
+    server = await createPathFileserver();
+    tempDir = server.path;
   });
 
   const project_id = uuid();
   const project_id2 = uuid();
   let fs, fs2;
   it("create two clients", () => {
-    fs = fsClient({ subject: `${service}.project-${project_id}` });
-    fs2 = fsClient({ subject: `${service}.project-${project_id2}` });
+    fs = fsClient({ subject: `${server.service}.project-${project_id}` });
+    fs2 = fsClient({ subject: `${server.service}.project-${project_id2}` });
   });
 
   it("create a secret in one", async () => {
@@ -276,10 +265,10 @@ describe("security: dangerous symlinks can't be followed", () => {
   // having full access internally to their sandbox fs.
   it("directly create a dangerous file that is a symlink outside of the sandbox -- this should work", async () => {
     await symlink(
-      join(tempDir2, project_id, "password"),
-      join(tempDir2, project_id2, "danger"),
+      join(tempDir, project_id, "password"),
+      join(tempDir, project_id2, "danger"),
     );
-    const s = await readFile(join(tempDir2, project_id2, "danger"), "utf8");
+    const s = await readFile(join(tempDir, project_id2, "danger"), "utf8");
     expect(s).toBe("s3cr3t");
   });
 
@@ -292,9 +281,9 @@ describe("security: dangerous symlinks can't be followed", () => {
   it("directly create a dangerous relative symlink ", async () => {
     await symlink(
       join("..", project_id, "password"),
-      join(tempDir2, project_id2, "danger2"),
+      join(tempDir, project_id2, "danger2"),
     );
-    const s = await readFile(join(tempDir2, project_id2, "danger2"), "utf8");
+    const s = await readFile(join(tempDir, project_id2, "danger2"), "utf8");
     expect(s).toBe("s3cr3t");
   });
 
@@ -309,10 +298,10 @@ describe("security: dangerous symlinks can't be followed", () => {
   // of their own folder.
   it("directly create a hard link", async () => {
     await link(
-      join(tempDir2, project_id, "password"),
-      join(tempDir2, project_id2, "danger3"),
+      join(tempDir, project_id, "password"),
+      join(tempDir, project_id2, "danger3"),
     );
-    const s = await readFile(join(tempDir2, project_id2, "danger3"), "utf8");
+    const s = await readFile(join(tempDir, project_id2, "danger3"), "utf8");
     expect(s).toBe("s3cr3t");
   });
 
@@ -328,6 +317,5 @@ describe("security: dangerous symlinks can't be followed", () => {
 
 afterAll(async () => {
   await after();
-  await rm(tempDir, { force: true, recursive: true });
-  await rm(tempDir2, { force: true, recursive: true });
+  await cleanupFileservers();
 });

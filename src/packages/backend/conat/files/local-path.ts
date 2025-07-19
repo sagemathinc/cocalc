@@ -5,7 +5,7 @@ import { join } from "path";
 import { isValidUUID } from "@cocalc/util/misc";
 import { type Client, getClient } from "@cocalc/conat/core/client";
 
-export function localPathFileserver({
+export async function localPathFileserver({
   service,
   path,
   client,
@@ -15,7 +15,7 @@ export function localPathFileserver({
   client?: Client;
 }) {
   client ??= getClient();
-  const server = fsServer({
+  const server = await fsServer({
     service,
     client,
     fs: async (subject: string) => {
@@ -27,7 +27,7 @@ export function localPathFileserver({
       return new SandboxedFilesystem(p);
     },
   });
-  return server;
+  return { server, client, path, service, close: () => server.end() };
 }
 
 function getProjectId(subject: string) {
