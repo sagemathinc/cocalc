@@ -99,6 +99,7 @@ export class SyncClient {
       data_server: undefined,
       client: this.client,
       ephemeral: false,
+      fs: undefined,
     });
     return new SyncString(opts0);
   }
@@ -122,6 +123,8 @@ export class SyncClient {
       client: this.client,
 
       ephemeral: false,
+
+      fs: undefined,
     });
     return new SyncDB(opts0);
   }

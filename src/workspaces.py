@@ -284,11 +284,7 @@ def test(args) -> None:
     success = []
 
     def status():
-        print("Status: ", {
-            "flaky": flaky,
-            "fails": fails,
-            "success": success
-        })
+        print("Status: ", {"flaky": flaky, "fails": fails, "success": success})
 
     v = packages(args)
     v.sort()
@@ -307,11 +303,15 @@ def test(args) -> None:
             print(f"TESTING {n}/{len(v)}: {path}")
             print("*")
             print("*" * 40)
-            cmd("pnpm run --if-present test", package_path)
+            if args.test_github_ci and 'test-github-ci' in open(
+                    os.path.join(package_path, 'package.json')).read():
+                cmd("pnpm run test-github-ci", package_path)
+            else:
+                cmd("pnpm run --if-present test", package_path)
             success.append(path)
 
         worked = False
-        for i in range(args.retries+1):
+        for i in range(args.retries + 1):
             try:
                 f()
                 worked = True
@@ -325,7 +325,9 @@ def test(args) -> None:
                 flaky.append(path)
                 print(f"ERROR testing {path}")
                 if args.retries - i >= 1:
-                    print(f"Trying {path} again at most {args.retries - i} more times")
+                    print(
+                        f"Trying {path} again at most {args.retries - i} more times"
+                    )
         if not worked:
             fails.append(path)
 
@@ -577,7 +579,14 @@ def main() -> None:
         "--retries",
         type=int,
         default=2,
-        help="how many times to retry a failed test suite before giving up; set to 0 to NOT retry")
+        help=
+        "how many times to retry a failed test suite before giving up; set to 0 to NOT retry"
+    )
+    subparser.add_argument(
+        '--test-github-ci',
+        const=True,
+        action="store_const",
+        help="run 'pnpm test-github-ci' if available instead of 'pnpm test'")
     packages_arg(subparser)
     subparser.set_defaults(func=test)
 

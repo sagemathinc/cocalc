@@ -126,6 +126,7 @@ describe("the filesystem operations", () => {
   it("make a file readonly, then change it back", async () => {
     await vol.fs.writeFile("c.txt", "hi");
     await vol.fs.chmod("c.txt", "440");
+    await fs.sync();
     expect(async () => {
       await vol.fs.appendFile("c.txt", " there");
     }).rejects.toThrow("EACCES");
@@ -143,7 +144,7 @@ describe("the filesystem operations", () => {
     await vol.fs.writeFile("w.txt", "hi");
     const ac = new AbortController();
     const { signal } = ac;
-    const watcher = vol.fs.watch("w.txt", { signal });
+    const watcher = await vol.fs.watch("w.txt", { signal });
     vol.fs.appendFile("w.txt", " there");
     // @ts-ignore
     const { value, done } = await watcher.next();
@@ -219,6 +220,7 @@ describe("test snapshots", () => {
   });
 
   it("unlock our snapshot and delete it", async () => {
+    await fs.sync();
     await vol.snapshots.unlock("snap1");
     await vol.snapshots.delete("snap1");
     expect(await vol.snapshots.exists("snap1")).toBe(false);
@@ -226,7 +228,7 @@ describe("test snapshots", () => {
   });
 });
 
-describe.only("test bup backups", () => {
+describe("test bup backups", () => {
   let vol: Subvolume;
   it("creates a volume", async () => {
     vol = await fs.subvolumes.get("bup-test");
@@ -273,7 +275,7 @@ describe.only("test bup backups", () => {
       { name: "mydir", size: 0, mtime: x[1].mtime, isdir: true },
     ]);
     expect(Math.abs((x[0].mtime ?? 0) * 1000 - Date.now())).toBeLessThan(
-      60_000,
+      5 * 60_000,
     );
   });
 

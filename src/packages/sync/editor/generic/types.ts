@@ -102,7 +102,7 @@ export interface ProjectClient extends EventEmitter {
   // Only required to work on project client.
   path_access: (opts: { path: string; mode: string; cb: Function }) => void;
 
-  path_exists: (opts: { path: string; cb: Function }) => void;
+  path_exists?: (opts: { path: string; cb: Function }) => void;
 
   path_stat: (opts: { path: string; cb: Function }) => void;
 
