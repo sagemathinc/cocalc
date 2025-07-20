@@ -43,6 +43,7 @@ export interface SyncTableOptions {
   start_seq?: number;
   noInventory?: boolean;
   ephemeral?: boolean;
+  noAutosave?: boolean;
 }
 
 export const createSyncTable = refCache<SyncTableOptions, ConatSyncTable>({

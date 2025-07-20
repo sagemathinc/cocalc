@@ -3,7 +3,7 @@ import { before, after, uuid, client, server, once } from "./setup";
 beforeAll(before);
 afterAll(after);
 
-const log = console.log;
+const log = process.env.BENCH ? console.log : (..._args) => {};
 
 describe("loading/saving syncstring to disk and setting values", () => {
   let s;
@@ -15,7 +15,7 @@ describe("loading/saving syncstring to disk and setting values", () => {
 
     const t0 = Date.now();
     await fs.readFile("a.txt", "utf8");
-    console.log("lower bound: time to read file", Date.now() - t0, "ms");
+    log("lower bound: time to read file", Date.now() - t0, "ms");
 
     const start = Date.now();
     s = client.sync.string({
@@ -25,7 +25,7 @@ describe("loading/saving syncstring to disk and setting values", () => {
     });
     await once(s, "ready");
     const total = Date.now() - start;
-    log("time to open", total);
+    log("actual time to open sync document", total);
 
     expect(s.to_str()).toBe("hello");
   });

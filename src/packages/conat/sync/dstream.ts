@@ -290,6 +290,7 @@ export class DStream<T = any> extends EventEmitter {
   };
 
   save = reuseInFlight(async () => {
+    //console.log("save", this.noAutosave);
     await until(
       async () => {
         if (this.isClosed()) {

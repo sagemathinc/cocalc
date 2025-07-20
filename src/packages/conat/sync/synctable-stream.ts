@@ -45,6 +45,7 @@ export class SyncTableStream extends EventEmitter {
   private config?: Partial<Configuration>;
   private start_seq?: number;
   private noInventory?: boolean;
+  private noAutosave?: boolean;
   private ephemeral?: boolean;
 
   constructor({
@@ -57,6 +58,7 @@ export class SyncTableStream extends EventEmitter {
     start_seq,
     noInventory,
     ephemeral,
+    noAutosave,
   }: {
     query;
     client: Client;
@@ -67,10 +69,12 @@ export class SyncTableStream extends EventEmitter {
     start_seq?: number;
     noInventory?: boolean;
     ephemeral?: boolean;
+    noAutosave?: boolean;
   }) {
     super();
     this.client = client;
     this.noInventory = noInventory;
+    this.noAutosave = noAutosave;
     this.ephemeral = ephemeral;
     this.setMaxListeners(1000);
     this.getHook = immutable ? fromJS : (x) => x;
@@ -107,6 +111,7 @@ export class SyncTableStream extends EventEmitter {
       start_seq: this.start_seq,
       noInventory: this.noInventory,
       ephemeral: this.ephemeral,
+      noAutosave: this.noAutosave,
     });
     this.dstream.on("change", (mesg) => {
       this.handle(mesg, true);

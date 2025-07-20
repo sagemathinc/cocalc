@@ -160,6 +160,10 @@ export interface SyncOpts0 {
 
   // optional filesystem interface.
   fs?: SyncDocFilesystem;
+
+  // if true, do not implicitly save on commit.  This is very
+  // useful for unit testing to easily simulate offline state.
+  noAutosave?: boolean;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -275,6 +279,8 @@ export class SyncDoc extends EventEmitter {
 
   private fs?: SyncDocFilesystem;
 
+  private noAutosave?: boolean;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -297,6 +303,7 @@ export class SyncDoc extends EventEmitter {
       "data_server",
       "ephemeral",
       "fs",
+      "noAutosave",
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
@@ -1289,6 +1296,7 @@ export class SyncDoc extends EventEmitter {
         desc: { path: this.path },
         start_seq: this.last_seq,
         ephemeral,
+        noAutosave: this.noAutosave,
       });
 
       if (this.last_seq) {
@@ -1308,6 +1316,7 @@ export class SyncDoc extends EventEmitter {
             atomic: true,
             desc: { path: this.path },
             ephemeral,
+            noAutosave: this.noAutosave,
           });
 
           // also find the correct last_seq:
@@ -1355,6 +1364,7 @@ export class SyncDoc extends EventEmitter {
         immutable: true,
         desc: { path: this.path },
         ephemeral,
+        noAutosave: this.noAutosave,
       });
     } else if (this.useConat && query.ipywidgets) {
       synctable = await this.client.synctable_conat(query, {
@@ -1370,6 +1380,7 @@ export class SyncDoc extends EventEmitter {
         config: { max_age: 1000 * 60 * 60 * 24 },
         desc: { path: this.path },
         ephemeral: true, // ipywidgets state always ephemeral
+        noAutosave: this.noAutosave,
       });
     } else if (this.useConat && (query.eval_inputs || query.eval_outputs)) {
       synctable = await this.client.synctable_conat(query, {
@@ -1383,6 +1394,7 @@ export class SyncDoc extends EventEmitter {
         config: { max_age: 5 * 60 * 1000 },
         desc: { path: this.path },
         ephemeral: true, // eval state (for sagews) is always ephemeral
+        noAutosave: this.noAutosave,
       });
     } else if (this.useConat) {
       synctable = await this.client.synctable_conat(query, {
@@ -1395,6 +1407,7 @@ export class SyncDoc extends EventEmitter {
         immutable: true,
         desc: { path: this.path },
         ephemeral,
+        noAutosave: this.noAutosave,
       });
     } else {
       // only used for unit tests and the ephemeral messaging composer
@@ -3181,10 +3194,15 @@ export class SyncDoc extends EventEmitter {
   // fine offline, and does not wait until anything
   // is saved to the network, etc.
   commit = (emitChangeImmediately = false): boolean => {
-    if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
+    if (
+      this.last == null ||
+      this.doc == null ||
+      (this.last.is_equal(this.doc) &&
+        (this.patch_list?.getHeads().length ?? 0) <= 1)
+    ) {
       return false;
     }
-    // console.trace('commit');
+    // console.trace("commit");
 
     if (emitChangeImmediately) {
       // used for local clients.   NOTE: don't do this without explicit
@@ -3197,12 +3215,14 @@ export class SyncDoc extends EventEmitter {
 
     // Now save to backend as a new patch:
     this.emit("user-change");
-    const patch = this.last.make_patch(this.doc); // must be nontrivial
+    const patch = this.last.make_patch(this.doc);
     this.last = this.doc;
     // ... and save that to patches table
     const time = this.next_patch_time();
     this.commit_patch(time, patch);
-    this.save(); // so eventually also gets sent out.
+    if (!this.noAutosave) {
+      this.save(); // so eventually also gets sync'd out to other clients
+    }
     this.touchProject();
     return true;
   };
@@ -3626,10 +3646,13 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
-    // Critical to save what we have now so it doesn't get overwritten during
-    // before-change or setting this.doc below.  This caused
-    //    https://github.com/sagemathinc/cocalc/issues/5871
-    this.commit();
+    if (!this.last.is_equal(this.doc)) {
+      // If live versions differs from last commit (or merge of heads), it is
+      // commit what we have now so it doesn't get overwritten during
+      // before-change or setting this.doc below.  This caused
+      //    https://github.com/sagemathinc/cocalc/issues/5871
+      this.commit();
+    }
 
     if (upstreamPatches && this.state == "ready") {
       // First save any unsaved changes from the live document, which this
@@ -3637,10 +3660,12 @@ export class SyncDoc extends EventEmitter {
       // rapidly changing live editor with changes not yet saved here.
       this.emit("before-change");
       // As a result of the emit in the previous line, all kinds of
-      // nontrivial listener code probably just ran, and it should
+      // nontrivial listener code may have just ran, and it could
       // have updated this.doc.  We commit this.doc, so that the
       // upstream patches get applied against the correct live this.doc.
-      this.commit();
+      if (!this.last.is_equal(this.doc)) {
+        this.commit();
+      }
     }
 
     // Compute the global current state of the document,

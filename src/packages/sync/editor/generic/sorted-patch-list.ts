@@ -102,7 +102,7 @@ export class SortedPatchList extends EventEmitter {
   };
 
   /* Choose the next available time in ms that is congruent to
-     m modulo n and is larger than any current times.  
+     m modulo n and is larger than any current times.
      This is a LOGICAL TIME; it does not have to equal the
      actual wall clock.  The key is that it is increasing.
      The congruence condition is so that any time
@@ -134,9 +134,13 @@ export class SortedPatchList extends EventEmitter {
     if (n <= 0) {
       n = 1;
     }
-    let a = m - (time % n);
+    // we add 50 to the modulus so that if a bunch of new users are joining at the exact same moment,
+    // they don't have to be instantly aware of each other for this to keep working. Basically, we
+    // give ourself a buffer of 10
+    const modulus = n + 10;
+    let a = m - (time % modulus);
     if (a < 0) {
-      a += n;
+      a += modulus;
     }
     time += a; // now time = m (mod n)
     // There is also no possibility of a conflict with a known time
