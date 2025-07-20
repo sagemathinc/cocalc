@@ -151,11 +151,10 @@ describe("the filesystem operations", () => {
     expect(done).toBe(false);
     expect(value).toEqual({ eventType: "change", filename: "w.txt" });
     ac.abort();
-
-    expect(async () => {
-      // @ts-ignore
-      await watcher.next();
-    }).rejects.toThrow("aborted");
+    {
+      const { done } = await watcher.next();
+      expect(done).toBe(true);
+    }
   });
 
   it("rename a file", async () => {
