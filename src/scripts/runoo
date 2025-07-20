@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+"""
+This is just meant to be a quick and dirty python script so I can run other
+scripts (e.g., a unit test runner) to get a sense if they are flaky or not.:
+
+runoo 20 python test.py  # runs "python test.py" 20 times in parallel, ncpus at once
+
+"""
+
+import sys, os, time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
+
+def run_cmd(cmd, i):
+    print('\n'*10)
+    print(f'Loop: {i+1} , Time: {round(time.time() - start)}, Command: {cmd}')
+    ret = os.system(cmd)
+    if ret:
+        raise RuntimeError(f'Command failed on run {i+1}')
+    return ret
+
+if __name__ == '__main__':
+    n = int(sys.argv[1])
+    cmd = ' '.join(sys.argv[2:])
+    k = multiprocessing.cpu_count()
+    start = time.time()
+
+    with ProcessPoolExecutor(max_workers=k) as executor:
+        futures = [executor.submit(run_cmd, cmd, i) for i in range(n)]
+        for f in as_completed(futures):
+            f.result()  # Raises exception if failed

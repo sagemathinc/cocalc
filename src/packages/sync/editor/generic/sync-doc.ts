@@ -1626,7 +1626,7 @@ export class SyncDoc extends EventEmitter {
       // normally this only happens in a later event loop,
       // so force it now.
       dbg("handling patch update queue since", this.patch_list.count());
-      await this.handle_patch_update_queue();
+      await this.handle_patch_update_queue(true);
       assertDefined(this.patch_list);
       dbg("done handling, now ", this.patch_list.count());
       if (this.patch_list.count() === 0) {
@@ -1636,7 +1636,7 @@ export class SyncDoc extends EventEmitter {
         // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
         await once(this.patches_table, "change");
         dbg("got patches_table change");
-        await this.handle_patch_update_queue();
+        await this.handle_patch_update_queue(true);
         dbg("handled update queue");
       }
     }
@@ -2269,7 +2269,7 @@ export class SyncDoc extends EventEmitter {
       // above async waits could have resulted in state change.
       return;
     }
-    await this.handle_patch_update_queue();
+    await this.handle_patch_update_queue(true);
     if (this.state != "ready") {
       return;
     }
@@ -3539,7 +3539,7 @@ export class SyncDoc extends EventEmitter {
   Whenever new patches are added to this.patches_table,
   their timestamp gets added to this.patch_update_queue.
   */
-  private handle_patch_update_queue = async (): Promise<void> => {
+  private handle_patch_update_queue = async (save = false): Promise<void> => {
     const dbg = this.dbg("handle_patch_update_queue");
     try {
       this.handle_patch_update_queue_running = true;
@@ -3574,9 +3574,11 @@ export class SyncDoc extends EventEmitter {
 
         dbg("waiting for remote and doc to sync...");
         this.sync_remote_and_doc(v.length > 0);
-        await this.patches_table.save();
-        if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
-        dbg("remote and doc now synced");
+        if (save || !this.noAutosave) {
+          await this.patches_table.save();
+          if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
+          dbg("remote and doc now synced");
+        }
 
         if (this.patch_update_queue.length > 0) {
           // It is very important that next loop happen in a later

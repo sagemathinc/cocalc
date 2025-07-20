@@ -32,6 +32,7 @@ describe("synchronized editing with branching and merging", () => {
       project_id,
       path: "a.txt",
       service: server.service,
+      noAutosave: true,
     });
     await once(s1, "ready");
 
@@ -39,6 +40,7 @@ describe("synchronized editing with branching and merging", () => {
       project_id,
       path: "a.txt",
       service: server.service,
+      noAutosave: true,
     });
     await once(s2, "ready");
     expect(s1.to_str()).toBe("");
@@ -52,7 +54,7 @@ describe("synchronized editing with branching and merging", () => {
     s1.commit();
     // delay so s2's time is always bigger than s1's so our unit test
     // is well defined
-    await delay(1);
+    await delay(75);
     s2.commit();
     await s1.save();
     await s2.save();
@@ -88,7 +90,7 @@ describe("synchronized editing with branching and merging", () => {
   it("set values inconsistently again and explicitly resolve the merge conflict in a way that is different than the default", async () => {
     s1.from_str("xy1");
     s1.commit();
-    await delay(1);
+    await delay(75);
     s2.from_str("xy2");
     s2.commit();
     await s1.save();
@@ -101,6 +103,7 @@ describe("synchronized editing with branching and merging", () => {
     // how we resolve the conflict
     s1.from_str("xy3");
     s1.commit();
+    await s1.save();
     await waitUntilSynced([s1, s2]);
 
     // everybody has this state now
@@ -109,7 +112,7 @@ describe("synchronized editing with branching and merging", () => {
   });
 });
 
-describe.only("do the example in the blog post 'Lies I was Told About Collaborative Editing, Part 1: Algorithms for offline editing' -- https://www.moment.dev/blog/lies-i-was-told-pt-1", () => {
+describe("do the example in the blog post 'Lies I was Told About Collaborative Editing, Part 1: Algorithms for offline editing' -- https://www.moment.dev/blog/lies-i-was-told-pt-1", () => {
   const project_id = uuid();
   let client1, client2;
 
@@ -123,15 +126,21 @@ describe.only("do the example in the blog post 'Lies I was Told About Collaborat
       project_id,
       path,
       service: server.service,
+      noAutosave: true,
     });
     await once(alice, "ready");
+    await alice.save();
 
     const bob = client2.sync.string({
       project_id,
       path,
       service: server.service,
+      noAutosave: true,
     });
     await once(bob, "ready");
+    await bob.save();
+    await waitUntilSynced([bob, alice]);
+
     return { alice, bob };
   }
 
@@ -189,11 +198,12 @@ describe.only("do the example in the blog post 'Lies I was Told About Collaborat
     expect(bob.to_str()).toEqual("");
   });
 
-  it("There are in fact two heads right now, and either party can resolve the merge conflict however they want.", async () => {
+  it("There are two heads; either client can resolve the merge conflict.", async () => {
     expect(alice.patch_list.getHeads().length).toBe(2);
     expect(bob.patch_list.getHeads().length).toBe(2);
     bob.from_str("The Colour of Pomegranates");
     bob.commit();
+    await bob.save();
 
     await waitUntilSynced([bob, alice]);
     expect(alice.to_str()).toEqual("The Colour of Pomegranates");

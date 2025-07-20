@@ -56,8 +56,13 @@ export class SyncClient extends EventEmitter implements Client0 {
     return new PubSub({ client: this.client, ...opts });
   };
 
-  // account_id or project_id
-  client_id = (): string => this.client.id;
+  // account_id or project_id or hub_id or fallback client.id
+  client_id = (): string => {
+    const user = this.client.info?.user;
+    return (
+      user?.account_id ?? user?.project_id ?? user?.hub_id ?? this.client.id
+    );
+  };
 
   server_time = (): Date => {
     return new Date();
