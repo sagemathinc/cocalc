@@ -249,6 +249,11 @@ import {
   type SyncString,
   type SyncStringOptions,
 } from "@cocalc/conat/sync-doc/syncstring";
+import {
+  syncdb,
+  type SyncDB,
+  type SyncDBOptions,
+} from "@cocalc/conat/sync-doc/syncdb";
 import { fsClient, DEFAULT_FILE_SERVICE } from "@cocalc/conat/files/fs";
 import TTL from "@isaacs/ttlcache";
 import {
@@ -1496,6 +1501,8 @@ export class Client extends EventEmitter {
       await createSyncTable({ ...opts, client: this }),
     string: (opts: Omit<SyncStringOptions, "client">): SyncString =>
       syncstring({ ...opts, client: this }),
+    db: (opts: Omit<SyncDBOptions, "client">): SyncDB =>
+      syncdb({ ...opts, client: this }),
   };
 
   socket = {

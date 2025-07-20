@@ -9,7 +9,7 @@ import { Document, DocType } from "../generic/types";
 
 export interface SyncDBOpts0 extends SyncOpts0 {
   primary_keys: string[];
-  string_cols: string[];
+  string_cols?: string[];
 }
 
 export interface SyncDBOpts extends SyncDBOpts0 {
@@ -25,13 +25,13 @@ export class SyncDB extends SyncDoc {
       throw Error("primary_keys must have length at least 1");
     }
     opts1.from_str = (str) =>
-      from_str(str, opts1.primary_keys, opts1.string_cols);
+      from_str(str, opts1.primary_keys, opts1.string_cols ?? []);
     opts1.doctype = {
       type: "db",
       patch_format: 1,
       opts: {
         primary_keys: opts1.primary_keys,
-        string_cols: opts1.string_cols,
+        string_cols: opts1.string_cols ?? [],
       },
     };
     super(opts1 as SyncOpts);

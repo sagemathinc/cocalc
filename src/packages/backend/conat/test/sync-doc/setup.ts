@@ -3,7 +3,7 @@ import {
   after as after0,
   client as client0,
 } from "@cocalc/backend/conat/test/setup";
-export { connect, wait, once } from "@cocalc/backend/conat/test/setup";
+export { connect, wait, once, delay } from "@cocalc/backend/conat/test/setup";
 import {
   createPathFileserver,
   cleanupFileservers,
