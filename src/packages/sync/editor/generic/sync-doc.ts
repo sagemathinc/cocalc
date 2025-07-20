@@ -117,18 +117,13 @@ import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
+import { type Filesystem } from "@cocalc/conat/files/fs";
 import { getLogger } from "@cocalc/conat/client";
 
 const DEBUG = false;
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
-
-export interface SyncDocFilesystem {
-  readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
-  writeFile: (path: string, data: string | Buffer) => Promise<void>;
-  stat: (path: string) => Promise<any>; // todo
-}
 
 export interface SyncOpts0 {
   project_id: string;
@@ -157,8 +152,8 @@ export interface SyncOpts0 {
   // which data/changefeed server to use
   data_server?: DataServer;
 
-  // optional filesystem interface.
-  fs?: SyncDocFilesystem;
+  // filesystem interface.
+  fs?: Filesystem;
 
   // if true, do not implicitly save on commit.  This is very
   // useful for unit testing to easily simulate offline state.
@@ -276,7 +271,7 @@ export class SyncDoc extends EventEmitter {
   private useConat: boolean;
   legacy: LegacyHistory;
 
-  private fs?: SyncDocFilesystem;
+  private fs?: Filesystem;
 
   private noAutosave?: boolean;
 
@@ -396,7 +391,6 @@ export class SyncDoc extends EventEmitter {
 
     // Success -- everything initialized with no issues.
     this.set_state("ready");
-    this.init_watch();
     this.emit_change(); // from nothing to something.
   };
 
@@ -1174,6 +1168,8 @@ export class SyncDoc extends EventEmitter {
     // a file change in its current state.
     this.update_watch_path(); // no input = closes it, if open
 
+    this.fsCloseFileWatcher();
+
     if (this.patch_list != null) {
       // not async -- just a data structure in memory
       this.patch_list.close();
@@ -1494,6 +1490,7 @@ export class SyncDoc extends EventEmitter {
         this.init_cursors(),
         this.init_evaluator(),
         this.init_ipywidgets(),
+        this.initFileWatcher(),
       ]);
       this.assert_not_closed(
         "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
@@ -2871,7 +2868,11 @@ export class SyncDoc extends EventEmitter {
     this.emit("metadata-change");
   };
 
-  private init_watch = async (): Promise<void> => {
+  private initFileWatcher = async (): Promise<void> => {
+    if (this.fs != null) {
+      return await this.fsInitFileWatcher();
+    }
+
     if (!(await this.isFileServer())) {
       // ensures we are NOT watching anything
       await this.update_watch_path();
@@ -3026,8 +3027,9 @@ export class SyncDoc extends EventEmitter {
       }
     }
     // save new version to stream, which we just set via from_str
-    this.commit();
+    this.commit(true);
     await this.save();
+    this.emit("after-change");
     return size;
   };
 
@@ -3229,8 +3231,12 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     dbg();
-    if (this.fs == null) throw Error("bug");
-    await this.fs.writeFile(this.path, this.to_str());
+    if (this.fs == null) {
+      throw Error("bug");
+    }
+    const value = this.to_str();
+    console.log("fs.writeFile", this.path);
+    await this.fs.writeFile(this.path, value);
   };
 
   /* Initiates a save of file to disk, then waits for the
@@ -3753,6 +3759,36 @@ export class SyncDoc extends EventEmitter {
         max: CONAT_OPEN_FILE_TOUCH_INTERVAL,
       },
     );
+  };
+
+  private fsFileWatcher?: any;
+  private fsInitFileWatcher = async () => {
+    if (this.fs == null) {
+      throw Error("this.fs must be defined");
+    }
+    console.log("watching for changes");
+    // use this.fs interface to watch path for changes.
+    this.fsFileWatcher = await this.fs.watch(this.path);
+    (async () => {
+      for await (const { eventType } of this.fsFileWatcher) {
+        console.log("got change", eventType);
+        if (eventType == "change" || eventType == "rename") {
+          await this.fsLoadFromDisk();
+        }
+        if (eventType == "rename") {
+          this.fsFileWatcher.close();
+          // start a new watcher since file descriptor changed
+          this.fsInitFileWatcher();
+          return;
+        }
+      }
+      console.log("done watching");
+    })();
+  };
+
+  private fsCloseFileWatcher = () => {
+    this.fsFileWatcher?.close();
+    delete this.fsFileWatcher;
   };
 }
 

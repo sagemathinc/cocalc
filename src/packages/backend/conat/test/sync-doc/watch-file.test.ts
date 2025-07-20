@@ -28,7 +28,7 @@ describe("basic watching of file on disk happens automatically", () => {
   });
 
   // this is not implemented yet
-  it.skip("changes the file on disk and the watcher automatically updates with no explicit call needed", async () => {
+  it("change file on disk and it automatically updates with no explicit call needed", async () => {
     await fs.writeFile(path, "changed again!");
     await wait({
       until: () => {
@@ -37,3 +37,14 @@ describe("basic watching of file on disk happens automatically", () => {
     });
   });
 });
+
+/*
+watching of file with multiple clients
+
+-- only one does the actual file load
+
+-- when one writes file to disk, another doesn't try to load it
+
+(various ways to do that: sticky fs server would mean only one is
+writing backend can ignore the resulting change event)
+*/
