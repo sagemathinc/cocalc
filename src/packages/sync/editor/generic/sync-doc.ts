@@ -81,7 +81,6 @@ import {
   cancel_scheduled,
   once,
   retry_until_success,
-  reuse_in_flight_methods,
   until,
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
@@ -342,13 +341,6 @@ export class SyncDoc extends EventEmitter {
     // to update this).
     this.cursor_last_time = this.client?.server_time();
 
-    reuse_in_flight_methods(this, [
-      "save",
-      "save_to_disk",
-      "load_from_disk",
-      "handle_patch_update_queue",
-    ]);
-
     if (this.change_throttle) {
       this.emit_change = throttle(this.emit_change, this.change_throttle);
     }
@@ -555,7 +547,7 @@ export class SyncDoc extends EventEmitter {
         await this.update_watch_path();
       } else {
         // load our state from the disk
-        await this.load_from_disk();
+        await this.readFile();
         // we were not acting as the file server, but now we need. Let's
         // step up to the plate.
         // start watching filesystem
@@ -1845,7 +1837,7 @@ export class SyncDoc extends EventEmitter {
           dbg(
             `disk file changed more recently than edits (or first load), so loading, ${stats.ctime} > ${last_changed}; firstLoad=${firstLoad}`,
           );
-          size = await this.load_from_disk();
+          size = await this.readFile();
           if (firstLoad) {
             dbg("emitting first-load event");
             // this event is emited the first time the document is ever loaded from disk.
@@ -3000,7 +2992,7 @@ export class SyncDoc extends EventEmitter {
       // to save was at least RECENT_SAVE_TO_DISK_MS ago, and it finished,
       // so definitely this change event was not caused by it.
       dbg("load_from_disk since no recent save to disk");
-      await this.load_from_disk();
+      await this.readFile();
       return;
     }
   };
@@ -3039,7 +3031,10 @@ export class SyncDoc extends EventEmitter {
     return size;
   };
 
-  private load_from_disk = async (): Promise<number> => {
+  readFile = reuseInFlight(async (): Promise<number> => {
+    if (this.fs != null) {
+      return await this.fsLoadFromDisk();
+    }
     if (this.client.path_exists == null) {
       throw Error("legacy clients must define path_exists");
     }
@@ -3075,7 +3070,7 @@ export class SyncDoc extends EventEmitter {
     // save new version to database, which we just set via from_str.
     await this.save();
     return size;
-  };
+  });
 
   private set_save = async (save: {
     state: string;
@@ -3240,7 +3235,7 @@ export class SyncDoc extends EventEmitter {
 
   /* Initiates a save of file to disk, then waits for the
      state to change. */
-  save_to_disk = async (): Promise<void> => {
+  save_to_disk = reuseInFlight(async (): Promise<void> => {
     if (this.state != "ready") {
       // We just make save_to_disk a successful
       // no operation, if the document is either
@@ -3309,7 +3304,7 @@ export class SyncDoc extends EventEmitter {
       await this.wait_for_save_to_disk_done();
     }
     this.update_has_unsaved_changes();
-  };
+  });
 
   /* Export the (currently loaded) history of editing of this
      document to a simple JSON-able object. */
@@ -3539,68 +3534,70 @@ export class SyncDoc extends EventEmitter {
   Whenever new patches are added to this.patches_table,
   their timestamp gets added to this.patch_update_queue.
   */
-  private handle_patch_update_queue = async (save = false): Promise<void> => {
-    const dbg = this.dbg("handle_patch_update_queue");
-    try {
-      this.handle_patch_update_queue_running = true;
-      while (this.state != "closed" && this.patch_update_queue.length > 0) {
-        dbg("queue size = ", this.patch_update_queue.length);
-        const v: Patch[] = [];
-        for (const key of this.patch_update_queue) {
-          let x = this.patches_table.get(key);
-          if (x == null) {
-            continue;
-          }
-          if (!Map.isMap(x)) {
-            // TODO: my NATS synctable-stream doesn't convert to immutable on get.
-            x = fromJS(x);
-          }
-          // may be null, e.g., when deleted.
-          const t = x.get("time");
-          // Optimization: only need to process patches that we didn't
-          // create ourselves during this session.
-          if (t && !this.my_patches[t.valueOf()]) {
-            const p = this.processPatch({ x });
-            //dbg(`patch=${JSON.stringify(p)}`);
-            if (p != null) {
-              v.push(p);
+  private handle_patch_update_queue = reuseInFlight(
+    async (save = false): Promise<void> => {
+      const dbg = this.dbg("handle_patch_update_queue");
+      try {
+        this.handle_patch_update_queue_running = true;
+        while (this.state != "closed" && this.patch_update_queue.length > 0) {
+          dbg("queue size = ", this.patch_update_queue.length);
+          const v: Patch[] = [];
+          for (const key of this.patch_update_queue) {
+            let x = this.patches_table.get(key);
+            if (x == null) {
+              continue;
+            }
+            if (!Map.isMap(x)) {
+              // TODO: my NATS synctable-stream doesn't convert to immutable on get.
+              x = fromJS(x);
+            }
+            // may be null, e.g., when deleted.
+            const t = x.get("time");
+            // Optimization: only need to process patches that we didn't
+            // create ourselves during this session.
+            if (t && !this.my_patches[t.valueOf()]) {
+              const p = this.processPatch({ x });
+              //dbg(`patch=${JSON.stringify(p)}`);
+              if (p != null) {
+                v.push(p);
+              }
             }
           }
-        }
-        this.patch_update_queue = [];
-        this.emit("patch-update-queue-empty");
-        assertDefined(this.patch_list);
-        this.patch_list.add(v);
+          this.patch_update_queue = [];
+          this.emit("patch-update-queue-empty");
+          assertDefined(this.patch_list);
+          this.patch_list.add(v);
 
-        dbg("waiting for remote and doc to sync...");
-        this.sync_remote_and_doc(v.length > 0);
-        if (save || !this.noAutosave) {
-          await this.patches_table.save();
-          if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
-          dbg("remote and doc now synced");
-        }
+          dbg("waiting for remote and doc to sync...");
+          this.sync_remote_and_doc(v.length > 0);
+          if (save || !this.noAutosave) {
+            await this.patches_table.save();
+            if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
+            dbg("remote and doc now synced");
+          }
 
-        if (this.patch_update_queue.length > 0) {
-          // It is very important that next loop happen in a later
-          // event loop to avoid the this.sync_remote_and_doc call
-          // in this.handle_patch_update_queue above from causing
-          // sync_remote_and_doc to get called from within itself,
-          // due to synctable changes being emited on save.
-          dbg("wait for next event loop");
-          await delay(1);
+          if (this.patch_update_queue.length > 0) {
+            // It is very important that next loop happen in a later
+            // event loop to avoid the this.sync_remote_and_doc call
+            // in this.handle_patch_update_queue above from causing
+            // sync_remote_and_doc to get called from within itself,
+            // due to synctable changes being emited on save.
+            dbg("wait for next event loop");
+            await delay(1);
+          }
         }
+      } finally {
+        if (this.state == "closed") return; // got closed, so nothing further to do
+
+        // OK, done and nothing in the queue
+        // Notify save() to try again -- it may have
+        // paused waiting for this to clear.
+        dbg("done");
+        this.handle_patch_update_queue_running = false;
+        this.emit("handle_patch_update_queue_done");
       }
-    } finally {
-      if (this.state == "closed") return; // got closed, so nothing further to do
-
-      // OK, done and nothing in the queue
-      // Notify save() to try again -- it may have
-      // paused waiting for this to clear.
-      dbg("done");
-      this.handle_patch_update_queue_running = false;
-      this.emit("handle_patch_update_queue_done");
-    }
-  };
+    },
+  );
 
   /* Disable and enable sync.   When disabled we still
      collect patches from upstream (but do not apply them
