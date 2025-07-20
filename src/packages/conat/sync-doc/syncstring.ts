@@ -1,10 +1,11 @@
 import { SyncClient } from "./sync-client";
-import { SyncString } from "@cocalc/sync/editor/string/sync";
+import {
+  SyncString,
+  type SyncStringOpts,
+} from "@cocalc/sync/editor/string/sync";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 
-export interface SyncStringOptions {
-  project_id: string;
-  path: string;
+export interface SyncStringOptions extends Omit<SyncStringOpts, "client"> {
   client: ConatClient;
   // name of the file server that hosts this document:
   service?: string;
@@ -12,18 +13,9 @@ export interface SyncStringOptions {
 
 export type { SyncString };
 
-export function syncstring({
-  project_id,
-  path,
-  client,
-  service,
-}: SyncStringOptions): SyncString {
-  const fs = client.fs({ service, project_id });
+export function syncstring({ client, service, ...opts }: SyncStringOptions): SyncString {
+  const fs = client.fs({ service, project_id: opts.project_id });
   const syncClient = new SyncClient(client);
-  return new SyncString({
-    project_id,
-    path,
-    client: syncClient,
-    fs,
-  });
+  return new SyncString({ ...opts, fs, client: syncClient });
 }
+

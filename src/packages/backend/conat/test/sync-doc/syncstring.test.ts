@@ -8,7 +8,7 @@ describe("loading/saving syncstring to disk and setting values", () => {
   const project_id = uuid();
   let client;
 
-  it("creates the fs client", () => {
+  it("creates the client", () => {
     client = connect();
   });
 
