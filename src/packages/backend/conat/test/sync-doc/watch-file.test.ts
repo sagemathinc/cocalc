@@ -44,10 +44,11 @@ describe("basic watching of file on disk happens automatically", () => {
       path,
       service: server.service,
     });
+    await once(s2, "ready");
     let c = 0,
       c2 = 0;
-    s.on("after-change", () => c++);
-    s2.on("after-change", () => c2++);
+    s.on("handle-file-change", () => c++);
+    s2.on("handle-file-change", () => c2++);
 
     await fs.writeFile(path, "version3");
     await wait({
@@ -58,6 +59,38 @@ describe("basic watching of file on disk happens automatically", () => {
     expect(s.to_str()).toEqual("version3");
     expect(s2.to_str()).toEqual("version3");
     expect(c + c2).toBe(1);
+  });
+
+  it("file watching must still work if either client is closed", async () => {
+    s.close();
+    await fs.writeFile(path, "version4");
+    await wait({
+      until: () => {
+        return s2.to_str() == "version4";
+      },
+    });
+    expect(s2.to_str()).toEqual("version4");
+  });
+
+  let client3, s3;
+  it("add a third client and close client2 and have file watching still work", async () => {
+    client3 = connect();
+    s3 = client3.sync.string({
+      project_id,
+      path,
+      service: server.service,
+    });
+    await once(s3, "ready");
+    s2.close();
+
+    await fs.writeFile(path, "version5");
+
+    await wait({
+      until: () => {
+        return s3.to_str() == "version5";
+      },
+    });
+    expect(s3.to_str()).toEqual("version5");
   });
 });
 

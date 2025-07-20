@@ -61,6 +61,8 @@ const CURSOR_THROTTLE_NATS_MS = 150;
 // Ignore file changes for this long after save to disk.
 const RECENT_SAVE_TO_DISK_MS = 2000;
 
+const WATCH_DEBOUNCE = 250;
+
 const PARALLEL_INIT = true;
 
 import {
@@ -3019,7 +3021,6 @@ export class SyncDoc extends EventEmitter {
       size = contents.length;
       this.from_str(contents);
     } catch (err) {
-      console.log(err);
       if (err.code == "ENOENT") {
         dbg("file no longer exists -- setting to blank");
         size = 0;
@@ -3237,7 +3238,6 @@ export class SyncDoc extends EventEmitter {
       throw Error("bug");
     }
     const value = this.to_str();
-    console.log("fs.writeFile", this.path);
     await this.fs.writeFile(this.path, value);
   };
 
@@ -3766,10 +3766,11 @@ export class SyncDoc extends EventEmitter {
   private fsLoadFromDiskDebounced = asyncDebounce(
     async () => {
       try {
+        this.emit("handle-file-change");
         await this.fsLoadFromDisk();
       } catch {}
     },
-    50,
+    WATCH_DEBOUNCE,
     {
       leading: false,
       trailing: true,
@@ -3786,7 +3787,7 @@ export class SyncDoc extends EventEmitter {
     this.fsFileWatcher = await this.fs.watch(this.path, { unique: true });
     (async () => {
       for await (const { eventType } of this.fsFileWatcher) {
-        // console.log("got change", eventType);
+        //console.log("got change", eventType);
         if (eventType == "change" || eventType == "rename") {
           this.fsLoadFromDiskDebounced();
         }

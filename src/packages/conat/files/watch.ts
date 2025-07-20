@@ -43,15 +43,37 @@ export function watchServer({
   const server: ConatSocketServer = client.socket.listen(subject);
   logger.debug("server: listening on ", { subject });
 
-  //const unique;
+  const unique: { [path: string]: ServerSocket[] } = {};
   async function handleUnique({ mesg, socket, path, options }) {
-    const w = await watch(path, options);
+    let w: any = undefined;
+
     socket.once("closed", () => {
-      w.close();
+      // when this socket closes, remove it from recipient list
+      unique[path] = unique[path]?.filter((x) => x.id != socket.id);
+      if (unique[path] != null && unique[path].length == 0) {
+        // nobody listening
+        w?.close();
+        w = undefined;
+        delete unique[path];
+      }
     });
-    await mesg.respond();
-    for await (const event of w) {
-      socket.write(event);
+
+    if (unique[path] == null) {
+      // set it up
+      unique[path] = [socket];
+      w = await watch(path, options);
+      await mesg.respond();
+      for await (const event of w) {
+        for (const s of unique[path]) {
+          if (s.state == "ready") {
+            s.write(event);
+            break;
+          }
+        }
+      }
+    } else {
+      unique[path].push(socket);
+      await mesg.respond();
     }
   }
 
