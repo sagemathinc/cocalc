@@ -121,14 +121,19 @@ export default function NewFilePage(props: Props) {
       filename_ext && ext && filename_ext != ext
         ? filename.slice(0, filename.length - filename_ext.length - 1)
         : filename;
+    let timer = setTimeout(
+      () => setCreatingFile(name + (ext ? "." + ext : "")),
+      1000,
+    );
+
     try {
-      setCreatingFile(name + (ext ? "." + ext : ""));
       await getActions().create_file({
         name,
         ext,
         current_path,
       });
     } finally {
+      clearTimeout(timer);
       setCreatingFile("");
     }
   }

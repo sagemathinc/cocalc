@@ -299,6 +299,8 @@ export class Actions<
   }
 
   protected _init_syncstring(): void {
+    const start = Date.now();
+    console.log("start opening syncstring");
     if (this.doctype == "none") {
       this._syncstring = syncstring({
         project_id: this.project_id,
@@ -351,6 +353,7 @@ export class Actions<
     }
 
     this._syncstring.once("ready", (err) => {
+      console.log("ready!", Date.now() - start);
       if (this.doctype != "none") {
         // doctype = 'none' must be handled elsewhere, e.g., terminals.
         log_opened_time(this.project_id, this.path);

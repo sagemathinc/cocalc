@@ -1450,13 +1450,15 @@ export class SyncDoc extends EventEmitter {
       this.handle_syncstring_update();
     }
     this.syncstring_table.on("change", this.handle_syncstring_update);
+    this.assert_not_closed("initAll -- successful init_syncstring_table");
   };
 
   // Used for internal debug logging
   private dbg = (_f: string = ""): Function => {
     if (DEBUG) {
       return (...args) => {
-        logger.debug(this.path, _f, ...args);
+        console.log(this.path, _f, ...args);
+        //logger.debug(this.path, _f, ...args);
       };
     } else {
       return (..._args) => {};
@@ -1464,6 +1466,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private initAll = async (): Promise<void> => {
+    console.log(new Date(), "initAll: start");
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
@@ -1476,14 +1479,16 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("initAll -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
 
-    await this.init_syncstring_table();
-    this.assert_not_closed("initAll -- successful init_syncstring_table");
+    if (this.fs == null) {
+      await this.init_syncstring_table();
+    }
 
     log("patch_list, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
       "initAll -- before init patch_list, cursors, evaluator, ipywidgets",
     );
-    if (PARALLEL_INIT) {
+    console.log(new Date(), "1");
+    if (PARALLEL_INIT && false) {
       await Promise.all([
         this.init_patch_list(),
         this.init_cursors(),
@@ -1494,15 +1499,20 @@ export class SyncDoc extends EventEmitter {
         "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
       );
     } else {
+      console.log(new Date(), "1");
       await this.init_patch_list();
+      console.log(new Date(), "1.2");
       this.assert_not_closed("initAll -- successful init_patch_list");
       await this.init_cursors();
+      console.log(new Date(), "1.3");
       this.assert_not_closed("initAll -- successful init_patch_cursors");
       await this.init_evaluator();
       this.assert_not_closed("initAll -- successful init_evaluator");
       await this.init_ipywidgets();
       this.assert_not_closed("initAll -- successful init_ipywidgets");
+      console.log(new Date(), "1.4");
     }
+    console.log(new Date(), "2");
 
     this.init_table_close_handlers();
     this.assert_not_closed("initAll -- successful init_table_close_handlers");
@@ -1511,6 +1521,7 @@ export class SyncDoc extends EventEmitter {
     this.init_file_use_interval();
     if (this.fs != null) {
       await this.fsLoadFromDisk();
+      console.log(new Date(), "3");
     } else {
       if (await this.isFileServer()) {
         log("load_from_disk");
@@ -1544,11 +1555,13 @@ export class SyncDoc extends EventEmitter {
 
     this.assert_not_closed("initAll -- after waiting until fully ready");
 
-    if (await this.isFileServer()) {
+    if (!this.fs && (await this.isFileServer())) {
       log("init file autosave");
       this.init_file_autosave();
     }
     this.update_has_unsaved_changes();
+    console.log("initAll: done");
+
     log("done");
   };
 
@@ -1740,6 +1753,10 @@ export class SyncDoc extends EventEmitter {
   };
 
   private file_is_read_only = async (): Promise<boolean> => {
+    if (this.fs) {
+      // [ ] TODO
+      return false;
+    }
     if (await this.pathExistsAndIsReadOnly(this.path)) {
       return true;
     }
@@ -1753,6 +1770,10 @@ export class SyncDoc extends EventEmitter {
   };
 
   private update_if_file_is_read_only = async (): Promise<void> => {
+    if (this.fs) {
+      // [ ] TODO
+      return;
+    }
     const read_only = await this.file_is_read_only();
     if (this.state == "closed") {
       return;
@@ -1901,10 +1922,14 @@ export class SyncDoc extends EventEmitter {
     const patch_list = new SortedPatchList({
       from_str: this._from_str,
     });
+    this.patch_list = patch_list;
+    return;
 
     dbg("opening the table...");
     const query = { patches: [this.patch_table_query(this.last_snapshot)] };
+    console.log("init_patch_list: start synctable");
     this.patches_table = await this.synctable(query, [], this.patch_interval);
+    console.log("init_patch_list: got synctable");
     this.assert_not_closed("init_patch_list -- after making synctable");
 
     const update_has_unsaved_changes = debounce(
@@ -1921,7 +1946,7 @@ export class SyncDoc extends EventEmitter {
       update_has_unsaved_changes();
     });
 
-    this.syncstring_table.on("change", () => {
+    this.syncstring_table?.on("change", () => {
       update_has_unsaved_changes();
     });
 
@@ -1940,10 +1965,12 @@ export class SyncDoc extends EventEmitter {
       if (snap == null) {
         break;
       }
+      // @ts-ignore
       const seq_info = snap.seq_info ?? {
         prev_seq: 1,
       };
       const start_seq = seq_info.prev_seq ?? 1;
+      // @ts-ignore
       if (last_start_seq != null && start_seq >= last_start_seq) {
         // no progress, e.g., corruption would cause this.
         // "corruption" is EXPECTED, since a user might be submitting
@@ -1972,6 +1999,7 @@ export class SyncDoc extends EventEmitter {
     }
     this.last = this.doc = doc;
     this.patches_table.on("change", this.handle_patch_update);
+    console.log("init_patch_list: fully done");
 
     dbg("done");
   };
@@ -2022,7 +2050,7 @@ export class SyncDoc extends EventEmitter {
       this.cursors_table.on(
         "change",
         (obj: { user_id: number; locs: any; time: number }) => {
-          const account_id = this.users[obj.user_id];
+          const account_id = this.users?.[obj.user_id];
           if (!account_id) {
             return;
           }
@@ -2196,6 +2224,10 @@ export class SyncDoc extends EventEmitter {
 
   // get settings object
   get_settings = (): Map<string, any> => {
+    if (this.fs) {
+      // [ ] TODO
+      return Map();
+    }
     this.assert_is_ready("get_settings");
     return this.syncstring_table_get_one().get("settings", Map());
   };
@@ -2279,7 +2311,7 @@ export class SyncDoc extends EventEmitter {
     time = this.patch_list.next_available_time(
       time,
       this.my_user_id,
-      this.users.length,
+      this.users?.length ?? 100, // TODO!
     );
     return time;
   };
@@ -3007,7 +3039,9 @@ export class SyncDoc extends EventEmitter {
     let size: number;
     let contents;
     try {
+      console.log(new Date(), "fsLoadFromDisk: start");
       contents = await this.fs.readFile(this.path, "utf8");
+      console.log(new Date(), "fsLoadFromDisk: done");
       dbg("file exists");
       size = contents.length;
       this.from_str(contents);
@@ -3022,7 +3056,7 @@ export class SyncDoc extends EventEmitter {
     }
     // save new version to stream, which we just set via from_str
     this.commit();
-    await this.save();
+    this.save();
     return size;
   };
 
@@ -3099,6 +3133,10 @@ export class SyncDoc extends EventEmitter {
   };
 
   is_read_only = (): boolean => {
+    if (this.fs != null) {
+      // [ ] TODO
+      return false;
+    }
     this.assert_table_is_ready("syncstring");
     return this.syncstring_table_get_one().get("read_only");
   };
@@ -3172,7 +3210,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return false;
     }
-    return this.patches_table.has_uncommitted_changes();
+    return this.patches_table?.has_uncommitted_changes();
   };
 
   // Commit any changes to the live document to
@@ -3305,6 +3343,9 @@ export class SyncDoc extends EventEmitter {
   };
 
   private update_has_unsaved_changes = (): void => {
+    if (this.fs != null) {
+      return;
+    }
     if (this.state != "ready") {
       // This can happen, since this is called by a debounced function.
       // Make it a no-op in case we're not ready.
@@ -3682,6 +3723,10 @@ export class SyncDoc extends EventEmitter {
   );
 
   private set_syncstring_table = async (obj, save = true) => {
+    if (this.fs) {
+      // [ ] TODO
+      return;
+    }
     const value0 = this.syncstring_table_get_one();
     const value = mergeDeep(value0, fromJS(obj));
     if (value0.equals(value)) {

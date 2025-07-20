@@ -1057,7 +1057,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   open_file = async (opts: OpenFileOpts): Promise<void> => {
     // Log that we *started* opening the file.
     log_file_open(this.project_id, opts.path);
+    console.log('open_file: 1')
     await open_file(this, opts);
+    console.log('open_file: 2 -- this is RIGHT AFTER open_file returns')
   };
 
   /* Initialize the redux store and react component for editing

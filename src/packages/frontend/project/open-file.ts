@@ -5,7 +5,7 @@
 
 // Implement the open_file actions for opening one single file in a project.
 
-import { callback } from "awaiting";
+//import { callback } from "awaiting";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
@@ -13,16 +13,16 @@ import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { retry_until_success } from "@cocalc/util/async-utils";
+//import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   defaults,
   filename_extension,
   filename_extension_notilde,
   path_to_tab,
   required,
-  uuid,
+ // uuid,
 } from "@cocalc/util/misc";
-import { SITE_NAME } from "@cocalc/util/theme";
+//import { SITE_NAME } from "@cocalc/util/theme";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
@@ -51,6 +51,7 @@ export async function open_file(
   actions: ProjectActions,
   opts: OpenFileOpts,
 ): Promise<void> {
+  console.log("open_file: start");
   // console.log("open_file: ", opts);
 
   if (opts.path.endsWith("/")) {
@@ -145,98 +146,104 @@ export async function open_file(
   if (!tabIsOpened()) {
     return;
   }
-
-  try {
-    // Unfortunately (it adds a roundtrip to the server), we **have** to do this
-    // due to https://github.com/sagemathinc/cocalc/issues/4732 until we actually
-    // genuinely implement symlink support.  Otherwise bad things happen.  Much of
-    // cocalc was implemented basically assuming links don't exist; it's not easy
-    // to change that!
-    const realpath = await webapp_client.project_client.realpath({
-      project_id: actions.project_id,
-      path: opts.path,
-    });
-    if (!tabIsOpened()) {
-      return;
-    }
-    if (opts.path != realpath) {
-      if (!actions.open_files) return; // closed
-      alert_message({
-        type: "info",
-        message: `Opening normalized real path "${realpath}"`,
-        timeout: 10,
-      });
-      actions.open_files.delete(opts.path);
-      opts.path = realpath;
-      actions.open_files.set(opts.path, "component", {});
-    }
-  } catch (_) {
-    // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
-  }
+  console.log("open_file: XX");
+//   if (false) {
+//     try {
+//       // Unfortunately (it adds a roundtrip to the server), we **have** to do this
+//       // due to https://github.com/sagemathinc/cocalc/issues/4732 until we actually
+//       // genuinely implement symlink support.  Otherwise bad things happen.  Much of
+//       // cocalc was implemented basically assuming links don't exist; it's not easy
+//       // to change that!
+//       const realpath = await webapp_client.project_client.realpath({
+//         project_id: actions.project_id,
+//         path: opts.path,
+//       });
+//       if (!tabIsOpened()) {
+//         return;
+//       }
+//       if (opts.path != realpath) {
+//         if (!actions.open_files) return; // closed
+//         alert_message({
+//           type: "info",
+//           message: `Opening normalized real path "${realpath}"`,
+//           timeout: 10,
+//         });
+//         actions.open_files.delete(opts.path);
+//         opts.path = realpath;
+//         actions.open_files.set(opts.path, "component", {});
+//       }
+//     } catch (_) {
+//       // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
+//     }
+//   }
   let ext = opts.ext ?? filename_extension_notilde(opts.path).toLowerCase();
+  console.log("open_file: xzxasdf");
 
   // Next get the group.
-  let group: string;
-  try {
-    group = await get_my_group(actions.project_id);
-    if (!tabIsOpened()) {
-      return;
-    }
-  } catch (err) {
-    actions.set_activity({
-      id: uuid(),
-      error: `opening file '${opts.path}' (error getting group) -- ${err}`,
-    });
-    return;
-  }
+  //   let group: string;
+  //   try {
+  //     group = await get_my_group(actions.project_id);
+  //     if (!tabIsOpened()) {
+  //       return;
+  //     }
+  //   } catch (err) {
+  //     actions.set_activity({
+  //       id: uuid(),
+  //       error: `opening file '${opts.path}' (error getting group) -- ${err}`,
+  //     });
+  //     return;
+  //   }
 
   let store = actions.get_store();
   if (store == null) {
     return;
   }
 
-  const is_public = group === "public";
+  console.log("open_file: XX2");
 
-  if (!is_public) {
-    // Check if have capability to open this file.  Important
-    // to only do this if not public, since again, if public we
-    // are not even using the project (it is all client side).
-    const can_open_file = await store.can_open_file_ext(ext, actions);
-    if (!tabIsOpened()) {
-      return;
-    }
-    if (!can_open_file) {
-      const site_name =
-        redux.getStore("customize").get("site_name") || SITE_NAME;
-      alert_message({
-        type: "error",
-        message: `This ${site_name} project cannot open ${ext} files!`,
-        timeout: 20,
-      });
-      // console.log(
-      //   `abort project_actions::open_file due to lack of support for "${ext}" files`
-      // );
-      return;
-    }
+  const is_public = false;
 
-    // Wait for the project to start opening (only do this if not public -- public users don't
-    // know anything about the state of the project).
-    try {
-      await callback(actions._ensure_project_is_open.bind(actions));
-      if (!tabIsOpened()) {
-        return;
-      }
-    } catch (err) {
-      actions.set_activity({
-        id: uuid(),
-        error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`,
-      });
-      return;
-    }
-    if (!tabIsOpened()) {
-      return;
-    }
-  }
+  //   if (!is_public) {
+  //     // Check if have capability to open this file.  Important
+  //     // to only do this if not public, since again, if public we
+  //     // are not even using the project (it is all client side).
+  //     const can_open_file = await store.can_open_file_ext(ext, actions);
+  //     if (!tabIsOpened()) {
+  //       return;
+  //     }
+  //     if (!can_open_file) {
+  //       const site_name =
+  //         redux.getStore("customize").get("site_name") || SITE_NAME;
+  //       alert_message({
+  //         type: "error",
+  //         message: `This ${site_name} project cannot open ${ext} files!`,
+  //         timeout: 20,
+  //       });
+  //       // console.log(
+  //       //   `abort project_actions::open_file due to lack of support for "${ext}" files`
+  //       // );
+  //       return;
+  //     }
+
+  //     // Wait for the project to start opening (only do this if not public -- public users don't
+  //     // know anything about the state of the project).
+  //     try {
+  //       await callback(actions._ensure_project_is_open.bind(actions));
+  //       if (!tabIsOpened()) {
+  //         return;
+  //       }
+  //     } catch (err) {
+  //       actions.set_activity({
+  //         id: uuid(),
+  //         error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`,
+  //       });
+  //       return;
+  //     }
+  //     if (!tabIsOpened()) {
+  //       return;
+  //     }
+  //   }
+  //   console.log("open_file: XX3");
 
   if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
     // NOTE: This is REALLY REALLY ANCIENT support for a 20-year old format...
@@ -285,52 +292,53 @@ export async function open_file(
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
 
-  const noComputeServer = excludeFromComputeServer(opts.path);
-
-  if (
-    noComputeServer &&
-    actions.getComputeServerIdForFile({ path: opts.path })
-  ) {
-    // this won't work so if such a file is somehow on a compute server, move it back:
-    opts.compute_server_id = 0;
-    await actions.setComputeServerIdForFile({
-      path: opts.path,
-      compute_server_id: opts.compute_server_id,
-      confirm: false,
-    });
-  } else {
-    if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
-      let path = opts.path;
-      path = canonicalPath(path);
-      try {
-        if (noComputeServer) {
-          if (opts.compute_server_id) {
-            throw Error(
-              `Opening '${path}' on a compute server is not yet supported -- copy it to the Home Base and open it there instead.`,
-            );
+  if (false) {
+    const noComputeServer = excludeFromComputeServer(opts.path);
+    if (
+      noComputeServer &&
+      actions.getComputeServerIdForFile({ path: opts.path })
+    ) {
+      // this won't work so if such a file is somehow on a compute server, move it back:
+      opts.compute_server_id = 0;
+      await actions.setComputeServerIdForFile({
+        path: opts.path,
+        compute_server_id: opts.compute_server_id,
+        confirm: false,
+      });
+    } else {
+      if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
+        let path = opts.path;
+        path = canonicalPath(path);
+        try {
+          if (noComputeServer) {
+            if (opts.compute_server_id) {
+              throw Error(
+                `Opening '${path}' on a compute server is not yet supported -- copy it to the Home Base and open it there instead.`,
+              );
+            } else {
+              opts.compute_server_id = 0;
+              await actions.setComputeServerIdForFile({
+                path,
+                compute_server_id: opts.compute_server_id,
+                confirm: false,
+              });
+            }
           } else {
-            opts.compute_server_id = 0;
             await actions.setComputeServerIdForFile({
               path,
               compute_server_id: opts.compute_server_id,
-              confirm: false,
+              confirm: true,
             });
           }
-        } else {
-          await actions.setComputeServerIdForFile({
-            path,
-            compute_server_id: opts.compute_server_id,
-            confirm: true,
+        } catch (err) {
+          actions.open_files?.delete(opts.path);
+          alert_message({
+            type: "error",
+            message: `${err}`,
+            timeout: 20,
           });
+          return;
         }
-      } catch (err) {
-        actions.open_files.delete(opts.path);
-        alert_message({
-          type: "error",
-          message: `${err}`,
-          timeout: 20,
-        });
-        return;
       }
     }
   }
@@ -353,6 +361,7 @@ export async function open_file(
     // first time.
     actions.gotoFragment(opts.path, opts.fragmentId);
   }
+  console.log("open_file: end -- this is the very last line in the open_file function");
 }
 
 // get user's group releative to this project.
@@ -360,24 +369,24 @@ export async function open_file(
 // and project stores changing.
 // TODO: actually properly use wait somehow, since obviously it is
 // possible (just not easy).
-async function get_my_group(project_id: string): Promise<string> {
-  return await retry_until_success({
-    f: async () => {
-      const projects_store = redux.getStore("projects");
-      if (!projects_store) {
-        throw Error("projects store not defined");
-      }
-      const group: string | undefined = projects_store.get_my_group(project_id);
-      if (group) {
-        return group;
-      } else {
-        throw Error("group not yet known");
-      }
-    },
-    max_time: 60000,
-    max_delay: 3000,
-  });
-}
+// async function get_my_group(project_id: string): Promise<string> {
+//   return await retry_until_success({
+//     f: async () => {
+//       const projects_store = redux.getStore("projects");
+//       if (!projects_store) {
+//         throw Error("projects store not defined");
+//       }
+//       const group: string | undefined = projects_store.get_my_group(project_id);
+//       if (group) {
+//         return group;
+//       } else {
+//         throw Error("group not yet known");
+//       }
+//     },
+//     max_time: 60000,
+//     max_delay: 3000,
+//   });
+// }
 
 async function open_sagenb_worksheet(opts: {
   project_id: string;
@@ -471,6 +480,7 @@ export function log_file_open(
       id,
       start: Date.now(),
     };
+    console.log("log_file_open", log_open_time[key]);
   }
 }
 
@@ -491,6 +501,7 @@ export function log_opened_time(project_id: string, path: string): void {
   const actions = redux.getProjectActions(project_id);
   const time = Date.now() - start;
   actions.log({ time }, id);
+  console.log("log_opened_time", { time }, id);
 }
 
 // This modifies the opts object passed into it:

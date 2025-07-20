@@ -17,8 +17,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   ErrorDisplay,
-  Loading,
-  LoadingEstimate,
 } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { is_different } from "@cocalc/util/misc";
@@ -38,13 +36,6 @@ interface FrameTreeEditorProps {
   format_bar?: boolean;
   format_bar_exclude?: SetMap;
 }
-
-const LOADING_STYLE: CSS = {
-  fontSize: "40px",
-  textAlign: "center",
-  padding: "15px",
-  color: "#999",
-} as const;
 
 function shouldMemoize(prev, next): boolean {
   return !is_different(prev, next, [
@@ -93,10 +84,6 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const formatInput: string | undefined = useRedux(name, "formatInput");
     const cursors: Map<string, any> = useRedux(name, "cursors");
     const status: string = useRedux(name, "status");
-    const load_time_estimate: LoadingEstimate | undefined = useRedux(
-      name,
-      "load_time_estimate",
-    );
     const value: string | undefined = useRedux(name, "value");
     const reload: Map<string, number> = useRedux(name, "reload");
     // if changes, means that frames have been resized, so may need refreshing; passed to leaf
@@ -190,22 +177,12 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       );
     }
 
-    function render_loading(): Rendered {
-      if (is_loaded) return;
-      return (
-        <div className="smc-vfill" style={LOADING_STYLE}>
-          <Loading estimate={load_time_estimate} />
-        </div>
-      );
-    }
-
     return (
       <div className="smc-vfill cc-frame-tree-editor" ref={frameRootRef}>
         {formatError && (
           <FormatError formatError={formatError} formatInput={formatInput} />
         )}
         {render_error()}
-        {render_loading()}
         {render_frame_tree()}
         {render_status_bar()}
       </div>
