@@ -15,7 +15,21 @@ const logger = getLogger("conat:files:watch");
 
 // (path:string, options:WatchOptions) => AsyncIterator
 type AsyncWatchFunction = any;
-type WatchOptions = any;
+
+// see https://nodejs.org/docs/latest/api/fs.html#fspromiseswatchfilename-options
+export interface WatchOptions {
+  persistent?: boolean;
+  recursive?: boolean;
+  encoding?: string;
+  signal?: AbortSignal;
+  maxQueue?: number;
+  overflow?: "ignore" | "throw";
+
+  // if more than one client is actively watching the same path and has unique set, only one
+  // will receive updates.  Also, if there are multiple clients with unique set, the options
+  // of all but the first are ignored.
+  unique?: boolean;
+}
 
 export function watchServer({
   client,
@@ -29,29 +43,47 @@ export function watchServer({
   const server: ConatSocketServer = client.socket.listen(subject);
   logger.debug("server: listening on ", { subject });
 
+  //const unique;
+  async function handleUnique({ mesg, socket, path, options }) {
+    const w = await watch(path, options);
+    socket.once("closed", () => {
+      w.close();
+    });
+    await mesg.respond();
+    for await (const event of w) {
+      socket.write(event);
+    }
+  }
+
+  async function handleNonUnique({ mesg, socket, path, options }) {
+    const w = await watch(path, options);
+    socket.once("closed", () => {
+      w.close();
+    });
+    await mesg.respond();
+    for await (const event of w) {
+      socket.write(event);
+    }
+  }
+
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
       id: socket.id,
       subject: socket.subject,
     });
-    let w: undefined | ReturnType<typeof watch> = undefined;
-    socket.on("closed", () => {
-      w?.close();
-      w = undefined;
-    });
-
+    let initialized = false;
     socket.on("request", async (mesg) => {
       try {
+        if (initialized) {
+          throw Error("already initialized");
+        }
+        initialized = true;
         const { path, options } = mesg.data;
         logger.debug("got request", { path, options });
-        if (w != null) {
-          w.close();
-          w = undefined;
-        }
-        w = await watch(path, options);
-        await mesg.respond();
-        for await (const event of w) {
-          socket.write(event);
+        if (options?.unique) {
+          await handleUnique({ mesg, socket, path, options });
+        } else {
+          await handleNonUnique({ mesg, socket, path, options });
         }
       } catch (err) {
         mesg.respondSync(null, {

@@ -82,6 +82,7 @@ import {
   once,
   retry_until_success,
   until,
+  asyncDebounce,
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
@@ -3018,6 +3019,7 @@ export class SyncDoc extends EventEmitter {
       size = contents.length;
       this.from_str(contents);
     } catch (err) {
+      console.log(err);
       if (err.code == "ENOENT") {
         dbg("file no longer exists -- setting to blank");
         size = 0;
@@ -3761,19 +3763,32 @@ export class SyncDoc extends EventEmitter {
     );
   };
 
+  private fsLoadFromDiskDebounced = asyncDebounce(
+    async () => {
+      try {
+        await this.fsLoadFromDisk();
+      } catch {}
+    },
+    50,
+    {
+      leading: false,
+      trailing: true,
+    },
+  );
+
   private fsFileWatcher?: any;
   private fsInitFileWatcher = async () => {
     if (this.fs == null) {
       throw Error("this.fs must be defined");
     }
-    console.log("watching for changes");
+    // console.log("watching for changes");
     // use this.fs interface to watch path for changes.
-    this.fsFileWatcher = await this.fs.watch(this.path);
+    this.fsFileWatcher = await this.fs.watch(this.path, { unique: true });
     (async () => {
       for await (const { eventType } of this.fsFileWatcher) {
-        console.log("got change", eventType);
+        // console.log("got change", eventType);
         if (eventType == "change" || eventType == "rename") {
-          await this.fsLoadFromDisk();
+          this.fsLoadFromDiskDebounced();
         }
         if (eventType == "rename") {
           this.fsFileWatcher.close();
@@ -3782,7 +3797,7 @@ export class SyncDoc extends EventEmitter {
           return;
         }
       }
-      console.log("done watching");
+      //console.log("done watching");
     })();
   };
 

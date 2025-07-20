@@ -69,6 +69,7 @@ import getListing from "@cocalc/backend/get-listing";
 import { join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
+import { type WatchOptions } from "@cocalc/conat/files/watch";
 
 export class SandboxedFilesystem {
   // path should be the path to a FOLDER on the filesystem (not a file)
@@ -231,17 +232,7 @@ export class SandboxedFilesystem {
     await utimes(await this.safeAbsPath(path), atime, mtime);
   };
 
-  watch = async (
-    filename: string,
-    options?: {
-      persistent?: boolean;
-      recursive?: boolean;
-      encoding?: string;
-      signal?: AbortSignal;
-      maxQueue?: number;
-      overflow?: "ignore" | "throw";
-    },
-  ) => {
+  watch = async (filename: string, options?: WatchOptions) => {
     // NOTE: in node v24 they fixed the fs/promises watch to have a queue, but previous
     // versions were clearly badly implemented so we reimplement it from scratch
     // using the non-promise watch.

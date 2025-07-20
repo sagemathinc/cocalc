@@ -27,7 +27,6 @@ describe("basic watching of file on disk happens automatically", () => {
     expect(s.to_str()).toEqual("modified");
   });
 
-  // this is not implemented yet
   it("change file on disk and it automatically updates with no explicit call needed", async () => {
     await fs.writeFile(path, "changed again!");
     await wait({
@@ -35,6 +34,30 @@ describe("basic watching of file on disk happens automatically", () => {
         return s.to_str() == "changed again!";
       },
     });
+  });
+
+  let client2, s2;
+  it("file watching also works if there are multiple clients, with only one handling the change", async () => {
+    client2 = connect();
+    s2 = client2.sync.string({
+      project_id,
+      path,
+      service: server.service,
+    });
+    let c = 0,
+      c2 = 0;
+    s.on("after-change", () => c++);
+    s2.on("after-change", () => c2++);
+
+    await fs.writeFile(path, "version3");
+    await wait({
+      until: () => {
+        return s2.to_str() == "version3" && s.to_str() == "version3";
+      },
+    });
+    expect(s.to_str()).toEqual("version3");
+    expect(s2.to_str()).toEqual("version3");
+    expect(c + c2).toBe(1);
   });
 });
 
