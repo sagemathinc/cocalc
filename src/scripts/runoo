@@ -41,4 +41,8 @@ if __name__ == '__main__':
         for f in as_completed(futures):
             f.result()  # Raises exception if failed
 
-    print(f"successfully ran {n} times")
+    print('\n'*5)
+    print('*'*60)
+    print(f"Successfully ran {n} times")
+    print('*'*60)
+    

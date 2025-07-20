@@ -17,6 +17,7 @@ import {
   delay,
   waitUntilSynced,
 } from "./setup";
+import { split } from "@cocalc/util/misc";
 
 beforeAll(before);
 afterAll(after);
@@ -210,5 +211,67 @@ describe("do the example in the blog post 'Lies I was Told About Collaborative E
     await waitUntilSynced([bob, alice]);
     expect(alice.to_str()).toEqual("The Colour of Pomegranates");
     expect(bob.to_str()).toEqual("The Colour of Pomegranates");
+  });
+});
+
+const numHeads = 15;
+describe.only(`create editing conflict with ${numHeads} heads`, () => {
+  const project_id = uuid();
+  let docs: any[] = [],
+    clients: any[] = [];
+
+  it(`create ${numHeads} clients`, async () => {
+    const v: any[] = [];
+    for (let i = 0; i < numHeads; i++) {
+      const client = connect();
+      clients.push(client);
+      const doc = client.sync.string({
+        project_id,
+        path: "a.txt",
+        service: server.service,
+        noAutosave: true,
+      });
+      docs.push(doc);
+      v.push(once(doc, "ready"));
+    }
+    await Promise.all(v);
+  });
+
+  it("every client writes a different value all at once", async () => {
+    for (let i = 0; i < numHeads; i++) {
+      docs[i].from_str(`${i} `);
+      docs[i].commit();
+      docs[i].save();
+    }
+    await waitUntilSynced(docs);
+    const heads = docs[0].patch_list.getHeads();
+    expect(heads.length).toBe(docs.length);
+  });
+
+  it("merge -- order is random, but value is consistent", async () => {
+    const value = docs[0].to_str();
+    let v = new Set<string>();
+    for (let i = 0; i < numHeads; i++) {
+      v.add(`${i}`);
+      expect(docs[i].to_str()).toEqual(value);
+    }
+    const t = new Set(split(docs[0].to_str()));
+    expect(t).toEqual(v);
+  });
+
+  it(`resolve the merge conflict -- all ${numHeads} clients then see the resolution`, async () => {
+    let r = "";
+    for (let i = 0; i < numHeads; i++) {
+      r += `${i} `;
+    }
+    docs[0].from_str(r);
+    docs[0].commit();
+    await docs[0].save();
+
+    await waitUntilSynced(docs);
+    for (let i = 0; i < numHeads; i++) {
+      expect(docs[i].to_str()).toEqual(r);
+    }
+    // docs[0].show_history();
   });
 });

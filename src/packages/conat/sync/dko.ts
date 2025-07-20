@@ -1,7 +1,7 @@
 /*
 Distributed eventually consistent key:object store, where changes propogate sparsely.
 
-The "values" MUST be objects and no keys or fields of objects can container the 
+The "values" MUST be objects and no keys or fields of objects can container the
 sep character, which is '|' by default.
 
 NOTE: Whenever you do a set, the lodash isEqual function is used to see which fields
@@ -38,6 +38,7 @@ export class DKO<T = any> extends EventEmitter {
 
   constructor(private opts: DKVOptions) {
     super();
+    this.setMaxListeners(1000);
     return new Proxy(this, {
       deleteProperty(target, prop) {
         if (typeof prop == "string") {
