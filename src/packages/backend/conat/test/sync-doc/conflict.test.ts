@@ -21,6 +21,8 @@ import {
 beforeAll(before);
 afterAll(after);
 
+const GAP_DELAY = 50;
+
 describe("synchronized editing with branching and merging", () => {
   const project_id = uuid();
   let s1, s2, client1, client2;
@@ -49,12 +51,12 @@ describe("synchronized editing with branching and merging", () => {
   });
 
   it("both clients set the first version independently and inconsistently", async () => {
-    s1.from_str("x");
     s2.from_str("y");
+    s1.from_str("x");
     s1.commit();
     // delay so s2's time is always bigger than s1's so our unit test
     // is well defined
-    await delay(75);
+    await delay(GAP_DELAY);
     s2.commit();
     await s1.save();
     await s2.save();
@@ -90,7 +92,7 @@ describe("synchronized editing with branching and merging", () => {
   it("set values inconsistently again and explicitly resolve the merge conflict in a way that is different than the default", async () => {
     s1.from_str("xy1");
     s1.commit();
-    await delay(75);
+    await delay(GAP_DELAY);
     s2.from_str("xy2");
     s2.commit();
     await s1.save();
@@ -100,7 +102,7 @@ describe("synchronized editing with branching and merging", () => {
     expect(s1.to_str()).toEqual("xy12");
     expect(s2.to_str()).toEqual("xy12");
 
-    // how we resolve the conflict
+    // resolve the conflict in our own way
     s1.from_str("xy3");
     s1.commit();
     await s1.save();

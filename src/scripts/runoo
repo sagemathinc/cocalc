@@ -12,13 +12,23 @@ import sys, os, time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
 
+failed = False
 def run_cmd(cmd, i):
-    print('\n'*10)
-    print(f'Loop: {i+1} , Time: {round(time.time() - start)}, Command: {cmd}')
-    ret = os.system(cmd)
-    if ret:
-        raise RuntimeError(f'Command failed on run {i+1}')
-    return ret
+    global failed
+    if failed:
+        return
+    print('\n'*5)
+    print('*'*60)
+    print(f'* Loop: {i+1}/{n} , Time: {round(time.time() - start)}, Command: {cmd}')
+    print('*'*60)
+    if os.system(cmd):
+        failed = True
+        print('\n'*5)
+        print('*'*60)
+        print(f'* Command failed on run {i+1}**')
+        print('*'*60)
+        print('\n'*5)
+        sys.exit(1);
 
 if __name__ == '__main__':
     n = int(sys.argv[1])
@@ -30,3 +40,5 @@ if __name__ == '__main__':
         futures = [executor.submit(run_cmd, cmd, i) for i in range(n)]
         for f in as_completed(futures):
             f.result()  # Raises exception if failed
+
+    print(f"successfully ran {n} times")
