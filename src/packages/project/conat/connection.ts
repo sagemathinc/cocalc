@@ -70,14 +70,9 @@ async function callHub({
   timeout?: number;
 }) {
   const subject = `hub.project.${project_id}.${service}`;
-  try {
-    const data = { name, args };
-    const resp = await client.request(subject, data, { timeout });
-    return resp.data;
-  } catch (err) {
-    err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
-    throw err;
-  }
+  const data = { name, args };
+  const resp = await client.request(subject, data, { timeout });
+  return resp.data;
 }
 
 async function versionCheckLoop(client) {
