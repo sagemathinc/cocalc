@@ -3242,6 +3242,7 @@ export class SyncDoc extends EventEmitter {
     // so no clients waste resources loading in response to us saving
     // to disk.
     await this.fsFileWatcher?.ignore(2000);
+    if(this.isClosed()) return;
     await this.fs.writeFile(this.path, value);
   };
 
