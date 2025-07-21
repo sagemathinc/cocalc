@@ -1012,25 +1012,25 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   },
   o1: {
     prompt_tokens: usd1Mtokens(15),
-    completion_tokens: usd1Mtokens(7.5),
-    max_tokens: 8192, // like gpt-4-turbo-8k
-    free: false,
-  },
-  "o1-mini": {
-    prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(1.5),
+    completion_tokens: usd1Mtokens(60),
     max_tokens: 8192, // like gpt-4-turbo-8k
     free: false,
   },
   "o1-8k": {
     prompt_tokens: usd1Mtokens(15),
-    completion_tokens: usd1Mtokens(7.5),
+    completion_tokens: usd1Mtokens(60),
     max_tokens: 8192, // like gpt-4-turbo-8k
     free: false,
   },
   "o1-mini-8k": {
-    prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(1.5),
+    prompt_tokens: usd1Mtokens(1.1),
+    completion_tokens: usd1Mtokens(4.4),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: true,
+  },
+  "o1-mini": {
+    prompt_tokens: usd1Mtokens(1.1),
+    completion_tokens: usd1Mtokens(4.4),
     max_tokens: 8192, // like gpt-4-turbo-8k
     free: false,
   },
