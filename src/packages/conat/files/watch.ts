@@ -44,7 +44,8 @@ export function watchServer({
   logger.debug("server: listening on ", { subject });
 
   const unique: { [path: string]: ServerSocket[] } = {};
-  async function handleUnique({ mesg, socket, path, options }) {
+  const ignores: { [path: string]: { ignoreUntil: number }[] } = {};
+  async function handleUnique({ mesg, socket, path, options, ignore }) {
     let w: any = undefined;
 
     socket.once("closed", () => {
@@ -55,19 +56,21 @@ export function watchServer({
         w?.close();
         w = undefined;
         delete unique[path];
+        delete ignores[path];
       }
     });
 
     if (unique[path] == null) {
       // set it up
       unique[path] = [socket];
+      ignores[path] = [ignore];
       w = await watch(path, options);
       await mesg.respond();
       for await (const event of w) {
         const now = Date.now();
         let doIgnore = false;
-        for (const s of unique[path]) {
-          if (s.ignoreUntil != null && s.ignoreUntil > now) {
+        for (const { ignoreUntil } of ignores[path]) {
+          if (ignoreUntil > now) {
             doIgnore = true;
             break;
           }
@@ -84,18 +87,19 @@ export function watchServer({
       }
     } else {
       unique[path].push(socket);
+      ignores[path].push(ignore);
       await mesg.respond();
     }
   }
 
-  async function handleNonUnique({ mesg, socket, path, options }) {
+  async function handleNonUnique({ mesg, socket, path, options, ignore }) {
     const w = await watch(path, options);
     socket.once("closed", () => {
       w.close();
     });
     await mesg.respond();
     for await (const event of w) {
-      if ((socket.ignoreUntil ?? 0) >= Date.now()) {
+      if (ignore.ignoreUntil >= Date.now()) {
         continue;
       }
       socket.write(event);
@@ -108,10 +112,11 @@ export function watchServer({
       subject: socket.subject,
     });
     let initialized = false;
+    const ignore = { ignoreUntil: 0 };
     socket.on("request", async (mesg) => {
       const data = mesg.data;
       if (data.ignore != null) {
-        socket.ignoreUntil = Date.now() + data.ignore;
+        ignore.ignoreUntil = data.ignore > 0 ? Date.now() + data.ignore : 0;
         await mesg.respond(null, { noThrow: true });
         return;
       }
@@ -123,9 +128,9 @@ export function watchServer({
         const { path, options } = data;
         logger.debug("got request", { path, options });
         if (options?.unique) {
-          await handleUnique({ mesg, socket, path, options });
+          await handleUnique({ mesg, socket, path, options, ignore });
         } else {
-          await handleNonUnique({ mesg, socket, path, options });
+          await handleNonUnique({ mesg, socket, path, options, ignore });
         }
       } catch (err) {
         mesg.respondSync(null, {
@@ -138,6 +143,15 @@ export function watchServer({
   return server;
 }
 
+export type WatchIterator = EventIterator<any> & {
+  ignore?: (ignore: number) => Promise<void>;
+};
+
+export interface ChangeEvent {
+  eventType: "change" | "rename";
+  filename: string;
+}
+
 export async function watchClient({
   client,
   subject,
@@ -148,7 +162,7 @@ export async function watchClient({
   subject: string;
   path: string;
   options?: WatchOptions;
-}) {
+}): Promise<WatchIterator> {
   const socket = await client.socket.connect(subject);
   const iter = new EventIterator(socket, "data", {
     map: (args) => args[0],
@@ -162,10 +176,12 @@ export async function watchClient({
   // tell it what to watch
   await socket.request({ path, options });
 
+  const iter2 = iter as WatchIterator;
+
   // ignore events for ignore ms.
-  iter.ignore = async (ignore: number) => {
+  iter2.ignore = async (ignore: number) => {
     await socket.request({ ignore });
   };
 
-  return iter;
+  return iter2;
 }

@@ -1,6 +1,10 @@
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
-import { watchServer, watchClient } from "@cocalc/conat/files/watch";
+import {
+  watchServer,
+  watchClient,
+  type WatchIterator,
+} from "@cocalc/conat/files/watch";
 export const DEFAULT_FILE_SERVICE = "fs";
 
 export interface Filesystem {
@@ -30,7 +34,7 @@ export interface Filesystem {
   ) => Promise<void>;
   writeFile: (path: string, data: string | Buffer) => Promise<void>;
   // todo: typing
-  watch: (path: string, options?) => Promise<any>;
+  watch: (path: string, options?) => Promise<WatchIterator>;
 }
 
 interface IStats {
@@ -183,6 +187,7 @@ export async function fsServer({ service, fs, client }: Options) {
     async writeFile(path: string, data: string | Buffer) {
       await (await fs(this.subject)).writeFile(path, data);
     },
+    // @ts-ignore
     async watch() {
       const subject = this.subject!;
       if (watches[subject] != null) {
