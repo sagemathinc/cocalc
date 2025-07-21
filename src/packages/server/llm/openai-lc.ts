@@ -55,8 +55,8 @@ export async function evaluateOpenAILC(
 
   // As of Jan 2025: reasoning models (o1) do not support streaming
   // https://platform.openai.com/docs/guides/reasoning/
-  const isO1 = model != "o1-mini" && model != "o1";
-  const streaming = stream != null && isO1;
+  const isO1 = model.includes("o1");
+  const streaming = stream != null && !isO1;
 
   // This is also quite big -- only uncomment when developing and needing this.
   //   log.debug("evaluateOpenAILC", {
@@ -75,10 +75,10 @@ export async function evaluateOpenAILC(
     ...params,
     maxTokens,
     streaming,
-  }).bind(isO1 ? {} : { stream_options: { include_usage: true } });
+  }).withConfig(streaming ? { stream_options: { include_usage: true } } : {});
 
   const prompt = ChatPromptTemplate.fromMessages([
-    [isO1 ? "developer" : "system", system ?? ""],
+    ["system", system ?? ""],
     new MessagesPlaceholder("history"),
     ["human", "{input}"],
   ]);
