@@ -25,9 +25,9 @@ export interface WatchOptions {
   maxQueue?: number;
   overflow?: "ignore" | "throw";
 
-  // if more than one client is actively watching the same path and has unique set, only one
-  // will receive updates.  Also, if there are multiple clients with unique set, the options
-  // of all but the first are ignored.
+  // if more than one client is actively watching the same path and has unique set, all but one may receive
+  // the extra field ignore:true in the update.  Also, if there are multiple clients with unique set, the
+  // other options of all but the first are ignored.
   unique?: boolean;
 }
 
@@ -68,20 +68,22 @@ export function watchServer({
       await mesg.respond();
       for await (const event of w) {
         const now = Date.now();
-        let doIgnore = false;
+        let ignore = false;
         for (const { ignoreUntil } of ignores[path]) {
           if (ignoreUntil > now) {
-            doIgnore = true;
+            // every client is told to ignore this change, i.e., not load based on it happening
+            ignore = true;
             break;
           }
         }
-        if (doIgnore) {
-          continue;
-        }
         for (const s of unique[path]) {
           if (s.state == "ready") {
-            s.write(event);
-            break;
+            if (ignore) {
+              s.write({ ...event, ignore: true });
+            } else {
+              s.write(event);
+              ignore = true;
+            }
           }
         }
       }

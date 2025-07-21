@@ -7,6 +7,7 @@ import {
   once,
   wait,
   delay,
+  waitUntilSynced,
 } from "./setup";
 
 beforeAll(before);
@@ -17,7 +18,7 @@ describe("basic watching of file on disk happens automatically", () => {
   const path = "a.txt";
   let client, s, fs;
 
-  it("creates two clients with noAutosave enabled", async () => {
+  it("creates client", async () => {
     client = connect();
     fs = client.fs({ project_id, service: server.service });
     await fs.writeFile(path, "init");
@@ -117,6 +118,54 @@ describe("basic watching of file on disk happens automatically", () => {
       },
     });
     expect(s3.to_str()).toEqual("version5");
+  });
+});
+
+describe.only("has unsaved changes", () => {
+  const project_id = uuid();
+  let s1, s2, client1, client2;
+
+  it("creates two clients", async () => {
+    client1 = connect();
+    client2 = connect();
+    s1 = client1.sync.string({
+      project_id,
+      path: "a.txt",
+      service: server.service,
+    });
+    await once(s1, "ready");
+    // definitely has unsaved changes, since it doesn't even exist
+    expect(s1.has_unsaved_changes()).toBe(true);
+
+    s2 = client2.sync.string({
+      project_id,
+      path: "a.txt",
+      service: server.service,
+    });
+    await once(s2, "ready");
+    expect(s1.to_str()).toBe("");
+    expect(s2.to_str()).toBe("");
+    expect(s1 === s2).toBe(false);
+    expect(s2.has_unsaved_changes()).toBe(true);
+  });
+
+  it("save empty file to disk -- now no unsaved changes", async () => {
+    await s1.save_to_disk();
+    expect(s1.has_unsaved_changes()).toBe(false);
+    // but s2 doesn't know anything
+    expect(s2.has_unsaved_changes()).toBe(true);
+  });
+
+  it("make a change via s2 and save", async () => {
+    s2.from_str("i am s2");
+    await s2.save_to_disk();
+    expect(s2.has_unsaved_changes()).toBe(false);
+  });
+
+  it("as soon as s1 learns that there was a change to the file on disk, it doesn't know", async () => {
+    await waitUntilSynced([s1, s2]);
+    expect(s1.has_unsaved_changes()).toBe(true);
+    expect(s1.to_str()).toEqual("i am s2");
   });
 });
 

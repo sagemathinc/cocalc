@@ -1784,6 +1784,7 @@ export class SyncDoc extends EventEmitter {
     try {
       stats = await this.fs.stat(this.path);
     } catch (err) {
+      this.lastDiskValue = undefined; // nonexistent or don't know
       if (err.code == "ENOENT") {
         // path does not exist -- nothing further to do
         return false;
@@ -3017,6 +3018,7 @@ export class SyncDoc extends EventEmitter {
     let contents;
     try {
       contents = await this.fs.readFile(this.path, "utf8");
+      this.lastDiskValue = contents;
       dbg("file exists");
       size = contents.length;
       this.from_str(contents);
@@ -3139,6 +3141,9 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
+    if (this.fs != null) {
+      return this.fsHasUnsavedChanges();
+    }
     const dbg = this.dbg("has_unsaved_changes");
     try {
       return this.hash_of_saved_version() !== this.hash_of_live_version();
@@ -3227,6 +3232,11 @@ export class SyncDoc extends EventEmitter {
     return true;
   };
 
+  private lastDiskValue: string | undefined = undefined;
+  fsHasUnsavedChanges = (): boolean => {
+    return this.lastDiskValue != this.to_str();
+  };
+
   fsSaveToDisk = async () => {
     const dbg = this.dbg("fsSaveToDisk");
     if (this.client.is_deleted(this.path, this.project_id)) {
@@ -3242,8 +3252,9 @@ export class SyncDoc extends EventEmitter {
     // so no clients waste resources loading in response to us saving
     // to disk.
     await this.fsFileWatcher?.ignore(2000);
-    if(this.isClosed()) return;
+    if (this.isClosed()) return;
     await this.fs.writeFile(this.path, value);
+    this.lastDiskValue = value;
   };
 
   /* Initiates a save of file to disk, then waits for the
@@ -3259,9 +3270,14 @@ export class SyncDoc extends EventEmitter {
       // properly.
       return;
     }
+
     if (this.fs != null) {
-      return await this.fsSaveToDisk();
+      this.commit();
+      await this.fsSaveToDisk();
+      this.update_has_unsaved_changes();
+      return;
     }
+
     const dbg = this.dbg("save_to_disk");
     if (this.client.is_deleted(this.path, this.project_id)) {
       dbg("not saving to disk because deleted");
@@ -3791,12 +3807,15 @@ export class SyncDoc extends EventEmitter {
     // use this.fs interface to watch path for changes.
     this.fsFileWatcher = await this.fs.watch(this.path, { unique: true });
     (async () => {
-      for await (const { eventType } of this.fsFileWatcher) {
+      for await (const { eventType, ignore } of this.fsFileWatcher) {
+        // we don't know what's on disk anymore,
+        this.lastDiskValue = undefined;
         //console.log("got change", eventType);
-        if (eventType == "change" || eventType == "rename") {
+        if (!ignore) {
           this.fsLoadFromDiskDebounced();
         }
         if (eventType == "rename") {
+          // always have to recreate in case of a rename
           this.fsFileWatcher.close();
           // start a new watcher since file descriptor changed
           this.fsInitFileWatcher();
