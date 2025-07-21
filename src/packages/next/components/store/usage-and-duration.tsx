@@ -64,7 +64,7 @@ export function UsageAndDuration(props: Props) {
       <>Academic users receive a 40% discount off the standard price.</>
     );
     switch (source) {
-      case "license":
+      case "site-license":
         return (
           <>
             Will this license be used for academic or commercial purposes?
@@ -80,7 +80,7 @@ export function UsageAndDuration(props: Props) {
 
   function renderUsageItem() {
     switch (source) {
-      case "license":
+      case "site-license":
         return (
           <Radio.Group disabled={disabled}>
             <Space direction="vertical" style={{ margin: "5px 0" }}>
@@ -118,7 +118,7 @@ export function UsageAndDuration(props: Props) {
             Academic
           </Form.Item>
         );
-      case "license":
+      case "site-license":
         return (
           <Form.Item
             name="user"
@@ -256,7 +256,7 @@ export function UsageAndDuration(props: Props) {
       case "course":
         return <>{tz}</>;
 
-      case "license":
+      case "site-license":
         return (
           <>
             You can buy a license either via a subscription or a single purchase
@@ -290,7 +290,7 @@ export function UsageAndDuration(props: Props) {
           </Form.Item>
         );
 
-      case "license":
+      case "site-license":
         return (
           <Form.Item
             name="period"

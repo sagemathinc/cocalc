@@ -34,7 +34,7 @@ export function RunLimit({
     if (!showExplanations) return;
 
     switch (source) {
-      case "license":
+      case "site-license":
         return (
           <div style={{ marginTop: "5px" }}>
             {boost ? (
@@ -76,7 +76,7 @@ export function RunLimit({
   }
 
   switch (source) {
-    case "license":
+    case "site-license":
       return (
         <>
           <Divider plain>Simultaneous Project Upgrades</Divider>
@@ -87,7 +87,7 @@ export function RunLimit({
             extra={extra()}
           >
             <EditRunLimit
-              type={source}
+              source={source}
               disabled={disabled}
               onChange={(run_limit) => {
                 form.setFieldsValue({ run_limit });
@@ -109,7 +109,7 @@ export function RunLimit({
             extra={extra()}
           >
             <EditRunLimit
-              type={source}
+              source={source}
               disabled={disabled}
               onChange={(run_limit) => {
                 form.setFieldsValue({ run_limit });
@@ -129,12 +129,12 @@ function EditRunLimit({
   value,
   onChange,
   disabled,
-  type,
+  source,
 }: {
   value?: number;
   onChange: (run_limit: number) => void;
   disabled?: boolean;
-  type: LicenseSource;
+  source: LicenseSource;
 }) {
   return (
     <IntegerSlider
@@ -144,9 +144,9 @@ function EditRunLimit({
       max={300}
       maxText={MAX_ALLOWED_RUN_LIMIT}
       onChange={onChange}
-      units={type === "course" ? "students" : "projects"}
+      units={source === "course" ? "students" : "projects"}
       presets={
-        type === "course"
+        source === "course"
           ? [10, 25, 50, 75, 100, 125, 150, 200]
           : [1, 2, 10, 50, 100, 250, 500]
       }

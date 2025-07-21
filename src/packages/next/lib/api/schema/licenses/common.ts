@@ -69,7 +69,7 @@ export const SiteLicenseQuotaSchema = z.object({
     ),
   user: z.enum(["academic", "business"]).describe("User type."),
   source: z
-    .enum(["license", "course"])
+    .enum(["site-license", "course"])
     .optional()
     .describe(
       "Indicates which page (license or course) was used to create this license.",

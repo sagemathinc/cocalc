@@ -83,7 +83,7 @@ export default function SiteLicense({ noAccount, source }: Props) {
       </Title>
       {router.query.id == null && (
         <>
-          {source === "license" && (
+          {source === "site-license" && (
             <div>
               <Paragraph style={{ fontSize: "12pt" }}>
                 <A href="https://doc.cocalc.com/licenses.html">

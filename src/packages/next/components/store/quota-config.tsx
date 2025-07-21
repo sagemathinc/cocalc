@@ -115,7 +115,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       return "Booster";
     } else {
       switch (source) {
-        case "license":
+        case "site-license":
           return "Quota Upgrades";
         case "course":
           return "Project Upgrades";
@@ -651,7 +651,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       );
     } else {
       switch (source) {
-        case "license":
+        case "site-license":
           return (
             <Tabs
               activeKey={configMode}

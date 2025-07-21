@@ -27,6 +27,7 @@ export default function getPurchaseInfo(
         disk,
         member,
         uptime,
+        source,
         boost = false,
       } = conf;
       return {
@@ -47,6 +48,7 @@ export default function getPurchaseInfo(
         boost,
         title,
         description,
+        source,
       };
 
     case "vm":

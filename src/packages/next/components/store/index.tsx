@@ -123,7 +123,7 @@ export default function StoreLayout({ page }: Props) {
 
     switch (main) {
       case "site-license":
-        return <SiteLicense noAccount={noAccount} source="license" />;
+        return <SiteLicense noAccount={noAccount} source="site-license" />;
       case "course":
         return <SiteLicense noAccount={noAccount} source="course" />;
       case "cart":

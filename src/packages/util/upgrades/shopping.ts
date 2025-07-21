@@ -27,7 +27,7 @@ export type VMCostProps = {
 };
 
 // the store's source page from where a site-license has been created
-export type LicenseSource = "license" | "course";
+export type LicenseSource = "site-license" | "course";
 
 export type QuotaCostProps = {
   type: "quota";
