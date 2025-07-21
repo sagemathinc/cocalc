@@ -14,7 +14,7 @@ import { UsageStatistics } from "./stats/page";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { TestLLMAdmin } from "./llm";
+import { TestLLMAdmin } from "./llm/admin-llm-test";
 
 const headerStyle = { fontSize: "12pt" } as const;
 

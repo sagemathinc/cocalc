@@ -4,11 +4,13 @@ import {
   isCustomOpenAI,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
+import { AIMessageChunk } from "@langchain/core/messages";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
+import { concat } from "@langchain/core/utils/stream";
 import {
   ChatOpenAI as ChatOpenAILC,
   OpenAICallOptions,
@@ -51,7 +53,7 @@ export async function evaluateCustomOpenAI(
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],
-    new MessagesPlaceholder("chat_history"),
+    new MessagesPlaceholder("history"),
     ["human", "{input}"],
   ]);
 
@@ -63,11 +65,10 @@ export async function evaluateCustomOpenAI(
     runnable: chain,
     config: { configurable: { sessionId: "ignored" } },
     inputMessagesKey: "input",
-    historyMessagesKey: "chat_history",
+    historyMessagesKey: "history",
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
@@ -75,6 +76,7 @@ export async function evaluateCustomOpenAI(
 
   const chunks = await chainWithHistory.stream({ input });
 
+  let finalResult: AIMessageChunk | undefined;
   let output = "";
   for await (const chunk of chunks) {
     const { content } = chunk;
@@ -83,19 +85,51 @@ export async function evaluateCustomOpenAI(
     }
     output += content;
     opts.stream?.(content);
+
+    // Collect the final result to check for usage metadata
+    if (finalResult) {
+      finalResult = concat(finalResult, chunk);
+    } else {
+      finalResult = chunk;
+    }
   }
 
   // and an empty call when done
   opts.stream?.(null);
 
-  // we use that GPT3 tokenizer to get an approximate number of tokens
-  const prompt_tokens = numTokens(input) + historyTokens;
-  const completion_tokens = numTokens(output);
+  // Check for usage metadata from LangChain first (more accurate)
+  const usage_metadata = finalResult?.usage_metadata;
+  log.debug("usage_metadata", usage_metadata);
 
-  return {
-    output,
-    total_tokens: prompt_tokens + completion_tokens,
-    completion_tokens,
-    prompt_tokens,
-  };
+  if (usage_metadata) {
+    const { input_tokens, output_tokens, total_tokens } = usage_metadata;
+    log.debug("evaluateCustomOpenAI successful (using usage_metadata)", {
+      input_tokens,
+      output_tokens,
+      total_tokens,
+    });
+
+    return {
+      output,
+      total_tokens,
+      completion_tokens: output_tokens,
+      prompt_tokens: input_tokens,
+    };
+  } else {
+    // Fallback to manual token counting (approximation using GPT-3 tokenizer)
+    const prompt_tokens = numTokens(input) + historyTokens;
+    const completion_tokens = numTokens(output);
+
+    log.debug("evaluateCustomOpenAI successful (using manual counting)", {
+      prompt_tokens,
+      completion_tokens,
+    });
+
+    return {
+      output,
+      total_tokens: prompt_tokens + completion_tokens,
+      completion_tokens,
+      prompt_tokens,
+    };
+  }
 }

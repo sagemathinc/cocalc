@@ -133,7 +133,7 @@ const TAGS = {
       const im = configuration.image.toLowerCase();
       return im.includes("sage") || im.includes("anaconda");
     },
-    desc: "with a Julia oriented image",
+    desc: "with a SageMath oriented image",
     group: 1,
   },
   Julia: {
