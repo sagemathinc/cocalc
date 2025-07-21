@@ -168,14 +168,3 @@ describe.only("has unsaved changes", () => {
     expect(s1.to_str()).toEqual("i am s2");
   });
 });
-
-/*
-watching of file with multiple clients
-
--- only one does the actual file load
-
--- when one writes file to disk, another doesn't try to load it
-
-(various ways to do that: sticky fs server would mean only one is
-writing backend can ignore the resulting change event)
-*/

@@ -13,8 +13,6 @@ Also, by doing this on the backend we don't add 5MB (!) to the webpack frontend 
 something that is not supported on the frontend anyway.
 */
 
-declare let require: any;
-
 import { make_patch } from "@cocalc/sync/editor/generic/util";
 import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
 import { filename_extension } from "@cocalc/util/misc";
@@ -30,7 +28,6 @@ import { xml_format } from "./xml-format";
 // mathjax-utils is from upstream project Jupyter
 import { once } from "@cocalc/util/async-utils";
 import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
-import { get_prettier } from "./prettier-lib";
 import type {
   Syntax as FormatterSyntax,
   Config,
@@ -91,19 +88,13 @@ export async function run_formatter({
     }
   }
   const doc = syncstring.get_doc();
-  let formatted, math, input0;
+  let formatted, input0;
   let input = (input0 = doc.to_str());
-  if (options.parser === "markdown") {
-    [input, math] = remove_math(math_escape(input));
-  }
   try {
     formatted = await run_formatter_string({ path, str: input, options });
   } catch (err) {
     logger.debug(`run_formatter error: ${err.message}`);
     return { status: "error", phase: "format", error: err.message };
-  }
-  if (options.parser === "markdown") {
-    formatted = math_unescape(replace_math(formatted, math));
   }
   // NOTE: the code used to make the change here on the backend.
   // See https://github.com/sagemathinc/cocalc/issues/4335 for why
@@ -121,9 +112,13 @@ export async function run_formatter_string({
   options: Options;
   path?: string; // only used for CLANG
 }): Promise<string> {
-  let formatted;
-  const input = str;
+  let formatted, math;
+  let input = str;
   logger.debug(`run_formatter options.parser: "${options.parser}"`);
+  if (options.parser === "markdown") {
+    [input, math] = remove_math(math_escape(input));
+  }
+
   switch (options.parser) {
     case "latex":
     case "latexindent":
@@ -163,12 +158,12 @@ export async function run_formatter_string({
       formatted = await rust_format(input, options, logger);
       break;
     default:
-      const prettier = get_prettier();
-      if (prettier != null) {
-        formatted = prettier.format(input, options);
-      } else {
-        throw Error("Could not load 'prettier'");
-      }
+      const prettier = await import("prettier");
+      formatted = await prettier.format(input, options as any);
+  }
+
+  if (options.parser === "markdown") {
+    formatted = math_unescape(replace_math(formatted, math));
   }
   return formatted;
 }

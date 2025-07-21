@@ -273,6 +273,7 @@ export const MAX_INTEREST_TIMEOUT = 90_000;
 
 const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 30_000;
 
+// WARNING: do NOT change MSGPACK_ENCODER_OPTIONS unless you know what you're doing!
 const MSGPACK_ENCODER_OPTIONS = {
   // ignoreUndefined is critical so database queries work properly, and
   // also we have a lot of api calls with tons of wasted undefined values.

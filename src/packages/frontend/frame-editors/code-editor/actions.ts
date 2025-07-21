@@ -52,11 +52,11 @@ import {
 } from "@cocalc/frontend/misc/local-storage";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { SyncDB } from "@cocalc/sync/editor/db";
-import { apply_patch } from "@cocalc/sync/editor/generic/util";
+import { apply_patch, make_patch } from "@cocalc/sync/editor/generic/util";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
 import {
-  Config as FormatterConfig,
+  Options as FormatterOptions,
   Exts as FormatterExts,
   Syntax as FormatterSyntax,
   Tool as FormatterTool,
@@ -89,7 +89,6 @@ import {
   SetMap,
 } from "../frame-tree/types";
 import {
-  formatter,
   get_default_font_size,
   log_error,
   syncdb2,
@@ -112,6 +111,7 @@ import { misspelled_words } from "./spell-check";
 import { log_opened_time } from "@cocalc/frontend/project/open-file";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { alert_message } from "@cocalc/frontend/alerts";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface gutterMarkerParams {
   line: number;
@@ -2259,10 +2259,6 @@ export class Actions<
     const cm = this._get_cm(id);
     if (!cm) return;
 
-    if (!(await this.ensure_latest_changes_are_saved())) {
-      return;
-    }
-
     // Important: this function may be called even if there is no format support,
     // because it can be called via a keyboard shortcut.  That's why we gracefully
     // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
@@ -2270,36 +2266,44 @@ export class Actions<
     if (s == null) {
       return;
     }
-    // TODO: Using any here since TypeMap is just not working right...
-    if (!this.has_format_support(id, s.get("available_features"))) {
-      return;
-    }
 
     // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
     const syntax: FormatterSyntax = ext2syntax[ext];
-    const config: FormatterConfig = {
-      syntax,
+    const parser = syntax2tool[syntax];
+    if (!parser || !this.has_format_support(id, s.get("available_features"))) {
+      return;
+    }
+    const options: FormatterOptions = {
+      parser,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
       lastChanged: this._syncstring.last_changed(),
     };
 
-    this.set_status("Running code formatter...");
+    const api = webapp_client.project_client.conatApi(this.project_id);
+    const str = cm.getValue();
+
     try {
-      const patch = await formatter(this.project_id, this.path, config);
-      if (patch != null) {
-        // Apply the patch.
-        // NOTE: old backends that haven't restarted just return {status:'ok'}
-        // and directly make the change.  Delete this comment in a month or so.
-        // See https://github.com/sagemathinc/cocalc/issues/4335
-        this.set_syncstring_to_codemirror();
-        const new_val = apply_patch(patch, this._syncstring.to_str())[0];
-        this._syncstring.from_str(new_val);
-        this._syncstring.commit();
-        this.set_codemirror_to_syncstring();
+      this.set_status("Running code formatter...");
+      let formatted = await api.editor.formatterString({
+        str,
+        options,
+        path: this.path,
+      });
+      if (formatted == str) {
+        // nothing to do
+        return;
       }
+      const str2 = cm.getValue();
+      if (str2 != str) {
+        // user made edits *during* formatting, so we "3-way merge" it in, rather
+        // than breaking what they did:
+        const patch = make_patch(str, formatted);
+        formatted = apply_patch(patch, str2)[0];
+      }
+      cm.setValueNoJump(formatted);
       this.setFormatError("");
     } catch (err) {
       this.setFormatError(`${err}`, this._syncstring?.to_str());

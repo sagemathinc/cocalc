@@ -68,6 +68,7 @@ export function make_patch(s0: string, s1: string): CompressedPatch {
 }
 
 // apply a compressed patch to a string.
+// Returns the result *and* whether or not the patch applied cleanly.
 export function apply_patch(
   patch: CompressedPatch,
   s: string,

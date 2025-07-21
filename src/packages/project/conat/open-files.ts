@@ -221,6 +221,12 @@ function computeServerId(path: string): number {
   return computeServers?.get(path) ?? 0;
 }
 
+function hasBackendState(path) {
+  return (
+    path.endsWith("." + JUPYTER_SYNCDB_EXTENSIONS) || path.endsWith(".sagews")
+  );
+}
+
 async function handleChange({
   path,
   time,
@@ -229,6 +235,9 @@ async function handleChange({
   doctype,
   id,
 }: OpenFileEntry & { id?: number }) {
+  if (!hasBackendState(path)) {
+    return;
+  }
   try {
     if (id == null) {
       id = computeServerId(path);

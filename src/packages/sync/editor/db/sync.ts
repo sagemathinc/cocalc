@@ -10,6 +10,9 @@ import { Document, DocType } from "../generic/types";
 export interface SyncDBOpts0 extends SyncOpts0 {
   primary_keys: string[];
   string_cols?: string[];
+  // format = what format to store the underlying file using: json or msgpack
+  // The default is json unless otherwise specified.
+  format?: "json" | "msgpack";
 }
 
 export interface SyncDBOpts extends SyncDBOpts0 {
@@ -37,7 +40,7 @@ export class SyncDB extends SyncDoc {
     super(opts1 as SyncOpts);
   }
 
-  get_one(arg?) : any {
+  get_one(arg?): any {
     // I know it is really of type DBDocument.
     return (this.get_doc() as DBDocument).get_one(arg);
   }

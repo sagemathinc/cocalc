@@ -46,7 +46,7 @@ export interface Editor {
 
   jupyterKernels: (opts?: { noCache?: boolean }) => Promise<KernelSpec[]>;
 
-  // returns a patch to transform str into formatted form.
+  // returns formatted version of str.
   formatterString: (opts: {
     str: string;
     options: FormatterOptions;
