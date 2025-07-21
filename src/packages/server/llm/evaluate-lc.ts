@@ -21,7 +21,6 @@ import {
   isOpenAIModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { AIMessageChunk } from "@langchain/core/messages";
 import {
@@ -60,17 +59,14 @@ export interface LLMProviderConfig {
   createClient: (
     options: LLMEvaluationOptions,
     settings: ServerSettings,
+    mode: "cocalc" | "user",
   ) => Promise<any>;
 
   // Model processing
-  processModel?: (model: string) => string;
+  canonicalModel?: (model: string) => string;
 
   // Special handling flags
-  supportsStreaming?: (model: string) => boolean;
   getSystemRole?: (model: string) => string;
-
-  // Content processing
-  shouldContinueOnNonString?: boolean;
 
   // Token counting fallback
   getTokenCountFallback?: (
@@ -80,6 +76,10 @@ export interface LLMProviderConfig {
     model: string,
     settings: any,
   ) => Promise<{ prompt_tokens: number; completion_tokens: number }>;
+}
+
+function isO1Model(normalizedModel) {
+  return normalizedModel === "o1" || normalizedModel === "o1-mini";
 }
 
 // Provider configurations
@@ -95,23 +95,20 @@ export const PROVIDER_CONFIGS = {
       );
 
       // Check if it's O1 model (doesn't support streaming)
-      const isO1Model = normalizedModel.startsWith("o1-");
-
+      const isO1 = isO1Model(normalizedModel);
       return new ChatOpenAI({
         model: normalizedModel,
         apiKey: options.apiKey || apiKey,
         maxTokens: options.maxTokens,
-        streaming: options.stream != null && !isO1Model,
+        streaming: options.stream != null && !isO1,
         streamUsage: true,
-        ...(options.stream != null && !isO1Model
+        ...(options.stream != null && !isO1
           ? { streamOptions: { includeUsage: true } }
           : {}),
       });
     },
-    supportsStreaming: (model) =>
-      !normalizeOpenAIModel(model).startsWith("o1-"),
+    canonicalModel: (model) => normalizeOpenAIModel(model),
     getSystemRole: (_model) => "system",
-    shouldContinueOnNonString: true,
     getTokenCountFallback: async (input, output, historyTokens) => ({
       prompt_tokens: numTokens(input) + historyTokens,
       completion_tokens: numTokens(output),
@@ -120,10 +117,13 @@ export const PROVIDER_CONFIGS = {
 
   google: {
     name: "Google GenAI",
-    createClient: async (options, settings) => {
-      const { google_vertexai_key: apiKey } = settings;
+    createClient: async (options, settings, mode) => {
+      const apiKey =
+        mode === "cocalc" ? settings.google_vertexai_key : options.apiKey;
       const modelName =
-        GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model;
+        mode === "cocalc"
+          ? GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model
+          : options.model;
 
       log.debug(
         `Google createClient: original=${options.model}, modelName=${modelName}`,
@@ -140,67 +140,47 @@ export const PROVIDER_CONFIGS = {
         streaming: true,
       });
     },
-    processModel: (model) => GOOGLE_MODEL_TO_ID[model as GoogleModel] ?? model,
-    shouldContinueOnNonString: true,
-    getTokenCountFallback: async (
-      input,
-      output,
-      historyTokens,
-      model,
-      settings,
-    ) => {
-      const { google_vertexai_key: apiKey } = settings;
-      const modelName = GOOGLE_MODEL_TO_ID[model as GoogleModel] ?? model;
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const tokenCountingModel = genAI.getGenerativeModel({ model: modelName });
-
-      const { totalTokens: prompt_tokens } =
-        await tokenCountingModel.countTokens([
-          input,
-          // Use historyTokens instead of recalculating
-        ]);
-
-      const { totalTokens: completion_tokens } =
-        await tokenCountingModel.countTokens(output);
-
-      return {
-        prompt_tokens: prompt_tokens + historyTokens,
-        completion_tokens,
-      };
-    },
+    canonicalModel: (model) =>
+      GOOGLE_MODEL_TO_ID[model as GoogleModel] ?? model,
+    getTokenCountFallback: async (input, output, historyTokens) => ({
+      prompt_tokens: numTokens(input) + historyTokens,
+      completion_tokens: numTokens(output),
+    }),
   },
 
   anthropic: {
     name: "Anthropic",
-    createClient: async (options, settings) => {
-      const { anthropic_api_key: apiKey } = settings;
-      const modelVersion = ANTHROPIC_VERSION[options.model as AnthropicModel];
+    createClient: async (options, settings, mode) => {
+      const apiKey =
+        mode === "cocalc" ? settings.anthropic_api_key : options.apiKey;
+      const modelName =
+        mode === "cocalc"
+          ? ANTHROPIC_VERSION[options.model as AnthropicModel]
+          : options.model;
 
-      if (modelVersion == null) {
+      if (modelName == null) {
         throw new Error(
           `Anthropic model ${options.model} is no longer supported`,
         );
       }
 
       log.debug(
-        `Anthropic createClient: original=${options.model}, modelVersion=${modelVersion}`,
+        `Anthropic createClient: original=${options.model}, modelVersion=${modelName}`,
       );
 
       return new ChatAnthropic({
-        model: modelVersion,
-        apiKey: options.apiKey || apiKey,
+        model: modelName,
+        apiKey,
         maxTokens: options.maxTokens,
       });
     },
-    processModel: (model) => {
+    canonicalModel: (model) => {
       const version = ANTHROPIC_VERSION[model as AnthropicModel];
       if (version == null) {
         throw new Error(`Anthropic model ${model} is no longer supported`);
       }
       return version;
     },
-    shouldContinueOnNonString: true,
     getTokenCountFallback: async (input, output, historyTokens) => ({
       prompt_tokens: numTokens(input) + historyTokens,
       completion_tokens: numTokens(output),
@@ -209,17 +189,17 @@ export const PROVIDER_CONFIGS = {
 
   mistral: {
     name: "Mistral",
-    createClient: async (options, settings) => {
-      const { mistral_api_key: apiKey } = settings;
+    createClient: async (options, settings, mode) => {
+      const apiKey =
+        mode === "cocalc" ? settings.mistral_api_key : options.apiKey;
 
       log.debug(`Mistral createClient: model=${options.model}`);
 
       return new ChatMistralAI({
         model: options.model,
-        apiKey: options.apiKey || apiKey,
+        apiKey,
       });
     },
-    shouldContinueOnNonString: true,
     getTokenCountFallback: async (input, output, historyTokens) => ({
       prompt_tokens: numTokens(input) + historyTokens,
       completion_tokens: numTokens(output),
@@ -235,8 +215,7 @@ export const PROVIDER_CONFIGS = {
       );
       return await getCustomOpenAI(transformedModel);
     },
-    processModel: (model) => fromCustomOpenAIModel(model),
-    shouldContinueOnNonString: false, // breaks on non-string content
+    canonicalModel: (model) => fromCustomOpenAIModel(model),
     getTokenCountFallback: async (input, output, historyTokens) => ({
       prompt_tokens: numTokens(input) + historyTokens,
       completion_tokens: numTokens(output),
@@ -269,20 +248,17 @@ function content2string(content: any): string {
     const output0 = content[0];
     if (output0?.type === "text") {
       return output0.text;
-    } else {
-      log.debug("content2string unable to process", content);
-      return "";
     }
-  } else {
-    log.debug("content2string unable to process", content);
-    return "";
   }
+
+  log.debug("content2string unable to process", content);
+  return "";
 }
 
 // Main unified evaluation function
 export async function evaluateWithLangChain(
   options: LLMEvaluationOptions,
-  _mode: "cocalc" | "user" = "cocalc",
+  mode: "cocalc" | "user" = "cocalc",
 ): Promise<ChatOutput> {
   const { input, system, history = [], model, stream, maxTokens } = options;
 
@@ -302,10 +278,12 @@ export async function evaluateWithLangChain(
   const settings = await getServerSettings();
 
   // Create LangChain client
-  const client = await config.createClient(options, settings);
+  const client = await config.createClient(options, settings, mode);
 
-  // Process model name if needed (processed model not currently used in this function)
-  // const _processedModel = config.processModel ? config.processModel(model) : model;
+  // Canonical model name
+  const canonicalModel = config.canonicalModel
+    ? config.canonicalModel(model)
+    : model;
 
   // Determine system role (always use "history" for historyKey)
   const systemRole = config.getSystemRole
@@ -316,8 +294,8 @@ export async function evaluateWithLangChain(
 
   // Create prompt template
   // For o1 models, omit the system message entirely since they don't support system roles
-  const isO1Model = model.includes("o1");
-  const prompt = isO1Model
+  const isO1 = isO1Model(canonicalModel);
+  const prompt = isO1
     ? ChatPromptTemplate.fromMessages([
         new MessagesPlaceholder(historyMessagesKey),
         ["human", system ? `${system}\n\n{input}` : "{input}"],
@@ -347,15 +325,10 @@ export async function evaluateWithLangChain(
     },
   });
 
-  // Handle streaming vs non-streaming
-  const supportsStreaming = config.supportsStreaming
-    ? config.supportsStreaming(model)
-    : true;
-
   let finalResult: AIMessageChunk | undefined;
   let output = "";
 
-  if (stream && supportsStreaming) {
+  if (stream) {
     // Streaming mode
     const chunks = await chainWithHistory.stream({ input });
 
@@ -363,10 +336,6 @@ export async function evaluateWithLangChain(
       const chunkTyped = chunk as AIMessageChunk;
       const { content } = chunkTyped;
       const contentStr = content2string(content);
-
-      if (typeof content !== "string" && !config.shouldContinueOnNonString) {
-        break;
-      }
 
       if (typeof content === "string") {
         output += content;

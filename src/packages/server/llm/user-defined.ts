@@ -16,11 +16,12 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, unreachable } from "@cocalc/util/misc";
 import type { History, Stream } from "@cocalc/util/types/llm";
-import { evaluateAnthropic } from "./anthropic";
 import { evaluateCustomOpenAI } from "./custom-openai";
-import { evaluateGoogleGenAILC } from "./google-lc";
-import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
+// import { evaluateWithLangChain } from "./evaluate-lc";
+import { evaluateAnthropic } from "./anthropic";
+import { evaluateMistral } from "./mistral";
+import { evaluateGoogleGenAILC } from "./google-lc";
 import { evaluateOpenAILC } from "./openai-lc";
 
 const log = getLogger("llm:userdefined");
@@ -65,6 +66,8 @@ export async function evaluateUserDefinedLLM(
   // and then construct the corresponding client (maybe with a use provided API key)
   // and call the appropriate evaluation function. For that, it mimics how the llm framework
   // usually calls an LLM.
+  // NOTE: evaluateWithLangChain "could" work after further refactoring. In particular, its
+  // getProviderConfig must be enhanced with a generalized way to configure based on provider, not model name
   const { service, endpoint, apiKey } = conf;
   switch (service) {
     case "custom_openai": {
@@ -107,24 +110,56 @@ export async function evaluateUserDefinedLLM(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
+    // return await evaluateWithLangChain(
+    //   {
+    //     ...opts,
+    //     model: um.model,
+    //     apiKey: conf.apiKey,
+    //   },
+    //   "user",
+    // );
 
     case "mistralai":
       return await evaluateMistral(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
+    // return await evaluateWithLangChain(
+    //   {
+    //     ...opts,
+    //     model: um.model,
+    //     apiKey: conf.apiKey,
+    //   },
+    //   "user",
+    // );
 
     case "google":
       return await evaluateGoogleGenAILC(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
+    // return await evaluateWithLangChain(
+    //   {
+    //     ...opts,
+    //     model: um.model,
+    //     apiKey: conf.apiKey,
+    //   },
+    //   "user",
+    // );
 
     case "openai":
       return await evaluateOpenAILC(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
+    // return await evaluateWithLangChain(
+    //   {
+    //     ...opts,
+    //     model: um.model,
+    //     apiKey: conf.apiKey,
+    //   },
+    //   "user",
+    // );
 
     default:
       unreachable(service);

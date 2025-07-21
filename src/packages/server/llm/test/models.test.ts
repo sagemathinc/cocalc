@@ -29,7 +29,8 @@ import { evaluateOpenAILC } from "../openai-lc";
 import { evaluateUserDefinedLLM } from "../user-defined";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
 
-const LLM_TIMEOUT = 10_000;
+// sometimes (flaky case) they take more than 10s to even start a response
+const LLM_TIMEOUT = 15_000;
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -143,18 +144,18 @@ test_llm("openai")("OpenAI", () => {
     LLM_TIMEOUT,
   );
   test(
-    "openai 4.1 mini works",
+    "4.1 mini works",
     async () => {
-      llmOpenAI("gpt-4.1-mini");
+      await llmOpenAI("gpt-4.1-mini");
     },
     LLM_TIMEOUT,
   );
 
-  test("openai o1", async () => {
+  test("o1", async () => {
     await llmOpenAI("o1-8k");
   });
 
-  test("gpt o1 mini works", async () => {
+  test("o1 mini works", async () => {
     await llmOpenAI("o1-mini-8k");
   });
 });

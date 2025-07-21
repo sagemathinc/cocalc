@@ -17,6 +17,7 @@ import {
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { trunc_middle } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { PROMPTS } from "./tests";
 import { Value } from "./value";
 
@@ -113,6 +114,7 @@ export function TestLLMAdmin() {
         let reply = "";
 
         llmStream.on("token", (token) => {
+          console.log({ model, system, token });
           if (token != null) {
             reply += token;
             // Update the result in real-time
@@ -133,6 +135,7 @@ export function TestLLMAdmin() {
         });
 
         llmStream.on("error", (err) => {
+          console.error(`Error in LLM stream for model ${model}:`, err);
           resolve({
             model,
             status: "failed",
@@ -144,6 +147,7 @@ export function TestLLMAdmin() {
         // Start the stream
         llmStream.emit("start");
       } catch (err) {
+        console.error(`Error running test for model ${model}:`, err);
         resolve({
           model,
           status: "failed",
@@ -259,10 +263,10 @@ export function TestLLMAdmin() {
         dataIndex: "model",
         key: "model",
         width: 180,
-        render: (model: string, record: TestResult) => (
+        render: (model: string /*, record: TestResult*/) => (
           <Space>
             <LLMModelName model={model} />
-            {record.status === "running" && <span>(Running...)</span>}
+            {/* {record.status === "running" && <span>(Running...)</span>} */}
           </Space>
         ),
       },
@@ -274,7 +278,7 @@ export function TestLLMAdmin() {
           output ? (
             <Markdown value={output} />
           ) : (
-            <span style={{ color: "#999" }}>-</span>
+            <span style={{ color: COLORS.GRAY_M }}>-</span>
           ),
       },
       {
@@ -285,7 +289,7 @@ export function TestLLMAdmin() {
           error ? (
             <Alert type="error" banner message={error} style={{ margin: 0 }} />
           ) : (
-            <span style={{ color: "#999" }}>-</span>
+            <span style={{ color: COLORS.GRAY_M }}>-</span>
           ),
       },
       {

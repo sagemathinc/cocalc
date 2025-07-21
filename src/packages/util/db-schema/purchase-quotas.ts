@@ -220,6 +220,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     noSet: true, // deprecated, will be removed
     category: "ai",
   },
+  "google-gemini-1.5-flash": {
+    display: "Google Gemini 1.5 Flash",
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
   "google-gemini-1.5-flash-8k": {
     display: "Google Gemini 1.5 Flash",
     color: GOOGLE_AI_COLOR,

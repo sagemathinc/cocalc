@@ -151,6 +151,7 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
   "gemini-1.5-flash-8k", // introduced 2024-05-15
+  "gemini-1.5-flash", // for user defined models
   "gemini-pro", // Discontinued Feb'25. Keep it to avoid breaking old references!
   "gemini-1.0-ultra", // hangs
   "gemini-1.5-pro-8k", // works now with langchaing
@@ -747,6 +748,7 @@ export const LLM_USERNAMES: LLM2String = {
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini 1.0 Pro",
   "gemini-1.0-ultra": "Gemini 1.0 Ultra",
+  "gemini-1.5-flash": "Gemini 1.5 Flash",
   "gemini-1.5-pro": "Gemini 1.5 Pro 1m",
   "gemini-1.5-pro-8k": "Gemini 1.5 Pro",
   "gemini-1.5-flash-8k": "Gemini 1.5 Flash",
@@ -810,6 +812,7 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 1.0 Ultra Generative AI model (30k token context)",
   "gemini-1.5-pro":
     "Google's Gemini 1.5 Pro Generative AI model (1m token context)",
+  "gemini-1.5-flash": "Google's Gemini 1.5 Flash Generative AI model",
   "gemini-1.5-pro-8k":
     "Google's Gemini 1.5 Pro Generative AI model (8k token context)",
   "gemini-1.5-flash-8k":
@@ -1061,6 +1064,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
+    free: true,
+  },
+  "gemini-1.5-flash": {
+    prompt_tokens: usd1Mtokens(0.075),
+    completion_tokens: usd1Mtokens(0.3),
+    max_tokens: 8_000,
     free: true,
   },
   "gemini-1.5-flash-8k": {
