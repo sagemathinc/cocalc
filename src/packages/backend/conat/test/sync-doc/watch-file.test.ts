@@ -1,4 +1,13 @@
-import { before, after, uuid, connect, server, once, wait } from "./setup";
+import {
+  before,
+  after,
+  uuid,
+  connect,
+  server,
+  once,
+  wait,
+  delay,
+} from "./setup";
 
 beforeAll(before);
 afterAll(after);
@@ -34,6 +43,23 @@ describe("basic watching of file on disk happens automatically", () => {
         return s.to_str() == "changed again!";
       },
     });
+  });
+
+  it("change file on disk should not trigger a load from disk", async () => {
+    const orig = s.fsLoadFromDiskDebounced;
+    let c = 0;
+    s.fsLoadFromDiskDebounced = () => {
+      c += 1;
+    };
+    s.from_str("a different value");
+    await s.save_to_disk();
+    expect(c).toBe(0);
+    await delay(100);
+    expect(c).toBe(0);
+    s.fsLoadFromDiskDebounced = orig;
+    // disable the ignore that happens as part of save_to_disk,
+    // or the tests below won't work
+    await s.fsFileWatcher?.ignore(0);
   });
 
   let client2, s2;

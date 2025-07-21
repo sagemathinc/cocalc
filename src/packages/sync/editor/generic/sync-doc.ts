@@ -3238,6 +3238,10 @@ export class SyncDoc extends EventEmitter {
       throw Error("bug");
     }
     const value = this.to_str();
+    // tell watcher not to fire any change events for a little time,
+    // so no clients waste resources loading in response to us saving
+    // to disk.
+    await this.fsFileWatcher?.ignore(2000);
     await this.fs.writeFile(this.path, value);
   };
 
