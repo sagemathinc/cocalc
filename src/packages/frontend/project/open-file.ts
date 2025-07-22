@@ -28,6 +28,14 @@ import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
+// if true, PRELOAD_BACKGROUND_TABS makes it so all tabs have their file editing
+// preloaded, even background tabs.  This can make the UI much more responsive,
+// since after refreshing your browser or opening a project that had tabs open,
+// all files are ready to edit instantly.  It uses more browser memory (of course),
+// and increases server load.  Most users have very few files open at once,
+// so this is probably a major win for power users and has little impact on load.
+const PRELOAD_BACKGROUND_TABS = true;
+
 export interface OpenFileOpts {
   path: string;
   ext?: string; // if given, use editor for this extension instead of whatever extension path has.
@@ -337,6 +345,10 @@ export async function open_file(
 
   if (!tabIsOpened()) {
     return;
+  }
+
+  if (PRELOAD_BACKGROUND_TABS) {
+    await actions.initFileRedux(opts.path);
   }
 
   if (opts.foreground) {
