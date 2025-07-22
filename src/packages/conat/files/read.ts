@@ -41,6 +41,10 @@ for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-
 import { conat } from "@cocalc/conat/client";
 import { projectSubject } from "@cocalc/conat/names";
 import { type Subscription } from "@cocalc/conat/core/client";
+import { delay } from "awaiting";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("conat:files:read");
 
 let subs: { [name: string]: Subscription } = {};
 export async function close({ project_id, compute_server_id, name = "" }) {
@@ -72,6 +76,7 @@ export async function createServer({
     compute_server_id,
     name,
   });
+  logger.debug("createServer", { subject });
   const cn = await conat();
   const sub = await cn.subscribe(subject);
   subs[subject] = sub;
@@ -89,16 +94,19 @@ async function listen({ sub, createReadStream }) {
 }
 
 async function handleMessage(mesg, createReadStream) {
+  logger.debug("handleMessage", mesg.subject);
   try {
     await sendData(mesg, createReadStream);
     await mesg.respond(null, { headers: { done: true } });
   } catch (err) {
-    // console.log("sending ERROR", err);
+    logger.debug("handleMessage: ERROR", err);
     mesg.respondSync(null, { headers: { error: `${err}` } });
   }
 }
 
-const MAX_CHUNK_SIZE = 16384 * 16 * 3;
+// 4MB -- chunks may be slightly bigger
+const CHUNK_SIZE = 4194304;
+const CHUNK_INTERVAL = 250;
 
 function getSeqHeader(seq) {
   return { headers: { seq } };
@@ -106,19 +114,45 @@ function getSeqHeader(seq) {
 
 async function sendData(mesg, createReadStream) {
   const { path } = mesg.data;
+  logger.debug("sendData: starting", { path });
   let seq = 0;
+  const chunks: Buffer[] = [];
+  let size = 0;
+  const sendChunks = async () => {
+    // Not only is waiting for the response useful to make sure somebody is listening,
+    // we also use await here partly to space out the messages to avoid saturing
+    // the websocket connection, since doing so would break everything
+    // (heartbeats, etc.) and disconnect us, when transfering a large file.
+    seq += 1;
+    logger.debug("sendData: sending", { path, seq });
+    const data = Buffer.concat(chunks);
+    const { count } = await mesg.respond(data, getSeqHeader(seq));
+    if (count == 0) {
+      logger.debug("sendData: nobody is listening");
+      // nobody is listening so don't waste effort sending...
+      throw Error("receiver is gone");
+    }
+    size = 0;
+    chunks.length = 0;
+    // Delay a little just to give other messages a chance, so we don't get disconnected
+    // e.g., due to lack of heartbeats. Also, this reduces the load on conat-router.
+    await delay(CHUNK_INTERVAL);
+  };
+
   for await (let chunk of createReadStream(path, {
-    highWaterMark: 16384 * 16 * 3,
+    highWaterMark: CHUNK_SIZE,
   })) {
-    // console.log("sending ", { seq, bytes: chunk.length });
-    // We must break the chunk into smaller messages or it will
-    // get bounced by conat...
-    while (chunk.length > 0) {
-      seq += 1;
-      mesg.respondSync(chunk.slice(0, MAX_CHUNK_SIZE), getSeqHeader(seq));
-      chunk = chunk.slice(MAX_CHUNK_SIZE);
+    chunks.push(chunk);
+    size += chunk.length;
+    if (size >= CHUNK_SIZE) {
+      // send it
+      await sendChunks();
     }
   }
+  if (size > 0) {
+    await sendChunks();
+  }
+  logger.debug("sendData: done", { path }, "successfully sent ", seq, "chunks");
 }
 
 export interface ReadFileOptions {
@@ -136,6 +170,7 @@ export async function* readFile({
   name = "",
   maxWait = 1000 * 60 * 10, // 10 minutes
 }: ReadFileOptions) {
+  logger.debug("readFile", { project_id, compute_server_id, path });
   const cn = await conat();
   const subject = getSubject({
     project_id,

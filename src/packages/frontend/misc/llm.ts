@@ -12,7 +12,7 @@ export { getMaxTokens };
 //  about 5 characters long on average, and there is a space character between
 // each word. So, for every 6 characters, there is approximately one token."
 // Using this, our 250,000 character text gets truncated down to 6*4096 ~ 25,000
-// and then runnin the tokenizer is fast: it takes 62ms instead of nearly 6 seconds!
+// and then running the tokenizer is fast: it takes 62ms instead of nearly 6 seconds!
 
 // if 6 is about right, 8 should be a good upper bound.
 const APPROX_CHARACTERS_PER_TOKEN = 8;
