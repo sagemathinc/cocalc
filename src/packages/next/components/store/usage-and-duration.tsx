@@ -144,13 +144,20 @@ export function UsageAndDuration(props: Props) {
     let range = getFieldValue("range");
     let invalidRange = range?.[0] == null || range?.[1] == null;
     if (invalidRange) {
-      const start = new Date();
-      const dayMs = 1000 * 60 * 60 * 24;
-      const daysDelta = source === "course" ? 4 * 30 : 30;
-      const end = new Date(start.valueOf() + dayMs * daysDelta);
-      range = [start, end];
-      form.setFieldsValue({ range });
-      onChange();
+      // Check if we're during initial load and URL has range parameters
+      // If so, don't override with default dates
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasRangeInUrl = urlParams.has('range');
+      
+      if (!hasRangeInUrl) {
+        const start = new Date();
+        const dayMs = 1000 * 60 * 60 * 24;
+        const daysDelta = source === "course" ? 4 * 30 : 30;
+        const end = new Date(start.valueOf() + dayMs * daysDelta);
+        range = [start, end];
+        form.setFieldsValue({ range });
+        onChange();
+      }
     }
     let suffix;
     try {
@@ -181,6 +188,7 @@ export function UsageAndDuration(props: Props) {
         extra={source === "course" ? renderDurationExplanation() : undefined}
       >
         <DateRange
+          key={range ? `${range[0]?.getTime()}_${range[1]?.getTime()}` : 'no-range'}
           disabled={disabled}
           noPast
           maxDaysInFuture={365 * 4}

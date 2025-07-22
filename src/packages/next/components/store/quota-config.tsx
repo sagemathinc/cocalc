@@ -31,7 +31,7 @@ import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import {
   COURSE,
-  PRESETS,
+  SITE_LICENSE,
   PRESET_MATCH_FIELDS,
   Preset,
   PresetConfig,
@@ -324,7 +324,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
   function presetIsAdjusted() {
     if (preset == null) return;
-    const presetData: PresetConfig = PRESETS[preset];
+    const presetData: PresetConfig = SITE_LICENSE[preset];
     if (presetData == null) {
       return (
         <div>
@@ -393,7 +393,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <>After selecting a preset, feel free to</>
         ) : (
           <>
-            Selected preset <strong>"{PRESETS[preset]?.name}"</strong>. You can
+            Selected preset <strong>"{SITE_LICENSE[preset]?.name}"</strong>. You
+            can
           </>
         )}{" "}
         fine tune the selection in the "{EXPERT_CONFIG}" tab. Subsequent preset
@@ -470,7 +471,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   }
 
   function renderPresetsNarrow() {
-    const p = preset != null ? PRESETS[preset] : undefined;
+    const p = preset != null ? SITE_LICENSE[preset] : undefined;
     let presetInfo: JSX.Element | undefined = undefined;
     if (p != null) {
       const { name, cpu, disk, ram, uptime, note } = p;
@@ -505,11 +506,11 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <Radio.Group
             size="large"
             value={preset}
-            onChange={(e) => onPresetChange(PRESETS, e.target.value)}
+            onChange={(e) => onPresetChange(SITE_LICENSE, e.target.value)}
           >
             <Space direction="vertical">
-              {(Object.keys(PRESETS) as Array<Preset>).map((p) => {
-                const { name, icon, descr } = PRESETS[p];
+              {(Object.keys(SITE_LICENSE) as Array<Preset>).map((p) => {
+                const { name, icon, descr } = SITE_LICENSE[p];
                 return (
                   <Radio key={p} value={p}>
                     <span>
@@ -530,58 +531,62 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   function renderPresetPanels() {
     if (narrow) return renderPresetsNarrow();
 
-    const panels = (Object.keys(PRESETS) as Array<Preset>).map((p, idx) => {
-      const { name, icon, cpu, ram, disk, uptime, expect, descr, note } =
-        PRESETS[p];
-      const active = preset === p;
-      return (
-        <PricingItem
-          key={idx}
-          title={name}
-          icon={icon}
-          style={{ flex: 1 }}
-          active={active}
-          onClick={() => onPresetChange(PRESETS, p)}
-        >
-          <Paragraph>
-            <strong>{name}</strong> {descr}.
-          </Paragraph>
-          <Divider />
-          <Line amount={cpu} desc={"CPU"} indent={false} />
-          <Line amount={ram} desc={"RAM"} indent={false} />
-          <Line amount={disk} desc={"Disk space"} indent={false} />
-          <Line
-            amount={displaySiteLicense(uptime)}
-            desc={renderIdleTimeoutWithHelp("Idle timeout")}
-            indent={false}
-          />
-          <Divider />
-          <Paragraph>
-            <Text type="secondary">In each project, you will be able to:</Text>
-            <ul>
-              {expect.map((what, idx) => (
-                <li key={idx}>{what}</li>
-              ))}
-            </ul>
-          </Paragraph>
-          {active && note != null ? (
-            <>
-              <Divider />
-              <Paragraph type="secondary">{note}</Paragraph>
-            </>
-          ) : undefined}
-          <Paragraph style={{ marginTop: "20px", textAlign: "center" }}>
-            <Button
-              onClick={() => onPresetChange(PRESETS, p)}
-              size="large"
-              type={active ? "primary" : undefined}
-            >
-              {name}
-            </Button>
-          </Paragraph>
-        </PricingItem>
-      );
-    });
+    const panels = (Object.keys(SITE_LICENSE) as Array<Preset>).map(
+      (p, idx) => {
+        const { name, icon, cpu, ram, disk, uptime, expect, descr, note } =
+          SITE_LICENSE[p];
+        const active = preset === p;
+        return (
+          <PricingItem
+            key={idx}
+            title={name}
+            icon={icon}
+            style={{ flex: 1 }}
+            active={active}
+            onClick={() => onPresetChange(SITE_LICENSE, p)}
+          >
+            <Paragraph>
+              <strong>{name}</strong> {descr}.
+            </Paragraph>
+            <Divider />
+            <Line amount={cpu} desc={"CPU"} indent={false} />
+            <Line amount={ram} desc={"RAM"} indent={false} />
+            <Line amount={disk} desc={"Disk space"} indent={false} />
+            <Line
+              amount={displaySiteLicense(uptime)}
+              desc={renderIdleTimeoutWithHelp("Idle timeout")}
+              indent={false}
+            />
+            <Divider />
+            <Paragraph>
+              <Text type="secondary">
+                In each project, you will be able to:
+              </Text>
+              <ul>
+                {expect.map((what, idx) => (
+                  <li key={idx}>{what}</li>
+                ))}
+              </ul>
+            </Paragraph>
+            {active && note != null ? (
+              <>
+                <Divider />
+                <Paragraph type="secondary">{note}</Paragraph>
+              </>
+            ) : undefined}
+            <Paragraph style={{ marginTop: "20px", textAlign: "center" }}>
+              <Button
+                onClick={() => onPresetChange(SITE_LICENSE, p)}
+                size="large"
+                type={active ? "primary" : undefined}
+              >
+                {name}
+              </Button>
+            </Paragraph>
+          </PricingItem>
+        );
+      },
+    );
     return (
       <Flex
         style={{ width: "100%" }}

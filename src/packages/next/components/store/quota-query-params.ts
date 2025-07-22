@@ -3,6 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import dayjs from "dayjs";
+import { clamp, isDate } from "lodash";
+import { NextRouter } from "next/router";
+
 import { testDedicatedDiskNameBasic } from "@cocalc/util/licenses/check-disk-name-basics";
 import { BOOST, REGULAR } from "@cocalc/util/upgrades/consts";
 import {
@@ -14,11 +18,7 @@ import {
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
 import type { DateRange } from "@cocalc/util/upgrades/shopping";
-import { clamp, isDate } from "lodash";
-import dayjs from "dayjs";
-import { NextRouter } from "next/router";
 import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
-
 // Various support functions for storing quota parameters as a query parameter in the browser URL
 
 export function encodeRange(
@@ -93,11 +93,21 @@ export const ALL_FIELDS: Set<string> = new Set(
   ] as any),
 );
 
+// Global flag to prevent URL encoding during initial page load
+let allowUrlEncoding = false;
+
+export function setAllowUrlEncoding(allow: boolean) {
+  allowUrlEncoding = allow;
+}
+
 export function encodeFormValues(
   router: NextRouter,
   vals: any,
   type: "regular" | "boost" | "dedicated",
 ): void {
+  if (!allowUrlEncoding) {
+    return;
+  }
   const { query } = router;
   for (const key in vals) {
     if (!getFormFields(type).includes(key)) continue;
@@ -149,9 +159,19 @@ export function decodeFormValues(
   const data = {};
   for (const key in router.query) {
     const val = router.query[key];
-    if (!fields.includes(key)) continue;
-    if (typeof val !== "string") continue;
-    data[key] = key === "range" ? decodeRange(val) : decodeValue(val);
+    if (!fields.includes(key)) {
+      continue;
+    }
+    if (typeof val !== "string") {
+      // Handle non-string values by converting them to string first
+      const stringVal = String(val);
+      const decoded =
+        key === "range" ? decodeRange(stringVal) : decodeValue(stringVal);
+      data[key] = decoded;
+      continue;
+    }
+    const decoded = key === "range" ? decodeRange(val) : decodeValue(val);
+    data[key] = decoded;
   }
 
   // we also have to sanitize the values

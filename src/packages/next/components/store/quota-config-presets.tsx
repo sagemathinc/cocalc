@@ -46,7 +46,7 @@ const STANDARD_DISK = 3;
 
 const PRESET_STANDARD_NAME = "Standard";
 
-export const PRESETS: PresetEntries = {
+export const SITE_LICENSE: PresetEntries = {
   standard: {
     icon: "line-chart",
     name: PRESET_STANDARD_NAME,
