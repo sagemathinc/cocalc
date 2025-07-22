@@ -69,7 +69,8 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.english",
       defaultMessage: "English",
-      description: "The word for the langauge 'English', keep it as English but in the given target language."
+      description:
+        "The word for the langauge 'English', keep it as English but in the given target language.",
     }),
   },
   de: {
@@ -154,21 +155,24 @@ export const LOCALIZATIONS: {
     }),
   },
   br: {
-    name: "Portuguese (Brazilian)",
+    name: "Portuguese (Br)",
     flag: "🇧🇷",
-    native: "Português (Brasileiro)",
+    native: "Português (Br)",
     trans: defineMessage({
       id: "i18n.localization.lang.portuguese.br",
-      defaultMessage: "Portuguese (Brazilian)",
+      defaultMessage: "Portuguese (Br)",
+      description:
+        "International Portuguese, Brazil. Keep the 'Br' abbrivation.",
     }),
   },
   pt: {
-    name: "Portuguese (European)",
+    name: "Portuguese (EU)",
     flag: "🇵🇹",
-    native: "Português (europeu)",
+    native: "Português (EU)",
     trans: defineMessage({
       id: "i18n.localization.lang.portuguese.pt",
-      defaultMessage: "Portuguese (European)",
+      defaultMessage: "Portuguese (EU)",
+      description: "European Portuguese, Portugal.",
     }),
   },
   tr: {
