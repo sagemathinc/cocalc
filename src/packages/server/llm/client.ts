@@ -151,8 +151,8 @@ export async function getCustomOpenAI(model: string) {
     );
   }
 
-  const settings = await getServerSettings();
-  const config = settings.custom_openai_configuration?.[model];
+  const { custom_openai_configuration } = await getServerSettings();
+  const config = custom_openai_configuration?.[model];
   if (!config) {
     throw new Error(
       `Custom OpenAI model ${model} not configured – you have to create an entry {${model}: {baseUrl: "https://...", ...}} in the "Custom OpenAI Configuration" entry of the server settings!`,
@@ -173,11 +173,21 @@ export async function getCustomOpenAI(model: string) {
 
   // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
   const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
-  const customOpenAIConfig = {
+
+  // Handle legacy API key field names for backward compatibility
+  const customOpenAIConfig: any = {
     configuration: { baseURL }, // https://js.langchain.com/docs/integrations/chat/openai/#custom-urls
     model: config.model ?? model,
     ...other,
   };
+
+  // Convert legacy API key field names to the expected "apiKey" field
+  if (config.openAIApiKey && !customOpenAIConfig.apiKey) {
+    customOpenAIConfig.apiKey = config.openAIApiKey;
+  }
+  if (config.azureOpenAIApiKey && !customOpenAIConfig.apiKey) {
+    customOpenAIConfig.apiKey = config.azureOpenAIApiKey;
+  }
 
   log.debug(
     "Instantiating Custom OpenAI client with config (omitting api keys)",

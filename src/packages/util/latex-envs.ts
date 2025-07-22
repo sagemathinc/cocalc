@@ -9,7 +9,7 @@ export default function latexEnvs(value: string): string {
 }
 
 /*
-transformFigures -- dumb parser to turn this:
+transformFigures -- simple parser to turn this:
 
 ---
 
@@ -87,6 +87,7 @@ function transformFigures(content: string): string {
     }
 
     const md = `\n\n<div style="text-align:center;margin:20px auto;max-width:750px"><img src="${url}" style="${style}"/><br/><br/><b>Figure${figlabel}:</b> ${caption}</div>\n\n`;
+    //const md = `\n\n<img src="${url}" style="${style}"/>\n\n**Figure${figlabel}:** ${caption}\n\n`;
     content =
       content.slice(0, i) + md + content.slice(j + "\\end{figure}".length);
   }
