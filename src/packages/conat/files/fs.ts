@@ -35,6 +35,15 @@ export interface Filesystem {
   writeFile: (path: string, data: string | Buffer) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
+
+  // We add very little to the Filesystem api, but we have to add
+  // a sandboxed "find" command, since it is a 1-call way to get
+  // arbitrary directory listing info.
+  // find -P {path} -maxdepth 1 -mindepth 1 -printf {printf}
+  find: (
+    path: string,
+    printf: string,
+  ) => Promise<{ stdout: Buffer; truncated: boolean }>;
 }
 
 interface IStats {
@@ -128,6 +137,9 @@ export async function fsServer({ service, fs, client }: Options) {
     },
     async exists(path: string) {
       return await (await fs(this.subject)).exists(path);
+    },
+    async find(path: string, printf: string) {
+      return await (await fs(this.subject)).find(path, printf);
     },
     async link(existingPath: string, newPath: string) {
       await (await fs(this.subject)).link(existingPath, newPath);

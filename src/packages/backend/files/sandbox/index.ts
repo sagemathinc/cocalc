@@ -64,12 +64,16 @@ import {
 } from "node:fs/promises";
 import { watch } from "node:fs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { type DirectoryListingEntry } from "@cocalc/util/types";
-import getListing from "@cocalc/backend/get-listing";
 import { join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions } from "@cocalc/conat/files/watch";
+import find from "./find";
+
+// max time a user find request can run -- this can cause excessive
+// load on a server if there were a directory with a massive number of files,
+// so must be limited.
+const FIND_TIMEOUT = 3000;
 
 export class SandboxedFilesystem {
   // path should be the path to a FOLDER on the filesystem (not a file)
@@ -151,22 +155,19 @@ export class SandboxedFilesystem {
     return await exists(await this.safeAbsPath(path));
   };
 
+  find = async (
+    path: string,
+    printf: string,
+  ): Promise<{ stdout: Buffer; truncated: boolean }> => {
+    return await find(await this.safeAbsPath(path), printf, FIND_TIMEOUT);
+  };
+
   // hard link
   link = async (existingPath: string, newPath: string) => {
     return await link(
       await this.safeAbsPath(existingPath),
       await this.safeAbsPath(newPath),
     );
-  };
-
-  ls = async (
-    path: string,
-    { hidden, limit }: { hidden?: boolean; limit?: number } = {},
-  ): Promise<DirectoryListingEntry[]> => {
-    return await getListing(await this.safeAbsPath(path), hidden, {
-      limit,
-      home: "/",
-    });
   };
 
   lstat = async (path: string) => {

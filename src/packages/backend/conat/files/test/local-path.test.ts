@@ -103,15 +103,23 @@ describe("use all the standard api functions of fs", () => {
     }
   });
 
+  let fire;
   it("readdir works", async () => {
     await fs.mkdir("dirtest");
     for (let i = 0; i < 5; i++) {
       await fs.writeFile(`dirtest/${i}`, `${i}`);
     }
-    const fire = "🔥.txt";
+    fire = "🔥.txt";
     await fs.writeFile(join("dirtest", fire), "this is ️‍🔥!");
     const v = await fs.readdir("dirtest");
     expect(v).toEqual(["0", "1", "2", "3", "4", fire]);
+  });
+
+  it("use the find command instead of readdir", async () => {
+    const { stdout } = await fs.find("dirtest", "%f\n");
+    const v = stdout.toString().trim().split("\n");
+    // output of find is NOT in alphabetical order:
+    expect(new Set(v)).toEqual(new Set(["0", "1", "2", "3", "4", fire]));
   });
 
   it("realpath works", async () => {
