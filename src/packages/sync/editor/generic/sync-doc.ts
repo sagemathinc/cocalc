@@ -3257,6 +3257,7 @@ export class SyncDoc extends EventEmitter {
     // to disk.
     await this.fsFileWatcher?.ignore(2000);
     if (this.isClosed()) return;
+    this.last_save_to_disk_time = new Date();
     await this.fs.writeFile(this.path, value);
     this.lastDiskValue = value;
   };
