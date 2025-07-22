@@ -47,9 +47,9 @@ describe("basic watching of file on disk happens automatically", () => {
   });
 
   it("change file on disk should not trigger a load from disk", async () => {
-    const orig = s.fsLoadFromDiskDebounced;
+    const orig = s.readFileDebounced;
     let c = 0;
-    s.fsLoadFromDiskDebounced = () => {
+    s.readFileDebounced = () => {
       c += 1;
     };
     s.from_str("a different value");
@@ -57,10 +57,10 @@ describe("basic watching of file on disk happens automatically", () => {
     expect(c).toBe(0);
     await delay(100);
     expect(c).toBe(0);
-    s.fsLoadFromDiskDebounced = orig;
+    s.readFileDebounced = orig;
     // disable the ignore that happens as part of save_to_disk,
     // or the tests below won't work
-    await s.fsFileWatcher?.ignore(0);
+    await s.fileWatcher?.ignore(0);
   });
 
   let client2, s2;
@@ -78,6 +78,7 @@ describe("basic watching of file on disk happens automatically", () => {
     s2.on("handle-file-change", () => c2++);
 
     await fs.writeFile(path, "version3");
+    expect(await fs.readFile(path, "utf8")).toEqual("version3");
     await wait({
       until: () => {
         return s2.to_str() == "version3" && s.to_str() == "version3";
