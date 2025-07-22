@@ -18,7 +18,7 @@ import {
 import {
   ErrorDisplay,
   Loading,
-  LoadingEstimate,
+  type LoadingEstimate,
 } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { is_different } from "@cocalc/util/misc";
@@ -194,7 +194,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       if (is_loaded) return;
       return (
         <div className="smc-vfill" style={LOADING_STYLE}>
-          <Loading estimate={load_time_estimate} />
+          <Loading estimate={load_time_estimate} delay={1000} />
         </div>
       );
     }

@@ -119,7 +119,6 @@ import type {
   Patch,
 } from "./types";
 import { isTestClient, patch_cmp } from "./util";
-import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
@@ -399,7 +398,7 @@ export class SyncDoc extends EventEmitter {
           }
           const m = `WARNING: problem initializing ${this.path} -- ${err}`;
           log(m);
-          if (DEBUG) {
+          if (DEBUG || true) {
             console.trace(err);
           }
           // log always
@@ -1200,59 +1199,6 @@ export class SyncDoc extends EventEmitter {
     this.ipywidgets_state?.close();
   };
 
-  // TODO: We **have** to do this on the client, since the backend
-  // **security model** for accessing the patches table only
-  // knows the string_id, but not the project_id/path.  Thus
-  // there is no way currently to know whether or not the client
-  // has access to the patches, and hence the patches table
-  // query fails.  This costs significant time -- a roundtrip
-  // and write to the database -- whenever the user opens a file.
-  // This fix should be to change the patches schema somehow
-  // to have the user also provide the project_id and path, thus
-  // proving they have access to the sha1 hash (string_id), but
-  // don't actually use the project_id and path as columns in
-  // the table.  This requires some new idea I guess of virtual
-  // fields....
-  // Also, this also establishes the correct doctype.
-
-  // Since this MUST succeed before doing anything else. This is critical
-  // because the patches table can't be opened anywhere if the syncstring
-  // object doesn't exist, due to how our security works, *AND* that the
-  // patches table uses the string_id, which is a SHA1 hash.
-  private ensure_syncstring_exists_in_db = async (): Promise<void> => {
-    const dbg = this.dbg("ensure_syncstring_exists_in_db");
-    if (this.useConat) {
-      dbg("skipping -- no database");
-      return;
-    }
-
-    if (!this.client.is_connected()) {
-      dbg("wait until connected...", this.client.is_connected());
-      await once(this.client, "connected");
-    }
-
-    if (this.client.is_browser() && !this.client.is_signed_in()) {
-      // the browser has to sign in, unlike the project (and compute servers)
-      await once(this.client, "signed_in");
-    }
-
-    if (this.state == ("closed" as State)) return;
-
-    dbg("do syncstring write query...");
-
-    await callback2(this.client.query, {
-      query: {
-        syncstrings: {
-          string_id: this.string_id,
-          project_id: this.project_id,
-          path: this.path,
-          doctype: JSON.stringify(this.doctype),
-        },
-      },
-    });
-    dbg("wrote syncstring to db - done.");
-  };
-
   private synctable = async (
     query,
     options: any[],
@@ -1445,15 +1391,10 @@ export class SyncDoc extends EventEmitter {
 
     dbg("getting table...");
     this.syncstring_table = await this.synctable(query, []);
-    if (this.ephemeral && this.client.is_project()) {
-      await this.set_syncstring_table({
-        doctype: JSON.stringify(this.doctype),
-      });
-    } else {
-      dbg("handling the first update...");
-      this.handle_syncstring_update();
-    }
+    dbg("handling the first update...");
+    this.handle_syncstring_update();
     this.syncstring_table.on("change", this.handle_syncstring_update);
+    this.syncstring_table.on("change", this.update_has_unsaved_changes);
   };
 
   // Used for internal debug logging
@@ -1468,26 +1409,18 @@ export class SyncDoc extends EventEmitter {
   };
 
   private initAll = async (): Promise<void> => {
+    //const t0 = Date.now();
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
     const log = this.dbg("initAll");
-
-    log("update interest");
-    this.initInterestLoop();
-
-    log("ensure syncstring exists");
-    this.assert_not_closed("initAll -- before ensuring syncstring exists");
-    await this.ensure_syncstring_exists_in_db();
-
-    await this.init_syncstring_table();
-    this.assert_not_closed("initAll -- successful init_syncstring_table");
 
     log("patch_list, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
       "initAll -- before init patch_list, cursors, evaluator, ipywidgets",
     );
     await Promise.all([
+      this.init_syncstring_table(),
       this.init_patch_list(),
       this.init_cursors(),
       this.init_evaluator(),
@@ -1511,6 +1444,7 @@ export class SyncDoc extends EventEmitter {
 
     this.update_has_unsaved_changes();
     log("done");
+    //console.log("initAll: done", Date.now() - t0);
   };
 
   private assert_table_is_ready = (table: string): void => {
@@ -1662,9 +1596,9 @@ export class SyncDoc extends EventEmitter {
       }
     }
     dbg("path exists");
-    const lastChanged = new Date(this.last_changed());
+    const lastChanged = this.last_changed();
     const firstLoad = this.versions().length == 0;
-    if (firstLoad || stats.ctime > lastChanged) {
+    if (firstLoad || stats.mtime.valueOf() > lastChanged) {
       dbg(
         `disk file changed more recently than edits, so loading ${stats.ctime} > ${lastChanged}; firstLoad=${firstLoad}`,
       );
@@ -1744,10 +1678,6 @@ export class SyncDoc extends EventEmitter {
     });
 
     this.on("change", () => {
-      update_has_unsaved_changes();
-    });
-
-    this.syncstring_table.on("change", () => {
       update_has_unsaved_changes();
     });
 
@@ -3080,6 +3010,8 @@ export class SyncDoc extends EventEmitter {
     if (this.isClosed()) return;
     this.last_save_to_disk_time = new Date();
     await this.fs.writeFile(this.path, value);
+    const lastChanged = this.last_changed();
+    await this.fs.utimes(this.path, lastChanged / 1000, lastChanged / 1000);
     this.lastDiskValue = value;
   };
 
@@ -3580,38 +3512,6 @@ export class SyncDoc extends EventEmitter {
       this.client.touch_project?.(this.path);
     }
   }, 60000);
-
-  private initInterestLoop = async () => {
-    if (this.fs != null) {
-      return;
-    }
-    if (!this.client.is_browser()) {
-      // only browser clients -- so actual humans
-      return;
-    }
-    const touch = async () => {
-      if (this.state == "closed" || this.client?.touchOpenFile == null) return;
-      await this.client.touchOpenFile({
-        path: this.path,
-        project_id: this.project_id,
-        doctype: this.doctype,
-      });
-    };
-    // then every CONAT_OPEN_FILE_TOUCH_INTERVAL (30 seconds).
-    await until(
-      async () => {
-        if (this.state == "closed") {
-          return true;
-        }
-        await touch();
-        return false;
-      },
-      {
-        start: CONAT_OPEN_FILE_TOUCH_INTERVAL,
-        max: CONAT_OPEN_FILE_TOUCH_INTERVAL,
-      },
-    );
-  };
 
   private fsLoadFromDiskDebounced = asyncDebounce(
     async () => {
