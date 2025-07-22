@@ -7,7 +7,6 @@ import {
   type StickyUpdate,
 } from "@cocalc/conat/core/server";
 import type { DStream } from "@cocalc/conat/sync/dstream";
-import { once } from "@cocalc/util/async-utils";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
 import { hash_string } from "@cocalc/util/misc";
@@ -165,7 +164,7 @@ class ClusterLink {
       if (Date.now() - start >= timeout) {
         throw Error("timeout");
       }
-      await once(this.interest, "change");
+      await this.interest.waitForChange();
       if ((this.state as any) == "closed" || signal?.aborted) {
         return false;
       }

@@ -53,7 +53,7 @@ import {
 import { Patterns } from "./patterns";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
-import { once, until } from "@cocalc/util/async-utils";
+import { until } from "@cocalc/util/async-utils";
 import {
   clusterLink,
   type ClusterLink,
@@ -1703,8 +1703,8 @@ export class ConatServer extends EventEmitter {
         throw Error("timeout");
       }
       try {
-        // if signal is set only wait for the change for up to 1 second.
-        await once(this.interest, "change", signal != null ? 1000 : undefined);
+        // if signal is set, only wait for the change for up to 1 second.
+        await this.interest.waitForChange(signal != null ? 1000 : undefined);
       } catch {
         continue;
       }

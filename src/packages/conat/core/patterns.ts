@@ -2,6 +2,8 @@ import { isEqual } from "lodash";
 import { getLogger } from "@cocalc/conat/client";
 import { EventEmitter } from "events";
 import { hash_string } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { once } from "@cocalc/util/async-utils";
 
 type Index = { [pattern: string]: Index | string };
 
@@ -13,8 +15,13 @@ export class Patterns<T> extends EventEmitter {
 
   constructor() {
     super();
-    this.setMaxListeners(1000);
+    this.setMaxListeners(100);
   }
+
+  // wait until one single change event fires.  Throws an error if this gets closed first.
+  waitForChange = reuseInFlight(async (timeout?) => {
+    await once(this, "change", timeout);
+  });
 
   close = () => {
     this.emit("closed");
