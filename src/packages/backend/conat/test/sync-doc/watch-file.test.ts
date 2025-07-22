@@ -121,11 +121,11 @@ describe("basic watching of file on disk happens automatically", () => {
   });
 });
 
-describe.only("has unsaved changes", () => {
+describe("has unsaved changes", () => {
   const project_id = uuid();
   let s1, s2, client1, client2;
 
-  it("creates two clients", async () => {
+  it("creates two clients and opens a new file (does not exist on disk yet)", async () => {
     client1 = connect();
     client2 = connect();
     s1 = client1.sync.string({

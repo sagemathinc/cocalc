@@ -64,10 +64,9 @@ const RECENT_SAVE_TO_DISK_MS = 2000;
 // If file does not exist for this long, then syncdoc emits a 'deleted' event.
 const DELETED_THRESHOLD = 2000;
 const DELETED_CHECK_INTERVAL = 750;
+const WATCH_RECREATE_WAIT = 3000;
 
 const WATCH_DEBOUNCE = 250;
-
-const PARALLEL_INIT = true;
 
 import {
   COMPUTE_THRESH_MS,
@@ -169,6 +168,10 @@ export interface SyncOpts0 {
   // optional timeout for how long to wait from when a file is
   // deleted until emiting a 'deleted' event.
   deletedThreshold?: number;
+  // how long to wait before trying to recreate a watch -- this mainly
+  // matters in cases when the file is deleted and the client ignores
+  // the 'deleted' event.
+  watchRecreateWait?: number;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -287,6 +290,7 @@ export class SyncDoc extends EventEmitter {
   private noAutosave?: boolean;
 
   private deletedThreshold?: number;
+  private watchRecreateWait?: number;
 
   constructor(opts: SyncOpts) {
     super();
@@ -313,6 +317,7 @@ export class SyncDoc extends EventEmitter {
       "fs",
       "noAutosave",
       "deletedThreshold",
+      "watchRecreateWait",
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
@@ -1037,26 +1042,6 @@ export class SyncDoc extends EventEmitter {
     return t;
   };
 
-  /* The project calls set_initialized once it has checked for
-     the file on disk; this way the frontend knows that the
-     syncstring has been initialized in the database, and also
-     if there was an error doing the check.
-   */
-  private set_initialized = async (
-    error: string,
-    read_only: boolean,
-    size: number,
-  ): Promise<void> => {
-    this.assert_table_is_ready("syncstring");
-    this.dbg("set_initialized")({ error, read_only, size });
-    const init = { time: this.client.server_time(), size, error };
-    await this.set_syncstring_table({
-      init,
-      read_only,
-      last_active: this.client.server_time(),
-    });
-  };
-
   /* List of logical timestamps of the versions of this string in the sync
      table that we opened to start editing (so starts with what was
      the most recent snapshot when we started).  The list of timestamps
@@ -1502,151 +1487,30 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed(
       "initAll -- before init patch_list, cursors, evaluator, ipywidgets",
     );
-    if (PARALLEL_INIT) {
-      await Promise.all([
-        this.init_patch_list(),
-        this.init_cursors(),
-        this.init_evaluator(),
-        this.init_ipywidgets(),
-        this.initFileWatcher(),
-      ]);
-      this.assert_not_closed(
-        "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
-      );
-    } else {
-      await this.init_patch_list();
-      this.assert_not_closed("initAll -- successful init_patch_list");
-      await this.init_cursors();
-      this.assert_not_closed("initAll -- successful init_patch_cursors");
-      await this.init_evaluator();
-      this.assert_not_closed("initAll -- successful init_evaluator");
-      await this.init_ipywidgets();
-      this.assert_not_closed("initAll -- successful init_ipywidgets");
-    }
+    await Promise.all([
+      this.init_patch_list(),
+      this.init_cursors(),
+      this.init_evaluator(),
+      this.init_ipywidgets(),
+      this.initFileWatcher(),
+    ]);
+    this.assert_not_closed(
+      "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
+    );
 
     this.init_table_close_handlers();
     this.assert_not_closed("initAll -- successful init_table_close_handlers");
 
     log("file_use_interval");
     this.init_file_use_interval();
-    if (this.fs != null) {
-      await this.fsLoadFromDisk();
-    } else {
-      if (await this.isFileServer()) {
-        log("load_from_disk");
-        // This sets initialized, which is needed to be fully ready.
-        // We keep trying this load from disk until sync-doc is closed
-        // or it succeeds.  It may fail if, e.g., the file is too
-        // large or is not readable by the user. They are informed to
-        // fix the problem... and once they do (and wait up to 10s),
-        // this will finish.
-        //       if (!this.client.is_browser() && !this.client.is_project()) {
-        //         // FAKE DELAY!!!  Just to simulate flakiness / slow network!!!!
-        // await delay(3000);
-        //       }
-        await retry_until_success({
-          f: this.init_load_from_disk,
-          max_delay: 10000,
-          desc: "syncdoc -- load_from_disk",
-        });
-        log("done loading from disk");
-      } else {
-        if (this.patch_list!.count() == 0) {
-          await Promise.race([
-            this.waitUntilFullyReady(),
-            once(this.patch_list!, "change"),
-          ]);
-        }
-      }
-    }
-    this.assert_not_closed("initAll -- load from disk");
-    this.emit("init");
 
+    await this.fsLoadFromDiskIfNewer();
+
+    this.emit("init");
     this.assert_not_closed("initAll -- after waiting until fully ready");
 
-    if (await this.isFileServer()) {
-      log("init file autosave");
-      this.init_file_autosave();
-    }
     this.update_has_unsaved_changes();
     log("done");
-  };
-
-  private init_error = (): string | undefined => {
-    let x;
-    try {
-      x = this.syncstring_table.get_one();
-    } catch (_err) {
-      // if the table hasn't been initialized yet,
-      // it can't be in error state.
-      return undefined;
-    }
-    return x?.get("init")?.get("error");
-  };
-
-  // wait until the syncstring table is ready to be
-  // used (so extracted from archive, etc.),
-  private waitUntilFullyReady = async (): Promise<void> => {
-    this.assert_not_closed("wait_until_fully_ready");
-    const dbg = this.dbg("wait_until_fully_ready");
-    dbg();
-
-    if (this.client.is_browser() && this.init_error()) {
-      // init is set and is in error state.  Give the backend a few seconds
-      // to try to fix this error before giving up.  The browser client
-      // can close and open the file to retry this (as instructed).
-      try {
-        await this.syncstring_table.wait(() => !this.init_error(), 5);
-      } catch (err) {
-        // fine -- let the code below deal with this problem...
-      }
-    }
-
-    let init;
-    const is_init = (t: SyncTable) => {
-      this.assert_not_closed("is_init");
-      const tbl = t.get_one();
-      if (tbl == null) {
-        dbg("null");
-        return false;
-      }
-      init = tbl.get("init")?.toJS();
-      return init != null;
-    };
-    dbg("waiting for init...");
-    await this.syncstring_table.wait(is_init, 0);
-    dbg("init done");
-    if (init.error) {
-      throw Error(init.error);
-    }
-    assertDefined(this.patch_list);
-    if (init.size == null) {
-      // don't crash but warn at least.
-      console.warn("SYNC BUG -- init.size must be defined", { init });
-    }
-    if (
-      !this.client.is_project() &&
-      this.patch_list.count() === 0 &&
-      init.size
-    ) {
-      dbg("waiting for patches for nontrivial file");
-      // normally this only happens in a later event loop,
-      // so force it now.
-      dbg("handling patch update queue since", this.patch_list.count());
-      await this.handle_patch_update_queue(true);
-      assertDefined(this.patch_list);
-      dbg("done handling, now ", this.patch_list.count());
-      if (this.patch_list.count() === 0) {
-        // wait for a change -- i.e., project loading the file from
-        // disk and making available...  Because init.size > 0, we know that
-        // there must be SOMETHING in the patches table once initialization is done.
-        // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
-        await once(this.patches_table, "change");
-        dbg("got patches_table change");
-        await this.handle_patch_update_queue(true);
-        dbg("handled update queue");
-      }
-    }
   };
 
   private assert_table_is_ready = (table: string): void => {
@@ -1780,17 +1644,6 @@ export class SyncDoc extends EventEmitter {
     this.set_read_only(read_only);
   };
 
-  private init_load_from_disk = async (): Promise<void> => {
-    if (this.state == "closed") {
-      // stop trying, no error -- this is assumed
-      // in a retry_until_success elsewhere.
-      return;
-    }
-    if (await this.load_from_disk_if_newer()) {
-      throw Error("failed to load from disk");
-    }
-  };
-
   private fsLoadFromDiskIfNewer = async (): Promise<boolean> => {
     // [ ] TODO: readonly handling...
     if (this.fs == null) throw Error("bug");
@@ -1826,54 +1679,6 @@ export class SyncDoc extends EventEmitter {
       dbg("stick with sync version");
     }
     return false;
-  };
-
-  private load_from_disk_if_newer = async (): Promise<boolean> => {
-    if (this.fs != null) {
-      return await this.fsLoadFromDiskIfNewer();
-    }
-    if (this.client.path_exists == null) {
-      throw Error("legacy clients must define path_exists");
-    }
-    const last_changed = new Date(this.last_changed());
-    const firstLoad = this.versions().length == 0;
-    const dbg = this.dbg("load_from_disk_if_newer");
-    let is_read_only: boolean = false;
-    let size: number = 0;
-    let error: string = "";
-    try {
-      dbg("check if path exists");
-      if (await callback2(this.client.path_exists, { path: this.path })) {
-        // the path exists
-        dbg("path exists -- stat file");
-        const stats = await callback2(this.client.path_stat, {
-          path: this.path,
-        });
-        if (firstLoad || stats.ctime > last_changed) {
-          dbg(
-            `disk file changed more recently than edits (or first load), so loading, ${stats.ctime} > ${last_changed}; firstLoad=${firstLoad}`,
-          );
-          size = await this.readFile();
-          if (firstLoad) {
-            dbg("emitting first-load event");
-            // this event is emited the first time the document is ever loaded from disk.
-            this.emit("first-load");
-          }
-          dbg("loaded");
-        } else {
-          dbg("stick with database version");
-        }
-        dbg("checking if read only");
-        is_read_only = await this.file_is_read_only();
-        dbg("read_only", is_read_only);
-      }
-    } catch (err) {
-      error = `${err}`;
-    }
-
-    await this.set_initialized(error, is_read_only, size);
-    dbg("done");
-    return !!error;
   };
 
   private patch_table_query = (cutoff?: number) => {
@@ -3266,7 +3071,12 @@ export class SyncDoc extends EventEmitter {
     // tell watcher not to fire any change events for a little time,
     // so no clients waste resources loading in response to us saving
     // to disk.
-    await this.fsFileWatcher?.ignore(2000);
+    try {
+      await this.fsFileWatcher?.ignore(2000);
+    } catch {
+      // not a big problem if we can't ignore (e.g., this happens potentially
+      // after deleting the file or if file doesn't exist)
+    }
     if (this.isClosed()) return;
     this.last_save_to_disk_time = new Date();
     await this.fs.writeFile(this.path, value);
@@ -3822,51 +3632,48 @@ export class SyncDoc extends EventEmitter {
     if (this.fs == null) {
       throw Error("this.fs must be defined");
     }
-    // console.log("watching for changes");
-    // use this.fs interface to watch path for changes.
+    // use this.fs interface to watch path for changes -- we try once:
     try {
       this.fsFileWatcher = await this.fs.watch(this.path, { unique: true });
-    } catch (err) {
-      if (this.isClosed()) return;
-      throw err;
-    }
+    } catch {}
     if (this.isClosed()) return;
+
+    // not closed -- so if above succeeds we start watching.
+    // if not, we loop waiting for file to be created so we can watch it
     (async () => {
-      for await (const { eventType, ignore } of this.fsFileWatcher) {
-        if (this.isClosed()) return;
-        // we don't know what's on disk anymore,
-        this.lastDiskValue = undefined;
-        //console.log("got change", eventType);
-        if (!ignore) {
-          this.fsLoadFromDiskDebounced();
+      if (this.fsFileWatcher != null) {
+        this.emit("watching");
+        for await (const { eventType, ignore } of this.fsFileWatcher) {
+          if (this.isClosed()) return;
+          // we don't know what's on disk anymore,
+          this.lastDiskValue = undefined;
+          //console.log("got change", eventType);
+          if (!ignore) {
+            this.fsLoadFromDiskDebounced();
+          }
+          if (eventType == "rename") {
+            break;
+          }
         }
-        if (eventType == "rename") {
-          // check if file was deleted
-          this.fsCloseIfFileDeleted();
-          // always have to recreate in case of a rename
-          this.fsFileWatcher.close();
-          // start a new watcher since file descriptor changed
-          await until(
-            async () => {
-              if (this.isClosed()) return true;
-              try {
-                await this.fsInitFileWatcher();
-                return true;
-              } catch (err) {
-                //                 console.warn(
-                //                   "sync-doc WARNING: issue creating file watch",
-                //                   this.path,
-                //                   err,
-                //                 );
-                return false;
-              }
-            },
-            { min: 3000 },
-          );
-          return;
-        }
+        // check if file was deleted
+        this.fsCloseIfFileDeleted();
+        this.fsFileWatcher?.close();
+        delete this.fsFileWatcher;
       }
-      //console.log("done watching");
+      // start a new watcher since file descriptor probably changed or maybe file deleted
+      await delay(this.watchRecreateWait ?? WATCH_RECREATE_WAIT);
+      await until(
+        async () => {
+          if (this.isClosed()) return true;
+          try {
+            await this.fsInitFileWatcher();
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { min: this.watchRecreateWait ?? WATCH_RECREATE_WAIT },
+      );
     })();
   };
 
@@ -3895,6 +3702,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private fsCloseIfFileDeleted = async () => {
+    if (this.isClosed()) return;
     if (this.fs == null) {
       throw Error("bug -- fs must be defined");
     }

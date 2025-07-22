@@ -573,6 +573,10 @@ export class Client extends EventEmitter {
     setTimeout(() => this.conn.io.disconnect(), 1);
   };
 
+  connect = () => {
+    this.conn.io.connect();
+  };
+
   isConnected = () => this.state == "connected";
 
   isSignedIn = () => !!(this.info?.user && !this.info?.user?.error);
@@ -1991,6 +1995,9 @@ export function headerToError(headers) {
     for (const field in headers.error_attrs) {
       err[field] = headers.error_attrs[field];
     }
+  }
+  if (err['code'] === undefined && headers.code) {
+    err['code'] = headers.code;
   }
   return err;
 }

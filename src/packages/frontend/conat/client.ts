@@ -262,7 +262,7 @@ export class ConatClient extends EventEmitter {
         console.log(
           `Connecting to ${this._conatClient?.options.address}: attempts ${attempts}`,
         );
-        this._conatClient?.conn.io.connect();
+        this._conatClient?.connect();
         return false;
       },
       { min: 3000, max: 15000 },

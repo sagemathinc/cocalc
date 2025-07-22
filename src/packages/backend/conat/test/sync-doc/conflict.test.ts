@@ -215,7 +215,7 @@ describe("do the example in the blog post 'Lies I was Told About Collaborative E
 });
 
 const numHeads = 15;
-describe.only(`create editing conflict with ${numHeads} heads`, () => {
+describe(`create editing conflict with ${numHeads} heads`, () => {
   const project_id = uuid();
   let docs: any[] = [],
     clients: any[] = [];

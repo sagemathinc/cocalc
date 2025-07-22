@@ -34,7 +34,7 @@ describe("basic core of the async path watch functionality", () => {
   });
 
   let w;
-  it("create a watcher client", async () => {
+  it("create a watcher client for 'a.txt'", async () => {
     w = await watchClient({ client, subject: "foo", path: "a.txt" });
   });
 
@@ -57,5 +57,19 @@ describe("basic core of the async path watch functionality", () => {
     w.close();
     await wait({ until: () => Object.keys(server.sockets).length == 0 });
     expect(Object.keys(server.sockets).length).toEqual(0);
+  });
+
+  it("trying to watch file that does not exist throws error", async () => {
+    await expect(async () => {
+      await watchClient({ client, subject: "foo", path: "b.txt" });
+    }).rejects.toThrow(
+      "Error: ENOENT: no such file or directory, watch 'b.txt'",
+    );
+
+    try {
+      await watchClient({ client, subject: "foo", path: "b.txt" });
+    } catch (err) {
+      expect(err.code).toEqual("ENOENT");
+    }
   });
 });
