@@ -128,7 +128,7 @@ function initTransports() {
     // Similar as in debug source code, except I stuck a timestamp
     // at the beginning, which I like... except also aware of
     // non-printf formatting.
-    const line = `${new Date().toISOString()}: ${myFormat(...args)}\n`;
+    const line = `${new Date().toISOString()} (${process.pid}):${myFormat(...args)}\n`;
 
     if (transports.console) {
       // the console transport:

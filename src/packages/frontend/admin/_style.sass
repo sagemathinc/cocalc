@@ -1,7 +1,9 @@
+@use '../colors'
+
 .cocalc-highlight-saved-token
-  background-color: $COL_BS_GREEN_LL
+  background-color: colors.$COL_BS_GREEN_LL
   > td.ant-table-column-sort
-    background-color: $COL_BS_GREEN_LL
+    background-color: colors.$COL_BS_GREEN_LL
 
 .admin-site-setting-popover-help
   table
@@ -11,3 +13,6 @@
     td:first-child
       font-family: monospace
       font-weight: bold
+
+.admin-llm-test-running-row
+  background-color: #f0f0f0 !important

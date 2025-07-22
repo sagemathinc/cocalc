@@ -53,7 +53,7 @@ import {
 import { Patterns } from "./patterns";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
-import { once } from "@cocalc/util/async-utils";
+import { once, until } from "@cocalc/util/async-utils";
 import {
   clusterLink,
   type ClusterLink,
@@ -74,6 +74,7 @@ import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 import { forkedConatServer } from "./start-server";
 import { stickyChoice } from "./sticky";
 import { EventEmitter } from "events";
+import { Metrics } from "../types";
 
 const logger = getLogger("conat:core:server");
 
@@ -308,6 +309,10 @@ export class ConatServer extends EventEmitter {
       resource: RESOURCE,
       log: (...args) => this.log("usage", ...args),
     });
+  };
+
+  public getUsage = (): Metrics => {
+    return this.usage.getMetrics();
   };
 
   // this is for the Kubernetes health check -- I haven't
@@ -602,7 +607,9 @@ export class ConatServer extends EventEmitter {
       return;
     }
     if (!(await this.isAllowed({ user, subject, type: "sub" }))) {
-      const message = `permission denied subscribing to '${subject}' from ${JSON.stringify(user)}`;
+      const message = `permission denied subscribing to '${subject}' from ${JSON.stringify(
+        user,
+      )}`;
       this.log(message);
       throw new ConatError(message, {
         code: 403,
@@ -706,7 +713,9 @@ export class ConatServer extends EventEmitter {
     }
 
     if (!(await this.isAllowed({ user: from, subject, type: "pub" }))) {
-      const message = `permission denied publishing to '${subject}' from ${JSON.stringify(from)}`;
+      const message = `permission denied publishing to '${subject}' from ${JSON.stringify(
+        from,
+      )}`;
       this.log(message);
       throw new ConatError(message, {
         // this is the http code for permission denied, and having this
@@ -931,7 +940,7 @@ export class ConatServer extends EventEmitter {
       this.subscriptions[id] = new Set<string>();
     }
 
-    socket.emit("info", { ...this.info(), user });
+    this.sendInfo(socket, user);
 
     socket.on("stats", ({ recv0 }) => {
       const s = this.stats[socket.id];
@@ -950,7 +959,9 @@ export class ConatServer extends EventEmitter {
           return;
         }
         if (!(await this.isAllowed({ user, subject, type: "pub" }))) {
-          const message = `permission denied waiting for interest in '${subject}' from ${JSON.stringify(user)}`;
+          const message = `permission denied waiting for interest in '${subject}' from ${JSON.stringify(
+            user,
+          )}`;
           this.log(message);
           respond({ error: message, code: 403 });
         }
@@ -1073,6 +1084,38 @@ export class ConatServer extends EventEmitter {
       }
       delete this.subscriptions[id];
     });
+  };
+
+  sendInfo = async (socket, user) => {
+    // we send info with an ack because I think sometimes the initial "info"
+    // message gets dropped, leaving a broken hanging connection that never
+    // does anything (until the user explicitly refreshes their browser).
+    // I did see what is probably this in production frequently.
+    try {
+      await until(
+        async () => {
+          if (!socket.conn?.readyState.startsWith("o")) {
+            // logger.debug(`failed to send "info" message to ${socket.id}`);
+            // readyState not defined or not opened or opening, so connection must
+            // have been closed before success.
+            return true;
+          }
+          try {
+            await socket
+              .timeout(7500)
+              .emitWithAck("info", { ...this.info(), user });
+            return true;
+          } catch (err) {
+            // logger.debug(`error sending "info" message to ${socket.id}`, err);
+            return false;
+          }
+        },
+        { min: 5000, max: 30000, timeout: 120_000 },
+      );
+    } catch {
+      // never ack'd "info" after a few minutes -- could just be an old client,
+      // so don't do anything at this point.
+    }
   };
 
   address = () => getServerAddress(this.options);
@@ -1338,8 +1381,8 @@ export class ConatServer extends EventEmitter {
     const usage = async () => {
       return { [this.id]: this.usage.stats() };
     };
-    // user has to explicitly refresh there browser after
-    // being disconnected this way
+    // user has to explicitly refresh their browser after
+    // being disconnected this way:
     const disconnect = async (ids: string | string[]) => {
       if (typeof ids == "string") {
         ids = [ids];
@@ -1791,7 +1834,9 @@ export function updateSticky(update: StickyUpdate, sticky: Sticky): boolean {
 function getServerAddress(options: Options) {
   const port = options.port;
   const path = options.path?.slice(0, -"/conat".length) ?? "";
-  return `http${options.ssl || port == 443 ? "s" : ""}://${options.clusterIpAddress ?? "localhost"}:${port}${path}`;
+  return `http${options.ssl || port == 443 ? "s" : ""}://${
+    options.clusterIpAddress ?? "localhost"
+  }:${port}${path}`;
 }
 
 /*

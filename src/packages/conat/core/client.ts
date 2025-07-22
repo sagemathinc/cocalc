@@ -510,7 +510,10 @@ export class Client extends EventEmitter {
       reconnection: true,
     });
 
-    this.conn.on("info", (info) => {
+    this.conn.on("info", (info, ack) => {
+      if (typeof ack == "function") {
+        ack();
+      }
       const firstTime = this.info == null;
       this.info = info;
       this.emit("info", info);
