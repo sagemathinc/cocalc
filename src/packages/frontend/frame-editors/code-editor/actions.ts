@@ -350,6 +350,12 @@ export class Actions<
       throw Error(`invalid doctype="${this.doctype}"`);
     }
 
+    this._syncstring.once("deleted", () => {
+      // the file was deleted
+      this._syncstring.close();
+      this._get_project_actions().close_file(this.path);
+    });
+
     this._syncstring.once("ready", (err) => {
       if (this.doctype != "none") {
         // doctype = 'none' must be handled elsewhere, e.g., terminals.
@@ -2287,23 +2293,21 @@ export class Actions<
 
     try {
       this.set_status("Running code formatter...");
-      let formatted = await api.editor.formatterString({
+      let formatted = await api.editor.formatString({
         str,
         options,
         path: this.path,
       });
-      if (formatted == str) {
-        // nothing to do
-        return;
+      if (formatted != str) {
+        const str2 = cm.getValue();
+        if (str2 != str) {
+          // user made edits *during* formatting, so we "3-way merge" it in, rather
+          // than breaking what they did:
+          const patch = make_patch(str, formatted);
+          formatted = apply_patch(patch, str2)[0];
+        }
+        cm.setValueNoJump(formatted);
       }
-      const str2 = cm.getValue();
-      if (str2 != str) {
-        // user made edits *during* formatting, so we "3-way merge" it in, rather
-        // than breaking what they did:
-        const patch = make_patch(str, formatted);
-        formatted = apply_patch(patch, str2)[0];
-      }
-      cm.setValueNoJump(formatted);
       this.setFormatError("");
     } catch (err) {
       this.setFormatError(`${err}`, this._syncstring?.to_str());

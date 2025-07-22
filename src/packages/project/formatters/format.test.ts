@@ -1,4 +1,4 @@
-import { run_formatter_string as formatString } from "./index";
+import { formatString } from "./index";
 
 describe("format some strings", () => {
   it("formats markdown with math", async () => {

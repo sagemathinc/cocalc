@@ -10,9 +10,7 @@ Typescript async/await rewrite of @cocalc/util/client.coffee...
 import { Map } from "immutable";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { callback2 } from "@cocalc/util/async-utils";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { FakeSyncstring } from "./syncstring-fake";
 import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
 export { type User };
@@ -152,30 +150,6 @@ export async function write_text_file_to_project(
   opts: WriteTextFileOpts,
 ): Promise<void> {
   await webapp_client.project_client.write_text_file(opts);
-}
-
-export async function formatter(
-  project_id: string,
-  path: string,
-  config: FormatterConfig,
-): Promise<CompressedPatch> {
-  const api = await webapp_client.project_client.api(project_id);
-  const resp = await api.formatter(path, config);
-
-  if (resp.status === "error") {
-    const loc = resp.error?.loc;
-    if (loc && loc.start) {
-      throw Error(
-        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`,
-      );
-    } else if (resp.error) {
-      throw Error(resp.error);
-    } else {
-      throw Error("Syntax error prevented formatting code.");
-    }
-  } else {
-    return resp.patch;
-  }
 }
 
 export function log_error(error: string | object): void {

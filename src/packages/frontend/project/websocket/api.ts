@@ -19,7 +19,6 @@ import {
 import type {
   Config as FormatterConfig,
   Options as FormatterOptions,
-  FormatResult,
 } from "@cocalc/util/code-formatter";
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
@@ -35,7 +34,6 @@ import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-import { formatterClient } from "@cocalc/conat/service/formatter";
 import { syncFsClientClient } from "@cocalc/conat/service/syncfs-client";
 
 const log = (...args) => {
@@ -259,33 +257,15 @@ export class API {
     }
   };
 
-  // Returns  { status: "ok", patch:... the patch} or
-  // { status: "error", phase: "format", error: err.message }.
-  // We return a patch rather than the entire file, since often
-  // the file is very large, but the formatting is tiny.  This is purely
-  // a data compression technique.
-  formatter = async (
-    path: string,
-    config: FormatterConfig,
-    compute_server_id?: number,
-  ): Promise<FormatResult> => {
-    const options: FormatterOptions = this.check_formatter_available(config);
-    const client = formatterClient({
-      project_id: this.project_id,
-      compute_server_id: compute_server_id ?? this.getComputeServerId(path),
-    });
-    return await client.formatter({ path, options });
-  };
-
   formatter_string = async (
     str: string,
     config: FormatterConfig,
     timeout: number = 15000,
     compute_server_id?: number,
-  ): Promise<any> => {
+  ): Promise<string> => {
     const options: FormatterOptions = this.check_formatter_available(config);
     const api = this.getApi({ compute_server_id, timeout });
-    return await api.editor.formatterString({ str, options });
+    return await api.editor.formatString({ str, options });
   };
 
   exec = async (opts: ExecuteCodeOptions): Promise<ExecuteCodeOutput> => {

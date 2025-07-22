@@ -61,6 +61,10 @@ const CURSOR_THROTTLE_NATS_MS = 150;
 // Ignore file changes for this long after save to disk.
 const RECENT_SAVE_TO_DISK_MS = 2000;
 
+// If file does not exist for this long, then we close.
+const CLOSE_WHEN_DELETED_MS = 2000;
+const CLOSE_CHECK_INTERVAL_MS = 500;
+
 const WATCH_DEBOUNCE = 250;
 
 const PARALLEL_INIT = true;
@@ -3756,6 +3760,9 @@ export class SyncDoc extends EventEmitter {
   }, 60000);
 
   private initInterestLoop = async () => {
+    if (this.fs != null) {
+      return;
+    }
     if (!this.client.is_browser()) {
       // only browser clients -- so actual humans
       return;
@@ -3819,6 +3826,8 @@ export class SyncDoc extends EventEmitter {
           this.fsFileWatcher.close();
           // start a new watcher since file descriptor changed
           this.fsInitFileWatcher();
+          // also check if file was deleted, in which case we'll just close
+          this.fsCloseIfFileDeleted();
           return;
         }
       }
@@ -3829,6 +3838,48 @@ export class SyncDoc extends EventEmitter {
   private fsCloseFileWatcher = () => {
     this.fsFileWatcher?.close();
     delete this.fsFileWatcher;
+  };
+
+  // returns true if file definitely exists right now,
+  // false if it definitely does not, and throws exception otherwise,
+  // e.g., network error.
+  private fsFileExists = async (): Promise<boolean> => {
+    if (this.fs == null) {
+      throw Error("bug -- fs must be defined");
+    }
+    try {
+      await this.fs.stat(this.path);
+      return true;
+    } catch (err) {
+      if (err.code == "ENOENT") {
+        // file not there now.
+        return false;
+      }
+      throw err;
+    }
+  };
+
+  private fsCloseIfFileDeleted = async () => {
+    if (this.fs == null) {
+      throw Error("bug -- fs must be defined");
+    }
+    const start = Date.now();
+    while (Date.now() - start < CLOSE_WHEN_DELETED_MS) {
+      try {
+        if (await this.fsFileExists()) {
+          // file definitely exists right now.
+          return;
+        }
+        // file definitely does NOT exist right now.
+      } catch {
+        // network not working or project off -- no way to know.
+        return;
+      }
+      await delay(CLOSE_CHECK_INTERVAL_MS);
+    }
+    // file still doesn't exist -- consider it deleted -- browsers
+    // should close the tab and possibly notify user.
+    this.emit("deleted");
   };
 }
 

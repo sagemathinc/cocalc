@@ -17,7 +17,7 @@ DEBUG_CONSOLE=yes DEBUG=cocalc:debug:project:conat:* node
     x = await require("@cocalc/project/conat/open-files").init(); Object.keys(x)
 
 
-[ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers', 'cc' ]
+[ 'openFiles', 'openDocs', 'terminate', 'computeServers', 'cc' ]
 
 > x.openFiles.getAll();
 
@@ -67,7 +67,7 @@ doing this!  Then:
 Welcome to Node.js v20.19.0.
 Type ".help" for more information.
 > x = await require("@cocalc/project/conat/open-files").init(); Object.keys(x)
-[ 'openFiles', 'openDocs', 'formatter', 'terminate', 'computeServers' ]
+[ 'openFiles', 'openDocs', 'terminate', 'computeServers' ]
 >
 
 
@@ -89,7 +89,6 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { filename_extension, original_path } from "@cocalc/util/misc";
-import { createFormatterService } from "./formatter";
 import { type ConatService } from "@cocalc/conat/service/service";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { map as awaitMap } from "awaiting";
@@ -124,7 +123,6 @@ const FILE_DELETION_GRACE_PERIOD = 2000;
 const FILE_DELETION_INITIAL_DELAY = 15000;
 
 let openFiles: OpenFiles | null = null;
-let formatter: any = null;
 const openDocs: { [path: string]: SyncDoc | ConatService } = {};
 let computeServers: ComputeServerManager | null = null;
 const openTimes: { [path: string]: number } = {};
@@ -185,13 +183,10 @@ export async function init() {
     }
   });
 
-  formatter = await createFormatterService({ openSyncDocs: openDocs });
-
   // useful for development
   return {
     openFiles,
     openDocs,
-    formatter,
     terminate,
     computeServers,
     cc: connectToConat(),
@@ -205,9 +200,6 @@ export function terminate() {
   }
   openFiles?.close();
   openFiles = null;
-
-  formatter?.close();
-  formatter = null;
 
   computeServers?.close();
   computeServers = null;
