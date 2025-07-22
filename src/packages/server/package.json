@@ -36,7 +36,6 @@
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "TZ=UTC jest --forceExit --runInBand",
-    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "test"
   },

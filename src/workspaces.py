@@ -305,7 +305,7 @@ def test(args) -> None:
             print("*" * 40)
             test_cmd = "pnpm run --if-present test"
             if args.report:
-                test_cmd += ":report"
+                test_cmd += " --reporters=default --reporters=jest-junit"
             cmd(test_cmd, package_path)
             success.append(path)
 

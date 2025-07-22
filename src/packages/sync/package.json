@@ -13,7 +13,6 @@
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
-    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },

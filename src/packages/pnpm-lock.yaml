@@ -34,6 +34,9 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@18.19.118)
+      jest-junit:
+        specifier: ^16.0.0
+        version: 16.0.0
       ts-jest:
         specifier: ^29.2.3
         version: 29.4.0(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@30.0.1)(babel-jest@29.7.0(@babel/core@7.28.0))(jest-util@30.0.2)(jest@29.7.0(@types/node@18.19.118))(typescript@5.8.3)
@@ -133,9 +136,6 @@ importers:
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.118
-      jest-junit:
-        specifier: ^16.0.0
-        version: 16.0.0
 
   cdn:
     devDependencies:
@@ -286,9 +286,6 @@ importers:
       coffeescript:
         specifier: ^2.5.1
         version: 2.7.0
-      jest-junit:
-        specifier: ^16.0.0
-        version: 16.0.0
 
   file-server:
     dependencies:
@@ -832,9 +829,6 @@ importers:
       coffeescript:
         specifier: ^2.5.1
         version: 2.7.0
-      jest-junit:
-        specifier: ^16.0.0
-        version: 16.0.0
 
   jupyter:
     dependencies:
@@ -1870,9 +1864,6 @@ importers:
       expect:
         specifier: ^26.6.2
         version: 26.6.2
-      jest-junit:
-        specifier: ^16.0.0
-        version: 16.0.0
       seedrandom:
         specifier: ^3.0.5
         version: 3.0.5

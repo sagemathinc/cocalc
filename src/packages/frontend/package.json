@@ -175,7 +175,6 @@
     "build-coffee": "pnpm exec coffee -m -c -o dist/ .",
     "tsc": "NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "jest",
-    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "depcheck": "pnpx depcheck --ignores cspell,@cspell/dict-typescript,events,@formatjs/cli | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js",

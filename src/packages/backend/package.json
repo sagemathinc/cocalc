@@ -20,9 +20,7 @@
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
-    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "test-conat": " pnpm exec jest --forceExit conat",
-    "test-conat:report": " pnpm exec jest --forceExit conat --reporters=default --reporters=jest-junit",
     "testp": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test",
@@ -67,7 +65,6 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
-    "@types/node": "^18.16.14",
-    "jest-junit": "^16.0.0"
+    "@types/node": "^18.16.14"
   }
 }

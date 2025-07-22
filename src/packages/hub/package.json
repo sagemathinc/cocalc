@@ -49,8 +49,7 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^18.16.14",
-    "coffeescript": "^2.5.1",
-    "jest-junit": "^16.0.0"
+    "coffeescript": "^2.5.1"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -66,7 +65,6 @@
     "hub-docker-prod-nossl": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_ENV=production PROJECTS=/projects/[project_id] PORT=80 NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0",
     "tsc": "tsc --watch  --pretty --preserveWatchOutput",
     "test": "jest dist/",
-    "test:report": "pnpm run test -- --reporters=default --reporters=jest-junit",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "test"
   },

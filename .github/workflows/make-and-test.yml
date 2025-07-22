@@ -108,7 +108,6 @@ jobs:
 
 
       - name: install pnpm
-        #run: cd src && npm install -g pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -117,8 +116,10 @@ jobs:
       - name: build
         run: cd src && pnpm run make
 
+      # This runs all the tests with text output and jest-junit reporters to generate junit.xml reports
+      # That test-github-ci target runs workspaces.py for testing, which in turn runs the depchecks
       - name: test
-        run: source venv/bin/activate && cd src && pnpm run test-github-ci:report
+        run: source venv/bin/activate && cd src && pnpm run test-github-ci --report
 
       - name: upload test results
         uses: actions/upload-artifact@v4  # upload test results
@@ -126,9 +127,6 @@ jobs:
         with:
           name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
           path: 'src/packages/*/junit.xml'
-
-      - name: dependency check
-        run: cd src && pnpm run depcheck
 
   report:
     runs-on: ubuntu-latest
