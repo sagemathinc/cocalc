@@ -164,7 +164,6 @@ export async function watchClient({
   path: string;
   options?: WatchOptions;
 }): Promise<WatchIterator> {
-  await client.waitForInterest(subject);
   const socket = client.socket.connect(subject);
   const iter = new EventIterator(socket, "data", {
     map: (args) => args[0],
