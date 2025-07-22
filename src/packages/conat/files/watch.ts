@@ -8,7 +8,6 @@ import {
   type ServerSocket,
 } from "@cocalc/conat/socket";
 import { EventIterator } from "@cocalc/util/event-iterator";
-
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:files:watch");
@@ -165,7 +164,8 @@ export async function watchClient({
   path: string;
   options?: WatchOptions;
 }): Promise<WatchIterator> {
-  const socket = await client.socket.connect(subject);
+  await client.waitForInterest(subject);
+  const socket = client.socket.connect(subject);
   const iter = new EventIterator(socket, "data", {
     map: (args) => args[0],
     onEnd: () => {
@@ -176,7 +176,10 @@ export async function watchClient({
     iter.end();
   });
   // tell it what to watch
-  await socket.request({ path, options });
+  await socket.request({
+    path,
+    options,
+  });
 
   const iter2 = iter as WatchIterator;
 

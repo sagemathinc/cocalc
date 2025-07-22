@@ -18,7 +18,14 @@ export class SyncClient extends EventEmitter implements Client0 {
       throw Error("client must be specified");
     }
     this.client = client;
+    this.client.once("closed", this.close);
   }
+
+  close = () => {
+    this.emit("closed");
+    // @ts-ignore
+    delete this.client;
+  };
 
   is_project = (): boolean => false;
   is_browser = (): boolean => true;

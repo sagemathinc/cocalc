@@ -61,9 +61,9 @@ const CURSOR_THROTTLE_NATS_MS = 150;
 // Ignore file changes for this long after save to disk.
 const RECENT_SAVE_TO_DISK_MS = 2000;
 
-// If file does not exist for this long, then we close.
-const CLOSE_WHEN_DELETED_MS = 2000;
-const CLOSE_CHECK_INTERVAL_MS = 500;
+// If file does not exist for this long, then syncdoc emits a 'deleted' event.
+const DELETED_THRESHOLD = 2000;
+const DELETED_CHECK_INTERVAL = 750;
 
 const WATCH_DEBOUNCE = 250;
 
@@ -165,6 +165,10 @@ export interface SyncOpts0 {
   // if true, do not implicitly save on commit.  This is very
   // useful for unit testing to easily simulate offline state.
   noAutosave?: boolean;
+
+  // optional timeout for how long to wait from when a file is
+  // deleted until emiting a 'deleted' event.
+  deletedThreshold?: number;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -282,8 +286,11 @@ export class SyncDoc extends EventEmitter {
 
   private noAutosave?: boolean;
 
+  private deletedThreshold?: number;
+
   constructor(opts: SyncOpts) {
     super();
+
     if (opts.string_id === undefined) {
       this.string_id = schema.client_db.sha1(opts.project_id, opts.path);
     } else {
@@ -305,11 +312,14 @@ export class SyncDoc extends EventEmitter {
       "ephemeral",
       "fs",
       "noAutosave",
+      "deletedThreshold",
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
       }
     }
+
+    this.client.once("closed", this.close);
 
     this.legacy = new LegacyHistory({
       project_id: this.project_id,
@@ -395,6 +405,7 @@ export class SyncDoc extends EventEmitter {
       },
       { start: 3000, max: 15000, decay: 1.3 },
     );
+    if (this.isClosed()) return;
 
     // Success -- everything initialized with no issues.
     this.set_state("ready");
@@ -3813,9 +3824,16 @@ export class SyncDoc extends EventEmitter {
     }
     // console.log("watching for changes");
     // use this.fs interface to watch path for changes.
-    this.fsFileWatcher = await this.fs.watch(this.path, { unique: true });
+    try {
+      this.fsFileWatcher = await this.fs.watch(this.path, { unique: true });
+    } catch (err) {
+      if (this.isClosed()) return;
+      throw err;
+    }
+    if (this.isClosed()) return;
     (async () => {
       for await (const { eventType, ignore } of this.fsFileWatcher) {
+        if (this.isClosed()) return;
         // we don't know what's on disk anymore,
         this.lastDiskValue = undefined;
         //console.log("got change", eventType);
@@ -3823,12 +3841,28 @@ export class SyncDoc extends EventEmitter {
           this.fsLoadFromDiskDebounced();
         }
         if (eventType == "rename") {
+          // check if file was deleted
+          this.fsCloseIfFileDeleted();
           // always have to recreate in case of a rename
           this.fsFileWatcher.close();
           // start a new watcher since file descriptor changed
-          this.fsInitFileWatcher();
-          // also check if file was deleted, in which case we'll just close
-          this.fsCloseIfFileDeleted();
+          await until(
+            async () => {
+              if (this.isClosed()) return true;
+              try {
+                await this.fsInitFileWatcher();
+                return true;
+              } catch (err) {
+                //                 console.warn(
+                //                   "sync-doc WARNING: issue creating file watch",
+                //                   this.path,
+                //                   err,
+                //                 );
+                return false;
+              }
+            },
+            { min: 3000 },
+          );
           return;
         }
       }
@@ -3865,7 +3899,8 @@ export class SyncDoc extends EventEmitter {
       throw Error("bug -- fs must be defined");
     }
     const start = Date.now();
-    while (Date.now() - start < CLOSE_WHEN_DELETED_MS) {
+    const threshold = this.deletedThreshold ?? DELETED_THRESHOLD;
+    while (true) {
       try {
         if (await this.fsFileExists()) {
           // file definitely exists right now.
@@ -3876,11 +3911,17 @@ export class SyncDoc extends EventEmitter {
         // network not working or project off -- no way to know.
         return;
       }
-      await delay(CLOSE_CHECK_INTERVAL_MS);
+      const elapsed = Date.now() - start;
+      if (elapsed > threshold) {
+        // out of time to appear again, and definitely concluded
+        // it does not exist above
+        // file still doesn't exist -- consider it deleted -- browsers
+        // should close the tab and possibly notify user.
+        this.emit("deleted");
+        return;
+      }
+      await delay(Math.min(DELETED_CHECK_INTERVAL, threshold - elapsed));
     }
-    // file still doesn't exist -- consider it deleted -- browsers
-    // should close the tab and possibly notify user.
-    this.emit("deleted");
   };
 }
 

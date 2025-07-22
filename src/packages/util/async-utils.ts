@@ -168,6 +168,12 @@ export class TimeoutError extends Error {
   }
 }
 
+function captureStackWithoutPrinting() {
+  const obj = {} as any;
+  Error.captureStackTrace(obj, captureStackWithoutPrinting);
+  return obj.stack;
+}
+
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event.
    If timeout_ms is 0 (the default) this can wait an unbounded
@@ -178,12 +184,14 @@ export class TimeoutError extends Error {
    If the obj throws 'closed' before the event is emitted,
    then this throws an error, since clearly event can never be emitted.
    */
+const DEBUG_ONCE = false; // log a better stack trace in some cases
 export async function once(
   obj: EventEmitter,
   event: string,
   timeout_ms: number | undefined = 0,
 ): Promise<any> {
   if (obj == null) throw Error("once -- obj is undefined");
+  const stack = DEBUG_ONCE ? captureStackWithoutPrinting() : undefined;
   if (timeout_ms == null) {
     // clients might explicitly pass in undefined, but below we expect 0 to mean "no timeout"
     timeout_ms = 0;
@@ -207,11 +215,17 @@ export async function once(
 
     function onClosed() {
       cleanup();
+      if (DEBUG_ONCE) {
+        console.log(stack);
+      }
       reject(new TimeoutError(`once: "${event}" not emitted before "closed"`));
     }
 
     function onTimeout() {
       cleanup();
+      if (DEBUG_ONCE) {
+        console.log(stack);
+      }
       reject(
         new TimeoutError(
           `once: timeout of ${timeout_ms}ms waiting for "${event}"`,

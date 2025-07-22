@@ -13,9 +13,12 @@ export interface SyncStringOptions extends Omit<SyncStringOpts, "client"> {
 
 export type { SyncString };
 
-export function syncstring({ client, service, ...opts }: SyncStringOptions): SyncString {
-  const fs = client.fs({ service, project_id: opts.project_id });
+export function syncstring({
+  client,
+  service,
+  ...opts
+}: SyncStringOptions): SyncString {
+  const fs = opts.fs ?? client.fs({ service, project_id: opts.project_id });
   const syncClient = new SyncClient(client);
   return new SyncString({ ...opts, fs, client: syncClient });
 }
-
