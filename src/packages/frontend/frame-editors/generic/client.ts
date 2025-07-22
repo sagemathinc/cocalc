@@ -194,9 +194,6 @@ interface SyncstringOpts2 {
 
 export function syncstring2(opts: SyncstringOpts2): SyncString {
   return webapp_client.conat_client.conat().sync.string(opts);
-  //   const opts1: any = opts;
-  //   opts1.client = webapp_client;
-  //   return webapp_client.sync_client.sync_string(opts1);
 }
 
 export interface SyncDBOpts {
@@ -215,9 +212,6 @@ export interface SyncDBOpts {
 
 export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.conat_client.conat().sync.db(opts);
-
-  //   const opts1: any = opts;
-  //   return webapp_client.sync_db(opts1);
 }
 
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
@@ -229,7 +223,6 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
   const opts1: any = opts;
   opts1.client = webapp_client;
   return webapp_client.conat_client.conat().sync.db(opts1);
-  // return webapp_client.sync_client.sync_db(opts1);
 }
 
 interface QueryOpts {

@@ -31,7 +31,7 @@ export function create_sync_db(
   const path = store.get("course_filename");
   actions.setState({ loading: true });
 
-  const syncdb = webapp_client.sync_client.sync_db({
+  const syncdb = webapp_client.conat_client.conat().sync.db({
     project_id,
     path,
     primary_keys: ["table", "handout_id", "student_id", "assignment_id"],
