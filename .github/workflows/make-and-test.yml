@@ -39,7 +39,7 @@ jobs:
           detached: true
       - uses: actions/checkout@v4
       - name: Install python3 requests
-        run: sudo apt-get install python3-requests
+        run: sudo apt-get install python3-requests python3-yapf
       - name: Check doc links
         run: cd src/scripts && python3 check_doc_urls.py || sleep 5 || python3 check_doc_urls.py
 
@@ -99,7 +99,7 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 -m virtualenv venv
           source venv/bin/activate
-          pip install ipykernel
+          pip install ipykernel yapf
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
 
 
