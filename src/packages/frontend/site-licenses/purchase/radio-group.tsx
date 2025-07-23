@@ -16,7 +16,7 @@ interface Props {
     label: string;
     value: any;
     disabled?: boolean;
-    desc?: string | JSX.Element;
+    desc?: string | React.JSX.Element;
     cost?: string;
     icon?: IconName;
   }[];
@@ -32,7 +32,7 @@ export const RadioGroup: React.FC<Props> = ({
   value,
   radioStyle,
 }) => {
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const x of options) {
     v.push(
       <Radio

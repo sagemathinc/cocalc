@@ -53,7 +53,7 @@ export const ActiveContent: React.FC = React.memo(() => {
     return !is_logged_in && notSignedIn;
   }, [is_logged_in, notSignedIn]);
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   open_projects?.forEach((project_id: string) => {
     const is_active = project_id === active_top_tab;
     const x = <ProjectPage project_id={project_id} is_active={is_active} />;

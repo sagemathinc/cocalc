@@ -18,7 +18,7 @@ const STYLE = {
 } as const;
 
 interface Props {
-  input: JSX.Element | string;
+  input: React.JSX.Element | string;
   style?: CSS;
   scrollBottom?: boolean;
 }

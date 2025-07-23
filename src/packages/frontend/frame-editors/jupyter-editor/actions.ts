@@ -8,7 +8,6 @@ Jupyter Frame Editor Actions
 */
 
 import { delay } from "awaiting";
-
 import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";

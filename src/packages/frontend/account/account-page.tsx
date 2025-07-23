@@ -47,6 +47,12 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 
+// give up on trying to load account info and redirect to landing page.
+// Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
+// to slow network or some backend failure that times and retires involvin
+// changefeeds.
+const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
+
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
 
@@ -235,7 +241,7 @@ export const AccountPage: React.FC = () => {
     );
   }
 
-  function render_logged_in_view(): JSX.Element {
+  function render_logged_in_view(): React.JSX.Element {
     if (!account_id) {
       return (
         <div style={{ textAlign: "center", paddingTop: "15px" }}>
@@ -332,17 +338,19 @@ export const AccountPage: React.FC = () => {
   );
 };
 
+declare var DEBUG;
+
 function RedirectToNextApp({}) {
   const isMountedRef = useIsMountedRef();
 
   useEffect(() => {
     const f = () => {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !DEBUG) {
         // didn't get signed in so go to landing page
         window.location.href = appBasePath;
       }
     };
-    setTimeout(f, 5000);
+    setTimeout(f, LOAD_ACCOUNT_INFO_TIMEOUT);
   }, []);
 
   return <Loading theme="medium" />;

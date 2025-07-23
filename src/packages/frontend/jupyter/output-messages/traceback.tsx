@@ -22,7 +22,7 @@ export const Traceback: React.FC<TracebackProps> = React.memo(
   (props: TracebackProps) => {
     const { message } = props;
 
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
 
     const tb = message.get("traceback");
     const { AnchorTagComponent } = useFileContext();

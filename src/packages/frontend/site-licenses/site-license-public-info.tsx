@@ -9,6 +9,7 @@ import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { isEqual } from "lodash";
 import { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { isValidUUID } from "@cocalc/util/misc";
 
 import {
   React,
@@ -127,9 +128,12 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     await Promise.all(
       Object.keys(site_licenses).map(async function (license_id) {
         try {
+          if(!isValidUUID(license_id)) {
+            return;
+          }
           const info = await site_license_public_info(license_id, force);
           if (info == null) {
-            throw new Error(`license ${license_id} not found`);
+            throw new Error(`license '${license_id}' not found`);
           }
           infos[license_id] = info;
         } catch (err) {
@@ -232,8 +236,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
             status === "expired"
               ? true
               : v?.expires != null
-              ? new Date() >= v.expires
-              : false;
+                ? new Date() >= v.expires
+                : false;
           return {
             key: idx,
             license_id: k,
@@ -250,7 +254,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }, [site_licenses, infos]);
 
-  function rowInfo(rec: TableRow): JSX.Element {
+  function rowInfo(rec: TableRow): React.JSX.Element {
     return (
       <SiteLicensePublicInfo
         license_id={rec.license_id}
@@ -305,7 +309,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function runLimitAndExpiration(rec: TableRow): JSX.Element {
+  function runLimitAndExpiration(rec: TableRow): React.JSX.Element {
     const delimiter = isFlyout ? <br /> : " ";
     const runLimit = infos?.[rec.license_id]?.run_limit ?? 1;
 
@@ -359,7 +363,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     }
   }
 
-  function renderStatusText(rec: TableRow): JSX.Element {
+  function renderStatusText(rec: TableRow): React.JSX.Element {
     const licenseInfo = infos?.[rec.license_id];
     if (!licenseInfo) return <></>;
     const quota: SiteLicenseQuota | undefined = licenseInfo.quota;
@@ -380,7 +384,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     return <>{rec.status}</>;
   }
 
-  function renderLicense(rec: TableRow): JSX.Element {
+  function renderLicense(rec: TableRow): React.JSX.Element {
     // as a fallback, we show the truncated license id
     const title = rec.title ? rec.title : trunc_license_id(rec.license_id);
     return (
@@ -457,7 +461,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemoveButton(license_id: string): JSX.Element {
+  function renderRemoveButton(license_id: string): React.JSX.Element {
     return (
       <Popconfirm
         title={
@@ -483,7 +487,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemove(license_id: string): JSX.Element | undefined {
+  function renderRemove(license_id: string): React.JSX.Element | undefined {
     // we can only remove from within a project
     if (!project_id && onRemove == null) return;
     // div hack: https://github.com/ant-design/ant-design/issues/7233#issuecomment-356894956
@@ -510,7 +514,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     ));
   }
 
-  function renderButtons(): JSX.Element {
+  function renderButtons(): React.JSX.Element {
     return (
       <div style={{ display: "flex" }}>
         <Tooltip placement="bottom" title={"Reload license information"}>

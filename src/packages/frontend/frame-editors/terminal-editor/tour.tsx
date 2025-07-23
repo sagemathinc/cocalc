@@ -209,7 +209,7 @@ export default function getTour(refs) {
     target: "kick_other_users_out",
     title: (
       <>
-        <Icon name={"skull-crossbones"} /> Kick Other Users Out
+        <Icon name={"skull-crossbones"} /> Force Resize
       </>
     ),
     description: (

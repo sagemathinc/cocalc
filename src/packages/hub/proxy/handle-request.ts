@@ -10,13 +10,8 @@ import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
 import { parseReq } from "./parse";
-import { readFile as readProjectFile } from "@cocalc/nats/files/read";
-import { path_split } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
 import hasAccess from "./check-for-access-to-project";
-import mime from "mime-types";
-
-const DANGEROUS_CONTENT_TYPE = new Set(["image/svg+xml" /*, "text/html"*/]);
+import { handleFileDownload } from "./file-download";
 
 const logger = getLogger("proxy:handle-request");
 
@@ -84,7 +79,6 @@ export default function init({ projectControl, isPersonal }: Options) {
     // TODO: parseReq is called again in getTarget so need to refactor...
     const { type, project_id } = parsed;
     if (type == "files") {
-      dbg("handling the request via nats");
       if (
         !(await hasAccess({
           project_id,
@@ -96,43 +90,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       ) {
         throw Error(`user does not have read access to project`);
       }
-      const i = url.indexOf("files/");
-      const compute_server_id = req.query.id ?? 0;
-      let j = url.lastIndexOf("?");
-      if (j == -1) {
-        j = url.length;
-      }
-      const path = decodeURIComponent(url.slice(i + "files/".length, j));
-      dbg("NATs: get", { project_id, path, compute_server_id, url });
-      const fileName = path_split(path).tail;
-      const contentType = mime.lookup(fileName);
-      if (
-        req.query.download != null ||
-        DANGEROUS_CONTENT_TYPE.has(contentType)
-      ) {
-        const fileNameEncoded = encodeURIComponent(fileName)
-          .replace(/['()]/g, escape)
-          .replace(/\*/g, "%2A");
-        res.setHeader(
-          "Content-disposition",
-          `attachment; filename*=UTF-8''${fileNameEncoded}`,
-        );
-      }
-      res.setHeader("Content-type", contentType);
-      for await (const chunk of await readProjectFile({
-        project_id,
-        compute_server_id,
-        path,
-        // allow a long download time (1 hour), since files can be large and
-        // networks can be slow.
-        maxWait: 1000 * 60 * 60,
-      })) {
-        if (!res.write(chunk)) {
-          // backpressure -- wait for it to resolve
-          await once(res, "drain");
-        }
-      }
-      res.end();
+      await handleFileDownload(req, res, url, project_id);
       return;
     }
 
@@ -182,8 +140,14 @@ export default function init({ projectControl, isPersonal }: Options) {
       await handleProxyRequest(req, res);
     } catch (err) {
       const msg = `WARNING: error proxying request ${req.url} -- ${err}`;
-      res.writeHead(426, { "Content-Type": "text/html" });
-      res.end(msg);
+      try {
+        // this will fail if handleProxyRequest already wrote a header, so we
+        // try/catch it.
+        res.writeHead(500, { "Content-Type": "text/html" });
+      } catch {}
+      try {
+        res.end(msg);
+      } catch {}
       // Not something to log as an error -- just debug; it's normal for it to happen, e.g., when
       // a project isn't running.
       logger.debug(msg);

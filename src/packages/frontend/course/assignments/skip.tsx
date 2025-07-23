@@ -29,7 +29,7 @@ export function SkipCopy({ assignment, step, actions }: SkipCopyProps) {
 
   function icon_extra() {
     let icon;
-    let extra: JSX.Element | undefined = undefined;
+    let extra: React.JSX.Element | undefined = undefined;
     if (assignment.get(`skip_${step}` as any)) {
       icon = "check-square-o";
       if (assignment.getIn(["peer_grade", "enabled"])) {

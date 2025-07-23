@@ -27,7 +27,7 @@ export async function get_insert_special_char_from_user(): Promise<
       display: "inline-block",
       cursor: "pointer",
     };
-    const symbols: JSX.Element[] = SYMBOLS.map((symbol, i) => (
+    const symbols: React.JSX.Element[] = SYMBOLS.map((symbol, i) => (
       <span
         key={i}
         style={style}

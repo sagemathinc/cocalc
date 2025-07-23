@@ -68,7 +68,7 @@ const validate_key = function (value): ParsedKey {
 interface Props {
   add_ssh_key: Function;
   style?: React.CSSProperties;
-  extra?: JSX.Element;
+  extra?: React.JSX.Element;
   size?;
 }
 

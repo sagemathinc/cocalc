@@ -39,7 +39,7 @@ render({ type: "text", ellipsis: true }, ({ field, obj, spec }: Props) => (
 
 render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
   const [value, setValue] = useState<string>(obj[field]);
-  const ref = useRef<any>();
+  const ref = useRef<any>(undefined);
   const { save, saving, counter, edit, error, ClickToEdit } =
     useEditableContext<string>(field);
 

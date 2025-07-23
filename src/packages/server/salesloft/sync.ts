@@ -26,6 +26,7 @@ The following are the custom_fields that we actually use:
   - cocalc_last_month_spend: amount they spent during the last 30 days, according to daily statements only
   - cocalc_last_year_spend: the total amount they have spent during the last year, according to monthly statements
   - cocalc_tags: zero or more of 'personal' or 'student' or 'instructor' or 'professional', separated by comma (no space, in alphabetical order)
+    these can be easily customized in the CRM.
 
 RATE LIMITS:
 

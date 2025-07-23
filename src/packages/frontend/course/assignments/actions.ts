@@ -464,7 +464,7 @@ export class AssignmentsActions {
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        timeout: COPY_TIMEOUT_MS / 1000,
+        timeout: COPY_TIMEOUT_MS,
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -624,7 +624,7 @@ ${details}
         backup: true,
         delete_missing: false,
         exclude: peer_graded ? ["*GRADER*.txt"] : undefined,
-        timeout: COPY_TIMEOUT_MS / 1000,
+        timeout: COPY_TIMEOUT_MS,
       });
       finish("");
     } catch (err) {
@@ -860,7 +860,7 @@ ${details}
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        timeout: COPY_TIMEOUT_MS / 1000,
+        timeout: COPY_TIMEOUT_MS,
       };
       await webapp_client.project_client.copy_path_between_projects(opts);
       await this.course_actions.compute.setComputeServerAssociations({
@@ -1378,7 +1378,7 @@ ${details}
         overwrite_newer: false,
         delete_missing: false,
         exclude: ["*STUDENT*.txt", "*" + DUE_DATE_FILENAME + "*"],
-        timeout: COPY_TIMEOUT_MS / 1000,
+        timeout: COPY_TIMEOUT_MS,
       });
     };
 
@@ -1461,7 +1461,7 @@ ${details}
         target_path,
         overwrite_newer: false,
         delete_missing: false,
-        timeout: COPY_TIMEOUT_MS / 1000,
+        timeout: COPY_TIMEOUT_MS,
       });
 
       // write local file identifying the grader
@@ -2016,7 +2016,7 @@ ${details}
               overwrite_newer: true,
               delete_missing: true,
               backup: false,
-              timeout: COPY_TIMEOUT_MS / 1000,
+              timeout: COPY_TIMEOUT_MS,
             });
           } else {
             ephemeralGradePath = false;

@@ -238,7 +238,6 @@ message({
   cell_id: undefined,
 }); // if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
 
-
 //###########################################
 // Account Management
 //############################################
@@ -423,131 +422,6 @@ message({
 message({
   event: "signed_out",
   id: undefined,
-});
-
-message({
-  event: "send_verification_email",
-  id: undefined,
-  account_id: required,
-  only_verify: undefined,
-}); // usually true, if false the full "welcome" email is sent
-
-// client --> hub
-API(
-  message2({
-    event: "change_email_address",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id for account whose email address is changed",
-      },
-      old_email_address: {
-        init: "",
-        desc: "ignored -- deprecated",
-      },
-      new_email_address: {
-        init: required,
-        desc: "",
-      },
-      password: {
-        init: "",
-        desc: "",
-      },
-    },
-    desc: `\
-Given the \`account_id\` for an account, set a new email address.
-
-Examples:
-
-Successful change of email address.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d password=secret_password \\
-    -d new_email_address=new@email.com \\
-    https://cocalc.com/api/v1/change_email_address
-  ==> {"event":"changed_email_address",
-       "id":"8f68f6c4-9851-4b88-bd65-37cb983298e3",
-       "error":false}
-\`\`\`
-
-Fails if new email address is already in use.
-
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d password=secret_password \\
-    -d new_email_address=used@email.com \\
-    https://cocalc.com/api/v1/change_email_address
-  ==> {"event":"changed_email_address",
-       "id":"4501f022-a57c-4aaf-9cd8-af0eb05ebfce",
-       "error":"email_already_taken"}
-\`\`\`
-
-**Note:** \`account_id\` and \`password\` must match the \`id\` of the current login.\
-`,
-  }),
-);
-
-// hub --> client
-message({
-  event: "changed_email_address",
-  id: undefined,
-  error: false, // some other error
-  ttl: undefined,
-}); // if user is trying to change password too often, this is time to wait
-
-// Unlink a passport auth for this account.
-// client --> hub
-message2({
-  event: "unlink_passport",
-  fields: {
-    strategy: {
-      init: required,
-      desc: "passport strategy",
-    },
-    id: {
-      init: required,
-      desc: "numeric id for user and passport strategy",
-    },
-  },
-  desc: `\
-Unlink a passport auth for the account.
-
-Strategies are defined in the database and may be viewed at [/auth/strategies](https://cocalc.com/auth/strategies).
-
-Example:
-
-Get passport id for some strategy for current user.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -H "Content-Type: application/json" \\
-    -d '{"query":{"accounts":{"account_id":"e6993694-820d-4f78-bcc9-10a8e336a88d","passports":null}}}' \\
-    https://cocalc.com/api/v1/query
-  ==> {"query":{"accounts":{"account_id":"e6993694-820d-4f78-bcc9-10a8e336a88d",
-                            "passports":{"facebook-14159265358":{"id":"14159265358",...}}}},
-       "multi_response":false,
-       "event":"query",
-       "id":"a2554ec8-665b-495b-b0e2-8e248b54eb94"}
-\`\`\`
-
-Unlink passport for that strategy and id.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d strategy=facebook \\
-    -d id=14159265358 \\
-    https://cocalc.com/api/v1/unlink_passport
-  ==> {"event":"success",
-       "id":"14159265358"}
-\`\`\`
-
-Note that success is returned regardless of whether or not passport was linked
-for the given strategy and id before issuing the API command.\
-`,
 });
 
 message({
@@ -962,64 +836,6 @@ message({
 // Managing multiple projects
 //###########################################
 
-//# search ---------------------------
-
-API(
-  message2({
-    event: "add_license_to_project",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the message",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id",
-      },
-      license_id: {
-        init: required,
-        desc: "id of a license",
-      },
-    },
-    desc: `\
-Add a license to a project.
-
-Example:
-\`\`\`
-   example not available yet
-\`\`\`\
-`,
-  }),
-);
-
-API(
-  message2({
-    event: "remove_license_from_project",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the message",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id",
-      },
-      license_id: {
-        init: required,
-        desc: "id of a license",
-      },
-    },
-    desc: `\
-Remove a license from a project.
-
-Example:
-\`\`\`
-   example not available yet
-\`\`\`\
-`,
-  }),
-);
-
 // hub --> client
 message({
   event: "user_search_results",
@@ -1033,244 +849,6 @@ message({
   id: undefined,
   users: required,
 }); // list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
-
-API(
-  message2({
-    event: "invite_collaborator",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id of project into which user is invited",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id of invited user",
-      },
-      title: {
-        init: undefined,
-        desc: "Title of the project",
-      },
-      link2proj: {
-        init: undefined,
-        desc: "The full URL link to the project",
-      },
-      replyto: {
-        init: undefined,
-        desc: "Email address of user who is inviting someone",
-      },
-      replyto_name: {
-        init: undefined,
-        desc: "Name of user who is inviting someone",
-      },
-      email: {
-        init: undefined,
-        desc: "Body of email user is sending (plain text or HTML)",
-      },
-      subject: {
-        init: undefined,
-        desc: "Subject line of invitation email",
-      },
-    },
-    desc: `\
-Invite a user who already has a CoCalc account to
-become a collaborator on a project. You must be owner
-or collaborator on the target project.  The user
-will receive an email notification.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/invite_collaborator
-  ==> {"event":"success",
-       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
-\`\`\`\
-`,
-  }),
-);
-
-API(
-  message2({
-    event: "add_collaborator",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: undefined,
-        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id of user (can be an array to add multiple users to multiple projects)",
-      },
-      token_id: {
-        init: undefined,
-        desc: "project_invite_token that is needed in case the user **making the request** is not already a project collab",
-      },
-    },
-    desc: `\
-Directly add a user to a CoCalc project.
-You must be owner or collaborator on the target project or provide,
-an optional valid token_id (the token determines the project).
-The user is NOT notified via email that they were added, and there
-is no confirmation process.  (Eventually, there will be
-an accept process, or this endpoint will only work
-with a notion of "managed accounts".)
-
-You can optionally add multiple user to multiple projects by padding
-an array of strings for project_id and account_id.  The arrays
-must have the same length.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/add_collaborator
-  ==> {"event":"success",
-       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
-\`\`\`\
-`,
-  }),
-);
-
-API(
-  message2({
-    event: "remove_collaborator",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id of project from which user is removed",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id of removed user",
-      },
-    },
-    desc: `\
-Remove a user from a CoCalc project.
-You must be owner or collaborator on the target project.
-The project owner cannot be removed.
-The user is NOT notified via email that they were removed.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/remove_collaborator
-  ==> {"event":"success",
-       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
-\`\`\`\
-`,
-  }),
-);
-
-// DANGER -- can be used to spam people.
-API(
-  message2({
-    event: "invite_noncloud_collaborators",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id of project into which users are invited",
-      },
-      to: {
-        init: required,
-        desc: "comma- or semicolon-delimited string of email addresses",
-      },
-      email: {
-        init: required,
-        desc: "body of the email to be sent, may include HTML markup",
-      },
-      title: {
-        init: required,
-        desc: "string that will be used for project title in the email",
-      },
-      link2proj: {
-        init: required,
-        desc: "URL for the target project",
-      },
-      replyto: {
-        init: undefined,
-        desc: "Reply-To email address",
-      },
-      replyto_name: {
-        init: undefined,
-        desc: "Reply-To name",
-      },
-      subject: {
-        init: undefined,
-        desc: "email Subject",
-      },
-    },
-    desc: `\
-Invite users who do not already have a CoCalc account
-to join a project.
-An invitation email is sent to each user in the \`to\`
-option.
-Invitation is not sent if there is already a CoCalc
-account with the given email address.
-You must be owner or collaborator on the target project.
-
-Limitations:
-- Total length of the request message must be less than or equal to 1024 characters.
-- Length of each email address must be less than 128 characters.
-
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    -d to=someone@m.local \\
-    -d 'email=Please sign up and join this project.' \\
-    -d 'title=Class Project' \\
-    -d link2proj=https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/invite_noncloud_collaborators
-  ==>  {"event":"invite_noncloud_collaborators_resp",
-        "id":"39d7203d-89b1-4145-8a7a-59e41d5682a3",
-        "mesg":"Invited someone@m.local to collaborate on a project."}
-\`\`\`
-
-Email sent by the previous example:
-
-\`\`\`
-To: someone@m.local
-From: CoCalc <invites@cocalc.com
-Reply-To: help@cocalc.com
-Subject: CoCalc Invitation
-
-Please sign up and join this project.<br/><br/>\\n<b>
-To accept the invitation, please sign up at\\n
-<a href='https://cocalc.com'>https://cocalc.com</a>\\n
-using exactly the email address 'someone@m.local'.\\n
-Then go to <a href='https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c05eb8'>
-the project 'Team Project'</a>.</b><br/>
-\`\`\`\
-`,
-  }),
-);
-
-message({
-  event: "invite_noncloud_collaborators_resp",
-  id: undefined,
-  mesg: required,
-});
 
 /*
 Send/receive the current webapp code version number.
@@ -1303,23 +881,6 @@ message({
   ttl: undefined, // ttl in seconds of the blob if saved; 0=infinite
   error: undefined,
 }); // if not saving, a message explaining why.
-
-// remove the ttls from blobs in the blobstore.
-// client --> hub
-message({
-  event: "remove_blob_ttls",
-  id: undefined,
-  uuids: required,
-}); // list of sha1 hashes of blobs stored in the blobstore
-
-// DEPRECATED -- used by bup_server
-message({
-  event: "storage",
-  action: required, // open, save, snapshot, latest_snapshot, close
-  project_id: undefined,
-  param: undefined,
-  id: undefined,
-});
 
 message({
   event: "projects_running_on_server",
@@ -1532,22 +1093,6 @@ You need to have read/write access to the associated src/target project.
 // Admin Functionality
 //############################################
 
-// client --> hub;  will result in an error if the user is not in the admin group.
-message({
-  event: "project_set_quotas",
-  id: undefined,
-  project_id: required, // the id of the project's id to set.
-  memory: undefined, // RAM in megabytes
-  memory_request: undefined, // RAM in megabytes
-  cpu_shares: undefined, // fair sharing with everybody is 256, not 1 !!!
-  cores: undefined, // integer max number of cores user can use (>=1)
-  disk_quota: undefined, // disk quota in megabytes
-  mintime: undefined, // time in **seconds** until idle projects are terminated
-  network: undefined, // 1 or 0; if 1, full access to outside network
-  member_host: undefined, // 1 or 0; if 1, project will be run on a members-only machine
-  always_running: undefined, // 1 or 0: if 1, project kept running.
-});
-
 /*
 Printing Files
 */
@@ -1625,79 +1170,6 @@ message({
   id: undefined,
   now: undefined,
 }); // timestamp
-
-API(
-  message2({
-    event: "copy_public_path_between_projects",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      src_project_id: {
-        init: required,
-        desc: "id of source project",
-      },
-      src_path: {
-        init: required,
-        desc: "relative path of directory or file in the source project",
-      },
-      target_project_id: {
-        init: required,
-        desc: "id of target project",
-      },
-      target_path: {
-        init: undefined,
-        desc: "defaults to src_path",
-      },
-      overwrite_newer: {
-        init: false,
-        desc: "overwrite newer versions of file at destination (destructive)",
-      },
-      delete_missing: {
-        init: false,
-        desc: "delete files in dest that are missing from source (destructive)",
-      },
-      backup: {
-        init: false,
-        desc: "make ~ backup files instead of overwriting changed files",
-      },
-      timeout: {
-        init: undefined,
-        desc: "how long to wait for the copy to complete before reporting error (though it could still succeed)",
-      },
-      exclude: {
-        init: undefined,
-        desc: "array of rsync patterns to exclude; each item in this string[] array is passed as a --exclude option to rsync",
-      },
-    },
-    desc: `\
-Copy a file or directory from a public project to a target project.
-
-**Note:** the \`timeout\` option is passed to a call to the \`rsync\` command.
-If no data is transferred for the specified number of seconds, then
-the copy terminates. The default is 0, which means no timeout.
-
-**Note:** You need to have write access to the target project.
-
-Example:
-
-Copy public file \`PUBLIC/doc.txt\` from source project to private file
-\`A/sample.txt\` in target project.
-
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d src_project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
-    -d src_path=PUBLIC/doc.txt \\
-    -d target_project_id=2aae4347-214d-4fd1-809c-b327150442d8 \\
-    -d target_path=A/sample.txt \\
-    https://cocalc.com/api/v1/copy_public_path_between_projects
-  ==> {"event":"success",
-       "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
-\`\`\`\
-`,
-  }),
-);
 
 API(
   message2({
@@ -2425,23 +1897,6 @@ message({
 });
 
 // client --> hub
-API(
-  message({
-    event: "get_syncdoc_history",
-    id: undefined,
-    string_id: required,
-    patches: undefined,
-  }),
-);
-
-// hub --> client
-message({
-  event: "syncdoc_history",
-  id: undefined,
-  history: required,
-});
-
-// client --> hub
 // It's an error if user is not signed in, since
 // then we don't know who to track.
 message({
@@ -2449,22 +1904,6 @@ message({
   id: undefined,
   evt: required, // string -- the event being tracked (max length 80 characters)
   value: required, // map -- additional info about that event
-});
-
-// Client <--> hub.
-// Enables admins (and only admins!) to generate and get a password reset
-// for another user.  The response message contains a password reset link,
-// though without the site part of the url (the client should fill that in).
-// This makes it possible for admins to reset passwords of users, even if
-// email is not setup, e.g., for cocalc-docker, and also deals with the
-// possibility that users have no email address, or broken email, or they
-// can't receive email due to crazy spam filtering.
-// Non-admins always get back an error.  The reset expires after **8 hours**.
-message({
-  event: "admin_reset_password",
-  id: undefined,
-  email_address: required,
-  link: undefined,
 });
 
 // Request to purchase a license (either via stripe or a quote)

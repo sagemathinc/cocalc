@@ -126,7 +126,7 @@ export function UsersViewing(props: Readonly<Props>) {
     }
     v.sort((a, b) => cmp(b.activity.last_used, a.activity.last_used));
     let i = 0;
-    const r: JSX.Element[] = [];
+    const r: React.JSX.Element[] = [];
     for (const { account_id, activity } of v) {
       // only show other users
       if (account_id !== our_account_id) {

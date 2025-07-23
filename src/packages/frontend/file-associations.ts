@@ -46,6 +46,7 @@ const codemirror_associations: { [ext: string]: string } = {
   cpp: "text/x-c++src",
   cc: "text/x-c++src",
   tcc: "text/x-c++src",
+  cjs: "javascript",
   conf: "nginx", // should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
   csharp: "text/x-csharp",
   "c#": "text/x-csharp",
@@ -80,7 +81,6 @@ const codemirror_associations: { [ext: string]: string } = {
   jsx: "jsx",
   json: "javascript",
   jsonl: "javascript", // See https://jsonlines.org/
-  lean: "lean", // obviously nowhere close...
   ls: "text/x-livescript",
   lua: "lua",
   m: "text/x-octave",
@@ -151,6 +151,10 @@ export interface FileSpec {
 
   // opening this file type on a compute server is not supported yet
   exclude_from_compute_server?: boolean;
+
+  // in cases when it could be ambiguous, use this extension, e.g.,
+  // latex vs tex
+  ext?: string;
 }
 
 export const file_associations: { [ext: string]: FileSpec } = {};
@@ -194,6 +198,7 @@ file_associations["mojo"] = file_associations["🔥"] = {
   opts: { mode: "mojo" }, // this is a custom type, similar to cython
   name: "mojo",
   exclude_from_menu: true,
+  ext: "🔥",
 };
 
 // noext = means file with no extension but the given name.
@@ -203,6 +208,7 @@ file_associations["noext-dockerfile"] = {
   opts: { mode: "dockerfile", indent_unit: 2, tab_size: 2 },
   name: "Dockerfile",
   exclude_from_menu: true,
+  ext: "",
 };
 
 file_associations["tex"] = {
@@ -210,7 +216,8 @@ file_associations["tex"] = {
   icon: "tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "LaTeX",
-  exclude_from_compute_server: true,
+  exclude_from_compute_server: false,
+  ext: "tex",
 };
 
 file_associations["latex"] = file_associations["tex"];
@@ -271,14 +278,6 @@ file_associations["html"] = {
   name: "html",
 } as const;
 
-file_associations["lean"] = {
-  editor: "lean", // so frame-editors/code-editor won't try to register the lean extension.
-  icon: "file-code",
-  opts: { indent_unit: 4, tab_size: 4, mode: "lean" },
-  name: "lean",
-  exclude_from_compute_server: true,
-};
-
 file_associations["md"] = file_associations["markdown"] = {
   icon: "markdown",
   opts: {
@@ -288,6 +287,7 @@ file_associations["md"] = file_associations["markdown"] = {
     spellcheck: true,
   },
   name: "Markdown",
+  ext: "md",
 };
 
 file_associations["rmd"] = {
@@ -333,6 +333,7 @@ file_associations["mediawiki"] = file_associations["wiki"] = {
   icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki", spellcheck: true },
   name: "MediaWiki",
+  ext: "wiki",
 };
 
 file_associations["sass"] = {
@@ -374,6 +375,7 @@ for (const m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
       spaces_instead_of_tabs: false,
     },
     name: "Makefile",
+    ext: "",
   };
 }
 
@@ -547,6 +549,7 @@ for (const ext of archive_extensions) {
 file_associations["sagemath"] = file_associations["sage"];
 file_associations["sage"].name = "sage code";
 file_associations["sage"].icon = "sagemath-bold";
+file_associations["sage"].ext = "sage";
 
 file_associations["sagews"] = {
   editor: "sagews",

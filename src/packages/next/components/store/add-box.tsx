@@ -6,7 +6,7 @@
 /*
 Add a cash voucher to your shopping cart.
 */
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { round2up } from "@cocalc/util/misc";
 import { money } from "@cocalc/util/licenses/purchase/utils";

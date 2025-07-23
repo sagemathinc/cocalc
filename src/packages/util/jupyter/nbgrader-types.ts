@@ -95,3 +95,20 @@ export interface JupyterNotebook {
   nbformat_minor: number;
   cells: Cell[];
 }
+
+// For tracking limits during the run:
+export interface Limits {
+  timeout_ms_per_cell: number;
+  max_output_per_cell: number;
+  max_output: number;
+  total_output: number;
+  timeout_ms?: number;
+  start_time?: number;
+}
+
+export const DEFAULT_LIMITS: Limits = {
+  timeout_ms_per_cell: 60 * 1000,
+  max_output_per_cell: 500000,
+  max_output: 4000000,
+  total_output: 10000000,
+};

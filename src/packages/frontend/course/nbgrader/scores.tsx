@@ -49,7 +49,7 @@ export function NbgraderScores({
 
   function render_show_all() {
     if (!show_all) return;
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     for (const filename in nbgrader_scores) {
       v.push(render_info_for_file(filename, nbgrader_scores[filename]));
     }
@@ -109,7 +109,7 @@ export function NbgraderScores({
         />
       );
     }
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
 
     const ids: string[] = nbgrader_score_ids?.[filename] ?? [];
     for (const id in scores) {

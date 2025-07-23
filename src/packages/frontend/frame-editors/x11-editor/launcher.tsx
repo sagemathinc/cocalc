@@ -8,15 +8,9 @@ X11 Window frame.
 */
 
 import { debounce, keys, sortBy } from "lodash";
-
 import { APPS } from "@cocalc/comm/x11-apps";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
-import {
-  React,
-  Rendered,
-  TypedMap,
-  useRedux,
-} from "@cocalc/frontend/app-framework";
+import { Rendered, TypedMap, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName } from "@cocalc/frontend/components";
 import { Capabilities } from "@cocalc/frontend/project_configuration";
 import { Actions } from "./actions";
@@ -36,11 +30,7 @@ interface Props {
   name: string;
 }
 
-function isSame(_prev, _next) {
-  return true;
-}
-
-export const Launcher: React.FC<Props> = React.memo((props: Props) => {
+export function Launcher(props: Props) {
   const { actions, name } = props;
 
   const x11_apps: TypedMap<Capabilities> | undefined = useRedux(
@@ -94,4 +84,4 @@ export const Launcher: React.FC<Props> = React.memo((props: Props) => {
       {render_launchers()}
     </div>
   );
-}, isSame);
+}

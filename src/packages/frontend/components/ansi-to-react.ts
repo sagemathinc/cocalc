@@ -113,7 +113,7 @@ function convertBundleIntoReact(
   useClasses: boolean,
   bundle: AnserJsonEntry,
   key: number
-): JSX.Element {
+): React.JSX.Element {
   const style = useClasses ? null : createStyle(bundle);
   const className = useClasses ? createClass(bundle) : null;
 
@@ -170,7 +170,7 @@ declare interface Props {
   useClasses?: boolean;
 }
 
-export default function Ansi(props: Props): JSX.Element {
+export default function Ansi(props: Props): React.JSX.Element {
   const { className, useClasses, children, linkify } = props;
   return React.createElement(
     "code",

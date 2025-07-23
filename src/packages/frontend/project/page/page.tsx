@@ -56,9 +56,10 @@ import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import ProjectTabs, {
   FIXED_TABS_BG_COLOR,
   VerticalFixedTabs,
-} from "./vertical-fixed-tabs";
+} from "./activity-bar-tabs";
 import { throttle } from "lodash";
 import { StartButton } from "@cocalc/frontend/project/start-button";
+import { TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE } from "./activity-bar-consts";
 
 const START_BANNER = false;
 
@@ -178,7 +179,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }
 
   function renderEditorContent() {
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
 
     open_files_order.map((path) => {
       if (!path) {
@@ -305,16 +306,16 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function renderVerticalActionButtons() {
+  function renderActivityBarButtons() {
     if (fullscreen && fullscreen !== "project") return;
 
     if (hideActionButtons) {
       return (
         <Tooltip
           title={intl.formatMessage({
-            id: "project.page.vertical-fixed-tabs.show-sidebar.tooltip",
-            defaultMessage: "Show the action bar",
-            description: "This shows the vertical action bar in the UI",
+            id: "project.page.activity-bar.show.tooltip",
+            defaultMessage: "Show the activity bar",
+            description: "This shows the vertical activity bar in the UI",
           })}
           placement="rightTop"
         >
@@ -324,6 +325,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             style={{
               position: "fixed",
               bottom: "0px",
+              marginBottom: TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE,
               left: "0px",
               zIndex: 1000,
               outline: `1px solid ${COLORS.GRAY_L}`,
@@ -394,7 +396,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         {renderTopRow()}
         {is_deleted && <DeletedProjectWarning />}
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {renderVerticalActionButtons()}
+          {renderActivityBarButtons()}
           {renderFlyout()}
           {renderMainContent()}
         </div>

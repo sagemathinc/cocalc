@@ -184,14 +184,8 @@ function custom_llm_display(value: string): string {
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
-  | "nats_heading"
-  | "nats_server"
-  | "nats_port"
-  | "nats_ws_port"
-  | "nats_password"
-  | "nats_auth_nseed"
-  | "nats_auth_xseed"
-  | "nats_project_server"
+  | "conat_heading"
+  | "conat_password"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -236,6 +230,7 @@ export type SiteSettingsExtrasKeys =
   | "github_project_id"
   | "github_username"
   | "github_token"
+  | "github_block"
   | "prometheus_metrics"
   | "pay_as_you_go_section"
   | "pay_as_you_go_spending_limit"
@@ -276,64 +271,20 @@ const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
-  nats_heading: {
-    name: "NATS Configuration",
-    desc: "Configuration of [NATS server](https://nats.io/), which CoCalc uses extensively for communication.",
+  conat_heading: {
+    name: "Conat Configuration",
+    desc: "Conat is a [NATS](https://nats.io/)-like [socketio](https://socket.io/) websocket server and persistence layer that CoCalc uses extensively for communication.",
     default: "",
     type: "header",
-    tags: ["Nats"],
+    tags: ["Conat"],
   },
-  // Nats config is loaded in packages/server/nats/credentials.ts
-  nats_server: {
-    name: "Nats Server",
-    desc: "Hostname of server where NATS is running.  Defaults to localhost or `$COCALC_NATS_SERVER` if not specified here.  (TODO: support multiple servers for high availability.)",
-    default: "localhost",
-    password: false,
-    tags: ["Nats"],
-  },
-  nats_port: {
-    name: "Nats TCP Port",
-    desc: "Port that NATS is serving on.  Defaults to 4222 or `$COCALC_NATS_PORT` if not specified here.",
-    default: "4222",
-    password: false,
-    tags: ["Nats"],
-  },
-  nats_ws_port: {
-    name: "Nats Websocket Port",
-    desc: "Port that NATS websocket server is serving on.  Defaults to 8443 or `$COCALC_NATS_WS_PORT` if not specified here.  This gets proxied to browser clients.",
-    default: "8443",
-    password: false,
-    tags: ["Nats"],
-  },
-  nats_project_server: {
-    name: "Nats Project Server",
-    desc: "Name of the NATS server that projects should connect to.  This should be either `hostname:port` for TCP or one of `ws://hostname:port` or `wss://hostname:port` for a WebSocket.  Do not include the basepath for the websocket address.  If not given, the tcp NATS server and port specified above is used.",
-    default: "",
-    password: false,
-    tags: ["Nats"],
-  },
-  nats_password: {
-    name: "Nats Password",
-    desc: "Password required for nats account configured above on the NATS server. If not given, then the contents of the file `$SECRETS/nats_password` (or `$COCALC_ROOT/data/secrets/nats_password`) is used, if it exists. IMPORTANT: the nseed and xseed secrets must also exist in order for the authentication microservice to communicate with nats-server and authenticate users.",
+  conat_password: {
+    name: "Conat Password",
+    desc: "Password for conat *hub* admin account. If not given, then the contents of the file `$SECRETS/conat_password` (or `$COCALC_ROOT/data/secrets/conat_password`) is used, if it exists.",
     default: "",
     password: true,
-    tags: ["Nats"],
+    tags: ["Conat"],
   },
-  nats_auth_nseed: {
-    name: "Nats Authentication Callout - Signing Private Key",
-    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SECRETS/nats_auth_nseed` (or `$COCALC_ROOT/data/secrets/nats_auth_nseed`) is used, if it exists.  This is an *account* private nkey used by the server to digitally sign messages to the auth callout service: `nk -gen account`",
-    default: "",
-    password: true,
-    tags: ["Nats"],
-  },
-  nats_auth_xseed: {
-    name: "Nats Authentication Callout - Encryption Private Key",
-    desc: "The ed25519 nkeys secret key that is used by the auth callout microservice.  If not given, then the contents of the file `$SCRETS/nats_auth_xseed` (or `$COCALC_ROOT/data/secrets/nats_auth_xseed`) is used, if it exists.  This is a *curve* private nkey used by the auth callout service to encrypt responses to the server: `nk -gen curve`",
-    default: "",
-    password: true,
-    tags: ["Nats"],
-  },
-
   openai_section: {
     name: "Language Model Configuration",
     desc: "",
@@ -388,7 +339,7 @@ export const EXTRAS: SettingsExtras = {
   // This is very similar to the ollama config, but there are small differences in the details.
   custom_openai_configuration: {
     name: "Custom OpenAI Endpoints",
-    desc: 'Configure OpenAI endpoints, queried via [@langchain/openai (Node.js)](https://js.langchain.com/v0.1/docs/integrations/llms/openai/). e.g. `{"myllm" : {"baseUrl": "http://1.2.3.4:5678/" , apiKey: "key...", cocalc: {display: "My LLM", desc: "My custom LLM", icon: "https://.../...png"}}, "gpt-4o-high": {baseUrl: "https://api.openai.com/v1", temperature: 1.5, "openAIApiKey": "sk-...", "model": "gpt-4o", cocalc: {display: "High GPT-4 Omni", desc: "GPT 4 Omni High Temp"}}}`',
+    desc: 'Configure OpenAI endpoints, queried via [@langchain/openai (Node.js)](https://js.langchain.com/v0.1/docs/integrations/llms/openai/). e.g. `{"myllm" : {"baseUrl": "http://1.2.3.4:5678/" , apiKey: "key...", cocalc: {display: "My LLM", desc: "My custom LLM", icon: "https://.../...png"}}, "gpt-4o-high": {baseUrl: "https://api.openai.com/v1", temperature: 1.5, "apiKey": "sk-...", "model": "gpt-4o", cocalc: {display: "High GPT-4 Omni", desc: "GPT 4 Omni High Temp"}}}`',
     default: "{}",
     multiline: 5,
     show: custom_openai_enabled,
@@ -574,6 +525,13 @@ export const EXTRAS: SettingsExtras = {
     desc: "This is a Personal Access token for the above GitHub account.  You can get one at https://github.com/settings/tokens -- you do not have to enable any scopes -- it used only to increase rate limits from 60/hour to 5000/hour.",
     default: "",
     password: true,
+    show: () => true,
+    tags: ["GitHub"],
+  },
+  github_block: {
+    name: "GitHub Abuse Block",
+    desc: "In case of **abuse**, you can block proxying of any GitHub URL that contains any string in this comma separated list.",
+    default: "",
     show: () => true,
     tags: ["GitHub"],
   },

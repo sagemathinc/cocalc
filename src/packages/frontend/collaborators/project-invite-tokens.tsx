@@ -123,7 +123,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       return heading;
     }
 
-    async function add_token(expires) {
+    async function add_token(expires: Date) {
       if (tokens != null && tokens.length > MAX_TOKENS) {
         // TODO: just in case of some weird abuse... and until we implement
         // deletion of tokens.  Maybe the backend will just purge
@@ -136,7 +136,6 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         return;
       }
       const token = secure_random_token(TOKEN_LENGTH);
-
       try {
         await webapp_client.async_query({
           query: {
@@ -144,7 +143,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
               token,
               project_id,
               created: webapp_client.server_time(),
-              expires: expires,
+              expires,
             },
           },
         });
@@ -187,7 +186,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     const handleModalOK = () => {
       // const name = form.getFieldValue("name");
       const expire = form.getFieldValue("expire");
-      add_token(expire);
+      add_token(expire.toDate());
       setAddModalVisible(false);
       form.resetFields();
     };
@@ -301,7 +300,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     return (
-      <Card style={{ width: "100%", overflowX: "auto" }}>
+      <Card style={{ minWidth: "800px", width: "100%", overflow: "auto" }}>
         {heading}
         <br />
         <br />

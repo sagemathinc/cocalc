@@ -26,6 +26,8 @@ import getAnchorTagComponent from "./anchor-tag-component";
 import CodeMirror from "./codemirror";
 import SageWorksheet from "./sage-worksheet";
 
+import type { JSX } from "react";
+
 interface Props {
   id: string;
   content?: string;

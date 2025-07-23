@@ -43,7 +43,7 @@ export function HeadingContent({
 }: {
   heading: number;
   markdown?: boolean;
-}): JSX.Element {
+}): React.JSX.Element {
   const hashes = markdown
     ? range(heading)
         .map(() => "#")

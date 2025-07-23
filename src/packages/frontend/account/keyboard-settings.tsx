@@ -32,8 +32,8 @@ export const KeyboardSettings: React.FC = () => {
   const intl = useIntl();
   const evaluate_key = useTypedRedux("account", "evaluate_key");
 
-  function render_keyboard_shortcuts(): JSX.Element[] {
-    const v: JSX.Element[] = [];
+  function render_keyboard_shortcuts(): React.JSX.Element[] {
+    const v: React.JSX.Element[] = [];
     for (const { command, shortcut } of KEYBOARD_SHORTCUTS) {
       const key = command.id;
       const label = intl.formatMessage(command);
@@ -50,7 +50,7 @@ export const KeyboardSettings: React.FC = () => {
     set_account_table({ evaluate_key: value });
   }
 
-  function render_eval_shortcut(): JSX.Element {
+  function render_eval_shortcut(): React.JSX.Element {
     if (evaluate_key == null) {
       return <Loading />;
     }

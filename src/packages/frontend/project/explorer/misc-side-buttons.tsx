@@ -7,7 +7,6 @@ import { Space } from "antd";
 import { join } from "path";
 import React from "react";
 import { defineMessage, useIntl } from "react-intl";
-
 import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
@@ -18,6 +17,8 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+
+const SHOW_SERVER_LAUNCHERS = false;
 
 import TourButton from "./tour/button";
 
@@ -72,7 +73,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     track("snapshots", { action: "open", where: "explorer" });
   };
 
-  function render_hidden_toggle(): JSX.Element {
+  function render_hidden_toggle(): React.JSX.Element {
     const icon = show_hidden ? "eye" : "eye-slash";
     return (
       <Button bsSize="small" onClick={handle_hidden_toggle}>
@@ -88,7 +89,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_masked_toggle(): JSX.Element {
+  function render_masked_toggle(): React.JSX.Element {
     return (
       <Button
         onClick={handle_masked_toggle}
@@ -107,7 +108,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_backup(): JSX.Element | undefined {
+  function render_backup(): React.JSX.Element | undefined {
     // NOTE -- snapshots aren't available except in "kucalc" version
     // -- they are complicated nontrivial thing that isn't usually setup...
     if (kucalc !== KUCALC_COCALC_COM) {
@@ -128,7 +129,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     actions.toggle_library();
   };
 
-  function render_library_button(): JSX.Element | undefined {
+  function render_library_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableLibrary) {
       return;
     }
@@ -142,7 +143,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_vscode_button(): JSX.Element | undefined {
+  function render_vscode_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableVSCodeServer) {
       return;
     }
@@ -164,7 +165,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_jupyterlab_button(): JSX.Element | undefined {
+  function render_jupyterlab_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableJupyterLabServer) {
       return;
     }
@@ -187,7 +188,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     );
   }
 
-  function render_upload_button(): JSX.Element | undefined {
+  function render_upload_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableUploads) {
       return;
     }
@@ -208,10 +209,12 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       style={{ whiteSpace: "nowrap", padding: "0" }}
       className="pull-right"
     >
-      <Space.Compact>
-        {render_jupyterlab_button()}
-        {render_vscode_button()}
-      </Space.Compact>
+      {SHOW_SERVER_LAUNCHERS && (
+        <Space.Compact>
+          {render_jupyterlab_button()}
+          {render_vscode_button()}
+        </Space.Compact>
+      )}
       <Space.Compact>
         {render_upload_button()}
         {render_library_button()}

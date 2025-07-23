@@ -7,18 +7,12 @@
 Customization and selection of the build command.
 */
 
-import { Alert, Dropdown, Form, Input } from "antd";
+import { Alert, Select, Form, Input } from "antd";
 import { List } from "immutable";
-
-import { DownOutlined, SaveOutlined } from "@ant-design/icons";
+import { SaveOutlined } from "@ant-design/icons";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { React } from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  Loading,
-  MenuItems,
-  Paragraph,
-} from "@cocalc/frontend/components";
+import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { split } from "@cocalc/util/misc";
 import { Actions } from "./actions";
 import {
@@ -74,7 +68,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   const [build_command_prev, set_build_command_prev] =
     React.useState(build_command_orig);
   const [build_command, set_build_command] = React.useState<string>(
-    build_command_string(build_command_orig)
+    build_command_string(build_command_orig),
   );
   const [focus, set_focus] = React.useState<boolean>(false);
   const [dirty, set_dirty] = React.useState<boolean>(false);
@@ -91,7 +85,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
       engine,
       filename,
       knitr,
-      actions.output_directory
+      actions.output_directory,
     );
     actions.set_build_command(cmd);
   }
@@ -100,28 +94,28 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     actions.init_build_directive(true);
   }
 
-  function engineOptions(): MenuItems {
+  function engineOptions() {
     return ENGINES.map((engine) => {
       return {
         key: engine,
+        value: engine,
         label: engine,
-        onClick: () => select_engine(engine),
       };
     });
   }
 
-  function render_engines(): JSX.Element {
+  function render_engines(): React.JSX.Element {
     return (
-      <Dropdown
+      <Select
+        style={{ width: "200px" }}
         placement={"bottomRight"}
-        menu={{ items: engineOptions() }}
-        trigger={["hover", "click"]}
+        options={engineOptions()}
         disabled={build_command_hardcoded}
+        onChange={select_engine}
+        placeholder="Engine..."
       >
-        <Button bsSize={"xsmall"}>
-          Engine <DownOutlined />
-        </Button>
-      </Dropdown>
+        Engine
+      </Select>
     );
   }
 
@@ -191,7 +185,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Button
         disabled={!dirty}
-        bsSize={"xsmall"}
+        bsSize={"small"}
         bsStyle={dirty ? "success" : undefined}
         title={"Saves the modified command (or just hit the 'Return' key)"}
         onClick={() => handle_build_change()}

@@ -510,6 +510,7 @@ Table({
             no_email_new_messages: false,
             [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:
               USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
+            hide_navbar_balance: false,
           },
           name: null,
           first_name: "",
@@ -757,6 +758,7 @@ Table({
           banned: true,
           unlisted: true,
           notes: true,
+          tags: true,
           salesloft_id: true,
           purchase_closing_day: true,
           min_balance: true, // admins can set this

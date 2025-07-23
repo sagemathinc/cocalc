@@ -40,7 +40,7 @@ export default function SelectComputeServerForFile({
       if (frame_id == null) {
         throw Error("frame_id is required for terminal");
       }
-      return actions.terminals.get(frame_id)?.term_path;
+      return actions.terminals.get(frame_id)?.termPath;
     }
     if (type == "chat") {
       return chatFile(path);
@@ -62,7 +62,7 @@ export default function SelectComputeServerForFile({
   }, [project_id]);
   const [value, setValue] = useState<number | undefined>(undefined);
 
-  const okButtonRef = useRef();
+  const okButtonRef = useRef<any>(undefined);
   useEffect(() => {
     if (confirmSwitch && okButtonRef.current) {
       // @ts-ignore

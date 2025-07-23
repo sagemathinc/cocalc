@@ -30,12 +30,12 @@ export default function SettingsModal({}) {
     actions.settings("");
   };
 
-  // destroyOnClose so values in quota input, etc. get updated
+  // destroyOnHidden so values in quota input, etc. get updated
   return (
     <Modal
       key="settings-modal"
       width={"800px"}
-      destroyOnClose
+      destroyOnHidden
       open
       title={title}
       onOk={close}

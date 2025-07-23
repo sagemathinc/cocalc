@@ -8,7 +8,6 @@
 
 import { Alert, Button } from "antd";
 import { sortBy, uniq } from "lodash";
-
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   CSS,
@@ -58,7 +57,7 @@ import {
   isFlyoutActiveMode,
   storeFlyoutState,
 } from "./state";
-import { GROUP_STYLE, randomLeftBorder } from "./utils";
+import { GROUP_STYLE, randomBorder } from "./utils";
 
 const FILE_TYPE_PRIORITY = [
   "ipynb",
@@ -110,11 +109,11 @@ const USERS_STYLE: CSS = {
 } as const;
 
 interface Props {
-  wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  wrap: (list: React.JSX.Element, style?: CSS) => React.JSX.Element;
   flyoutWidth: number;
 }
 
-export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
+export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
   const { wrap, flyoutWidth } = props;
   const { formatIntl } = useAppContext();
   const { project_id, flipTabs, manageStarredFiles } = useProjectContext();
@@ -253,9 +252,20 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     }
   }
 
-  function renderFileItem(path: string, how: "file" | "undo", group?: string) {
+  function renderFileItem(
+    path: string,
+    how: "file" | "undo",
+    group?: string,
+    isLast?: boolean,
+  ): React.JSX.Element {
     const isactive: boolean = activePath === path;
-    const style = group != null ? randomLeftBorder(group) : undefined;
+    const style =
+      group != null
+        ? {
+            ...randomBorder(group, "left"),
+            ...(isLast ? randomBorder(group, "bottom") : {}),
+          }
+        : undefined;
 
     const isdir = path.endsWith("/");
     const isopen = openFiles.includes(path);
@@ -287,7 +297,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
         }}
         isStarred={showStarred ? starred.includes(path) : undefined}
         onStar={(starState: boolean) => {
-          // we only toggle star, if it is currently opeend!
+          // we only toggle star, if it is currently opened!
           // otherwise, when closed and accidentally clicking on the star
           // the file unstarred and just vanishes
           if (isopen) {
@@ -310,7 +320,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  // when not showing starrd: for mode "type" and "folder", we only show groups that have files
+  // when not showing starred: for mode "type" and "folder", we only show groups that have files
   // i.e. we do not show an empty group due to a starred file, if that file isn't going to be shown.
   function getGroupKeys() {
     const groupNames = sortBy(
@@ -357,7 +367,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  function renderEmpty(): JSX.Element {
+  function renderEmpty(): React.JSX.Element {
     return (
       <div>
         <Alert
@@ -396,7 +406,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   // here, there is no grouping – it's the custom ordering and below are (optionally) starred files
-  function renderTabs(): [JSX.Element, JSX.Element | null] {
+  function renderTabs(): [React.JSX.Element, React.JSX.Element | null] {
     const openTabs = openFiles
       .filter((path) => filteredFiles.includes(path))
       .sort((a, b) => {
@@ -446,10 +456,12 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   }
 
   // type "folder" and  "type" have actual groups
-  function renderGroupsOfGrouped(): JSX.Element {
-    const groups: JSX.Element[] = [];
+  function renderGroupsOfGrouped(): React.JSX.Element {
+    const groups: React.JSX.Element[] = [];
 
     for (const group of getGroupKeys()) {
+      const fileNames = getGroupFilenames(group);
+
       groups.push(
         <Group
           key={group}
@@ -459,11 +471,13 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
           starred={starred}
           setStarredPath={setStarredPath}
           showStarred={showStarred}
+          isLast={fileNames.length === 0}
         />,
       );
 
-      for (const path of getGroupFilenames(group)) {
-        groups.push(renderFileItem(path, "file", group));
+      for (const path of fileNames) {
+        const isLast = path === fileNames[fileNames.length - 1];
+        groups.push(renderFileItem(path, "file", group, isLast));
       }
     }
 
@@ -474,7 +488,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     }
   }
 
-  function renderGroups(): JSX.Element {
+  function renderGroups(): React.JSX.Element {
     // flat, same ordering as file tabs
     if (mode === "tabs") {
       const [tabs, stars] = renderTabs();
@@ -583,7 +597,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  // Scrolling depends on the mode. We bascially check if a file is opened.
+  // Scrolling depends on the mode. We basically check if a file is opened.
   // If that's the case, open the next opened file according to the ordering implied by the mode.
   // Otherwise it jumps around erratically.
   function doScroll(dx: -1 | 1) {

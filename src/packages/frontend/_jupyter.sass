@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+@use 'colors'
+
 // I just noticed there is another version of this file in jupyter/_jupyter.sass
 // They need to be carefully merged into one!  But not today.
 
@@ -78,7 +80,7 @@
 
 .cc-jupyter-snippet
   > div.ant-collapse-header
-    color: $COL_GRAY !important
+    color: colors.$COL_GRAY !important
 
 .cc-jupyter-snippet-collapse
   .cc-jupyter-snippet
@@ -90,7 +92,7 @@
   background: white
   margin: 0 10px 10px 10px
   padding: 10px
-  border: 1px solid $COL_GRAY_L
+  border: 1px solid colors.$COL_GRAY_L
   border-radius: 3px
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.22)
   > pre
@@ -102,20 +104,20 @@
     display: inline
 
 // katex 0.13.5 somehow causes formulas to be displayed wider than the width of the output
-// adding ugly horizontal scrollbars. this eliminates that.
+// adding ugly horizontal scrollbar. this eliminates that.
 .cocalc-jupyter-rendered
   .katex-display>.katex>.katex-html
-    // display: contents // this did work, but it's some experimenal new display option
+    // display: contents // this did work, but it's some experimental new display option
     margin: 1em .5em // margin works as well, but we also have to set it for mathjax to make it look consistent
   .katex
     padding: 0 2.5px
 
 // this seems to be missing from jupyter widgets, but is used to implement the according
 //   https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#accordion
-// I.e., without this css rule, accordian is just broken.
+// I.e., without this css rule, accordion is just broken.
 .lm-Widget.lm-mod-hidden
   display: none !important
 
 .cc-jupyter-buttonbar-dropdown
   .ant-dropdown-menu-item
-    color: $COL_GRAY_D !important
+    color: colors.$COL_GRAY_D !important

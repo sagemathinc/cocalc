@@ -5,7 +5,7 @@
 
 // Execute code in a subprocess.
 
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import LRU from "lru-cache";
 import {
   ChildProcessWithoutNullStreams,
@@ -43,7 +43,12 @@ const PREFIX = "COCALC_PROJECT_ASYNC_EXEC";
 const ASYNC_CACHE_MAX = envToInt(`${PREFIX}_CACHE_MAX`, 100);
 const ASYNC_CACHE_TTL_S = envToInt(`${PREFIX}_TTL_S`, 60 * 60);
 // for async execution, every that many secs check up on the child-tree
-const MONITOR_INTERVAL_S = envToInt(`${PREFIX}_MONITOR_INTERVAL_S`, 60);
+let MONITOR_INTERVAL_S = envToInt(`${PREFIX}_MONITOR_INTERVAL_S`, 60);
+
+export function setMonitorIntervalSeconds(n) {
+  MONITOR_INTERVAL_S = n;
+}
+
 const MONITOR_STATS_LENGTH_MAX = envToInt(
   `${PREFIX}_MONITOR_STATS_LENGTH_MAX`,
   100,
@@ -117,9 +122,13 @@ export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
   },
 );
 
-async function clean_up_tmp(tempDir: string | undefined) {
+export async function cleanUpTempDir(tempDir: string | undefined) {
   if (tempDir) {
-    await rm(tempDir, { force: true, recursive: true });
+    try {
+      await rm(tempDir, { force: true, recursive: true });
+    } catch (err) {
+      console.log("WARNING: issue cleaning up tempDir", err);
+    }
   }
 }
 
@@ -170,6 +179,9 @@ async function executeCodeNoAggregate(
     opts.path = opts.home;
   } else if (opts.path[0] !== "/") {
     opts.path = opts.home + "/" + opts.path;
+  }
+  if (opts.cwd) {
+    opts.path = opts.cwd;
   }
 
   let tempDir: string | undefined = undefined;
@@ -224,7 +236,7 @@ async function executeCodeNoAggregate(
       };
       asyncCache.set(job_id, job_config);
 
-      const pid: number | undefined = doSpawn(
+      const child = doSpawn(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
           log.debug("async/doSpawn returned", { err, result });
@@ -261,10 +273,11 @@ async function executeCodeNoAggregate(
               });
             }
           } finally {
-            await clean_up_tmp(tempDir);
+            await cleanUpTempDir(tempDir);
           }
         },
       );
+      const pid = child?.pid;
 
       // pid could be undefined, this means it wasn't possible to spawn a child
       return { ...job_config, pid };
@@ -274,7 +287,9 @@ async function executeCodeNoAggregate(
     }
   } finally {
     // do not delete the tempDir in async mode!
-    if (!opts.async_call) await clean_up_tmp(tempDir);
+    if (!opts.async_call) {
+      await cleanUpTempDir(tempDir);
+    }
   }
 }
 
@@ -307,8 +322,8 @@ function doSpawn(
     job_id?: string;
     job_config?: ExecuteCodeOutputAsync;
   },
-  cb: (err: string | undefined, result?: ExecuteCodeOutputBlocking) => void,
-): number | undefined {
+  cb?: (err: string | undefined, result?: ExecuteCodeOutputBlocking) => void,
+) {
   const start_time = walltime();
 
   if (opts.verbose) {
@@ -355,7 +370,7 @@ function doSpawn(
     if (job_id == null || pid == null || job_config == null) return;
     const monitor = new ProcessStats();
     await monitor.init();
-    await new Promise((done) => setTimeout(done, 1000));
+    await delay(1000);
     if (callback_done) return;
 
     while (true) {
@@ -394,7 +409,7 @@ function doSpawn(
       // i.e. after 6 minutes, we check every minute
       const next_s = Math.max(1, Math.floor(elapsed_s / 6));
       const wait_s = Math.min(next_s, MONITOR_INTERVAL_S);
-      await new Promise((done) => setTimeout(done, wait_s * 1000));
+      await delay(wait_s * 1000);
     }
   }
 
@@ -404,14 +419,14 @@ function doSpawn(
       // The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
       // suggest that r.stdout and r.stderr are always defined.  However, this is
       // definitely NOT the case in edge cases, as we have observed.
-      cb("error creating child process -- couldn't spawn child process");
+      cb?.("error creating child process -- couldn't spawn child process");
       return;
     }
   } catch (error) {
     // Yes, spawn can cause this error if there is no memory, and there's no
     // event! --  Error: spawn ENOMEM
     ran_code = false;
-    cb(`error ${error}`);
+    cb?.(`error ${error}`);
     return;
   }
 
@@ -540,16 +555,16 @@ function doSpawn(
     }
 
     if (err) {
-      cb(err);
+      cb?.(err);
     } else if (opts.err_on_exit && exit_code != 0) {
       const x = opts.origCommand
         ? opts.origCommand
         : `'${opts.command}' (args=${opts.args?.join(" ")})`;
       if (opts.job_id) {
-        cb(stderr);
+        cb?.(stderr);
       } else {
         // sync behavor, like it was before
-        cb(
+        cb?.(
           `command '${x}' exited with nonzero code ${exit_code} -- stderr='${trunc(
             stderr,
             1024,
@@ -561,7 +576,7 @@ function doSpawn(
       const x = opts.origCommand
         ? opts.origCommand
         : `'${opts.command}' (args=${opts.args?.join(" ")})`;
-      cb(
+      cb?.(
         `command '${x}' was not able to run -- stderr='${trunc(stderr, 1024)}'`,
       );
     } else {
@@ -577,7 +592,7 @@ function doSpawn(
         // if exit-code not set, may have been SIGKILL so we set it to 1
         exit_code = 1;
       }
-      cb(undefined, { type: "blocking", stdout, stderr, exit_code });
+      cb?.(undefined, { type: "blocking", stdout, stderr, exit_code });
     }
   };
 
@@ -611,5 +626,5 @@ function doSpawn(
     timer = setTimeout(f, opts.timeout * 1000);
   }
 
-  return child.pid;
+  return child;
 }

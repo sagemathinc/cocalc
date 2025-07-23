@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+@use 'colors'
+
 // #smc-file-tabs-* used in project_page.cjsx
 
 // ProjectPage
@@ -23,10 +25,10 @@
 
 .list-group-header
   list-style: none
-  color: $COL_GRAY
+  color: colors.$COL_GRAY
   padding-left: 5px
   margin-top: 5px
-  border-top: 1px solid $COL_GRAY_LL
+  border-top: 1px solid colors.$COL_GRAY_LL
   padding-top: 10px
   &:first-child
     margin-top: 5px
@@ -34,7 +36,7 @@
     border-top: none
 
 .smc-file-tab-floating
-  background-color: $COL_BS_BLUE_BGRND
+  background-color: colors.$COL_BS_BLUE_BGRND
   border-radius: 5px 5px 0px 0px
   box-sizing: border-box
   color: rgb(51, 51, 51)
@@ -76,7 +78,7 @@
   flex: 1 0 auto
   > div,
   > nav
-    background-color: $COL_GRAY_LLL
+    background-color: colors.$COL_GRAY_LLL
     border-radius: 3px
 
 // The !important below are because we are directly overriding
@@ -91,7 +93,7 @@
 
 .cc-path-navigator,
 .cc-project-flyout-path-navigator
-  color: $COL_BS_BLUE_TEXT
+  color: colors.$COL_BS_BLUE_TEXT
   span
     cursor: pointer
 
@@ -111,7 +113,7 @@
     margin-left: 2px
 
 .cc-path-navigator-history
-  color: $COL_GRAY
+  color: colors.$COL_GRAY
 .cc-path-navigator-active
   font-weight: bold
   color: black
@@ -131,14 +133,14 @@
 li.cc-project-home-recent-files
   cursor: pointer
   &:hover
-    background-color: $COL_GRAY_LLL
+    background-color: colors.$COL_GRAY_LLL
 
 div.cc-project-flyout-dragbar:hover
-  background-color: $COL_GRAY_L
+  background-color: colors.$COL_GRAY_L
 
 .cc-project-log-history-entry:hover
-  cusor: pointer
-  background-color: $COL_GRAY_LLL
+  cursor: pointer
+  background-color: colors.$COL_GRAY_LLL
 
 .cc-project-flyout-files-panel,
 .cc-project-flyout-settings-panel

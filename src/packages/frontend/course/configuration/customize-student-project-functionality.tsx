@@ -308,7 +308,7 @@ export function CustomizeStudentProjectFunctionality({
     );
   }
 
-  const options: JSX.Element[] = [];
+  const options: React.JSX.Element[] = [];
   for (const option of OPTIONS) {
     if (option.isCoCalcCom && !isCoCalcCom) continue;
     options.push(renderOption(option));

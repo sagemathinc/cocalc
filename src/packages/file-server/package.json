@@ -3,31 +3,38 @@
   "version": "1.0.0",
   "description": "CoCalc File Server",
   "exports": {
-    "./zfs": "./dist/zfs/index.js",
-    "./zfs/*": "./dist/zfs/*.js"
+    "./btrfs": "./dist/btrfs/index.js",
+    "./btrfs/*": "./dist/btrfs/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest  --runInBand"
+    "test": "pnpm exec jest",
+    "depcheck": "pnpx depcheck",
+    "clean": "rm -rf node_modules dist"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "nats", "cocalc"],
+  "keywords": [
+    "utilities",
+    "btrfs",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/file-server": "workspace:*",
-    "@cocalc/nats": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "awaiting": "^3.0.0",
-    "better-sqlite3": "^11.8.1",
-    "lodash": "^4.17.21"
+    "awaiting": "^3.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/lodash": "^4.14.202"
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18.16.14"
   },
   "repository": {
     "type": "git",

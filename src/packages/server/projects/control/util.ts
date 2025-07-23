@@ -13,10 +13,10 @@ import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
+import { conatServer } from "@cocalc/backend/data";
 import { pidFilename } from "@cocalc/util/project-info";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { natsPorts, natsServer } from "@cocalc/backend/data";
 import { executeCode } from "@cocalc/backend/execute-code";
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
 const logger = getLogger("project-control:util");
 
@@ -55,11 +55,29 @@ function pidFile(HOME: string): string {
   return join(dataPath(HOME), pidFilename);
 }
 
+function parseDarwinTime(output:string) : number {
+  // output = '{ sec = 1747866131, usec = 180679 } Wed May 21 15:22:11 2025';
+  const match = output.match(/sec\s*=\s*(\d+)/);
+
+  if (match) {
+    const sec = parseInt(match[1], 10);
+    return sec * 1000;
+  } else {
+    throw new Error("Could not parse sysctl output");
+  }
+}
+
 let _bootTime = 0;
 export async function bootTime(): Promise<number> {
   if (!_bootTime) {
-    const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
-    _bootTime = new Date(stdout).valueOf();
+    if (process.platform === "darwin") {
+      // uptime isn't available on macos.
+      const { stdout } = await executeCode({ command: "sysctl", args: ['-n', 'kern.boottime']});
+      _bootTime = parseDarwinTime(stdout);
+    } else {
+      const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
+      _bootTime = new Date(stdout).valueOf();
+    }
   }
   return _bootTime;
 }
@@ -101,6 +119,25 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   }
 }
 
+// see also packages/project/secret-token.ts
+export function secretTokenPath(HOME: string) {
+  const data = dataPath(HOME);
+  return join(data, "secret-token");
+}
+
+export async function writeSecretToken(
+  HOME: string,
+  secretToken: string,
+  uid?: number,
+): Promise<void> {
+  const path = secretTokenPath(HOME);
+  await ensureContainingDirectoryExists(path);
+  await writeFile(path, secretToken);
+  if (uid) {
+    await chown(path, uid);
+  }
+}
+
 async function logLaunchParams(params): Promise<void> {
   const data = dataPath(params.env.HOME);
   const path = join(data, "launch-params.json");
@@ -129,16 +166,33 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       uid,
       gid: uid,
     });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+      if (stdout.length > 10000) {
+        stdout = stdout.slice(-5000);
+      }
+    });
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+      if (stderr.length > 10000) {
+        stderr = stderr.slice(-5000);
+      }
+    });
     child.on("error", (err) => {
-      logger.debug(`project daemon error ${err}`);
+      logger.debug(`project daemon error ${err} -- \n${stdout}\n${stderr}`);
       cb(err);
     });
     child.on("exit", async (code) => {
-      logger.debug("project daemon exited with code", code);
+      logger.debug("project daemon exited", { code, stdout, stderr });
       if (code != 0) {
         try {
           const s = (await readFile(env.LOGS)).toString();
-          logger.debug("project log file ended: ", s.slice(-2000));
+          logger.debug("project log file ended: ", s.slice(-2000), {
+            stdout,
+            stderr,
+          });
         } catch (err) {
           // there's a lot of reasons the log file might not even exist,
           // e.g., debugging is not enabled
@@ -218,6 +272,7 @@ const ENV_VARS_DELETE = [
   "LS_COLORS",
   "INIT_CWD",
   "DEBUG_FILE",
+  "SECRETS",
 ] as const;
 
 export function sanitizedEnv(env: { [key: string]: string | undefined }): {
@@ -237,6 +292,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     if (
       key.startsWith("npm_") ||
       key.startsWith("COCALC_") ||
+      key.startsWith("CONAT_") ||
       key.startsWith("PNPM_") ||
       key.startsWith("__NEXT") ||
       key.startsWith("NODE_") ||
@@ -247,19 +303,6 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     }
   }
   return env2 as { [key: string]: string };
-}
-
-async function natsWebsocketServer() {
-  const { nats_project_server } = await getServerSettings();
-  if (nats_project_server) {
-    if (nats_project_server.startsWith("ws")) {
-      if (base_path.length <= 1) {
-        return nats_project_server;
-      }
-      return `${nats_project_server}${base_path}/nats`;
-    }
-  }
-  return `${natsServer}:${natsPorts.server}`;
 }
 
 export async function getEnvironment(
@@ -283,7 +326,7 @@ export async function getEnvironment(
       HOME,
       BASE_PATH: base_path,
       DATA,
-      LOGS: join(DATA, "logs"),
+      LOGS: DATA,
       DEBUG: "cocalc:*,-cocalc:silly:*", // so interesting stuff gets logged, but not too much unless we really need it.
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
@@ -291,8 +334,8 @@ export async function getEnvironment(
       USER,
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
-      // url of the NATS websocket server the project will connect to:
-      NATS_SERVER: await natsWebsocketServer(),
+      CONAT_SERVER: conatServer,
+      COCALC_SECRET_TOKEN: secretTokenPath(HOME),
     },
   };
 }
@@ -327,7 +370,6 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
     "browser-server.port",
     "sage_server.port",
     "sage_server.pid",
-    "secret_token",
     "start-timestamp.txt",
     "session-id.txt",
   ]) {

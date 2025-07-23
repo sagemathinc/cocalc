@@ -20,7 +20,7 @@ interface ProjectUpgradesProps {
 export function ProjectUpgradesFlyout({
   project_id,
   wrap,
-}: ProjectUpgradesProps): JSX.Element {
+}: ProjectUpgradesProps): React.JSX.Element {
   const { project, group } = useProject(project_id);
 
   // TODO this duplicates a lot with settings/body.tsx → make this one or more hooks
@@ -51,7 +51,7 @@ export function ProjectUpgradesFlyout({
     "all_projects_have_been_loaded",
   );
 
-  function renderUsage(): JSX.Element {
+  function renderUsage(): React.JSX.Element {
     if (project == null) {
       return <Loading theme="medium" transparent />;
     }

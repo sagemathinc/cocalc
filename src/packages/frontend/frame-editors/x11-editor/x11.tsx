@@ -10,11 +10,8 @@ X11 Window frame.
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import { debounce } from "lodash";
-
 import { AccountState } from "@cocalc/frontend/account/types";
 import {
-  React,
-  ReactDOM,
   Rendered,
   useEffect,
   useIsMountedRef,
@@ -26,7 +23,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { retry_until_success } from "@cocalc/util/async-utils";
-import { cmp, is_different } from "@cocalc/util/misc";
+import { cmp } from "@cocalc/util/misc";
 import { Actions } from "./actions";
 import { TAB_BAR_GREY } from "./theme";
 import { WindowTab } from "./window-tab";
@@ -43,42 +40,21 @@ interface Props {
   resize: number;
 }
 
-function isSame(prev, next): boolean {
-  // another other change causes re-render (e.g., of tab titles).
-  return (
-    !is_different(prev, next, [
-      "id",
-      "desc",
-      "windows",
-      "is_current",
-      "resize",
-      "reload",
-    ]) &&
-    prev.editor_settings.get("physical_keyboard") ==
-      next.editor_settings.get("physical_keyboard") &&
-    prev.editor_settings.get("keyboard_variant") ==
-      next.editor_settings.get("keyboard_variant") &&
-    prev.desc.get("font_size") == next.desc.get("font_size")
-  );
-}
-
-export const X11: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    actions,
-    name,
-    id,
-    desc,
-    is_current,
-    font_size,
-    reload,
-    editor_settings,
-    resize,
-  } = props;
-
+export function X11({
+  actions,
+  name,
+  id,
+  desc,
+  is_current,
+  font_size,
+  reload,
+  editor_settings,
+  resize,
+}: Props) {
   const is_mounted = useIsMountedRef();
   const is_loaded = useRef<boolean>(false);
-  const windowRef = useRef<HTMLDivElement>(null);
-  const focusRef = useRef<HTMLTextAreaElement>(null);
+  const windowRef = useRef<HTMLDivElement>(null as any);
+  const focusRef = useRef<HTMLTextAreaElement>(null as any);
 
   const default_font_size = useTypedRedux("account", "font_size") ?? 14;
   const windows: Map<string, any> = useRedux(name, "windows");
@@ -152,7 +128,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     const load = async () =>
       retry_until_success({
         f: async () => {
-          const node: any = ReactDOM.findDOMNode(windowRef.current);
+          const node: any = windowRef.current;
           if (node == null) {
             throw new Error("x11 window node not yet available");
           } else {
@@ -180,7 +156,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   }, []);
 
   function disable_browser_context_menu(): void {
-    const node: any = ReactDOM.findDOMNode(windowRef.current);
+    const node: any = windowRef.current;
     // Get rid of browser context menu, which makes no sense on a canvas.
     // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
@@ -194,7 +170,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     if (!is_mounted.current) {
       return;
     }
-    const node: any = ReactDOM.findDOMNode(windowRef.current);
+    const node: any = windowRef.current;
     const client = actions.client;
     if (client == null) {
       // will never happen -- to satisfy typescript
@@ -252,7 +228,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     if (wid == null) {
       return;
     }
-    const node = $(ReactDOM.findDOMNode(windowRef.current));
+    const node: any = $(windowRef.current);
     const width = node.width(),
       height = node.height();
     if (width == null || height == null) {
@@ -318,7 +294,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function focus_textarea(): void {
-    const node: any = ReactDOM.findDOMNode(focusRef.current);
+    const node: any = focusRef.current;
     $(node).trigger("focus");
     const client = actions.client;
     if (client == null) {
@@ -415,4 +391,4 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
       {render_window_div()}
     </div>
   );
-}, isSame);
+}

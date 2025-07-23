@@ -9,7 +9,6 @@
 // and should be fine for everything in cocalc.
 
 import { CSSProperties as CSS, useEffect, useRef } from "react";
-import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { is_share_server } from "./share-server";
 import { sanitize_html, sanitize_html_safe } from "../misc/sanitize";
@@ -88,11 +87,11 @@ export function HTML({
   onDoubleClick,
 }: Props) {
   const isMountedRef = useIsMountedRef();
-  const ref = useRef(null);
+  const ref = useRef<any>(null);
 
   function jq(): any {
     if (!isMountedRef.current) return;
-    const elt = ReactDOM.findDOMNode(ref.current);
+    const elt = ref.current;
     if (elt == null) {
       return undefined;
     }

@@ -22,11 +22,9 @@ import RateLimit from "express-rate-limit";
 import { writeFile } from "node:fs";
 import { getOptions } from "@cocalc/project/init-program";
 import { getClient } from "@cocalc/project/client";
-import { apiServerPortFile } from "@cocalc/project/data";
-import { getSecretToken } from "@cocalc/project/servers/secret-token";
+import { apiServerPortFile, secretToken } from "@cocalc/project/data";
 import { once } from "@cocalc/util/async-utils";
 import { split } from "@cocalc/util/misc";
-import getSyncdocHistory from "./get-syncdoc-history";
 import readTextFile from "./read-text-file";
 import writeTextFile from "./write-text-file";
 
@@ -54,7 +52,9 @@ export default async function init(): Promise<void> {
   dbg(`writing port to file "${apiServerPortFile}"`);
   await callback(writeFile, apiServerPortFile, `${port}`);
 
-  dbg(`express server successfully listening at http://${options.hostname}:${port}`);
+  dbg(
+    `express server successfully listening at http://${options.hostname}:${port}`,
+  );
 }
 
 function configure(server: express.Application, dbg: Function): void {
@@ -109,9 +109,6 @@ function handleAuth(req): void {
       throw Error(`unknown authorization type '${type}'`);
   }
 
-  // could throw if not initialized yet -- done in ./init.ts via initSecretToken()
-  const secretToken = getSecretToken();
-
   // now check auth
   if (secretToken != providedToken) {
     throw Error(`incorrect secret token "${secretToken}", "${providedToken}"`);
@@ -121,8 +118,6 @@ function handleAuth(req): void {
 async function handleEndpoint(req): Promise<any> {
   const endpoint: string = req.path.slice(req.path.lastIndexOf("/") + 1);
   switch (endpoint) {
-    case "get-syncdoc-history":
-      return await getSyncdocHistory(getParams(req, ["path", "patches"]));
     case "write-text-file":
       return await writeTextFile(getParams(req, ["path", "content"]));
     case "read-text-file":

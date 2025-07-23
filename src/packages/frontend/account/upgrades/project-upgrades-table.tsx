@@ -4,14 +4,12 @@
  */
 
 import { Map } from "immutable";
-import { webapp_client } from "../../webapp-client";
 import { rclass, redux, rtypes, Component } from "../../app-framework";
-import { ErrorDisplay, UpgradeAdjustor, r_join } from "../../components";
+import { UpgradeAdjustor, r_join } from "../../components";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { ProjectTitle } from "../../projects/project-title";
-import { Button, Row, Col, Panel } from "../../antd-bootstrap";
-import { ResetProjectsConfirmation } from "./reset-projects";
-import { plural, is_string, len, round1 } from "@cocalc/util/misc";
+import { Row, Col, Panel } from "../../antd-bootstrap";
+import { plural, len, round1 } from "@cocalc/util/misc";
 
 interface reduxProps {
   get_total_upgrades: Function;
@@ -26,8 +24,6 @@ interface reduxProps {
 
 interface State {
   show_adjustor: Map<string, boolean>; // project_id : bool
-  expand_remove_all_upgrades: boolean;
-  remove_all_upgrades_error?: string;
 }
 
 class ProjectUpgradesTable extends Component<reduxProps, State> {
@@ -54,8 +50,6 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
     super(props, state);
     this.state = {
       show_adjustor: Map({}),
-      expand_remove_all_upgrades: false,
-      remove_all_upgrades_error: undefined,
     };
   }
 
@@ -89,7 +83,7 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
   }
 
   private render_upgrades_to_project(project_id: string, upgrades) {
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     for (let param in upgrades) {
       const val = upgrades[param];
       if (!val) {
@@ -98,7 +92,7 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
       const info = PROJECT_UPGRADES.params[param];
       if (info == null) {
         console.warn(
-          `Invalid upgrades database entry for project_id='${project_id}' -- if this problem persists, email ${this.props.help_email} with the project_id: ${param}`
+          `Invalid upgrades database entry for project_id='${project_id}' -- if this problem persists, email ${this.props.help_email} with the project_id: ${param}`,
         );
         continue;
       }
@@ -106,7 +100,7 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
       v.push(
         <span key={param}>
           {info.display}: {n} {plural(n, info.display_unit)}
-        </span>
+        </span>,
       );
     }
     return r_join(v);
@@ -120,7 +114,7 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
         upgrades_you_can_use={this.props.get_total_upgrades()}
         upgrades_you_applied_to_all_projects={this.props.get_total_upgrades_you_have_applied()}
         upgrades_you_applied_to_this_project={this.props.get_upgrades_you_applied_to_project(
-          project_id
+          project_id,
         )}
         quota_params={PROJECT_UPGRADES.params}
         submit_upgrade_quotas={(new_quotas) =>
@@ -157,63 +151,17 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
     );
   }
 
-  private render_upgraded_projects_rows(upgraded_projects): JSX.Element[] {
+  private render_upgraded_projects_rows(upgraded_projects): React.JSX.Element[] {
     let i = -1;
-    const result: JSX.Element[] = [];
+    const result: React.JSX.Element[] = [];
     for (let project_id in upgraded_projects) {
       const upgrades = upgraded_projects[project_id];
       i += 1;
       result.push(
-        this.render_upgraded_project(project_id, upgrades, i % 2 === 0)
+        this.render_upgraded_project(project_id, upgrades, i % 2 === 0),
       );
     }
     return result;
-  }
-
-  async confirm_reset(_e) {
-    try {
-      await webapp_client.project_client.remove_all_upgrades();
-    } catch (err) {
-      this.setState({
-        expand_remove_all_upgrades: false,
-        remove_all_upgrades_error: err?.toString(),
-      });
-    }
-  }
-
-  private render_remove_all_upgrades_error() {
-    let err: any = this.state.remove_all_upgrades_error;
-    if (!is_string(err)) {
-      err = JSON.stringify(err);
-    }
-    return (
-      <Row>
-        <Col sm={12}>
-          <ErrorDisplay
-            title={"Error removing all upgrades"}
-            error={err}
-            onClose={() =>
-              this.setState({ remove_all_upgrades_error: undefined })
-            }
-          />
-        </Col>
-      </Row>
-    );
-  }
-
-  private render_remove_all_upgrades_conf() {
-    return (
-      <Row>
-        <Col sm={12}>
-          <ResetProjectsConfirmation
-            on_confirm={this.confirm_reset.bind(this)}
-            on_cancel={() =>
-              this.setState({ expand_remove_all_upgrades: false })
-            }
-          />
-        </Col>
-      </Row>
-    );
   }
 
   private render_header() {
@@ -224,23 +172,8 @@ class ProjectUpgradesTable extends Component<reduxProps, State> {
             <div style={{ flex: "1" }}>
               Upgrades you have applied to projects
             </div>
-            <Button
-              bsStyle={"warning"}
-              onClick={() =>
-                this.setState({ expand_remove_all_upgrades: true })
-              }
-              disabled={this.state.expand_remove_all_upgrades}
-            >
-              Remove All Upgrades You Applied to Projects...
-            </Button>
           </Col>
         </Row>
-        {this.state.remove_all_upgrades_error
-          ? this.render_remove_all_upgrades_error()
-          : undefined}
-        {this.state.expand_remove_all_upgrades
-          ? this.render_remove_all_upgrades_conf()
-          : undefined}
       </div>
     );
   }

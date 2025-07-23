@@ -10,7 +10,6 @@ import { throttle } from "lodash";
 import {
   CSS,
   React,
-  ReactDOM,
   Rendered,
   useEffect,
   useIsMountedRef,
@@ -109,7 +108,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
 
   function init_terminal(): void {
     if (!props.is_visible) return;
-    const node: any = ReactDOM.findDOMNode(terminalDOMRef.current);
+    const node: any = terminalDOMRef.current;
     if (node == null) {
       // happens, e.g., when terminals are disabled.
       return;
@@ -135,7 +134,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
       return false;
     });
 
-    terminalRef.current.scroll_to_bottom();
+    // terminalRef.current.scroll_to_bottom();
   }
 
   const set_font_size = throttle(() => {

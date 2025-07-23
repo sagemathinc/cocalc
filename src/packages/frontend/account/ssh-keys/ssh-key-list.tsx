@@ -22,7 +22,7 @@ import SSHKeyAdder from "./ssh-key-adder";
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
   project_id?: string;
-  help?: JSX.Element;
+  help?: React.JSX.Element;
   children?: any;
   mode?: "project" | "flyout";
 }
@@ -89,7 +89,7 @@ export default function SSHKeyList({
     if (ssh_keys == null || ssh_keys.size == 0) {
       return <div style={{ textAlign: "center" }}>{renderAdder("large")}</div>;
     }
-    const v: { date?: Date; fp: string; component: JSX.Element }[] = [];
+    const v: { date?: Date; fp: string; component: React.JSX.Element }[] = [];
 
     ssh_keys?.forEach(
       (ssh_key: Map<string, any>, fingerprint: string): void => {
@@ -164,7 +164,7 @@ interface OneSSHKeyProps {
 function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
   const isFlyout = mode === "flyout";
 
-  function render_last_use(): JSX.Element {
+  function render_last_use(): React.JSX.Element {
     const d = ssh_key.get("last_use_date");
     if (d) {
       return (

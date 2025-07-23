@@ -25,6 +25,8 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
+import type { JSX } from "react";
+
 interface Item {
   title: string;
   icon: IconName;

@@ -5,6 +5,7 @@
 
 import { List, Map } from "immutable";
 import { reduce } from "lodash";
+
 import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
@@ -141,6 +142,10 @@ export class AccountStore extends Store<AccountState> {
     const tours = this.get("tours");
     if (!tours) return false;
     return tours.includes(tour) || tours.includes("all");
+  }
+
+  showSymbolBarLabels(): boolean {
+    return this.getIn(["other_settings", "show_symbol_bar_labels"], false);
   }
 }
 

@@ -1,7 +1,7 @@
 /* Select one of the projects the signed in user is a collaborator on. */
 
 import { Alert, Divider, Select, Space } from "antd";
-import { useMemo } from "react";
+import { useMemo, type JSX } from "react";
 
 import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";

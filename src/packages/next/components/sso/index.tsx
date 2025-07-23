@@ -5,6 +5,8 @@
 
 import Link from "next/link";
 
+import type { JSX } from "react";
+
 export function ssoNav(): JSX.Element[] {
   return [
     <Link href={"/"}>Home</Link>,

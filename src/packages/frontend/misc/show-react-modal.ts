@@ -38,7 +38,7 @@ await show_react_modal((cb) => {
   });
 */
 export async function show_react_modal(
-  modal_generator: (cb: (err?: any, result?: any) => void) => JSX.Element
+  modal_generator: (cb: (err?: any, result?: any) => void) => React.JSX.Element
 ): Promise<any> {
   const elt = $("<div></div>");
   $("body").append(elt);

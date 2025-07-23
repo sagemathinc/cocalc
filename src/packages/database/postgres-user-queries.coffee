@@ -379,7 +379,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         else if opts.account_id?
             dbg = r.dbg = @_dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
         else
-            return {err:"FATAL: account_id or project_id must be specified"}
+            return {err:"FATAL: account_id or project_id must be specified to set query on table='#{opts.table}'"}
 
         if not SCHEMA[opts.table]?
             return {err:"FATAL: table '#{opts.table}' does not exist"}
@@ -1168,7 +1168,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                     subs[value] = user_query.project_id
                                     cb()
                                 else
-                                    cb("FATAL: you do not have read access to this project")
+                                    cb("FATAL: you do not have read access to this project -- account_id=#{account_id}, project_id_=#{project_id}")
                 when 'project_id-public'
                     if not user_query.project_id?
                         cb("FATAL: must specify project_id")

@@ -1,6 +1,5 @@
 import { Button, Flex, Space, Tooltip } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import {
   CSS,
   redux,
@@ -17,12 +16,10 @@ import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
-import { FoldAllThreads } from "./fold-threads";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
-import VideoChatButton from "./video/launch-button";
 
 interface Props {
   project_id: string;
@@ -59,7 +56,7 @@ export default function SideChat({
   const project_map = useTypedRedux("projects", "project_map");
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
-  const submitMentionsRef = useRef<SubmitMentionsFn>();
+  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const markAsRead = useCallback(() => {
     markChatAsReadIfUnseen(project_id, path);
@@ -121,24 +118,6 @@ export default function SideChat({
             borderBottom: "1px solid lightgrey",
           }}
         >
-          <Space.Compact
-            style={{
-              float: "right",
-              marginTop: "-5px",
-            }}
-          >
-            <VideoChatButton actions={actions} />
-            <Tooltip title="Show TimeTravel change history of this side chat.">
-              <Button
-                onClick={() => {
-                  actions.showTimeTravelInNewTab();
-                }}
-              >
-                <Icon name="history" />
-              </Button>
-            </Tooltip>
-            <FoldAllThreads actions={actions} shortLabel={true} />
-          </Space.Compact>
           <CollabList
             addCollab={addCollab}
             project={project}
@@ -188,41 +167,68 @@ export default function SideChat({
 
       <div>
         {input.trim() ? (
-          <Flex vertical={false} align="center" justify="space-between">
-            <Tooltip title="Send message (shift+enter)">
-              <Space>
-                {lastVisible && (
+          <Flex
+            vertical={false}
+            align="center"
+            justify="space-between"
+            style={{ margin: "5px" }}
+          >
+            <Space>
+              {lastVisible && (
+                <Tooltip title="Reply to the current thread (shift+enter)">
                   <Button
-                    disabled={!input.trim()}
+                    disabled={!input.trim() || actions == null}
                     type="primary"
                     onClick={() => {
                       sendChat({ reply_to: new Date(lastVisible) });
                     }}
                   >
-                    <Icon name="reply" /> Reply (shift+enter)
+                    <Icon name="reply" /> Reply
                   </Button>
-                )}
+                </Tooltip>
+              )}
+              <Tooltip
+                title={
+                  lastVisible
+                    ? "Start a new thread"
+                    : "Start a new thread (shift+enter)"
+                }
+              >
                 <Button
                   type={!lastVisible ? "primary" : undefined}
-                  style={{ margin: "5px 0 5px 5px" }}
+                  style={{ marginLeft: "5px" }}
                   onClick={() => {
                     sendChat();
                     user_activity("side_chat", "send_chat", "click");
                   }}
-                  disabled={!input?.trim()}
+                  disabled={!input?.trim() || actions == null}
                 >
                   <Icon name="paper-plane" />
-                  Start New Thread
+                  New Thread
                 </Button>
-              </Space>
-            </Tooltip>
-            {costEstimate?.get("date") == 0 && (
-              <LLMCostEstimationChat
-                compact
-                costEstimate={costEstimate?.toJS()}
-                style={{ margin: "5px" }}
-              />
-            )}
+              </Tooltip>
+            </Space>
+            <div style={{ flex: 1 }} />
+            <Space>
+              <Tooltip title={"Launch video chat specific to this document"}>
+                <Button
+                  disabled={actions == null}
+                  onClick={() => {
+                    actions?.frameTreeActions?.getVideoChat().startChatting();
+                  }}
+                >
+                  <Icon name="video-camera" />
+                  Video
+                </Button>
+              </Tooltip>
+              {costEstimate?.get("date") == 0 && (
+                <LLMCostEstimationChat
+                  compact
+                  costEstimate={costEstimate?.toJS()}
+                  style={{ margin: "5px" }}
+                />
+              )}
+            </Space>
           </Flex>
         ) : undefined}
         <ChatInput
@@ -259,14 +265,8 @@ function AddChatCollab({ addCollab, project_id }) {
   }
   return (
     <div>
-      You can{" "}
-      {redux.getProjectsStore().hasLanguageModelEnabled(project_id) && (
-        <>chat with AI or notify a collaborator by typing @, </>
-      )}
-      <A href="https://github.com/sagemathinc/cocalc/discussions">
-        join a discussion on GitHub
-      </A>
-      , and add more collaborators to this project below.
+      @mention AI or collaborators, add more collaborators below, or{" "}
+      <A href="https://discord.gg/EugdaJZ8">join the CoCalc Discord.</A>
       <AddCollaborators project_id={project_id} autoFocus where="side-chat" />
       <div style={{ color: COLORS.GRAY_M }}>
         (Collaborators have access to all files in this project.)

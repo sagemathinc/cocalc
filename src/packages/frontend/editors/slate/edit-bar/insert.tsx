@@ -10,7 +10,7 @@ import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { formatAction } from "../format";
 import { BUTTON_STYLE } from "./marks-bar";
 
-const ITEMS: [string, string, IconName | JSX.Element][] = [
+const ITEMS: [string, string, IconName | React.JSX.Element][] = [
   ["link", "Link to a URL...", "link"],
   ["image", "Image...", "image"],
   ["SpecialChar", "Special symbol or emoji...", <span>Ω</span>],

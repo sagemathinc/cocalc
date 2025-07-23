@@ -4,7 +4,7 @@
  */
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { COLORS } from "@cocalc/util/theme";
 import Anonymous from "components/misc/anonymous";

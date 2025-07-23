@@ -16,7 +16,7 @@ export default function WhiteboardTimeTravel({
   mainFrameType,
 }) {
   const { id, isFocused, desc, actions } = useFrameContext();
-  const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
+  const whiteboardDivRef = useRef<HTMLDivElement>(null as any);
   let elements = doc.get();
   // TODO: annoyingly, we need a map also in order to plot edges efficiently...
   let elementsMap: ElementsMap = iMap();

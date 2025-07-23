@@ -37,6 +37,18 @@ export function parse_query(query) {
   }
 }
 
+export function parseQueryWithOptions(query, options) {
+  query = parse_query(query);
+  const table = keys(query)[0];
+  const obj = options?.obj;
+  if (obj != null) {
+    for (const k in obj) {
+      query[table][0][k] = obj[k];
+    }
+  }
+  return { query, table };
+}
+
 const json_stable_stringify = require("json-stable-stringify");
 export function to_key(x): string | undefined {
   if (x === undefined) {

@@ -286,7 +286,7 @@ export function Student({
     );
   }
 
-  function render_project_access(): JSX.Element {
+  function render_project_access(): React.JSX.Element {
     // first check if the project is currently being created
     const create = student.get("create_project");
     if (create != null) {

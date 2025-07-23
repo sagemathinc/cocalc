@@ -16,6 +16,7 @@ import {
   getDefaultLLM,
   isValidModel,
 } from "./llm-utils";
+export const ALWAYS_ALLOWED_TIMETRAVEL = 10;
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -29,7 +30,7 @@ export const TAGS = [
   "Email",
   "Logo",
   "Version",
-  "Nats",
+  "Conat",
   "Stripe",
   "captcha",
   "Zendesk",
@@ -97,6 +98,7 @@ export type SiteSettingsKeys =
   | "ssh_gateway_fingerprint"
   | "versions"
   | "version_min_project"
+  | "version_min_compute_server"
   | "version_compute_server_min_project"
   | "version_min_browser"
   | "version_recommended_browser"
@@ -542,7 +544,15 @@ export const site_settings_conf: SiteSettings = {
   },
   version_min_project: {
     name: "Required project version",
-    desc: "Minimal version required by projects (if project older, will be force restarted).",
+    desc: "Minimal version required by projects (if older, will terminate).",
+    default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
+    tags: ["Version"],
+  },
+  version_min_compute_server: {
+    name: "Required compute server version",
+    desc: "Minimal version required by compute server (if older, will terminate).",
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
@@ -648,12 +658,12 @@ export const site_settings_conf: SiteSettings = {
   },
   unlicensed_project_timetravel_limit: {
     name: "Require License to View Unlimited TimeTravel History",
-    desc: "If this number is positive, then projects without a valid license can view at most this many past versions of a file via TimeTravel.  Set this to 200 to allow up to 200 past versions.",
+    desc: `If this number is positive, then in projects without some upgrade can only view this many days of TimeTravel history.  Set this to 7 to allow up to one week of history.  NOTE: Users are always allowed to view at least ${ALWAYS_ALLOWED_TIMETRAVEL} revisions, even if the revisions are older than this, in order to recover from possible data loss.`,
     default: "0",
     to_val: to_int,
     valid: only_nonneg_int,
     show: only_cocalc_com,
-    to_display: (val) => `${val} versions`,
+    to_display: (val) => `${val} days`,
     tags: ["Commercialization"],
   },
   datastore: {

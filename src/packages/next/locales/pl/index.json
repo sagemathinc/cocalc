@@ -1,5 +1,6 @@
 {
   "ar": "Arabski",
+  "br": "Portugalski (brazylijski)",
   "chat-text": "<p><strong><A>Czaty CoCalc</A></strong> oferują szereg funkcji, które usprawniają komunikację i współpracę:</p> <ul> <li><strong>@-wzmianki</strong> do bezpośredniego zwracania się do współpracowników lub zapytania modelu językowego</li> <li><strong>Emotikony</strong> do wyrażania emocji</li> <li><strong>Renderowanie formuł LaTeX</strong> między znakami $</li> <li><strong>Wątki</strong> i <strong>Hashtagi</strong> do łatwej organizacji tematycznej</li> <li><strong>Wstawianie obrazów</strong> poprzez przesyłanie lub przeciąganie i upuszczanie</li> <li><strong>Składnia Markdown</strong> do formatowania tekstu i wstawiania linków</li> <li><strong>System powiadomień</strong> z ikoną dzwonka do informowania użytkowników o nowej aktywności</li> </ul>",
   "chat-title": "Pokoje czatu",
   "compute-servers-text": "<p>Rozszerz swoje projekty CoCalc dzięki potężnym <strong>serwerom obliczeniowym</strong>. Dają Ci one znacznie większą moc, opcje GPU i elastyczność dla Twoich obliczeń. Z poziomu projektu uruchom i połącz się z potężną maszyną oraz przekaż swoim terminalom i Jupyter Notebooks, aby działały na tych maszynach.</p><p>Te serwery opcjonalnie oferują <strong>bardzo konkurencyjnie wycenione wsparcie GPU</strong>, są <strong>rozliczane sekundowo</strong>, a Twoje pliki są <strong>płynnie synchronizowane</strong> między projektem a serwerami.</p><p><A1>Przeczytaj dokumentację</A1> i <A2>sprawdź niektóre aplikacje</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "Niemiecki",
   "en": "Angielski",
   "es": "Hiszpański",
+  "eu": "Baskijski",
   "fr": "Francuski",
   "getting-started": "Rozpoczęcie",
   "gettingstarted-onprem": "Na miejscu",

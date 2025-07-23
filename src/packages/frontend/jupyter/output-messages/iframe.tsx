@@ -11,7 +11,6 @@ import { Spin } from "antd";
 import { delay } from "awaiting";
 import { useEffect, useRef, useState } from "react";
 import useBlob from "./use-blob";
-import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import HTML from "./mime-types/html";
@@ -90,10 +89,10 @@ function NonCachedIFrame({ src }) {
   const [failed, setFailed] = useState<boolean>(false);
   const delayRef = useRef<number>(500);
   const isMountedRef = useIsMountedRef();
-  const iframeRef = useRef(null);
+  const iframeRef = useRef<any>(null);
 
   useEffect(() => {
-    const elt: any = ReactDOM.findDOMNode(iframeRef.current);
+    const elt = iframeRef.current;
     if (elt == null) return;
     elt.onload = function () {
       elt.style.height = elt.contentWindow.document.body.scrollHeight + "px";

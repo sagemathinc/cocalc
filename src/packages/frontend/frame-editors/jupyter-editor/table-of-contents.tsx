@@ -38,7 +38,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     return (
       <TOC
         contents={contents}
-        style={{ fontSize: `${font_size}px` }}
+        fontSize={font_size}
         scrollTo={async ({ id, extra }) => {
           const { cell_id, markdown_id } = JSON.parse(id);
           jump_to_cell(cell_id, extra);

@@ -54,7 +54,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
     return upgrades ? upgrades.some((val) => val > 0) : undefined;
   }
 
-  function delete_message(): JSX.Element {
+  function delete_message(): React.JSX.Element {
     if (is_deleted) {
       return <DeletedProjectWarning />;
     } else {
@@ -73,7 +73,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
     }
   }
 
-  function hide_message(): JSX.Element {
+  function hide_message(): React.JSX.Element {
     if (!webapp_client.account_id) return <span>Must be signed in.</span>;
     const user = project.getIn(["users", webapp_client.account_id]);
     if (user == undefined) {
@@ -99,7 +99,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
     return <span>{msg}</span>;
   }
 
-  function render_delete_undelete_button(): JSX.Element {
+  function render_delete_undelete_button(): React.JSX.Element {
     if (is_deleted) {
       return (
         <Button
@@ -138,7 +138,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
     }
   }
 
-  function render_expanded_delete_info(): JSX.Element {
+  function render_expanded_delete_info(): React.JSX.Element {
     const has_upgrades =
       webapp_client.account_id == null
         ? false

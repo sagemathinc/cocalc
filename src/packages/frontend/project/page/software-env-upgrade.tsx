@@ -200,7 +200,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       );
     }
 
-    function render_main(): JSX.Element {
+    function render_main(): React.JSX.Element {
       return (
         <Alert
           bsStyle={"info"}

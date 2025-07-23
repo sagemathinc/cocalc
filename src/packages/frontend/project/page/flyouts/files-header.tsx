@@ -74,7 +74,7 @@ interface Props {
   selectAllFiles: () => void;
 }
 
-export function FilesHeader(props: Readonly<Props>): JSX.Element {
+export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   const {
     activeFileSort,
     disableUploads,
@@ -201,7 +201,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     }
   }
 
-  function wrapDropzone(children: JSX.Element): JSX.Element {
+  function wrapDropzone(children: React.JSX.Element): React.JSX.Element {
     if (disableUploads) return children;
     return (
       <FileUploadWrapper
@@ -218,7 +218,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  function renderSortButton(name: string, display: string): JSX.Element {
+  function renderSortButton(name: string, display: string): React.JSX.Element {
     const isActive = activeFileSort.get("column_name") === name;
     const direction = isActive ? (
       <Icon

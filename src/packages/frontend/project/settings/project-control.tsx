@@ -26,9 +26,11 @@ import {
   TimeAgo,
   TimeElapsed,
 } from "@cocalc/frontend/components";
+import { ComputeImageTypes } from "@cocalc/frontend/custom-software/init";
 import {
-  CUSTOM_IMG_PREFIX,
+  custom_image_name,
   CUSTOM_SOFTWARE_HELP_URL,
+  is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { labels } from "@cocalc/frontend/i18n";
 import {
@@ -227,11 +229,19 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  async function saveSelectedComputeImage(new_image: string) {
+  async function saveSelectedComputeImage({
+    id,
+    type,
+  }: {
+    id: string;
+    type: ComputeImageTypes;
+  }) {
     const actions = redux.getProjectActions(project_id);
     try {
       setComputeImgChanging(true);
-      await actions.set_compute_image(new_image);
+      await actions.set_compute_image(
+        type === "standard" ? id : custom_image_name(id),
+      );
       await restart_project();
     } catch (err) {
       alert_message({ type: "error", message: err });
@@ -289,7 +299,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       return <Loading />;
     }
 
-    if (compute_image.startsWith(CUSTOM_IMG_PREFIX)) {
+    if (is_custom_image(compute_image)) {
       return render_custom_compute_image();
     }
 
@@ -299,6 +309,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         layout={"dialog"}
         onSelect={saveSelectedComputeImage}
         changing={computeImgChanging}
+        hideCustomImages={true}
         label={intl.formatMessage({
           id: "project.settings.compute-image-selector.button.save-restart",
           defaultMessage: "Save and Restart",

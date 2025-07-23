@@ -26,7 +26,7 @@ export default function CellList({
   // modifications to inputs of cells (used for temporary editing)
   const [edits, setEdits] = useState<{ [id: string]: string } | null>(null);
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   let history: string[] = [];
   for (const id of cellList) {
     const cell = cells[id];

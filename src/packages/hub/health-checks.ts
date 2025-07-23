@@ -6,21 +6,21 @@
 // endpoints for various health checks
 
 import getLogger from "@cocalc/backend/logger";
-const { new_counter } = require("@cocalc/hub/metrics-recorder");
+import { new_counter } from "@cocalc/server/metrics/metrics-recorder";
 import { howLongDisconnectedMins } from "@cocalc/database/postgres/record-connect-error";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { seconds2hms } from "@cocalc/util/misc";
 import express, { Response } from "express";
 import { createServer, Server } from "net";
 import { isFloat } from "validator";
-import { database_is_working } from "./hub_register";
+import { database_is_working } from "@cocalc/server/metrics/hub_register";
 const logger = getLogger("hub:healthcheck");
 const { debug: L } = logger;
 
 const HEALTHCHECKS = new_counter(
   "healthchecks_total",
   "test healthcheck counter",
-  ["status"]
+  ["status"],
 );
 
 interface HealthcheckData {
@@ -57,7 +57,7 @@ function init_self_terminate(): {
   D("parsed data:", { from, to, drain_h });
   if (from > to)
     throw Error(
-      "COCALC_HUB_SELF_TERMINATE 'from' must be smaller than 'to', e.g. '24,48,15'"
+      "COCALC_HUB_SELF_TERMINATE 'from' must be smaller than 'to', e.g. '24,48,15'",
     );
   const uptime = Math.random() * (to - from); // hours
   const hours2ms = 1000 * 60 * 60;
@@ -65,7 +65,7 @@ function init_self_terminate(): {
   const drain = shutdown - drain_h * hours2ms;
   if (startup > drain) {
     throw new Error(
-      `COCALC_HUB_SELF_TERMINATE: startup must be smaller than drain – ${startup}>${drain}`
+      `COCALC_HUB_SELF_TERMINATE: startup must be smaller than drain – ${startup}>${drain}`,
     );
   }
   D({
@@ -107,6 +107,9 @@ function setup_agent_check() {
   // ATTN: weight must be set as well, which is poorly documented here:
   // https://cbonte.github.io/haproxy-dconv/2.0/configuration.html#5.2-weight
   agent_check_server = createServer((c) => {
+    c.on("error", (err) => {
+      L(`agent_check: connection error`, err);
+    });
     let msg = Date.now() < drain ? "ready up 100%" : "10%";
     c.write(msg + "\r\n");
     c.destroy();
@@ -186,7 +189,7 @@ function checkUptime(): Check {
 // if there are is no connection to the database for that many minutes,
 // declare the hub unhealthy
 const DB_ERRORS_THRESHOLD_MIN = parseInt(
-  process.env.COCALC_DB_ERRORS_THRESHOLD_MIN ?? "5"
+  process.env.COCALC_DB_ERRORS_THRESHOLD_MIN ?? "5",
 );
 
 function checkDBConnectivity(): Check {
@@ -209,7 +212,7 @@ function checkDBConnectivity(): Check {
 // same note as above for process_alive()
 async function process_health_check(
   db: PostgreSQL,
-  extra: (() => Promise<Check>)[] = []
+  extra: (() => Promise<Check>)[] = [],
 ): Promise<HealthcheckData> {
   let any_abort = false;
   let txt = "healthchecks:\n";
@@ -273,7 +276,7 @@ export async function setup_health_checks(opts: Opts): Promise<void> {
     const c = db.concurrent();
     if (c >= db._concurrent_warn) {
       L(
-        `/concurrent-warn: not healthy, since concurrent ${c} >= ${db._concurrent_warn}`
+        `/concurrent-warn: not healthy, since concurrent ${c} >= ${db._concurrent_warn}`,
       );
       res.status(404).end();
       return;

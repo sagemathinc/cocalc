@@ -226,7 +226,6 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
         <input
           style={{ width: "3em", backgroundColor: bg, color }}
           autoFocus={true}
-          ref="input"
           type="text"
           value={value}
           onKeyDown={key_down}

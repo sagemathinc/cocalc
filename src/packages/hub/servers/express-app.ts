@@ -2,7 +2,6 @@
 The main hub express app.
 */
 
-import compression from "compression";
 import cookieParser from "cookie-parser";
 import express from "express";
 import ms from "ms";
@@ -11,7 +10,6 @@ import { parse as parseURL } from "url";
 import webpackDevMiddleware from "webpack-dev-middleware";
 import webpackHotMiddleware from "webpack-hot-middleware";
 import { path as WEBAPP_PATH } from "@cocalc/assets";
-import basePath from "@cocalc/backend/base-path";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
 import { path as STATIC_PATH } from "@cocalc/static";
@@ -19,7 +17,6 @@ import { initAnalytics } from "../analytics";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { getLogger } from "../logger";
 import initProxy from "../proxy";
-import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobUpload from "./app/blob-upload";
 import initUpload from "./app/upload";
@@ -27,12 +24,16 @@ import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initNext from "./app/next";
-import initSetCookies from "./app/set-cookies";
 import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-import { initNatsServer } from "./nats";
+import basePath from "@cocalc/backend/base-path";
+import { initConatServer } from "@cocalc/server/conat/socketio";
+import { conatSocketioCount } from "@cocalc/backend/data";
+
+// NOTE: we are not using compression because that interferes with streaming file download,
+// and could be generally confusing.
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -43,9 +44,9 @@ interface Options {
   isPersonal: boolean;
   nextServer: boolean;
   proxyServer: boolean;
+  conatServer: boolean;
   cert?: string;
   key?: string;
-  listenersHack: boolean;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -81,12 +82,6 @@ export default async function init(opts: Options): Promise<{
     app.use(vhostShare());
   }
 
-  // Enable compression, as suggested by
-  //   http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
-  // NOTE "Express runs everything in order" --
-  // https://github.com/expressjs/compression/issues/35#issuecomment-77076170
-  app.use(compression());
-
   app.use(cookieParser());
 
   // Install custom middleware to track response time metrics via prometheus
@@ -99,8 +94,6 @@ export default async function init(opts: Options): Promise<{
 
   // setup the analytics.js endpoint
   await initAnalytics(router, database);
-
-  initAPI(router, opts.projectControl);
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
@@ -128,8 +121,6 @@ export default async function init(opts: Options): Promise<{
   initBlobs(router);
   initBlobUpload(router);
   initUpload(router);
-  initSetCookies(router);
-  initNatsServer(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);
@@ -146,14 +137,32 @@ export default async function init(opts: Options): Promise<{
     app,
   });
 
+  if (opts.conatServer) {
+    winston.info(`initializing the Conat Server`);
+    initConatServer({
+      httpServer,
+      ssl: !!opts.cert,
+    });
+  }
+
+  // This must be second to the last, since it will prevent any
+  // other upgrade handlers from being added to httpServer.
   if (opts.proxyServer) {
-    winston.info(`initializing the http proxy server`);
+    winston.info(`initializing the http proxy server`, {
+      conatSocketioCount,
+      conatServer: !!opts.conatServer,
+      isPersonal: opts.isPersonal,
+    });
     initProxy({
       projectControl: opts.projectControl,
       isPersonal: opts.isPersonal,
       httpServer,
       app,
-      listenersHack: opts.listenersHack,
+      // enable proxy server for /conat if:
+      //  (1) we are not running conat at all from here, or
+      //  (2) we are running socketio in cluster mode, hence
+      //      on a different port
+      proxyConat: !opts.conatServer || (conatSocketioCount ?? 1) >= 2,
     });
   }
 
@@ -164,7 +173,6 @@ export default async function init(opts: Options): Promise<{
     // The Next.js server
     await initNext(app);
   }
-
   return { httpServer, router };
 }
 

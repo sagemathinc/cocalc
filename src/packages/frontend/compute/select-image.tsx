@@ -179,7 +179,7 @@ function getOptions({
     priority: number;
     value: string;
     search: string;
-    label: JSX.Element;
+    label: React.JSX.Element;
     dockerSizeGb?: number;
   }[] = [];
   for (const name in IMAGES) {

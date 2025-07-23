@@ -28,7 +28,7 @@ const Text = (props: {
   const editor = useSlateStatic();
   const ref = useRef<HTMLSpanElement>(null);
   const leaves = SlateText.decorations(text, decorations);
-  const children: JSX.Element[] = [];
+  const children: React.JSX.Element[] = [];
   const key = ReactEditor.findKey(editor, text);
 
   for (let i = 0; i < leaves.length; i++) {

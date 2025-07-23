@@ -1,7 +1,7 @@
 /*
 A reference counting cache.
 
-See example usage in nats/sync.
+See example usage in conat/sync.
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -70,7 +70,7 @@ export default function refCache<
     cache[key] = obj;
     count[key] = 1;
     close[key] = obj.close;
-    obj.close = async () => {
+    obj.close = () => {
       count[key] -= 1;
       if (VERBOSE) {
         console.log("refCache: close", { name, key, count: count[key] });
@@ -94,6 +94,11 @@ export default function refCache<
   };
   get.info = () => {
     return { name, count: { ...count } };
+  };
+  get.one = (): T | undefined => {
+    for (const key in cache) {
+      return cache[key];
+    }
   };
 
   caches[name] = get;
@@ -142,13 +147,13 @@ export function refCacheSync<
     cache[key] = obj;
     count[key] = 1;
     close[key] = obj.close;
-    obj.close = async () => {
+    obj.close = () => {
       count[key] -= 1;
       if (VERBOSE) {
         console.log("refCacheSync: close", { name, key, count: count[key] });
       }
       if (count[key] <= 0) {
-        await close[key]?.();
+        close[key]?.();
         delete cache[key];
         delete count[key];
         delete close[key];
@@ -165,6 +170,11 @@ export function refCacheSync<
   };
   get.info = () => {
     return { name, count: { ...count } };
+  };
+  get.one = (): T | undefined => {
+    for (const key in cache) {
+      return cache[key];
+    }
   };
   caches[name] = get;
   return get;

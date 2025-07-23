@@ -14,6 +14,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getProject } from "@cocalc/server/projects/control";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { delay } from "awaiting";
+import isAdmin from "@cocalc/server/accounts/is-admin";
 
 const log = getLogger("server:projects:create");
 
@@ -45,22 +46,31 @@ export default async function createProject(opts: CreateProjectOptions) {
       }
     }
   }
-  // Try to get from pool if no license and no image specified (so the default),
-  // and not "noPool".  NOTE: we may improve the pool to also provide some
-  // basic licensed projects later, and better support for images.  Maybe.
-  if (!noPool && !license && account_id != null) {
-    const project_id = await getFromPool({
-      account_id,
-      title,
-      description,
-      image,
-    });
-    if (project_id != null) {
-      return project_id;
+  let project_id;
+  if (opts.project_id) {
+    if (!account_id || !(await isAdmin(account_id))) {
+      throw Error("only admins can specify the project_id");
     }
-  }
+    project_id = opts.project_id;
+  } else {
+    // Try to get from pool if no license and no image specified (so the default),
+    // and not "noPool".  NOTE: we may improve the pool to also provide some
+    // basic licensed projects later, and better support for images.  Maybe.
+    if (!noPool && !license && account_id != null) {
+      project_id = await getFromPool({
+        account_id,
+        title,
+        description,
+        image,
+      });
+      if (project_id != null) {
+        return project_id;
+      }
+    }
 
-  const project_id = v4();
+    project_id = v4();
+  }
+  
   const pool = getPool();
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };

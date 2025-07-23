@@ -272,7 +272,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           resetConfig();
         }}
         open={editing}
-        destroyOnClose
+        destroyOnHidden
         title={
           <div>
             <div style={{ display: "flex" }}>Create Compute Server</div>

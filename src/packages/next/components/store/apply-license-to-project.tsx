@@ -9,6 +9,8 @@ import { NextRouter } from "next/router";
 import { useLicenseProject } from "./util";
 import Project from "components/project/link";
 
+import type { JSX } from "react";
+
 interface ApplyLicenseToProjectProps {
   router: NextRouter;
 }

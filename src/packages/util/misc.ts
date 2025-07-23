@@ -1998,6 +1998,20 @@ export function has_null_leaf(obj: object): boolean {
   return false;
 }
 
+// mutate obj and delete any undefined leafs.
+// was used for MsgPack -- but the ignoreUndefined:true option
+// to the encoder is a much better fix.
+// export function removeUndefinedLeafs(obj: object) {
+//   for (const k in obj) {
+//     const v = obj[k];
+//     if (v === undefined) {
+//       delete obj[k];
+//     } else if (is_object(v)) {
+//       removeUndefinedLeafs(v);
+//     }
+//   }
+// }
+
 // Peer Grading
 // This function takes a list of student_ids,
 // and a number N of the desired number of peers per student.

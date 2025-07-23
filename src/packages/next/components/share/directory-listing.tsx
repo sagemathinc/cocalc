@@ -13,6 +13,8 @@ import {
 } from "@cocalc/util/misc";
 import { field_cmp } from "@cocalc/util/misc";
 
+import type { JSX } from "react";
+
 interface Props {
   id?: string;
   relativePath?: string;

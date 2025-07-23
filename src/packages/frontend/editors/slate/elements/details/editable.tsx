@@ -16,7 +16,7 @@ register({
 
   Element: ({ attributes, children, element }) => {
     const node = element as Details;
-    const ref = useRef<any>();
+    const ref = useRef<any>(undefined);
     const [open, setOpen] = useState<boolean>(!!node.open);
     useEffect(() => {
       if (open != node.open) {

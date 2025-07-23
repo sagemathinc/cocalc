@@ -15,6 +15,7 @@ import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
+import { delay } from "awaiting";
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562
@@ -76,7 +77,7 @@ async function gatherJobInfo(
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
   path: string,
 ): Promise<void> {
-  await new Promise((done) => setTimeout(done, 100));
+  await delay(100);
   let wait_s = 1;
   try {
     while (true) {
@@ -97,7 +98,7 @@ async function gatherJobInfo(
       } else {
         return;
       }
-      await new Promise((done) => setTimeout(done, 1000 * wait_s));
+      await delay(1000 * wait_s);
       wait_s = Math.min(5, wait_s + 1);
     }
   } catch {
@@ -178,7 +179,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     } catch (err) {
       if (IS_TIMEOUT_CALLING_PROJECT(err)) {
         // This will eventually be fine, hopefully. We continue trying to get a reply.
-        await new Promise((done) => setTimeout(done, 100));
+        await delay(100);
       } else {
         throw new Error(
           "Unable to run the compilation. Please check up on the project.",

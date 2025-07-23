@@ -39,3 +39,18 @@ export const ACCOUNT_ID_COOKIE_NAME = basePathCookieName({
   basePath,
   name: "account_id",
 });
+
+export const PROJECT_SECRET_COOKIE_NAME = basePathCookieName({
+  basePath,
+  name: "project_secret",
+});
+
+export const PROJECT_ID_COOKIE_NAME = basePathCookieName({
+  basePath,
+  name: "project_id",
+});
+
+export const HUB_PASSWORD_COOKIE_NAME = basePathCookieName({
+  basePath,
+  name: "hub_password",
+});

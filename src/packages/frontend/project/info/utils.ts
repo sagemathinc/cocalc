@@ -4,9 +4,7 @@
  */
 
 import { basename } from "path";
-
 import { CSS } from "@cocalc/frontend/app-framework";
-import { project_websocket } from "@cocalc/frontend/frame-editors/generic/client";
 import { Process, Processes, State } from "@cocalc/util/types/project-info/types";
 import {
   ALERT_DISK_FREE,
@@ -71,12 +69,6 @@ function grid_color(val, max) {
 export function grid_warning(val: number, max: number): CSS {
   const col = grid_color(val, max);
   return col != null ? col : {};
-}
-
-export async function connect_ws(project_id: string) {
-  const ws = await project_websocket(project_id);
-  const chan = await ws.api.project_info();
-  return chan;
 }
 
 // filter for processes in process_tree

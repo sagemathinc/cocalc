@@ -35,7 +35,7 @@ export const PathLink: React.FC<Props> = ({
   link = true,
   onOpen,
 }: Props) => {
-  function render_link(text): JSX.Element {
+  function render_link(text): React.JSX.Element {
     let s;
     if (!endswith(text, "/")) {
       const { name, ext } = separate_file_extension(text);

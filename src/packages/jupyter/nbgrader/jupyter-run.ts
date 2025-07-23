@@ -3,27 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type {
-  JupyterNotebook,
-  RunNotebookOptions,
+import {
+  type JupyterNotebook,
+  type RunNotebookOptions,
+  type Limits,
+  DEFAULT_LIMITS,
 } from "@cocalc/util/jupyter/nbgrader-types";
 import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 import { is_object, len, uuid, trunc_middle } from "@cocalc/util/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { kernel } from "@cocalc/jupyter/kernel";
 import getLogger from "@cocalc/backend/logger";
+export type { Limits };
 
 const logger = getLogger("jupyter:nbgrader:jupyter-run");
-
-// For tracking limits during the run:
-export interface Limits {
-  timeout_ms_per_cell: number;
-  max_output_per_cell: number;
-  max_output: number;
-  total_output: number;
-  timeout_ms?: number;
-  start_time?: number;
-}
 
 function global_timeout_exceeded(limits: Limits): boolean {
   if (limits.timeout_ms == null || limits.start_time == null) return false;
@@ -132,12 +125,13 @@ export async function jupyter_run_notebook(
 
 export async function run_cell(
   jupyter: JupyterKernel,
-  limits: Limits,
+  limits0: Partial<Limits>,
   cell,
 ): Promise<void> {
   if (jupyter == null) {
     throw Error("jupyter must be defined");
   }
+  const limits = { ...DEFAULT_LIMITS, ...limits0 };
 
   if (limits.timeout_ms && global_timeout_exceeded(limits)) {
     // the total time has been exceeded -- this will mark outputs as error

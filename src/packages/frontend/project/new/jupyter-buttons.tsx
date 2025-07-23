@@ -56,7 +56,7 @@ interface JupyterNotebookButtonsProps {
   filenameChanged?: boolean;
   mode: "full" | "flyout";
   makeNewFilename?: () => void;
-  after: (JSX.Element | null)[];
+  after: (React.JSX.Element | null)[];
 }
 
 /**
@@ -238,7 +238,7 @@ export function JupyterNotebookButtons({
     if (kernel_selection == null || kernels_by_name == null) return null;
 
     const langs = ["sage", "sagemath"] as const;
-    const btns: { lang: string; btn: JSX.Element }[] = [];
+    const btns: { lang: string; btn: React.JSX.Element }[] = [];
     // just as a precaution, we limit the number of buttons to 10
     // const kernels = topKernels(kernel_selection).slice(0, 10);
     const kernels = topKernelByLang(kernel_selection, langs);

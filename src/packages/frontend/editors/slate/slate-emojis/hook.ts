@@ -44,7 +44,7 @@ interface Options {
 interface EmojisControl {
   onChange: () => void;
   onKeyDown: (event) => void;
-  Emojis: JSX.Element | undefined;
+  Emojis: React.JSX.Element | undefined;
 }
 
 export const useEmojis: (Options) => EmojisControl = ({

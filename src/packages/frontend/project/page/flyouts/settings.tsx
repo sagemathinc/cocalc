@@ -49,10 +49,10 @@ import { getFlyoutSettings, storeFlyoutState } from "./state";
 
 interface Props {
   project_id: string;
-  wrap: (content: JSX.Element) => JSX.Element;
+  wrap: (content: React.JSX.Element) => React.JSX.Element;
 }
 
-export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
+export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
   const { project_id, wrap } = _;
   const intl = useIntl();
   const { status, project } = useProjectContext();
@@ -122,7 +122,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     }
   }
 
-  function renderStatus(): JSX.Element | undefined {
+  function renderStatus(): React.JSX.Element | undefined {
     // this prevents the start/stop popup dialog to stick around, if we switch somewhere else
     if (!projectIsVisible) return;
     return (
@@ -147,7 +147,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     );
   }
 
-  function renderOther(): JSX.Element {
+  function renderOther(): React.JSX.Element {
     return (
       <Paragraph
         type="secondary"
@@ -350,7 +350,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
         style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
         activeKey={expandedPanels}
         onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
-        destroyInactivePanel={true}
+        destroyOnHidden={true}
         items={items}
       />
     );

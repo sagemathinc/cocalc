@@ -19,7 +19,7 @@ export function FetchDirectoryErrors({
   path,
   quotas,
   is_logged_in,
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const is_commercial = useTypedRedux("customize", "is_commercial");
   switch (error) {
     case "not_public":

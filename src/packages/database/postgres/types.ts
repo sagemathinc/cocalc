@@ -77,7 +77,6 @@ export interface DeletePassportOpts {
   account_id: string;
   strategy: string; // our name of the strategy
   id: string;
-  cb?: CB;
 }
 
 export interface PassportExistsOpts {
@@ -242,7 +241,7 @@ export interface PostgreSQL extends EventEmitter {
 
   create_passport(opts: CreatePassportOpts): Promise<string>;
 
-  delete_passport(opts: DeletePassportOpts): void;
+  delete_passport(opts: DeletePassportOpts): Promise<void>;
 
   set_passport_settings(
     db: PostgreSQL,
@@ -337,8 +336,6 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
 
-  syncdoc_history_async(string_id: string, patches?: boolean): void;
-
   set_project_state(opts: {
     project_id: string;
     state: ProjectState;
@@ -386,6 +383,35 @@ export interface PostgreSQL extends EventEmitter {
     cutoff?: Date;
     cb?: CB;
   });
+
+  when_sent_project_invite(opts: { project_id: string; to: string; cb?: CB });
+
+  sent_project_invite(opts: {
+    project_id: string;
+    to: string;
+    error?: string;
+    cb?: CB;
+  });
+
+  account_creation_actions(opts: {
+    email_address: string;
+    action?: any;
+    ttl?: number;
+    cb: CB;
+  });
+
+  log_client_error(opts: {
+    event: string;
+    error: string;
+    account_id?: string;
+    cb?: CB;
+  });
+
+  webapp_error(opts: object);
+
+  set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
+  
+  uncaught_exception: (err:any) => void;
 }
 
 export interface SetAccountFields {

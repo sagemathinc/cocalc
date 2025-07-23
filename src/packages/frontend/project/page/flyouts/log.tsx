@@ -47,12 +47,13 @@ import {
   FLYOUT_EXTRA_WIDTH_PX,
   FLYOUT_PADDING,
 } from "./consts";
-import { FileListItem, fileItemStyle } from "./file-list-item";
+import { FileListItem } from "./file-list-item";
 import {
   FlyoutLogDeduplicate,
   FlyoutLogMode,
   getFlyoutLogFilter,
 } from "./state";
+import { fileItemStyle } from "./utils";
 
 interface OpenedFile {
   filename: string;
@@ -110,7 +111,7 @@ function deriveFiles(
     .toJS() as any;
 }
 
-// TOOD: refactor project/history/types.ts and add type tests to clean this up
+// TODO: refactor project/history/types.ts and add type tests to clean this up
 
 const PROJECT_EVENTS = [
   "project_start_requested",
@@ -221,7 +222,7 @@ function deriveHistory(
 interface Props {
   project_id: string;
   max?: number;
-  wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  wrap: (list: React.JSX.Element, style?: CSS) => React.JSX.Element;
   flyoutWidth: number;
 }
 
@@ -230,7 +231,7 @@ export function LogFlyout({
   project_id,
   wrap,
   flyoutWidth,
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const intl = useIntl();
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
@@ -259,7 +260,7 @@ export function LogFlyout({
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
-  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
+  const [scrollIdxHide, setScrollIdxHide] = useState<boolean>(false);
 
   // restore the logFilter from local storage (mode is similar, restored in the LogHeader)
   useEffect(() => {
@@ -357,7 +358,7 @@ export function LogFlyout({
         extra2={renderFileItemExtra2(entry)}
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
-        selected={!scollIdxHide && index === scrollIdx}
+        selected={!scrollIdxHide && index === scrollIdx}
         onClick={(e) => {
           track("open-file", {
             project_id,
@@ -383,7 +384,7 @@ export function LogFlyout({
   }
 
   function renderHistoryItem(index: number, entry: any) {
-    const highlight = !scollIdxHide && index === scrollIdx;
+    const highlight = !scrollIdxHide && index === scrollIdx;
     const bgStyle = {
       ...fileItemStyle(entry.time?.getTime()),
       ...(highlight ? { background: COLORS.BLUE_LL } : {}),
@@ -456,7 +457,7 @@ export function LogFlyout({
     }
   }
 
-  function list(): JSX.Element {
+  function list(): React.JSX.Element {
     return (
       <Virtuoso
         ref={virtuosoRef}
@@ -644,7 +645,7 @@ export function LogFlyout({
             <FormattedMessage
               id="page.flyouts.log.filter_message"
               description={"The list of activities is filtered"}
-              defaultMessage={"All activies are filtered!"}
+              defaultMessage={"All activities are filtered!"}
             />
           </>
         }

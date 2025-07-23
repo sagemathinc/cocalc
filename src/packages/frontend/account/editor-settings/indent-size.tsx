@@ -12,7 +12,7 @@ interface Props {
   on_change: (name: string, value: number) => void;
 }
 
-export function EditorSettingsIndentSize(props: Props): JSX.Element {
+export function EditorSettingsIndentSize(props: Props): React.JSX.Element {
   const intl = useIntl();
 
   return (

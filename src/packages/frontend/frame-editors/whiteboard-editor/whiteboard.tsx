@@ -77,8 +77,8 @@ export default function Whiteboard({ presentation }: Props) {
   }, [cursorsMap]);
 
   const selectedTool = desc.get("selectedTool") ?? "select";
-  const evtToDataRef = useRef<Function | null>(null);
-  const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
+  const evtToDataRef = useRef<Function>(null as any);
+  const whiteboardDivRef = useRef<HTMLDivElement>(null as any);
 
   if (!is_loaded || elementsOnPage == null) {
     return (

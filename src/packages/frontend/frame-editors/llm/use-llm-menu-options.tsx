@@ -26,7 +26,7 @@ interface Model {
   name: LanguageModel;
   title: string;
   desc: string;
-  price: JSX.Element;
+  price: React.JSX.Element;
 }
 
 // ATTN: when you change this useLLMMenuOptions hook, you also have to change the LLMSelector component
@@ -49,7 +49,7 @@ export function useAvailableLLMs(project_id: string) {
 
   const providers: {
     [key in LLMServiceName | "custom"]?: {
-      name: string | JSX.Element;
+      name: string | React.JSX.Element;
       desc: string;
       models: Model[];
     };

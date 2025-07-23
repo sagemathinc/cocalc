@@ -152,20 +152,6 @@ export function load_target(
 
     case "settings":
       redux.getActions("page").set_active_tab("account", false);
-
-      if (segments[1] === "billing") {
-        const actions = redux.getActions("billing");
-        actions?.update_customer();
-        redux.getActions("account").set_active_tab("billing");
-        if (actions == null) {
-          // ugly temporary hack.
-          setTimeout(() => {
-            redux.getActions("billing")?.update_customer();
-          }, 5000);
-        }
-        return;
-      }
-
       const actions = redux.getActions("account");
       actions.set_active_tab(segments[1]);
       actions.setFragment(Fragment.decode(hash));
