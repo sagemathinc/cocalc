@@ -347,16 +347,14 @@ export async function open_file(
     return;
   }
 
-  if (PRELOAD_BACKGROUND_TABS) {
-    await actions.initFileRedux(opts.path);
-  }
-
   if (opts.foreground) {
     actions.foreground_project(opts.change_history);
     const tab = path_to_tab(opts.path);
     actions.set_active_tab(tab, {
       change_history: opts.change_history,
     });
+  } else if (PRELOAD_BACKGROUND_TABS) {
+    await actions.initFileRedux(opts.path);
   }
 
   if (alreadyOpened && opts.fragmentId) {

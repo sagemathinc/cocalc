@@ -12,7 +12,6 @@ import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
-
 import {
   computeServerManager,
   type ComputeServerManager,
@@ -1061,28 +1060,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   /* Initialize the redux store and react component for editing
-     a particular file.
+     a particular file, if necessary.
   */
-  initFileRedux = async (
-    path: string,
-    is_public: boolean = false,
-    ext?: string, // use this extension even instead of path's extension.
-  ): Promise<string | undefined> => {
-    // LAZY IMPORT, so that editors are only available
-    // when you are going to use them.  Helps with code splitting.
-    await import("./editors/register-all");
+  initFileRedux = reuseInFlight(
+    async (
+      path: string,
+      is_public: boolean = false,
+      ext?: string, // use this extension even instead of path's extension.
+    ): Promise<string | undefined> => {
+      const cur = redux.getEditorActions(this.project_id, path);
+      if (cur != null) {
+        return cur.name;
+      }
+      // LAZY IMPORT, so that editors are only available
+      // when you are going to use them.  Helps with code splitting.
+      await import("./editors/register-all");
 
-    // Initialize the file's store and actions
-    const name = await project_file.initializeAsync(
-      path,
-      this.redux,
-      this.project_id,
-      is_public,
-      undefined,
-      ext,
-    );
-    return name;
-  };
+      // Initialize the file's store and actions
+      const name = await project_file.initializeAsync(
+        path,
+        this.redux,
+        this.project_id,
+        is_public,
+        undefined,
+        ext,
+      );
+      return name;
+    },
+  );
 
   private init_file_react_redux = async (
     path: string,

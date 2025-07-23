@@ -126,9 +126,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         this.project_id,
         this.docpath,
       );
-      console.log("mainFileActions", mainFileActions != null);
       if (mainFileActions == null) {
-        console.log("opening file");
         // open the file that we're showing timetravel for, so that the
         // actions are available
         try {
@@ -168,7 +166,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     // so there wouldn't be any change event, so we have to trigger this.
     this.syncdoc_changed();
     this.syncdoc.on("close", () => {
-      console.log("in timetravel, syncdoc was closed");
       // in the actions in this file, we don't check if the state is closed, but instead
       // that this.syncdoc is not null:
       delete this.syncdoc;

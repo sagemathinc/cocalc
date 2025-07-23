@@ -259,9 +259,9 @@ export async function remove(
     save(path, redux, project_id, is_public);
   }
 
-  if (!is_public) {
+  if (!is_public && project_id) {
     // Also free the corresponding side chat, if it was created.
-    require("./chat/register").remove(
+    (await import("./chat/register")).remove(
       meta_file(path, "chat"),
       redux,
       project_id,
