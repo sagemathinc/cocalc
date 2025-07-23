@@ -5,6 +5,8 @@ import {
   watchClient,
   type WatchIterator,
 } from "@cocalc/conat/files/watch";
+import listing, { type Listing } from "./listing";
+
 export const DEFAULT_FILE_SERVICE = "fs";
 
 export interface FindOptions {
@@ -68,6 +70,8 @@ export interface Filesystem {
     printf: string,
     options?: FindOptions,
   ) => Promise<{ stdout: Buffer; truncated: boolean }>;
+
+  listing?: (path: string) => Promise<Listing>;
 }
 
 interface IStats {
@@ -285,6 +289,9 @@ export function fsClient({
   call.watch = async (path: string, options?) => {
     await ensureWatchServerExists(path, options);
     return await watchClient({ client, subject, path, options });
+  };
+  call.listing = async (path: string) => {
+    return await listing({ fs: call, path });
   };
 
   return call;
