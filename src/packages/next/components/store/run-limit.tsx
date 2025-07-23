@@ -4,6 +4,7 @@
  */
 
 import { Divider, Form } from "antd";
+import { useRouter } from "next/router";
 
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
@@ -30,6 +31,8 @@ export function RunLimit({
   boost = false,
   source,
 }: RunLimitProps) {
+  const router = useRouter();
+
   function extra() {
     if (!showExplanations) return;
 
@@ -64,9 +67,15 @@ export function RunLimit({
       case "course":
         return (
           <div style={{ marginTop: "5px" }}>
-            It's advised to select two more seatch than the number of students
-            (one for each student, one for the shared project and one for the
-            instructor project)
+            If you consider creating a shared project for your course, you
+            should select one more seat than the number of students. One for
+            each student, and one for the shared project. Regarding your
+            instructor project, you need one additional seat or purchase a
+            regular{" "}
+            <a onClick={() => router.push("/store/site-license")}>
+              site license
+            </a>{" "}
+            to cover it.
           </div>
         );
 
