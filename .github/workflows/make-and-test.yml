@@ -1,4 +1,4 @@
-name: Make all packages and run their tests
+name: Test
 
 # newer commits in the same PR abort running ones for the same workflow
 concurrency:
@@ -43,7 +43,7 @@ jobs:
       - name: Check doc links
         run: cd src/scripts && python3 check_doc_urls.py || sleep 5 || python3 check_doc_urls.py
 
-  build:
+  test:
     runs-on: ubuntu-latest
 
     services:
@@ -94,7 +94,7 @@ jobs:
       - name: Download and install Valkey
         run: |
           VALKEY_VERSION=8.1.2
-          curl -LO https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          curl -LOq https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
           tar -xzf valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
           sudo cp valkey-${VALKEY_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
 
@@ -106,6 +106,52 @@ jobs:
           pip install ipykernel
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
 
-      - run: cd src && npm install -g pnpm
-      - run: cd src && pnpm run make
-      - run: source venv/bin/activate && cd src && pnpm run test-github-ci
+
+      - name: install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: build
+        run: cd src && pnpm run make
+
+      # This runs all the tests with text output and jest-junit reporters to generate junit.xml reports
+      # That test-github-ci target runs workspaces.py for testing, which in turn runs the depchecks
+      - name: test
+        run: source venv/bin/activate && cd src && pnpm run test-github-ci --report
+
+      - name: upload test results
+        uses: actions/upload-artifact@v4  # upload test results
+        if: ${{ !cancelled() }}           # run this step even if previous step failed
+        with:
+          name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
+          path: 'src/packages/*/junit.xml'
+
+  report:
+    runs-on: ubuntu-latest
+
+    needs: [test]
+
+    if: ${{ !cancelled() }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "test-results-*"
+          merge-multiple: true
+          path: test-results/
+
+      - name: Test Report
+        uses: dorny/test-reporter@v2
+        with:
+          name: CoCalc Jest Tests
+          path: 'test-results/**/junit.xml'
+          reporter: jest-junit
+          use-actions-summary: 'true'
+          fail-on-error: false
+
