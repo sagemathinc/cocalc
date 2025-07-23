@@ -12,10 +12,9 @@ process.env.DEBUG_HIDE_DATE = "yes"; // since we supply it ourselves
 // otherwise, maybe stuff like this works: (debug as any).inspectOpts["hideDate"] = true;
 
 import debug, { Debugger } from "debug";
-
-import { createWriteStream, ftruncate, mkdirSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { format } from "node:util";
+import { createWriteStream, ftruncate, mkdirSync, statSync } from "fs";
+import { dirname, join } from "path";
+import { format, inspect } from "util";
 
 import { logs } from "./data";
 
@@ -52,19 +51,21 @@ export function trimLogFileSize() {
 
 function myFormat(...args): string {
   if (args.length > 1 && typeof args[0] == "string" && !args[0].includes("%")) {
-    // This is something where we didn't use printf formatting.
     const v: string[] = [];
     for (const x of args) {
       try {
-        v.push(typeof x == "object" ? JSON.stringify(x) : `${x}`);
+        // Use util.inspect for better object representation
+        v.push(
+          typeof x == "object"
+            ? inspect(x, { depth: 4, breakLength: 120 })
+            : `${x}`,
+        );
       } catch (_) {
-        // better to not crash everything just for logging
         v.push(`${x}`);
       }
     }
     return v.join(" ");
   }
-  // use printf formatting.
   return format(...args);
 }
 
@@ -117,7 +118,7 @@ function initTransports() {
         transports.console ? " and console.log" : ""
       } via the debug module\nwith  DEBUG='${
         process.env.DEBUG
-      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
+      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing e.g., something like DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
       console.log(announce);
       if (transports.file) {
         // the file transport
@@ -128,7 +129,9 @@ function initTransports() {
     // Similar as in debug source code, except I stuck a timestamp
     // at the beginning, which I like... except also aware of
     // non-printf formatting.
-    const line = `${new Date().toISOString()}: ${myFormat(...args)}\n`;
+    const line = `${new Date().toISOString()} (${process.pid}):${myFormat(
+      ...args,
+    )}\n`;
 
     if (transports.console) {
       // the console transport:
@@ -143,19 +146,7 @@ function initTransports() {
 
 initTransports();
 
-const LEVELS = [
-  "error",
-  "warn",
-  "info",
-  "http",
-  "verbose",
-  "debug",
-  "silly",
-] as const;
-
-type Level = (typeof LEVELS)[number];
-
-const DEBUGGERS: { [key in Level]: Debugger } = {
+const DEBUGGERS = {
   error: COCALC.extend("error"),
   warn: COCALC.extend("warn"),
   info: COCALC.extend("info"),
@@ -163,7 +154,19 @@ const DEBUGGERS: { [key in Level]: Debugger } = {
   verbose: COCALC.extend("verbose"),
   debug: COCALC.extend("debug"),
   silly: COCALC.extend("silly"),
-} as const;
+};
+
+type Level = keyof typeof DEBUGGERS;
+
+const LEVELS: Level[] = [
+  "error",
+  "warn",
+  "info",
+  "http",
+  "verbose",
+  "debug",
+  "silly",
+];
 
 class Logger {
   private name: string;

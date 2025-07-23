@@ -26,6 +26,10 @@ import {
   ProjectStatus,
 } from "./base";
 import {
+  deleteProjectSecretToken,
+  getProjectSecretToken,
+} from "./secret-token";
+import {
   chown,
   copyPath,
   createUser,
@@ -39,6 +43,7 @@ import {
   mkdir,
   setupDataPath,
   stopProjectProcesses,
+  writeSecretToken,
 } from "./util";
 
 const winston = getLogger("project-control:multi-user");
@@ -106,6 +111,14 @@ class Project extends BaseProject {
       // Setup files
       await setupDataPath(HOME, this.uid);
 
+      await writeSecretToken(
+        HOME,
+        await getProjectSecretToken(this.project_id),
+        this.uid,
+      );
+
+      await this.touch(undefined, { noStart: true });
+
       // Fork and launch project server daemon
       await launchProjectDaemon(env, this.uid);
 
@@ -115,7 +128,7 @@ class Project extends BaseProject {
             return false;
           }
           const status = await this.status();
-          return !!status.secret_token && !!status["hub-server.port"];
+          return !!status["hub-server.port"];
         },
         maxTime: MAX_START_TIME_MS,
       });
@@ -142,6 +155,7 @@ class Project extends BaseProject {
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,
       });
+      await deleteProjectSecretToken(this.project_id);
     } finally {
       this.stateChanging = undefined;
       // ensure state valid in database

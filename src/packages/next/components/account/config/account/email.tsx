@@ -4,7 +4,7 @@
  */
 
 import { Alert, Button, Input, Space } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";

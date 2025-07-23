@@ -18,7 +18,7 @@ const BODY_STYLE: React.CSSProperties = {
 
 interface Props {
   error?: string | object;
-  error_component?: JSX.Element | JSX.Element[];
+  error_component?: React.JSX.Element | React.JSX.Element[];
   title?: string;
   style?: React.CSSProperties;
   body_style?: React.CSSProperties;

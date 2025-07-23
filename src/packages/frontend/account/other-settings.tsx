@@ -6,6 +6,7 @@
 import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
+
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
@@ -18,17 +19,23 @@ import {
   NumberInput,
   Paragraph,
   SelectorInput,
+  Text,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LOCALIZATIONS, labels } from "@cocalc/frontend/i18n";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
 import {
-  VBAR_EXPLANATION,
-  VBAR_KEY,
-  VBAR_OPTIONS,
-  getValidVBAROption,
-} from "@cocalc/frontend/project/page/vbar";
+  ACTIVITY_BAR_EXPLANATION,
+  ACTIVITY_BAR_KEY,
+  ACTIVITY_BAR_LABELS,
+  ACTIVITY_BAR_LABELS_DEFAULT,
+  ACTIVITY_BAR_OPTIONS,
+  ACTIVITY_BAR_TITLE,
+  ACTIVITY_BAR_TOGGLE_LABELS,
+  ACTIVITY_BAR_TOGGLE_LABELS_DESCRIPTION,
+} from "@cocalc/frontend/project/page/activity-bar-consts";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -36,10 +43,10 @@ import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
+import Messages from "./messages";
+import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
-import Tours from "./tours";
-import Messages from "./messages";
 
 // See https://github.com/sagemathinc/cocalc/issues/5620
 // There are weird bugs with relying only on mathjax, whereas our
@@ -60,7 +67,7 @@ interface Props {
   kucalc: string;
 }
 
-export function OtherSettings(props: Readonly<Props>): JSX.Element {
+export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   const intl = useIntl();
   const { locale } = useLocalizationCtx();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
@@ -101,7 +108,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.global_banner"
-          defaultMessage={`<strong>Show announcement banner</strong>: only shows up if there is a
+          defaultMessage={`<strong>Show Announcement Banner</strong>: only shows up if there is a
         message`}
         />
       </Checkbox>
@@ -116,7 +123,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.time_ago_absolute"
-          defaultMessage={`Display <strong>timestamps as absolute points in time</strong>
+          defaultMessage={`<strong>Display Timestamps as absolute points in time</strong>
             instead of relative to the current time`}
         />
       </Checkbox>
@@ -189,7 +196,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.mask_files"
-          defaultMessage={`<strong>Mask files:</strong> grey out files in the files viewer
+          defaultMessage={`<strong>Mask Files:</strong> grey out files in the files viewer
             that you probably do not want to open`}
         />
       </Checkbox>
@@ -236,6 +243,21 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           id="account.other-settings.button_tooltips"
           defaultMessage={`<strong>Hide Button Tooltips:</strong>
             hides some button tooltips (this is only partial)`}
+        />
+      </Checkbox>
+    );
+  }
+
+  function render_show_symbol_bar_labels(): Rendered {
+    return (
+      <Checkbox
+        checked={!!props.other_settings.get("show_symbol_bar_labels")}
+        onChange={(e) => on_change("show_symbol_bar_labels", e.target.checked)}
+      >
+        <FormattedMessage
+          id="account.other-settings.symbol_bar_labels"
+          defaultMessage={`<strong>Show Symbol Bar Labels:</strong>
+            show labels in the frame editor symbol bar`}
         />
       </Checkbox>
     );
@@ -492,24 +514,24 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
   }
 
   function render_vertical_fixed_bar_options(): Rendered {
-    const selected = getValidVBAROption(props.other_settings.get(VBAR_KEY));
+    const selected = getValidActivityBarOption(
+      props.other_settings.get(ACTIVITY_BAR_KEY),
+    );
     const options = Object.fromEntries(
-      Object.entries(VBAR_OPTIONS).map(([k, v]) => [k, intl.formatMessage(v)]),
+      Object.entries(ACTIVITY_BAR_OPTIONS).map(([k, v]) => [
+        k,
+        intl.formatMessage(v),
+      ]),
     );
     return (
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.other-settings.vbar.title",
-          defaultMessage: "Vertical Project Bar",
-        })}
-      >
+      <LabeledRow label={intl.formatMessage(ACTIVITY_BAR_TITLE)}>
         <div>
           <SelectorInput
             style={{ marginBottom: "10px" }}
             selected={selected}
             options={options}
             on_change={(value) => {
-              on_change(VBAR_KEY, value);
+              on_change(ACTIVITY_BAR_KEY, value);
               track("flyout", { aspect: "layout", how: "account", value });
             }}
           />
@@ -517,8 +539,30 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             type="secondary"
             ellipsis={{ expandable: true, symbol: "more" }}
           >
-            {intl.formatMessage(VBAR_EXPLANATION)}
+            {intl.formatMessage(ACTIVITY_BAR_EXPLANATION)}
           </Paragraph>
+          <Checkbox
+            checked={
+              props.other_settings.get(ACTIVITY_BAR_LABELS) ??
+              ACTIVITY_BAR_LABELS_DEFAULT
+            }
+            onChange={(e) => {
+              on_change(ACTIVITY_BAR_LABELS, e.target.checked);
+            }}
+          >
+            <Paragraph
+              type="secondary"
+              style={{ marginBottom: 0 }}
+              ellipsis={{ expandable: true, symbol: "more" }}
+            >
+              <Text strong>
+                {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+                  show: false,
+                })}
+              </Text>
+              : {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS_DESCRIPTION)}
+            </Paragraph>
+          </Checkbox>
         </div>
       </LabeledRow>
     );
@@ -547,7 +591,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       <LabeledRow
         label={intl.formatMessage({
           id: "account.other-settings.llm.default_llm",
-          defaultMessage: "Default AI Language Model",
+          defaultMessage: "Default AI Model",
         })}
       >
         <LLMSelector model={model} setModel={setModel} />
@@ -643,6 +687,16 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         {render_hide_project_popovers()}
         {render_hide_file_popovers()}
         {render_hide_button_tooltips()}
+        {render_show_symbol_bar_labels()}
+        <Checkbox
+          checked={!!props.other_settings.get("hide_navbar_balance")}
+          onChange={(e) => on_change("hide_navbar_balance", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.hide_navbar_balance"
+            defaultMessage={`<strong>Hide Account Balance</strong> in navigation bar`}
+          />
+        </Checkbox>
         {render_no_free_warnings()}
         <Checkbox
           checked={!!props.other_settings.get("disable_markdown_codebar")}

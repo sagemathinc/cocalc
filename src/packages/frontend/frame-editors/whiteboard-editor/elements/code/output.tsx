@@ -50,7 +50,7 @@ export default function Output({ element, onClick }) {
     }
   }, [more_output]);
 
-  const divRef = useRef(null);
+  const divRef = useRef<any>(null);
   useWheel(divRef);
 
   if (jupyterActions == null) {

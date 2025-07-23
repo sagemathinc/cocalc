@@ -50,7 +50,7 @@ export function History({ history, user_map }: HistoryProps) {
     return null;
   }
 
-  function renderAuthor(author_id: string): JSX.Element | null {
+  function renderAuthor(author_id: string): React.JSX.Element | null {
     if (user_map == null) {
       return null;
     }
@@ -67,7 +67,7 @@ export function History({ history, user_map }: HistoryProps) {
 
   // convert to javascript from immutable, and remove current version.
   const historyList = history.toJS().slice(1);
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const index in historyList) {
     const message = historyList[index];
     const { content, author_id, date } = message;

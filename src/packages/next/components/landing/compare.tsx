@@ -4,7 +4,7 @@
  */
 
 import { Alert, Table } from "antd";
-import { ReactNode } from "react";
+import { ReactNode, type JSX } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";

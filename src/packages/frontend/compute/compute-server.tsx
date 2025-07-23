@@ -106,7 +106,7 @@ export default function ComputeServer({
     return <Spin />;
   }
 
-  let actions: JSX.Element[] | undefined = undefined;
+  let actions: React.JSX.Element[] | undefined = undefined;
   if (id != null) {
     actions = getActions({
       id,
@@ -303,7 +303,7 @@ export default function ComputeServer({
     ) : (
       <Modal
         open={edit}
-        destroyOnClose
+        destroyOnHidden
         width={"900px"}
         onCancel={() => setEdit(false)}
         title={

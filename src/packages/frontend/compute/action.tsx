@@ -26,7 +26,7 @@ export default function getActions({
   editModal,
   type,
   project_id,
-}): JSX.Element[] {
+}): React.JSX.Element[] {
   if (!editable && !configuration?.allowCollaboratorControl) {
     return [];
   }
@@ -37,7 +37,7 @@ export default function getActions({
   if ((s.actions ?? []).length == 0) {
     return [];
   }
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const action of s.actions) {
     if (
       !editable &&

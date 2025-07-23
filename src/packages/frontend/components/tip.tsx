@@ -21,9 +21,9 @@ type Size = "xsmall" | "small" | "medium" | "large";
 type Trigger = "hover" | "focus" | "click" | "contextMenu";
 
 interface Props {
-  title?: string | JSX.Element | JSX.Element[] | (() => JSX.Element); // not checked for update
+  title?: string | React.JSX.Element | React.JSX.Element[] | (() => React.JSX.Element); // not checked for update
   placement?: TooltipPlacement;
-  tip?: string | JSX.Element | JSX.Element[]; // not checked for update
+  tip?: string | React.JSX.Element | React.JSX.Element[]; // not checked for update
   size?: Size; // IMPORTANT: this is currently ignored -- see https://github.com/sagemathinc/cocalc/pull/4155
   delayShow?: number;
   delayHide?: number;
@@ -86,7 +86,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // a tip is rendered in a description box below the title
-  function render_tip(): JSX.Element {
+  function render_tip(): React.JSX.Element {
     const style = { ...TIP_STYLE, ...tip_style };
     return <div style={style}>{tip}</div>;
   }

@@ -83,3 +83,14 @@ export function homePath(project_id: string): string {
     return projects.replace("[project_id]", project_id);
   }
 }
+
+import { callback } from "awaiting";
+import { randomBytes } from "crypto";
+
+export async function secureRandomString(length: number): Promise<string> {
+  return (await callback(randomBytes, length)).toString("base64");
+}
+
+export function secureRandomStringSync(length: number): string {
+  return randomBytes(length).toString("base64");
+}

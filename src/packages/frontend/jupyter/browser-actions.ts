@@ -36,8 +36,6 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
-import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import { get_usage_info, UsageInfoWS } from "../project/websocket/usage-info";
 import { cm_options } from "./cm_options";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { parseHeadings } from "./contents";
@@ -56,6 +54,8 @@ import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { parse } from "path";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+import { get as getUsageInfo } from "@cocalc/conat/project/usage-info";
+import { delay } from "awaiting";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -66,7 +66,6 @@ export class JupyterActions extends JupyterActions0 {
   private cursor_manager: CursorManager;
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
-  private usage_info?: UsageInfoWS;
   private syncdbPath: string;
 
   protected init2(): void {
@@ -77,7 +76,7 @@ export class JupyterActions extends JupyterActions0 {
       cell_toolbar: this.get_local_storage("cell_toolbar"),
     });
 
-    this.usage_info_handler = this.usage_info_handler.bind(this);
+    this.initUsageInfo();
 
     const do_set = () => {
       if (this.syncdb == null || this._state === "closed") return;
@@ -152,18 +151,9 @@ export class JupyterActions extends JupyterActions0 {
         // cell notebook that has nothing to do with nbgrader).
         this.nbgrader_actions.update_metadata();
       }
-
-      const usage_info = (this.usage_info = get_usage_info(this.project_id));
-      usage_info.watch(this.path);
-      const key = usage_info.event_key(this.path);
-      usage_info.on(key, this.usage_info_handler);
     });
 
-    // Put an entry in the project log once the jupyter notebook gets opened.
-    // NOTE: Obviously, the project does NOT need to put entries in the log.
-    this.syncdb.once("change", () =>
-      this.redux.getProjectActions(this.project_id).log_opened_time(this.path),
-    );
+    this.initOpenLog();
 
     // project doesn't care about cursors, but browser clients do:
     this.syncdb.on("cursor_activity", this.syncdb_cursor_activity);
@@ -181,6 +171,42 @@ export class JupyterActions extends JupyterActions0 {
         account_store.get("editor_settings");
     }
   }
+
+  initOpenLog = () => {
+    // Put an entry in the project log once the jupyter notebook gets opened and
+    // shows cells.
+    const reportOpened = () => {
+      if (this._state == "closed") {
+        return;
+      }
+      if (this.syncdb.get_one({ type: "cell" }) != null) {
+        this.redux
+          ?.getProjectActions(this.project_id)
+          .log_opened_time(this.path);
+        this.syncdb.removeListener("change", reportOpened);
+      }
+    };
+    this.syncdb.on("change", reportOpened);
+  };
+
+  initUsageInfo = async () => {
+    while (this._state != "closed") {
+      try {
+        const kernel_usage = await getUsageInfo({
+          project_id: this.project_id,
+          compute_server_id: this.getComputeServerIdSync(),
+          path: this.path,
+        });
+        if (this._state == ("closed" as any)) return;
+        this.setState({ kernel_usage });
+      } catch {
+        // console.log(`WARNING: getUsageInfo -- ${err}`);
+      }
+      // Backend actually updates state every 2 seconds, but the
+      // main cost is network traffic.
+      await delay(3500);
+    }
+  };
 
   public run_cell(
     id: string,
@@ -301,17 +327,8 @@ export class JupyterActions extends JupyterActions0 {
     await this.format_cells(this.store.get_cell_ids_list(), sync);
   }
 
-  private usage_info_handler(usage: ImmutableUsageInfo): void {
-    // console.log("jupyter usage", this.path, "→", usage?.toJS());
-    this.setState({ kernel_usage: usage });
-  }
-
   public async close(): Promise<void> {
     if (this.is_closed()) return;
-    if (this.usage_info != null) {
-      const key = this.usage_info.event_key(this.path);
-      this.usage_info.off(key, this.usage_info_handler);
-    }
     await super.close();
   }
 

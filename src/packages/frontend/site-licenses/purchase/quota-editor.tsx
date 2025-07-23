@@ -72,7 +72,7 @@ const UNIT_STYLE: CSS = {
   fontWeight: 400,
 } as const;
 
-function render_explanation(s): JSX.Element {
+function render_explanation(s): React.JSX.Element {
   return (
     <span style={{ color: "#888" }}>
       <Gap /> - {s}
@@ -161,7 +161,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   const isDedicated =
     quota.dedicated_vm != null || quota.dedicated_disk != null;
 
-  function render_cpu(): JSX.Element {
+  function render_cpu(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -206,7 +206,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_ram(): JSX.Element {
+  function render_ram(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -249,7 +249,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_cpu(): JSX.Element {
+  function render_dedicated_cpu(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -302,7 +302,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_ram(): JSX.Element {
+  function render_dedicated_ram(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -351,7 +351,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_disk(): JSX.Element | null {
+  function render_disk(): React.JSX.Element | null {
     if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
@@ -395,7 +395,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_member(): JSX.Element | null {
+  function render_member(): React.JSX.Element | null {
     if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
@@ -425,7 +425,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_ext_rw(): JSX.Element {
+  function render_ext_rw(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -445,7 +445,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_vm_help(): JSX.Element {
+  function render_dedicated_vm_help(): React.JSX.Element {
     return (
       <HelpIcon title="Dedicated VM">
         <Paragraph>
@@ -493,7 +493,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_vm(): JSX.Element {
+  function render_dedicated_vm(): React.JSX.Element {
     const dvm = quota.dedicated_vm;
     const text = (dvm != null && typeof dvm != "boolean" && dvm.name) || "";
     return (
@@ -521,7 +521,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_gpu_help(): JSX.Element {
+  function render_gpu_help(): React.JSX.Element {
     return (
       <HelpIcon title="GPU Support" maxWidth="500px">
         <Paragraph>
@@ -567,7 +567,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_gpu(): JSX.Element {
+  function render_gpu(): React.JSX.Element {
     const {
       num = 0,
       toleration = "",
@@ -702,7 +702,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_patch_project_pod(): JSX.Element {
+  function render_patch_project_pod(): React.JSX.Element {
     const value = quota.patch ?? "[]";
     return (
       <Row style={ROW_STYLE}>
@@ -725,8 +725,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function idleTimeoutUptimeOptions(): JSX.Element[] {
-    const ret: JSX.Element[] = [];
+  function idleTimeoutUptimeOptions(): React.JSX.Element[] {
+    const ret: React.JSX.Element[] = [];
     for (const [key, it] of Object.entries(LicenseIdleTimeouts)) {
       ret.push(
         <Select.Option key={key} value={key}>
@@ -751,7 +751,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     onChange(next);
   }
 
-  function idleTimeoutExtra(): JSX.Element | undefined {
+  function idleTimeoutExtra(): React.JSX.Element | undefined {
     if (hideExtra) return;
     return (
       <Col md={col.desc}>
@@ -775,7 +775,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_idle_timeout(): JSX.Element {
+  function render_idle_timeout(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control} style={{ whiteSpace: "nowrap" }}>
@@ -792,7 +792,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_support(): JSX.Element {
+  function render_support(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -814,7 +814,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_network(): JSX.Element {
+  function render_network(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -836,7 +836,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_show_advanced_link(): JSX.Element {
+  function render_show_advanced_link(): React.JSX.Element {
     if (show_advanced) {
       return (
         <a
@@ -857,7 +857,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       );
   }
 
-  function render_dedicated(): JSX.Element {
+  function render_dedicated(): React.JSX.Element {
     return (
       <div style={ROW_STYLE}>
         We also offer <b>dedicated virtual machines</b>, which are usually a
@@ -875,7 +875,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_advanced_onprem(): JSX.Element | undefined {
+  function render_advanced_onprem(): React.JSX.Element | undefined {
     if (!show_advanced || !isOnPrem) return;
     return (
       <>
@@ -887,7 +887,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_advanced(): JSX.Element | undefined {
+  function render_advanced(): React.JSX.Element | undefined {
     if (!show_advanced) return;
     return (
       <>

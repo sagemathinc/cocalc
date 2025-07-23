@@ -20,7 +20,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
+import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { ActiveHeader } from "./active-header";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";

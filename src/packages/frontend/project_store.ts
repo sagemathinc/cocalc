@@ -25,8 +25,12 @@ import {
   Table,
   TypedMap,
 } from "@cocalc/frontend/app-framework";
+import { Listings, listings } from "@cocalc/frontend/conat/listings";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
+import { get_local_storage } from "@cocalc/frontend/misc";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
-import { Listings, listings } from "@cocalc/frontend/nats/listings";
 import {
   FILE_ACTIONS,
   ProjectActions,
@@ -53,15 +57,12 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
-import { get_local_storage } from "@cocalc/frontend/misc";
-import { QueryParams } from "@cocalc/frontend/misc/query-params";
-import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
 export type ModalInfo = TypedMap<{
-  title: string | JSX.Element;
-  content: string | JSX.Element;
+  title: string | React.JSX.Element;
+  content: string | React.JSX.Element;
   onOk?: any;
   onCancel?: any;
 }>;
@@ -87,7 +88,6 @@ export interface ProjectStoreState {
 
   // Project Page
   active_project_tab: string;
-  internet_warning_closed: boolean; // Makes bottom height update
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
@@ -190,6 +190,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // is a little awkward, since I didn't want to change things too
   // much while making this optimization.
   public init_table: (table_name: string) => void;
+  public close_table: (table_name: string) => void;
+  public close_all_tables: () => void;
 
   //  name = 'project-[project-id]' = name of the store
   //  redux = global redux object
@@ -227,6 +229,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
     for (const id in this.listings) {
       this.listings[id].close();
       delete this.listings[id];
+    }
+    // close any open file tabs, properly cleaning up editor state:
+    const open = this.get("open_files")?.toJS();
+    if (open != null) {
+      for (const path in open) {
+        remove(path, redux, this.project_id, false);
+      }
     }
   };
 
@@ -298,7 +307,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Page
       active_project_tab: "files",
-      internet_warning_closed: false, // Makes bottom height update
       num_ghost_file_tabs: 0,
       flyout: null,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
@@ -608,33 +616,45 @@ export class ProjectStore extends Store<ProjectStoreState> {
         let directory_listings_for_server =
           this.getIn(["directory_listings", computeServerId]) ??
           immutable.Map();
+
+        const missing: string[] = [];
         for (const path of paths) {
-          let files;
           if (listingsTable.getMissing(path)) {
-            try {
-              files = immutable.fromJS(
-                await listingsTable.getListingDirectly(path),
-              );
-            } catch (err) {
-              console.log(
-                `WARNING: temporary problem getting directory listing -- ${err}`,
-              );
-              files = await listingsTable.getForStore(path);
-            }
-          } else {
-            files = await listingsTable.getForStore(path);
+            missing.push(path);
           }
+          const files = await listingsTable.getForStore(path);
           directory_listings_for_server = directory_listings_for_server.set(
             path,
             files,
           );
         }
-        const actions = redux.getProjectActions(this.project_id);
-        const directory_listings = this.get("directory_listings").set(
-          computeServerId,
-          directory_listings_for_server,
-        );
-        actions.setState({ directory_listings });
+        const f = () => {
+          const actions = redux.getProjectActions(this.project_id);
+          const directory_listings = this.get("directory_listings").set(
+            computeServerId,
+            directory_listings_for_server,
+          );
+          actions.setState({ directory_listings });
+        };
+        f();
+
+        if (missing.length > 0) {
+          for (const path of missing) {
+            try {
+              const files = immutable.fromJS(
+                await listingsTable.getListingDirectly(path),
+              );
+              directory_listings_for_server = directory_listings_for_server.set(
+                path,
+                files,
+              );
+            } catch {
+              // happens if e.g., the project is not running
+              continue;
+            }
+          }
+          f();
+        }
       });
     }
     if (this.listings[computeServerId] == null) {
@@ -746,6 +766,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   store._init();
 
   const queries = misc.deep_copy(QUERIES);
+
   const create_table = function (table_name, q) {
     //console.log("create_table", table_name)
     return class P extends Table {
@@ -769,9 +790,14 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   };
 
   function init_table(table_name: string): void {
+    const name = project_redux_name(project_id, table_name);
+    try {
+      // throws error only if it does not exist already
+      redux.getTable(name);
+      return;
+    } catch {}
+
     const q = queries[table_name];
-    if (q == null) return; // already done
-    delete queries[table_name]; // so we do not init again.
     for (const k in q) {
       const v = q[k];
       if (typeof v === "function") {
@@ -779,18 +805,20 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
       }
     }
     q.query.project_id = project_id;
-    redux.createTable(
-      project_redux_name(project_id, table_name),
-      create_table(table_name, q),
-    );
+    redux.createTable(name, create_table(table_name, q));
   }
 
-  // public_paths is needed to show file listing and show
-  // any individual file, so we just load it...
-  init_table("public_paths");
-  // project_log, on the other hand, is only loaded if needed.
-
   store.init_table = init_table;
+
+  store.close_table = (table_name: string) => {
+    redux.removeTable(project_redux_name(project_id, table_name));
+  };
+
+  store.close_all_tables = () => {
+    for (const table_name in queries) {
+      store.close_table(table_name);
+    }
+  };
 
   return store;
 }

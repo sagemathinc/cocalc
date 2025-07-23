@@ -14,7 +14,7 @@ interface Props {
 
 export default function ShareServerWhiteBoard({ content }: Props) {
   const pages = parseSyncdbFile(content);
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   let i = 0;
   for (const page of pages) {
     i += 1;

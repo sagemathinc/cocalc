@@ -14,7 +14,7 @@ import { UsageStatistics } from "./stats/page";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { TestLLMAdmin } from "./llm";
+import { TestLLMAdmin } from "./llm/admin-llm-test";
 
 const headerStyle = { fontSize: "12pt" } as const;
 
@@ -108,7 +108,7 @@ export function AdminPage() {
     >
       <Title level={3}>Administration</Title>
       <Collapse
-        destroyInactivePanel /* so that data is refreshed when they are shown */
+        destroyOnHidden /* so that data is refreshed when they are shown */
         activeKey={activeKey}
         onChange={(activeKey) => {
           setActiveKey(activeKey as string[]);

@@ -1159,6 +1159,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             y.attr('src', new_src)
 
     _post_save_success: () =>
+        console.log("_post_save_success")
         @remove_output_blob_ttls()
 
     # Return array of uuid's of blobs that might possibly be in the worksheet
@@ -1184,10 +1185,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # TODO: prioritize automatic testing of this highly... since it is easy to break by changing
         # how worksheets render slightly.
         uuids = @_output_blobs_with_possible_ttl()
+        console.log("remove_output_blob_ttls -- ", uuids)
         if uuids?
             try
-                await webapp_client.file_client.remove_blob_ttls(uuids)
+                await webapp_client.conat_client.hub.db.removeBlobTtls({uuids:uuids})
             catch err
+                console.log("WARNING: problem removing ttl from sage worksheet blobs ", err)
                 cb?(err)
                 return
             # don't try again to remove ttls for these blobs -- since did so successfully

@@ -18,7 +18,7 @@ interface Props {
 export const TableOfContents: React.FC<Props> = React.memo(
   ({ font_size, actions }) => {
     useEffect(() => {
-      // I'm not completely certain why, but we have to do this update
+      // We have to do this update
       // in the NEXT render loop so that the contents useRedux thing below
       // immediately fires again causing a re-render.  If we don't do this,
       // the first change doesn't get caught and it seems like the contents
@@ -33,7 +33,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     return (
       <TOC
         contents={contents}
-        style={{ fontSize: `${font_size}px` }}
+        fontSize={font_size}
         scrollTo={actions.scrollToHeading.bind(actions)}
       />
     );

@@ -237,7 +237,7 @@ export default function ResumeSubscription({
       open={open}
       zIndex={zIndexPayAsGo - 1}
       width={800}
-      destroyOnClose
+      destroyOnHidden
       footer={status != "active" ? null : undefined}
       onOk={() => setOpen?.(false)}
       onCancel={() => setOpen?.(false)}

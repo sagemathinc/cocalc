@@ -17,9 +17,10 @@ ways of orchestrating a SyncTable.
 // info about every get/set
 let DEBUG: boolean = false;
 
-// enable experimental nats database backed changefeed.
-// for this to work you must explicitly run the server in @cocalc/database/nats/changefeeds
-const USE_NATS = true && !process.env.COCALC_TEST_MODE;
+// enable default conat database backed changefeed.
+// for this to work you must explicitly run the server in @cocalc/database/conat/changefeeds
+// We only turn this off for a mock testing mode.
+const USE_CONAT = true && !process.env.COCALC_TEST_MODE;
 
 export function set_debug(x: boolean): void {
   DEBUG = x;
@@ -38,7 +39,7 @@ import * as schema from "@cocalc/util/schema";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Changefeed } from "./changefeed";
-import { NatsChangefeed } from "./changefeed-nats2";
+import { ConatChangefeed } from "./changefeed-conat";
 import { parse_query, to_key } from "./util";
 import { isTestClient } from "@cocalc/sync/editor/generic/util";
 
@@ -67,7 +68,7 @@ function is_fatal(err: string): boolean {
 export type State = "disconnected" | "connected" | "closed";
 
 export class SyncTable extends EventEmitter {
-  private changefeed?: Changefeed | NatsChangefeed;
+  private changefeed?: Changefeed | ConatChangefeed;
   private query: Query;
   private client_query: any;
   private primary_keys: string[];
@@ -655,7 +656,7 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  private async connect(): Promise<void> {
+  private connect = async (): Promise<void> => {
     const dbg = this.dbg("connect");
     dbg();
     this.assert_not_closed("connect");
@@ -678,7 +679,7 @@ export class SyncTable extends EventEmitter {
     await this.create_changefeed();
 
     dbg("connect should have succeeded");
-  }
+  };
 
   private async create_changefeed(): Promise<void> {
     const dbg = this.dbg("create_changefeed");
@@ -722,15 +723,17 @@ export class SyncTable extends EventEmitter {
 
   private create_changefeed_connection = async (): Promise<any[]> => {
     let delay_ms: number = 3000;
+    let warned = false;
+    let first = true;
     while (true) {
       this.close_changefeed();
       if (
-        USE_NATS &&
+        USE_CONAT &&
         !isTestClient(this.client) &&
         this.client.is_browser() &&
         !this.project_id
       ) {
-        this.changefeed = new NatsChangefeed({
+        this.changefeed = new ConatChangefeed({
           account_id: this.client.client_id?.()!,
           query: this.query,
           options: this.options,
@@ -745,8 +748,12 @@ export class SyncTable extends EventEmitter {
       }
       try {
         const initval = await this.changefeed.connect();
+
         if (this.changefeed.get_state() == "closed" || !initval) {
           throw Error("closed during creation");
+        }
+        if (warned) {
+          console.log(`SUCCESS creating ${this.table} changefeed`);
         }
         return initval;
       } catch (err) {
@@ -755,11 +762,27 @@ export class SyncTable extends EventEmitter {
           this.close(true);
           throw err;
         }
-        // This can happen because we might suddenly NOT be ready
-        // to query db immediately after we are ready...
-        console.log(
-          `WARNING: ${this.table} -- failed to create changefeed connection; will retry in ${delay_ms}ms -- ${err}`,
-        );
+        if (err.code == 429) {
+          const message = `${err}`;
+          console.log(message);
+          this.client.alert_message?.({
+            title: `Too Many Requests (${this.table})`,
+            message,
+            type: "error",
+          });
+          await delay(30 * 1000);
+        }
+        if (first) {
+          // don't warn the first time
+          first = false;
+        } else {
+          // This can happen because we might suddenly NOT be ready
+          // to query db immediately after we are ready...
+          warned = true;
+          console.log(
+            `WARNING: ${this.table} -- failed to create changefeed connection; will retry in ${delay_ms}ms -- ${err}`,
+          );
+        }
         await delay(delay_ms);
         delay_ms = Math.min(20000, delay_ms * 1.25);
       }
@@ -802,7 +825,7 @@ export class SyncTable extends EventEmitter {
   }
 
   // awkward code due to typescript weirdness using both
-  // NatsChangefeed and Changefeed types (for unit testing).
+  // ConatChangefeed and Changefeed types (for unit testing).
   private init_changefeed_handlers(): void {
     const c = this.changefeed as EventEmitter | null;
     if (c == null) return;

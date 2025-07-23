@@ -210,9 +210,7 @@ export class AppRedux extends AppReduxBase {
     }
     const name = project_redux_name(project_id);
     const store = this.getStore(name);
-    if (store && typeof store.destroy == "function") {
-      store.destroy();
-    }
+    store?.destroy?.();
     this.removeActions(name);
     this.removeStore(name);
   }
@@ -491,13 +489,6 @@ function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
   return arg as any;
 }
 export { UNSAFE_NONNULLABLE };
-
-// I'm explicitly disabling using typing with ReactDOM on purpose,
-// because it's basically impossibly to use, and I'll probably get
-// rid of all uses of ReactDOM.findDOMNode anyways.
-//import ReactDOM from "react-dom";
-//export { ReactDOM };
-export const ReactDOM = require("react-dom");
 
 declare var cc;
 if (DEBUG) {

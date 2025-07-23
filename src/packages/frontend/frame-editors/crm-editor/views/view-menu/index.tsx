@@ -58,6 +58,7 @@ export default function ViewMenu({
         title={title}
         primaryKey={primaryKey}
         columns={columns}
+        refresh={refresh}
       />
       <HideFieldsMenu
         columns={allColumns}

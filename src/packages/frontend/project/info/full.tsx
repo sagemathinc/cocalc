@@ -7,12 +7,10 @@ declare let DEBUG;
 
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
-
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
-import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
@@ -20,7 +18,6 @@ import {
 import { field_cmp, seconds2hms } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { RestartProject } from "../settings/restart-project";
-import { Channel } from "@cocalc/comm/websocket/types";
 import {
   AboutContent,
   CGroup,
@@ -36,13 +33,12 @@ import { ROOT_STYLE } from "../servers/consts";
 interface Props {
   any_alerts: () => boolean;
   cg_info: CGroupInfo;
-  chan: Channel | null;
-  render_disconnected: () => JSX.Element | undefined;
+  render_disconnected: () => React.JSX.Element | undefined;
   disconnected: boolean;
   disk_usage: DUState;
-  error: JSX.Element | null;
+  error: React.JSX.Element | null;
   status: string;
-  info: ProjectInfoType | undefined;
+  info: ProjectInfoType | null;
   loading: boolean;
   modal: string | Process | undefined;
   project_actions: ProjectActions | undefined;
@@ -59,16 +55,14 @@ interface Props {
   show_explanation: boolean;
   show_long_loading: boolean;
   start_ts: number | undefined;
-  sync: WSProjectInfo | null;
-  render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
+  render_cocalc: (proc: ProcessRow) => React.JSX.Element | undefined;
   onCellProps;
 }
 
-export function Full(props: Readonly<Props>): JSX.Element {
+export function Full(props: Readonly<Props>): React.JSX.Element {
   const {
     any_alerts,
     cg_info,
-    chan,
     render_disconnected,
     disconnected,
     disk_usage,
@@ -91,7 +85,6 @@ export function Full(props: Readonly<Props>): JSX.Element {
     show_explanation,
     show_long_loading,
     start_ts,
-    sync,
     render_cocalc,
     onCellProps,
   } = props;
@@ -287,7 +280,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
         title={"The role of these processes in this project."}
         trigger={["hover", "click"]}
       >
-        <LabelQuestionmark text={"Project"} />
+        <LabelQuestionmark text={"Role of Process"} />
       </Tip>
     );
 
@@ -471,8 +464,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
         ) : (
           "no timestamp"
         )}{" "}
-        | Connections sync=<code>{`${sync != null}`}</code> chan=
-        <code>{`${chan != null}`}</code> | Status: <code>{status}</code>
+        | Status: <code>{status}</code>
       </Col>
     );
   }
@@ -496,15 +488,6 @@ export function Full(props: Readonly<Props>): JSX.Element {
     );
   }
 
-  function render_error() {
-    if (error == null) return;
-    return (
-      <Row>
-        <Alert message={error} type="error" />
-      </Row>
-    );
-  }
-
   function render_not_running() {
     if (project_state === "running") return;
     return (
@@ -521,7 +504,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
   return (
     <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       {render_not_running()}
-      {render_error()}
+      {error}
       {render_body()}
     </div>
   );

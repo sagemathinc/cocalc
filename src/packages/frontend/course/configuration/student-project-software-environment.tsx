@@ -3,8 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Card, Divider, Radio, Space } from "antd";
-import { useEffect, useState } from "react";
+// cspell:ignore descr
+
+import { Alert, Card, Divider, Radio, Space } from "antd";
+import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -12,17 +14,17 @@ import { A, Icon, Markdown } from "@cocalc/frontend/components";
 import {
   ComputeImage,
   ComputeImages,
+  ComputeImageTypes,
 } from "@cocalc/frontend/custom-software/init";
-import {
-  SoftwareEnvironment,
-  SoftwareEnvironmentState,
-} from "@cocalc/frontend/custom-software/selector";
+import { SoftwareEnvironmentState } from "@cocalc/frontend/custom-software/selector";
 import {
   compute_image2basename,
   is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SoftwareImageDisplay } from "@cocalc/frontend/project/settings/software-image-display";
 import {
   KUCALC_COCALC_COM,
@@ -49,18 +51,36 @@ export function StudentProjectSoftwareEnvironment({
   close,
 }: Props) {
   const intl = useIntl();
+  const { onCoCalcCom } = useProjectContext();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
   const software_envs = customize_software.get("environments");
-  const dflt_compute_img = customize_software.get("default");
+  const default_compute_img = customize_software.get("default");
 
   // by default, we inherit the software image from the project where this course is run from
   const inherit = inherit_compute_image ?? true;
   const [state, set_state] = useState<SoftwareEnvironmentState>({});
   const [changing, set_changing] = useState(false);
 
-  function handleChange(state): void {
-    set_state(state);
+  async function handleSelect({
+    id,
+    display,
+    type,
+  }: {
+    id: string;
+    display: string;
+    type: ComputeImageTypes;
+  }) {
+    set_changing(true);
+    const nextState: SoftwareEnvironmentState = {
+      image_selected: id,
+      title_text: display,
+      image_type: type,
+    };
+    set_state(nextState);
+    await actions.set_software_environment(nextState);
+    set_changing(false);
+    close?.();
   }
   const current_environment = <SoftwareImageDisplay image={software_image} />;
 
@@ -84,70 +104,37 @@ export function StudentProjectSoftwareEnvironment({
     }
   }
 
-  useEffect(() => {
-    if (inherit) {
-      set_changing(false);
-    }
-  }, [inherit]);
-
   function csi_warning() {
     return (
       <Alert
         type={"warning"}
         message={
           <>
-            <strong>Warning:</strong> Do not change a custom image once there is
-            already one setup and deployed!
+            <strong>Warning:</strong> Do not change a specialized software
+            environment after it has already been deployed and in use!
           </>
         }
         description={
-          "The associated user files will not be updated and the software environment changes might break the functionality of existing files."
+          "The associated user files will not be updated and the software environment changes likely break the functionality of existing files."
         }
       />
     );
   }
 
   function render_controls_body() {
-    if (!changing) {
-      return (
-        <Button onClick={() => set_changing(true)} disabled={changing}>
-          {intl.formatMessage(labels.change)}...
-        </Button>
-      );
-    } else {
-      return (
-        <div>
-          <SoftwareEnvironment
-            onChange={handleChange}
-            default_image={software_image}
-          />
-          {state.image_type === "custom" && csi_warning()}
-          <br />
-          <Space>
-            <Button
-              onClick={() => {
-                set_changing(false);
-              }}
-            >
-              {intl.formatMessage(labels.cancel)}
-            </Button>
-            <Button
-              disabled={
-                state.image_type === "custom" && state.image_selected == null
-              }
-              type="primary"
-              onClick={async () => {
-                set_changing(false);
-                await actions.set_software_environment(state);
-                close?.();
-              }}
-            >
-              {intl.formatMessage(labels.save)}
-            </Button>
-          </Space>
-        </div>
-      );
-    }
+    return (
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <ComputeImageSelector
+          current_image={software_image ?? default_compute_img}
+          layout={"dialog"}
+          onSelect={handleSelect}
+          hideCustomImages={!onCoCalcCom}
+          label={intl.formatMessage(labels.save)}
+          changing={changing}
+        />
+        {state.image_type === "custom" && csi_warning()}
+      </Space>
+    );
   }
 
   function render_controls() {
@@ -163,7 +150,7 @@ export function StudentProjectSoftwareEnvironment({
   }
 
   function render_description() {
-    const img_id = software_image ?? dflt_compute_img;
+    const img_id = software_image ?? default_compute_img;
     let descr: string | undefined;
     if (is_custom_image(img_id)) {
       if (custom_images == null) return;

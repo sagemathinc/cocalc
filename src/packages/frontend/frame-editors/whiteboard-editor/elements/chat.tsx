@@ -43,7 +43,7 @@ function Conversation({ element, focused }: Props) {
   const { actions, desc } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(desc.get("editFocus"));
   const [mode, setMode] = useState<string>("");
-  const submitMentionsRef = useRef<SubmitMentionsFn>();
+  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const saveChat = useDebouncedCallback((input) => {
     lastInputRef.current = input;
@@ -222,7 +222,7 @@ export function Message({
   return (
     <div style={messageStyle}>
       <Comment
-        author={sender_id ? getName(sender_id) ?? sender_name : undefined}
+        author={sender_id ? (getName(sender_id) ?? sender_name) : undefined}
         avatar={sender_id ? <Avatar account_id={sender_id} /> : undefined}
         content={
           typeof messageId == "number" ? (

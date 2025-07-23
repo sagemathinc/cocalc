@@ -40,6 +40,13 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       max: process.env.PGDATABASE == TEST ? 2 : undefined,
       ssl,
     });
+
+    pool.on("error", (err: Error) => {
+      L.debug("WARNING: Unexpected error on idle client in PG pool", {
+        err: err.message,
+        stack: err.stack,
+      });
+    });
     const end = pool.end.bind(pool);
     pool.end = async () => {
       pool = undefined;
@@ -99,6 +106,12 @@ export async function initEphemeralDatabase({
     statement_timeout: STATEMENT_TIMEOUT_MS,
     ssl,
   });
+  db.on("error", (err: Error) => {
+    L.debug("WARNING: Unexpected error on idle client in PG pool", {
+      err: err.message,
+      stack: err.stack,
+    });
+  });
   const { rows } = await db.query(
     "SELECT COUNT(*) AS count FROM pg_catalog.pg_database WHERE datname = $1",
     [TEST],
@@ -120,6 +133,12 @@ export async function initEphemeralDatabase({
 
 async function dropAllData() {
   const pool = getPool();
+  pool.on("error", (err: Error) => {
+    L.debug("WARNING: Unexpected error on idle client in PG pool", {
+      err: err.message,
+      stack: err.stack,
+    });
+  });
   if (pool?.["options"]?.database != TEST) {
     // safety check!
     throw Error(

@@ -1,5 +1,6 @@
 {
   "ar": "Arabisch",
+  "br": "Portugiesisch (Brasilianisch)",
   "chat-text": "<p><strong><A>CoCalc's Chatrooms</A></strong> bieten eine Reihe von Funktionen zur Verbesserung der Kommunikation und Zusammenarbeit:</p> <ul> <li><strong>@-Erwähnungen</strong> für die direkte Ansprache von Mitwirkenden oder das Abfragen eines Sprachmodells</li> <li><strong>Emoticons</strong> Unterstützung zur Ausdruck von Emotionen</li> <li><strong>LaTeX-Formel</strong> Darstellung zwischen $-Zeichen</li> <li><strong>Threads</strong> und <strong>Hashtags</strong> zur einfachen Themenorganisation</li> <li><strong>Bildeinfügung</strong> durch Hochladen oder Drag-and-Drop</li> <li><strong>Markdown-Syntax</strong> für Textformatierung und Linkeinfügung</li> <li><strong>Benachrichtigungssystem</strong> mit einem Glockensymbol zur Alarmierung der Nutzer über neue Aktivitäten</li> </ul>",
   "chat-title": "Chat-Räume",
   "compute-servers-text": "<p>Erweitern Sie Ihre CoCalc-Projekte mit leistungsstarken <strong>Rechenservern</strong>. Sie bieten Ihnen viel mehr Leistung, GPU-Optionen und Flexibilität für Ihre Berechnungen. Starten und verbinden Sie sich von innerhalb Ihres Projekts mit einer leistungsstarken Maschine und lassen Sie Ihre Terminals und Jupyter Notebooks auf diesen Maschinen laufen.</p><p>Diese Server sind optional mit <strong>sehr wettbewerbsfähigem GPU-Support</strong> ausgestattet, sie werden <strong>sekundengenau abgerechnet</strong> und Ihre Dateien werden <strong>nahtlos zwischen Ihrem Projekt und den Servern synchronisiert</strong>.</p><p><A1>Lesen Sie die Dokumentation</A1> und <A2>schauen Sie sich einige Anwendungen an</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "Deutsch",
   "en": "Englisch",
   "es": "Spanisch",
+  "eu": "Baskisch",
   "fr": "Französisch",
   "getting-started": "Erste Schritte",
   "gettingstarted-onprem": "Vor Ort",

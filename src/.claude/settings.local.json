@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm tsc:*)",
+      "Bash(pnpm build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(node:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:cocalc.com)",
+      "WebFetch(domain:doc.cocalc.com)",
+      "Bash(npm show:*)",
+      "Bash(prettier -w:*)",
+      "Bash(npx tsc:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh:*)"
+    ],
+    "deny": []
+  }
+}

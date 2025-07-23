@@ -6,26 +6,29 @@
 /*
 Send code to a kernel to be evaluated, then wait for
 the results and gather them together.
-
-TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 */
 
 import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
-import type { MessageType } from "@nteract/messaging";
-import { bind_methods, copy_with, deep_copy, uuid } from "@cocalc/util/misc";
-import {
+import type { MessageType } from "@cocalc/jupyter/zmq/types";
+import { copy_with, deep_copy, uuid } from "@cocalc/util/misc";
+import type {
   CodeExecutionEmitterInterface,
+  OutputMessage,
   ExecOpts,
   StdinFunction,
 } from "@cocalc/jupyter/types/project-interface";
 import { getLogger } from "@cocalc/backend/logger";
+import { EventIterator } from "@cocalc/util/event-iterator";
+import { once } from "@cocalc/util/async-utils";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { Message } from "@cocalc/jupyter/zmq/message";
 
 const log = getLogger("jupyter:execute-code");
 
-type State = "init" | "closed" | "running";
+type State = "init" | "running" | "done" | "closed";
 
 export class CodeExecutionEmitter
   extends EventEmitter
@@ -42,12 +45,12 @@ export class CodeExecutionEmitter
   private iopub_done: boolean = false;
   private shell_done: boolean = false;
   private state: State = "init";
-  private all_output: object[] = [];
   private _message: any;
   private _go_cb: Function | undefined = undefined;
   private timeout_ms?: number;
   private timer?: any;
   private killing: string = "";
+  private _iter?: EventIterator<OutputMessage>;
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
@@ -77,49 +80,88 @@ export class CodeExecutionEmitter
         allow_stdin: this.stdin != null,
       },
     };
-
-    bind_methods(this);
   }
 
-  // Emits a valid result
-  // result is https://jupyter-client.readthedocs.io/en/stable/messaging.html#python-api
+  // async interface:
+  iter = (): EventIterator<OutputMessage> => {
+    if (this.state == "closed") {
+      throw Error("closed");
+    }
+    if (this._iter == null) {
+      this._iter = new EventIterator<OutputMessage>(this, "output", {
+        map: (args) => {
+          if (args[0]?.done) {
+            setTimeout(() => this._iter?.close(), 1);
+          }
+          return args[0];
+        },
+      });
+    }
+    return this._iter;
+  };
+
+  waitUntilDone = reuseInFlight(async () => {
+    try {
+      await once(this, "done");
+    } catch {
+      // it throws on close, but that's also "done".
+    }
+  });
+
+  private setState = (state: State) => {
+    this.state = state;
+    this.emit(state);
+  };
+
+  // Emits a valid result, which is
+  //    https://jupyter-client.readthedocs.io/en/stable/messaging.html#python-api
   // Or an array of those when this.all is true
-  emit_output(output: object): void {
-    this.all_output.push(output);
+  emit_output = (output: OutputMessage): void => {
     this.emit("output", output);
-  }
+    if (output["done"]) {
+      this.setState("done");
+    }
+  };
 
   // Call this to inform anybody listening that we've canceled
   // this execution, and will NOT be doing it ever, and it
   // was explicitly canceled.
-  cancel(): void {
+  cancel = (): void => {
     this.emit("canceled");
-  }
+    this.setState("done");
+    this._iter?.close();
+  };
 
-  close(): void {
-    if (this.state == "closed") return;
+  close = (): void => {
+    if (this.state == "closed") {
+      return;
+    }
+    this.setState("closed");
     if (this.timer != null) {
       clearTimeout(this.timer);
       delete this.timer;
     }
-    this.state = "closed";
+    this._iter?.close();
+    delete this._iter;
+    // @ts-ignore
+    delete this._go_cb;
     this.emit("closed");
     this.removeAllListeners();
-  }
+  };
 
-  throw_error(err): void {
+  throw_error = (err): void => {
     this.emit("error", err);
     this.close();
-  }
+  };
 
-  async _handle_stdin(mesg: any): Promise<void> {
+  private handleStdin = async (mesg: Message): Promise<void> => {
     if (!this.stdin) {
       throw Error("BUG -- stdin handling not supported");
     }
-    log.silly("_handle_stdin: STDIN kernel --> server: ", mesg);
+    log.silly("handleStdin: STDIN kernel --> server: ", mesg);
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       log.warn(
-        "_handle_stdin: STDIN msg_id mismatch:",
+        "handleStdin: STDIN msg_id mismatch:",
         mesg.parent_header.msg_id,
         this._message.header.msg_id,
       );
@@ -135,7 +177,7 @@ export class CodeExecutionEmitter
     } catch (err) {
       response = `ERROR -- ${err}`;
     }
-    log.silly("_handle_stdin: STDIN client --> server", response);
+    log.silly("handleStdin: STDIN client --> server", response);
     const m = {
       channel: "stdin",
       parent_header: this._message.header,
@@ -152,24 +194,24 @@ export class CodeExecutionEmitter
         value: response,
       },
     };
-    log.silly("_handle_stdin: STDIN server --> kernel:", m);
-    this.kernel.channel?.next(m);
-  }
+    log.silly("handleStdin: STDIN server --> kernel:", m);
+    this.kernel.sockets?.send(m);
+  };
 
-  _handle_shell(mesg: any): void {
+  private handleShell = (mesg: Message): void => {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       log.silly(
-        `_handle_shell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`,
+        `handleShell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`,
       );
       return;
     }
-    log.silly("_handle_shell: got SHELL message -- ", mesg);
+    log.silly("handleShell: got SHELL message -- ", mesg);
 
     if (mesg.content?.status == "ok") {
       this._push_mesg(mesg);
       this.set_shell_done(true);
     } else {
-      log.warn(`_handle_shell: status != ok: ${mesg.content?.status}`);
+      log.warn(`handleShell: status != ok: ${mesg.content?.status}`);
       // NOTE: I'm adding support for "abort" status, since I was just reading
       // the kernel docs and it exists but is deprecated.  Some old kernels
       // might use it and we should thus properly support it:
@@ -182,29 +224,29 @@ export class CodeExecutionEmitter
       }
       this.set_shell_done(true);
     }
-  }
+  };
 
-  private set_shell_done(value: boolean): void {
+  private set_shell_done = (value: boolean): void => {
     this.shell_done = value;
     if (this.iopub_done && this.shell_done) {
       this._finish();
     }
-  }
+  };
 
-  private set_iopub_done(value: boolean): void {
+  private set_iopub_done = (value: boolean): void => {
     this.iopub_done = value;
     if (this.iopub_done && this.shell_done) {
       this._finish();
     }
-  }
+  };
 
-  _handle_iopub(mesg: any): void {
+  handleIOPub = (mesg: Message): void => {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       // iopub message for a different execute request so ignore it.
       return;
     }
     // these can be huge -- do not uncomment except for low level debugging!
-    // log.silly("_handle_iopub: got IOPUB message -- ", mesg);
+    // log.silly("handleIOPub: got IOPUB message -- ", mesg);
 
     if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
@@ -219,29 +261,30 @@ export class CodeExecutionEmitter
     this.set_iopub_done(
       !!this.killing || mesg.content?.execution_state == "idle",
     );
-  }
+  };
 
   // Called if the kernel is closed for some reason, e.g., crashing.
-  private handle_closed(): void {
-    log.debug("CodeExecutionEmitter.handle_closed: kernel closed");
+  private handleClosed = (): void => {
+    log.debug("CodeExecutionEmitter.handleClosed: kernel closed");
     this.killing = "kernel crashed";
     this._finish();
-  }
+  };
 
-  _finish(): void {
+  private _finish = (): void => {
     if (this.state == "closed") {
       return;
     }
-    this.kernel.removeListener("iopub", this._handle_iopub);
+    this.kernel.removeListener("iopub", this.handleIOPub);
     if (this.stdin != null) {
-      this.kernel.removeListener("stdin", this._handle_stdin);
+      this.kernel.removeListener("stdin", this.handleStdin);
     }
-    this.kernel.removeListener("shell", this._handle_shell);
+    this.kernel.removeListener("shell", this.handleShell);
     if (this.kernel._execute_code_queue != null) {
       this.kernel._execute_code_queue.shift(); // finished
       this.kernel._process_execute_code_queue(); // start next exec
     }
-    this.kernel.removeListener("close", this.handle_closed);
+    this.kernel.removeListener("closed", this.handleClosed);
+    this.kernel.removeListener("failed", this.handleClosed);
     this._push_mesg({ done: true });
     this.close();
 
@@ -253,9 +296,9 @@ export class CodeExecutionEmitter
     // not have randomly done so itself in output.
     this._go_cb?.(this.killing);
     this._go_cb = undefined;
-  }
+  };
 
-  _push_mesg(mesg): void {
+  _push_mesg = (mesg): void => {
     // TODO: mesg isn't a normal javascript object;
     // it's **silently** immutable, which
     // is pretty annoying for our use. For now, we
@@ -267,47 +310,52 @@ export class CodeExecutionEmitter
       mesg.msg_type = header.msg_type;
     }
     this.emit_output(mesg);
-  }
+  };
 
-  async go(): Promise<object[]> {
+  go = async (): Promise<void> => {
     await callback(this._go);
-    return this.all_output;
-  }
+  };
 
-  _go(cb: Function): void {
+  private _go = (cb: Function): void => {
     if (this.state != "init") {
       cb("may only run once");
       return;
     }
     this.state = "running";
     log.silly("_execute_code", this.code);
-    if (this.kernel.get_state() === "closed") {
-      log.silly("_execute_code", "kernel.get_state() is closed");
-      this.close();
-      cb("closed - jupyter - execute_code");
+    const kernelState = this.kernel.get_state();
+    if (kernelState == "closed" || kernelState == "failed") {
+      log.silly("_execute_code", "kernel.get_state() is ", kernelState);
+      this.killing = kernelState;
+      this._finish();
+      cb(kernelState);
       return;
     }
 
     this._go_cb = cb; // this._finish will call this.
 
     if (this.stdin != null) {
-      this.kernel.on("stdin", this._handle_stdin);
+      this.kernel.on("stdin", this.handleStdin);
     }
-    this.kernel.on("shell", this._handle_shell);
-    this.kernel.on("iopub", this._handle_iopub);
+    this.kernel.on("shell", this.handleShell);
+    this.kernel.on("iopub", this.handleIOPub);
 
-    log.debug("_execute_code: send the message to get things rolling");
-    this.kernel.channel?.next(this._message);
-
-    this.kernel.on("closed", this.handle_closed);
+    this.kernel.once("closed", this.handleClosed);
+    this.kernel.once("failed", this.handleClosed);
 
     if (this.timeout_ms) {
       // setup a timeout at which point things will get killed if they don't finish
       this.timer = setTimeout(this.timeout, this.timeout_ms);
     }
-  }
 
-  private async timeout(): Promise<void> {
+    log.debug("_execute_code: send the message to get things rolling");
+    if (this.kernel.sockets == null) {
+      throw Error("bug -- sockets must be defined");
+    }
+    this.kernel.sockets.send(this._message);
+  };
+
+  private timeout = async (): Promise<void> => {
     if (this.state == "closed") {
       log.debug(
         "CodeExecutionEmitter.timeout: already finished, so nothing to worry about",
@@ -340,5 +388,5 @@ export class CodeExecutionEmitter
       this.kernel.signal("SIGKILL");
       this._finish();
     }
-  }
+  };
 }

@@ -288,7 +288,7 @@ function getApps({
   const proxy = getProxy({ configuration, IMAGES });
   const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? {};
 
-  const buttons: JSX.Element[] = [];
+  const buttons: React.JSX.Element[] = [];
   for (const name in apps) {
     const app = apps[name];
     if (app.disabled) {

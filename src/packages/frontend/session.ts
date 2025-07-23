@@ -18,9 +18,10 @@ import { bind_methods } from "@cocalc/util/misc";
 import target from "@cocalc/frontend/client/handle-target";
 import { load_target } from "./history";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import signInAction from "@cocalc/frontend/app/sign-in-action";
 
 const log = (..._args) => {
-  // console.trace("session: ", ..._args);
+  // console.log("session: ", ..._args);
 };
 
 export function session_manager(name, redux): SessionManager | undefined {
@@ -127,6 +128,9 @@ class SessionManager {
       this._initialized = true;
       // ... and load a target URL
       SessionManager.load_url_target();
+      // and finally possibly do a sign in action if the user just signed up
+      // or signed in after a while:
+      await signInAction();
     } catch (err) {
       console.warn("Error restoring session:", err);
     }

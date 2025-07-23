@@ -14,11 +14,11 @@ extra support for being connected to:
 import { callback, delay } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
-import { Terminal as XTerminal } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
-import { WebLinksAddon } from "xterm-addon-web-links";
-import { WebglAddon } from "xterm-addon-webgl";
-import "xterm/css/xterm.css";
+import { Terminal as XTerminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
+import "@xterm/xterm/css/xterm.css";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
@@ -37,7 +37,7 @@ import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { NatsTerminalConnection } from "./nats-terminal-connection";
+import { ConatTerminal } from "./conat-terminal";
 import { termPath } from "@cocalc/util/terminal/names";
 
 declare const $: any;
@@ -46,9 +46,8 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-const MAX_DELAY = 10000;
+const MAX_DELAY = 15000;
 
-// See https://github.com/sagemathinc/cocalc/issues/8330
 const ENABLE_WEBGL = false;
 
 interface Path {
@@ -64,7 +63,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private terminal_settings: Map<string, any>;
   private project_id: string;
   private path: string;
-  private term_path: string;
+  private termPath: string;
   private id: string;
   readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
@@ -91,7 +90,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private last_geom: { rows: number; cols: number } | undefined;
   private resize_after_no_ignore: { rows: number; cols: number } | undefined;
   private last_active: number = 0;
-  private conn?: NatsTerminalConnection;
+  private conn?: ConatTerminal;
   private touch_interval;
 
   public is_visible: boolean = false;
@@ -105,6 +104,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private webLinksAddon: WebLinksAddon;
 
   private render_done: Function[] = [];
+  private ignoreData: number = 0;
+
+  private firstOpen = true;
 
   constructor(
     actions: Actions<T>,
@@ -116,7 +118,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     workingDir?: string,
   ) {
     this.actions = actions;
-    this.ask_for_cwd = debounce(this.ask_for_cwd);
 
     this.account_store = redux.getStore("account");
     this.project_actions = redux.getProjectActions(actions.project_id);
@@ -133,7 +134,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
     // This is the one and only place number is used.
     // It's very important though.
-    this.term_path = termPath({ path: this.path, number, cmd });
+    this.termPath = termPath({ path: this.path, number, cmd });
     this.id = id;
 
     this.terminal = new XTerminal(this.get_xtermjs_options());
@@ -221,7 +222,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   close = (): void => {
-    this.assert_not_closed();
+    if (this.state === "closed") {
+      return;
+    }
     this.set_connection_status("disconnected");
     this.state = "closed";
     clearInterval(this.touch_interval);
@@ -282,12 +285,19 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
       this.ignore_terminal_data = true;
       this.set_connection_status("connecting");
-      await this.configureComputeServerId();
+      try {
+        await this.configureComputeServerId();
+      } catch {
+        // expected to throw sometimes, e.g., if the project tab closes
+        // right when the terminal is being created, in which case this.state
+        // will be closed and we exit.
+      }
       if (this.state == "closed") {
         return;
       }
-      const conn = new NatsTerminalConnection({
-        path: this.term_path,
+      const conn = new ConatTerminal({
+        termPath: this.termPath,
+        path: this.path,
         project_id: this.project_id,
         terminalResize: this.terminal_resize,
         openPaths: this.open_paths,
@@ -307,11 +317,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.actions.set_terminal_cwd(this.id, cwd);
       });
       conn.on("data", this.handleDataFromProject);
+      conn.on("init", this.render);
       conn.once("ready", () => {
         delete this.last_geom;
         this.ignore_terminal_data = false;
         this.set_connection_status("connected");
-        this.scroll_to_bottom();
         this.terminal.refresh(0, this.terminal.rows - 1);
         this.init_keyhandler();
         this.measureSize();
@@ -321,6 +331,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
             this.conn.write(buf);
             this.conn_write_buffer.length = 0;
           }
+        }
+        if (this.firstOpen) {
+          this.firstOpen = false;
+          this.project_actions.log_opened_time(this.path);
         }
       });
       if (endswith(this.path, ".term")) {
@@ -351,6 +365,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.lastSend = Date.now();
   };
 
+  // this should never ever be necessary.  It's a just-in-case things
+  // were myseriously totally broken measure...
   private reconnectIfNotResponding = async () => {
     while (this.state != "closed") {
       if (this.lastSend - this.lastReceive >= MAX_DELAY) {
@@ -361,7 +377,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   private handleDataFromProject = (data: any): void => {
-    //console.log("data", data);
     this.assert_not_closed();
     if (!data || typeof data != "string") {
       return;
@@ -379,7 +394,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.project_actions.flag_file_activity(this.path);
   };
 
-  render = async (data: string): Promise<void> => {
+  private render = async (data: string): Promise<void> => {
+    if (data == null) {
+      return;
+    }
     this.assert_not_closed();
     this.history += data;
     if (this.history.length > MAX_HISTORY_LENGTH) {
@@ -388,10 +406,21 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       );
     }
     try {
-      await this.terminal.write(data);
+      this.ignoreData++;
+      // NOTE: terminal.write takes a cb but not in the way callback expects.
+      // Also, terminal.write is NOT await-able
+      await callback((cb) => {
+        this.terminal.write(data, () => {
+          cb();
+        });
+      });
     } catch (err) {
       console.warn(`issue writing data to terminal: ${data}`);
+    } finally {
+      await delay(0);
+      this.ignoreData--;
     }
+    if (this.state == "done") return;
     // tell anyone who waited for output coming back about this
     while (this.render_done.length > 0) {
       this.render_done.pop()?.();
@@ -421,7 +450,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   touch = async () => {
+    if (this.state === "closed") return;
     if (Date.now() - this.last_active < 70000) {
+      if (this.project_actions.isTabClosed()) {
+        return;
+      }
       touch_project(this.project_id, await this.getComputeServerId());
     }
   };
@@ -613,6 +646,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     const project_actions: ProjectActions = this.actions._get_project_actions();
+    if (project_actions.isTabClosed()) {
+      return;
+    }
     let i = 0;
     let foreground = false;
     const compute_server_id = await this.getComputeServerId();
@@ -684,9 +720,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.render_buffer = "";
   };
 
-  ask_for_cwd = (): void => {
+  ask_for_cwd = debounce((): void => {
     this.conn_write({ cmd: "cwd" });
-  };
+  });
 
   kick_other_users_out(): void {
     // @ts-ignore
@@ -695,6 +731,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   kill = async () => {
+    this.terminal?.clear();
     this.conn_write({ cmd: "kill" });
     await this.connect();
   };
@@ -706,11 +743,15 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_terminal_data(): void {
-    this.terminal.onData((data) => {
-      if (this.ignore_terminal_data && this.conn?.state == "init") {
-        return;
+    this.terminal.onKey(({ key }) => {
+      if (this.ignoreData) {
+        this.conn_write(key);
       }
-      this.conn_write(data);
+    });
+    this.terminal.onData((data) => {
+      if (!this.ignoreData) {
+        this.conn_write(data);
+      }
     });
   }
 
@@ -726,12 +767,15 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   refresh(): void {
+    if (this.state === "closed") {
+      return;
+    }
     this.terminal.refresh(0, this.terminal.rows - 1);
   }
 
   async edit_init_script(): Promise<void> {
     try {
-      await open_init_file(this.actions._get_project_actions(), this.term_path);
+      await open_init_file(this.actions._get_project_actions(), this.termPath);
     } catch (err) {
       if (this.state === "closed") {
         return;
@@ -743,7 +787,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   popout(): void {
     this.actions
       ._get_project_actions()
-      .open_file({ path: this.term_path, foreground: true });
+      .open_file({ path: this.termPath, foreground: true });
   }
 
   set_font_size(font_size: number): void {
@@ -788,6 +832,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   scroll_to_bottom = (): void => {
+    if (this.terminal == null) {
+      return;
+    }
     // Upstream bug workaround -- we scroll to top first, then bottom
     // entirely to workaround a bug. This is NOT fixed by the Oct 2018
     // term.js release, despite it touching relevant code.
@@ -799,7 +846,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     return (
-      (await computeServerAssociations.getServerIdForPath(this.term_path)) ?? 0
+      (await computeServerAssociations.getServerIdForPath(this.termPath)) ?? 0
     );
   };
 
@@ -812,7 +859,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const cur = await computeServerAssociations.getServerIdForPath(
-      this.term_path,
+      this.termPath,
     );
     if (cur != null) {
       // nothing to do -- it's already explicitly set.
@@ -827,13 +874,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       await redux
         .getActions("page")
         .popconfirm(
-          modalParams({ current: 0, target: id, path: this.term_path }),
+          modalParams({ current: 0, target: id, path: this.termPath }),
         )
     ) {
       // yes, switch it
       computeServerAssociations.connectComputeServerToPath({
         id,
-        path: this.term_path,
+        path: this.termPath,
       });
       await computeServerAssociations.save();
     }
@@ -846,8 +893,9 @@ async function touchPath(project_id: string, path: string): Promise<void> {
   // Also this is in a separate function so we can await it and catch exception.
   try {
     await touch(project_id, path);
-  } catch (err) {
-    console.warn(`error touching ${path} -- ${err}`);
+  } catch {
+    // expected to fail, e.g., it will on compute server while waiting to switch
+    //console.warn(`error touching ${path} -- ${err}`);
   }
 }
 

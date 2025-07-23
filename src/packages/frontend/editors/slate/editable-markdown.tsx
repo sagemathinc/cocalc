@@ -119,12 +119,13 @@ interface Props {
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
   submitMentionsRef?: SubmitMentionsRef; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
-  editBar2?: MutableRefObject<JSX.Element | undefined>;
+  editBar2?: MutableRefObject<React.JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
   minimal?: boolean;
   controlRef?: MutableRefObject<{
     moveCursorToEndOfLine: () => void;
   } | null>;
+  showEditBar?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
@@ -164,6 +165,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     unregisterEditor,
     value,
     controlRef,
+    showEditBar,
   } = props;
   const { project_id, path, desc, isVisible } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -994,16 +996,18 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         {!hidePath && (
           <Path is_current={is_current} path={path} project_id={project_id} />
         )}
-        <EditBar
-          Search={search.Search}
-          isCurrent={is_current}
-          marks={marks}
-          linkURL={linkURL}
-          listProperties={listProperties}
-          editor={editor}
-          style={editBarStyle}
-          hideSearch={hideSearch}
-        />
+        {showEditBar && (
+          <EditBar
+            Search={search.Search}
+            isCurrent={is_current}
+            marks={marks}
+            linkURL={linkURL}
+            listProperties={listProperties}
+            editor={editor}
+            style={editBarStyle}
+            hideSearch={hideSearch}
+          />
+        )}
         <div
           className={noVfill || height == "auto" ? undefined : "smc-vfill"}
           style={{

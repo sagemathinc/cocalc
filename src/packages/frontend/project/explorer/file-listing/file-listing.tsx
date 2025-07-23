@@ -23,7 +23,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/nats/listings";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import * as misc from "@cocalc/util/misc";
@@ -279,8 +279,7 @@ export const FileListing: React.FC<Props> = ({
         >
           <FormattedMessage
             id="project.explorer.file-listing.stale-warning"
-            defaultMessage={`Showing stale directory listing
-              {is_missing, select, true {<b>missing {missing} files</b>} other {}}.
+            defaultMessage={`Showing stale directory listing{is_missing, select, true {<b> missing {missing} files</b>} other {}}.
               To update the directory listing <a>start this project</a>.`}
             values={{
               is_missing: missing > 0,

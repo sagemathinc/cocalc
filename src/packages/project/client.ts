@@ -31,34 +31,31 @@ import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
-import { callback2, once } from "@cocalc/util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
 import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
 import type { CB } from "@cocalc/util/types/callback";
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import * as blobs from "./blobs";
-import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
 import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import * as sage_session from "./sage_session";
-import { getListingsTable } from "@cocalc/project/sync/listings";
-import { get_synctable } from "./sync/open-synctables";
-import { get_syncdoc } from "./sync/sync-doc";
-import synctable_nats from "@cocalc/project/nats/synctable";
-import pubsub from "@cocalc/project/nats/pubsub";
-import type { NatsSyncTableFunction } from "@cocalc/nats/sync/synctable";
-import { getEnv as getNatsEnv } from "@cocalc/project/nats/env";
+import synctable_conat from "@cocalc/project/conat/synctable";
+import pubsub from "@cocalc/project/conat/pubsub";
+import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
 import {
-  callNatsService,
-  createNatsService,
-  type CallNatsServiceFunction,
-  type CreateNatsServiceFunction,
-} from "@cocalc/nats/service";
-import type { NatsEnvFunction } from "@cocalc/nats/types";
+  callConatService,
+  createConatService,
+  type CallConatServiceFunction,
+  type CreateConatServiceFunction,
+} from "@cocalc/conat/service";
+import { connectToConat } from "./conat/connection";
+import { getSyncDoc } from "@cocalc/project/conat/open-files";
+import { isDeleted } from "@cocalc/project/conat/listings";
 
 const winston = getLogger("client");
 
@@ -502,57 +499,35 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return synctable2.synctable(query, options, this, throttle_changes);
   }
 
-  // We leave in the project_id for consistency with the browser UI.
-  // And maybe someday we'll have tables managed across projects (?).
-  public async synctable_project(_project_id: string, query, _options) {
-    // TODO: this is ONLY for syncstring tables (syncstrings, patches, cursors).
-    // Also, options are ignored -- since we use whatever was selected by the frontend.
-    const the_synctable = await get_synctable(query, this);
-    // To provide same API, must also wait until done initializing.
-    if (the_synctable.get_state() !== "connected") {
-      await once(the_synctable, "connected");
-    }
-    if (the_synctable.get_state() !== "connected") {
-      throw Error(
-        "Bug -- state of synctable must be connected " + JSON.stringify(query),
-      );
-    }
-    return the_synctable;
-  }
+  conat = () => connectToConat();
 
-  synctable_nats: NatsSyncTableFunction = async (query, options?) => {
-    return await synctable_nats(query, options);
+  synctable_conat: ConatSyncTableFunction = async (query, options?) => {
+    return await synctable_conat(query, options);
   };
 
-  pubsub_nats = async ({ path, name }: { path?: string; name: string }) => {
+  pubsub_conat = async ({ path, name }: { path?: string; name: string }) => {
     return await pubsub({ path, name });
   };
 
-  callNatsService: CallNatsServiceFunction = async (options) => {
-    return await callNatsService(options);
+  callConatService: CallConatServiceFunction = async (options) => {
+    return await callConatService(options);
   };
 
-  createNatsService: CreateNatsServiceFunction = (options) => {
-    return createNatsService({
+  createConatService: CreateConatServiceFunction = (options) => {
+    return createConatService({
       ...options,
       project_id: this.project_id,
     });
   };
-
-  getNatsEnv: NatsEnvFunction = async () => await getNatsEnv();
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely
   // lead to corruption!
 
   // Get the synchronized doc with the given path.  Returns undefined
   // if currently no such sync-doc.
-  public syncdoc({ path }: { path: string }): SyncDoc | undefined {
-    return get_syncdoc(path);
-  }
-
-  public symmetric_channel(name) {
-    return symmetric_channel(name);
-  }
+  syncdoc = ({ path }: { path: string }): SyncDoc | undefined => {
+    return getSyncDoc(path);
+  };
 
   public path_access(opts: { path: string; mode: string; cb: CB }): void {
     // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
@@ -655,29 +630,21 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // no-op; assumed async api
   touch_project(_project_id: string, _compute_server_id?: number) {}
 
-  async get_syncdoc_history(string_id: string, patches = false) {
-    const dbg = this.dbg("get_syncdoc_history");
-    dbg(string_id, patches);
-    const mesg = message.get_syncdoc_history({
-      string_id,
-      patches,
-    });
-    return await callback2(this.call, { message: mesg });
-  }
-
   // Return true if the file was explicitly deleted.
   // Returns unknown if don't know
   // Returns false if definitely not.
-  public is_deleted(filename: string, _project_id: string) {
-    return !!getListingsTable()?.isDeleted(filename);
+  public is_deleted(
+    filename: string,
+    _project_id: string,
+  ): boolean | undefined {
+    return isDeleted(filename);
   }
 
   public async set_deleted(
-    filename: string,
+    _filename: string,
     _project_id?: string,
   ): Promise<void> {
-    // project_id is ignored
-    const listings = getListingsTable();
-    return await listings?.setDeleted(filename);
+    // DEPRECATED
+    this.dbg("set_deleted: DEPRECATED");
   }
 }

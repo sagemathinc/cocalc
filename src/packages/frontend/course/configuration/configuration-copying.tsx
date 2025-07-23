@@ -189,7 +189,7 @@ function ConfigTargets({
   close,
 }) {
   const targets = getTargets(settings);
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   const keys = Object.keys(targets);
   keys.sort();
   for (const key of keys) {
@@ -355,7 +355,7 @@ function ConfigOptions({ settings, actions, numOptions }) {
   }
 
   const options = getOptions(settings);
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const option of CONFIGURATION_GROUPS) {
     const { title, label, icon } = COMMANDS[option] ?? {};
     v.push(

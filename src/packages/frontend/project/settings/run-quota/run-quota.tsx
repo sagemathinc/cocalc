@@ -108,7 +108,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       });
     }, [runQuota, currentUsage, maxUpgrades, projectIsRunning]);
 
-    function renderExtraMaximum(record: QuotaData): JSX.Element | undefined {
+    function renderExtraMaximum(record: QuotaData): React.JSX.Element | undefined {
       if (SHOW_MAX.includes(record.key)) {
         return (
           <>
@@ -122,7 +122,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       }
     }
 
-    function renderExtraExplanation(record: QuotaData): JSX.Element {
+    function renderExtraExplanation(record: QuotaData): React.JSX.Element {
       if (onDedicatedVM) return <></>;
 
       const dedicatedVM = (
@@ -190,7 +190,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       }
     }
 
-    function renderDedicatedVMExtra(record: QuotaData): JSX.Element {
+    function renderDedicatedVMExtra(record: QuotaData): React.JSX.Element {
       const desc = (function () {
         switch (record.key) {
           case "memory_limit":
@@ -210,7 +210,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       );
     }
 
-    function renderExtra(record: QuotaData): JSX.Element {
+    function renderExtra(record: QuotaData): React.JSX.Element {
       if (onDedicatedVM) {
         return renderDedicatedVMExtra(record);
       } else {
@@ -223,7 +223,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       }
     }
 
-    function renderUsage(record: QuotaData): JSX.Element | undefined {
+    function renderUsage(record: QuotaData): React.JSX.Element | undefined {
       if (!projectIsRunning) return;
       // the usage of a boolean quota is always the same as its value
       if (QUOTAS_BOOLEAN.includes(record.key as any)) return;
@@ -264,7 +264,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       }
     }
 
-    function renderValueColumnTitle(): JSX.Element {
+    function renderValueColumnTitle(): React.JSX.Element {
       if (projectIsRunning) {
         return (
           <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Add a license to change this limit or adjust your quota upgrade contribution. Project needs to run in order to see the effective runtime quota.">

@@ -794,7 +794,9 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
         <Radio.Button value="standard">
           Standard{" "}
-          {prices != null ? `${currency(prices.standard)}/hour` : undefined}{" "}
+          {prices != null
+            ? `${currency(prices.standard)}/hour`
+            : undefined}{" "}
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
@@ -1212,7 +1214,10 @@ function GPU({
         if (!!acceleratorType) {
           setConfig({ acceleratorType: "", acceleratorCount: 0 });
         } else {
-          setConfig(DEFAULT_GPU_CONFIG);
+          setConfig({
+            ...DEFAULT_GPU_CONFIG,
+            spot: configuration?.spot ?? false,
+          });
         }
       }}
     />

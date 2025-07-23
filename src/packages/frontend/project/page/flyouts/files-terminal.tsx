@@ -63,6 +63,7 @@ export function TerminalFlyout({
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const [status, setStatus] = useState("");
+  const [terminalExists, setTerminalExists] = useState<boolean>(false);
   const [error, setError] = useState("");
   const syncRef = useRef<boolean>(sync);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
@@ -103,6 +104,7 @@ export function TerminalFlyout({
     terminalRef.current.conn_write({ cmd: "size", rows: 0, cols: 0 });
     terminalRef.current.close();
     terminalRef.current = undefined;
+    setTerminalExists(false);
   }
 
   function getMockTerminalActions(): ConnectedTerminalInterface {
@@ -191,6 +193,7 @@ export function TerminalFlyout({
     }
     try {
       terminalRef.current = getTerminal(id, node);
+      setTerminalExists(true);
     } catch (err) {
       return; // not yet ready -- might be ok
     }
@@ -222,14 +225,17 @@ export function TerminalFlyout({
     // or switches to being visible and was not initialized.
     // See https://github.com/sagemathinc/cocalc/issues/5133
     if (terminalRef.current != null || !is_visible) return;
-    init_terminal();
+    // wait until is actually in the DOM before trying to render,
+    // or it will crash for sure (due to changes in @xterm)
+    setTimeout(init_terminal, 0);
   }, [is_visible]);
 
   useEffect(() => {
     // defensive, like with the frame terminal -- see https://github.com/sagemathinc/cocalc/issues/3819
     if (terminalRef.current == null) return;
     delete_terminal();
-    init_terminal();
+    // see comment about regarding the setTimeout
+    setTimeout(init_terminal, 0);
   }, [id]);
 
   // resize is a counter, increases with debouncing, if size change.
@@ -243,7 +249,7 @@ export function TerminalFlyout({
 
   // the terminal follows changing the directory
   useEffect(() => {
-    if (terminalRef.current == null) return;
+    if (terminalRef.current == null || !terminalExists) return;
     if (syncPath === prevSyncPath && !sync) return;
     // this "line reset" is from the terminal guide,
     // see frame-editors/terminal-editor/actions::run_command
@@ -253,7 +259,7 @@ export function TerminalFlyout({
     const cmd = ` cd "$HOME/${nextCwd}"`;
     // this will end up in a write buffer, hence it should be ok to do right at the beginning
     terminalRef.current.conn_write(`${clean}${cmd}\n`);
-  }, [current_path, syncPath, sync]);
+  }, [current_path, syncPath, sync, terminalExists]);
 
   const set_font_size = debounce(
     () => {

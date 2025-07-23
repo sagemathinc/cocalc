@@ -1,6 +1,8 @@
 import User from "./user";
 import { ProjectCollaborator } from "lib/api/schema/projects/collaborators/list";
 
+import type { JSX } from "react";
+
 export default function Collaborators({
   collaborators,
 }: {

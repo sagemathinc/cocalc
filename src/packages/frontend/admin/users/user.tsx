@@ -155,9 +155,12 @@ export function UserResult({
               last_name={last_name ?? ""}
             />
           )}
-          {state.password && (
+          {state.password && email_address && (
             <Card title="Password">
-              <PasswordReset email_address={email_address} />
+              <PasswordReset
+                account_id={account_id}
+                email_address={email_address}
+              />
             </Card>
           )}
           {state.ban && (

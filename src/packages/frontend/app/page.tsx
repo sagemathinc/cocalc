@@ -11,6 +11,8 @@ everything on *desktop*, once the user has signed in.
 declare var DEBUG: boolean;
 
 import { Spin } from "antd";
+import { useIntl } from "react-intl";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -22,16 +24,17 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { IconName, Icon } from "@cocalc/frontend/components/icon";
-import { SiteName } from "@cocalc/frontend/customize";
+import { ClientContext } from "@cocalc/frontend/client/context";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import Next from "@cocalc/frontend/components/next";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
 import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
-import { useIntl } from "react-intl";
 import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
 import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
@@ -46,11 +49,9 @@ import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
 import SettingsModal from "./settings-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
-import { useShowVerifyEmail, VerifyEmail } from "./verify-email-banner";
-import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-import Next from "@cocalc/frontend/components/next";
-import { ClientContext } from "@cocalc/frontend/client/context";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { VerifyEmail } from "./verify-email-banner";
+import VersionWarning from "./version-warning";
+import { CookieWarning, LocalStorageWarning } from "./warnings";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -98,6 +99,11 @@ export const Page: React.FC = () => {
     };
   }, []);
 
+  const [showSignInTab, setShowSignInTab] = useState<boolean>(false);
+  useEffect(() => {
+    setTimeout(() => setShowSignInTab(true), 3000);
+  }, []);
+
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const show_mentions = active_top_tab === "notifications";
   const show_connection = useTypedRedux("page", "show_connection");
@@ -105,25 +111,19 @@ export const Page: React.FC = () => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const local_storage_warning = useTypedRedux("page", "local_storage_warning");
   const cookie_warning = useTypedRedux("page", "cookie_warning");
-  const new_version = useTypedRedux("page", "new_version");
 
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const doing_anonymous_setup = useTypedRedux(
-    "account",
-    "doing_anonymous_setup",
-  );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
-  const show_verify_email: boolean = useShowVerifyEmail();
   const show_i18n = useShowI18NBanner();
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
 
-  function account_tab_icon(): IconName | JSX.Element {
+  function account_tab_icon(): IconName | React.JSX.Element {
     if (is_anonymous) {
       return <></>;
     } else if (account_id) {
@@ -140,7 +140,7 @@ export const Page: React.FC = () => {
     }
   }
 
-  function render_account_tab(): JSX.Element {
+  function render_account_tab(): React.JSX.Element {
     if (!accountIsReady) {
       return (
         <div>
@@ -175,7 +175,7 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = <>{intl.formatMessage(labels.account)}</>;
+      label = undefined;
       style = undefined;
     }
 
@@ -188,6 +188,7 @@ export const Page: React.FC = () => {
         icon={icon}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
+        tooltip={intl.formatMessage(labels.account)}
       />
     );
   }
@@ -197,12 +198,11 @@ export const Page: React.FC = () => {
     return <BalanceButton minimal topBar />;
   }
 
-  function render_admin_tab(): JSX.Element | undefined {
+  function render_admin_tab(): React.JSX.Element | undefined {
     if (is_logged_in && groups?.includes("admin")) {
       return (
         <NavTab
           name="admin"
-          label={"Admin"}
           label_class={NAV_CLASS}
           icon={"users"}
           active_top_tab={active_top_tab}
@@ -212,8 +212,8 @@ export const Page: React.FC = () => {
     }
   }
 
-  function render_sign_in_tab(): JSX.Element | null {
-    if (is_logged_in) return null;
+  function render_sign_in_tab(): React.JSX.Element | null {
+    if (is_logged_in || !showSignInTab) return null;
 
     return (
       <Next
@@ -235,7 +235,7 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_support(): JSX.Element | undefined {
+  function render_support(): React.JSX.Element | undefined {
     if (!is_commercial) {
       return;
     }
@@ -259,14 +259,14 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_bell(): JSX.Element | undefined {
+  function render_bell(): React.JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return (
       <Notification type="bell" active={show_file_use} pageStyle={pageStyle} />
     );
   }
 
-  function render_notification(): JSX.Element | undefined {
+  function render_notification(): React.JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return (
       <Notification
@@ -277,13 +277,13 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_fullscreen(): JSX.Element | undefined {
+  function render_fullscreen(): React.JSX.Element | undefined {
     if (isNarrow || is_anonymous) return;
 
     return <FullscreenButton pageStyle={pageStyle} />;
   }
 
-  function render_right_nav(): JSX.Element {
+  function render_right_nav(): React.JSX.Element {
     return (
       <div
         className="smc-right-tabs-fixed"
@@ -314,7 +314,7 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_project_nav_button(): JSX.Element {
+  function render_project_nav_button(): React.JSX.Element {
     return (
       <NavTab
         style={{
@@ -355,72 +355,52 @@ export const Page: React.FC = () => {
     }
   }
 
-  let body;
-  if (doing_anonymous_setup) {
-    // Don't show the login screen or top navbar for a second
-    // while creating their anonymous account, since that
-    // would just be ugly/confusing/and annoying.
-    // Have to use above style to *hide* the crash warning.
-    const loading_anon = (
-      <div style={{ margin: "auto", textAlign: "center" }}>
-        <h1 style={{ color: COLORS.GRAY }}>
-          <Spin delay={1000} />
-        </h1>
-        <div style={{ color: COLORS.GRAY, width: "50vw" }}>
-          Please give <SiteName /> a couple of seconds to start your project and
-          prepare a file...
+  // Children must define their own padding from navbar and screen borders
+  // Note that the parent is a flex container
+  const body = (
+    <div
+      style={PAGE_STYLE}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={drop}
+    >
+      {insecure_test_mode && <InsecureTestModeBanner />}
+      {show_file_use && (
+        <div style={fileUseStyle} className="smc-vfill">
+          <FileUsePage />
         </div>
-      </div>
-    );
-    body = <div style={PAGE_STYLE}>{loading_anon}</div>;
-  } else {
-    // Children must define their own padding from navbar and screen borders
-    // Note that the parent is a flex container
-    body = (
-      <div
-        style={PAGE_STYLE}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={drop}
-      >
-        {insecure_test_mode && <InsecureTestModeBanner />}
-        {show_file_use && (
-          <div style={fileUseStyle} className="smc-vfill">
-            <FileUsePage />
-          </div>
-        )}
-        {show_connection && <ConnectionInfo />}
-        {new_version && <VersionWarning new_version={new_version} />}
-        {cookie_warning && <CookieWarning />}
-        {local_storage_warning && <LocalStorageWarning />}
-        {show_i18n && <I18NBanner />}
-        {show_verify_email && <VerifyEmail />}
-        {!fullscreen && (
-          <nav className="smc-top-bar" style={topBarStyle}>
-            <AppLogo size={pageStyle.height} />
-            {is_logged_in && render_project_nav_button()}
-            {!isNarrow ? (
-              <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-            ) : (
-              // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
-              <div style={{ flex: "1 1 auto" }} />
-            )}
-            {render_right_nav()}
-          </nav>
-        )}
-        {fullscreen && render_fullscreen()}
-        {isNarrow && (
-          <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
-        )}
-        <ActiveContent />
-        <PayAsYouGoModal />
-        <PopconfirmModal />
-        <SettingsModal />
-      </div>
-    );
-    return (
-      <ClientContext.Provider value={{ client: webapp_client }}>
-        {body}
-      </ClientContext.Provider>
-    );
-  }
+      )}
+      {show_connection && <ConnectionInfo />}
+      <VersionWarning />
+      {cookie_warning && <CookieWarning />}
+      {local_storage_warning && <LocalStorageWarning />}
+      {show_i18n && <I18NBanner />}
+      <VerifyEmail />
+      {!fullscreen && (
+        <nav className="smc-top-bar" style={topBarStyle}>
+          <AppLogo size={pageStyle.height} />
+          {is_logged_in && render_project_nav_button()}
+          {!isNarrow ? (
+            <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+          ) : (
+            // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
+            <div style={{ flex: "1 1 auto" }} />
+          )}
+          {render_right_nav()}
+        </nav>
+      )}
+      {fullscreen && render_fullscreen()}
+      {isNarrow && (
+        <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+      )}
+      <ActiveContent />
+      <PayAsYouGoModal />
+      <PopconfirmModal />
+      <SettingsModal />
+    </div>
+  );
+  return (
+    <ClientContext.Provider value={{ client: webapp_client }}>
+      {body}
+    </ClientContext.Provider>
+  );
 };

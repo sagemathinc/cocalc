@@ -34,7 +34,7 @@ export interface RowEntryInnerProps {
 
 interface RowEntryProps extends RowEntryInnerProps {
   displayed_val?: string; // the processed rawValue
-  hint?: JSX.Element;
+  hint?: React.JSX.Element;
   rowType?: RowType;
   onJsonEntryChange: (name: string, value?: string) => void;
   onChangeEntry: (name: string, value: string) => void;

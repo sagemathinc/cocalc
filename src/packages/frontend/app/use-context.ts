@@ -7,9 +7,11 @@ This should be renderable server side, e.g., no window references, etc.
 import { ThemeConfig } from "antd";
 import type { SizeType } from "antd/es/config-provider/SizeContext";
 import { createContext, ReactNode, useContext } from "react";
+
 import type { IntlMessage } from "@cocalc/util/i18n/types";
 import { COLORS } from "@cocalc/util/theme";
 
+import { ACTIVITY_BAR_LABELS_DEFAULT } from "@cocalc/frontend/project/page/activity-bar-consts";
 import {
   FONT_SIZE_ICONS_NARROW,
   FONT_SIZE_ICONS_NORMAL,
@@ -26,12 +28,14 @@ export interface AppState {
   formatIntl: (msg: IntlMessage | ReactNode | string) => ReactNode | string;
   timeAgoAbsolute?: boolean;
   setTimeAgoAbsolute?: (boolean) => void;
+  showActBarLabels?: boolean; // whether to show labels on the vertical fixed bar
 }
 
 export const DEFAULT_CONTEXT = {
   pageWidthPx: 1000, // gets updated
   pageStyle: calcStyle(false), // gets updated
   formatIntl: () => "Loading…",
+  showActBarLabels: ACTIVITY_BAR_LABELS_DEFAULT,
 };
 
 export const AppContext = createContext<AppState>(DEFAULT_CONTEXT);
@@ -51,6 +55,7 @@ export function calcStyle(isNarrow: boolean): PageStyle {
 
   const topBarStyle = {
     height: `${height}px`,
+    background: "#fafafa",
   } as const;
 
   const fileUseStyle = {

@@ -3,17 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+@use 'colors'
+@use 'mixins'
+
 .navbar-default
-  background-color: $COL_TOP_BAR_BG
-  border-color:     $COL_TOP_BAR_BG
+  background-color: colors.$COL_TOP_BAR_BG
+  border-color:     colors.$COL_TOP_BAR_BG
   border-width:     0 0 0 0
 
 =nav-tab-button-styles
   padding : 0px
-  +disable-user-select
-  color: $COL_TOP_BAR_TEXT
+  +mixins.disable-user-select
+  color: colors.$COL_TOP_BAR_TEXT
   &:hover
-    color: $COL_TOP_BAR_TEXT
+    color: colors.$COL_TOP_BAR_TEXT
 
 
 .smc-top-bar
@@ -27,7 +30,7 @@
   z-index         : 100
   border-radius   : 0
   width           : 100%
-  background-color: $COL_GRAY_L0
+  background-color: colors.$COL_GRAY_L0
   > ul > li > a
     +nav-tab-button-styles
 
@@ -38,12 +41,12 @@
 .smc-top-bar.navbar-default .navbar-nav>.active>a:focus,
 .smc-top-bar.navbar-default .navbar-nav>li>a:focus,
 .smc-top-bar.navbar-default .navbar-nav>.active>a:hover
-  background-color : $COL_TOP_BAR_ACTIVE
-  color            : $COL_TOP_BAR_TEXT_ACTIVE
+  background-color : colors.$COL_TOP_BAR_ACTIVE
+  color            : colors.$COL_TOP_BAR_TEXT_ACTIVE
 
 .smc-top-bar.navbar-default .navbar-nav>li>a:hover
-  background-color : $COL_TOP_BAR_HOVER
-  color            : $COL_TOP_BAR_TEXT
+  background-color : colors.$COL_TOP_BAR_HOVER
+  color            : colors.$COL_TOP_BAR_TEXT
 
 .smc-project-tab-floating
   background-color    : rgb(255, 255, 255)
@@ -79,4 +82,4 @@
     padding: 2px 10px !important
 
 .cocalc-top-bar-element:hover
-  background-color: $COL_TOP_BAR_HOVER
+  background-color: colors.$COL_TOP_BAR_HOVER

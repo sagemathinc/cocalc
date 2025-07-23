@@ -11,13 +11,16 @@ import { createElement } from "react";
 
 import { ChatRoom } from "@cocalc/frontend/chat/chatroom";
 import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
-import type { EditorComponentProps, EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import type {
+  EditorComponentProps,
+  EditorDescription,
+} from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 import { set } from "@cocalc/util/misc";
 import { search } from "./search";
 
-const chatroom: EditorDescription = {
+export const chatroom: EditorDescription = {
   type: "chatroom",
   short: "Chatroom",
   name: "Chatroom",
@@ -42,6 +45,8 @@ const chatroom: EditorDescription = {
     "scrollToBottom",
     "scrollToTop",
     "show_search",
+    "foldAIThreads",
+    "foldAllThreads",
   ]),
   customizeCommands: {
     scrollToTop: {
@@ -63,6 +68,7 @@ const chatroom: EditorDescription = {
     "scrollToTop",
     "scrollToBottom",
     "show_search",
+    "foldAIThreads",
   ]),
 } as const;
 

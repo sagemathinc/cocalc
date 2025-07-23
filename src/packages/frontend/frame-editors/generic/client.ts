@@ -29,6 +29,22 @@ export function server_time(): Date {
   return webapp_client.time_client.server_time();
 }
 
+export function getComputeServerId({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}) {
+  let compute_server_id =
+    redux.getProjectActions(project_id).getComputeServerIdForFile({ path }) ??
+    0;
+  if (compute_server_id && excludeFromComputeServer(path)) {
+    compute_server_id = 0;
+  }
+  return compute_server_id;
+}
+
 // async version of the webapp_client exec -- let's you run any code in a project!
 // If the second argument filePath is the file this is being used for as a second argument,
 // it always runs code on the compute server that the given file is on.
@@ -37,13 +53,10 @@ export async function exec(
   filePath?: string,
 ): Promise<ExecOutput> {
   if (filePath) {
-    let compute_server_id =
-      redux
-        .getProjectActions(opts.project_id)
-        .getComputeServerIdForFile({ path: filePath }) ?? 0;
-    if (compute_server_id && excludeFromComputeServer(filePath)) {
-      compute_server_id = 0;
-    }
+    const compute_server_id = getComputeServerId({
+      project_id: opts.project_id,
+      path: filePath,
+    });
     opts = { ...opts, compute_server_id };
   }
   return await webapp_client.project_client.exec(opts);

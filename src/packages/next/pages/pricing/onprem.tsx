@@ -4,7 +4,7 @@
  */
 
 import { Alert, Button, Divider, Layout, List } from "antd";
-import { ReactNode } from "react";
+import { ReactNode, type JSX } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import getSupportUrl from "@cocalc/frontend/support/url";
@@ -338,13 +338,8 @@ function Body() {
               <Text strong>
                 <A href={"https://www.postgresql.org/"}>PostgreSQL</A>
               </Text>{" "}
-              database and{" "}
-              <Text strong>
-                <A href={"https://nats.io/"}>NATS.io</A>
-              </Text>{" "}
-              communication service. PostgreSQL is used for persistent data
-              storage, and NATS for internal communication between CoCalc
-              services.
+              database. PostgreSQL is used for persistent data storage, and
+              Socket.io for internal communication between CoCalc services.
             </li>
             <li>
               A shared network file-system like <Text strong>NFS</Text>. It must

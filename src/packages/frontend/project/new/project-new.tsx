@@ -12,7 +12,7 @@ interface Props {
   project_id: string;
 }
 
-export function ProjectNew({ project_id }: Props): JSX.Element {
+export function ProjectNew({ project_id }: Props): React.JSX.Element {
   const { mainWidthPx } = useProjectContext();
 
   const isWide = mainWidthPx > 800;

@@ -31,7 +31,7 @@ export default function PopconfirmModal({}) {
     actions.setState({ popconfirm: { open: false, ok: true } });
   };
 
-  const okButtonRef = useRef();
+  const okButtonRef = useRef(undefined);
   useEffect(() => {
     if (popconfirm.open) {
       // @ts-ignore
@@ -39,12 +39,12 @@ export default function PopconfirmModal({}) {
     }
   }, [popconfirm.open]);
 
-  // destroyOnClose so values in quota input, etc. get updated
+  // destroyOnHidden so values in quota input, etc. get updated
   return (
     <Modal
       key="app-modal"
       width={"600px"}
-      destroyOnClose
+      destroyOnHidden
       open={popconfirm.open}
       title={popconfirm.title}
       onCancel={handleCancel}

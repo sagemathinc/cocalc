@@ -20,6 +20,10 @@ import { Table } from "./types";
 
 export const MAX_FILENAME_SEARCH_RESULTS = 100;
 
+const PROJECTS_LIMIT = 300;
+const PROJECTS_CUTOFF = "6 weeks";
+const THROTTLE_CHANGES = 1000;
+
 Table({
   name: "projects",
   rules: {
@@ -48,12 +52,15 @@ Table({
 
     user_query: {
       get: {
-        pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
-        pg_where_load: ["last_edited >= NOW() - interval '2 days'", "projects"],
-        options: [{ limit: 100, order_by: "-last_edited" }],
-        options_load: [{ limit: 15, order_by: "-last_edited" }],
+        pg_where: [
+          `last_edited >= NOW() - interval '${PROJECTS_CUTOFF}'`,
+          "projects",
+        ],
+        pg_where_load: ["last_edited >= NOW() - interval '7 days'", "projects"],
+        options: [{ limit: PROJECTS_LIMIT, order_by: "-last_edited" }],
+        options_load: [{ limit: 50, order_by: "-last_edited" }],
         pg_changefeed: "projects",
-        throttle_changes: 2000,
+        throttle_changes: THROTTLE_CHANGES,
         fields: {
           project_id: null,
           name: null,
@@ -68,6 +75,8 @@ Table({
           run_quota: null,
           site_license: null,
           status: null,
+          // security model is anybody with access to the project should be allowed to know this token.
+          secret_token: null,
           state: null,
           last_edited: null,
           last_active: null,
@@ -330,6 +339,11 @@ Table({
       render: { type: "json", editable: false },
     },
     notes: NOTES,
+    secret_token: {
+      type: "string",
+      pg_type: "VARCHAR(256)",
+      desc: "Random ephemeral secret token used temporarily by project to authenticate with hub.",
+    },
   },
 });
 
@@ -566,7 +580,6 @@ export interface ProjectStatus {
   "sage_server.pid"?: number; // pid of sage server process
   start_ts?: number; // timestamp, when project server started
   session_id?: string; // unique identifyer
-  secret_token?: string; // long random secret token that is needed to communicate with local_hub
   version?: number; // version number of project code
   disk_MB?: number; // MB of used disk
   installed?: boolean; // whether code is installed
@@ -714,6 +727,9 @@ export interface CreateProjectOptions {
   noPool?: boolean;
   // start running the moment the project is created -- uses more resources, but possibly better user experience
   start?: boolean;
+
+  // admins can specify the project_id - nobody else can -- useful for debugging.
+  project_id?: string;
 }
 
 interface BaseCopyOptions {

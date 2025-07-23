@@ -29,6 +29,7 @@ import { version } from "@cocalc/util/smc-version";
 import { Message } from "./types";
 import writeTextFileToProject from "./write-text-file-to-project";
 import readTextFileFromProject from "./read-text-file-from-project";
+import { jupyter_execute_response } from "@cocalc/util/message";
 
 const logger = getLogger("handle-message-from-hub");
 
@@ -69,13 +70,17 @@ export default async function handleMessage(
     case "project_exec":
       // this is no longer used by web browser clients; however it *is* used by the HTTP api served
       // by the hub to api key users, so do NOT remove it!  E.g., the latex endpoint, the compute
-      // server, etc., use it.   The web browser clients use the websocket api,
+      // server, etc., use it.   The web browser clients use the websocket api.
       exec_shell_code(socket, mesg);
       return;
 
     case "jupyter_execute":
       try {
-        await jupyterExecute(socket, mesg);
+        const outputs = await jupyterExecute(mesg as any);
+        socket.write_mesg(
+          "json",
+          jupyter_execute_response({ id: mesg.id, output: outputs }),
+        );
       } catch (err) {
         socket.write_mesg(
           "json",

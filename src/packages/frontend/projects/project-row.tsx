@@ -19,16 +19,16 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { AddCollaborators } from "@cocalc/frontend/collaborators";
 import {
+  Gap,
   Icon,
   Markdown,
   Paragraph,
   ProjectState,
-  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import {
   compute_image2basename,
-  CUSTOM_IMG_PREFIX,
+  is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import track from "@cocalc/frontend/user-tracking";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
@@ -62,7 +62,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
 
   const actions = useActions("projects");
 
-  function render_add_collab(): JSX.Element | undefined {
+  function render_add_collab(): React.JSX.Element | undefined {
     if (!add_collab) {
       return;
     }
@@ -75,7 +75,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     );
   }
 
-  function render_collab(): JSX.Element {
+  function render_collab(): React.JSX.Element {
     return (
       <div>
         <div
@@ -104,10 +104,10 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   }
 
   // transforms the compute image ID to a human readable string
-  function render_image_name(): JSX.Element | undefined {
+  function render_image_name(): React.JSX.Element | undefined {
     const ci = project.get("compute_image");
     if (ci == null || images == null) return;
-    if (ci.startsWith(CUSTOM_IMG_PREFIX)) {
+    if (is_custom_image(ci)) {
       const id = compute_image2basename(ci);
       const img = images.get(id);
       if (img == null) return;
@@ -270,7 +270,7 @@ export function ProjectAvatarImage(props: ProjectAvatarImageProps) {
     })();
   }, []);
 
-  function renderAdd(): JSX.Element {
+  function renderAdd(): React.JSX.Element {
     if (!askToAddAvatar || onClick == null) return <></>;
     return (
       <Paragraph type="secondary" style={style} onClick={(e) => onClick(e)}>

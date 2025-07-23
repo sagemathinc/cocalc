@@ -11,13 +11,13 @@ TESTING: to run this in development and see logging, call it like that:
 ./src/packages/hub$ env DEBUG_CONSOLE=yes DEBUG=cocalc:debug:db:* pnpm cocalc-hub-delete-projects
 */
 
-const postgres = require("@cocalc/database");
+import * as postgres from "@cocalc/database";
 
 const INTERVAL_H = process.env.INTERVAL_H ?? "4";
 const INTERVAL_MS = parseInt(INTERVAL_H) * 60 * 60 * 1000;
-const db = postgres.db({ ensure_exists: false });
 
 async function update() {
+  const db = postgres.db({ ensure_exists: false });
   console.log("unlinking old deleted projects...");
   try {
     await db.unlink_old_deleted_projects();

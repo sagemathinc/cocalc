@@ -84,7 +84,7 @@ export class IdleClient {
 
     if (NEVER_TIMEOUT_VISIBLE) {
       // If the document is visible right now, then we
-      // reset the idle timeout., just as if the mouse moved.  This means
+      // reset the idle timeout, just as if the mouse moved.  This means
       // that users never get the standby timeout if their current browser
       // tab is considered visible according to the Page Visibility API
       // https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
@@ -110,11 +110,11 @@ export class IdleClient {
       // so that if the user sees the idle banner and immediately
       // dismisses it, then the experience is less disruptive.
       this.delayed_disconnect = setTimeout(() => {
+        this.delayed_disconnect = undefined;
         console.log("Entering standby mode");
         this.standbyMode = true;
         // console.log("idle timeout: disconnect!");
-        this.client.nats_client.standby();
-        this.client.hub_client.disconnect();
+        this.client.conat_client.standby();
         disconnect_from_all_projects();
       }, CHECK_INTERVAL / 2);
     }
@@ -133,8 +133,7 @@ export class IdleClient {
     if (this.standbyMode) {
       this.standbyMode = false;
       console.log("Leaving standby mode");
-      this.client.nats_client.resume();
-      this.client.hub_client.reconnect();
+      this.client.conat_client.resume();
     }
   };
 

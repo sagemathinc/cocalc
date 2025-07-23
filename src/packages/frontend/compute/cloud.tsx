@@ -49,7 +49,7 @@ export default function Cloud({
     return label;
   }
 
-  const options: { value: string; label: JSX.Element; key: string }[] = [];
+  const options: { value: string; label: React.JSX.Element; key: string }[] = [];
   for (const cloud in CLOUDS_BY_NAME) {
     if (customize?.get(`compute_servers_${cloud}_enabled`)) {
       options.push({

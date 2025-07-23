@@ -17,12 +17,7 @@ or Loading... if the file is still being loaded.
 import { Map } from "immutable";
 import { useEffect, useMemo, useRef } from "react";
 import Draggable from "react-draggable";
-import {
-  React,
-  ReactDOM,
-  redux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import SideChat from "@cocalc/frontend/chat/side-chat";
@@ -51,6 +46,7 @@ import { ProjectCollaboratorsPage } from "./project-collaborators";
 import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import getMermaid from "@cocalc/frontend/editors/slate/elements/code-block/get-mermaid";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -175,6 +171,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           path,
           is_visible,
           client: webapp_client,
+          getMermaid,
         };
         return (
           <FileContext.Provider value={value}>
@@ -251,7 +248,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
   chatState,
   component,
 }: EditorContentProps) => {
-  const editor_container_ref = useRef(null);
+  const editor_container_ref = useRef<any>(null);
 
   if (deleted) {
     return <DeletedFile project_id={project_id} path={path} time={deleted} />;
@@ -267,7 +264,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
     />
   );
 
-  let content: JSX.Element;
+  let content: React.JSX.Element;
   if (chatState == "external") {
     // 2-column layout with chat
     content = (
@@ -332,7 +329,7 @@ interface DragBarProps {
 
 const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
   const { project_id, path, editor_container_ref } = props;
-
+  const nodeRef = useRef<any>({});
   const draggable_ref = useRef<any>(null);
 
   const reset = () => {
@@ -346,13 +343,13 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
     if (draggable_ref.current?.state != null) {
       draggable_ref.current.state.x = 0;
     }
-    $(ReactDOM.findDOMNode(draggable_ref.current)).css("transform", "");
+    $(draggable_ref.current).css("transform", "");
   };
 
   const handle_drag_bar_stop = (_, ui) => {
     const clientX = ui.node.offsetLeft + ui.x + $(ui.node).width() + 2;
     drag_stop_iframe_enable();
-    const elt = $(ReactDOM.findDOMNode(editor_container_ref.current));
+    const elt = $(editor_container_ref.current);
     const offset = elt.offset();
     if (offset == null) return;
     const elt_width = elt.width();
@@ -364,6 +361,7 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
 
   return (
     <Draggable
+      nodeRef={nodeRef}
       position={{ x: 0, y: 0 }}
       ref={draggable_ref}
       axis="x"
@@ -372,6 +370,7 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
       defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
     >
       <div
+        ref={nodeRef}
         className="cc-vertical-drag-bar"
         style={IS_TOUCH ? { width: "12px" } : undefined}
       >

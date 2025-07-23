@@ -6,7 +6,6 @@
 import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { MessageInfo } from "@cocalc/frontend/client/hub";
 import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
 import {
   NEW_FILENAMES,
@@ -18,6 +17,7 @@ import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
+import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
 
 // this is incomplete...
 
@@ -58,6 +58,8 @@ export interface AccountState {
     [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
     no_email_new_messages?: boolean;
     use_balance_toward_subscriptions?: boolean;
+    show_symbol_bar_labels?: boolean; // whether to show labels on the menu buttons
+    [ACTIVITY_BAR_LABELS]?: boolean; // whether to show labels on the vertical activity bar
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };
@@ -76,7 +78,6 @@ export interface AccountState {
   reset_key?: string;
   sign_out_error?: string;
   show_sign_out?: boolean;
-  mesg_info?: TypedMap<MessageInfo>;
   hub?: string;
   remember_me?: boolean;
   has_remember_me?: boolean;
@@ -84,7 +85,6 @@ export interface AccountState {
   is_anonymous: boolean;
   is_admin: boolean;
   is_ready: boolean; // user signed in and account settings have been loaded.
-  doing_anonymous_setup?: boolean;
   lti_id?: List<string>;
   created?: Date;
   strategies?: List<TypedMap<PassportStrategyFrontend>>;

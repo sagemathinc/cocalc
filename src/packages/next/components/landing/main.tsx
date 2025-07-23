@@ -4,6 +4,7 @@
  */
 
 import { Breadcrumb, Layout } from "antd";
+import type { JSX } from "react";
 const { Content } = Layout;
 
 interface Props {

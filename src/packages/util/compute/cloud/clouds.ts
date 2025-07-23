@@ -31,7 +31,7 @@ import {
 // if a random default folder is excluded!
 const DEFAULT_EXCLUDE_FROM_SYNC = [] as const;
 
-const GCLOUD_SPOT_DEFAULT = true;
+const GCLOUD_SPOT_DEFAULT = false;
 
 export const GOOGLE_CLOUD_DEFAULTS = {
   cpu: {

@@ -16,7 +16,7 @@ import "@cocalc/frontend/billing/actions";
 
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");
-  const saveRef = useRef<any>();
+  const saveRef = useRef<any>(undefined);
 
   const storeState: {
     showModal?: boolean;
@@ -47,12 +47,12 @@ export default function PayAsYouGoModal({}) {
     actions.setState({ pay_as_you_go: { showModal: false } as any });
   };
 
-  // destroyOnClose so values in quota input get updated
+  // destroyOnHidden so values in quota input get updated
   return (
     <Modal
       width={800}
       zIndex={zIndex}
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false}
       open={storeState.showModal}
       title={

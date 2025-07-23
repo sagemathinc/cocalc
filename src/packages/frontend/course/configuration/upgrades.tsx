@@ -130,7 +130,7 @@ export function StudentProjectUpgrades({
     );
   }
 
-  function render_licenses(site_licenses: SiteLicenses): JSX.Element {
+  function render_licenses(site_licenses: SiteLicenses): React.JSX.Element {
     return (
       <SiteLicensePublicInfoTable
         site_licenses={site_licenses}
@@ -389,7 +389,7 @@ export function StudentProjectUpgrades({
     );
   }
 
-  function render_onprem(): JSX.Element {
+  function render_onprem(): React.JSX.Element {
     return <div>{render_site_license()}</div>;
   }
 
@@ -416,7 +416,7 @@ export function StudentProjectUpgrades({
     }
   }
 
-  function render_body(): JSX.Element {
+  function render_body(): React.JSX.Element {
     if (is_onprem) {
       return render_onprem();
     } else {

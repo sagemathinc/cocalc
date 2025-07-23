@@ -5,7 +5,7 @@
 
 import { ReactNode } from "react";
 
-export function r_human_list(components: ReactNode[]): JSX.Element {
+export function r_human_list(components: ReactNode[]): React.JSX.Element {
   const l = components.filter((c) => c != null);
   const v: ReactNode[] = [];
   for (let i: number = 0; i < l.length; i++) {

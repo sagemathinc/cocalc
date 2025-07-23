@@ -10,7 +10,7 @@ NOTES:
 MOBILE: Antd's Dropdown fully supports *nested* menus, with children.
 This is great on a desktop, but is frequently completely unusable
 on mobile, where the submenu appears off the screen, and is
-hence completely unsable.  Thus on mobile we basically flatten
+hence completely unusable.  Thus on mobile we basically flatten
 then menu so it is still usable.
 
 */
@@ -46,7 +46,7 @@ interface Props {
   id?: string;
   maxHeight?: string;
   style?;
-  title?: JSX.Element | string;
+  title?: React.JSX.Element | string;
   size?;
   mode?: "vertical" | "inline";
   defaultOpen?: boolean;
@@ -109,7 +109,7 @@ export function DropdownMenu({
 
   return (
     <Dropdown
-      destroyPopupOnHide
+      destroyOnHidden
       trigger={["click"]}
       placement={"bottomLeft"}
       menu={{

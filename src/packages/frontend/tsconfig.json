@@ -28,8 +28,9 @@
   "references": [
     { "path": "../comm" },
     { "path": "../jupyter" },
-    { "path": "../nats" },
+    { "path": "../conat" },
     { "path": "../sync" },
     { "path": "../util" }
-  ]
+  ],
+  "types": ["jest", "@testing-library/jest-dom"]
 }

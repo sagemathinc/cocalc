@@ -29,7 +29,7 @@ const ICON_STYLE_LARGE = {
 };
 
 interface Props {
-  name: string | JSX.Element;
+  name: string | React.JSX.Element;
   href?: string;
   on_click?: (ext?: string) => void;
   ext?: string;

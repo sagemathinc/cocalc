@@ -3,6 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// in case daemonizing is hiding key output, set this
+const DEBUG_DAEMON_OUTPUT = false;
+
 import daemonizeProcess from "daemonize-process";
 
 import { init as initBugCounter } from "./bug-counter";
@@ -33,13 +36,17 @@ function checkEnvVariables() {
 }
 
 export async function main() {
-  initBugCounter();
-  checkEnvVariables();
   const options = getOptions();
   if (options.daemon) {
-    logger.info("daemonize the process");
-    daemonizeProcess();
+    logger.info(`daemonize the process pid=${process.pid}`);
+    if (DEBUG_DAEMON_OUTPUT) {
+      daemonizeProcess({ stdio: ["inherit", "inherit", "inherit"] });
+    } else {
+      daemonizeProcess();
+    }
   }
+  initBugCounter();
+  checkEnvVariables();
   cleanupEnvironmentVariables();
   initKucalc(); // must be after cleanupEnvironmentVariables, since this *adds* custom environment variables.
   logger.info("main init function");

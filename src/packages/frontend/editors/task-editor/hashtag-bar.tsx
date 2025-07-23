@@ -77,7 +77,7 @@ export function HashtagBar({
   selected_hashtags,
   style,
 }: Props) {
-  function render_hashtag(tag: string): JSX.Element {
+  function render_hashtag(tag: string): React.JSX.Element {
     return (
       <Hashtag
         key={tag}
@@ -88,8 +88,8 @@ export function HashtagBar({
     );
   }
 
-  function render_hashtags(): JSX.Element[] {
-    const v: [string, JSX.Element][] = [];
+  function render_hashtags(): React.JSX.Element[] {
+    const v: [string, React.JSX.Element][] = [];
     hashtags?.forEach((tag) => {
       v.push([tag, render_hashtag(tag)]);
     });

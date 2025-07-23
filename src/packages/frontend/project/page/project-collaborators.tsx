@@ -4,8 +4,7 @@
  */
 
 import { useIntl } from "react-intl";
-
-import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import AdminWarning from "@cocalc/frontend/project/page/admin-warning";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   AddCollaborators,
@@ -25,7 +24,7 @@ import { ICON_USERS, ROOT_STYLE } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { useProject } from "./common";
 
-export function ProjectCollaboratorsPage(): JSX.Element {
+export function ProjectCollaboratorsPage(): React.JSX.Element {
   const intl = useIntl();
   const { project_id } = useProjectContext();
   const user_map = useTypedRedux("users", "user_map");
@@ -57,15 +56,7 @@ export function ProjectCollaboratorsPage(): JSX.Element {
 
   function renderAdmin() {
     if (group !== "admin") return;
-    return (
-      <Alert bsStyle="warning" style={{ margin: "10px" }}>
-        <h4>
-          <strong>
-            Warning: you are editing the project settings as an administrator.
-          </strong>
-        </h4>
-      </Alert>
-    );
+    return <AdminWarning />;
   }
 
   if (group != "admin" && group != "owner" && project?.get("sandbox")) {

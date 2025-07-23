@@ -56,7 +56,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
     setEditing(next);
   }
 
-  function renderError(): JSX.Element | null {
+  function renderError(): React.JSX.Element | null {
     if (!error) return null;
     return <div style={{ color: "red" }}>{error}</div>;
   }
@@ -78,7 +78,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
     width: "100%",
   };
 
-  function renderMain(): JSX.Element {
+  function renderMain(): React.JSX.Element {
     if (focused) {
       return (
         <textarea

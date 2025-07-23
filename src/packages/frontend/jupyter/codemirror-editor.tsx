@@ -256,7 +256,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const [containerHeight, setContainerHeight] = useState<string | undefined>(
     undefined,
   );
-  const innerDivRef = useRef<any>();
+  const innerDivRef = useRef<any>(undefined);
   useEffect(() => {
     if (canvasScale == null || canvasScale <= 1) return;
     // Used to support embedding cells in a css scaled div, e.g., which

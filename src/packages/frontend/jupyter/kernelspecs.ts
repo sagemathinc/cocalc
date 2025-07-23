@@ -33,7 +33,7 @@ const getKernelSpec = reuseInFlight(
         return spec;
       }
     }
-    const api = webapp_client.nats_client.projectApi({
+    const api = webapp_client.conat_client.projectApi({
       project_id,
       compute_server_id,
       timeout: 7500,

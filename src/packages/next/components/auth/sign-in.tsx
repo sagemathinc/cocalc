@@ -140,10 +140,10 @@ function SignIn0(props: SignInProps) {
         {strategies == null
           ? "Sign in"
           : haveSSO
-          ? requiredSSO != null
-            ? "Sign in using your single sign-on provider"
-            : "Sign in using your email address or a single sign-on provider."
-          : "Sign in using your email address."}
+            ? requiredSSO != null
+              ? "Sign in using your single sign-on provider"
+              : "Sign in using your email address or a single sign-on provider."
+            : "Sign in using your email address."}
       </div>
       <form>
         {haveSSO && (
@@ -194,7 +194,6 @@ function SignIn0(props: SignInProps) {
         {requiredSSO == null && (
           <>
             <Button
-              disabled={signingIn || !email || !(password?.length >= 6)}
               shape="round"
               size="large"
               type="primary"

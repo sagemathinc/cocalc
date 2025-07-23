@@ -55,7 +55,7 @@ const KERNEL_ERROR_STYLE: CSS = {
   margin: "5px",
   color: "white",
   padding: "5px",
-  backgroundColor: COLORS.ATND_BG_RED_M,
+  backgroundColor: COLORS.ANTD_BG_RED_M,
 } as const;
 
 const BACKEND_STATE_STYLE: CSS = {
@@ -364,7 +364,7 @@ export function Kernel({
     );
   }
 
-  function get_kernel_name(): JSX.Element {
+  function get_kernel_name(): React.JSX.Element {
     if (kernel_info != null) {
       const name = kernel_info.get(
         "display_name",

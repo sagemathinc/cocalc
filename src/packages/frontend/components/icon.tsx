@@ -180,6 +180,7 @@ import {
   ShareAltOutlined,
   ShoppingCartOutlined,
   ShrinkOutlined,
+  SignatureOutlined,
   SlidersOutlined,
   SmileOutlined,
   SolutionOutlined,
@@ -200,9 +201,9 @@ import {
   TagsFilled,
   TagsOutlined,
   TagsTwoTone,
-  ToTopOutlined,
   TeamOutlined,
   ThunderboltOutlined,
+  ToTopOutlined,
   ToolOutlined,
   TranslationOutlined,
   UnderlineOutlined,
@@ -594,6 +595,7 @@ const IconSpec = {
   underline: UnderlineOutlined,
   undo: UndoOutlined,
   ungroup: { IconFont: "ungroup" },
+  "signature-outlined": SignatureOutlined,
   swap: SwapOutlined,
   unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
@@ -681,7 +683,9 @@ try {
 } catch (err) {
   // Might as well have option for a graceful fallback, e.g., when
   // used from node.js...
-  console.log(`IconFont not available -- ${err}`);
+  if (!process.env.COCALC_TEST_MODE) {
+    console.log(`IconFont not available -- ${err}`);
+  }
 }
 
 // This used to exceed TypeScript limits, but apparently it is ok now…

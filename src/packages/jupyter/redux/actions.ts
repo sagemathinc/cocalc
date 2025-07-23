@@ -24,7 +24,7 @@ export const MAX_OUTPUT_MESSAGES = 500;
 // start vanishing from output.  Also, this impacts time travel.
 // WARNING: It is *not* at all difficult to hit fairly large sizes, e.g., 50MB+
 // when working with a notebook, by just drawing a bunch of large plots.
-const MAX_BLOB_STORE_SIZE = 100 * 1000000;
+const MAX_BLOB_STORE_SIZE = 100 * 1e6;
 
 declare const localStorage: any;
 
@@ -47,8 +47,8 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
-import { jupyterApiClient } from "@cocalc/nats/service/jupyter";
-import { type AKV, akv } from "@cocalc/nats/sync/akv";
+import { jupyterApiClient } from "@cocalc/conat/service/jupyter";
+import { type AKV, akv } from "@cocalc/conat/sync/akv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const { close, required, defaults } = misc;
@@ -162,8 +162,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return {
       name: `jupyter:${this.path}`,
       project_id: this.project_id,
-      valueType: "binary",
-      limits: {
+      config: {
         max_bytes: MAX_BLOB_STORE_SIZE,
       },
     } as const;
@@ -804,17 +803,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // Make sure syncdb content is all sent to the project.
       // This does not actually save the syncdb file to disk.
       // This "save" means save state to backend.
+      // We save two things -- first the syncdb state:
       await this.syncdb.save();
       if (this._state === "closed") return;
 
+      // Second the .ipynb file state:
       // Export the ipynb file to disk, being careful not to actually
       // save it until the backend actually gets the given version and
       // has processed it!
       const version = this.syncdb.newestVersion();
       try {
-        await this.api({ timeout: 30000 }).save_ipynb_file({ version });
+        await this.api({ timeout: 5 * 60 * 1000 }).save_ipynb_file({ version });
       } catch (err) {
-        console.log(err);
+        console.log(`WARNING: ${err}`);
         throw Error(
           `There was a problem writing the ipynb file to disk -- ${err}`,
         );

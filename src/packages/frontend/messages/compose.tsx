@@ -29,6 +29,7 @@ import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
 import SelectUsers from "./select-users";
 import Zoom from "./zoom";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 export default function Compose({
   onCancel,
@@ -346,7 +347,7 @@ export default function Compose({
           isFocused={bodyIsFocused}
           editorDivRef={editorDivRef}
           getValueRef={getValueRef}
-          saveDebounceMs={200}
+          saveDebounceMs={SAVE_DEBOUNCE_MS}
           value={body}
           onChange={(body) => {
             const syncstring = syncstringRef.current;
@@ -503,7 +504,7 @@ export function ComposeModal() {
   };
   return (
     <Modal
-      destroyOnClose
+      destroyOnHidden
       open={compose}
       styles={{ content: { maxWidth: "1000px", margin: "auto" } }}
       width={"85%"}

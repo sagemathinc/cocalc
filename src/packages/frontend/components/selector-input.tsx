@@ -13,8 +13,8 @@ const { Option } = Select;
 interface Props {
   options:
     | string[]
-    | { value: string; display: JSX.Element | string }[]
-    | { [keys: string]: JSX.Element }
+    | { value: string; display: React.JSX.Element | string }[]
+    | { [keys: string]: React.JSX.Element }
     | Readonly<{ [keys: string]: string }>;
   disabled?: boolean;
   selected?: string;
@@ -44,7 +44,7 @@ export const SelectorInput: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function renderStringArray(options): JSX.Element[] {
+  function renderStringArray(options): React.JSX.Element[] {
     return options.map((val, idx) => (
       <Option key={idx} value={val}>
         {val}
@@ -52,7 +52,7 @@ export const SelectorInput: React.FC<Props> = (props: Props) => {
     ));
   }
 
-  function renderDisplayArray(options): JSX.Element[] {
+  function renderDisplayArray(options): React.JSX.Element[] {
     return options.map((x) => (
       <Option key={x.value} value={x.value}>
         {x.display}
@@ -60,7 +60,7 @@ export const SelectorInput: React.FC<Props> = (props: Props) => {
     ));
   }
 
-  function renderDictionary(options): JSX.Element[] {
+  function renderDictionary(options): React.JSX.Element[] {
     const v = misc.keys(options);
     v.sort();
     return v.map((value) => (
@@ -70,7 +70,7 @@ export const SelectorInput: React.FC<Props> = (props: Props) => {
     ));
   }
 
-  function render_options(): JSX.Element[] {
+  function render_options(): React.JSX.Element[] {
     if (Array.isArray(options)) {
       if (isStringArrayHeuristic(options)) {
         return renderStringArray(options);

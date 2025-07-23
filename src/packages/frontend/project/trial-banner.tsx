@@ -6,6 +6,7 @@
 import { Alert, Modal, Space, Tag, Tooltip } from "antd";
 import humanizeList from "humanize-list";
 import { useInterval } from "react-interval-hook";
+
 import {
   CSS,
   React,
@@ -26,16 +27,16 @@ import {
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
 import {
-  BANNER_NON_DISMISSABLE_DAYS,
+  BANNER_NON_DISMISSIBLE_DAYS,
   EVALUATION_PERIOD_DAYS,
   LICENSE_MIN_PRICE,
 } from "@cocalc/util/consts/billing";
 import { server_time } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
+import { BUY_A_LICENSE_URL, CallToSupport } from "./call-to-support";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { applyLicense } from "./settings/site-license";
-import { CallToSupport, BUY_A_LICENSE_URL } from "./call-to-support";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 
@@ -88,10 +89,7 @@ interface BannerProps {
 }
 
 // string and URLs
-export const NO_INTERNET = "can't install packages or download datasets";
 const NO_HOST = ["expect slower performance"];
-const INET_QUOTA =
-  "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
 const MEMBER_QUOTA =
   "https://doc.cocalc.com/billing.html#what-is-member-hosting";
 // const ADD_LICENSE = "https://doc.cocalc.com/project-settings.html#project-add-license";
@@ -127,22 +125,14 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       projectSiteLicenses.length === 0 && managedLicenses?.size === 0;
     const elevated = projectAgeDays >= EVALUATION_PERIOD_DAYS && no_licenses;
     const expired =
-      projectAgeDays >= BANNER_NON_DISMISSABLE_DAYS && no_licenses;
+      projectAgeDays >= BANNER_NON_DISMISSIBLE_DAYS && no_licenses;
 
     const style = expired
       ? ALERT_STYLE_EXPIRED
       : elevated
-        ? ALERT_STYLE_ELEVATED
-        : ALERT_STYLE;
+      ? ALERT_STYLE_ELEVATED
+      : ALERT_STYLE;
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
-
-    const trial_project = no_licenses ? (
-      <A href={DOC_URL} style={{ ...a_style, paddingRight: ".5em" }}>
-        Hello <Icon name="hand" />
-      </A>
-    ) : (
-      <strong>No upgrades</strong>
-    );
 
     // function renderComputeServer() {
     //   return (
@@ -161,13 +151,16 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     //   );
     // }
 
-    function renderBuyAndUpgrade(text: string = "with a license"): JSX.Element {
+    function renderBuyAndUpgrade(
+      text: string = "with a license",
+      voucherText = "redeem a voucher",
+    ): React.JSX.Element {
       return (
         <>
           <BuyLicenseForProject
             project_id={project_id}
             buyText={text}
-            voucherText={"by redeeming a voucher"}
+            voucherText={voucherText}
             asLink={true}
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
@@ -180,11 +173,11 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       );
     }
 
-    function renderMessage(): JSX.Element | undefined {
+    function renderMessage(): React.JSX.Element | undefined {
       if (allow_run === false) {
         return (
           <span>
-            There are too many free trial projects running right now.
+            There are too many free projects running right now.
             <br />
             Try again later or {renderBuyAndUpgrade()}.
           </span>
@@ -192,16 +185,17 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       }
 
       if (noMemberHosting && noInternet) {
+        const intro = no_licenses ? (
+          <A href={DOC_URL} style={{ ...a_style, paddingRight: ".5em" }}>
+            Hello <Icon name="hand" />
+          </A>
+        ) : (
+          <strong>No upgrades</strong>
+        );
         return (
           <span>
-            {trial_project} You can improve hosting quality and get internet
-            access {/* {renderComputeServer()} */} or {renderBuyAndUpgrade()}.
-            <br />
-            Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
-            {"."}
-            {hasComputeServers && (
-              <>&nbsp; NOTE: Compute servers always have internet access.</>
-            )}
+            {intro}{" "}
+            {renderBuyAndUpgrade("Buy a license")}.
           </span>
         );
       } else if (noMemberHosting) {
@@ -217,36 +211,21 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             {renderBuyAndUpgrade("Buy a license")}
           </span>
         );
-      } else if (noInternet) {
-        return (
-          <span>
-            <strong>No internet access</strong> – upgrade{" "}
-            <A href={INET_QUOTA} style={a_style}>
-              Internet Access
-            </A>{" "}
-            or {NO_INTERNET}
-            {"."}
-            <br />
-            {renderBuyAndUpgrade("Buy a license")}
-            {hasComputeServers && (
-              <>&npsp;NOTE: Compute servers always have internet access.</>
-            )}
-          </span>
-        );
       }
     }
 
-    function renderLearnMore(color): JSX.Element {
+    function renderLearnMore(color): React.JSX.Element {
       const a_style_more = {
         ...a_style,
         ...{ fontWeight: "bold" as "bold", color: color },
       };
       return (
         <>
-          {" – "}
+          {" "}
           <span style={{ fontSize: style.fontSize }}>
+            <Icon name="info-circle" />{" "}
             <A href={DOC_TRIAL} style={a_style_more}>
-              more info
+              Free projects
             </A>
             {"..."}
           </span>
@@ -260,7 +239,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       !noMemberHosting ||
       !noInternet ||
       !no_licenses ||
-      projectAgeDays < BANNER_NON_DISMISSABLE_DAYS;
+      projectAgeDays < BANNER_NON_DISMISSIBLE_DAYS;
 
     // don't show the banner if project is not running.
     // https://github.com/sagemathinc/cocalc/issues/6496
@@ -334,12 +313,64 @@ interface ApplyLicenseProps {
   projectSiteLicenses: string[];
   project_id: string;
   setShowAddLicense: (show: boolean) => void;
+  narrow?: boolean; // if true, then we use a narrower layout
+  licenseAdded?: () => void; // callback when license is added
 }
 
-export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
-  props: ApplyLicenseProps,
-) => {
-  const { projectSiteLicenses, project_id, setShowAddLicense } = props;
+export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = ({
+  projectSiteLicenses,
+  project_id,
+  setShowAddLicense,
+  narrow = false,
+  licenseAdded,
+}: ApplyLicenseProps) => {
+  function renderInput() {
+    return (
+      <SiteLicenseInput
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: "1 0 auto",
+        }}
+        exclude={projectSiteLicenses}
+        onSave={(license_id) => {
+          setShowAddLicense(false);
+          applyLicense({ project_id, license_id });
+          licenseAdded?.();
+        }}
+        onCancel={() => setShowAddLicense(false)}
+        extraButtons={
+          <BuyLicenseForProject project_id={project_id} size={"middle"} />
+        }
+      />
+    );
+  }
+
+  if (narrow) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: "1 0 auto",
+          marginTop: "10px",
+        }}
+      >
+        <div
+          style={{
+            margin: "10px 10px 10px 0",
+            verticalAlign: "bottom",
+            display: "flex",
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Select a license:
+        </div>
+        {renderInput()}
+      </div>
+    );
+  }
 
   // NOTE: we show this dialog even if user does not manage any licenses,
   // because the user could have one via another channel and just wants to add it directly via copy/paste.
@@ -364,22 +395,7 @@ export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
         >
           Select a license:
         </div>
-        <SiteLicenseInput
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: "1 0 auto",
-          }}
-          exclude={projectSiteLicenses}
-          onSave={(license_id) => {
-            setShowAddLicense(false);
-            applyLicense({ project_id, license_id });
-          }}
-          onCancel={() => setShowAddLicense(false)}
-          extraButtons={
-            <BuyLicenseForProject project_id={project_id} size={"middle"} />
-          }
-        />
+        {renderInput()}
       </div>
     </>
   );
@@ -439,7 +455,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         onCancel={() => setShowInfo(false)}
       >
         <Paragraph>
-          <A href={"https://doc.cocalc.com/trial.html"}>Trial projects</A> have
+          <A href={"https://doc.cocalc.com/trial.html"}>Free projects</A> have
           a maximum uptime of {limit_min} minutes. After that period, the
           project will stop and interrupt your work.
         </Paragraph>

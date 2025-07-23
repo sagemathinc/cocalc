@@ -8,7 +8,6 @@ import * as immutable from "immutable";
 import * as _ from "lodash";
 import React from "react";
 import { FormattedMessage } from "react-intl";
-
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -48,8 +47,7 @@ import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
-import { TerminalModeDisplay } from "./file-listing/terminal-mode-display";
-import { default_ext, TERM_MODE_CHAR } from "./file-listing/utils";
+import { default_ext } from "./file-listing/utils";
 import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
@@ -297,7 +295,7 @@ const Explorer0 = rclass(
       this.props.actions.setState({ file_search: "", page_number: 0 });
     };
 
-    render_paging_buttons(num_pages: number): JSX.Element | undefined {
+    render_paging_buttons(num_pages: number): React.JSX.Element | undefined {
       if (num_pages > 1) {
         return (
           <Row>
@@ -556,7 +554,7 @@ const Explorer0 = rclass(
 
     render_control_row(
       visible_listing: ListingItem[] | undefined,
-    ): JSX.Element {
+    ): React.JSX.Element {
       return (
         <div
           style={{
@@ -639,7 +637,7 @@ const Explorer0 = rclass(
       );
     }
 
-    render_project_files_buttons(): JSX.Element {
+    render_project_files_buttons(): React.JSX.Element {
       return (
         <div
           ref={this.miscButtonsRef}
@@ -684,11 +682,6 @@ const Explorer0 = rclass(
           site_name={this.props.site_name}
         />
       );
-    }
-    render_terminal_mode() {
-      if (this.props.file_search[0] === TERM_MODE_CHAR) {
-        return <TerminalModeDisplay />;
-      }
     }
 
     render() {
@@ -753,7 +746,6 @@ const Explorer0 = rclass(
             {this.render_error()}
             {this.render_activity()}
             {this.render_control_row(visible_listing)}
-            {this.render_terminal_mode()}
             {this.props.ext_selection != null && (
               <AskNewFilename project_id={this.props.project_id} />
             )}

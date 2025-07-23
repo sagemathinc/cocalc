@@ -9,7 +9,6 @@ Tabs for the open files in a project.
 
 import type { TabsProps } from "antd";
 import { Tabs } from "antd";
-
 import { useActions } from "@cocalc/frontend/app-framework";
 import {
   renderTabBar,
@@ -21,6 +20,8 @@ import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { file_tab_labels } from "../file-tab-labels";
 import { FileTab } from "./file-tab";
 
+const MIN_WIDTH = 48;
+
 function Label({ path, project_id, label }) {
   const { width } = useItemContext();
   const { active } = useSortable({ id: project_id });
@@ -31,7 +32,11 @@ function Label({ path, project_id, label }) {
       path={path}
       label={label}
       noPopover={active != null}
-      style={width != null ? { width, marginRight: "-10px" } : undefined}
+      style={{
+        ...(width != null
+          ? { width: Math.max(MIN_WIDTH, width + 15), marginRight: "-10px" }
+          : undefined),
+      }}
     />
   );
 }
@@ -143,7 +148,11 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       <Tabs
         animated={false}
         renderTabBar={renderTabBar}
-        tabBarStyle={{ minHeight: "36px" }}
+        tabBarStyle={{
+          minHeight: "36px",
+          background: "#e8e8e8",
+          borderTop: "2px solid lightgrey",
+        }}
         onEdit={onEdit}
         style={{ width: "100%" }}
         size="small"

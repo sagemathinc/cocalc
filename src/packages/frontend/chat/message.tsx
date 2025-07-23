@@ -5,11 +5,10 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Popconfirm, Row, Space } from "antd";
+import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -204,7 +203,7 @@ export default function Message({
   const reverseRowOrdering =
     !is_thread_body && sender_is_viewer(account_id, message);
 
-  const submitMentionsRef = useRef<SubmitMentionsFn>();
+  const submitMentionsRef = useRef<SubmitMentionsFn>(null as any);
 
   const [replying, setReplying] = useState<boolean>(() => {
     if (!allowReply) {
@@ -236,7 +235,7 @@ export default function Message({
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
-  const replyMentionsRef = useRef<SubmitMentionsFn>();
+  const replyMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const is_viewers_message = sender_is_viewer(account_id, message);
   const verb = show_history ? "Hide" : "Show";
@@ -507,7 +506,7 @@ export default function Message({
 
     const feedback = message.getIn(["feedback", account_id]);
     const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
+      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
     const showOtherFeedback = otherFeedback > 0;
 
     return (
@@ -831,14 +830,16 @@ export default function Message({
           >
             <CancelText />
           </Button>
-          <Button
-            onClick={() => {
-              sendReply();
-            }}
-            type="primary"
-          >
-            <Icon name="reply" /> Reply (shift+enter)
-          </Button>
+          <Tooltip title="Send Reply (shift+enter)">
+            <Button
+              onClick={() => {
+                sendReply();
+              }}
+              type="primary"
+            >
+              <Icon name="reply" /> Reply
+            </Button>
+          </Tooltip>
           {costEstimate?.get("date") == replyDate && (
             <LLMCostEstimationChat
               costEstimate={costEstimate?.toJS()}
@@ -942,7 +943,7 @@ export default function Message({
                 )
               }
             >
-              <Icon name="to-top-outlined" /> Fold…
+              <Icon name="vertical-align-middle" /> Fold…
             </Button>
           </Tip>
         )}
@@ -973,7 +974,7 @@ export default function Message({
             type="link"
             block
             style={{ color: "darkblue", textAlign: "center" }}
-            icon={<Icon name="to-top-outlined" rotate="180" />}
+            icon={<Icon name="expand-arrows" />}
           >
             {label}
           </Button>
@@ -1002,13 +1003,7 @@ export default function Message({
               textAlign: "center",
             };
 
-      const iconName = is_folded
-        ? mode === "standalone"
-          ? reverseRowOrdering
-            ? "right-circle-o"
-            : "left-circle-o"
-          : "right-circle-o"
-        : "down-circle-o";
+      const iconName = is_folded ? "expand" : "vertical-align-middle";
 
       const button = (
         <Button
@@ -1060,7 +1055,7 @@ export default function Message({
     }
   }
 
-  function renderCols(): JSX.Element[] | JSX.Element {
+  function renderCols(): React.JSX.Element[] | React.JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
     if (is_folded || (is_thread && is_folded && is_thread_body)) {
       return <></>;

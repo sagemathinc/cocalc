@@ -15,22 +15,19 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 // Some day in the future this might no longer be necessary ... (react 16.13.1)
 
 import $ from "jquery";
-
 import { Spin, Switch, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Set } from "immutable";
 import { debounce } from "lodash";
 import { join } from "path";
 import { useEffect, useRef, useState } from "react";
-
 import {
   change_filename_extension,
   is_different,
   list_alternatives,
   path_split,
 } from "@cocalc/util/misc";
-
-import { CSS, React, ReactDOM, Rendered } from "@cocalc/frontend/app-framework";
+import { CSS, React, Rendered } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import {
   delete_local_storage,
@@ -177,9 +174,9 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     })();
   }, [reload, mode, path, derived_file_types, trust]);
 
-  const rootEl = useRef(null);
-  const iframe = useRef(null);
-  const mounted = useRef(false);
+  const rootEl = useRef<any>(null);
+  const iframe = useRef<any>(null);
+  const mounted = useRef<boolean>(false);
   const scaling = use_font_size_scaling(font_size);
 
   // once after mounting
@@ -211,7 +208,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function init_click_handler(): void {
-    const node = ReactDOM.findDOMNode(iframe.current);
+    const node = iframe.current;
     if (node != null && node.contentDocument != null) {
       node.contentDocument.addEventListener("click", click_iframe);
     }
@@ -219,7 +216,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
 
   function on_scroll(): void {
     if (!mounted.current || !tab_is_visible) return;
-    const elt = ReactDOM.findDOMNode(iframe.current);
+    const elt = iframe.current;
     if (elt == null) return;
     const el = $(elt);
     const scroll = el.contents().scrollTop();
@@ -230,7 +227,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function init_scroll_handler(): void {
-    const node = ReactDOM.findDOMNode(iframe.current);
+    const node = iframe.current;
     if (node != null && node.contentDocument != null) {
       node.contentDocument.addEventListener(
         "scroll",
@@ -242,7 +239,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   function restore_scroll() {
     const scroll: number | undefined = editor_state.get("scroll");
     if (scroll == null) return;
-    let elt = ReactDOM.findDOMNode(iframe.current);
+    let elt = iframe.current;
     if (elt == null) return;
     elt = $(elt);
     elt.contents().scrollTop(scroll);
@@ -299,14 +296,14 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function reload_iframe(): void {
-    const elt = ReactDOM.findDOMNode(iframe.current);
+    const elt = iframe.current;
     if (elt == null || elt.contentDocument == null) return;
     elt.style.opacity = 0;
     elt.contentDocument.location.reload(true);
   }
 
   function set_iframe_style(scaling: number): void {
-    const elt = ReactDOM.findDOMNode(iframe.current);
+    const elt = iframe.current;
     if (elt == null || elt.contentDocument == null) return;
     elt.style.opacity = 1;
     const body = elt.contentDocument.body;

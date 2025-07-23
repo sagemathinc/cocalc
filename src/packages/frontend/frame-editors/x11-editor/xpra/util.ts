@@ -256,7 +256,7 @@ export function generateDigest(
     }
 
     const hmac = forge.hmac.create();
-    hmac.start(hash, password);
+    hmac.start(hash as any, password);
     hmac.update(salt);
 
     return hmac.digest().toHex();

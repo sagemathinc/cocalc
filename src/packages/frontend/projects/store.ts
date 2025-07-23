@@ -2,12 +2,14 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
+
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
+
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
-import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
+import { is_custom_image } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -537,7 +539,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (quotas == null) {
       return undefined;
     }
-    const kind = (quotas.member_host ?? true) ? "member" : "free";
+    const kind = quotas.member_host ?? true ? "member" : "free";
     // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
     const upgraded =
       (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||
@@ -710,10 +712,10 @@ export class ProjectsStore extends Store<ProjectsState> {
     return false;
   }
 
-  public get_projects_with_compute_image(csi: string) : any {
+  public get_projects_with_compute_image(csi: string): any {
     const by_csi = (val) => {
       const ci = val.get("compute_image");
-      if (ci.startsWith(CUSTOM_IMG_PREFIX)) {
+      if (is_custom_image(ci)) {
         return ci.split("/")[1] === csi;
       } else {
         return false;

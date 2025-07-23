@@ -8,10 +8,16 @@ declare let window, document, $;
 
 import * as async from "async";
 import { callback } from "awaiting";
-import { List, Map, Set, fromJS } from "immutable";
+import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
+
+import {
+  computeServerManager,
+  type ComputeServerManager,
+} from "@cocalc/conat/compute/manager";
+import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -51,10 +57,10 @@ import {
 } from "@cocalc/frontend/project/history/types";
 import {
   OpenFileOpts,
+  canonicalPath,
   log_file_open,
   log_opened_time,
   open_file,
-  canonicalPath,
 } from "@cocalc/frontend/project/open-file";
 import { OpenFiles } from "@cocalc/frontend/project/open-files";
 import { FixedTab } from "@cocalc/frontend/project/page/file-tab";
@@ -68,10 +74,8 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "@cocalc/frontend/project/page/flyouts/utils";
-import {
-  VBAR_KEY,
-  getValidVBAROption,
-} from "@cocalc/frontend/project/page/vbar";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
@@ -97,17 +101,14 @@ import {
 } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { retry_until_success } from "@cocalc/util/async-utils";
+import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
-import {
-  computeServerManager,
-  type ComputeServerManager,
-} from "@cocalc/nats/compute/manager";
 
 const { defaults, required } = misc;
 
@@ -281,43 +282,120 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
 } as const;
 
 export class ProjectActions extends Actions<ProjectStoreState> {
+  public state: "ready" | "closed" = "ready";
   public project_id: string;
   private _last_history_state: string;
   private last_close_timer: number;
-  private _activity_indicator_timers: { [key: string]: number };
+  private _activity_indicator_timers: { [key: string]: number } = {};
   private _init_done = false;
-  private new_filename_generator;
-  public open_files?: OpenFiles;
+  private new_filename_generator = new NewFilenames("", false);
   private modal?: ModalInfo;
+
+  // these are all potentially expensive
+  public open_files?: OpenFiles;
   private computeServerManager?: ComputeServerManager;
+  private projectStatusSub?;
 
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
-    this.new_filename_generator = new NewFilenames("", false);
-    this._activity_indicator_timers = {};
     this.open_files = new OpenFiles(this);
-    this.initNatsPermissions();
-    this.initComputeServers();
+    // console.log("create project actions", this.project_id);
+    // console.trace("create project actions", this.project_id)
+    this.expensiveLoop();
   }
+
+  // COST -- there's a lot of code all over that may create project actions,
+  // e.g., when configuring a course with 150 students, then 150 project actions
+  // get created to do various operations.   The big use of project actions
+  // though is when an actual tab is open in the UI with projects.
+  // So we put actions in two states: 'cheap' and 'expensive'.
+  // In the expensive state, there can be compute server changefeeds,
+  // etc.  In the cheap state we close all that.  When the tab is
+  // visibly open in the UI then expensive stuff automatically gets
+  // initialized, and when it is closed, it is destroyed.
+
+  // actually open in the UI?
+  private lastProjectTabs: List<string> = List([]);
+  private lastProjectTabOpenedState = false;
+  isTabOpened = () => {
+    const store = redux.getStore("projects");
+    if (store == null) {
+      return false;
+    }
+    const projectTabs = store.get("open_projects") as List<string> | undefined;
+    if (projectTabs == null) {
+      return false;
+    }
+    if (projectTabs.equals(this.lastProjectTabs)) {
+      return this.lastProjectTabOpenedState;
+    }
+    this.lastProjectTabs = projectTabs;
+    this.lastProjectTabOpenedState = projectTabs.includes(this.project_id);
+    return this.lastProjectTabOpenedState;
+  };
+  isTabClosed = () => !this.isTabOpened();
+
+  private expensiveLoop = async () => {
+    while (this.state != "closed") {
+      if (this.isTabOpened()) {
+        this.initExpensive();
+      } else {
+        this.closeExpensive();
+      }
+      const store = redux.getStore("projects");
+      if (store != null) {
+        await once(store, "change");
+      }
+    }
+  };
+
+  private initialized = false;
+  private initExpensive = () => {
+    if (this.initialized) return;
+    // console.log("initExpensive", this.project_id);
+    this.initialized = true;
+    this.initComputeServerManager();
+    this.initComputeServersTable();
+    this.initProjectStatus();
+    const store = this.get_store();
+    store?.init_table("public_paths");
+  };
+
+  private closeExpensive = () => {
+    if (!this.initialized) return;
+    // console.log("closeExpensive", this.project_id);
+    this.initialized = false;
+    redux.removeProjectReferences(this.project_id);
+    this.closeComputeServerManager();
+    this.closeComputeServerTable();
+    this.projectStatusSub?.close();
+    delete this.projectStatusSub;
+    must_define(this.redux);
+    this.close_all_files();
+    for (const table in QUERIES) {
+      this.remove_table(table);
+    }
+
+    webapp_client.conat_client.closeOpenFiles(this.project_id);
+
+    const store = this.get_store();
+    store?.close_all_tables();
+  };
 
   public async api(): Promise<API> {
     return await webapp_client.project_client.api(this.project_id);
   }
 
   destroy = (): void => {
-    if (this.open_files == null) return;
-    this.closeComputeServers();
-    must_define(this.redux);
-    this.close_all_files();
-    for (const table in QUERIES) {
-      this.remove_table(table);
+    // console.log("destroy project actions", this.project_id);
+    if (this.state == "closed") {
+      return;
     }
-    this.open_files.close();
+    this.closeExpensive();
+    this.open_files?.close();
     delete this.open_files;
-    this.computeServerManager?.close();
-    delete this.computeServerManager;
-    webapp_client.nats_client.closeOpenFiles(this.project_id);
+    this.state = "closed";
   };
 
   private save_session(): void {
@@ -472,8 +550,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
-        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
+        const actBar = account_store?.getIn([
+          "other_settings",
+          ACTIVITY_BAR_KEY,
+        ]);
+        const flyoutsDefault = getValidActivityBarOption(actBar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
@@ -974,6 +1055,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open the given file in this project.
   open_file = async (opts: OpenFileOpts): Promise<void> => {
+    // Log that we *started* opening the file.
+    log_file_open(this.project_id, opts.path);
     await open_file(this, opts);
   };
 
@@ -1017,8 +1100,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ext,
     );
 
-    // Log that we opened the file.
-    log_file_open(this.project_id, path);
     return { name, Editor };
   };
 
@@ -1259,6 +1340,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private touchActiveFileIfOnComputeServer = throttle(async (path: string) => {
+    if (this.state == "closed") {
+      return;
+    }
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     // this is what is currently configured:
@@ -1304,7 +1388,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Closes the file and removes all references.
   // Does not update tabs
-  close_file(path: string): void {
+  close_file = (path: string): void => {
     path = normalize(path);
     const store = this.get_store();
     if (store == undefined) {
@@ -1321,10 +1405,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       component_data.is_public,
     );
     this.save_session();
-  }
+  };
 
   // Makes this project the active project tab
-  foreground_project(change_history = true): void {
+  foreground_project = (change_history = true): void => {
     this._ensure_project_is_open((err) => {
       if (err) {
         // TODO!
@@ -1340,7 +1424,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         );
       }
     });
-  }
+  };
 
   open_directory(path, change_history = true, show_files = true): void {
     path = normalize(path);
@@ -1412,7 +1496,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       most_recent_file_click: undefined,
     });
-    this.fetch_directory_listing({ path });
+
+    store.get_listings().watch(path, true);
   };
 
   setComputeServerId = (compute_server_id: number) => {
@@ -1472,9 +1557,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Update the directory listing cache for the given path.
   // Uses current path if path not provided.
-  async fetch_directory_listing(opts?): Promise<void> {
+  fetch_directory_listing = async (opts?): Promise<void> => {
     await fetchDirectoryListing(this, opts);
-  }
+  };
 
   public async fetch_directory_listing_directly(
     path: string,
@@ -1593,7 +1678,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files?: Set<string>;
+      checked_files?: immutableSet<string>;
       file_action?: string | undefined;
     } = {};
     if (checked) {
@@ -1623,7 +1708,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files: Set<string>;
+      checked_files: immutableSet<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
@@ -1645,7 +1730,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files: Set<string>;
+      checked_files: immutableSet<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
@@ -1938,75 +2023,79 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // retrieve project configuration (capabilities, etc.) from the back-end
   // also return it as a convenience
-  async init_configuration(
-    aspect: ConfigurationAspect = "main",
-    no_cache = false,
-  ): Promise<Configuration | void> {
-    this.setState({ configuration_loading: true });
+  init_configuration = reuseInFlight(
+    async (
+      aspect: ConfigurationAspect = "main",
+      no_cache = false,
+    ): Promise<Configuration | void> => {
+      this.setState({ configuration_loading: true });
 
-    const store = this.get_store();
-    if (store == null) {
-      // console.warn("project_actions::init_configuration: no store");
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      const store = this.get_store();
+      if (store == null) {
+        // console.warn("project_actions::init_configuration: no store");
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    const prev = store.get("configuration") as ProjectConfiguration;
-    if (!no_cache) {
-      // already done before?
-      if (prev != null) {
-        const conf = prev.get(aspect) as Configuration;
-        if (conf != null) {
-          this.setState({ configuration_loading: false });
-          return conf;
+      const prev = store.get("configuration") as ProjectConfiguration;
+      if (!no_cache) {
+        // already done before?
+        if (prev != null) {
+          const conf = prev.get(aspect) as Configuration;
+          if (conf != null) {
+            this.setState({ configuration_loading: false });
+            return conf;
+          }
         }
       }
-    }
 
-    // we do not know the configuration aspect. "next" will be the updated datastructure.
-    let next;
+      // we do not know the configuration aspect. "next" will be the updated datastructure.
+      let next;
 
-    await retry_until_success({
-      f: async () => {
-        try {
-          next = await get_configuration(
-            webapp_client,
-            this.project_id,
-            aspect,
-            prev,
-            no_cache,
-          );
-        } catch (e) {
-          // not implemented error happens, when the project is still the old one
-          // in that case, do as if everything is available
-          if (e.message.indexOf("not implemented") >= 0) {
-            return null;
+      await retry_until_success({
+        f: async () => {
+          try {
+            next = await get_configuration(
+              webapp_client,
+              this.project_id,
+              aspect,
+              prev,
+              no_cache,
+            );
+          } catch (e) {
+            // not implemented error happens, when the project is still the old one
+            // in that case, do as if everything is available
+            if (e.message.indexOf("not implemented") >= 0) {
+              return null;
+            }
+            //             console.log(
+            //               `WARNING -- project_actions::init_configuration err: ${e}`,
+            //             );
+            throw e;
           }
-          // console.log("project_actions::init_configuration err:", e);
-          throw e;
-        }
-      },
-      start_delay: 1000,
-      max_delay: 5000,
-      desc: "project_actions::init_configuration",
-    });
+        },
+        start_delay: 2000,
+        max_delay: 5000,
+        desc: "project_actions::init_configuration",
+      });
 
-    // there was a problem or configuration is not known
-    if (next == null) {
-      this.setState({ configuration_loading: false });
-      return;
-    }
+      // there was a problem or configuration is not known
+      if (next == null) {
+        this.setState({ configuration_loading: false });
+        return;
+      }
 
-    this.setState(
-      fromJS({
-        configuration: next,
-        available_features: feature_is_available(next),
-        configuration_loading: false,
-      } as any),
-    );
+      this.setState(
+        fromJS({
+          configuration: next,
+          available_features: feature_is_available(next),
+          configuration_loading: false,
+        } as any),
+      );
 
-    return next.get(aspect) as Configuration;
-  }
+      return next.get(aspect) as Configuration;
+    },
+  );
 
   // this is called once by the project initialization
   private async init_library() {
@@ -2113,9 +2202,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     misc.retry_until_success({
       f: fetch,
-      start_delay: 1000,
-      max_delay: 10000,
-      max_time: 1000 * 60 * 3, // try for at most 3 minutes
+      start_delay: 15000,
+      max_delay: 30000,
+      max_time: 1000 * 60, // try for at most 3 minutes
       cb: () => {
         _init_library_index_ongoing[this.project_id] = false;
       },
@@ -2361,7 +2450,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         opts0.target_path,
         misc.path_split(src_path).tail,
       );
-      opts0.timeout = 90;
+      opts0.timeout = 90 * 1000;
       try {
         await webapp_client.project_client.copy_path_between_projects(opts0);
         cb();
@@ -2596,11 +2685,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
   // that extension.  Throws an Error if the path name is invalid.
-  public construct_absolute_path(
+  construct_absolute_path = (
     name: string,
     current_path?: string,
     ext?: string,
-  ) {
+  ): string => {
     if (name.length === 0) {
       throw Error("Cannot use empty filename");
     }
@@ -2614,7 +2703,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       s = `${s}.${ext}`;
     }
     return s;
-  }
+  };
 
   async create_folder(opts: {
     name: string;
@@ -2748,6 +2837,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.log({ event: "file_action", action: "created", files: [p] });
+    if (ext) {
+      redux.getActions("account")?.addTag(`create-${ext}`);
+    }
     if (opts.switch_over) {
       this.open_file({
         path: p,
@@ -3038,38 +3130,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  private async neuralSearch(text, path) {
-    try {
-      const scope = `projects/${this.project_id}/files/${path}`;
-      const results = await webapp_client.openai_client.embeddings_search({
-        text,
-        limit: 25,
-        scope,
-      });
-      const search_results: {
-        filename: string;
-        description: string;
-        fragment_id?: FragmentId;
-      }[] = [];
-      for (const result of results) {
-        const url = result.payload["url"] as string | undefined;
-        if (!url) continue;
-        const [filename, fragment_id] = url.slice(scope.length + 1).split("#");
-        const description = result.payload["text"] ?? "";
-        search_results.push({
-          filename: filename[0] == "/" ? filename.slice(1) : filename,
-          description,
-          fragment_id: Fragment.decode(fragment_id),
-        });
-      }
-      this.setState({ search_results });
-    } catch (err) {
-      this.setState({
-        search_error: `${err}`,
-      });
-    }
-  }
-
   search = () => {
     let cmd, ins;
     const store = this.get_store();
@@ -3100,11 +3160,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       hidden_files: store.get("hidden_files"),
       git_grep: store.get("git_grep"),
     });
-
-    if (store.get("neural_search")) {
-      this.neuralSearch(query, path);
-      return;
-    }
 
     // generate the grep command for the given query with the given flags
     if (store.get("case_sensitive")) {
@@ -3289,10 +3344,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
-  }
-
-  close_project_no_internet_warning(): void {
-    this.setState({ internet_warning_closed: true });
   }
 
   set_compute_image = async (compute_image: string): Promise<void> => {
@@ -3504,7 +3555,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setRecentlyDeleted(path, 0);
     (async () => {
       try {
-        const o = await webapp_client.nats_client.openFiles(this.project_id);
+        const o = await webapp_client.conat_client.openFiles(this.project_id);
         o.setNotDeleted(path);
       } catch (err) {
         console.log("WARNING: issue undeleting file", err);
@@ -3512,19 +3563,43 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     })();
   };
 
-  private initComputeServers = () => {
+  private initProjectStatus = async () => {
+    this.projectStatusSub = await getProjectStatus({
+      project_id: this.project_id,
+      compute_server_id: 0,
+    });
+    for await (const mesg of this.projectStatusSub) {
+      const status = mesg.data;
+      this.setState({ status });
+    }
+  };
+
+  private initComputeServersTable = () => {
     // table of information about all the compute servers in this project
     computeServers.init(this.project_id);
+  };
+
+  private closeComputeServerTable = () => {
+    computeServers.close(this.project_id);
+  };
+
+  private initComputeServerManager = () => {
+    // console.log("initComputeServerManager");
+    if (this.state == "closed") {
+      return;
+    }
     // table mapping paths to the id of the compute server it is hosted on
     this.computeServerManager = computeServerManager({
       project_id: this.project_id,
     });
-    this.computeServerManager.on("connected", () => {
-      if (this.computeServerManager == null) {
+    this.computeServerManager.once("connected", () => {
+      if (this.state == "closed" || this.computeServerManager == null) {
         return;
       }
-      const compute_server_ids = this.computeServerManager.getAll() as any;
-      for (let path in compute_server_ids) {
+      const compute_server_ids = {
+        ...this.computeServerManager.getAll(),
+      } as any;
+      for (const path in compute_server_ids) {
         compute_server_ids[path] = compute_server_ids[path].id;
       }
       this.setState({ compute_server_ids });
@@ -3535,23 +3610,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   };
 
-  private initNatsPermissions = async () => {
-    try {
-      await webapp_client.nats_client.addProjectPermissions([this.project_id]);
-    } catch (err) {
-      console.log(
-        `WARNING: issue getting permission to access project ${this.project_id} -- ${err}`,
-      );
+  private closeComputeServerManager = () => {
+    // console.log("closeComputeServerManager");
+    if (this.computeServerManager == null) {
+      return;
     }
-  };
-
-  private closeComputeServers = () => {
-    computeServers.close(this.project_id);
-    this.computeServerManager?.removeListener(
+    this.computeServerManager.removeListener(
       "change",
       this.handleComputeServerManagerChange,
     );
-    this.computeServerManager?.close();
+    this.computeServerManager.close();
     delete this.computeServerManager;
   };
 
@@ -3644,7 +3712,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   projectApi = (opts?) => {
-    return webapp_client.nats_client.projectApi({
+    return webapp_client.conat_client.projectApi({
       ...opts,
       project_id: this.project_id,
     });

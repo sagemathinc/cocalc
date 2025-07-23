@@ -56,7 +56,7 @@ const Element = (props: {
 
   const isInline = editor.isInline(element);
 
-  let children: JSX.Element | null = (
+  let children: React.JSX.Element | null = (
     <Children
       decorations={decorations}
       node={element}

@@ -12,7 +12,8 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest",
+    "test": "pnpm exec jest --forceExit",
+    "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
   "files": ["dist/**", "bin/**", "README.md", "package.json"],
@@ -20,12 +21,11 @@
   "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/nats": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
-    "debug": "^4.4.0",
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
@@ -38,7 +38,6 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.12",
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
     "ts-jest": "^29.2.3"

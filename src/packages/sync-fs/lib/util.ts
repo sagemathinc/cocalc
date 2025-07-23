@@ -1,19 +1,15 @@
-import { dynamicImport } from "tsimportlib";
 import { readdir, rm, writeFile } from "fs/promises";
 import { dirname, join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { compressFrame } from "lz4-napi";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("sync-fs:util").debug;
 
-export async function execa(cmd, args, options?) {
-  log("execa", cmd, "...", args?.slice(-15)?.join(" "), options);
-  const { execa: execa0 } = (await dynamicImport(
-    "execa",
-    module,
-  )) as typeof import("execa");
-  return await execa0(cmd, args, options);
+export async function exec(command: string, args?: string[], options?) {
+  log("exec", command, "...", args?.slice(-15)?.join(" "), options);
+  return await executeCode({ command, args, ...options });
 }
 
 // IMPORTANT: top level hidden subdirectories in path are always ignored, e.g.,
@@ -47,7 +43,7 @@ export async function metadataFile({
   const topPaths = (await readdir(path)).filter(
     (p) => !p.startsWith(".") && !exclude.includes(p),
   );
-  const { stdout } = await execa(
+  const { stdout } = await exec(
     "find",
     topPaths.concat([
       // This '-not -readable -prune -o ' excludes directories that we can read, since there is no possible
@@ -102,7 +98,7 @@ export async function mtimeDirTree({
       "-printf",
       "%p\\0%T@\\0\\0",
     ]);
-    const { stdout } = await execa("find", [...args], {
+    const { stdout } = await exec("find", [...args], {
       cwd: path,
     });
     metadataFile = stdout;

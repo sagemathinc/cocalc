@@ -25,8 +25,8 @@ export type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
 export type OnClick = (opts: ManageCommands & { event? }) => void;
 
 interface PopconfirmOpts {
-  title?: string | IntlMessage | JSX.Element;
-  description?: string | IntlMessage | JSX.Element;
+  title?: string | IntlMessage | React.JSX.Element;
+  description?: string | IntlMessage | React.JSX.Element;
   okText?: string | IntlMessage;
   cancelText?: string | IntlMessage;
 }

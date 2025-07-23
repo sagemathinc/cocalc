@@ -138,7 +138,7 @@ export default function Students({ actions, unit, onClose }: Props) {
     return <BigSpin />;
   }
 
-  let extra: JSX.Element | null = null;
+  let extra: React.JSX.Element | null = null;
 
   if (!!course_server_id && courseServer?.configuration?.cloud == "onprem") {
     extra = (
@@ -166,7 +166,7 @@ export default function Students({ actions, unit, onClose }: Props) {
     }
   }
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   v.push(
     <div
       key="all"
@@ -332,7 +332,7 @@ function StudentControl({
   const server = servers?.[server_id];
   const name = actions.get_store().get_student_name(student.get("student_id"));
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
 
   v.push(
     <Checkbox
@@ -615,7 +615,7 @@ function CommandsOnSelected({
     }
   }
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const command of X) {
     v.push(
       <CommandButton

@@ -149,6 +149,16 @@ export class SortedPatchList extends EventEmitter {
   // with any new information they contain merged in.  Snapshot info
   // also is handled properly.
   add = (patches: Patch[]): void => {
+    //    console.log("add", patches);
+    //     for (let i = 0; i < patches.length; i++) {
+    //       const patch = patches[i];
+    //       if (patch.parents != null && patch.parents.length == 0 && patch.patch) {
+    //         patches = patches.slice(0, i);
+    //         break;
+    //       }
+    //     }
+    //     (window as any).x = { patches };
+
     if (patches.length === 0) {
       // nothing to do
       return;
@@ -253,6 +263,7 @@ export class SortedPatchList extends EventEmitter {
         delete this.versions_cache;
         this.patches = this.patches.concat(newPatches);
         this.patches.sort(patch_cmp);
+        this.emit("change");
       } else {
         // nothing moved from staging to live, so **converged**.
         return;
