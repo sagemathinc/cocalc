@@ -284,11 +284,7 @@ def test(args) -> None:
     success = []
 
     def status():
-        print("Status: ", {
-            "flaky": flaky,
-            "fails": fails,
-            "success": success
-        })
+        print("Status: ", {"flaky": flaky, "fails": fails, "success": success})
 
     v = packages(args)
     v.sort()
@@ -307,11 +303,14 @@ def test(args) -> None:
             print(f"TESTING {n}/{len(v)}: {path}")
             print("*")
             print("*" * 40)
-            cmd("pnpm run --if-present test", package_path)
+            test_cmd = "pnpm run --if-present test"
+            if args.report:
+                test_cmd += " --reporters=default --reporters=jest-junit"
+            cmd(test_cmd, package_path)
             success.append(path)
 
         worked = False
-        for i in range(args.retries+1):
+        for i in range(args.retries + 1):
             try:
                 f()
                 worked = True
@@ -325,7 +324,9 @@ def test(args) -> None:
                 flaky.append(path)
                 print(f"ERROR testing {path}")
                 if args.retries - i >= 1:
-                    print(f"Trying {path} again at most {args.retries - i} more times")
+                    print(
+                        f"Trying {path} again at most {args.retries - i} more times"
+                    )
         if not worked:
             fails.append(path)
 
@@ -577,7 +578,13 @@ def main() -> None:
         "--retries",
         type=int,
         default=2,
-        help="how many times to retry a failed test suite before giving up; set to 0 to NOT retry")
+        help=
+        "how many times to retry a failed test suite before giving up; set to 0 to NOT retry"
+    )
+    subparser.add_argument('--report',
+                           action="store_const",
+                           const=True,
+                           help='if given, generate test reports')
     packages_arg(subparser)
     subparser.set_defaults(func=test)
 
