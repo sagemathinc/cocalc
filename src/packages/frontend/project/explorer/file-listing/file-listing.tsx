@@ -13,7 +13,6 @@ import { useEffect, useRef, useState } from "react";
 import { useInterval } from "react-interval-hook";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   AppRedux,
   Rendered,
@@ -312,25 +311,18 @@ function FileListing0({
           />
         </div>
       )}
-      <Col
-        sm={12}
+      <div
         className="smc-vfill"
         style={{
           flex: "1 0 auto",
-          zIndex: 1,
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {listing.length > 0 && (
-          <ListingHeader
-            active_file_sort={active_file_sort}
-            sort_by={sort_by}
-          />
-        )}
-        {listing.length > 0 && <Row className="smc-vfill">{render_rows()}</Row>}
+        <ListingHeader active_file_sort={active_file_sort} sort_by={sort_by} />
+        {render_rows()}
         {render_no_files()}
-      </Col>
+      </div>
     </>
   );
 }

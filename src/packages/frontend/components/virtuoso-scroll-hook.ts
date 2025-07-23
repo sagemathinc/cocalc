@@ -46,7 +46,7 @@ export default function useVirtuosoScrollHook({
   }, []);
   if (disabled) return {};
   const lastScrollRef = useRef<ScrollState>(
-    initialState ?? { index: 0, offset: 0 }
+    initialState ?? { index: 0, offset: 0 },
   );
   const recordScrollState = useMemo(() => {
     return (state: ScrollState) => {
@@ -64,8 +64,9 @@ export default function useVirtuosoScrollHook({
   }, [onScroll, cacheId]);
 
   return {
+    increaseViewportBy: 2000 /* a lot better default than 0 */,
     initialTopMostItemIndex:
-      (cacheId ? cache.get(cacheId) ?? initialState : initialState) ?? 0,
+      (cacheId ? (cache.get(cacheId) ?? initialState) : initialState) ?? 0,
     scrollerRef: handleScrollerRef,
     onScroll: () => {
       const scrollTop = scrollerRef.current?.scrollTop;
