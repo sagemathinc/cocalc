@@ -5,17 +5,14 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": [
-    "test",
-    "cocalc"
-  ],
+  "keywords": ["test", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
-    "depcheck": "pnpx depcheck --ignores events"
+    "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node,jest-environment-jsdom"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
