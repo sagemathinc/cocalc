@@ -21,7 +21,6 @@ import { List } from "immutable";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, path_split } from "@cocalc/util/misc";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
-import { webapp_client } from "../../webapp-client";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { ViewDocument } from "./view-document";
 import {
@@ -32,8 +31,8 @@ import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
-import { syncdbPath } from "@cocalc/util/jupyter/names";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { until } from "@cocalc/util/async-utils";
 
 const EXTENSION = ".time-travel";
 
@@ -81,7 +80,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   private docpath: string;
   private docext: string;
-  private syncpath: string;
   syncdoc?: SyncDoc;
   private first_load: boolean = true;
   ambient_actions?: CodeEditorActions;
@@ -96,11 +94,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       this.docpath = head + "/" + this.docpath;
     }
     // log("init", { path: this.path });
-    this.syncpath = this.docpath;
     this.docext = filename_extension(this.docpath);
-    if (this.docext == "ipynb") {
-      this.syncpath = syncdbPath(this.docpath);
-    }
     this.setState({
       versions: List([]),
       loading: true,
@@ -118,27 +112,50 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   init_frame_tree = () => {};
 
-  close = (): void => {
-    if (this.syncdoc != null) {
-      this.syncdoc.close();
-      delete this.syncdoc;
-    }
-    super.close();
-  };
-
   set_error = (error) => {
     this.setState({ error });
   };
 
   private init_syncdoc = async (): Promise<void> => {
-    const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
-    this.syncdoc = await webapp_client.sync_client.open_existing_sync_document({
-      project_id: this.project_id,
-      path: this.syncpath,
-      persistent,
+    let mainFileActions: any = null;
+    await until(async () => {
+      if (this.isClosed()) {
+        return true;
+      }
+      mainFileActions = this.redux.getEditorActions(
+        this.project_id,
+        this.docpath,
+      );
+      console.log("mainFileActions", mainFileActions != null);
+      if (mainFileActions == null) {
+        console.log("opening file");
+        // open the file that we're showing timetravel for, so that the
+        // actions are available
+        try {
+          await this.open_file({ foreground: false, explicit: false });
+        } catch (err) {
+          console.warn(err);
+        }
+        // will try again above in the next loop
+        return false;
+      } else {
+        const doc = mainFileActions._syncstring;
+        if (doc == null || doc.get_state() == "closed") {
+          // file is closing
+          return false;
+        }
+        // got it!
+        return true;
+      }
     });
-    if (this.syncdoc == null) return;
-    this.syncdoc.on("change", debounce(this.syncdoc_changed, 1000));
+    if (this.isClosed() || mainFileActions == null) {
+      return;
+    }
+    this.syncdoc = mainFileActions._syncstring;
+
+    if (this.syncdoc == null || this.syncdoc.get_state() == "closed") {
+      return;
+    }
     if (this.syncdoc.get_state() != "ready") {
       try {
         await once(this.syncdoc, "ready");
@@ -146,14 +163,16 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         return;
       }
     }
-    if (this.syncdoc == null) return;
+    this.syncdoc.on("change", debounce(this.syncdoc_changed, 750));
     // cause initial load -- we could be plugging into an already loaded syncdoc,
     // so there wouldn't be any change event, so we have to trigger this.
     this.syncdoc_changed();
     this.syncdoc.on("close", () => {
-      // in our code we don't check if the state is closed, but instead
-      // that this.syncdoc is not null.
+      console.log("in timetravel, syncdoc was closed");
+      // in the actions in this file, we don't check if the state is closed, but instead
+      // that this.syncdoc is not null:
       delete this.syncdoc;
+      this.init_syncdoc();
     });
 
     this.setState({
@@ -289,10 +308,10 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  open_file = async (): Promise<void> => {
+  open_file = async (opts?): Promise<void> => {
     // log("open_file");
     const actions = this.redux.getProjectActions(this.project_id);
-    await actions.open_file({ path: this.docpath, foreground: true });
+    await actions.open_file({ path: this.docpath, foreground: true, ...opts });
   };
 
   // Revert the live version of the document to a specific version */

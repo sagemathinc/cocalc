@@ -8,9 +8,8 @@ Functionality related to Sync.
 */
 
 import { once } from "@cocalc/util/async-utils";
-import { defaults, required } from "@cocalc/util/misc";
 import { SyncDoc, SyncOpts0 } from "@cocalc/sync/editor/generic/sync-doc";
-import { SyncDB, SyncDBOpts0 } from "@cocalc/sync/editor/db";
+import { SyncDBOpts0 } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import {
   synctable,
@@ -20,7 +19,6 @@ import {
   synctable_no_changefeed,
 } from "@cocalc/sync/table";
 import type { AppClient } from "./types";
-import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {
   noCache?: boolean;
@@ -71,146 +69,11 @@ export class SyncClient {
     );
   }
 
-  // These are not working properly, e.g., if you close and open
-  // a LARGE jupyter notebook quickly (so save to disk takes a while),
-  // then it gets broken until browser refresh.  The problem is that
-  // the doc is still closing right when a new one starts being created.
-  // So for now we just revert to the non-cached-here approach.
-  // There is other caching elsewhere.
-
-  //   public sync_string(opts: SyncOpts): SyncString {
-  //     return syncstringCache({ ...opts, client: this.client });
-  //   }
-
-  //   public sync_db(opts: SyncDBOpts): SyncDB {
-  //     return syncdbCache({ ...opts, client: this.client });
-  //   }
-
-  public sync_string(opts: SyncOpts): SyncString {
-    const opts0: SyncOpts0 = defaults(opts, {
-      id: undefined,
-      project_id: required,
-      path: required,
-      file_use_interval: "default",
-      cursors: false,
-      patch_interval: 1000,
-      save_interval: 2000,
-      persistent: false,
-      data_server: undefined,
-      client: this.client,
-      ephemeral: false,
-      fs: undefined,
-    });
-    return new SyncString(opts0);
+  public sync_string(_opts: SyncOpts): SyncString {
+    throw Error("deprecated");
   }
 
-  public sync_db(opts: SyncDBOpts): SyncDoc {
-    const opts0: SyncDBOpts0 = defaults(opts, {
-      id: undefined,
-      project_id: required,
-      path: required,
-      file_use_interval: "default",
-      cursors: false,
-      patch_interval: 1000,
-      save_interval: 2000,
-      change_throttle: undefined,
-      persistent: false,
-      data_server: undefined,
-
-      primary_keys: required,
-      string_cols: [],
-
-      client: this.client,
-
-      ephemeral: false,
-
-      fs: undefined,
-    });
-    return new SyncDB(opts0);
-  }
-
-  public async open_existing_sync_document({
-    project_id,
-    path,
-    data_server,
-    persistent,
-  }: {
-    project_id: string;
-    path: string;
-    data_server?: string;
-    persistent?: boolean;
-  }): Promise<SyncDoc | undefined> {
-    const doctype = await getSyncDocType({
-      project_id,
-      path,
-      client: this.client,
-    });
-    const { type } = doctype;
-    const f = `sync_${type}`;
-    return (this as any)[f]({
-      project_id,
-      path,
-      data_server,
-      persistent,
-      ...doctype.opts,
-    });
+  public sync_db(_opts: SyncDBOpts): SyncDoc {
+    throw Error("deprecated");
   }
 }
-
-/*
-const syncdbCache = refCacheSync<SyncDBOpts, SyncDB>({
-  name: "syncdb",
-
-  createKey: ({ project_id, path }: SyncDBOpts) => {
-    return JSON.stringify({ project_id, path });
-  },
-
-  createObject: (opts: SyncDBOpts) => {
-    const opts0: SyncDBOpts0 = defaults(opts, {
-      id: undefined,
-      project_id: required,
-      path: required,
-      file_use_interval: "default",
-      cursors: false,
-      patch_interval: 1000,
-      save_interval: 2000,
-      change_throttle: undefined,
-      persistent: false,
-      data_server: undefined,
-
-      primary_keys: required,
-      string_cols: [],
-
-      client: required,
-
-      ephemeral: false,
-    });
-    return new SyncDB(opts0);
-  },
-});
-
-const syncstringCache = refCacheSync<SyncOpts, SyncString>({
-  name: "syncstring",
-  createKey: ({ project_id, path }: SyncOpts) => {
-    const key = JSON.stringify({ project_id, path });
-    return key;
-  },
-
-  createObject: (opts: SyncOpts) => {
-    const opts0: SyncOpts0 = defaults(opts, {
-      id: undefined,
-      project_id: required,
-      path: required,
-      file_use_interval: "default",
-      cursors: false,
-      patch_interval: 1000,
-      save_interval: 2000,
-      persistent: false,
-      data_server: undefined,
-      client: required,
-      ephemeral: false,
-    });
-    return new SyncString(opts0);
-  },
-});
-*/
