@@ -1,12 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { fsClient } from "@cocalc/conat/files/fs";
-import { before, after, wait } from "@cocalc/backend/conat/test/setup";
+import { before, after } from "@cocalc/backend/conat/test/setup";
 import { uuid } from "@cocalc/util/misc";
 import {
   createPathFileserver,
   cleanupFileservers,
 } from "@cocalc/backend/conat/files/test/util";
-import { useFiles } from "@cocalc/frontend/project/listing/use-listing";
+import useFiles from "@cocalc/frontend/project/listing/use-files";
 
 beforeAll(before);
 
@@ -41,13 +41,13 @@ describe("the useFiles hook", () => {
       refresh: expect.any(Function),
     });
 
-    // now write a file
+    // now create a file
     await act(async () => {
       await fs.writeFile("hello.txt", "world");
     });
 
     await waitFor(() => {
-      expect(result.current.files["hello.txt"]).toBeDefined();
+      expect(result.current.files?.["hello.txt"]).toBeDefined();
     });
 
     expect(result.current).toEqual({
@@ -68,7 +68,7 @@ describe("the useFiles hook", () => {
     await waitFor(() => {
       expect(result.current.files?.["hello.txt"]).not.toBeDefined();
     });
-    expect(result.current.error.code).toBe("ENOENT");
+    expect(result.current.error?.code).toBe("ENOENT");
 
     await act(async () => {
       // create the path, a file in there, refresh and it works

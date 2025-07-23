@@ -1,16 +1,15 @@
 /*
 A directory listing hook.
+
+TESTS: See packages/test/project/listing/
 */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import useAsyncEffect from "use-async-effect";
-import { throttle } from "lodash";
 import { field_cmp } from "@cocalc/util/misc";
-import { type Files } from "@cocalc/conat/files/listing";
+import useFiles from "./use-files";
 import { type FilesystemClient } from "@cocalc/conat/files/fs";
-
-const DEFAULT_THROTTLE_FILE_UPDATE = 500;
+import { type ConatError } from "@cocalc/conat/core/client";
 
 type SortField = "name" | "mtime" | "size";
 type SortDirection = "inc" | "dec";
@@ -20,17 +19,19 @@ export default function useListing({
   path,
   sortField = "name",
   sortDirection = "inc",
+  throttleUpdate,
 }: {
   fs: FilesystemClient;
   path: string;
   sortField?: SortField;
   sortDirection?: SortDirection;
+  throttleUpdate?: number;
 }): {
   listing: null | DirectoryListingEntry[];
-  error: null | Error;
+  error: null | ConatError;
   refresh: () => void;
 } {
-  const { files, error, refresh } = useFiles({ fs, path });
+  const { files, error, refresh } = useFiles({ fs, path, throttleUpdate });
 
   const listing = useMemo<null | DirectoryListingEntry[]>(() => {
     if (files == null) {
@@ -48,46 +49,4 @@ export default function useListing({
   }, [sortField, sortDirection, files]);
 
   return { listing, error, refresh };
-}
-
-export function useFiles({
-  fs,
-  path,
-  throttleUpdate = DEFAULT_THROTTLE_FILE_UPDATE,
-}: {
-  fs: FilesystemClient;
-  path: string;
-  throttleUpdate?: number;
-}): { files: Files | null; error: null | Error; refresh: () => void } {
-  const [files, setFiles] = useState<Files | null>(null);
-  const [error, setError] = useState<any>(null);
-  const [counter, setCounter] = useState<number>(0);
-
-  useAsyncEffect(async () => {
-    let listing;
-    try {
-      listing = await fs.listing(path);
-      setError(null);
-    } catch (err) {
-      setError(err);
-      setFiles(null);
-      return;
-    }
-
-    const update = () => {
-      setFiles({ ...listing.files });
-    };
-    update();
-
-    listing.on(
-      "change",
-      throttle(update, throttleUpdate, { leading: true, trailing: true }),
-    );
-
-    return () => {
-      listing.close();
-    };
-  }, [fs, path, counter]);
-
-  return { files, error, refresh: () => setCounter(counter + 1) };
 }

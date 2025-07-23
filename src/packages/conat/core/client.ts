@@ -1963,7 +1963,7 @@ export function messageData(
 export type Subscription = EventIterator<Message>;
 
 export class ConatError extends Error {
-  code: string | number;
+  code?: string | number;
   constructor(mesg: string, { code }) {
     super(mesg);
     this.code = code;
@@ -1989,15 +1989,15 @@ function toConatError(socketIoError) {
   }
 }
 
-export function headerToError(headers) {
+export function headerToError(headers): ConatError {
   const err = Error(headers.error);
   if (headers.error_attrs) {
     for (const field in headers.error_attrs) {
       err[field] = headers.error_attrs[field];
     }
   }
-  if (err['code'] === undefined && headers.code) {
-    err['code'] = headers.code;
+  if (err["code"] === undefined && headers.code) {
+    err["code"] = headers.code;
   }
   return err;
 }
