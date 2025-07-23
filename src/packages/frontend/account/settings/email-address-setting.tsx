@@ -73,7 +73,7 @@ export const EmailAddressSetting = ({
       return;
     }
     try {
-      // anonymouse users will get the "welcome" email
+      // anonymous users will get the "welcome" email
       await webapp_client.account_client.send_verification_email(!is_anonymous);
     } catch (error) {
       const err_msg = `Problem sending welcome email: ${error}`;

@@ -11,7 +11,7 @@ import { Table } from "./types";
 export interface LLMLogEntry {
   id: number;
   account_id?: string;
-  analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
+  anonymous_id?: string; // this is saved in analytics_cookie – at least one of anonymous_id or account_id will be set
   expire?: Date;
   history?: History;
   input: string;
