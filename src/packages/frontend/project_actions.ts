@@ -620,9 +620,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (opts.change_history) {
           this.set_url_to_path(store.get("current_path") ?? "", "");
         }
-        if (opts.update_file_listing) {
-          this.fetch_directory_listing();
-        }
         break;
 
       case "new":
@@ -1911,7 +1908,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // returns a function that takes the err and output and
     // does the right activity logging stuff.
     return (err?, output?) => {
-      this.fetch_directory_listing();
       if (err) {
         this.set_activity({ id, error: err });
       } else if (
@@ -1962,7 +1958,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       throw err;
     } finally {
       this.set_activity({ id, stop: "" });
-      this.fetch_directory_listing();
     }
   };
 
@@ -2752,7 +2747,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
-    this.fetch_directory_listing({ path: p, compute_server_id });
     if (switch_over) {
       this.open_directory(p);
     }

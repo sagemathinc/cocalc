@@ -46,12 +46,10 @@ interface Props {
   file_search: string;
   checked_files: immutable.Set<string>;
   current_path: string;
-  create_folder: (switch_over?: boolean) => void; // TODO: should be action!
-  create_file: (ext?: string, switch_over?: boolean) => void; // TODO: should be action!
   selected_file_index?: number;
   project_id: string;
   shift_is_down: boolean;
-  sort_by: (heading: string) => void; // TODO: should be data
+  sort_by: (heading: string) => void;
   library?: object;
   other_settings?: immutable.Map<any, any>;
   last_scroll_top?: number;
@@ -118,8 +116,6 @@ function FileListing0({
   listing,
   checked_files,
   current_path,
-  create_folder,
-  create_file,
   selected_file_index,
   project_id,
   shift_is_down,
@@ -277,8 +273,6 @@ function FileListing0({
         current_path={current_path}
         actions={actions}
         file_search={file_search}
-        create_folder={create_folder}
-        create_file={create_file}
         project_id={project_id}
         configuration_main={configuration_main}
       />
@@ -320,8 +314,7 @@ function FileListing0({
         }}
       >
         <ListingHeader active_file_sort={active_file_sort} sort_by={sort_by} />
-        {render_rows()}
-        {render_no_files()}
+        {listing.length > 0 ? render_rows() : render_no_files()}
       </div>
     </>
   );
