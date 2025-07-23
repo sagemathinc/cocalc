@@ -1,5 +1,12 @@
 import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  rm,
+  readFile,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";
 
@@ -16,6 +23,7 @@ describe("test using the filesystem sandbox to do a few standard things", () => 
     await fs.writeFile("a", "hi");
     const r = await fs.readFile("a", "utf8");
     expect(r).toEqual("hi");
+    expect(fs.unsafeMode).toBe(false);
   });
 
   it("truncate file", async () => {
@@ -163,6 +171,84 @@ describe("test watching a file and a folder in the sandbox", () => {
       done: false,
       value: { eventType: "rename", filename: "z" },
     });
+  });
+});
+
+describe("unsafe mode sandbox", () => {
+  let fs;
+  it("creates and reads file", async () => {
+    await mkdir(join(tempDir, "test-unsafe"));
+    fs = new SandboxedFilesystem(join(tempDir, "test-unsafe"), {
+      unsafeMode: true,
+    });
+    expect(fs.unsafeMode).toBe(true);
+    await fs.writeFile("a", "hi");
+    const r = await fs.readFile("a", "utf8");
+    expect(r).toEqual("hi");
+  });
+
+  it("directly create a dangerous file that is a symlink outside of the sandbox -- this should work", async () => {
+    await writeFile(join(tempDir, "password"), "s3cr3t");
+    await symlink(
+      join(tempDir, "password"),
+      join(tempDir, "test-unsafe", "danger"),
+    );
+    const s = await readFile(join(tempDir, "test-unsafe", "danger"), "utf8");
+    expect(s).toBe("s3cr3t");
+  });
+
+  it("can **UNSAFELY** read the symlink content via the api", async () => {
+    expect(await fs.readFile("danger", "utf8")).toBe("s3cr3t");
+  });
+});
+
+describe("safe mode sandbox", () => {
+  let fs;
+  it("creates and reads file", async () => {
+    await mkdir(join(tempDir, "test-safe"));
+    fs = new SandboxedFilesystem(join(tempDir, "test-safe"), {
+      unsafeMode: false,
+    });
+    expect(fs.unsafeMode).toBe(false);
+    expect(fs.readonly).toBe(false);
+    await fs.writeFile("a", "hi");
+    const r = await fs.readFile("a", "utf8");
+    expect(r).toEqual("hi");
+  });
+
+  it("directly create a dangerous file that is a symlink outside of the sandbox -- this should work", async () => {
+    await writeFile(join(tempDir, "password"), "s3cr3t");
+    await symlink(
+      join(tempDir, "password"),
+      join(tempDir, "test-safe", "danger"),
+    );
+    const s = await readFile(join(tempDir, "test-safe", "danger"), "utf8");
+    expect(s).toBe("s3cr3t");
+  });
+
+  it("cannot read the symlink content via the api", async () => {
+    await expect(async () => {
+      await fs.readFile("danger", "utf8");
+    }).rejects.toThrow("outside of sandbox");
+  });
+});
+
+describe("read only sandbox", () => {
+  let fs;
+  it("creates and reads file", async () => {
+    await mkdir(join(tempDir, "test-ro"));
+    fs = new SandboxedFilesystem(join(tempDir, "test-ro"), {
+      readonly: true,
+    });
+    expect(fs.readonly).toBe(true);
+    await expect(async () => {
+      await fs.writeFile("a", "hi");
+    }).rejects.toThrow("permission denied -- read only filesystem");
+    try {
+      await fs.writeFile("a", "hi");
+    } catch (err) {
+      expect(err.code).toEqual("EACCES");
+    }
   });
 });
 

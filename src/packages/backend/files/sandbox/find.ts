@@ -1,9 +1,11 @@
 import { spawn } from "node:child_process";
+import type { FindOptions, FindExpression } from "@cocalc/conat/files/fs";
+export type { FindOptions, FindExpression };
 
 export default async function find(
   path: string,
   printf: string,
-  timeout?: number,
+  { timeout = 0, recursive, expression }: FindOptions = {},
 ): Promise<{
   // the output as a Buffer (not utf8, since it could have arbitrary file names!)
   stdout: Buffer;
@@ -23,13 +25,25 @@ export default async function find(
     const args = [
       "-P", // Never follow symlinks (security)
       path, // Search path
-      "-maxdepth",
-      "1",
       "-mindepth",
       "1",
-      "-printf",
-      printf,
     ];
+    if (!recursive) {
+      args.push("-maxdepth", "1");
+    }
+
+    // Add expression if provided
+    if (expression) {
+      try {
+        args.push(...buildFindArgs(expression));
+      } catch (error) {
+        reject(error);
+        return;
+      }
+    }
+    args.push("-printf", printf);
+
+    //console.log(`find ${args.join(" ")}`);
 
     // Spawn find with minimal, fixed arguments
     const child = spawn("find", args, {
@@ -80,4 +94,68 @@ export default async function find(
       resolve({ stdout: Buffer.concat(chunks), truncated });
     });
   });
+}
+
+function buildFindArgs(expr: FindExpression): string[] {
+  switch (expr.type) {
+    case "name":
+      // Validate pattern has no path separators
+      if (expr.pattern.includes("/")) {
+        throw new Error("Path separators not allowed in name patterns");
+      }
+      return ["-name", expr.pattern];
+
+    case "iname":
+      if (expr.pattern.includes("/")) {
+        throw new Error("Path separators not allowed in name patterns");
+      }
+      return ["-iname", expr.pattern];
+
+    case "type":
+      return ["-type", expr.value];
+
+    case "size":
+      // Validate size format (e.g., "10M", "1G", "500k")
+      if (!/^[0-9]+[kMGTP]?$/.test(expr.value)) {
+        throw new Error("Invalid size format");
+      }
+      return ["-size", expr.operator + expr.value];
+
+    case "mtime":
+      if (!Number.isInteger(expr.days) || expr.days < 0) {
+        throw new Error("Invalid mtime days");
+      }
+      return ["-mtime", expr.operator + expr.days];
+
+    case "newer":
+      // This is risky - would need to validate file path is within sandbox
+      if (expr.file.includes("..") || expr.file.startsWith("/")) {
+        throw new Error("Invalid reference file path");
+      }
+      return ["-newer", expr.file];
+
+    case "and":
+      return [
+        "(",
+        ...buildFindArgs(expr.left),
+        "-a",
+        ...buildFindArgs(expr.right),
+        ")",
+      ];
+
+    case "or":
+      return [
+        "(",
+        ...buildFindArgs(expr.left),
+        "-o",
+        ...buildFindArgs(expr.right),
+        ")",
+      ];
+
+    case "not":
+      return ["!", ...buildFindArgs(expr.expr)];
+
+    default:
+      throw new Error("Unsupported expression type");
+  }
 }

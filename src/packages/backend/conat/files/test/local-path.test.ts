@@ -313,7 +313,7 @@ describe("use all the standard api functions of fs", () => {
   });
 });
 
-describe("security: dangerous symlinks can't be followed", () => {
+describe("SECURITY CHECKS: dangerous symlinks can't be followed", () => {
   let server;
   let tempDir;
   it("creates the simple fileserver service", async () => {

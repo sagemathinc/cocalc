@@ -7,6 +7,28 @@ import {
 } from "@cocalc/conat/files/watch";
 export const DEFAULT_FILE_SERVICE = "fs";
 
+export interface FindOptions {
+  // timeout is very limited (e.g., 3s?) if fs is running on file
+  // server (not in own project)
+  timeout?: number;
+  // recursive is false by default (unlike actual find command)
+  recursive?: boolean;
+  // see typing below -- we can't just pass arbitrary args since
+  // that would not be secure.
+  expression?: FindExpression;
+}
+
+export type FindExpression =
+  | { type: "name"; pattern: string }
+  | { type: "iname"; pattern: string }
+  | { type: "type"; value: "f" | "d" | "l" }
+  | { type: "size"; operator: "+" | "-"; value: string }
+  | { type: "mtime"; operator: "+" | "-"; days: number }
+  | { type: "newer"; file: string }
+  | { type: "and"; left: FindExpression; right: FindExpression }
+  | { type: "or"; left: FindExpression; right: FindExpression }
+  | { type: "not"; expr: FindExpression };
+
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
   chmod: (path: string, mode: string | number) => Promise<void>;
@@ -38,11 +60,13 @@ export interface Filesystem {
 
   // We add very little to the Filesystem api, but we have to add
   // a sandboxed "find" command, since it is a 1-call way to get
-  // arbitrary directory listing info.
+  // arbitrary directory listing info, which is just not possible
+  // with the fs API, but required in any serious application.
   // find -P {path} -maxdepth 1 -mindepth 1 -printf {printf}
   find: (
     path: string,
     printf: string,
+    options?: FindOptions,
   ) => Promise<{ stdout: Buffer; truncated: boolean }>;
 }
 
@@ -138,8 +162,8 @@ export async function fsServer({ service, fs, client }: Options) {
     async exists(path: string) {
       return await (await fs(this.subject)).exists(path);
     },
-    async find(path: string, printf: string) {
-      return await (await fs(this.subject)).find(path, printf);
+    async find(path: string, printf: string, options?: FindOptions) {
+      return await (await fs(this.subject)).find(path, printf, options);
     },
     async link(existingPath: string, newPath: string) {
       await (await fs(this.subject)).link(existingPath, newPath);

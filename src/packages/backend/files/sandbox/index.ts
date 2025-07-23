@@ -68,18 +68,44 @@ import { join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions } from "@cocalc/conat/files/watch";
-import find from "./find";
+import find, { type FindOptions } from "./find";
 
 // max time a user find request can run -- this can cause excessive
 // load on a server if there were a directory with a massive number of files,
 // so must be limited.
-const FIND_TIMEOUT = 3000;
+const MAX_FIND_TIMEOUT = 3000;
+
+interface Options {
+  // unsafeMode -- if true, assume security model where user is running this
+  // themself, e.g., in a project, so no security is needed at all.
+  unsafeMode?: boolean;
+  // readonly -- only allow operations that don't change files
+  readonly?: boolean;
+}
+
+// If you add any methods below that are NOT for the public api
+// be sure to exclude them here!
+const INTERNAL_METHODS = new Set([
+  "safeAbsPath",
+  "constructor",
+  "path",
+  "unsafeMode",
+  "readonly",
+  "assertWritable",
+]);
 
 export class SandboxedFilesystem {
-  // path should be the path to a FOLDER on the filesystem (not a file)
-  constructor(public readonly path: string) {
+  public readonly unsafeMode: boolean;
+  public readonly readonly: boolean;
+  constructor(
+    // path should be the path to a FOLDER on the filesystem (not a file)
+    public readonly path: string,
+    { unsafeMode = false, readonly = false }: Options = {},
+  ) {
+    this.unsafeMode = !!unsafeMode;
+    this.readonly = !!readonly;
     for (const f in this) {
-      if (f == "safeAbsPath" || f == "constructor" || f == "path") {
+      if (INTERNAL_METHODS.has(f)) {
         continue;
       }
       const orig = this[f];
@@ -99,12 +125,26 @@ export class SandboxedFilesystem {
     }
   }
 
+  private assertWritable = (path: string) => {
+    if (this.readonly) {
+      throw new SandboxError(
+        `EACCES: permission denied -- read only filesystem, open '${path}'`,
+        { errno: -13, code: "EACCES", syscall: "open", path },
+      );
+    }
+  };
+
   safeAbsPath = async (path: string): Promise<string> => {
     if (typeof path != "string") {
       throw Error(`path must be a string but is of type ${typeof path}`);
     }
     // pathInSandbox is *definitely* a path in the sandbox:
     const pathInSandbox = join(this.path, resolve("/", path));
+
+    if (this.unsafeMode) {
+      // not secure -- just convenient.
+      return pathInSandbox;
+    }
     // However, there is still one threat, which is that it could
     // be a path to an existing link that goes out of the sandbox. So
     // we resolve to the realpath:
@@ -128,10 +168,12 @@ export class SandboxedFilesystem {
   };
 
   appendFile = async (path: string, data: string | Buffer, encoding?) => {
+    this.assertWritable(path);
     return await appendFile(await this.safeAbsPath(path), data, encoding);
   };
 
   chmod = async (path: string, mode: string | number) => {
+    this.assertWritable(path);
     await chmod(await this.safeAbsPath(path), mode);
   };
 
@@ -140,10 +182,12 @@ export class SandboxedFilesystem {
   };
 
   copyFile = async (src: string, dest: string) => {
+    this.assertWritable(dest);
     await copyFile(await this.safeAbsPath(src), await this.safeAbsPath(dest));
   };
 
   cp = async (src: string, dest: string, options?) => {
+    this.assertWritable(dest);
     await cp(
       await this.safeAbsPath(src),
       await this.safeAbsPath(dest),
@@ -158,12 +202,22 @@ export class SandboxedFilesystem {
   find = async (
     path: string,
     printf: string,
+    options?: FindOptions,
   ): Promise<{ stdout: Buffer; truncated: boolean }> => {
-    return await find(await this.safeAbsPath(path), printf, FIND_TIMEOUT);
+    options = { ...options };
+    if (
+      !this.unsafeMode &&
+      (!options.timeout || options.timeout > MAX_FIND_TIMEOUT)
+    ) {
+      options.timeout = MAX_FIND_TIMEOUT;
+    }
+
+    return await find(await this.safeAbsPath(path), printf, options);
   };
 
   // hard link
   link = async (existingPath: string, newPath: string) => {
+    this.assertWritable(newPath);
     return await link(
       await this.safeAbsPath(existingPath),
       await this.safeAbsPath(newPath),
@@ -175,6 +229,7 @@ export class SandboxedFilesystem {
   };
 
   mkdir = async (path: string, options?) => {
+    this.assertWritable(path);
     await mkdir(await this.safeAbsPath(path), options);
   };
 
@@ -192,6 +247,7 @@ export class SandboxedFilesystem {
   };
 
   rename = async (oldPath: string, newPath: string) => {
+    this.assertWritable(oldPath);
     await rename(
       await this.safeAbsPath(oldPath),
       await this.safeAbsPath(newPath),
@@ -199,10 +255,12 @@ export class SandboxedFilesystem {
   };
 
   rm = async (path: string, options?) => {
+    this.assertWritable(path);
     await rm(await this.safeAbsPath(path), options);
   };
 
   rmdir = async (path: string, options?) => {
+    this.assertWritable(path);
     await rmdir(await this.safeAbsPath(path), options);
   };
 
@@ -211,6 +269,7 @@ export class SandboxedFilesystem {
   };
 
   symlink = async (target: string, path: string) => {
+    this.assertWritable(target);
     return await symlink(
       await this.safeAbsPath(target),
       await this.safeAbsPath(path),
@@ -218,10 +277,12 @@ export class SandboxedFilesystem {
   };
 
   truncate = async (path: string, len?: number) => {
+    this.assertWritable(path);
     await truncate(await this.safeAbsPath(path), len);
   };
 
   unlink = async (path: string) => {
+    this.assertWritable(path);
     await unlink(await this.safeAbsPath(path));
   };
 
@@ -230,6 +291,7 @@ export class SandboxedFilesystem {
     atime: number | string | Date,
     mtime: number | string | Date,
   ) => {
+    this.assertWritable(path);
     await utimes(await this.safeAbsPath(path), atime, mtime);
   };
 
@@ -257,6 +319,21 @@ export class SandboxedFilesystem {
   };
 
   writeFile = async (path: string, data: string | Buffer) => {
+    this.assertWritable(path);
     return await writeFile(await this.safeAbsPath(path), data);
   };
+}
+
+export class SandboxError extends Error {
+  code: string;
+  errno: number;
+  syscall: string;
+  path: string;
+  constructor(mesg: string, { code, errno, syscall, path }) {
+    super(mesg);
+    this.code = code;
+    this.errno = errno;
+    this.syscall = syscall;
+    this.path = path;
+  }
 }
