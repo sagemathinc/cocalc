@@ -3,11 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "antd";
 import * as immutable from "immutable";
 import * as _ from "lodash";
 import React from "react";
-import { FormattedMessage } from "react-intl";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -24,7 +22,6 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
-  Paragraph,
   SettingBox,
 } from "@cocalc/frontend/components";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
@@ -45,7 +42,6 @@ import { useProjectContext } from "../context";
 import { AccessErrors } from "./access-errors";
 import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
-import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
 import { MiscSideButtons } from "./misc-side-buttons";
@@ -432,117 +428,45 @@ const Explorer0 = rclass(
       return <AccessErrors is_logged_in={!!this.props.is_logged_in} />;
     }
 
-    render_file_listing(
-      listing: ListingItem[] | undefined,
-      file_map,
-      fetch_directory_error: any,
-      project_is_running: boolean,
-    ) {
-      if (fetch_directory_error) {
-        return (
-          <div>
-            <FetchDirectoryErrors
-              error={fetch_directory_error}
-              path={this.props.current_path}
-              quotas={this.props.get_total_project_quotas(
-                this.props.project_id,
-              )}
-              is_logged_in={!!this.props.is_logged_in}
-            />
-            <br />
-            <Button
-              onClick={() =>
-                this.props.actions.fetch_directory_listing({
-                  force: true,
-                  path: this.props.current_path,
-                })
-              }
-            >
-              <Icon name="refresh" /> Try again to get directory listing
-            </Button>
-          </div>
-        );
-      } else if (listing != undefined) {
-        return (
-          <FileUploadWrapper
+    render_file_listing() {
+      return (
+        <FileUploadWrapper
+          project_id={this.props.project_id}
+          dest_path={this.props.current_path}
+          event_handlers={{
+            complete: () => this.props.actions.fetch_directory_listing(),
+          }}
+          config={{ clickable: ".upload-button" }}
+          style={{
+            flex: "1 0 auto",
+            display: "flex",
+            flexDirection: "column",
+          }}
+          className="smc-vfill"
+        >
+          <FileListing
+            name={this.props.name}
+            active_file_sort={this.props.active_file_sort}
+            file_search={this.props.file_search}
+            checked_files={this.props.checked_files}
+            current_path={this.props.current_path}
+            actions={this.props.actions}
+            create_file={this.create_file}
+            create_folder={this.create_folder}
+            selected_file_index={this.props.selected_file_index}
             project_id={this.props.project_id}
-            dest_path={this.props.current_path}
-            event_handlers={{
-              complete: () => this.props.actions.fetch_directory_listing(),
-            }}
-            config={{ clickable: ".upload-button" }}
-            style={{
-              flex: "1 0 auto",
-              display: "flex",
-              flexDirection: "column",
-            }}
-            className="smc-vfill"
-          >
-            <FileListing
-              isRunning={project_is_running}
-              name={this.props.name}
-              active_file_sort={this.props.active_file_sort}
-              listing={listing}
-              file_map={file_map}
-              file_search={this.props.file_search}
-              checked_files={this.props.checked_files}
-              current_path={this.props.current_path}
-              actions={this.props.actions}
-              create_file={this.create_file}
-              create_folder={this.create_folder}
-              selected_file_index={this.props.selected_file_index}
-              project_id={this.props.project_id}
-              shift_is_down={this.state.shift_is_down}
-              sort_by={this.props.actions.set_sorted_file_column}
-              other_settings={this.props.other_settings}
-              library={this.props.library}
-              redux={redux}
-              last_scroll_top={this.props.file_listing_scroll_top}
-              configuration_main={this.props.configuration?.get("main")}
-            />
-          </FileUploadWrapper>
-        );
-      } else {
-        if (project_is_running) {
-          // ensure directory listing starts getting computed.
-          redux.getProjectStore(this.props.project_id).get_listings();
-          return (
-            <div style={{ textAlign: "center" }}>
-              <Loading theme={"medium"} />
-            </div>
-          );
-        } else {
-          return (
-            <Alert
-              type="warning"
-              icon={<Icon name="ban" />}
-              style={{ textAlign: "center" }}
-              showIcon
-              description={
-                <Paragraph>
-                  <FormattedMessage
-                    id="project.explorer.start_project.warning"
-                    defaultMessage={`In order to see the files in this directory, you have to <a>start this project</a>.`}
-                    values={{
-                      a: (c) => (
-                        <a
-                          onClick={() => {
-                            redux
-                              .getActions("projects")
-                              .start_project(this.props.project_id);
-                          }}
-                        >
-                          {c}
-                        </a>
-                      ),
-                    }}
-                  />
-                </Paragraph>
-              }
-            />
-          );
-        }
-      }
+            shift_is_down={this.state.shift_is_down}
+            sort_by={this.props.actions.set_sorted_file_column}
+            other_settings={this.props.other_settings}
+            library={this.props.library}
+            redux={redux}
+            last_scroll_top={this.props.file_listing_scroll_top}
+            configuration_main={this.props.configuration?.get("main")}
+            show_hidden={this.props.show_hidden}
+            show_masked={this.props.show_masked}
+          />
+        </FileUploadWrapper>
+      );
     }
 
     file_listing_page_size() {
@@ -714,7 +638,6 @@ const Explorer0 = rclass(
 
       const displayed_listing = this.props.displayed_listing;
       const { listing, file_map } = displayed_listing;
-      const directory_error = displayed_listing.error;
 
       const file_listing_page_size = this.file_listing_page_size();
       if (listing != undefined) {
@@ -786,17 +709,7 @@ const Explorer0 = rclass(
               padding: "0 5px 5px 5px",
             }}
           >
-            {this.render_file_listing(
-              visible_listing,
-              file_map,
-              directory_error,
-              project_is_running,
-            )}
-            {listing != undefined
-              ? this.render_paging_buttons(
-                  Math.ceil(listing.length / file_listing_page_size),
-                )
-              : undefined}
+            {this.render_file_listing()}
           </div>
           <ExplorerTour
             open={this.props.explorerTour}

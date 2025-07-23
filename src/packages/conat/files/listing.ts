@@ -2,23 +2,44 @@
 Directory Listing
 
 Tests in packages/backend/conat/files/test/listing.test.ts
+
+
 */
 
 import { EventEmitter } from "events";
 import { join } from "path";
-import { type Filesystem } from "./fs";
+import { type FilesystemClient } from "./fs";
 import { EventIterator } from "@cocalc/util/event-iterator";
+
+export type FileTypeLabel = "f" | "d" | "l" | "b" | "c" | "s" | "p";
+
+export const typeDescription = {
+  f: "regular file",
+  d: "directory",
+  l: "symlink",
+  b: "block device",
+  c: "character device",
+  s: "socket",
+  p: "fifo",
+};
 
 interface FileData {
   mtime: number;
   size: number;
+  // isdir = mainly for backward compat:
+  isdir?: boolean;
+  // issymlink = mainly for backward compat:
+  issymlink?: boolean;
+  link_target?: string;
+  // see typeDescription above.
+  type?: FileTypeLabel;
 }
 
 export type Files = { [name: string]: FileData };
 
 interface Options {
   path: string;
-  fs: Filesystem;
+  fs: FilesystemClient;
 }
 
 export default async function listing(opts: Options): Promise<Listing> {
@@ -48,6 +69,7 @@ export class Listing extends EventEmitter {
 
   close = () => {
     this.emit("closed");
+    this.removeAllListeners();
     this.iters.map((iter) => iter.end());
     this.iters.length = 0;
     this.watch?.close();
@@ -80,11 +102,26 @@ export class Listing extends EventEmitter {
       return;
     }
     try {
-      const stats = await this.opts.fs.stat(join(this.opts.path, filename));
+      const stats = await this.opts.fs.lstat(join(this.opts.path, filename));
       if (this.files == null) {
         return;
       }
-      this.files[filename] = { mtime: stats.mtimeMs, size: stats.size };
+      const data: FileData = {
+        mtime: stats.mtimeMs / 1000,
+        size: stats.size,
+        type: stats.type,
+      };
+      if (stats.isSymbolicLink()) {
+        // resolve target.
+        data.link_target = await this.opts.fs.readlink(
+          join(this.opts.path, filename),
+        );
+        data.issymlink = true;
+      }
+      if (stats.isDirectory()) {
+        data.isdir = true;
+      }
+      this.files[filename] = data;
     } catch (err) {
       if (this.files == null) {
         return;
@@ -106,10 +143,13 @@ export class Listing extends EventEmitter {
 }
 
 async function getListing(
-  fs: Filesystem,
+  fs: FilesystemClient,
   path: string,
 ): Promise<{ files: Files; truncated: boolean }> {
-  const { stdout, truncated } = await fs.find(path, "%f\\0%T@\\0%s\n");
+  const { stdout, truncated } = await fs.find(
+    path,
+    "%f\\0%T@\\0%s\\0%y\\0%l\n",
+  );
   const buf = Buffer.from(stdout);
   const files: Files = {};
   // todo -- what about non-utf8...?
@@ -122,9 +162,18 @@ async function getListing(
     try {
       const v = line.split("\0");
       const name = v[0];
-      const mtime = parseFloat(v[1]) * 1000;
+      const mtime = parseFloat(v[1]);
       const size = parseInt(v[2]);
-      files[name] = { mtime, size };
+      files[name] = { mtime, size, type: v[3] as FileTypeLabel };
+      if (v[3] == "l") {
+        files[name].issymlink = true;
+      }
+      if (v[3] == "d") {
+        files[name].isdir = true;
+      }
+      if (v[4]) {
+        files[name].link_target = v[4];
+      }
     } catch {}
   }
   return { files, truncated };

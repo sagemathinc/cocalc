@@ -50,6 +50,7 @@ import {
   lstat,
   readdir,
   readFile,
+  readlink,
   realpath,
   rename,
   rm,
@@ -239,6 +240,10 @@ export class SandboxedFilesystem {
 
   readdir = async (path: string): Promise<string[]> => {
     return await readdir(await this.safeAbsPath(path));
+  };
+
+  readlink = async (path: string): Promise<string> => {
+    return await readlink(await this.safeAbsPath(path));
   };
 
   realpath = async (path: string): Promise<string> => {

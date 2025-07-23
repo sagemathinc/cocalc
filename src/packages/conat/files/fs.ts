@@ -5,7 +5,7 @@ import {
   watchClient,
   type WatchIterator,
 } from "@cocalc/conat/files/watch";
-import listing, { type Listing } from "./listing";
+import listing, { type Listing, type FileTypeLabel } from "./listing";
 
 export const DEFAULT_FILE_SERVICE = "fs";
 
@@ -43,6 +43,7 @@ export interface Filesystem {
   mkdir: (path: string, options?) => Promise<void>;
   readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
   readdir: (path: string) => Promise<string[]>;
+  readlink: (path: string) => Promise<string>;
   realpath: (path: string) => Promise<string>;
   rename: (oldPath: string, newPath: string) => Promise<void>;
   rm: (path: string, options?) => Promise<void>;
@@ -135,6 +136,26 @@ class Stats {
 
   isSocket = () =>
     (this.mode & this.constants.S_IFMT) === this.constants.S_IFSOCK;
+
+  get type(): FileTypeLabel {
+    switch (this.mode & this.constants.S_IFMT) {
+      case this.constants.S_IFLNK:
+        return "l";
+      case this.constants.S_IFREG:
+        return "f";
+      case this.constants.S_IFDIR:
+        return "d";
+      case this.constants.S_IFBLK:
+        return "b";
+      case this.constants.S_IFCHR:
+        return "c";
+      case this.constants.S_IFSOCK:
+        return "s";
+      case this.constants.S_IFIFO:
+        return "p";
+    }
+    return "f";
+  }
 }
 
 interface Options {
@@ -183,6 +204,9 @@ export async function fsServer({ service, fs, client }: Options) {
     },
     async readdir(path: string) {
       return await (await fs(this.subject)).readdir(path);
+    },
+    async readlink(path: string) {
+      return await (await fs(this.subject)).readlink(path);
     },
     async realpath(path: string) {
       return await (await fs(this.subject)).realpath(path);
@@ -252,8 +276,10 @@ export async function fsServer({ service, fs, client }: Options) {
   };
 }
 
-export type FilesystemClient = Filesystem & {
+export type FilesystemClient = Omit<Omit<Filesystem, "stat">, "lstat"> & {
   listing: (path: string) => Promise<Listing>;
+  stat: (path: string) => Promise<Stats>;
+  lstat: (path: string) => Promise<Stats>;
 };
 
 export function fsClient({

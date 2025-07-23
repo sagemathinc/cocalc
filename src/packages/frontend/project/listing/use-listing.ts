@@ -11,8 +11,8 @@ import useFiles from "./use-files";
 import { type FilesystemClient } from "@cocalc/conat/files/fs";
 import { type ConatError } from "@cocalc/conat/core/client";
 
-type SortField = "name" | "mtime" | "size";
-type SortDirection = "asc" | "desc";
+export type SortField = "name" | "mtime" | "size" | "type";
+export type SortDirection = "asc" | "desc";
 
 export default function useListing({
   fs,
@@ -21,7 +21,8 @@ export default function useListing({
   sortDirection = "asc",
   throttleUpdate,
 }: {
-  fs: FilesystemClient;
+  // fs = undefined is supported and just waits until you provide a fs that is defined
+  fs?: FilesystemClient | null;
   path: string;
   sortField?: SortField;
   sortDirection?: SortDirection;
@@ -41,7 +42,12 @@ export default function useListing({
     for (const name in files) {
       v.push({ name, ...files[name] });
     }
-    if (sortField != "name" && sortField != "mtime" && sortField != "size") {
+    if (
+      sortField != "name" &&
+      sortField != "mtime" &&
+      sortField != "size" &&
+      sortField != "type"
+    ) {
       console.warn(`invalid sort field: '${sortField}'`);
     }
     v.sort(field_cmp(sortField));

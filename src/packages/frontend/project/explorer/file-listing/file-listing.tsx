@@ -7,13 +7,12 @@
 
 // cSpell:ignore issymlink
 
-import { Alert, Spin } from "antd";
+import { Spin } from "antd";
 import * as immutable from "immutable";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useInterval } from "react-interval-hook";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   AppRedux,
@@ -31,6 +30,11 @@ import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
 import { TERM_MODE_CHAR } from "./utils";
+import ShowError from "@cocalc/frontend/components/error";
+import useFs from "@cocalc/frontend/project/listing/use-fs";
+import useListing, {
+  type SortField,
+} from "@cocalc/frontend/project/listing/use-listing";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -40,7 +44,6 @@ interface Props {
   name: string;
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   listing: any[];
-  file_map: object;
   file_search: string;
   checked_files: immutable.Set<string>;
   current_path: string;
@@ -55,6 +58,11 @@ interface Props {
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
+
+  show_hidden?: boolean;
+  show_masked?: boolean;
+
+  stale?: boolean;
 }
 
 export function watchFiles({ actions, current_path }): void {
@@ -67,13 +75,48 @@ export function watchFiles({ actions, current_path }): void {
   }
 }
 
-export const FileListing: React.FC<Props> = ({
+function sortDesc(active_file_sort?): {
+  sortField: SortField;
+  sortDirection: "asc" | "desc";
+} {
+  const { column_name, is_descending } = active_file_sort?.toJS() ?? {
+    column_name: "name",
+    is_descending: false,
+  };
+  if (column_name == "time") {
+    return {
+      sortField: "mtime",
+      sortDirection: is_descending ? "asc" : "desc",
+    };
+  }
+  return {
+    sortField: column_name,
+    sortDirection: is_descending ? "desc" : "asc",
+  };
+}
+
+export function FileListing(props) {
+  const fs = useFs({ project_id: props.project_id });
+  const { listing, error } = useListing({
+    fs,
+    path: props.current_path,
+    ...sortDesc(props.active_file_sort),
+  });
+  if (error) {
+    return <ShowError error={error} />;
+  }
+  if (listing == null) {
+    return <Spin delay={500} />;
+  }
+  return <FileListing0 {...{ ...props, listing }} />;
+}
+
+function FileListing0({
   actions,
   redux,
   name,
   active_file_sort,
   listing,
-  file_map,
   checked_files,
   current_path,
   create_folder,
@@ -85,8 +128,16 @@ export const FileListing: React.FC<Props> = ({
   configuration_main,
   file_search = "",
   isRunning,
-}: Props) => {
-  const [starting, setStarting] = useState<boolean>(false);
+  show_hidden,
+  stale,
+  // show_masked,
+}: Props) {
+  if (!show_hidden) {
+    listing = listing.filter((x) => !x.name.startsWith("."));
+  }
+  if (file_search) {
+    listing = listing.filter((x) => x.name.includes(file_search));
+  }
 
   const prev_current_path = usePrevious(current_path);
 
@@ -135,7 +186,6 @@ export const FileListing: React.FC<Props> = ({
   ): Rendered {
     const checked = checked_files.has(misc.path_to_file(current_path, name));
     const color = misc.rowBackground({ index, checked });
-    const { is_public } = file_map[name];
 
     return (
       <FileRow
@@ -143,7 +193,7 @@ export const FileListing: React.FC<Props> = ({
         name={name}
         display_name={display_name}
         time={time}
-        size={size}
+        size={isdir ? undefined : size}
         issymlink={issymlink}
         color={color}
         selected={
@@ -151,7 +201,7 @@ export const FileListing: React.FC<Props> = ({
         }
         mask={mask}
         public_data={public_data}
-        is_public={is_public}
+        is_public={false}
         checked={checked}
         key={index}
         current_path={current_path}
@@ -188,7 +238,7 @@ export const FileListing: React.FC<Props> = ({
     return (
       <Virtuoso
         ref={virtuosoRef}
-        increaseViewportBy={10}
+        increaseViewportBy={2000}
         totalCount={listing.length}
         itemContent={(index) => {
           const a = listing[index];
@@ -236,44 +286,9 @@ export const FileListing: React.FC<Props> = ({
     );
   }
 
-  if (!isRunning && listing.length == 0) {
-    return (
-      <Alert
-        style={{
-          textAlign: "center",
-          margin: "15px auto",
-          maxWidth: "400px",
-        }}
-        showIcon
-        type="warning"
-        message={
-          <div style={{ padding: "30px", fontSize: "14pt" }}>
-            <a
-              onClick={async () => {
-                if (starting) return;
-                try {
-                  setStarting(true);
-                  await actions.fetch_directory_listing_directly(
-                    current_path,
-                    true,
-                  );
-                } finally {
-                  setStarting(false);
-                }
-              }}
-            >
-              Start this project to see your files.
-              {starting && <Spin />}
-            </a>
-          </div>
-        }
-      />
-    );
-  }
-
   return (
     <>
-      {!isRunning && listing.length > 0 && (
+      {stale && (
         <div
           style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
         >
@@ -318,4 +333,4 @@ export const FileListing: React.FC<Props> = ({
       </Col>
     </>
   );
-};
+}

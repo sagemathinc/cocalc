@@ -6,7 +6,11 @@ import {
   createPathFileserver,
   cleanupFileservers,
 } from "@cocalc/backend/conat/files/test/util";
-import useListing from "@cocalc/frontend/project/listing/use-listing";
+import useListing, {
+  type SortField,
+  type SortDirection,
+} from "@cocalc/frontend/project/listing/use-listing";
+import { type FilesystemClient } from "@cocalc/conat/files/fs";
 
 beforeAll(before);
 
@@ -20,18 +24,19 @@ describe("the useListing hook", () => {
 
   it("test useListing and file creation", async () => {
     let path = "",
-      fs2 = fs;
+      fs2: FilesystemClient | undefined = undefined;
     const { result, rerender } = renderHook(() =>
       useListing({ fs: fs2, path, throttleUpdate: 0 }),
     );
-
     expect(result.current).toEqual({
       listing: null,
       error: null,
       refresh: expect.any(Function),
     });
+    fs2 = fs;
+    rerender();
 
-    // eventually it will be initialized to not be null
+    // now that fs2 is set, eventually it will be initialized to not be null
     await waitFor(() => {
       expect(result.current.listing).not.toBeNull();
     });
@@ -52,7 +57,9 @@ describe("the useListing hook", () => {
     });
 
     expect(result.current).toEqual({
-      listing: [{ name: "hello.txt", size: 5, mtime: expect.any(Number) }],
+      listing: [
+        { name: "hello.txt", size: 5, mtime: expect.any(Number), type: "f" },
+      ],
       error: null,
       refresh: expect.any(Function),
     });
@@ -79,6 +86,7 @@ describe("the useListing hook", () => {
           {
             name: "b.txt",
             size: 2,
+            type: "f",
             mtime: expect.any(Number),
           },
         ],
@@ -127,8 +135,8 @@ describe("test sorting many files with useListing", () => {
 
   it("test useListing with many files and sorting", async () => {
     let path = "",
-      sortField = "name",
-      sortDirection = "asc";
+      sortField: SortField = "name",
+      sortDirection: SortDirection = "asc";
     const { result, rerender } = renderHook(() =>
       useListing({ fs, path, throttleUpdate: 0, sortField, sortDirection }),
     );
@@ -136,7 +144,7 @@ describe("test sorting many files with useListing", () => {
     await waitFor(() => {
       expect(result.current.listing?.length).toEqual(3);
     });
-    expect(result.current.listing.map(({ name }) => name)).toEqual([
+    expect(result.current.listing?.map(({ name }) => name)).toEqual([
       "a.txt",
       "b.txt",
       "huge.txt",
@@ -146,7 +154,7 @@ describe("test sorting many files with useListing", () => {
     sortField = "name";
     rerender();
     await waitFor(() => {
-      expect(result.current.listing.map(({ name }) => name)).toEqual([
+      expect(result.current.listing?.map(({ name }) => name)).toEqual([
         "huge.txt",
         "b.txt",
         "a.txt",
@@ -157,7 +165,7 @@ describe("test sorting many files with useListing", () => {
     sortField = "mtime";
     rerender();
     await waitFor(() => {
-      expect(result.current.listing.map(({ name }) => name)).toEqual([
+      expect(result.current.listing?.map(({ name }) => name)).toEqual([
         "b.txt",
         "a.txt",
         "huge.txt",
@@ -168,7 +176,7 @@ describe("test sorting many files with useListing", () => {
     sortField = "mtime";
     rerender();
     await waitFor(() => {
-      expect(result.current.listing.map(({ name }) => name)).toEqual([
+      expect(result.current.listing?.map(({ name }) => name)).toEqual([
         "huge.txt",
         "a.txt",
         "b.txt",
@@ -179,7 +187,7 @@ describe("test sorting many files with useListing", () => {
     sortField = "size";
     rerender();
     await waitFor(() => {
-      expect(result.current.listing.map(({ name }) => name)).toEqual([
+      expect(result.current.listing?.map(({ name }) => name)).toEqual([
         "b.txt",
         "a.txt",
         "huge.txt",
@@ -190,7 +198,7 @@ describe("test sorting many files with useListing", () => {
     sortField = "size";
     rerender();
     await waitFor(() => {
-      expect(result.current.listing.map(({ name }) => name)).toEqual([
+      expect(result.current.listing?.map(({ name }) => name)).toEqual([
         "huge.txt",
         "a.txt",
         "b.txt",

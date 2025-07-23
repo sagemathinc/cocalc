@@ -55,6 +55,7 @@ describe("the useFiles hook", () => {
         "hello.txt": {
           size: 5,
           mtime: expect.any(Number),
+          type: "f",
         },
       },
       error: null,
@@ -83,6 +84,7 @@ describe("the useFiles hook", () => {
           "b.txt": {
             size: 2,
             mtime: expect.any(Number),
+            type: "f",
           },
         },
         error: null,
