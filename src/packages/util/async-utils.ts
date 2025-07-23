@@ -184,7 +184,11 @@ function captureStackWithoutPrinting() {
    If the obj throws 'closed' before the event is emitted,
    then this throws an error, since clearly event can never be emitted.
    */
-const DEBUG_ONCE = false; // log a better stack trace in some cases
+
+// Set DEBUG_ONCE to true and see a MUCH better stack trace about what
+// caused once to throw in some cases!  Do not leave this on though,
+// since it uses extra time and memory grabbing a stack trace on every call.
+const DEBUG_ONCE = false;
 export async function once(
   obj: EventEmitter,
   event: string,

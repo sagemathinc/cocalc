@@ -4,7 +4,10 @@ import { fsClient } from "@cocalc/conat/files/fs";
 import { randomId } from "@cocalc/conat/names";
 import { before, after } from "@cocalc/backend/conat/test/setup";
 import { uuid } from "@cocalc/util/misc";
-import { createPathFileserver, cleanupFileservers } from "./util";
+import {
+  createPathFileserver,
+  cleanupFileservers,
+} from "@cocalc/backend/conat/files/test/util";
 
 beforeAll(before);
 

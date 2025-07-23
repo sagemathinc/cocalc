@@ -252,15 +252,19 @@ export async function fsServer({ service, fs, client }: Options) {
   };
 }
 
+export type FilesystemClient = Filesystem & {
+  listing: (path: string) => Promise<Listing>;
+};
+
 export function fsClient({
   client,
   subject,
 }: {
   client?: Client;
   subject: string;
-}): Filesystem {
+}): FilesystemClient {
   client ??= conat();
-  let call = client.call<Filesystem>(subject);
+  let call = client.call<FilesystemClient>(subject);
 
   let constants: any = null;
   const stat0 = call.stat.bind(call);

@@ -87,12 +87,6 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
-      '@types/debug':
-        specifier: ^4.1.12
-        version: 4.1.12
-      '@types/jest':
-        specifier: ^29.5.14
-        version: 29.5.14
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -133,6 +127,12 @@ importers:
         specifier: ^0.0.10
         version: 0.0.10
     devDependencies:
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
+      '@types/jest':
+        specifier: ^29.5.14
+        version: 29.5.14
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.118
@@ -1764,6 +1764,40 @@ importers:
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.118
+
+  test:
+    dependencies:
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@cocalc/conat':
+        specifier: workspace:*
+        version: link:../conat
+      '@cocalc/frontend':
+        specifier: workspace:*
+        version: link:../frontend
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
+    devDependencies:
+      '@testing-library/jest-dom':
+        specifier: ^6.6.3
+        version: 6.6.3
+      '@testing-library/react':
+        specifier: ^16.3.0
+        version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
+      '@types/jest':
+        specifier: ^29.5.14
+        version: 29.5.14
+      '@types/node':
+        specifier: ^18.16.14
+        version: 18.19.118
+      jest-environment-jsdom:
+        specifier: ^30.0.2
+        version: 30.0.4
 
   util:
     dependencies:

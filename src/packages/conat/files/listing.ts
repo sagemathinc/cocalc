@@ -14,7 +14,7 @@ interface FileData {
   size: number;
 }
 
-type Files = { [name: string]: FileData };
+export type Files = { [name: string]: FileData };
 
 interface Options {
   path: string;

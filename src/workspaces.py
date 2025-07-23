@@ -126,6 +126,7 @@ def all_packages() -> List[str]:
         'packages/file-server',
         'packages/next',
         'packages/hub',  # hub won't build if next isn't already built
+        'packages/test'
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
