@@ -12,13 +12,13 @@ import { type FilesystemClient } from "@cocalc/conat/files/fs";
 import { type ConatError } from "@cocalc/conat/core/client";
 
 type SortField = "name" | "mtime" | "size";
-type SortDirection = "inc" | "dec";
+type SortDirection = "asc" | "desc";
 
 export default function useListing({
   fs,
   path,
   sortField = "name",
-  sortDirection = "inc",
+  sortDirection = "asc",
   throttleUpdate,
 }: {
   fs: FilesystemClient;
@@ -41,9 +41,15 @@ export default function useListing({
     for (const name in files) {
       v.push({ name, ...files[name] });
     }
-    v.sort(field_cmp("name"));
-    if (sortDirection == "dec") {
+    if (sortField != "name" && sortField != "mtime" && sortField != "size") {
+      console.warn(`invalid sort field: '${sortField}'`);
+    }
+    v.sort(field_cmp(sortField));
+    if (sortDirection == "desc") {
       v.reverse();
+    } else if (sortDirection == "asc") {
+    } else {
+      console.warn(`invalid sort direction: '${sortDirection}'`);
     }
     return v;
   }, [sortField, sortDirection, files]);

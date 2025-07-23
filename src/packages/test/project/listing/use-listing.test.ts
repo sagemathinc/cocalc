@@ -104,6 +104,101 @@ describe("the useListing hook", () => {
   });
 });
 
+describe("test sorting many files with useListing", () => {
+  const project_id = uuid();
+  let fs, server;
+  it("creates fileserver service and fs client", async () => {
+    server = await createPathFileserver();
+    fs = fsClient({ subject: `${server.service}.project-${project_id}` });
+  });
+
+  it("create some files", async () => {
+    await fs.writeFile("a.txt", "abc");
+    await fs.writeFile("b.txt", "b");
+    await fs.writeFile("huge.txt", "b".repeat(1000));
+
+    // make b.txt old
+    await fs.utimes(
+      "b.txt",
+      (Date.now() - 60_000) / 1000,
+      (Date.now() - 60_000) / 1000,
+    );
+  });
+
+  it("test useListing with many files and sorting", async () => {
+    let path = "",
+      sortField = "name",
+      sortDirection = "asc";
+    const { result, rerender } = renderHook(() =>
+      useListing({ fs, path, throttleUpdate: 0, sortField, sortDirection }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.listing?.length).toEqual(3);
+    });
+    expect(result.current.listing.map(({ name }) => name)).toEqual([
+      "a.txt",
+      "b.txt",
+      "huge.txt",
+    ]);
+
+    sortDirection = "desc";
+    sortField = "name";
+    rerender();
+    await waitFor(() => {
+      expect(result.current.listing.map(({ name }) => name)).toEqual([
+        "huge.txt",
+        "b.txt",
+        "a.txt",
+      ]);
+    });
+
+    sortDirection = "asc";
+    sortField = "mtime";
+    rerender();
+    await waitFor(() => {
+      expect(result.current.listing.map(({ name }) => name)).toEqual([
+        "b.txt",
+        "a.txt",
+        "huge.txt",
+      ]);
+    });
+
+    sortDirection = "desc";
+    sortField = "mtime";
+    rerender();
+    await waitFor(() => {
+      expect(result.current.listing.map(({ name }) => name)).toEqual([
+        "huge.txt",
+        "a.txt",
+        "b.txt",
+      ]);
+    });
+
+    sortDirection = "asc";
+    sortField = "size";
+    rerender();
+    await waitFor(() => {
+      expect(result.current.listing.map(({ name }) => name)).toEqual([
+        "b.txt",
+        "a.txt",
+        "huge.txt",
+      ]);
+    });
+
+    sortDirection = "desc";
+    sortField = "size";
+    rerender();
+    await waitFor(() => {
+      expect(result.current.listing.map(({ name }) => name)).toEqual([
+        "huge.txt",
+        "a.txt",
+        "b.txt",
+      ]);
+    });
+  });
+});
+
 afterAll(async () => {
   await after();
   await cleanupFileservers();
