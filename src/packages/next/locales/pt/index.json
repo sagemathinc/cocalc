@@ -1,5 +1,6 @@
 {
   "ar": "Árabe",
+  "br": "Português (Europeu)",
   "chat-text": "<p><strong><A>As salas de chat do CoCalc</A></strong> oferecem uma gama de funcionalidades para melhorar a comunicação e a colaboração:</p> <ul> <li><strong>@-menções</strong> para dirigir-se diretamente aos colaboradores ou consultar um modelo de linguagem</li> <li><strong>Suporte a emoticons</strong> para expressar emoções</li> <li><strong>Renderização de fórmulas LaTeX</strong> entre sinais de $</li> <li><strong>Tópicos</strong> e <strong>Hashtags</strong> para fácil organização de temas</li> <li><strong>Inserção de imagens</strong> através de upload ou arrastar e soltar</li> <li><strong>Sintaxe Markdown</strong> para formatação de texto e inserção de links</li> <li><strong>Sistema de notificações</strong> com um ícone de sino para alertar os utilizadores sobre novas atividades</li> </ul>",
   "chat-title": "Salas de Chat",
   "compute-servers-text": "<p>Expanda os seus projetos CoCalc com potentes <strong>servidores de computação</strong>. Eles proporcionam muito mais potência, opções de GPU e flexibilidade para os seus cálculos. Dentro do seu projeto, inicie e conecte-se a uma máquina poderosa e configure os seus terminais e Jupyter Notebooks para funcionar nessas máquinas.</p><p>Estes servidores vêm opcionalmente com <strong>suporte a GPU com preços muito competitivos</strong>, são <strong>cobrados por segundo</strong> e os seus ficheiros são <strong>sincrozidanos sem interrupções</strong> entre o seu projeto e os servidores.</p><p><A1>Leia a documentação</A1> e <A2>veja algumas aplicações</A2>.</p>",
@@ -7,6 +8,7 @@
   "de": "Alemão",
   "en": "Inglês",
   "es": "Espanhol",
+  "eu": "Basco",
   "fr": "Francês",
   "getting-started": "Introdução",
   "gettingstarted-onprem": "No local",

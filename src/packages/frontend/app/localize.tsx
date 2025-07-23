@@ -119,6 +119,8 @@ function loadAntdLocale(locale: Locale): Promise<AntdLocale> {
         return import("antd/locale/zh_CN");
       case "es":
         return import("antd/locale/es_ES");
+      case "eu": // there is no basque for antd, but catalan is close enough
+        return import("antd/locale/ca_ES");
       case "nl":
         return import("antd/locale/nl_NL");
       case "ru":
@@ -131,6 +133,8 @@ function loadAntdLocale(locale: Locale): Promise<AntdLocale> {
         return import("antd/locale/ja_JP");
       case "pt":
         return import("antd/locale/pt_PT");
+      case "br":
+        return import("antd/locale/pt_BR");
       case "ko":
         return import("antd/locale/ko_KR");
       case "pl":
