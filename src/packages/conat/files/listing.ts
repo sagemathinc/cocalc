@@ -86,13 +86,18 @@ export class Listing extends EventEmitter {
       }
       this.files[filename] = { mtime: stats.mtimeMs, size: stats.size };
     } catch (err) {
+      if (this.files == null) {
+        return;
+      }
       if (err.code == "ENOENT") {
         // file deleted
         delete this.files[filename];
       } else {
+        //if (!process.env.COCALC_TEST_MODE) {
         console.warn("WARNING:", err);
         // TODO: some other error -- e.g., network down or permissions, so we don't know anything.
         // Should we retry (?).
+        //}
         return;
       }
     }

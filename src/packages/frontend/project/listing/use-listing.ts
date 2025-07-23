@@ -25,8 +25,12 @@ export default function useListing({
   path: string;
   sortField?: SortField;
   sortDirection?: SortDirection;
-}): { listing: null | DirectoryListingEntry[]; error } {
-  const { files, error } = useFiles({ fs, path });
+}): {
+  listing: null | DirectoryListingEntry[];
+  error: null | Error;
+  refresh: () => void;
+} {
+  const { files, error, refresh } = useFiles({ fs, path });
 
   const listing = useMemo<null | DirectoryListingEntry[]>(() => {
     if (files == null) {
@@ -43,7 +47,7 @@ export default function useListing({
     return v;
   }, [sortField, sortDirection, files]);
 
-  return { listing, error };
+  return { listing, error, refresh };
 }
 
 export function useFiles({
@@ -54,16 +58,19 @@ export function useFiles({
   fs: FilesystemClient;
   path: string;
   throttleUpdate?: number;
-}): { files: Files | null; error } {
+}): { files: Files | null; error: null | Error; refresh: () => void } {
   const [files, setFiles] = useState<Files | null>(null);
   const [error, setError] = useState<any>(null);
+  const [counter, setCounter] = useState<number>(0);
 
   useAsyncEffect(async () => {
     let listing;
     try {
       listing = await fs.listing(path);
+      setError(null);
     } catch (err) {
       setError(err);
+      setFiles(null);
       return;
     }
 
@@ -80,7 +87,7 @@ export function useFiles({
     return () => {
       listing.close();
     };
-  }, [fs, path]);
+  }, [fs, path, counter]);
 
-  return { files, error };
+  return { files, error, refresh: () => setCounter(counter + 1) };
 }
