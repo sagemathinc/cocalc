@@ -305,9 +305,12 @@ def test(args) -> None:
             print("*" * 40)
             if args.test_github_ci and 'test-github-ci' in open(
                     os.path.join(package_path, 'package.json')).read():
-                cmd("pnpm run test-github-ci", package_path)
+                test_cmd = "pnpm run test-github-ci"
             else:
-                cmd("pnpm run --if-present test", package_path)
+                test_cmd = "pnpm run --if-present test"
+            if args.report:
+                test_cmd += " --reporters=default --reporters=jest-junit"
+            cmd(test_cmd, package_path)
             success.append(path)
 
         worked = False
@@ -587,6 +590,10 @@ def main() -> None:
         const=True,
         action="store_const",
         help="run 'pnpm test-github-ci' if available instead of 'pnpm test'")
+    subparser.add_argument('--report',
+                           action="store_const",
+                           const=True,
+                           help='if given, generate test reports')
     packages_arg(subparser)
     subparser.set_defaults(func=test)
 

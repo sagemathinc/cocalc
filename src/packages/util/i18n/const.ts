@@ -22,13 +22,15 @@ export const LOCALE = [
   "nl",
   "ja",
   "hi",
-  "pt",
+  "pt", // european portuguese [pt_PT]
   "ko",
   "pl",
   "tr",
   "he",
   "hu",
   "ar",
+  "br", // brazilian portuguese [pt_BR]
+  "eu", // Basque [eu] (fallback: Catalan, Spanish)
 ] as const;
 
 export type Locale = (typeof LOCALE)[number];
@@ -67,6 +69,8 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.english",
       defaultMessage: "English",
+      description:
+        "The word for the langauge 'English', keep it as English but in the given target language.",
     }),
   },
   de: {
@@ -85,6 +89,15 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.spanish",
       defaultMessage: "Spanish",
+    }),
+  },
+  eu: {
+    name: "Basque",
+    flag: "🏴󠁥󠁳󠁰󠁶󠁿",
+    native: "Euskara",
+    trans: defineMessage({
+      id: "i18n.localization.lang.basque",
+      defaultMessage: "Basque",
     }),
   },
   fr: {
@@ -141,13 +154,25 @@ export const LOCALIZATIONS: {
       defaultMessage: "Arabic",
     }),
   },
-  pt: {
-    name: "Portuguese",
-    flag: "🇵🇹",
-    native: "Português",
+  br: {
+    name: "Portuguese (Br)",
+    flag: "🇧🇷",
+    native: "Português (Br)",
     trans: defineMessage({
-      id: "i18n.localization.lang.portuguese",
-      defaultMessage: "Portuguese",
+      id: "i18n.localization.lang.portuguese.br",
+      defaultMessage: "Portuguese (Br)",
+      description:
+        "International Portuguese, Brazil. Keep the 'Br' abbrivation.",
+    }),
+  },
+  pt: {
+    name: "Portuguese (EU)",
+    flag: "🇵🇹",
+    native: "Português (EU)",
+    trans: defineMessage({
+      id: "i18n.localization.lang.portuguese.pt",
+      defaultMessage: "Portuguese (EU)",
+      description: "European Portuguese, Portugal.",
     }),
   },
   tr: {
