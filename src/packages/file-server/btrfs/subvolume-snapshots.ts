@@ -2,7 +2,6 @@ import { type Subvolume } from "./subvolume";
 import { btrfs } from "./util";
 import getLogger from "@cocalc/backend/logger";
 import { join } from "path";
-import { type DirectoryListingEntry } from "@cocalc/util/types";
 import { SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 
 export const SNAPSHOTS = ".snapshots";
@@ -48,9 +47,9 @@ export class SubvolumeSnapshots {
     });
   };
 
-  ls = async (): Promise<DirectoryListingEntry[]> => {
+  readdir = async (): Promise<string[]> => {
     await this.makeSnapshotsDir();
-    return await this.subvolume.fs.ls(SNAPSHOTS, { hidden: false });
+    return await this.subvolume.fs.readdir(SNAPSHOTS);
   };
 
   lock = async (name: string) => {
@@ -85,18 +84,18 @@ export class SubvolumeSnapshots {
 
   // has newly written changes since last snapshot
   hasUnsavedChanges = async (): Promise<boolean> => {
-    const s = await this.ls();
+    const s = await this.readdir();
     if (s.length == 0) {
       // more than just the SNAPSHOTS directory?
-      const v = await this.subvolume.fs.ls("", { hidden: true });
-      if (v.length == 0 || (v.length == 1 && v[0].name == SNAPSHOTS)) {
+      const v = await this.subvolume.fs.readdir("");
+      if (v.length == 0 || (v.length == 1 && v[0] == SNAPSHOTS)) {
         return false;
       }
       return true;
     }
     const pathGen = await getGeneration(this.subvolume.path);
     const snapGen = await getGeneration(
-      join(this.snapshotsDir, s[s.length - 1].name),
+      join(this.snapshotsDir, s[s.length - 1]),
     );
     return snapGen < pathGen;
   };

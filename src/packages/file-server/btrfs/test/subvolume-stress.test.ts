@@ -29,16 +29,16 @@ describe(`stress test creating ${numSnapshots} snapshots`, () => {
       `created ${Math.round((numSnapshots / (Date.now() - start)) * 1000)} snapshots per second in serial`,
     );
     snaps.sort();
-    expect((await vol.snapshots.ls()).map(({ name }) => name).sort()).toEqual(
-      snaps.sort(),
-    );
+    expect(
+      (await vol.snapshots.readdir()).filter((x) => !x.startsWith(".")).sort(),
+    ).toEqual(snaps.sort());
   });
 
   it(`delete our ${numSnapshots} snapshots`, async () => {
     for (let i = 0; i < numSnapshots; i++) {
       await vol.snapshots.delete(`snap${i}`);
     }
-    expect(await vol.snapshots.ls()).toEqual([]);
+    expect(await vol.snapshots.readdir()).toEqual([]);
   });
 });
 
@@ -58,9 +58,8 @@ describe(`create ${numFiles} files`, () => {
     log(
       `created ${Math.round((numFiles / (Date.now() - start)) * 1000)} files per second in serial`,
     );
-    const v = await vol.fs.ls("");
-    const w = v.map(({ name }) => name);
-    expect(w.sort()).toEqual(names.sort());
+    const v = await vol.fs.readdir("");
+    expect(v.sort()).toEqual(names.sort());
   });
 
   it(`creates ${numFiles} files in parallel`, async () => {
@@ -77,9 +76,8 @@ describe(`create ${numFiles} files`, () => {
       `created ${Math.round((numFiles / (Date.now() - start)) * 1000)} files per second in parallel`,
     );
     const t0 = Date.now();
-    const v = await vol.fs.ls("p");
+    const w = await vol.fs.readdir("p");
     log("get listing of files took", Date.now() - t0, "ms");
-    const w = v.map(({ name }) => name);
     expect(w.sort()).toEqual(names.sort());
   });
 });
