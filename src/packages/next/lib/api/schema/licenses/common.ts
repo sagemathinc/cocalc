@@ -29,14 +29,14 @@ export const SiteLicenseRunLimitSchema = z
 export const SiteLicenseQuotaSchema = z.object({
   always_running: z
     .boolean()
-    .nullish()
+    .optional()
     .describe(
       `Indicates whether the project(s) this license is applied to should be
        allowed to always be running.`,
     ),
   boost: z
     .boolean()
-    .nullish()
+    .optional()
     .describe(
       `If \`true\`, this license is a boost license and allows for a project to
        temporarily boost the amount of resources available to a project by the amount
@@ -68,4 +68,10 @@ export const SiteLicenseQuotaSchema = z.object({
       "Limits the total memory a project can use. At least 2GB is recommended.",
     ),
   user: z.enum(["academic", "business"]).describe("User type."),
+  source: z
+    .enum(["site-license", "course"])
+    .optional()
+    .describe(
+      "Indicates which page (license or course) was used to create this license.",
+    ),
 });

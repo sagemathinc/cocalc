@@ -1,6 +1,10 @@
 import { z } from "../../../framework";
 
 import { FailedAPIOperationSchema, OkAPIOperationSchema } from "../../common";
+import {
+  ProductDescription,
+  ProductType,
+} from "@cocalc/util/db-schema/shopping-cart-items";
 
 import { ProjectIdSchema } from "../../projects/common";
 import {
@@ -9,24 +13,21 @@ import {
   SiteLicenseUptimeSchema,
 } from "../../licenses/common";
 
-const LicenseRangeSchema = z
-  .array(z.string())
-  .length(2)
-  .describe(
-    `Array of two ISO 8601-formatted timestamps. The first element indicates the start
+const LicenseRangeSchema = z.tuple([z.string(), z.string()]).describe(
+  `Array of two ISO 8601-formatted timestamps. The first element indicates the start
      date of the license, and the second indicates the end date. Used when the \`period\`
      field is set to \`range\`.`,
-  );
+);
 
 const LicenseTitleSchema = z
   .string()
   .describe("Semantic license title.")
-  .nullish();
+  .optional();
 
 const LicenseDescriptionSchema = z
   .string()
   .describe("Semantic license description")
-  .nullish();
+  .optional();
 
 // OpenAPI spec
 //
@@ -76,7 +77,7 @@ export const ShoppingCartAddInputSchema = z
             prefix: z.string(),
             postfix: z.string(),
             charset: z.string(),
-            expire: z.any(),
+            expire: z.date(),
           })
           .describe("Used to specify cash voucher."),
       ])
@@ -97,3 +98,11 @@ export const ShoppingCartAddOutputSchema = z.union([
 
 export type ShoppingCartAddInput = z.infer<typeof ShoppingCartAddInputSchema>;
 export type ShoppingCartAddOutput = z.infer<typeof ShoppingCartAddOutputSchema>;
+
+// consistency checks
+export const _1: ProductType = {} as NonNullable<
+  ShoppingCartAddInput["product"]
+>;
+export const _2: ProductDescription = {} as NonNullable<
+  ShoppingCartAddInput["description"]
+>;

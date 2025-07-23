@@ -76,6 +76,10 @@ export function computeCost(
         return undefined;
       }
 
+      if (run_limit == null) {
+        return undefined;
+      }
+
       const input: PurchaseInfo = {
         version: CURRENT_VERSION,
         type: "quota",
@@ -105,6 +109,7 @@ export function computeCost(
           ? fixRange(range, period, noRangeShift)
           : { start: null, end: null }),
       };
+
       return {
         ...compute_cost(input),
         input,

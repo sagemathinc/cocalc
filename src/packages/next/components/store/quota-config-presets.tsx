@@ -46,7 +46,7 @@ const STANDARD_DISK = 3;
 
 const PRESET_STANDARD_NAME = "Standard";
 
-export const PRESETS: PresetEntries = {
+export const SITE_LICENSE: PresetEntries = {
   standard: {
     icon: "line-chart",
     name: PRESET_STANDARD_NAME,
@@ -197,3 +197,57 @@ export const PRESETS: PresetEntries = {
     member: true,
   },
 } as const;
+
+export const COURSE = {
+  standard: {
+    icon: "line-chart",
+    name: PRESET_STANDARD_NAME,
+    descr: "is a good choice for most use cases in a course",
+    expect: [
+      "Run a couple of Jupyter Notebooks at once,",
+      "Edit LaTeX, Markdown, R Documents, and use VS Code,",
+      `${STANDARD_DISK} GB disk space is sufficient to store many files and small datasets.`,
+    ],
+    note: <>Suitable for most courses.</>,
+    details: (
+      <>
+        You can run a couple of Jupyter Notebooks in a project at once,
+        depending on the kernel and memory usage. This quota is fine for editing
+        LaTeX documents, working with Sage Worksheets, using VS Code, and
+        editing all other document types. Also, {STANDARD_DISK} GB of disk space
+        is sufficient to store many files and a few small datasets.
+      </>
+    ),
+    cpu: STANDARD_CPU,
+    ram: STANDARD_RAM,
+    disk: STANDARD_DISK,
+    uptime: "short",
+    member: true,
+  },
+  advanced: {
+    icon: "rocket",
+    name: "Advanced",
+    descr: "provides higher quotas for more intensive course work",
+    expect: [
+      "Run more Jupyter Notebooks simultaneously,",
+      "Handle memory-intensive computations,",
+      "Longer idle timeout for extended work sessions,",
+      "Sufficient resources for advanced coursework.",
+    ],
+    note: <>For intense computations requiring more resources.</>,
+    details: (
+      <>
+        This configuration provides enhanced resources for more demanding
+        coursework. With 1 CPU, 8GB RAM, and a 2-hour idle timeout, students can
+        work on memory-intensive projects and longer computational tasks without
+        interruption. Ideal for advanced programming, data science, and
+        research-oriented courses.
+      </>
+    ),
+    cpu: 1,
+    ram: 8,
+    disk: 2 * STANDARD_DISK,
+    uptime: "medium",
+    member: true,
+  },
+} as const satisfies { [key in "standard" | "advanced"]: PresetConfig };
