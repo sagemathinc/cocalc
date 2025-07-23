@@ -90,8 +90,8 @@ export default function SiteLicense({ noAccount, source }: Props) {
         {router.query.id != null
           ? "Edit License in Shopping Cart"
           : source === "course"
-          ? "Purchase a License for a Course"
-          : "Configure a License"}
+            ? "Purchase a License for a Course"
+            : "Configure a License"}
       </Title>
       {router.query.id == null && (
         <>
@@ -384,6 +384,11 @@ function CreateSiteLicense({
       setAllowUrlEncoding(true);
     }
   }, [source, router.asPath]);
+
+  // Update the form source field when the source prop changes
+  useEffect(() => {
+    form.setFieldValue("source", source);
+  }, [source]);
 
   if (loading) {
     return <Loading large center />;
