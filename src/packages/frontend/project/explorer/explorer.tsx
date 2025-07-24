@@ -7,7 +7,7 @@ import * as immutable from "immutable";
 import * as _ from "lodash";
 import React from "react";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
-import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   project_redux_name,
   rclass,
@@ -20,7 +20,6 @@ import {
   A,
   ActivityDisplay,
   ErrorDisplay,
-  Icon,
   Loading,
   SettingBox,
 } from "@cocalc/frontend/components";
@@ -49,12 +48,6 @@ import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
-import { ListingItem } from "./types";
-
-function pager_range(page_size, page_number) {
-  const start_index = page_size * page_number;
-  return { start_index, end_index: start_index + page_size };
-}
 
 export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
@@ -105,11 +98,6 @@ interface ReduxProps {
   selected_file_index?: number;
   file_creation_error?: string;
   ext_selection?: string;
-  displayed_listing: {
-    listing: ListingItem[];
-    error: any;
-    file_map: Map<string, any>;
-  };
   new_name?: string;
   library?: object;
   show_library?: boolean;
@@ -184,7 +172,6 @@ const Explorer0 = rclass(
           selected_file_index: rtypes.number,
           file_creation_error: rtypes.string,
           ext_selection: rtypes.string,
-          displayed_listing: rtypes.object,
           new_name: rtypes.string,
           library: rtypes.object,
           show_library: rtypes.bool,
@@ -291,49 +278,16 @@ const Explorer0 = rclass(
       this.props.actions.setState({ file_search: "", page_number: 0 });
     };
 
-    render_paging_buttons(num_pages: number): React.JSX.Element | undefined {
-      if (num_pages > 1) {
-        return (
-          <Row>
-            <Col sm={4}>
-              <ButtonGroup style={{ marginBottom: "5px" }}>
-                <Button
-                  onClick={this.previous_page}
-                  disabled={this.props.page_number <= 0}
-                >
-                  <Icon name="angle-double-left" /> Prev
-                </Button>
-                <Button disabled>
-                  {`${this.props.page_number + 1}/${num_pages}`}
-                </Button>
-                <Button
-                  onClick={this.next_page}
-                  disabled={this.props.page_number >= num_pages - 1}
-                >
-                  Next <Icon name="angle-double-right" />
-                </Button>
-              </ButtonGroup>
-            </Col>
-          </Row>
-        );
-      }
-    }
-
-    render_files_action_box(file_map?) {
-      if (file_map == undefined) {
-        return;
-      }
+    render_files_action_box() {
       return (
         <Col sm={12}>
           <ActionBox
+            file_map={{} /* TODO */}
             file_action={this.props.file_action}
             checked_files={this.props.checked_files}
             current_path={this.props.current_path}
             project_id={this.props.project_id}
-            file_map={file_map}
-            //new_name={this.props.new_name}
             actions={this.props.actions}
-            displayed_listing={this.props.displayed_listing}
             name={project_redux_name(this.props.project_id)}
           />
         </Col>
@@ -366,15 +320,15 @@ const Explorer0 = rclass(
       );
     }
 
-    render_files_actions(listing, project_is_running) {
+    render_files_actions(project_is_running) {
       return (
         <ActionBar
+          listing={[] /* TODO */}
           project_id={this.props.project_id}
           checked_files={this.props.checked_files}
           page_number={this.props.page_number}
           page_size={this.file_listing_page_size()}
           current_path={this.props.current_path}
-          listing={listing}
           project_map={this.props.project_map}
           images={this.props.images}
           actions={this.props.actions}
@@ -433,9 +387,6 @@ const Explorer0 = rclass(
         <FileUploadWrapper
           project_id={this.props.project_id}
           dest_path={this.props.current_path}
-          event_handlers={{
-            complete: () => this.props.actions.fetch_directory_listing(),
-          }}
           config={{ clickable: ".upload-button" }}
           style={{
             flex: "1 0 auto",
@@ -476,9 +427,7 @@ const Explorer0 = rclass(
       );
     }
 
-    render_control_row(
-      visible_listing: ListingItem[] | undefined,
-    ): React.JSX.Element {
+    render_control_row(): React.JSX.Element {
       return (
         <div
           style={{
@@ -543,7 +492,6 @@ const Explorer0 = rclass(
               actions={this.props.actions}
               current_path={this.props.current_path}
               file_search={this.props.file_search}
-              visible_listing={visible_listing}
               selected_file_index={this.props.selected_file_index}
               file_creation_error={this.props.file_creation_error}
               create_file={this.create_file}
@@ -609,9 +557,7 @@ const Explorer0 = rclass(
     }
 
     render() {
-      let project_is_running: boolean,
-        project_state: ProjectStatus | undefined,
-        visible_listing: ListingItem[] | undefined;
+      let project_is_running: boolean, project_state: ProjectStatus | undefined;
 
       if (this.props.checked_files == undefined) {
         // hasn't loaded/initialized at all
@@ -636,18 +582,6 @@ const Explorer0 = rclass(
         project_is_running = false;
       }
 
-      const displayed_listing = this.props.displayed_listing;
-      const { listing, file_map } = displayed_listing;
-
-      const file_listing_page_size = this.file_listing_page_size();
-      if (listing != undefined) {
-        const { start_index, end_index } = pager_range(
-          file_listing_page_size,
-          this.props.page_number,
-        );
-        visible_listing = listing.slice(start_index, end_index);
-      }
-
       const FLEX_ROW_STYLE = {
         display: "flex",
         flexFlow: "row wrap",
@@ -668,7 +602,7 @@ const Explorer0 = rclass(
           >
             {this.render_error()}
             {this.render_activity()}
-            {this.render_control_row(visible_listing)}
+            {this.render_control_row()}
             {this.props.ext_selection != null && (
               <AskNewFilename project_id={this.props.project_id} />
             )}
@@ -680,9 +614,7 @@ const Explorer0 = rclass(
                   minWidth: "20em",
                 }}
               >
-                {listing != undefined
-                  ? this.render_files_actions(listing, project_is_running)
-                  : undefined}
+                {this.render_files_actions(project_is_running)}
               </div>
               {this.render_project_files_buttons()}
             </div>
@@ -695,7 +627,7 @@ const Explorer0 = rclass(
 
             {this.props.checked_files.size > 0 &&
             this.props.file_action != undefined ? (
-              <Row>{this.render_files_action_box(file_map)}</Row>
+              <Row>{this.render_files_action_box()}</Row>
             ) : undefined}
           </div>
 
@@ -732,7 +664,6 @@ const SearchTerminalBar = React.forwardRef(
       current_path,
       file_search,
       actions,
-      visible_listing,
       selected_file_index,
       file_creation_error,
       create_file,
@@ -742,7 +673,6 @@ const SearchTerminalBar = React.forwardRef(
       current_path: string;
       file_search: string;
       actions: ProjectActions;
-      visible_listing: ListingItem[] | undefined;
       selected_file_index?: number;
       file_creation_error?: string;
       create_file: (ext?: string, switch_over?: boolean) => void;
@@ -750,6 +680,8 @@ const SearchTerminalBar = React.forwardRef(
     },
     ref: React.LegacyRef<HTMLDivElement> | undefined,
   ) => {
+    // [ ] TODO
+    const visible_listing = [];
     return (
       <div ref={ref} style={{ flex: "1 1 auto" }}>
         <SearchBar

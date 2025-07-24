@@ -9,19 +9,16 @@
 
 import { Spin } from "antd";
 import * as immutable from "immutable";
-import { useEffect, useRef, useState } from "react";
-import { useInterval } from "react-interval-hook";
+import { useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import {
   AppRedux,
   Rendered,
   TypedMap,
-  usePrevious,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import * as misc from "@cocalc/util/misc";
@@ -63,16 +60,6 @@ interface Props {
   stale?: boolean;
 }
 
-export function watchFiles({ actions, current_path }): void {
-  const store = actions.get_store();
-  if (store == null) return;
-  try {
-    store.get_listings().watch(current_path);
-  } catch (err) {
-    console.warn("ERROR watching directory", err);
-  }
-}
-
 function sortDesc(active_file_sort?): {
   sortField: SortField;
   sortDirection: "asc" | "desc";
@@ -99,6 +86,7 @@ export function FileListing(props) {
     fs,
     path: props.current_path,
     ...sortDesc(props.active_file_sort),
+    cacheId: { project_id: props.project_id },
   });
   if (error) {
     return <ShowError error={error} />;
@@ -130,41 +118,9 @@ function FileListing0({
   sort_by,
   configuration_main,
   file_search = "",
-  isRunning,
   stale,
   // show_masked,
 }: Props) {
-  const prev_current_path = usePrevious(current_path);
-
-  function watch() {
-    watchFiles({ actions, current_path });
-  }
-
-  // once after mounting, when changing paths, and in regular intervals call watch()
-  useEffect(() => {
-    watch();
-  }, []);
-
-  useEffect(() => {
-    if (current_path != prev_current_path) watch();
-  }, [current_path, prev_current_path]);
-
-  useInterval(watch, WATCH_THROTTLE_MS);
-
-  const [missing, setMissing] = useState<number>(0);
-
-  useEffect(() => {
-    if (isRunning) return;
-    if (listing.length == 0) return;
-    (async () => {
-      const missing = await redux
-        .getProjectStore(project_id)
-        .get_listings()
-        .getMissingUsingDatabase(current_path);
-      setMissing(missing ?? 0);
-    })();
-  }, [current_path, isRunning]);
-
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
 
   function render_row(
@@ -287,11 +243,9 @@ function FileListing0({
         >
           <FormattedMessage
             id="project.explorer.file-listing.stale-warning"
-            defaultMessage={`Showing stale directory listing{is_missing, select, true {<b> missing {missing} files</b>} other {}}.
+            defaultMessage={`Showing stale directory listing.
               To update the directory listing <a>start this project</a>.`}
             values={{
-              is_missing: missing > 0,
-              missing,
               a: (c) => (
                 <a
                   onClick={() => {
