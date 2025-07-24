@@ -8,7 +8,6 @@ import * as immutable from "immutable";
 import { throttle } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -19,7 +18,6 @@ import { labels } from "@cocalc/frontend/i18n";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-
 import { useProjectContext } from "../context";
 
 const ROW_INFO_STYLE = {
@@ -43,7 +41,7 @@ interface Props {
   project_is_running?: boolean;
 }
 
-export const ActionBar: React.FC<Props> = (props: Props) => {
+export function ActionBar(props: Props) {
   const intl = useIntl();
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const { mainWidthPx } = useProjectContext();
@@ -350,7 +348,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       </div>
     </div>
   );
-};
+}
 
 export const ACTION_BUTTONS_DIR = [
   "download",

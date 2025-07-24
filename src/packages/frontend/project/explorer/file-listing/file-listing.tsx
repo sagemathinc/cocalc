@@ -34,6 +34,7 @@ import useFs from "@cocalc/frontend/project/listing/use-fs";
 import useListing, {
   type SortField,
 } from "@cocalc/frontend/project/listing/use-listing";
+import filterListing from "@cocalc/frontend/project/listing/filter-listing";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -94,7 +95,7 @@ function sortDesc(active_file_sort?): {
 
 export function FileListing(props) {
   const fs = useFs({ project_id: props.project_id });
-  const { listing, error } = useListing({
+  let { listing, error } = useListing({
     fs,
     path: props.current_path,
     ...sortDesc(props.active_file_sort),
@@ -102,6 +103,13 @@ export function FileListing(props) {
   if (error) {
     return <ShowError error={error} />;
   }
+
+  listing = filterListing({
+    listing,
+    search: props.file_search,
+    showHidden: props.show_hidden,
+  });
+
   if (listing == null) {
     return <Spin delay={500} />;
   }
@@ -123,17 +131,9 @@ function FileListing0({
   configuration_main,
   file_search = "",
   isRunning,
-  show_hidden,
   stale,
   // show_masked,
 }: Props) {
-  if (!show_hidden) {
-    listing = listing.filter((x) => !x.name.startsWith("."));
-  }
-  if (file_search) {
-    listing = listing.filter((x) => x.name.includes(file_search));
-  }
-
   const prev_current_path = usePrevious(current_path);
 
   function watch() {
