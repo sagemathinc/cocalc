@@ -81,10 +81,11 @@ function sortDesc(active_file_sort?): {
 }
 
 export function FileListing(props) {
+  const path = props.current_path;
   const fs = useFs({ project_id: props.project_id });
   let { listing, error } = useListing({
     fs,
-    path: props.current_path,
+    path,
     ...sortDesc(props.active_file_sort),
     cacheId: { project_id: props.project_id },
   });

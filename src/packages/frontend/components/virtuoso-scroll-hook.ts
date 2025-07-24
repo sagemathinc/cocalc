@@ -15,6 +15,8 @@ the upstream Virtuoso project:  https://github.com/petyosi/react-virtuoso/blob/m
 import LRU from "lru-cache";
 import { useCallback, useMemo, useRef } from "react";
 
+const DEFAULT_VIEWPORT = 1000;
+
 export interface ScrollState {
   index: number;
   offset: number;
@@ -64,7 +66,7 @@ export default function useVirtuosoScrollHook({
   }, [onScroll, cacheId]);
 
   return {
-    increaseViewportBy: 2000 /* a lot better default than 0 */,
+    increaseViewportBy: DEFAULT_VIEWPORT,
     initialTopMostItemIndex:
       (cacheId ? (cache.get(cacheId) ?? initialState) : initialState) ?? 0,
     scrollerRef: handleScrollerRef,
