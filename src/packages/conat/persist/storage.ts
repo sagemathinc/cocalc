@@ -330,7 +330,11 @@ export class PersistentStream extends EventEmitter {
   };
 
   close = async () => {
-    logger.debug("close ", this.options.path);
+    const path = this.options?.path;
+    if (path == null) {
+      return;
+    }
+    logger.debug("close ", path);
     if (this.db != null) {
       this.vacuum();
       this.db.prepare("PRAGMA wal_checkpoint(FULL)").run();
@@ -345,7 +349,7 @@ export class PersistentStream extends EventEmitter {
     this.msgIDs?.clear();
     // @ts-ignore
     delete this.msgIDs;
-    openPaths.delete(options.path);
+    openPaths.delete(path);
   };
 
   private backup = reuseInFlight(async (path?: string): Promise<void> => {

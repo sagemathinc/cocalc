@@ -5,7 +5,6 @@ Testing automatic tiered storage and backup persistence functionality.
 import {
   before,
   after,
-  connect,
   delay,
   client,
   wait,
@@ -16,7 +15,6 @@ import { pathExists } from "fs-extra";
 import { join } from "path";
 import * as fs from "fs/promises";
 import { messageData } from "@cocalc/conat/core/client";
-import { executeCode } from "@cocalc/backend/execute-code";
 import sqlite from "better-sqlite3";
 import { openPaths } from "@cocalc/conat/persist/storage";
 
@@ -88,11 +86,6 @@ describe("create persist server that also saves data to an archive folder and a 
     expect(await pathExists(backup)).toBe(true);
     // at this point the actual sqlite3 database should be closed
   });
-
-  const sha1 = async (path) => {
-    const { stdout } = await executeCode({ command: "sha1sum", args: [path] });
-    return stdout;
-  };
 
   it("the backup, archive, and local files should all be identical as sqlite database", async () => {
     // they are not the same as files though so we need some care to compare them.
