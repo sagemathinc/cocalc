@@ -266,6 +266,7 @@ export class PersistentStream extends EventEmitter {
 
   private initArchive = () => {
     if (!this.options.archive) {
+      this.throttledBackup = () => {};
       return;
     }
     this.throttledBackup = throttle(
@@ -337,7 +338,7 @@ export class PersistentStream extends EventEmitter {
     // reuseInFlight since probably doing a backup on top
     // of itself would corrupt data.
     if (!this.options.archive) {
-      throw Error("no backup target file set");
+      return;
     }
     const path = this.options.archive + ".db";
     try {

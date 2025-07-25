@@ -108,6 +108,7 @@ class PersistStreamClient extends EventEmitter {
           new ConatError(headers?.error, { code: headers?.code }),
         );
         this.close();
+        return;
       }
       if (this.gettingMissed) {
         this.changesWhenGettingMissed.push(updates);
