@@ -17,11 +17,11 @@ This module is:
 
 We care about memory efficiency here since it's likely we'll want to have
 possibly thousands of these in a single nodejs process at once, but with
-less than 1 read/write per second for each.  Thus memory is critical, and 
+less than 1 read/write per second for each.  Thus memory is critical, and
 supporting at least 1000 writes/second is what we need.
-Fortunately, this implementation can do ~50,000+ writes per second and read 
-over 500,000 per second.  Yes, it blocks the main thread, but by using 
-better-sqlite3 and zstd-napi, we get 10x speed increases over async code, 
+Fortunately, this implementation can do ~50,000+ writes per second and read
+over 500,000 per second.  Yes, it blocks the main thread, but by using
+better-sqlite3 and zstd-napi, we get 10x speed increases over async code,
 so this is worth it.
 
 
@@ -31,16 +31,27 @@ I implemented *sync* lz4-napi compression here and it's very fast,
 but it has to be run with async waits in a loop or it doesn't give back
 memory, and such throttling may significantly negatively impact performance
 and mean we don't get a 100% sync api (like we have now).
-The async functions in lz4-napi seem fine.  Upstream report (by me): 
+The async functions in lz4-napi seem fine.  Upstream report (by me):
 https://github.com/antoniomuso/lz4-napi/issues/678
 I also tried the rust sync snappy and it had a similar memory leak.  Finally,
 I tried zstd-napi and it has a very fast sync implementation that does *not*
-need async pauses to not leak memory. So zstd-napi it is. 
+need async pauses to not leak memory. So zstd-napi it is.
 And I like zstandard anyways.
+
+TIERED STORAGE:
+
+You can provide a second path archive for the sqlite file.  If provided, on creation,
+this will stat both the main path and the archive path.  If the archive path is
+newer, then the file is first copied from the archive path to the normal path,
+then opened.   Also, if the archive path is provided, then a backup of the database
+is made to the archive path periodically.    We use this for tiered storage in
+CoCalc as follows.  The archive path is on a Google Cloud Storage autoclass bucket
+that is mounted using gcsfuse.  The normal primary path is on a small fast SSD
+persistent disk, which we view as a cache.
 
 NOTE:
 
-We use seconds instead of ms in sqlite since that is the standard 
+We use seconds instead of ms in sqlite since that is the standard
 convention for times in sqlite.
 
 DEVELOPMENT:
@@ -51,7 +62,14 @@ DEVELOPMENT:
 */
 
 import { refCacheSync } from "@cocalc/util/refcache";
-import { createDatabase, type Database, compress, decompress } from "./context";
+import {
+  createDatabase,
+  type Database,
+  compress,
+  decompress,
+  statSync,
+  copyFileSync,
+} from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
 import {
@@ -61,6 +79,8 @@ import {
 } from "@cocalc/conat/core/client";
 import TTL from "@isaacs/ttlcache";
 import { getLogger } from "@cocalc/conat/client";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { throttle } from "lodash";
 
 const logger = getLogger("persist:storage");
 
@@ -195,10 +215,22 @@ export interface DeleteOperation {
   seqs: number[];
 }
 
+export const DEFAULT_ARCHIVE_INTERVAL = 30_000; // 30 seconds
+
 export interface StorageOptions {
   // absolute path to sqlite database file.  This needs to be a valid filename
-  // path, and must also be kept under 1K so it can be stored in cloud storage.
+  // path, and must also be kept under 1000 characters in length so it can be
+  // stored in cloud storage.
   path: string;
+  // another absolute pat.    If this is given, then (1)
+  // it will be copied to path before opening path if it is newer, and (2) a
+  // backup will be saved to archive (using sqlite's backup feature) every
+  // archiveInteral ms.  NOTE: we actually append ".db" to path and to archive.
+  archive?: string;
+  // the archive interval, if archive is given.  defaults to DEFAULT_ARCHIVE_INTERVAL
+  // Depending on your setup, this is likely your tolerance for data loss in the worst case scenario, e.g.,
+  // "loss of the last 30 seconds of TimeTravel edit history".
+  archiveInterval?: number;
   // if false (the default) do not require sync writes to disk on every set
   sync?: boolean;
   // if set, then data is never saved to disk at all. To avoid using a lot of server
@@ -216,23 +248,40 @@ export class PersistentStream extends EventEmitter {
   private readonly db: Database;
   private readonly msgIDs = new TTL({ ttl: 2 * 60 * 1000 });
   private conf: Configuration;
+  private throttledBackup?;
 
   constructor(options: StorageOptions) {
     super();
     logger.debug("constructor ", options.path);
-
     this.setMaxListeners(1000);
     options = { compression: DEFAULT_COMPRESSION, ...options };
     this.options = options;
     const location = this.options.ephemeral
       ? ":memory:"
       : this.options.path + ".db";
+    this.initArchive();
     this.db = createDatabase(location);
-    //console.log(location);
-    this.init();
+    this.initSchema();
   }
 
-  init = () => {
+  private initArchive = () => {
+    if (!this.options.archive) {
+      return;
+    }
+    this.throttledBackup = throttle(
+      this.backup,
+      this.options.archiveInterval ?? DEFAULT_ARCHIVE_INTERVAL,
+    );
+    const archive = this.options.archive + ".db";
+    const path = this.options.path + ".db";
+    const archiveAge = age(archive);
+    const pathAge = age(archive);
+    if (archiveAge > pathAge) {
+      copyFileSync(archive, path);
+    }
+  };
+
+  private initSchema = () => {
     if (!this.options.sync && !this.options.ephemeral) {
       // Unless sync is set, we do not require that the filesystem has commited changes
       // to disk after every insert. This can easily make things 10x faster.  sets are
@@ -245,7 +294,7 @@ export class PersistentStream extends EventEmitter {
     // ttl is in milliseconds.
     this.db
       .prepare(
-        `CREATE TABLE IF NOT EXISTS messages ( 
+        `CREATE TABLE IF NOT EXISTS messages (
           seq INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, time INTEGER NOT NULL, headers TEXT, compress NUMBER NOT NULL, encoding NUMBER NOT NULL, raw BLOB NOT NULL, size NUMBER NOT NULL, ttl NUMBER
           )
         `,
@@ -269,13 +318,13 @@ export class PersistentStream extends EventEmitter {
     this.conf = this.config();
   };
 
-  close = () => {
+  close = async () => {
     logger.debug("close ", this.options.path);
     if (this.db != null) {
       this.vacuum();
       this.db.prepare("PRAGMA wal_checkpoint(FULL)").run();
+      await this.backup();
       this.db.close();
-      // @ts-ignore
     }
     // @ts-ignore
     delete this.options;
@@ -283,6 +332,20 @@ export class PersistentStream extends EventEmitter {
     // @ts-ignore
     delete this.msgIDs;
   };
+
+  private backup = reuseInFlight(async (): Promise<void> => {
+    // reuseInFlight since probably doing a backup on top
+    // of itself would corrupt data.
+    if (!this.options.archive) {
+      throw Error("no backup target file set");
+    }
+    const path = this.options.archive + ".db";
+    try {
+      await this.db.backup(path);
+    } catch (err) {
+      logger.debug("WARNING: error creating a backup", path, err);
+    }
+  });
 
   private compress = (
     raw: Buffer,
@@ -387,6 +450,7 @@ export class PersistentStream extends EventEmitter {
       headers,
       msgID,
     });
+    this.throttledBackup();
     if (msgID !== undefined) {
       this.msgIDs.set(msgID, { time, seq });
     }
@@ -478,6 +542,7 @@ export class PersistentStream extends EventEmitter {
       this.db.prepare("DELETE FROM messages WHERE seq=?").run(seq);
     }
     this.emit("change", { op: "delete", seqs });
+    this.throttledBackup();
     return { seqs };
   };
 
@@ -596,6 +661,7 @@ export class PersistentStream extends EventEmitter {
     this.conf = full as Configuration;
     // ensure any new limits are enforced
     this.enforceLimits(0);
+    this.throttledBackup();
     return full as Configuration;
   };
 
@@ -603,6 +669,7 @@ export class PersistentStream extends EventEmitter {
     if (rows.length > 0) {
       const seqs = rows.map((row: { seq: number }) => row.seq);
       this.emit("change", { op: "delete", seqs });
+      this.throttledBackup();
     }
   };
 
@@ -782,9 +849,7 @@ export const cache = refCacheSync<CreateOptions, PersistentStream>({
   name: "persistent-storage-stream",
   createKey: ({ path }: CreateOptions) => path,
   createObject: (options: CreateOptions) => {
-    const pstream = new PersistentStream(options);
-    pstream.init();
-    return pstream;
+    return new PersistentStream(options);
   },
 });
 
@@ -792,4 +857,12 @@ export function pstream(
   options: StorageOptions & { noCache?: boolean },
 ): PersistentStream {
   return cache(options);
+}
+
+function age(path: string) {
+  try {
+    return statSync(path).mtimeMs;
+  } catch {
+    return 0;
+  }
 }

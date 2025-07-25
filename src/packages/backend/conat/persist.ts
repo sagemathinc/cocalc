@@ -14,6 +14,7 @@ import { initContext } from "@cocalc/conat/persist/context";
 import { compress, decompress } from "zstd-napi";
 import { syncFiles } from "@cocalc/backend/data";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { statSync, copyFileSync } from "node:fs";
 
 initContext({
   betterSqlite3,
@@ -21,6 +22,8 @@ initContext({
   decompress,
   syncFiles,
   ensureContainingDirectoryExists,
+  statSync,
+  copyFileSync,
 });
 
 export { pstream } from "@cocalc/conat/persist/storage";
