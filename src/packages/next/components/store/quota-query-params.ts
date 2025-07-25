@@ -28,7 +28,12 @@ export function encodeRange(
   if (start == null || end == null) {
     return "";
   }
-  return `${new Date(start).toISOString()}_${new Date(end).toISOString()}`;
+  try {
+    return `${new Date(start).toISOString()}_${new Date(end).toISOString()}`;
+  } catch {
+    // there are a LOT of values for start/end that would throw an error above, e.g., "undefined".
+    return "";
+  }
 }
 
 // the inverse of encodeRange
