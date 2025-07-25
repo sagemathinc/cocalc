@@ -100,7 +100,10 @@ export default function refCache<
       return cache[key];
     }
   };
-
+  get.size = () => {
+    // size is currently just used for unit testing, so no attempt made to make this fast.
+    return Object.keys(cache).length;
+  };
   caches[name] = get;
   return get;
 }
@@ -175,6 +178,10 @@ export function refCacheSync<
     for (const key in cache) {
       return cache[key];
     }
+  };
+  get.size = () => {
+    // size is currently just used for unit testing, so no attempt made to make this fast.
+    return Object.keys(cache).length;
   };
   caches[name] = get;
   return get;

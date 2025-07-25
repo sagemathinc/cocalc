@@ -231,6 +231,12 @@ export interface StorageOptions {
   // Depending on your setup, this is likely your tolerance for data loss in the worst case scenario, e.g.,
   // "loss of the last 30 seconds of TimeTravel edit history".
   archiveInterval?: number;
+  // another path which will be written to when the database is closed,
+  // but not otherwise. NOTE: '.db' is appended to name.
+  // this backup is *NOT* used in any way except as a backup; in particular,
+  // it won't be used even if archive and path were both gone.
+  backup?: string;
+
   // if false (the default) do not require sync writes to disk on every set
   sync?: boolean;
   // if set, then data is never saved to disk at all. To avoid using a lot of server
@@ -252,6 +258,7 @@ export class PersistentStream extends EventEmitter {
 
   constructor(options: StorageOptions) {
     super();
+    openPaths.add(options.path);
     logger.debug("constructor ", options.path);
     this.setMaxListeners(1000);
     options = { compression: DEFAULT_COMPRESSION, ...options };
@@ -273,10 +280,13 @@ export class PersistentStream extends EventEmitter {
       this.backup,
       this.options.archiveInterval ?? DEFAULT_ARCHIVE_INTERVAL,
     );
+
     const archive = this.options.archive + ".db";
-    const path = this.options.path + ".db";
     const archiveAge = age(archive);
-    const pathAge = age(archive);
+
+    const path = this.options.path + ".db";
+    const pathAge = age(path);
+
     if (archiveAge > pathAge) {
       copyFileSync(archive, path);
     }
@@ -325,6 +335,9 @@ export class PersistentStream extends EventEmitter {
       this.vacuum();
       this.db.prepare("PRAGMA wal_checkpoint(FULL)").run();
       await this.backup();
+      if (this.options.backup) {
+        await this.backup(this.options.backup);
+      }
       this.db.close();
     }
     // @ts-ignore
@@ -332,18 +345,25 @@ export class PersistentStream extends EventEmitter {
     this.msgIDs?.clear();
     // @ts-ignore
     delete this.msgIDs;
+    openPaths.delete(options.path);
   };
 
-  private backup = reuseInFlight(async (): Promise<void> => {
-    // reuseInFlight since probably doing a backup on top
-    // of itself would corrupt data.
-    if (!this.options.archive) {
+  private backup = reuseInFlight(async (path?: string): Promise<void> => {
+    if (this.options == null) {
+      // can happen due to this.throttledBackup.
       return;
     }
-    const path = this.options.archive + ".db";
+    // reuseInFlight since probably doing a backup on top
+    // of itself would corrupt data.
+    if (path === undefined && !this.options.archive) {
+      return;
+    }
+    path = (path ?? this.options.archive) + ".db";
+    //console.log("backup", { path });
     try {
       await this.db.backup(path);
     } catch (err) {
+      console.log(err);
       logger.debug("WARNING: error creating a backup", path, err);
     }
   });
@@ -845,6 +865,8 @@ function handleDecompress({
 interface CreateOptions extends StorageOptions {
   noCache?: boolean;
 }
+
+export const openPaths = new Set<string>();
 
 export const cache = refCacheSync<CreateOptions, PersistentStream>({
   name: "persistent-storage-stream",
