@@ -1,4 +1,4 @@
-import { link, readFile, symlink } from "node:fs/promises";
+import { link, readFile, stat, symlink, writeFile } from "node:fs/promises";
 import { join } from "path";
 import { fsClient } from "@cocalc/conat/files/fs";
 import { randomId } from "@cocalc/conat/names";
@@ -8,6 +8,7 @@ import {
   createPathFileserver,
   cleanupFileservers,
 } from "@cocalc/backend/conat/files/test/util";
+import { TextDecoder } from "node:util";
 
 beforeAll(before);
 
@@ -174,6 +175,24 @@ describe("use all the standard api functions of fs", () => {
     );
     expect(w[1].isFile()).toBe(true);
     expect(await fs.readFile(join(w[1].path, w[1].name), "utf8")).toEqual("x");
+  });
+
+  it("readdir works with non-utf8 filenames in the path", async () => {
+    // this test uses internal implementation details (kind of crappy)
+    const path = "readdir-3";
+    await fs.mkdir(path);
+    const fullPath = join(server.path, project_id, path);
+
+    process.chdir(fullPath);
+
+    const buf = Buffer.from([0xff, 0xfe, 0xfd]);
+    expect(() => {
+      const decoder = new TextDecoder("utf-8", { fatal: true });
+      decoder.decode(buf);
+    }).toThrow("not valid");
+    await writeFile(buf, "hi");
+    const w = await fs.readdir(path, { encoding: "buffer" });
+    expect(w[0]).toEqual(buf);
   });
 
   it("use the find command instead of readdir", async () => {
