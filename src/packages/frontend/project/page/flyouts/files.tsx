@@ -527,7 +527,7 @@ export function FilesFlyout({
     if (typeof mtime === "number") {
       return (
         <TimeAgo
-          date={1000 * mtime}
+          date={mtime}
           // don't popup the toggle if you just clicked to open the file
           click_to_toggle={isopen}
         />
@@ -570,7 +570,7 @@ export function FilesFlyout({
 
   function renderListItem(index: number, item: DirectoryListingEntry) {
     const { mtime, mask = false } = item;
-    const age = typeof mtime === "number" ? 1000 * mtime : null;
+    const age = typeof mtime === "number" ? mtime : null;
     // either select by scrolling (and only scrolling!) or by clicks
     const isSelected =
       scrollIdx != null

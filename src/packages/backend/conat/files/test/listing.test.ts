@@ -59,7 +59,8 @@ describe("creating a listing monitor starting with an empty directory", () => {
 
   it("create another monitor starting with the now nonempty directory", async () => {
     const dir2 = await listing({ path: "", fs });
-    expect(Object.keys(dir.files)).toEqual(["a.txt"]);
+    expect(Object.keys(dir2.files!)).toEqual(["a.txt"]);
+    expect(dir.files["a.txt"].mtime).toBeCloseTo(dir2.files!["a.txt"].mtime);
     dir2.close();
   });
 

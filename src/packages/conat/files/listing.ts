@@ -24,6 +24,7 @@ export const typeDescription = {
 };
 
 interface FileData {
+  // last modification time as time since epoch in **milliseconds** (as is usual for javascript)
   mtime: number;
   size: number;
   // isdir = mainly for backward compat:
@@ -107,7 +108,7 @@ export class Listing extends EventEmitter {
         return;
       }
       const data: FileData = {
-        mtime: stats.mtimeMs / 1000,
+        mtime: stats.mtimeMs,
         size: stats.size,
         type: stats.type,
       };
@@ -162,7 +163,7 @@ async function getListing(
     try {
       const v = line.split("\0");
       const name = v[0];
-      const mtime = parseFloat(v[1]);
+      const mtime = parseFloat(v[1]) * 1000;
       const size = parseInt(v[2]);
       files[name] = { mtime, size, type: v[3] as FileTypeLabel };
       if (v[3] == "l") {

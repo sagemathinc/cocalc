@@ -1,4 +1,4 @@
-import { link, readFile, stat, symlink, writeFile } from "node:fs/promises";
+import { link, readFile, symlink, writeFile } from "node:fs/promises";
 import { join } from "path";
 import { fsClient } from "@cocalc/conat/files/fs";
 import { randomId } from "@cocalc/conat/names";
@@ -183,14 +183,15 @@ describe("use all the standard api functions of fs", () => {
     await fs.mkdir(path);
     const fullPath = join(server.path, project_id, path);
 
-    process.chdir(fullPath);
-
     const buf = Buffer.from([0xff, 0xfe, 0xfd]);
     expect(() => {
       const decoder = new TextDecoder("utf-8", { fatal: true });
       decoder.decode(buf);
     }).toThrow("not valid");
+    const c = process.cwd();
+    process.chdir(fullPath);
     await writeFile(buf, "hi");
+    process.chdir(c);
     const w = await fs.readdir(path, { encoding: "buffer" });
     expect(w[0]).toEqual(buf);
   });

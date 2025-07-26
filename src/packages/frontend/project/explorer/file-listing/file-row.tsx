@@ -234,7 +234,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     try {
       return (
         <TimeAgo
-          date={new Date(props.time * 1000).toISOString()}
+          date={new Date(props.time).toISOString()}
           style={{ color: "#666" }}
         />
       );
