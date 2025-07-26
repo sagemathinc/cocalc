@@ -35,19 +35,15 @@ import {
 } from "antd";
 import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { labels } from "@cocalc/frontend/i18n";
 import {
   redux,
   useFrameContext,
-  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { COMMANDS } from "@cocalc/frontend/course/commands";
-import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { IntlMessage } from "@cocalc/frontend/i18n";
-import { pathExists } from "@cocalc/frontend/project/directory-selector";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { isIntlMessage } from "@cocalc/util/i18n";
 import { plural } from "@cocalc/util/misc";
@@ -446,10 +442,6 @@ function AddTarget({ settings, actions, project_id }) {
   const [path, setPath] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [create, setCreate] = useState<string>("");
-  const directoryListings = useTypedRedux(
-    { project_id },
-    "directory_listings",
-  )?.get(0);
 
   const add = async () => {
     try {
@@ -458,19 +450,14 @@ function AddTarget({ settings, actions, project_id }) {
         throw Error(`'${path} is the current course'`);
       }
       setLoading(true);
-      const exists = await pathExists(project_id, path, directoryListings);
-      if (!exists) {
+      const projectActions = redux.getProjectActions(project_id);
+      const fs = projectActions.fs();
+      if (!(await fs.exists(path))) {
         if (create) {
-          await exec({
-            command: "touch",
-            args: [path],
-            project_id,
-            filesystem: true,
-          });
-        } else {
-          setCreate(path);
-          return;
+          await fs.writeFile(path, "");
         }
+      } else {
+        setCreate(path);
       }
       const copy_config_targets = getTargets(settings);
       copy_config_targets[`${project_id}/${path}`] = true;

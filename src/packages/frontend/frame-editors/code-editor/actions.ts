@@ -3195,4 +3195,15 @@ export class Actions<
     });
     actions?.foldAllThreads();
   }
+
+  getComputeServerId = (): number | undefined => {
+    return this.redux
+      .getProjectActions(this.project_id)
+      .getComputeServerIdForFile(this.path);
+  };
+
+  fs = () => {
+    const a = this.redux.getProjectActions(this.project_id);
+    return a.fs(a.getComputeServerIdForFile(this.path));
+  };
 }

@@ -6,7 +6,6 @@
 import { Button, Dropdown, MenuProps, Tooltip } from "antd";
 import immutable from "immutable";
 import { useIntl } from "react-intl";
-
 import {
   CSS,
   React,
@@ -115,6 +114,7 @@ interface Item {
   name: string;
   size?: number;
   mask?: boolean;
+  link_target?: string;
 }
 
 interface FileListItemProps {
@@ -219,7 +219,6 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
   function renderName(): React.JSX.Element {
     const name = item.name;
-
     const path = isActive ? path_split(name).tail : name;
     const { name: basename, ext } = item.isdir
       ? { name: path, ext: "" }
@@ -230,8 +229,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       ? item.isopen
         ? { fontWeight: "bold" }
         : item.isdir
-        ? undefined
-        : { color: COLORS.FILE_EXT }
+          ? undefined
+          : { color: COLORS.FILE_EXT }
       : undefined;
 
     return (
@@ -252,6 +251,12 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             </span>
           )
         ) : undefined}
+        {!!item.link_target && (
+          <>
+            <Icon name="arrow-right" style={{ margin: "0 10px" }} />
+            {item.link_target}
+          </>
+        )}
       </div>
     );
   }
@@ -279,8 +284,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           ? "check-square"
           : "square"
         : item.isdir
-        ? "folder-open"
-        : file_options(item.name)?.icon ?? "file");
+          ? "folder-open"
+          : (file_options(item.name)?.icon ?? "file"));
 
     return (
       <Icon
@@ -404,8 +409,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     const actionNames = multiple
       ? ACTION_BUTTONS_MULTI
       : isdir
-      ? ACTION_BUTTONS_DIR
-      : ACTION_BUTTONS_FILE;
+        ? ACTION_BUTTONS_DIR
+        : ACTION_BUTTONS_FILE;
     for (const key of actionNames) {
       if (key === "download" && !item.isdir) continue;
       const disabled =
@@ -527,10 +532,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         ? FILE_ITEM_ACTIVE_STYLE_2
         : {}
       : item.isopen
-      ? item.isactive
-        ? FILE_ITEM_ACTIVE_STYLE
-        : FILE_ITEM_OPENED_STYLE
-      : {};
+        ? item.isactive
+          ? FILE_ITEM_ACTIVE_STYLE
+          : FILE_ITEM_OPENED_STYLE
+        : {};
 
   return (
     <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>

@@ -4,17 +4,14 @@
  */
 
 import { Alert, InputRef } from "antd";
-import { delay } from "awaiting";
-import { List, Map } from "immutable";
+import { List } from "immutable";
 import { debounce, fromPairs } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
 import {
   React,
   TypedMap,
   redux,
   useEffect,
-  useIsMountedRef,
   useLayoutEffect,
   useMemo,
   usePrevious,
@@ -35,7 +32,6 @@ import {
   DirectoryListingEntry,
   FileMap,
 } from "@cocalc/frontend/project/explorer/types";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
@@ -44,8 +40,6 @@ import {
   human_readable_size,
   path_split,
   path_to_file,
-  search_match,
-  search_split,
   separate_file_extension,
   tab_to_path,
   unreachable,
@@ -59,6 +53,9 @@ import { FileListItem } from "./file-list-item";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
 import { fileItemStyle } from "./utils";
+import useFs from "@cocalc/frontend/project/listing/use-fs";
+import useListing from "@cocalc/frontend/project/listing/use-listing";
+import ShowError from "@cocalc/frontend/components/error";
 
 type PartialClickEvent = Pick<
   React.MouseEvent | React.KeyboardEvent,
@@ -100,7 +97,6 @@ export function FilesFlyout({
     project_id,
     actions,
   } = useProjectContext();
-  const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null as any);
   const refInput = useRef<InputRef>(null as any);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
@@ -110,12 +106,6 @@ export function FilesFlyout({
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
-  const directoryListings: Map<
-    string,
-    TypedMap<DirectoryListing> | null
-  > | null = useTypedRedux({ project_id }, "directory_listings")?.get(
-    compute_server_id,
-  );
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
@@ -143,25 +133,6 @@ export function FilesFlyout({
     return tab_to_path(activeTab);
   }, [activeTab]);
 
-  // copied roughly from directory-selector.tsx
-  useEffect(() => {
-    // Run the loop below every 30s until project_id or current_path changes (or unmount)
-    // in which case loop stops.  If not unmount, then get new loops for new values.
-    if (!project_id) return;
-    const state = { loop: true };
-    (async () => {
-      while (state.loop && isMountedRef.current) {
-        // Component is mounted, so call watch on all expanded paths.
-        const listings = redux.getProjectStore(project_id).get_listings();
-        listings.watch(current_path);
-        await delay(WATCH_THROTTLE_MS);
-      }
-    })();
-    return () => {
-      state.loop = false;
-    };
-  }, [project_id, current_path]);
-
   // selecting files switches over to "select" mode or back to "open"
   useEffect(() => {
     if (mode === "open" && checked_files.size > 0) {
@@ -172,6 +143,16 @@ export function FilesFlyout({
     }
   }, [checked_files]);
 
+  const fs = useFs({ project_id, compute_server_id });
+  const {
+    listing: directoryListing,
+    error: listingError,
+    refresh,
+  } = useListing({
+    fs,
+    path: current_path,
+  });
+
   // active file: current editor is the file in the listing
   // empty: either no files, or just the ".." for the parent dir
   const [directoryFiles, fileMap, activeFile, isEmpty] = useMemo((): [
@@ -180,28 +161,19 @@ export function FilesFlyout({
     DirectoryListingEntry | null,
     boolean,
   ] => {
-    if (directoryListings == null) return EMPTY_LISTING;
-    const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return EMPTY_LISTING;
-
-    // TODO this is an error, process it
-    if (typeof filesStore === "string") return EMPTY_LISTING;
-
-    const files: DirectoryListing | null = filesStore.toJS?.();
+    const files = directoryListing;
     if (files == null) return EMPTY_LISTING;
     let activeFile: DirectoryListingEntry | null = null;
     compute_file_masks(files);
-    const searchWords = search_split(file_search.trim().toLowerCase());
+    const searchWords = file_search.trim().toLowerCase();
 
-    const procFiles = files
+    const processedFiles : DirectoryListingEntry[] = files
       .filter((file: DirectoryListingEntry) => {
-        file.name ??= ""; // sanitization
-
         if (file_search === "") return true;
-        const fName = file.name.toLowerCase();
+        const filename = file.name.toLowerCase();
         return (
-          search_match(fName, searchWords) ||
-          ((file.isdir ?? false) && search_match(`${fName}/`, searchWords))
+          filename.includes(searchWords) ||
+          (file.isdir && `${filename}/`.includes(searchWords))
         );
       })
       .filter(
@@ -211,17 +183,17 @@ export function FilesFlyout({
         (file: DirectoryListingEntry) => hidden || !file.name.startsWith("."),
       );
 
-    // this shares the logic with what's in project_store.js
+    // this shares the logic with what's in project_store.ts
     mutate_data_to_compute_public_files(
       {
-        listing: procFiles,
+        listing: processedFiles,
         public: {},
       },
       strippedPublicPaths,
       current_path,
     );
 
-    procFiles.sort((a, b) => {
+    processedFiles.sort((a, b) => {
       // This replicated what project_store is doing
       const col = activeFileSort.get("column_name");
       switch (col) {
@@ -245,7 +217,7 @@ export function FilesFlyout({
       }
     });
 
-    for (const file of procFiles) {
+    for (const file of processedFiles) {
       const fullPath = path_to_file(current_path, file.name);
       if (openFiles.some((path) => path == fullPath)) {
         file.isopen = true;
@@ -257,26 +229,26 @@ export function FilesFlyout({
     }
 
     if (activeFileSort.get("is_descending")) {
-      procFiles.reverse(); // inplace op
+      processedFiles.reverse(); // inplace op
     }
 
-    const isEmpty = procFiles.length === 0;
+    const isEmpty = processedFiles.length === 0;
 
     // the ".." dir does not change the isEmpty state
     // hide ".." if there is a search -- https://github.com/sagemathinc/cocalc/issues/6877
     if (file_search === "" && current_path != "") {
-      procFiles.unshift({
+      processedFiles.unshift({
         name: "..",
         isdir: true,
       });
     }
 
     // map each filename to it's entry in the directory listing
-    const fileMap = fromPairs(procFiles.map((file) => [file.name, file]));
+    const fileMap = fromPairs(processedFiles.map((file) => [file.name, file]));
 
-    return [procFiles, fileMap, activeFile, isEmpty];
+    return [processedFiles, fileMap, activeFile, isEmpty];
   }, [
-    directoryListings,
+    directoryListing,
     activeFileSort,
     hidden,
     file_search,
@@ -309,7 +281,7 @@ export function FilesFlyout({
 
   useEffect(() => {
     setShowCheckboxIndex(null);
-  }, [directoryListings, current_path]);
+  }, [directoryListing, current_path]);
 
   const triggerRootResize = debounce(
     () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
@@ -351,27 +323,6 @@ export function FilesFlyout({
   function getFile(name: string): DirectoryListingEntry | undefined {
     const basename = path_split(name).tail;
     return fileMap[basename];
-  }
-
-  if (directoryListings == null) {
-    (async () => {
-      await delay(0);
-      // Ensure store gets initialized before redux
-      // E.g., for copy between projects you make this
-      // directory selector before even opening the project.
-      redux.getProjectStore(project_id);
-    })();
-  }
-
-  if (directoryListings?.get(current_path) == null) {
-    (async () => {
-      // Must happen in a different render loop, hence the delay, because
-      // fetch can actually update the store in the same render loop.
-      await delay(0);
-      redux
-        .getProjectActions(project_id)
-        ?.fetch_directory_listing({ path: current_path });
-    })();
   }
 
   function open(
@@ -639,8 +590,7 @@ export function FilesFlyout({
   }
 
   function renderListing(): React.JSX.Element {
-    const files = directoryListings?.get(current_path);
-    if (files == null) {
+    if (directoryListing == null) {
       return renderLoadingOrStartProject();
     }
 
@@ -683,6 +633,7 @@ export function FilesFlyout({
       ref={rootRef}
       style={{ flex: "1 0 auto", flexDirection: "column", display: "flex" }}
     >
+      <ShowError error={listingError} setError={refresh} />
       <FilesHeader
         activeFile={activeFile}
         getFile={getFile}

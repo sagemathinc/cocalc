@@ -7,13 +7,9 @@
 R Markdown Editor Actions
 */
 
-import { Set } from "immutable";
 import { debounce } from "lodash";
-
-import { redux } from "@cocalc/frontend/app-framework";
 import { markdown_to_html_frontmatter } from "@cocalc/frontend/markdown";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { path_split } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Actions as BaseActions,
@@ -23,7 +19,7 @@ import { FrameTree } from "../frame-tree/types";
 import { ExecOutput } from "../generic/client";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
-import { derive_rmd_output_filename } from "./utils";
+import { checkProducedFiles } from "./utils";
 const HELP_URL = "https://doc.cocalc.com/frame-editor.html#edit-rmd";
 
 const MINIMAL = `---
@@ -139,44 +135,7 @@ export class Actions extends MarkdownActions {
   }
 
   async _check_produced_files(): Promise<void> {
-    const project_actions = redux.getProjectActions(this.project_id);
-    if (project_actions == undefined) {
-      return;
-    }
-    const path = path_split(this.path).head;
-    await project_actions.fetch_directory_listing({ path });
-
-    const project_store = project_actions.get_store();
-    if (project_store == undefined) {
-      return;
-    }
-    // TODO: change the 0 to the compute server when/if we ever support RMD on a compute server (which we don't)
-    const dir_listings = project_store.getIn(["directory_listings", 0]);
-    if (dir_listings == undefined) {
-      return;
-    }
-    const listing = dir_listings.get(path);
-    if (listing == undefined) {
-      return;
-    }
-
-    let existing = Set();
-    for (const ext of ["pdf", "html", "nb.html"]) {
-      // full path – basename might change
-      const expected_fn = derive_rmd_output_filename(this.path, ext);
-      const fn_exists = listing.some((entry) => {
-        const name = entry.get("name");
-        return name === path_split(expected_fn).tail;
-      });
-      if (fn_exists) {
-        existing = existing.add(ext);
-      }
-    }
-
-    // console.log("setting derived_file_types to", existing.toJS());
-    this.setState({
-      derived_file_types: existing as any,
-    });
+    await checkProducedFiles(this);
   }
 
   private set_log(output?: ExecOutput | undefined): void {
