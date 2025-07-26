@@ -1641,10 +1641,8 @@ ${details}
     const project_id = store.get("course_project_id");
     let files;
     try {
-      files = await redux
-        .getProjectStore(project_id)
-        .get_listings()
-        .getListingDirectly(path);
+      const { fs } = this.course_actions.syncdb;
+      files = await fs.readdir(path, { withFileTypes: true });
     } catch (err) {
       // This happens, e.g., if the instructor moves the directory
       // that contains their version of the ipynb file.
@@ -1658,7 +1656,7 @@ ${details}
     if (this.course_actions.is_closed()) return result;
 
     const to_read = files
-      .filter((entry) => !entry.isdir && endswith(entry.name, ".ipynb"))
+      .filter((entry) => entry.isFile() && endswith(entry.name, ".ipynb"))
       .map((entry) => entry.name);
 
     const f: (file: string) => Promise<void> = async (file) => {

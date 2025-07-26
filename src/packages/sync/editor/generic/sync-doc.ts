@@ -119,7 +119,7 @@ export interface SyncOpts0 {
   data_server?: DataServer;
 
   // filesystem interface.
-  fs?: Filesystem;
+  fs: Filesystem;
 
   // if true, do not implicitly save on commit.  This is very
   // useful for unit testing to easily simulate offline state.
@@ -228,7 +228,7 @@ export class SyncDoc extends EventEmitter {
   private useConat: boolean;
   legacy: LegacyHistory;
 
-  private fs?: Filesystem;
+  public readonly fs: Filesystem;
 
   private noAutosave?: boolean;
 

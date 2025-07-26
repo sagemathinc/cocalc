@@ -1504,9 +1504,9 @@ export class Client extends EventEmitter {
       await astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
-    string: (opts: Omit<SyncStringOptions, "client">): SyncString =>
+    string: (opts: Omit<Omit<SyncStringOptions, "client">, "fs">): SyncString =>
       syncstring({ ...opts, client: this }),
-    db: (opts: Omit<SyncDBOptions, "client">): SyncDB =>
+    db: (opts: Omit<Omit<SyncDBOptions, "client">, "fs">): SyncDB =>
       syncdb({ ...opts, client: this }),
   };
 

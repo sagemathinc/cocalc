@@ -1,3 +1,10 @@
+/*
+Tests are in
+
+packages/backend/conat/files/test/local-path.test.ts
+
+*/
+
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
 import {
@@ -42,7 +49,9 @@ export interface Filesystem {
   lstat: (path: string) => Promise<IStats>;
   mkdir: (path: string, options?) => Promise<void>;
   readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
-  readdir: (path: string) => Promise<string[]>;
+  readdir(path: string, options?): Promise<string[]>;
+  readdir(path: string, options: { withFileTypes?: false }): Promise<string[]>;
+  readdir(path: string, options: { withFileTypes: true }): Promise<IDirent[]>;
   readlink: (path: string) => Promise<string>;
   realpath: (path: string) => Promise<string>;
   rename: (oldPath: string, newPath: string) => Promise<void>;
@@ -73,6 +82,40 @@ export interface Filesystem {
   ) => Promise<{ stdout: Buffer; truncated: boolean }>;
 
   listing?: (path: string) => Promise<Listing>;
+}
+
+interface IDirent {
+  name: string;
+  parentPath: string;
+  path: string;
+  type?: number;
+}
+
+const DIRENT_TYPES = {
+  0: "UNKNOWN",
+  1: "FILE",
+  2: "DIR",
+  3: "LINK",
+  4: "FIFO",
+  5: "SOCKET",
+  6: "CHAR",
+  7: "BLOCK",
+};
+
+class Dirent {
+  constructor(
+    public name: string,
+    public parentPath: string,
+    public path: string,
+    public type: number,
+  ) {}
+  isFile = () => DIRENT_TYPES[this.type] == "FILE";
+  isDirectory = () => DIRENT_TYPES[this.type] == "DIR";
+  isSymbolicLink = () => DIRENT_TYPES[this.type] == "LINK";
+  isFIFO = () => DIRENT_TYPES[this.type] == "FIFO";
+  isSocket = () => DIRENT_TYPES[this.type] == "SOCKET";
+  isCharacterDevice = () => DIRENT_TYPES[this.type] == "CHAR";
+  isBlockDevice = () => DIRENT_TYPES[this.type] == "BLOCK";
 }
 
 interface IStats {
@@ -202,8 +245,16 @@ export async function fsServer({ service, fs, client }: Options) {
     async readFile(path: string, encoding?) {
       return await (await fs(this.subject)).readFile(path, encoding);
     },
-    async readdir(path: string) {
-      return await (await fs(this.subject)).readdir(path);
+    async readdir(path: string, options?) {
+      const files = await (await fs(this.subject)).readdir(path, options);
+      if (!options?.withFileTypes) {
+        return files;
+      }
+      // Dirent - change the [Symbol(type)] field to something serializable so client can use this:
+      return files.map((x) => {
+        // @ts-ignore
+        return { ...x, type: x[Object.getOwnPropertySymbols(x)[0]] };
+      });
     },
     async readlink(path: string) {
       return await (await fs(this.subject)).readlink(path);
@@ -291,6 +342,16 @@ export function fsClient({
 }): FilesystemClient {
   client ??= conat();
   let call = client.call<FilesystemClient>(subject);
+
+  const readdir0 = call.readdir.bind(call);
+  call.readdir = async (path: string, options?) => {
+    const files = await readdir0(path, options);
+    if (options?.withFileTypes) {
+      return files.map((x) => new Dirent(x.name, x.parentPath, x.path, x.type));
+    } else {
+      return files;
+    }
+  };
 
   let constants: any = null;
   const stat0 = call.stat.bind(call);

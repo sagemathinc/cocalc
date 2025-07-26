@@ -118,6 +118,64 @@ describe("use all the standard api functions of fs", () => {
     expect(v).toEqual(["0", "1", "2", "3", "4", fire]);
   });
 
+  it("readdir with the withFileTypes option", async () => {
+    const path = "readdir-1";
+    await fs.mkdir(path);
+    expect(await fs.readdir(path, { withFileTypes: true })).toEqual([]);
+    await fs.writeFile(join(path, "a.txt"), "");
+
+    {
+      const v = await fs.readdir(path, { withFileTypes: true });
+      expect(v.map(({ name }) => name)).toEqual(["a.txt"]);
+      expect(v.map((x) => x.isFile())).toEqual([true]);
+    }
+    {
+      await fs.mkdir(join(path, "co"));
+      const v = await fs.readdir(path, { withFileTypes: true });
+      expect(v.map(({ name }) => name)).toEqual(["a.txt", "co"]);
+      expect(v.map((x) => x.isFile())).toEqual([true, false]);
+      expect(v.map((x) => x.isDirectory())).toEqual([false, true]);
+    }
+
+    {
+      await fs.symlink(join(path, "a.txt"), join(path, "link"));
+      const v = await fs.readdir(path, { withFileTypes: true });
+      expect(v.map(({ name }) => name)).toEqual(["a.txt", "co", "link"]);
+      expect(v[2].isSymbolicLink()).toEqual(true);
+    }
+  });
+
+  it("readdir with the recursive option", async () => {
+    const path = "readdir-2";
+    await fs.mkdir(path);
+    expect(await fs.readdir(path, { recursive: true })).toEqual([]);
+    await fs.mkdir(join(path, "subdir"));
+    await fs.writeFile(join(path, "subdir", "b.txt"), "x");
+    const v = await fs.readdir(path, { recursive: true });
+    expect(v).toEqual(["subdir", "subdir/b.txt"]);
+
+    // and withFileTypes
+    const w = await fs.readdir(path, { recursive: true, withFileTypes: true });
+    expect(w.map(({ name }) => name)).toEqual(["subdir", "b.txt"]);
+    expect(w[0]).toEqual(
+      expect.objectContaining({
+        name: "subdir",
+        parentPath: path,
+        path,
+      }),
+    );
+    expect(w[0].isDirectory()).toBe(true);
+    expect(w[1]).toEqual(
+      expect.objectContaining({
+        name: "b.txt",
+        parentPath: join(path, "subdir"),
+        path: join(path, "subdir"),
+      }),
+    );
+    expect(w[1].isFile()).toBe(true);
+    expect(await fs.readFile(join(w[1].path, w[1].name), "utf8")).toEqual("x");
+  });
+
   it("use the find command instead of readdir", async () => {
     const { stdout } = await fs.find("dirtest", "%f\n");
     const v = stdout.toString().trim().split("\n");
