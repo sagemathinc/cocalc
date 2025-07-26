@@ -169,11 +169,6 @@ export async function open_file(
     }
     if (opts.path != realpath) {
       if (!actions.open_files) return; // closed
-      alert_message({
-        type: "info",
-        message: `Opening normalized real path "${realpath}"`,
-        timeout: 10,
-      });
       actions.open_files.delete(opts.path);
       opts.path = realpath;
       actions.open_files.set(opts.path, "component", {});
