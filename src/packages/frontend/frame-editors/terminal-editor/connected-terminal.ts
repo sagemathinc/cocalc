@@ -313,9 +313,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.conn = conn as any;
       conn.on("close", this.connect);
       conn.on("kick", this.close_request);
-      conn.on("cwd", (cwd) => {
-        this.actions.set_terminal_cwd(this.id, cwd);
-      });
       conn.on("data", this.handleDataFromProject);
       conn.on("init", this.render);
       conn.once("ready", () => {
@@ -438,7 +435,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.onTitleChange((title) => {
       if (title != null) {
         this.actions.set_title(this.id, title);
-        this.ask_for_cwd();
+        this.update_cwd();
       }
     });
   };
@@ -720,9 +717,21 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.render_buffer = "";
   };
 
-  ask_for_cwd = debounce((): void => {
-    this.conn_write({ cmd: "cwd" });
-  });
+  update_cwd = debounce(
+    async () => {
+      let cwd;
+      try {
+        cwd = await this.conn?.api.cwd();
+      } catch {
+        return;
+      }
+      if (cwd != null) {
+        this.actions.set_terminal_cwd(this.id, cwd);
+      }
+    },
+    1000,
+    { leading: true, trailing: true },
+  );
 
   kick_other_users_out(): void {
     // @ts-ignore

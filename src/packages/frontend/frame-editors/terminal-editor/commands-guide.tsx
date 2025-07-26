@@ -11,8 +11,7 @@ import {
   Table,
   Typography,
 } from "antd";
-import { List, Map } from "immutable";
-
+import { Map } from "immutable";
 import {
   ControlOutlined,
   FileOutlined,
@@ -20,82 +19,45 @@ import {
   InfoCircleOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import {
-  CSS,
-  React,
-  TypedMap,
-  useActions,
-  useEffect,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { createContext, useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
-import { plural, round1 } from "@cocalc/util/misc";
-import { DirectoryListingEntry } from "../../project/explorer/types";
+import { human_readable_size, plural } from "@cocalc/util/misc";
 import { TerminalActions } from "./actions";
 import { Command, SelectFile } from "./commands-guide-components";
+import useFiles from "@cocalc/frontend/project/listing/use-files";
+import ShowError from "@cocalc/frontend/components/error";
 
 const { Panel } = Collapse;
 
 interface Props {
-  font_size: number;
-  project_id: string;
   actions: TerminalActions;
   local_view_state: Map<string, any>;
 }
 
-export const TerminalActionsContext = React.createContext<
+export const TerminalActionsContext = createContext<
   TerminalActions | undefined
 >(undefined);
 
 const ListingStatsInit = {
-  total: 0,
   num_files: 0,
   num_dirs: 0,
-  size_mib: 0,
+  size: 0,
 };
 
 const info = "info";
-
-type ListingImm = List<TypedMap<DirectoryListingEntry>>;
-
-function listing2names(listing?): string[] {
-  if (listing == null) {
-    return [];
-  } else {
-    return listing
-      .map((val) => val.get("name"))
-      .sort()
-      .toJS();
-  }
-}
 
 function cwd2path(cwd: string): string {
   return cwd.charAt(0) === "/" ? ".smc/root" + cwd : cwd;
 }
 
-export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
-  const { /*font_size,*/ actions, local_view_state, project_id } = props;
-
-  const project_actions = useActions({ project_id });
-  // TODO: for now just assuming in the project (not a compute server) -- problem
-  // is that the guide is general to the whole terminal not a particular frame,
-  // and each frame can be on a different compute server!  Not worth solving if
-  // nobody is using either the guide or compute servers.
-  const directory_listings = useTypedRedux(
-    { project_id },
-    "directory_listings",
-  )?.get(0);
-
-  const [terminal_id, set_terminal_id] = useState<string | undefined>();
+export function CommandsGuide({ actions, local_view_state }: Props) {
+  const [terminal_id, setTerminalId] = useState<string | undefined>();
   const [cwd, set_cwd] = useState<string>(""); // default home directory
   const [hidden, set_hidden] = useState<boolean>(false); // hidden files
   // empty immutable js list
-  const [listing, set_listing] = useState<ListingImm | string>(List([]));
-
   const [listing_stats, set_listing_stats] =
     useState<typeof ListingStatsInit>(ListingStatsInit);
-  const [directorynames, set_directorynames] = useState<string[]>([]);
+  const [directoryNames, set_directoryNames] = useState<string[]>([]);
   const [filenames, set_filenames] = useState<string[]>([]);
   // directory and filenames
   const [dir1, set_dir1] = useState<string | undefined>(undefined);
@@ -103,13 +65,17 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   const [fn2, set_fn2] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const tid = actions._get_most_recent_active_frame_id_of_type("terminal");
-    if (tid == null) return;
-    if (terminal_id != tid) set_terminal_id(tid);
+    const terminalId =
+      actions._get_most_recent_active_frame_id_of_type("terminal");
+    if (terminalId == null) {
+      return;
+    }
+    if (terminal_id != terminalId) {
+      setTerminalId(terminalId);
+    }
   }, [local_view_state]);
 
   useEffect(() => {
-    //const terminal = actions.get_terminal(tid);
     const next_cwd = local_view_state.getIn([
       "editor_state",
       terminal_id,
@@ -117,50 +83,45 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     ]) as string | undefined;
     if (next_cwd != null && cwd != next_cwd) {
       set_cwd(next_cwd);
-      project_actions?.fetch_directory_listing({ path: cwd2path(next_cwd) });
     }
   }, [terminal_id, local_view_state]);
 
-  // if the working directory changes or the listing itself, recompute the listing we base the files on
-  useEffect(() => {
-    if (cwd == null) return;
-    set_listing(directory_listings?.get(cwd2path(cwd)));
-  }, [directory_listings, cwd]);
+  const { files, error, refresh } = useFiles({
+    fs: actions.fs(),
+    path: cwd2path(cwd),
+  });
 
   // finally, if the listing really did change – or show/hide hidden files toggled – recalculate everything
   useEffect(() => {
-    // a user reported a crash "Uncaught TypeError: listing.filter is not a function".
-    // This was because directory_listings is a map from path to either an immutable
-    // listing **or** an error, as you can see where it is set in the file frontend/project_actions.ts
-    // The typescript there just has an "any", because it's code that was partly converted from coffeescript.
-    // Fixing this by just doing listing?.filter==null instead of listing==null here, since dealing with
-    // an error isn't necessary for this command guide.
-    if (
-      listing == null ||
-      typeof listing == "string" ||
-      listing?.filter == null
-    )
+    if (files == null) {
       return;
-    const all_files = hidden
-      ? listing
-      : listing.filter((val) => !val.get("name").startsWith("."));
-    const grouped = all_files.groupBy((val) => !!val.get("isdir"));
-    const dirnames = [".", "..", ...listing2names(grouped.get(true))];
-    const filenames = listing2names(grouped.get(false));
-    set_directorynames(dirnames);
+    }
+    const dirnames: string[] = [".", ".."];
+    const filenames: string[] = [];
+    for (const name in files) {
+      if (!hidden && name.startsWith(".")) {
+        continue;
+      }
+      if (files[name].isdir) {
+        dirnames.push(name);
+      } else {
+        filenames.push(name);
+      }
+    }
+    dirnames.sort();
+    filenames.sort();
+
+    set_directoryNames(dirnames);
     set_filenames(filenames);
-    const total = all_files.size;
-    const size_red = grouped
-      .get(false)
-      ?.reduce((cur, val) => cur + val.get("size", 0), 0);
-    const size = (size_red ?? 0) / (1024 * 1024);
+    const size = filenames
+      .map((name) => files[name].size ?? 0)
+      .reduce((a, b) => a + b, 0);
     set_listing_stats({
-      total,
       num_files: filenames.length,
-      num_dirs: dirnames.length,
-      size_mib: size,
+      num_dirs: dirnames.length - 2,
+      size,
     });
-  }, [listing, hidden]);
+  }, [files, hidden]);
 
   // we also clear selected files if they no longer exist
   useEffect(() => {
@@ -170,16 +131,16 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     if (fn2 != null && !filenames.includes(fn2)) {
       set_fn2(undefined);
     }
-    if (dir1 != null && !directorynames.includes(dir1)) {
+    if (dir1 != null && !directoryNames.includes(dir1)) {
       set_dir1(undefined);
     }
-  }, [directorynames, filenames]);
+  }, [directoryNames, filenames]);
 
   function render_files() {
-    const dirs = directorynames.map((v) => ({ key: v, name: v, type: "dir" }));
+    const dirs = directoryNames.map((v) => ({ key: v, name: v, type: "dir" }));
     const fns = filenames.map((v) => ({ key: v, name: v, type: "file" }));
     const data = [...dirs, ...fns];
-    const style: CSS = { cursor: "pointer" };
+    const style = { cursor: "pointer" } as const;
     const columns = [
       {
         title: "Name",
@@ -306,7 +267,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           {plural(listing_stats.num_files, "file")},{" "}
           <code>{listing_stats.num_dirs}</code>{" "}
           {plural(listing_stats.num_dirs, "directory", "directories")},{" "}
-          <code>{round1(listing_stats.size_mib)}</code> MiB
+          <code>{human_readable_size(listing_stats.size)}</code>
         </Descriptions.Item>
 
         <Descriptions.Item label="File 1">
@@ -316,7 +277,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           <SelectFile list={filenames} selected={fn2} select={set_fn2} />
         </Descriptions.Item>
         <Descriptions.Item label="Folder">
-          <SelectFile list={directorynames} selected={dir1} select={set_dir1} />
+          <SelectFile list={directoryNames} selected={dir1} select={set_dir1} />
         </Descriptions.Item>
 
         <Descriptions.Item label="Hidden files">
@@ -430,7 +391,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render() {
-    const style: CSS = { overflowY: "auto" };
+    const style = { overflowY: "auto" } as const;
     return (
       <Collapse defaultActiveKey={[info]} style={style}>
         <Panel header="General" extra={<InfoCircleOutlined />} key={info}>
@@ -501,7 +462,8 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
 
   return (
     <TerminalActionsContext.Provider value={actions}>
+      <ShowError error={error} setError={refresh} />
       {render()}
     </TerminalActionsContext.Provider>
   );
-});
+}

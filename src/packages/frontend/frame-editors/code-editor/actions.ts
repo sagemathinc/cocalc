@@ -1500,7 +1500,7 @@ export class Actions<
     return this.terminals.get_terminal(id, parent);
   }
 
-  public set_terminal_cwd(id: string, cwd: string): void {
+  set_terminal_cwd(id: string, cwd: string): void {
     this.save_editor_state(id, { cwd });
   }
 
@@ -3204,6 +3204,6 @@ export class Actions<
 
   fs = () => {
     const a = this.redux.getProjectActions(this.project_id);
-    return a.fs(a.getComputeServerIdForFile(this.path));
+    return a.fs(a.getComputeServerIdForFile({ path: this.path }));
   };
 }

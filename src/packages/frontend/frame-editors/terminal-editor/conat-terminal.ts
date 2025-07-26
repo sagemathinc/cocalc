@@ -24,7 +24,7 @@ export class ConatTerminal extends EventEmitter {
   private terminalResize;
   private openPaths;
   private closePaths;
-  private api: TerminalServiceApi;
+  public readonly api: TerminalServiceApi;
   private service?;
   private options?;
   private writeQueue: string = "";
