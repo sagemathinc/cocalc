@@ -181,12 +181,29 @@ export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 
+// Where the sqlite database files used for sync are stored.
+// The idea is there is one very fast *ephemeral* directory
+// which is used for actively open sqlite database. Optionally,
+// data is copied to a file in archive, and on close it is
+// copied to backup file.
+// When opening the sqlite database, the newer of local and archive is
+// used.  The backup is ignored in all cases (backup exists ONLY for
+// you to make an offline copy or bup archive from or something).
 export const syncFiles = {
   // Persistent local storage of streams and kv's as sqlite3 files
   local: process.env.COCALC_SYNC ?? join(data, "sync"),
-  // Archived storage of streams and kv's as sqlite3 files, if set.
+
+  // OPTIONAL:  Archived storage of streams and kv
   // This could be a gcsfuse mountpoint.
   archive: process.env.COCALC_SYNC_ARCHIVE ?? "",
+  archiveInterval: parseInt(
+    process.env.COCALC_SYNC_ARCHIVE_INTERVAL ?? "30000",
+  ),
+
+  // OPTIONAL: When storage is closed, a backup is written here:
+  // This backup is *NOT* used in any way except as a backup; in particular,
+  // it won't be used even if archive and path were both gone.
+  backup: process.env.COCALC_SYNC_BACKUP ?? "",
 };
 
 // if the directory secrets doesn't exist, create it (sync, during this load):

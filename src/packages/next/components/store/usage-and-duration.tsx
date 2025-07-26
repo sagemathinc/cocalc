@@ -41,21 +41,17 @@ function getTimezoneFromDate(
   );
 }
 
-export function UsageAndDuration(props: Props) {
-  const {
-    showExplanations = false,
-    form,
-    onChange,
-    disabled = false,
-    showUsage = true,
-    discount = true,
-    extraDuration,
-    source,
-  } = props;
-
-  //const duration: Duration = type === "license" ? "all" : "range";
-  const duration = props.duration || "all";
-
+export function UsageAndDuration({
+  showExplanations = false,
+  form,
+  onChange,
+  disabled = false,
+  showUsage = true,
+  discount = true,
+  extraDuration,
+  source,
+  duration = "all",
+}: Props) {
   const profile = useProfile();
 
   function renderUsageExplanation() {
@@ -138,17 +134,16 @@ export function UsageAndDuration(props: Props) {
 
   function renderRangeSelector(getFieldValue) {
     const period = getFieldValue("period");
-    if (period !== "range") {
-      return;
-    }
+
+    // ensure range is valid even if we aren't going to render this range selector visibly:
+    //   see https://github.com/sagemathinc/cocalc/issues/8461
     let range = getFieldValue("range");
     let invalidRange = range?.[0] == null || range?.[1] == null;
     if (invalidRange) {
       // Check if we're during initial load and URL has range parameters
       // If so, don't override with default dates
       const urlParams = new URLSearchParams(window.location.search);
-      const hasRangeInUrl = urlParams.has('range');
-      
+      const hasRangeInUrl = urlParams.has("range");
       if (!hasRangeInUrl) {
         const start = new Date();
         const dayMs = 1000 * 60 * 60 * 24;
@@ -159,6 +154,11 @@ export function UsageAndDuration(props: Props) {
         onChange();
       }
     }
+
+    if (period !== "range") {
+      return;
+    }
+
     let suffix;
     try {
       if (!invalidRange) {
@@ -188,7 +188,9 @@ export function UsageAndDuration(props: Props) {
         extra={source === "course" ? renderDurationExplanation() : undefined}
       >
         <DateRange
-          key={range ? `${range[0]?.getTime()}_${range[1]?.getTime()}` : 'no-range'}
+          key={
+            range ? `${range[0]?.getTime()}_${range[1]?.getTime()}` : "no-range"
+          }
           disabled={disabled}
           noPast
           maxDaysInFuture={365 * 4}
@@ -287,8 +289,8 @@ export function UsageAndDuration(props: Props) {
       source === "course"
         ? "range"
         : duration === "range"
-        ? "range"
-        : "monthly";
+          ? "range"
+          : "monthly";
 
     switch (source) {
       case "course":
