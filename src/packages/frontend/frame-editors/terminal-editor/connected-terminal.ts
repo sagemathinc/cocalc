@@ -50,6 +50,11 @@ const MAX_DELAY = 15000;
 
 const ENABLE_WEBGL = false;
 
+
+// ephemeral = faster, less load on servers, but if project and browser all
+// close, the history is gone... which may be good and less confusing.
+const EPHEMERAL = true;
+
 interface Path {
   file?: string;
   directory?: string;
@@ -309,6 +314,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
           cwd: this.workingDir,
           env: this.actions.get_term_env(),
         },
+        ephemeral: EPHEMERAL,
       });
       this.conn = conn as any;
       conn.on("close", this.connect);
