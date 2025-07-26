@@ -12,7 +12,6 @@ import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
-
 import {
   computeServerManager,
   type ComputeServerManager,
@@ -50,7 +49,6 @@ import {
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import * as project_file from "@cocalc/frontend/project-file";
 import { delete_files } from "@cocalc/frontend/project/delete-files";
-import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
 import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
@@ -109,6 +107,11 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
+import { type FilesystemClient } from "@cocalc/conat/files/fs";
+import {
+  getFiles,
+  type Files,
+} from "@cocalc/frontend/project/listing/use-files";
 
 const { defaults, required } = misc;
 
@@ -621,9 +624,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (opts.change_history) {
           this.set_url_to_path(store.get("current_path") ?? "", "");
         }
-        if (opts.update_file_listing) {
-          this.fetch_directory_listing();
-        }
         break;
 
       case "new":
@@ -1061,28 +1061,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   /* Initialize the redux store and react component for editing
-     a particular file.
+     a particular file, if necessary.
   */
-  initFileRedux = async (
-    path: string,
-    is_public: boolean = false,
-    ext?: string, // use this extension even instead of path's extension.
-  ): Promise<string | undefined> => {
-    // LAZY IMPORT, so that editors are only available
-    // when you are going to use them.  Helps with code splitting.
-    await import("./editors/register-all");
+  initFileRedux = reuseInFlight(
+    async (
+      path: string,
+      is_public: boolean = false,
+      ext?: string, // use this extension even instead of path's extension.
+    ): Promise<string | undefined> => {
+      const cur = redux.getEditorActions(this.project_id, path);
+      if (cur != null) {
+        return cur.name;
+      }
+      // LAZY IMPORT, so that editors are only available
+      // when you are going to use them.  Helps with code splitting.
+      await import("./editors/register-all");
 
-    // Initialize the file's store and actions
-    const name = await project_file.initializeAsync(
-      path,
-      this.redux,
-      this.project_id,
-      is_public,
-      undefined,
-      ext,
-    );
-    return name;
-  };
+      // Initialize the file's store and actions
+      const name = await project_file.initializeAsync(
+        path,
+        this.redux,
+        this.project_id,
+        is_public,
+        undefined,
+        ext,
+      );
+      return name;
+    },
+  );
 
   private init_file_react_redux = async (
     path: string,
@@ -1496,8 +1502,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       most_recent_file_click: undefined,
     });
-
-    store.get_listings().watch(path, true);
   };
 
   setComputeServerId = (compute_server_id: number) => {
@@ -1557,33 +1561,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Update the directory listing cache for the given path.
   // Uses current path if path not provided.
-  fetch_directory_listing = async (opts?): Promise<void> => {
-    await fetchDirectoryListing(this, opts);
+  fetch_directory_listing = async (_opts?): Promise<void> => {
+    console.log("TODO: eliminate code that uses fetch_directory_listing");
   };
 
-  public async fetch_directory_listing_directly(
-    path: string,
-    trigger_start_project?: boolean,
-    compute_server_id?: number,
-  ): Promise<void> {
-    const store = this.get_store();
-    if (store == null) return;
-    compute_server_id = this.getComputeServerId(compute_server_id);
-    const listings = store.get_listings(compute_server_id);
-    try {
-      const files = await listings.getListingDirectly(
-        path,
-        trigger_start_project,
-      );
-      const directory_listings = store.get("directory_listings");
-      let listing = directory_listings.get(compute_server_id) ?? Map();
-      listing = listing.set(path, files);
-      this.setState({
-        directory_listings: directory_listings.set(compute_server_id, listing),
-      });
-    } catch (err) {
-      console.warn(`Unable to fetch directory listing -- "${err}"`);
-    }
+  public async fetch_directory_listing_directly(): Promise<void> {
+    console.log(
+      "TODO: eliminate code that uses fetch_directory_listing_directly",
+    );
   }
 
   // Sets the active file_sort to next_column_name
@@ -1753,40 +1738,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  // this isn't really an action, but very helpful!
-  public get_filenames_in_current_dir():
-    | { [name: string]: boolean }
-    | undefined {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-
-    const files_in_dir = {};
-    // This will set files_in_dir to our current view of the files in the current
-    // directory (at least the visible ones) or do nothing in case we don't know
-    // anything about files (highly unlikely).  Unfortunately (for this), our
-    // directory listings are stored as (immutable) lists, so we have to make
-    // a map out of them.
-    const compute_server_id = store.get("compute_server_id");
-    const listing = store.getIn([
-      "directory_listings",
-      compute_server_id,
-      store.get("current_path"),
-    ]);
-
-    if (typeof listing === "string") {
-      // must be an error
-      return undefined; // simple fallback
-    }
-    if (listing != null) {
-      listing.map(function (x) {
-        files_in_dir[x.get("name")] = true;
-      });
-    }
-    return files_in_dir;
-  }
-
   suggestDuplicateFilenameInCurrentDirectory = (
     name: string,
   ): string | undefined => {
@@ -1906,7 +1857,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // returns a function that takes the err and output and
     // does the right activity logging stuff.
     return (err?, output?) => {
-      this.fetch_directory_listing();
       if (err) {
         this.set_activity({ id, error: err });
       } else if (
@@ -1957,7 +1907,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       throw err;
     } finally {
       this.set_activity({ id, stop: "" });
-      this.fetch_directory_listing();
     }
   };
 
@@ -2496,21 +2445,40 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  private _filesystem: FilesystemClient;
+  fs = (): FilesystemClient => {
+    this._filesystem ??= webapp_client.conat_client
+      .conat()
+      .fs({ project_id: this.project_id });
+    return this._filesystem;
+  };
+
+  // if available in cache, this returns the filenames in the current directory,
+  // which is often useful, or null if they are not known. This is sync, so it
+  // can't query the backend.  (Here Files is a map from path names to data about them.)
+  get_filenames_in_current_dir = (): Files | null => {
+    const store = this.get_store();
+    if (store == undefined) {
+      return null;
+    }
+    const path = store.get("current_path");
+    if (path == null) {
+      return null;
+    }
+    // todo: compute_server_id here and in place that does useListing!
+    return getFiles({ cacheId: { project_id: this.project_id }, path });
+  };
+
   // return true if exists and is a directory
-  private async isdir(path: string): Promise<boolean> {
+  isdir = async (path: string): Promise<boolean> => {
     if (path == "") return true; // easy special case
     try {
-      await webapp_client.project_client.exec({
-        project_id: this.project_id,
-        command: "test",
-        args: ["-d", path],
-        err_on_exit: true,
-      });
-      return true;
+      const stats = await this.fs().stat(path);
+      return stats.isDirectory();
     } catch (_) {
       return false;
     }
-  }
+  };
 
   public async move_files(opts: {
     src: string[];
@@ -2747,7 +2715,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
-    this.fetch_directory_listing({ path: p, compute_server_id });
     if (switch_over) {
       this.open_directory(p);
     }
@@ -3236,17 +3203,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //  log
   //  settings
   //  search
-  async load_target(
+  load_target = async (
     target,
     foreground = true,
     ignore_kiosk = false,
     change_history = true,
     fragmentId?: FragmentId,
-  ): Promise<void> {
+  ): Promise<void> => {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
-    const last = segments.slice(-1).join();
     const main_segment = segments[0] as FixedTab | "home";
     switch (main_segment) {
       case "active":
@@ -3265,27 +3231,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store == null) {
           return; // project closed already
         }
-        // We check whether the path is a directory or not, first by checking if
-        // we have a recent directory listing in our cache, and if not, by calling
-        // isdir, which is a single exec.
-        let isdir;
-        let { item, err } = store.get_item_in_path(last, parent_path);
-        if (item == null || err) {
-          try {
-            isdir = await webapp_client.project_client.isdir({
-              project_id: this.project_id,
-              path: normalize(full_path),
-            });
-          } catch (err) {
-            // TODO: e.g., project is not running?
-            // I've seen this, e.g., when trying to open a file when not running, and it just
-            // gets retried and works.
-            console.log(`Error opening '${target}' -- ${err}`);
-            return;
-          }
-        } else {
-          isdir = item.get("isdir");
-        }
+
+        // We check whether the path is a directory or not:
+        const isdir = await this.isdir(full_path);
         if (isdir) {
           this.open_directory(full_path, change_history);
         } else {
@@ -3344,7 +3292,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
-  }
+  };
 
   set_compute_image = async (compute_image: string): Promise<void> => {
     const projects_store = this.redux.getStore("projects");

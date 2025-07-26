@@ -6,7 +6,6 @@
 import { Button } from "antd";
 import { useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Paragraph, Text } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -20,12 +19,12 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
+import { default_filename } from "@cocalc/frontend/account";
+import { join } from "path";
 
 interface Props {
   name: string;
   actions: ProjectActions;
-  create_folder: () => void;
-  create_file: () => void;
   file_search: string;
   current_path?: string;
   project_id: string;
@@ -34,9 +33,8 @@ interface Props {
 
 export default function NoFiles({
   actions,
-  create_folder,
-  create_file,
   file_search = "",
+  current_path,
   project_id,
   configuration_main,
 }: Props) {
@@ -109,12 +107,16 @@ export default function NoFiles({
           padding: "30px",
         }}
         onClick={(): void => {
-          if (file_search.length === 0) {
+          if (!file_search?.trim()) {
             actions.set_active_tab("new");
           } else if (file_search[file_search.length - 1] === "/") {
-            create_folder();
+            actions.create_folder({
+              name: join(current_path ?? "", file_search),
+            });
           } else {
-            create_file();
+            actions.create_file({
+              name: join(current_path ?? "", actualNewFilename),
+            });
           }
         }}
       >
@@ -137,18 +139,31 @@ export default function NoFiles({
         file_search={file_search}
         actual_new_filename={actualNewFilename}
       />
-      {file_search.length > 0 && (
-        <div style={{ marginTop: "15px" }}>
-          <h4 style={{ color: "#666" }}>Or Select a File Type</h4>
-          <FileTypeSelector
-            create_file={create_file}
-            create_folder={create_folder}
-            projectActions={actions}
-            availableFeatures={availableFeatures}
-            filename={actualNewFilename}
-          />
-        </div>
-      )}
+      <div style={{ marginTop: "15px" }}>
+        <h4 style={{ color: "#666" }}>Select a File Type</h4>
+        <FileTypeSelector
+          create_file={(ext) => {
+            ext = ext ? ext : "ipynb";
+            const filename = file_search.trim()
+              ? file_search + "." + ext
+              : default_filename(ext, project_id);
+            actions.create_file({
+              name: join(current_path ?? "", filename),
+            });
+          }}
+          create_folder={() => {
+            const filename = default_filename(undefined, project_id);
+            actions.create_folder({
+              name: file_search.trim()
+                ? file_search
+                : join(current_path ?? "", filename),
+            });
+          }}
+          projectActions={actions}
+          availableFeatures={availableFeatures}
+          filename={actualNewFilename}
+        />
+      </div>
     </div>
   );
 }

@@ -69,6 +69,11 @@ export class Filesystem {
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
     await this.initBup();
+    await this.sync();
+  };
+
+  sync = async () => {
+    await btrfs({ args: ["filesystem", "sync", this.opts.mount] });
   };
 
   unmount = async () => {

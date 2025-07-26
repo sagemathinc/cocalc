@@ -6,7 +6,6 @@
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
-
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -25,7 +24,6 @@ import {
   SettingBox,
   Tip,
 } from "@cocalc/frontend/components";
-import FakeProgress from "@cocalc/frontend/components/fake-progress";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
@@ -430,7 +428,7 @@ export default function NewFilePage(props: Props) {
         footer={<></>}
       >
         <div style={{ textAlign: "center" }}>
-          <FakeProgress time={4000} />
+          <Loading estimate={1000} />
         </div>
       </Modal>
       <Row key={"new-file-row"}>

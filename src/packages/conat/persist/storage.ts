@@ -367,7 +367,7 @@ export class PersistentStream extends EventEmitter {
     try {
       await this.db.backup(path);
     } catch (err) {
-      console.log(err);
+      // console.log(err);
       logger.debug("WARNING: error creating a backup", path, err);
     }
   });

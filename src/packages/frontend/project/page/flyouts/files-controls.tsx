@@ -101,7 +101,7 @@ export function FilesSelectedControls({
   function renderFileInfoBottom() {
     if (singleFile != null) {
       const { size, mtime, isdir } = singleFile;
-      const age = typeof mtime === "number" ? 1000 * mtime : null;
+      const age = typeof mtime === "number" ? mtime : null;
       return (
         <Descriptions size="small" layout="horizontal" column={1}>
           {age ? (
@@ -144,7 +144,7 @@ export function FilesSelectedControls({
           const { size = 0, mtime, isdir } = file;
           totSize += isdir ? 0 : size;
           if (typeof mtime === "number") {
-            const dt = new Date(1000 * mtime);
+            const dt = new Date(mtime);
             if (startDT.getTime() === 0 || dt < startDT) startDT = dt;
             if (endDT.getTime() === 0 || dt > endDT) endDT = dt;
           }

@@ -7,23 +7,18 @@
 
 // cSpell:ignore issymlink
 
-import { Alert, Spin } from "antd";
+import { Spin } from "antd";
 import * as immutable from "immutable";
-import React, { useEffect, useRef, useState } from "react";
-import { useInterval } from "react-interval-hook";
+import { useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
-import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   AppRedux,
   Rendered,
   TypedMap,
-  usePrevious,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import * as misc from "@cocalc/util/misc";
@@ -31,6 +26,12 @@ import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
 import { TERM_MODE_CHAR } from "./utils";
+import ShowError from "@cocalc/frontend/components/error";
+import useFs from "@cocalc/frontend/project/listing/use-fs";
+import useListing, {
+  type SortField,
+} from "@cocalc/frontend/project/listing/use-listing";
+import filterListing from "@cocalc/frontend/project/listing/filter-listing";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -40,85 +41,87 @@ interface Props {
   name: string;
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   listing: any[];
-  file_map: object;
   file_search: string;
   checked_files: immutable.Set<string>;
   current_path: string;
-  create_folder: (switch_over?: boolean) => void; // TODO: should be action!
-  create_file: (ext?: string, switch_over?: boolean) => void; // TODO: should be action!
   selected_file_index?: number;
   project_id: string;
   shift_is_down: boolean;
-  sort_by: (heading: string) => void; // TODO: should be data
+  sort_by: (heading: string) => void;
   library?: object;
   other_settings?: immutable.Map<any, any>;
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
+
+  show_hidden?: boolean;
+  show_masked?: boolean;
+
+  stale?: boolean;
 }
 
-export function watchFiles({ actions, current_path }): void {
-  const store = actions.get_store();
-  if (store == null) return;
-  try {
-    store.get_listings().watch(current_path);
-  } catch (err) {
-    console.warn("ERROR watching directory", err);
+function sortDesc(active_file_sort?): {
+  sortField: SortField;
+  sortDirection: "asc" | "desc";
+} {
+  const { column_name, is_descending } = active_file_sort?.toJS() ?? {
+    column_name: "name",
+    is_descending: false,
+  };
+  if (column_name == "time") {
+    return {
+      sortField: "mtime",
+      sortDirection: is_descending ? "asc" : "desc",
+    };
   }
+  return {
+    sortField: column_name,
+    sortDirection: is_descending ? "desc" : "asc",
+  };
 }
 
-export const FileListing: React.FC<Props> = ({
+export function FileListing(props) {
+  const path = props.current_path;
+  const fs = useFs({ project_id: props.project_id });
+  let { listing, error } = useListing({
+    fs,
+    path,
+    ...sortDesc(props.active_file_sort),
+    cacheId: { project_id: props.project_id },
+  });
+  if (error) {
+    return <ShowError error={error} />;
+  }
+
+  listing = filterListing({
+    listing,
+    search: props.file_search,
+    showHidden: props.show_hidden,
+  });
+
+  if (listing == null) {
+    return <Spin delay={500} />;
+  }
+  return <FileListing0 {...{ ...props, listing }} />;
+}
+
+function FileListing0({
   actions,
   redux,
   name,
   active_file_sort,
   listing,
-  file_map,
   checked_files,
   current_path,
-  create_folder,
-  create_file,
   selected_file_index,
   project_id,
   shift_is_down,
   sort_by,
   configuration_main,
   file_search = "",
-  isRunning,
-}: Props) => {
-  const [starting, setStarting] = useState<boolean>(false);
-
-  const prev_current_path = usePrevious(current_path);
-
-  function watch() {
-    watchFiles({ actions, current_path });
-  }
-
-  // once after mounting, when changing paths, and in regular intervals call watch()
-  useEffect(() => {
-    watch();
-  }, []);
-
-  useEffect(() => {
-    if (current_path != prev_current_path) watch();
-  }, [current_path, prev_current_path]);
-
-  useInterval(watch, WATCH_THROTTLE_MS);
-
-  const [missing, setMissing] = useState<number>(0);
-
-  useEffect(() => {
-    if (isRunning) return;
-    if (listing.length == 0) return;
-    (async () => {
-      const missing = await redux
-        .getProjectStore(project_id)
-        .get_listings()
-        .getMissingUsingDatabase(current_path);
-      setMissing(missing ?? 0);
-    })();
-  }, [current_path, isRunning]);
-
+  stale,
+  // show_masked,
+}: Props) {
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
 
   function render_row(
@@ -135,7 +138,6 @@ export const FileListing: React.FC<Props> = ({
   ): Rendered {
     const checked = checked_files.has(misc.path_to_file(current_path, name));
     const color = misc.rowBackground({ index, checked });
-    const { is_public } = file_map[name];
 
     return (
       <FileRow
@@ -143,7 +145,7 @@ export const FileListing: React.FC<Props> = ({
         name={name}
         display_name={display_name}
         time={time}
-        size={size}
+        size={isdir ? undefined : size}
         issymlink={issymlink}
         color={color}
         selected={
@@ -151,7 +153,7 @@ export const FileListing: React.FC<Props> = ({
         }
         mask={mask}
         public_data={public_data}
-        is_public={is_public}
+        is_public={false}
         checked={checked}
         key={index}
         current_path={current_path}
@@ -188,7 +190,7 @@ export const FileListing: React.FC<Props> = ({
     return (
       <Virtuoso
         ref={virtuosoRef}
-        increaseViewportBy={10}
+        increaseViewportBy={2000}
         totalCount={listing.length}
         itemContent={(index) => {
           const a = listing[index];
@@ -228,62 +230,23 @@ export const FileListing: React.FC<Props> = ({
         current_path={current_path}
         actions={actions}
         file_search={file_search}
-        create_folder={create_folder}
-        create_file={create_file}
         project_id={project_id}
         configuration_main={configuration_main}
       />
     );
   }
 
-  if (!isRunning && listing.length == 0) {
-    return (
-      <Alert
-        style={{
-          textAlign: "center",
-          margin: "15px auto",
-          maxWidth: "400px",
-        }}
-        showIcon
-        type="warning"
-        message={
-          <div style={{ padding: "30px", fontSize: "14pt" }}>
-            <a
-              onClick={async () => {
-                if (starting) return;
-                try {
-                  setStarting(true);
-                  await actions.fetch_directory_listing_directly(
-                    current_path,
-                    true,
-                  );
-                } finally {
-                  setStarting(false);
-                }
-              }}
-            >
-              Start this project to see your files.
-              {starting && <Spin />}
-            </a>
-          </div>
-        }
-      />
-    );
-  }
-
   return (
     <>
-      {!isRunning && listing.length > 0 && (
+      {stale && (
         <div
           style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
         >
           <FormattedMessage
             id="project.explorer.file-listing.stale-warning"
-            defaultMessage={`Showing stale directory listing{is_missing, select, true {<b> missing {missing} files</b>} other {}}.
+            defaultMessage={`Showing stale directory listing.
               To update the directory listing <a>start this project</a>.`}
             values={{
-              is_missing: missing > 0,
-              missing,
               a: (c) => (
                 <a
                   onClick={() => {
@@ -297,25 +260,17 @@ export const FileListing: React.FC<Props> = ({
           />
         </div>
       )}
-      <Col
-        sm={12}
+      <div
         className="smc-vfill"
         style={{
           flex: "1 0 auto",
-          zIndex: 1,
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {listing.length > 0 && (
-          <ListingHeader
-            active_file_sort={active_file_sort}
-            sort_by={sort_by}
-          />
-        )}
-        {listing.length > 0 && <Row className="smc-vfill">{render_rows()}</Row>}
-        {render_no_files()}
-      </Col>
+        <ListingHeader active_file_sort={active_file_sort} sort_by={sort_by} />
+        {listing.length > 0 ? render_rows() : render_no_files()}
+      </div>
     </>
   );
-};
+}

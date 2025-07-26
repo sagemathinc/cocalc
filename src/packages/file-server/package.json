@@ -4,13 +4,16 @@
   "description": "CoCalc File Server",
   "exports": {
     "./btrfs": "./dist/btrfs/index.js",
-    "./btrfs/*": "./dist/btrfs/*.js"
+    "./btrfs/*": "./dist/btrfs/*.js",
+    "./conat/*": "./dist/conat/*.js",
+    "./fs/*": "./dist/fs/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest",
+    "test": "pnpm exec jest  --forceExit",
+    "test-github-ci": "pnpm exec jest  --maxWorkers=1 --forceExit",
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist"
   },

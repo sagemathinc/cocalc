@@ -10,7 +10,7 @@ export const editor = {
   jupyterRunNotebook: true,
   jupyterKernelLogo: true,
   jupyterKernels: true,
-  formatterString: true,
+  formatString: true,
   printSageWS: true,
   createTerminalService: true,
 };
@@ -46,8 +46,8 @@ export interface Editor {
 
   jupyterKernels: (opts?: { noCache?: boolean }) => Promise<KernelSpec[]>;
 
-  // returns a patch to transform str into formatted form.
-  formatterString: (opts: {
+  // returns formatted version of str.
+  formatString: (opts: {
     str: string;
     options: FormatterOptions;
     path?: string; // only used for CLANG

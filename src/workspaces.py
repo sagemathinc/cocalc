@@ -126,6 +126,7 @@ def all_packages() -> List[str]:
         'packages/file-server',
         'packages/next',
         'packages/hub',  # hub won't build if next isn't already built
+        'packages/test'
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
@@ -303,7 +304,11 @@ def test(args) -> None:
             print(f"TESTING {n}/{len(v)}: {path}")
             print("*")
             print("*" * 40)
-            test_cmd = "pnpm run --if-present test"
+            if args.test_github_ci and 'test-github-ci' in open(
+                    os.path.join(package_path, 'package.json')).read():
+                test_cmd = "pnpm run test-github-ci"
+            else:
+                test_cmd = "pnpm run --if-present test"
             if args.report:
                 test_cmd += " --reporters=default --reporters=jest-junit"
             cmd(test_cmd, package_path)
@@ -581,6 +586,11 @@ def main() -> None:
         help=
         "how many times to retry a failed test suite before giving up; set to 0 to NOT retry"
     )
+    subparser.add_argument(
+        '--test-github-ci',
+        const=True,
+        action="store_const",
+        help="run 'pnpm test-github-ci' if available instead of 'pnpm test'")
     subparser.add_argument('--report',
                            action="store_const",
                            const=True,

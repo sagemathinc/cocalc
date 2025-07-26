@@ -30,7 +30,7 @@ describe("operations with subvolumes", () => {
     const vol = await fs.subvolumes.get("cocalc");
     expect(vol.name).toBe("cocalc");
     // it has no snapshots
-    expect(await vol.snapshots.ls()).toEqual([]);
+    expect(await vol.snapshots.readdir()).toEqual([]);
   });
 
   it("our subvolume is in the list", async () => {
@@ -97,7 +97,7 @@ describe("clone of a subvolume with snapshots should have no snapshots", () => {
   it("clone has no snapshots", async () => {
     const clone = await fs.subvolumes.get("my-clone");
     expect(await clone.fs.readFile("abc.txt", "utf8")).toEqual("hi");
-    expect(await clone.snapshots.ls()).toEqual([]);
+    expect(await clone.snapshots.readdir()).toEqual([]);
     await clone.snapshots.create("my-clone-snap");
   });
 });

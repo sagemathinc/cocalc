@@ -1,0 +1,20 @@
+/*
+Hook for getting a FilesystemClient.
+*/
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { type FilesystemClient } from "@cocalc/conat/files/fs";
+import { useState } from "react";
+
+// this will probably get more complicated temporarily when we
+// are transitioning between filesystems (hence why we return null in
+// the typing for now)
+export default function useFs({
+  project_id,
+}: {
+  project_id: string;
+}): FilesystemClient | null {
+  const [fs] = useState<FilesystemClient>(() =>
+    webapp_client.conat_client.conat().fs({ project_id }),
+  );
+  return fs;
+}

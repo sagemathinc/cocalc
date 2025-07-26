@@ -50,8 +50,11 @@ export class ProjectClient {
     this.client = client;
   }
 
-  private conatApi = (project_id: string) => {
-    return this.client.conat_client.projectApi({ project_id });
+  conatApi = (project_id: string, compute_server_id = 0) => {
+    return this.client.conat_client.projectApi({
+      project_id,
+      compute_server_id,
+    });
   };
 
   // This can write small text files in one message.
