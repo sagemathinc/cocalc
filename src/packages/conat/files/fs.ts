@@ -13,6 +13,7 @@ import {
   type WatchIterator,
 } from "@cocalc/conat/files/watch";
 import listing, { type Listing, type FileTypeLabel } from "./listing";
+import { isValidUUID } from "@cocalc/util/misc";
 
 export const DEFAULT_FILE_SERVICE = "fs";
 
@@ -44,7 +45,7 @@ export interface Filesystem {
   constants: () => Promise<{ [key: string]: number }>;
   copyFile: (src: string, dest: string) => Promise<void>;
   cp: (src: string, dest: string, options?) => Promise<void>;
-  exists: (path: string) => Promise<void>;
+  exists: (path: string) => Promise<boolean>;
   link: (existingPath: string, newPath: string) => Promise<void>;
   lstat: (path: string) => Promise<IStats>;
   mkdir: (path: string, options?) => Promise<void>;
@@ -227,7 +228,7 @@ export async function fsServer({ service, fs, client }: Options) {
     async cp(src: string, dest: string, options?) {
       await (await fs(this.subject)).cp(src, dest, options);
     },
-    async exists(path: string) {
+    async exists(path: string): Promise<boolean> {
       return await (await fs(this.subject)).exists(path);
     },
     async find(path: string, printf: string, options?: FindOptions) {
@@ -332,6 +333,31 @@ export type FilesystemClient = Omit<Omit<Filesystem, "stat">, "lstat"> & {
   stat: (path: string) => Promise<Stats>;
   lstat: (path: string) => Promise<Stats>;
 };
+
+export function fsSubject({
+  project_id,
+  compute_server_id = 0,
+  service = DEFAULT_FILE_SERVICE,
+}: {
+  project_id: string;
+  compute_server_id?: number;
+  service?: string;
+}) {
+  if (!isValidUUID(project_id)) {
+    throw Error(`project_id must be a valid uuid -- ${project_id}`);
+  }
+  if (typeof compute_server_id != "number") {
+    throw Error("compute_server_id must be a number");
+  }
+  if (typeof service != "string") {
+    throw Error("service must be a string");
+  }
+  if (compute_server_id) {
+    return `${service}/${compute_server_id}.project-${project_id}`;
+  } else {
+    return `${service}.project-${project_id}`;
+  }
+}
 
 export function fsClient({
   client,

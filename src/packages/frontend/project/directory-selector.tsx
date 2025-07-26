@@ -21,13 +21,12 @@ import {
 } from "react";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { path_split } from "@cocalc/util/misc";
-import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { delay } from "awaiting";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import ShowError from "@cocalc/frontend/components/error";
+import useFs from "@cocalc/frontend/project/listing/use-fs";
+import useFiles from "@cocalc/frontend/project/listing/use-files";
 
 const NEW_FOLDER = "New Folder";
 
@@ -74,11 +73,6 @@ export default function DirectorySelector({
     "compute_server_id",
   );
   const computeServerId = compute_server_id ?? fallbackComputeServerId;
-  const directoryListings = useTypedRedux(
-    { project_id },
-    "directory_listings",
-  )?.get(computeServerId);
-  const isMountedRef = useIsMountedRef();
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     const expandedPaths: string[] = [""];
     if (startingPath == null) {
@@ -123,77 +117,6 @@ export default function DirectorySelector({
     [selectedPaths, multi],
   );
 
-  useEffect(() => {
-    // Run the loop below every 30s until project_id or expandedPaths changes (or unmount)
-    // in which case loop stops.  If not unmount, then get new loops for new values.
-    if (!project_id) return;
-    const state = { loop: true };
-    (async () => {
-      while (state.loop && isMountedRef.current) {
-        // Component is mounted, so call watch on all expanded paths.
-        const listings = redux
-          .getProjectStore(project_id)
-          .get_listings(computeServerId);
-        for (const path of expandedPaths) {
-          listings.watch(path);
-        }
-        await delay(30000);
-      }
-    })();
-    return () => {
-      state.loop = false;
-    };
-  }, [project_id, expandedPaths, computeServerId]);
-
-  let body;
-  if (directoryListings == null) {
-    (async () => {
-      await delay(0);
-      // Ensure store gets initialized before redux
-      // E.g., for copy between projects you make this
-      // directory selector before even opening the project.
-      redux.getProjectStore(project_id);
-    })();
-    body = <Loading theme="medium" />;
-  } else {
-    body = (
-      <>
-        <SelectablePath
-          project_id={project_id}
-          path={""}
-          tail={""}
-          isSelected={selectedPaths.has("")}
-          computeServerId={computeServerId}
-          toggleSelection={toggleSelection}
-          isExcluded={isExcluded?.("")}
-          expand={() => {}}
-        />
-        <Subdirs
-          style={{ marginLeft: "2em" }}
-          selectedPaths={selectedPaths}
-          toggleSelection={toggleSelection}
-          isExcluded={isExcluded}
-          expandedPaths={expandedPaths}
-          setExpandedPaths={setExpandedPaths}
-          directoryListings={directoryListings}
-          showHidden={showHidden}
-          project_id={project_id}
-          path={""}
-          computeServerId={computeServerId}
-        />
-        <Checkbox
-          style={{ fontWeight: "400", marginTop: "15px" }}
-          checked={showHidden}
-          onChange={() => {
-            setShowHidden(!showHidden);
-          }}
-        >
-          Show hidden
-        </Checkbox>
-      </>
-    );
-  }
-
   return (
     <Card
       title={
@@ -222,7 +145,37 @@ export default function DirectorySelector({
         },
       }}
     >
-      {body}
+      <SelectablePath
+        project_id={project_id}
+        path={""}
+        tail={""}
+        isSelected={selectedPaths.has("")}
+        computeServerId={computeServerId}
+        toggleSelection={toggleSelection}
+        isExcluded={isExcluded?.("")}
+        expand={() => {}}
+      />
+      <Subdirs
+        style={{ marginLeft: "2em" }}
+        selectedPaths={selectedPaths}
+        toggleSelection={toggleSelection}
+        isExcluded={isExcluded}
+        expandedPaths={expandedPaths}
+        setExpandedPaths={setExpandedPaths}
+        showHidden={showHidden}
+        project_id={project_id}
+        path={""}
+        computeServerId={computeServerId}
+      />
+      <Checkbox
+        style={{ fontWeight: "400", marginTop: "15px" }}
+        checked={showHidden}
+        onChange={() => {
+          setShowHidden(!showHidden);
+        }}
+      >
+        Show hidden
+      </Checkbox>
     </Card>
   );
 }
@@ -245,14 +198,10 @@ function SelectablePath({
         return; // no-op
       }
       try {
-        await exec({
-          command: "mv",
-          project_id,
-          path: path_split(path).head,
-          args: [tail, editedTail],
-          compute_server_id: computeServerId,
-          filesystem: true,
-        });
+        const actions = redux.getProjectActions(project_id);
+        const fs = actions.fs(computeServerId);
+        const { head } = path_split(path);
+        await fs.rename(join(head, tail), join(head, editedTail));
         setEditedTail(null);
       } catch (err) {
         alert_message({ type: "error", message: err.toString() });
@@ -415,83 +364,68 @@ function Directory(props) {
   }
 }
 
+// Show the directories in path
 function Subdirs(props) {
   const {
     computeServerId,
-    directoryListings,
     path,
     project_id,
     showHidden,
     style,
     toggleSelection,
   } = props;
-  const x = directoryListings?.get(path);
-  const v = x?.toJS?.();
-  if (v == null) {
-    (async () => {
-      // Must happen in a different render loop, hence the delay, because
-      // fetch can actually update the store in the same render loop.
-      await delay(0);
-      redux.getProjectActions(project_id)?.fetch_directory_listing({ path });
-    })();
-    return <Loading />;
-  } else {
-    const w: React.JSX.Element[] = [];
-    const base = !path ? "" : path + "/";
-    const paths: string[] = [];
-    const newPaths: string[] = [];
-    for (const x of v) {
-      if (x?.isdir) {
-        if (x.name.startsWith(".") && !showHidden) continue;
-        if (x.name.startsWith(NEW_FOLDER)) {
-          newPaths.push(x.name);
-        } else {
-          paths.push(x.name);
-        }
-      }
-    }
-    paths.sort();
-    newPaths.sort();
-    const createProps = {
-      project_id,
-      path,
-      computeServerId,
-      directoryListings,
-      toggleSelection,
-    };
-    w.push(<CreateDirectory key="create1" {...createProps} />);
-    for (const name of paths.concat(newPaths)) {
-      w.push(<Directory key={name} {...props} path={join(base, name)} />);
-    }
-    if (w.length > 10) {
-      w.push(<CreateDirectory key="create2" {...createProps} />);
-    }
-    return (
-      <div key={path} style={style}>
-        {w}
-      </div>
-    );
+  const fs = useFs({ project_id, computeServerId });
+  const { files, error, refresh } = useFiles({
+    fs,
+    path,
+    cacheId: { project_id },
+  });
+  if (error) {
+    return <ShowError error={error} setError={refresh} />;
   }
+  if (files == null) {
+    return <Loading />;
+  }
+
+  const w: React.JSX.Element[] = [];
+  const base = !path ? "" : path + "/";
+  const paths: string[] = [];
+  const newPaths: string[] = [];
+  for (const name in files) {
+    if (!files[name].isdir) continue;
+    if (name.startsWith(".") && !showHidden) continue;
+    if (name.startsWith(NEW_FOLDER)) {
+      newPaths.push(name);
+    } else {
+      paths.push(name);
+    }
+  }
+  paths.sort();
+  newPaths.sort();
+  const createProps = {
+    project_id,
+    path,
+    computeServerId,
+    toggleSelection,
+  };
+  w.push(<CreateDirectory key="create1" {...createProps} />);
+  for (const name of paths.concat(newPaths)) {
+    w.push(<Directory key={name} {...props} path={join(base, name)} />);
+  }
+  if (w.length > 10) {
+    w.push(<CreateDirectory key="create2" {...createProps} />);
+  }
+  return (
+    <div key={path} style={style}>
+      {w}
+    </div>
+  );
 }
 
-async function getValidPath(
-  project_id,
-  target,
-  directoryListings,
-  computeServerId,
-) {
-  if (
-    await pathExists(project_id, target, directoryListings, computeServerId)
-  ) {
+async function getValidPath(project_id, target, computeServerId) {
+  if (await pathExists(project_id, target, computeServerId)) {
     let i: number = 1;
-    while (
-      await pathExists(
-        project_id,
-        target + ` (${i})`,
-        directoryListings,
-        computeServerId,
-      )
-    ) {
+    while (await pathExists(project_id, target + ` (${i})`, computeServerId)) {
       i += 1;
     }
     target += ` (${i})`;
@@ -503,7 +437,6 @@ function CreateDirectory({
   computeServerId,
   project_id,
   path,
-  directoryListings,
   toggleSelection,
 }) {
   const [error, setError] = useState<string>("");
@@ -518,12 +451,7 @@ function CreateDirectory({
     const target = path + (path != "" ? "/" : "") + value;
     (async () => {
       try {
-        const path1 = await getValidPath(
-          project_id,
-          target,
-          directoryListings,
-          computeServerId,
-        );
+        const path1 = await getValidPath(project_id, target, computeServerId);
         setValue(path_split(path1).tail);
         setTimeout(() => {
           input_ref.current?.select();
@@ -536,18 +464,16 @@ function CreateDirectory({
 
   const createFolder = async () => {
     setOpen(false);
+    if (!value?.trim()) return;
     try {
-      await exec({
-        command: "mkdir",
-        args: ["-p", value],
-        project_id,
-        path,
-        compute_server_id: computeServerId,
-        filesystem: true,
-      });
+      const actions = redux.getProjectActions(project_id);
+      const fs = actions.fs(computeServerId);
+      await fs.mkdir(join(path, value));
       toggleSelection(value);
     } catch (err) {
       setError(`${err}`);
+    } finally {
+      setValue(NEW_FOLDER);
     }
   };
 
@@ -556,7 +482,8 @@ function CreateDirectory({
       <Modal
         title={
           <>
-            <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder
+            <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New
+            Folder
           </>
         }
         open={open}
@@ -569,18 +496,19 @@ function CreateDirectory({
           style={{ marginTop: "30px" }}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onPressEnter={createFolder}
+          onPressEnter={() => createFolder()}
           autoFocus
         />
       </Modal>
       <Button
+        type="text"
         disabled={open}
         onClick={() => {
           setOpen(true);
         }}
         style={{ margin: "5px 0" }}
       >
-        <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder ...
+        <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder...
       </Button>
       <ShowError error={error} setError={setError} />
     </div>
@@ -590,24 +518,9 @@ function CreateDirectory({
 export async function pathExists(
   project_id: string,
   path: string,
-  directoryListings?,
   computeServerId?,
 ): Promise<boolean> {
-  const { head, tail } = path_split(path);
-  let known = directoryListings?.get(head);
-  if (known == null) {
-    const actions = redux.getProjectActions(project_id);
-    await actions.fetch_directory_listing({
-      path: head,
-      compute_server_id: computeServerId,
-    });
-  }
-  known = directoryListings?.get(head);
-  if (known == null) {
-    return false;
-  }
-  for (const x of known) {
-    if (x.get("name") == tail) return true;
-  }
-  return false;
+  const actions = redux.getProjectActions(project_id);
+  const fs = actions.fs(computeServerId);
+  return await fs.exists(path);
 }

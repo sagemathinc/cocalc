@@ -399,6 +399,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.open_files?.close();
     delete this.open_files;
     this.state = "closed";
+    this._filesystem = {};
   };
 
   private save_session(): void {
@@ -1562,12 +1563,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Update the directory listing cache for the given path.
   // Uses current path if path not provided.
   fetch_directory_listing = async (_opts?): Promise<void> => {
-    console.log("TODO: eliminate code that uses fetch_directory_listing");
+    console.trace("TODO: rewrite code that uses fetch_directory_listing");
   };
 
   public async fetch_directory_listing_directly(): Promise<void> {
-    console.log(
-      "TODO: eliminate code that uses fetch_directory_listing_directly",
+    console.trace(
+      "TODO: rewrite code that uses fetch_directory_listing_directly",
     );
   }
 
@@ -2445,12 +2446,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  private _filesystem: FilesystemClient;
-  fs = (): FilesystemClient => {
-    this._filesystem ??= webapp_client.conat_client
+  // note: there is no need to explicitly close or await what is returned by
+  // fs(...) since it's just a lightweight wrapper object to format appropriate RPC calls.
+  private _filesystem: { [compute_server_id: number]: FilesystemClient } = {};
+  fs = (compute_server_id?: number): FilesystemClient => {
+    compute_server_id ??= this.get_store()?.get("compute_server_id") ?? 0;
+    this._filesystem[compute_server_id] ??= webapp_client.conat_client
       .conat()
-      .fs({ project_id: this.project_id });
-    return this._filesystem;
+      .fs({ project_id: this.project_id, compute_server_id });
+    return this._filesystem[compute_server_id];
   };
 
   // if available in cache, this returns the filenames in the current directory,

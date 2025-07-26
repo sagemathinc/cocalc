@@ -254,7 +254,7 @@ import {
   type SyncDB,
   type SyncDBOptions,
 } from "@cocalc/conat/sync-doc/syncdb";
-import { fsClient, DEFAULT_FILE_SERVICE } from "@cocalc/conat/files/fs";
+import { fsClient, fsSubject } from "@cocalc/conat/files/fs";
 import TTL from "@isaacs/ttlcache";
 import {
   ConatSocketServer,
@@ -1168,7 +1168,7 @@ export class Client extends EventEmitter {
           if (s !== undefined) {
             return s;
           }
-          if (typeof name !== "string") {
+          if (typeof name !== "string" || name == "then") {
             return undefined;
           }
           return async (...args) => await call(name, args);
@@ -1478,15 +1478,13 @@ export class Client extends EventEmitter {
     return sub;
   };
 
-  fs = ({
-    project_id,
-    service = DEFAULT_FILE_SERVICE,
-  }: {
+  fs = (opts: {
     project_id: string;
+    compute_server_id?: number;
     service?: string;
   }) => {
     return fsClient({
-      subject: `${service}.project-${project_id}`,
+      subject: fsSubject(opts),
       client: this,
     });
   };

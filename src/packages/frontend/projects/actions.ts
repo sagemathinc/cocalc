@@ -464,7 +464,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (relation == null || ["public", "admin"].includes(relation)) {
       this.fetch_public_project_title(opts.project_id);
     }
-    project_actions.fetch_directory_listing();
     if (opts.switch_to) {
       redux
         .getActions("page")
