@@ -1535,6 +1535,8 @@ export class JupyterActions extends JupyterActions0 {
           if (n == "0") continue;
           cell.output[n] = null;
         }
+        // time last evaluation took
+        cell.last = cell.start && cell.end ? cell.end - cell.start : null;
         this._set(cell, false);
       }
       cells.push(cell);
