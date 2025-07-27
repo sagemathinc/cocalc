@@ -160,6 +160,8 @@ export function initJupyterRedux(syncdb: SyncDB, client: Client) {
   syncdb.once("ready", () =>
     logger.debug("initJupyterRedux", path, "syncdb ready"),
   );
+
+  return { actions, store };
 }
 
 export async function getJupyterRedux(syncdb: SyncDB) {

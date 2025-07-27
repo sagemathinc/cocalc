@@ -212,6 +212,17 @@ export class JupyterActions extends JupyterActions0 {
     await api.editor.jupyterStop(this.syncdbPath);
   };
 
+  // temporary proof of concept
+  runCell = async (id: string) => {
+    const api = await this.conatApi();
+    const resp = await api.editor.jupyterRun(this.syncdbPath, [id]);
+    const output = {};
+    for (let i = 0; i < resp.length; i++) {
+      output[i] = resp[i];
+    }
+    this.syncdb.set({ id, type: "cell", output });
+  };
+
   initOpenLog = () => {
     // Put an entry in the project log once the jupyter notebook gets opened and
     // shows cells.
@@ -394,7 +405,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   protected close_client_only(): void {
-    const account = this.redux
+    this.redux
       ?.getStore("account")
       ?.removeListener("change", this.account_change);
   }

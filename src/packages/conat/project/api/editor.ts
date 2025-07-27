@@ -13,6 +13,7 @@ export const editor = {
   jupyterRunNotebook: true,
   jupyterKernelLogo: true,
   jupyterKernels: true,
+  jupyterRun: true,
 
   formatString: true,
 
@@ -46,6 +47,7 @@ export interface Editor {
   // path = the syncdb path (not *.ipynb)
   jupyterStart: (path: string) => Promise<void>;
   jupyterStop: (path: string) => Promise<void>;
+  jupyterRun: (path: string, ids: string[]) => Promise<void>;
 
   jupyterNbconvert: (opts: NbconvertParams) => Promise<void>;
 
