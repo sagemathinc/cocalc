@@ -27,6 +27,7 @@ import { base64ToBuffer, bufferToBase64 } from "@cocalc/util/base64";
 import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
 import {
   closest_kernel_match,
+  field_cmp,
   from_json,
   history_path,
   merge_copy,
@@ -1537,6 +1538,8 @@ export class JupyterActions extends JupyterActions0 {
       }
       cells.push(cell);
     }
+    // ensures cells run in order:
+    cells.sort(field_cmp("pos"));
 
     const runner = await client.run(cells);
     let handler: null | OutputHandler = null;
