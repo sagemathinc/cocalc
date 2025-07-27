@@ -47,7 +47,21 @@ export function jupyterStart({
   sessions[path] = { syncdb, actions, store };
 }
 
-// run the cells with given id...
+export function jupyterStop({ path }: { path: string }) {
+  const session = sessions[path];
+  if (session == null) {
+    logger.debug("jupyterStop: ", path, " - not running");
+  } else {
+    const { syncdb } = session;
+    logger.debug("jupyterStop: ", path, " - stopping it");
+    syncdb.close();
+    delete sessions[path];
+    const path_ipynb = original_path(path);
+    removeJupyterRedux(path_ipynb, project_id);
+  }
+}
+
+// Returns async iterator over outputs
 export async function jupyterRun({
   path,
   cells,
@@ -56,6 +70,7 @@ export async function jupyterRun({
   cells: { id: string; input: string }[];
 }) {
   logger.debug("jupyterRun", { path, cells });
+
   const session = sessions[path];
   if (session == null) {
     throw Error(`${path} not running`);
@@ -70,25 +85,20 @@ export async function jupyterRun({
     await once(syncdb, "ready");
   }
   logger.debug("jupyterRun: running");
-  let v = [];
-  for (const cell of cells) {
-    v = v.concat(
-      await actions.jupyter_kernel.execute_code_now({ code: cell.input }),
-    );
+  async function* run() {
+    for (const cell of cells) {
+      const output = actions.jupyter_kernel.execute_code({
+        halt_on_error: true,
+        code: cell.input,
+      });
+      for await (const mesg of output.iter()) {
+        yield mesg;
+      }
+      if (actions.jupyter_kernel.failedError) {
+        // kernel failed during call
+        throw Error(actions.jupyter_kernel.failedError);
+      }
+    }
   }
-  return v;
-}
-
-export function jupyterStop({ path }: { path: string }) {
-  const session = sessions[path];
-  if (session == null) {
-    logger.debug("jupyterStop: ", path, " - not running");
-  } else {
-    const { syncdb } = session;
-    logger.debug("jupyterStop: ", path, " - stopping it");
-    syncdb.close();
-    delete sessions[path];
-    const path_ipynb = original_path(path);
-    removeJupyterRedux(path_ipynb, project_id);
-  }
+  return await run();
 }

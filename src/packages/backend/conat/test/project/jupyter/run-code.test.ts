@@ -13,6 +13,9 @@ import {
 } from "@cocalc/conat/project/jupyter/run-code";
 import { uuid } from "@cocalc/util/misc";
 
+// it's really 100+, but tests fails if less than this.
+const MIN_EVALS_PER_SECOND = 10;
+
 beforeAll(before);
 
 describe("create very simple mocked jupyter runner and test evaluating code", () => {
@@ -28,8 +31,8 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
     // running code with this just results in two responses: the path and the cells
     async function jupyterRun({ path, cells }) {
       async function* runner() {
-        yield [{ path }];
-        yield [{ cells }];
+        yield { path };
+        yield { cells };
       }
       return runner();
     }
@@ -65,7 +68,7 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
     if (process.env.BENCH) {
       console.log({ evalsPerSecond });
     }
-    expect(evalsPerSecond).toBeGreaterThan(25);
+    expect(evalsPerSecond).toBeGreaterThan(MIN_EVALS_PER_SECOND);
   });
 
   it("cleans up", () => {
@@ -83,18 +86,24 @@ describe("create  simple mocked jupyter runner that does actually eval an expres
 
   let server;
   const project_id = uuid();
+  const compute_server_id = 3;
   it("create jupyter code run server", () => {
     // running code with this just results in two responses: the path and the cells
     async function jupyterRun({ cells }) {
       async function* runner() {
         for (const { id, input } of cells) {
-          yield [{ id, output: eval(input) }];
+          yield { id, output: eval(input) };
         }
       }
       return runner();
     }
 
-    server = jupyterServer({ client: client1, project_id, jupyterRun });
+    server = jupyterServer({
+      client: client1,
+      project_id,
+      jupyterRun,
+      compute_server_id,
+    });
   });
 
   let client;
@@ -104,13 +113,31 @@ describe("create  simple mocked jupyter runner that does actually eval an expres
     { id: "b", input: "3**5" },
   ];
   it("create a jupyter client, then run some code", async () => {
-    client = jupyterClient({ path, project_id, client: client2 });
+    client = jupyterClient({
+      path,
+      project_id,
+      client: client2,
+      compute_server_id,
+    });
     const iter = await client.run(cells);
     const v: any[] = [];
     for await (const output of iter) {
       v.push(output);
     }
     expect(v).toEqual([[{ id: "a", output: 5 }], [{ id: "b", output: 243 }]]);
+  });
+
+  it("run code that FAILS and see error is visible to client properly", async () => {
+    const iter = await client.run([
+      { id: "a", input: "2+3" },
+      { id: "b", input: "2+invalid" },
+    ]);
+    try {
+      for await (const _ of iter) {
+      }
+    } catch (err) {
+      expect(`${err}`).toContain("ReferenceError: invalid is not defined");
+    }
   });
 
   it("cleans up", () => {

@@ -47,12 +47,15 @@ export async function jupyterStart(path: string) {
   await control.jupyterStart({ project_id, path, client: getClient(), fs });
 }
 
-export async function jupyterRun(
-  path: string,
-  cells: { id: string; input: string }[],
-) {
-  await jupyterStart(path);
-  return await control.jupyterRun({ path, cells });
+// IMPORTANT: jupyterRun is NOT used directly by the API, but instead by packages/project/conat/jupyter.ts
+// It is convenient to have it here so it can call jupyterStart above, etc.  The reason is because
+// this returns an async iterator managed using a dedicated socket, and the api is request/response..
+export async function jupyterRun(opts: {
+  path: string;
+  cells: { id: string; input: string }[];
+}) {
+  await jupyterStart(opts.path);
+  return await control.jupyterRun(opts);
 }
 
 export async function jupyterStop(path: string) {

@@ -214,6 +214,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   // temporary proof of concept
+  public jupyterClient?;
   runCell = async (id: string) => {
     await runCell({ actions: this, id });
   };

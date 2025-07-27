@@ -39,7 +39,7 @@ type JupyterCodeRunner = (opts: {
   path: string;
   // array of input cells to run
   cells: InputCell[];
-}) => Promise<AsyncGenerator<OutputMessage[], void, unknown>>;
+}) => Promise<AsyncGenerator<OutputMessage, void, unknown>>;
 
 export function jupyterServer({
   client,
@@ -68,8 +68,9 @@ export function jupyterServer({
         mesg.respondSync(null);
         await handleRequest({ socket, jupyterRun, path, cells });
       } catch (err) {
-        console.log(err);
+        //console.log(err);
         logger.debug("server: failed response -- ", err);
+        socket.write(null, { headers: { error: `${err}` } });
       }
     });
   });
@@ -79,8 +80,8 @@ export function jupyterServer({
 
 async function handleRequest({ socket, jupyterRun, path, cells }) {
   const runner = await jupyterRun({ path, cells });
-  for await (const result of runner) {
-    socket.write(result);
+  for await (const mesg of runner) {
+    socket.write([mesg]);
   }
   socket.write(null);
 }
@@ -111,6 +112,10 @@ class JupyterClient {
     }
     this.iter = new EventIterator<OutputMessage[]>(this.socket, "data", {
       map: (args) => {
+        if (args[1]?.error) {
+          this.iter?.throw(Error(args[1].error));
+          return;
+        }
         if (args[0] == null) {
           this.iter?.end();
           return null;
