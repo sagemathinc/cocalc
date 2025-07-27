@@ -1522,6 +1522,7 @@ export class JupyterActions extends JupyterActions0 {
       throw Error("bug");
     }
     const cells: any[] = [];
+    const kernel = this.store.get("kernel");
     for (const id of ids) {
       const cell = this.store.getIn(["cells", id])?.toJS();
       if (!cell?.input?.trim()) {
@@ -1553,6 +1554,7 @@ export class JupyterActions extends JupyterActions0 {
             // cell removed?
             cell = { id };
           }
+          cell.kernel = kernel;
           handler?.done();
           handler = this.getOutputHandler(cell);
         }
