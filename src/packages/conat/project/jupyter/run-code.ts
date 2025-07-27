@@ -48,6 +48,8 @@ export interface RunOptions {
   path: string;
   // array of input cells to run
   cells: InputCell[];
+  // if true do not halt running the cells, even if one fails with an error
+  noHalt?: boolean;
 }
 
 type JupyterCodeRunner = (
@@ -97,10 +99,17 @@ export function jupyterServer({
     });
 
     socket.on("request", async (mesg) => {
-      const { path, cells } = mesg.data;
+      const { path, cells, noHalt } = mesg.data;
       try {
         mesg.respondSync(null);
-        await handleRequest({ socket, jupyterRun, outputHandler, path, cells });
+        await handleRequest({
+          socket,
+          jupyterRun,
+          outputHandler,
+          path,
+          cells,
+          noHalt,
+        });
       } catch (err) {
         //console.log(err);
         logger.debug("server: failed response -- ", err);
@@ -124,8 +133,9 @@ async function handleRequest({
   outputHandler,
   path,
   cells,
+  noHalt,
 }) {
-  const runner = await jupyterRun({ path, cells });
+  const runner = await jupyterRun({ path, cells, noHalt });
   const output: OutputMessage[] = [];
   let handler: OutputHandler | null = null;
   for await (const mesg of runner) {
@@ -172,7 +182,7 @@ class JupyterClient {
     this.socket.close();
   };
 
-  run = async (cells: InputCell[]) => {
+  run = async (cells: InputCell[], opts: { noHalt?: boolean } = {}) => {
     if (this.iter) {
       // one evaluation at a time.
       this.iter.end();
@@ -197,7 +207,11 @@ class JupyterClient {
     const cells1 = cells.map(({ id, input }) => {
       return { id, input };
     });
-    await this.socket.request({ path: this.path, cells: cells1 });
+    await this.socket.request({
+      path: this.path,
+      cells: cells1,
+      noHalt: opts.noHalt,
+    });
     return this.iter;
   };
 }

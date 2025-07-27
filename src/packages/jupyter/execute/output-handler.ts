@@ -28,10 +28,10 @@ OutputHandler emits these events:
 
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
-import { close, server_time, len, is_object } from "@cocalc/util/misc";
+import { close, len, is_object } from "@cocalc/util/misc";
 import { type TypedMap } from "@cocalc/util/types/typed-map";
 
-const now = () => server_time().valueOf() - 0;
+const now = () => Date.now();
 
 const MIN_SAVE_INTERVAL_MS = 500;
 const MAX_SAVE_INTERVAL_MS = 45000;

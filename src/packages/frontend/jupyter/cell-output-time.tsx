@@ -23,6 +23,14 @@ interface CellTimingProps {
 // make this small so smooth.
 const DELAY_MS = 100;
 
+function humanReadableSeconds(s) {
+  if (s >= 0.9) {
+    return seconds2hms(s, true);
+  } else {
+    return `${Math.round(s * 1000)} ms`;
+  }
+}
+
 export default function CellTiming({
   start,
   end,
@@ -53,10 +61,12 @@ export default function CellTiming({
       <Tooltip
         title={
           <>
-            Evaluated <TimeAgo date={new Date(start)} /> using {capitalize(kernel)} and took
-            about {seconds2hms(ms / 1000, true)}.
+            Took about {humanReadableSeconds(ms / 1000)}. Evaluated{" "}
+            <TimeAgo date={new Date(start)} />
+            {kernel ? " using " : ""}
+            {capitalize(kernel)}.
             {last != null ? (
-              <> Previous run took {seconds2hms(last / 1000, true)}.</>
+              <> Previous run took {humanReadableSeconds(last / 1000)}.</>
             ) : undefined}
           </>
         }

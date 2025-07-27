@@ -65,8 +65,8 @@ export function jupyterStop({ path }: { path: string }) {
 }
 
 // Returns async iterator over outputs
-export async function jupyterRun({ path, cells }: RunOptions) {
-  logger.debug("jupyterRun", { path }); // , cells });
+export async function jupyterRun({ path, cells, noHalt }: RunOptions) {
+  logger.debug("jupyterRun", { path, noHalt });
 
   const session = sessions[path];
   if (session == null) {
@@ -85,12 +85,16 @@ export async function jupyterRun({ path, cells }: RunOptions) {
   async function* run() {
     for (const cell of cells) {
       const output = actions.jupyter_kernel.execute_code({
-        halt_on_error: true,
+        halt_on_error: !noHalt,
         code: cell.input,
       });
       for await (const mesg of output.iter()) {
         mesg.id = cell.id;
         yield mesg;
+        if (!noHalt && mesg.msg_type == "error") {
+          // done running code because there was an error.
+          return;
+        }
       }
       if (actions.jupyter_kernel.failedError) {
         // kernel failed during call

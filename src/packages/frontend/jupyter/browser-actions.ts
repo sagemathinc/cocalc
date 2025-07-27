@@ -219,7 +219,7 @@ export class JupyterActions extends JupyterActions0 {
   public run_cell(
     id: string,
     save: boolean = true,
-    no_halt: boolean = false,
+    noHalt: boolean = false,
   ): void {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
@@ -235,7 +235,7 @@ export class JupyterActions extends JupyterActions0 {
         this.clear_cell(id, save);
         return;
       }
-      this.runCells([id], no_halt);
+      this.runCells([id], { noHalt });
       //this.run_code_cell(id, save, no_halt);
       if (save) {
         this.save_asap();
@@ -1505,7 +1505,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   private jupyterClient?;
-  runCells = async (ids: string[], _noHalt) => {
+  runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
     if (this.jupyterClient == null) {
       // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
       // and
@@ -1541,7 +1541,7 @@ export class JupyterActions extends JupyterActions0 {
     // ensures cells run in order:
     cells.sort(field_cmp("pos"));
 
-    const runner = await client.run(cells);
+    const runner = await client.run(cells, opts);
     let handler: null | OutputHandler = null;
     let id: null | string = null;
     for await (const mesgs of runner) {
