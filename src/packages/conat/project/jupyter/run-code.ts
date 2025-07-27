@@ -53,7 +53,10 @@ export function jupyterServer({
   jupyterRun: JupyterCodeRunner;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
-  const server: ConatSocketServer = client.socket.listen(subject);
+  const server: ConatSocketServer = client.socket.listen(subject, {
+    keepAlive: 5000,
+    keepAliveTimeout: 5000,
+  });
   logger.debug("server: listening on ", { subject });
 
   server.on("connection", (socket: ServerSocket) => {
@@ -73,6 +76,10 @@ export function jupyterServer({
         socket.write(null, { headers: { error: `${err}` } });
       }
     });
+
+    socket.on("closed", () => {
+      logger.debug("socket closed", { id: socket.id });
+    });
   });
 
   return server;
@@ -81,7 +88,11 @@ export function jupyterServer({
 async function handleRequest({ socket, jupyterRun, path, cells }) {
   const runner = await jupyterRun({ path, cells });
   for await (const mesg of runner) {
-    socket.write([mesg]);
+    if (socket.state == "closed") {
+      logger.debug("socket closed -- server is now handling output!", mesg);
+    } else {
+      socket.write([mesg]);
+    }
   }
   socket.write(null);
 }

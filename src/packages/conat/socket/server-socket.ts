@@ -51,6 +51,7 @@ export class ServerSocket extends EventEmitter {
     this.initKeepAlive();
   }
 
+  private firstPing = true;
   private initKeepAlive = () => {
     this.alive?.close();
     this.alive = keepAlive({
@@ -59,10 +60,15 @@ export class ServerSocket extends EventEmitter {
         await this.request(null, {
           headers: { [SOCKET_HEADER_CMD]: "ping" },
           timeout: this.conatSocket.keepAliveTimeout,
-          // waitForInterest is very important in a cluster -- also, obviously
+          // waitForInterest for the *first ping* is very important
+          // in a cluster -- also, obviously
           // if somebody just opened a socket, they probably exist.
-          waitForInterest: true,
+          // However, after the first ping, we want to fail
+          // very quickly if the client disappears (and hence no
+          // more interest).
+          waitForInterest: this.firstPing,
         });
+        this.firstPing = false;
       },
       disconnect: this.close,
       keepAlive: this.conatSocket.keepAlive,

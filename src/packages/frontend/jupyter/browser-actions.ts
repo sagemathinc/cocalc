@@ -57,7 +57,9 @@ import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { get as getUsageInfo } from "@cocalc/conat/project/usage-info";
 import { delay } from "awaiting";
 import { until } from "@cocalc/util/async-utils";
-import { runCell } from "./run-cell";
+import { jupyterClient } from "@cocalc/conat/project/jupyter/run-code";
+import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
+import { throttle } from "lodash";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -174,50 +176,6 @@ export class JupyterActions extends JupyterActions0 {
         account_store.get("editor_settings");
     }
   }
-
-  // if the project or compute server is running and listening, this call
-  // tells them to open this jupyter notebook, so it can provide the compute
-  // functionality.
-
-  conatApi = async () => {
-    const compute_server_id = await this.getComputeServerId();
-    const api = webapp_client.project_client.conatApi(
-      this.project_id,
-      compute_server_id,
-    );
-    return api;
-  };
-
-  initBackend = async () => {
-    await until(
-      async () => {
-        if (this.is_closed()) {
-          return true;
-        }
-        try {
-          const api = await this.conatApi();
-          await api.editor.jupyterStart(this.syncdbPath);
-          console.log("initialized ", this.path);
-          return true;
-        } catch (err) {
-          console.log("failed to initialize ", this.path, err);
-          return false;
-        }
-      },
-      { min: 3000 },
-    );
-  };
-
-  stopBackend = async () => {
-    const api = await this.conatApi();
-    await api.editor.jupyterStop(this.syncdbPath);
-  };
-
-  // temporary proof of concept
-  public jupyterClient?;
-  runCell = async (id: string, _noHalt) => {
-    await runCell({ actions: this, id });
-  };
 
   initOpenLog = () => {
     // Put an entry in the project log once the jupyter notebook gets opened and
@@ -377,6 +335,7 @@ export class JupyterActions extends JupyterActions0 {
 
   public async close(): Promise<void> {
     if (this.is_closed()) return;
+    this.jupyterClient?.close();
     await super.close();
   }
 
@@ -1493,5 +1452,91 @@ export class JupyterActions extends JupyterActions0 {
       this.setState({ nbconvert: { state: "done", error: `${err}` } });
     }
     return;
+  };
+
+  // if the project or compute server is running and listening, this call
+  // tells them to open this jupyter notebook, so it can provide the compute
+  // functionality.
+
+  conatApi = async () => {
+    const compute_server_id = await this.getComputeServerId();
+    const api = webapp_client.project_client.conatApi(
+      this.project_id,
+      compute_server_id,
+    );
+    return api;
+  };
+
+  initBackend = async () => {
+    await until(
+      async () => {
+        if (this.is_closed()) {
+          return true;
+        }
+        try {
+          const api = await this.conatApi();
+          await api.editor.jupyterStart(this.syncdbPath);
+          return true;
+        } catch (err) {
+          console.log("failed to initialize ", this.path, err);
+          return false;
+        }
+      },
+      { min: 3000 },
+    );
+  };
+
+  stopBackend = async () => {
+    const api = await this.conatApi();
+    await api.editor.jupyterStop(this.syncdbPath);
+  };
+
+  // temporary proof of concept
+  private jupyterClient?;
+  runCell = async (id: string, _noHalt) => {
+    const cell = this.store.getIn(["cells", id])?.toJS();
+    if (cell == null) {
+      // nothing to do
+      return;
+    }
+
+    if (this.jupyterClient == null) {
+      // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
+      // and
+      const compute_server_id = await this.getComputeServerId();
+      this.jupyterClient = jupyterClient({
+        path: this.syncdbPath,
+        client: webapp_client.conat_client.conat(),
+        project_id: this.project_id,
+        compute_server_id,
+      });
+    }
+    const client = this.jupyterClient;
+    if (client == null) {
+      throw Error("bug");
+    }
+
+    if (cell.output) {
+      // trick to avoid flicker
+      for (const n in cell.output) {
+        if (n == "0") continue;
+        cell.output[n] = null;
+      }
+      this._set(cell, false);
+    }
+    const handler = new OutputHandler({ cell });
+    const f = throttle(() => this._set(cell, false), 1000 / 24, {
+      leading: false,
+      trailing: true,
+    });
+    handler.on("change", f);
+    const runner = await client.run([cell]);
+    for await (const mesgs of runner) {
+      for (const mesg of mesgs) {
+        handler.process(mesg);
+      }
+    }
+    handler.done();
+    this._set(cell, true);
   };
 }

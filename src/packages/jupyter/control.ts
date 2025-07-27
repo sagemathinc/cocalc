@@ -69,7 +69,7 @@ export async function jupyterRun({
   path: string;
   cells: { id: string; input: string }[];
 }) {
-  logger.debug("jupyterRun", { path, cells });
+  logger.debug("jupyterRun", { path }) // , cells });
 
   const session = sessions[path];
   if (session == null) {

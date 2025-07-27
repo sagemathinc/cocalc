@@ -434,7 +434,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       index = cell_list.indexOf(id) ?? 0;
     }
-    const dragHandle = actions?.store.is_cell_editable(id) ? (
+    const dragHandle = actions?.store?.is_cell_editable(id) ? (
       <DragHandle
         id={id}
         style={{
