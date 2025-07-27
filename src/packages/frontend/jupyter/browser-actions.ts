@@ -215,7 +215,7 @@ export class JupyterActions extends JupyterActions0 {
 
   // temporary proof of concept
   public jupyterClient?;
-  runCell = async (id: string) => {
+  runCell = async (id: string, _noHalt) => {
     await runCell({ actions: this, id });
   };
 
@@ -274,7 +274,7 @@ export class JupyterActions extends JupyterActions0 {
         this.clear_cell(id, save);
         return;
       }
-      this.runCell(id);
+      this.runCell(id, no_halt);
       //this.run_code_cell(id, save, no_halt);
       if (save) {
         this.save_asap();
