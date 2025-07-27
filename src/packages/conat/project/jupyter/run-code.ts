@@ -49,6 +49,7 @@ interface OutputHandler {
   process: (mesg: OutputMessage) => void;
   done: () => void;
 }
+
 type CreateOutputHandler = (opts: {
   path: string;
   cells: InputCell[];
