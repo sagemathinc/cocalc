@@ -14,6 +14,8 @@ type CellType = "code" | "markdown" | "raw";
 type Tags = { [key: string]: boolean };
 
 export interface Cell {
+  type?: "cell";
+  id?: string;
   cell_type?: CellType;
   input?: string;
   collapsed?: boolean;

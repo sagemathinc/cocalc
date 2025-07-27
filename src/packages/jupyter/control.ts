@@ -5,6 +5,9 @@ import { getLogger } from "@cocalc/backend/logger";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { original_path } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
+import { throttle } from "lodash";
+import { type RunOptions } from "@cocalc/conat/project/jupyter/run-code";
 
 const logger = getLogger("jupyter:control");
 
@@ -62,14 +65,8 @@ export function jupyterStop({ path }: { path: string }) {
 }
 
 // Returns async iterator over outputs
-export async function jupyterRun({
-  path,
-  cells,
-}: {
-  path: string;
-  cells: { id: string; input: string }[];
-}) {
-  logger.debug("jupyterRun", { path }) // , cells });
+export async function jupyterRun({ path, cells }: RunOptions) {
+  logger.debug("jupyterRun", { path }); // , cells });
 
   const session = sessions[path];
   if (session == null) {
@@ -101,4 +98,28 @@ export async function jupyterRun({
     }
   }
   return await run();
+}
+
+const BACKEND_OUTPUT_FPS = 8;
+export function outputHandler({ path, cells }: RunOptions) {
+  if (sessions[path] == null) {
+    throw Error(`session '${path}' not available`);
+  }
+  const { actions } = sessions[path];
+  // todo: need to handle multiple cells
+  const cell = { type: "cell" as "cell", ...cells[0] };
+  const handler = new OutputHandler({ cell });
+  const f = throttle(
+    () => {
+      logger.debug("outputHandler", path, cell);
+      actions._set(cell, true);
+    },
+    1000 / BACKEND_OUTPUT_FPS,
+    {
+      leading: false,
+      trailing: true,
+    },
+  );
+  handler.on("change", f);
+  return handler;
 }

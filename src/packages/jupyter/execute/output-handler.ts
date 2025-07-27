@@ -38,6 +38,8 @@ const MAX_SAVE_INTERVAL_MS = 45000;
 
 import { type Cell } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 
+export { type Cell };
+
 interface Message {
   execution_state?;
   execution_count?: number;

@@ -34,23 +34,44 @@ interface InputCell {
 
 type OutputMessage = any;
 
-type JupyterCodeRunner = (opts: {
+export interface RunOptions {
   // syncdb path
   path: string;
   // array of input cells to run
   cells: InputCell[];
-}) => Promise<AsyncGenerator<OutputMessage, void, unknown>>;
+}
+
+type JupyterCodeRunner = (
+  opts: RunOptions,
+) => Promise<AsyncGenerator<OutputMessage, void, unknown>>;
+
+interface OutputHandler {
+  process: (mesg: OutputMessage) => void;
+  done: () => void;
+}
+type CreateOutputHandler = (opts: {
+  path: string;
+  cells: InputCell[];
+}) => OutputHandler;
 
 export function jupyterServer({
   client,
   project_id,
   compute_server_id = 0,
+  // jupyterRun takes a path and cells to run and returns an async iterator
+  // over the outputs.
   jupyterRun,
+  // outputHandler takes a path and returns an OutputHandler, which can be
+  // used to process the output and include it in the notebook.  It is used
+  // as a fallback in case the client that initiated running cells is
+  // disconnected, so output won't be lost.
+  outputHandler,
 }: {
   client: ConatClient;
   project_id: string;
   compute_server_id?: number;
   jupyterRun: JupyterCodeRunner;
+  outputHandler?: CreateOutputHandler;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
@@ -69,11 +90,13 @@ export function jupyterServer({
       const { path, cells } = mesg.data;
       try {
         mesg.respondSync(null);
-        await handleRequest({ socket, jupyterRun, path, cells });
+        await handleRequest({ socket, jupyterRun, outputHandler, path, cells });
       } catch (err) {
         //console.log(err);
         logger.debug("server: failed response -- ", err);
-        socket.write(null, { headers: { error: `${err}` } });
+        if (socket.state != "closed") {
+          socket.write(null, { headers: { error: `${err}` } });
+        }
       }
     });
 
@@ -85,15 +108,39 @@ export function jupyterServer({
   return server;
 }
 
-async function handleRequest({ socket, jupyterRun, path, cells }) {
+async function handleRequest({
+  socket,
+  jupyterRun,
+  outputHandler,
+  path,
+  cells,
+}) {
   const runner = await jupyterRun({ path, cells });
+  const output: OutputMessage[] = [];
+  let handler: OutputHandler | null = null;
   for await (const mesg of runner) {
     if (socket.state == "closed") {
-      logger.debug("socket closed -- server is now handling output!", mesg);
+      if (handler == null) {
+        logger.debug("socket closed -- server must handle output");
+        if (outputHandler == null) {
+          throw Error("no output handler available");
+        }
+        handler = outputHandler({ path, cells });
+        if (handler == null) {
+          throw Error("bug -- outputHandler must return a handler");
+        }
+        for (const prev of output) {
+          handler.process(prev);
+        }
+        output.length = 0;
+      }
+      handler.process(mesg);
     } else {
+      output.push(mesg);
       socket.write([mesg]);
     }
   }
+  handler?.done();
   socket.write(null);
 }
 
