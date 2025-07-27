@@ -314,7 +314,13 @@ export class ConatClient extends EventEmitter {
       const resp = await cn.request(subject, data, { timeout });
       return resp.data;
     } catch (err) {
-      err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
+      try {
+        err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
+      } catch {
+        err = new Error(
+          `${err.message} - callHub: subject='${subject}', name='${name}', `,
+        );
+      }
       throw err;
     }
   };
