@@ -46,7 +46,6 @@ export default function CreateArchive({}) {
         dest: target + ".zip",
         path,
       });
-      await actions.fetch_directory_listing({ path });
     } catch (err) {
       setLoading(false);
       setError(err);

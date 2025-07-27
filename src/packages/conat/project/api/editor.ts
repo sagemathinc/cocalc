@@ -5,13 +5,21 @@ import type { KernelSpec } from "@cocalc/util/jupyter/types";
 
 export const editor = {
   newFile: true,
+
+  jupyterStart: true,
+  jupyterStop: true,
   jupyterStripNotebook: true,
   jupyterNbconvert: true,
   jupyterRunNotebook: true,
   jupyterKernelLogo: true,
   jupyterKernels: true,
+
   formatString: true,
+
   printSageWS: true,
+  sagewsStart: true,
+  sagewsStop: true,
+
   createTerminalService: true,
 };
 
@@ -35,6 +43,10 @@ export interface Editor {
 
   jupyterStripNotebook: (path_ipynb: string) => Promise<string>;
 
+  // path = the syncdb path (not *.ipynb)
+  jupyterStart: (path: string) => Promise<void>;
+  jupyterStop: (path: string) => Promise<void>;
+
   jupyterNbconvert: (opts: NbconvertParams) => Promise<void>;
 
   jupyterRunNotebook: (opts: RunNotebookOptions) => Promise<string>;
@@ -54,6 +66,8 @@ export interface Editor {
   }) => Promise<string>;
 
   printSageWS: (opts) => Promise<string>;
+  sagewsStart: (path_sagews: string) => Promise<void>;
+  sagewsStop: (path_sagews: string) => Promise<void>;
 
   createTerminalService: (
     termPath: string,

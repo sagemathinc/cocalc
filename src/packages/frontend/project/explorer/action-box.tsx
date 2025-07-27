@@ -122,7 +122,6 @@ export function ActionBox(props: ReactProps) {
     props.actions.delete_files({ paths });
     props.actions.set_file_action();
     props.actions.set_all_files_unchecked();
-    props.actions.fetch_directory_listing();
   }
 
   function render_delete_warning(): React.JSX.Element | undefined {

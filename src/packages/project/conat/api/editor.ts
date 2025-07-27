@@ -7,6 +7,8 @@ export { get_kernel_data as jupyterKernels } from "@cocalc/jupyter/kernel/kernel
 export { newFile } from "@cocalc/backend/misc/new-file";
 
 import { printSageWS as printSageWS0 } from "@cocalc/project/print_to_pdf";
+export { sagewsStart, sagewsStop } from "@cocalc/project/sagews/control";
+
 import { filename_extension } from "@cocalc/util/misc";
 export async function printSageWS(opts): Promise<string> {
   let pdf;
@@ -32,3 +34,19 @@ export async function printSageWS(opts): Promise<string> {
 }
 
 export { createTerminalService } from "@cocalc/project/conat/terminal";
+
+import { getClient } from "@cocalc/project/client";
+import { project_id } from "@cocalc/project/data";
+import * as control from "@cocalc/jupyter/control";
+import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
+
+export async function jupyterStart(path: string) {
+  const fs = new SandboxedFilesystem(process.env.HOME ?? "/tmp", {
+    unsafeMode: true,
+  });
+  await control.jupyterStart({ project_id, path, client: getClient(), fs });
+}
+
+export async function jupyterStop(path: string) {
+  await control.jupyterStop({ path });
+}

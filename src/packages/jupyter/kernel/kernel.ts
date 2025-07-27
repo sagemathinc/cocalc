@@ -121,7 +121,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 // the ipynb file, and this function creates the corresponding
 // actions and store, which make it possible to work with this
 // notebook.
-export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
+export function initJupyterRedux(syncdb: SyncDB, client: Client) {
   const project_id = syncdb.project_id;
   if (project_id == null) {
     throw Error("project_id must be defined");
@@ -147,7 +147,7 @@ export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
     // Having two at once basically results in things feeling hung.
     // This should never happen, but we ensure it
     // See https://github.com/sagemathinc/cocalc/issues/4331
-    await removeJupyterRedux(path, project_id);
+    removeJupyterRedux(path, project_id);
   }
   const store = redux.createStore(name, JupyterStore);
   const actions = redux.createActions(name, JupyterActions);
@@ -171,14 +171,11 @@ export async function getJupyterRedux(syncdb: SyncDB) {
 
 // Remove the store/actions for a given Jupyter notebook,
 // and also close the kernel if it is running.
-export async function removeJupyterRedux(
-  path: string,
-  project_id: string,
-): Promise<void> {
+export function removeJupyterRedux(path: string, project_id: string): void {
   logger.debug("removeJupyterRedux", path);
   // if there is a kernel, close it
   try {
-    await kernels.get(path)?.close();
+    kernels.get(path)?.close();
   } catch (_err) {
     // ignore
   }
@@ -186,7 +183,7 @@ export async function removeJupyterRedux(
   const actions = redux.getActions(name);
   if (actions != null) {
     try {
-      await actions.close();
+      actions.close();
     } catch (err) {
       logger.debug(
         "removeJupyterRedux",

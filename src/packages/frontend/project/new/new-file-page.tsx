@@ -250,11 +250,6 @@ export default function NewFilePage(props: Props) {
         <Row>
           <Col sm={12}>
             <FileUpload
-              dropzone_handler={{
-                complete: (): void => {
-                  getActions().fetch_directory_listing();
-                },
-              }}
               project_id={project_id}
               current_path={current_path}
               show_header={false}
@@ -355,11 +350,7 @@ export default function NewFilePage(props: Props) {
             }
             values={{
               upload: (
-                <UploadLink
-                  project_id={project_id}
-                  path={current_path}
-                  onUpload={() => getActions().fetch_directory_listing()}
-                />
+                <UploadLink project_id={project_id} path={current_path} />
               ),
               folder: (txt) => (
                 <a

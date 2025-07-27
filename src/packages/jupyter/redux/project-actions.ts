@@ -1303,7 +1303,7 @@ export class JupyterActions extends JupyterActions0 {
     // we should terminate and clean up everything.
     if (this.isDeleted()) {
       dbg("ipynb file is deleted, so NOT saving to disk and closing");
-      this.close({ noSave: true });
+      this.close();
       return;
     }
 

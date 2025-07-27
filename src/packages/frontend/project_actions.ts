@@ -1519,7 +1519,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       compute_server_id,
       checked_files: store.get("checked_files").clear(), // always clear on compute_server_id change
     });
-    this.fetch_directory_listing({ compute_server_id });
     set_local_storage(
       store.computeServerIdLocalStorageKey,
       `${compute_server_id}`,
@@ -1558,18 +1557,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       most_recent_file_click: undefined,
       create_file_alert: false,
     });
-  }
-
-  // Update the directory listing cache for the given path.
-  // Uses current path if path not provided.
-  fetch_directory_listing = async (_opts?): Promise<void> => {
-    console.trace("TODO: rewrite code that uses fetch_directory_listing");
-  };
-
-  public async fetch_directory_listing_directly(): Promise<void> {
-    console.trace(
-      "TODO: rewrite code that uses fetch_directory_listing_directly",
-    );
   }
 
   // Sets the active file_sort to next_column_name
@@ -2819,8 +2806,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         explicit: true,
         compute_server_id,
       });
-    } else {
-      this.fetch_directory_listing();
     }
   };
 
@@ -2846,7 +2831,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         alert: true,
       });
     } finally {
-      this.fetch_directory_listing();
       this.set_activity({ id, stop: "" });
       this.setState({ downloading_file: false });
       this.set_active_tab("files", { update_file_listing: false });

@@ -213,30 +213,15 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public is_closed(): boolean {
-    return this._state === "closed" || this._state === undefined;
+    return (this._state ?? "closed") === "closed";
   }
 
-  public async close({ noSave }: { noSave?: boolean } = {}): Promise<void> {
+  public close() {
     if (this.is_closed()) {
       return;
     }
-    // ensure save to disk happens:
-    //   - it will automatically happen for the sync-doc file, but
-    //     we also need it for the ipynb file... as ipynb is unique
-    //     in having two formats.
-    if (!noSave) {
-      await this.save();
-    }
-    if (this.is_closed()) {
-      return;
-    }
-
-    if (this.syncdb != null) {
-      this.syncdb.close();
-    }
-    if (this._file_watcher != null) {
-      this._file_watcher.close();
-    }
+    this.syncdb?.close();
+    this._file_watcher?.close();
     if (this.is_project || this.is_compute_server) {
       this.close_project_only();
     } else {
@@ -246,7 +231,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // since otherwise this.redux and this.name are gone,
     // which makes destroying the actions properly impossible.
     this.destroy();
-    this.store.destroy();
+    this.store?.destroy();
     close(this);
     this._state = "closed";
   }

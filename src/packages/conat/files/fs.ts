@@ -206,11 +206,17 @@ interface Options {
   service: string;
   client?: Client;
   fs: (subject?: string) => Promise<Filesystem>;
+  // project-id: if given, ONLY serve files for this one project, and the
+  // path must be the home of the project
+  // If not given,
+  project_id?: string;
 }
 
-export async function fsServer({ service, fs, client }: Options) {
+export async function fsServer({ service, fs, client, project_id }: Options) {
   client ??= conat();
-  const subject = `${service}.*`;
+  const subject = project_id
+    ? `${service}.project-${project_id}`
+    : `${service}.*`;
   const watches: { [subject: string]: any } = {};
   const sub = await client.service<Filesystem & { subject?: string }>(subject, {
     async appendFile(path: string, data: string | Buffer, encoding?) {
@@ -334,6 +340,16 @@ export type FilesystemClient = Omit<Omit<Filesystem, "stat">, "lstat"> & {
   lstat: (path: string) => Promise<Stats>;
 };
 
+export function getService({
+  compute_server_id,
+  service = DEFAULT_FILE_SERVICE,
+}: {
+  compute_server_id?: number;
+  service?: string;
+}) {
+  return compute_server_id ? `${service}/${compute_server_id}` : service;
+}
+
 export function fsSubject({
   project_id,
   compute_server_id = 0,
@@ -352,11 +368,7 @@ export function fsSubject({
   if (typeof service != "string") {
     throw Error("service must be a string");
   }
-  if (compute_server_id) {
-    return `${service}/${compute_server_id}.project-${project_id}`;
-  } else {
-    return `${service}.project-${project_id}`;
-  }
+  return `${getService({ service, compute_server_id })}.project-${project_id}`;
 }
 
 export function fsClient({

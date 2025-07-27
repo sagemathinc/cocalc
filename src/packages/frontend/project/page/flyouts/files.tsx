@@ -167,7 +167,7 @@ export function FilesFlyout({
     compute_file_masks(files);
     const searchWords = file_search.trim().toLowerCase();
 
-    const processedFiles : DirectoryListingEntry[] = files
+    const processedFiles: DirectoryListingEntry[] = files
       .filter((file: DirectoryListingEntry) => {
         if (file_search === "") return true;
         const filename = file.name.toLowerCase();
@@ -661,9 +661,6 @@ export function FilesFlyout({
         <FileUploadWrapper
           project_id={project_id}
           dest_path={current_path}
-          event_handlers={{
-            complete: () => actions?.fetch_directory_listing(),
-          }}
           style={{
             flex: "1 0 auto",
             display: "flex",

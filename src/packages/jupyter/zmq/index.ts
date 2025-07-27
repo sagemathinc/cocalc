@@ -1,10 +1,10 @@
 import { EventEmitter } from "events";
 import { Dealer, Subscriber } from "zeromq";
 import { Message } from "./message";
-import { getLogger } from "@cocalc/backend/logger";
 import type { JupyterMessage } from "./types";
 
-const logger = getLogger("jupyter:zmq");
+//import { getLogger } from "@cocalc/backend/logger";
+//const logger = getLogger("jupyter:zmq");
 
 type JupyterSocketName = "iopub" | "shell" | "stdin" | "control";
 
@@ -76,7 +76,7 @@ export class JupyterSockets extends EventEmitter {
       throw Error(`invalid socket name '${name}'`);
     }
 
-    logger.debug("send message", message);
+    //logger.debug("send message", message);
     const jMessage = new Message(message);
     socket.send(
       jMessage._encode(
@@ -119,9 +119,9 @@ export class JupyterSockets extends EventEmitter {
 
   private listen = async (name: JupyterSocketName, socket) => {
     if (ZMQ_TYPE[name] == "sub") {
-      // subscribe to everything -- 
+      // subscribe to everything --
       //   https://zeromq.github.io/zeromq.js/classes/Subscriber.html#subscribe
-      socket.subscribe(); 
+      socket.subscribe();
     }
     for await (const data of socket) {
       const mesg = Message._decode(

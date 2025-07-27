@@ -89,9 +89,6 @@ export default function Download({}) {
         dest = files[0];
       }
       actions.download_file({ path: dest, log: files });
-      await actions.fetch_directory_listing({
-        path: store.get("current_path"),
-      });
     } catch (err) {
       console.log(err);
       setLoading(false);

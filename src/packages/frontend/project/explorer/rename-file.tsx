@@ -79,7 +79,6 @@ export default function RenameFile({ duplicate }: Props) {
       } else {
         await actions.rename_file(opts);
       }
-      await actions.fetch_directory_listing({ path: renameDir });
     } catch (err) {
       setLoading(false);
       setError(err);

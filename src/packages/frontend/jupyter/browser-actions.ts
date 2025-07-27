@@ -56,6 +56,7 @@ import { syncdbPath } from "@cocalc/util/jupyter/names";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { get as getUsageInfo } from "@cocalc/conat/project/usage-info";
 import { delay } from "awaiting";
+import { until } from "@cocalc/util/async-utils";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -70,6 +71,7 @@ export class JupyterActions extends JupyterActions0 {
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
+    this.initBackend();
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
     this.setState({
       toolbar: !this.get_local_storage("hide_toolbar"),
@@ -171,6 +173,44 @@ export class JupyterActions extends JupyterActions0 {
         account_store.get("editor_settings");
     }
   }
+
+  // if the project or compute server is running and listening, this call
+  // tells them to open this jupyter notebook, so it can provide the compute
+  // functionality.
+
+  private conatApi = async () => {
+    const compute_server_id = await this.getComputeServerId();
+    const api = webapp_client.project_client.conatApi(
+      this.project_id,
+      compute_server_id,
+    );
+    return api;
+  };
+
+  initBackend = async () => {
+    await until(
+      async () => {
+        if (this.is_closed()) {
+          return true;
+        }
+        try {
+          const api = await this.conatApi();
+          await api.editor.jupyterStart(this.syncdbPath);
+          console.log("initialized ", this.path);
+          return true;
+        } catch (err) {
+          console.log("failed to initialize ", this.path, err);
+          return false;
+        }
+      },
+      { min: 3000 },
+    );
+  };
+
+  stopBackend = async () => {
+    const api = await this.conatApi();
+    await api.editor.jupyterStop(this.syncdbPath);
+  };
 
   initOpenLog = () => {
     // Put an entry in the project log once the jupyter notebook gets opened and
@@ -354,10 +394,9 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   protected close_client_only(): void {
-    const account = this.redux.getStore("account");
-    if (account != null) {
-      account.removeListener("change", this.account_change);
-    }
+    const account = this.redux
+      ?.getStore("account")
+      ?.removeListener("change", this.account_change);
   }
 
   private syncdb_cursor_activity = (): void => {

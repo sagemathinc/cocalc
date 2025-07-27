@@ -203,7 +203,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   }: TimeAgoElementProps) => {
     const { timeAgoAbsolute } = useAppContext();
 
-    if (date == null) {
+    if (!date || date.valueOf()) {
       return <></>;
     }
 

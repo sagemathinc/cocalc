@@ -207,9 +207,6 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       <FileUploadWrapper
         project_id={project_id}
         dest_path={current_path}
-        event_handlers={{
-          complete: () => actions?.fetch_directory_listing(),
-        }}
         config={{ clickable: `.${uploadClassName}` }}
         className="smc-vfill"
       >
