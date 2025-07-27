@@ -853,6 +853,9 @@ importers:
       debug:
         specifier: ^4.4.0
         version: 4.4.1
+      events:
+        specifier: 3.3.0
+        version: 3.3.0
       expect:
         specifier: ^26.6.2
         version: 26.6.2

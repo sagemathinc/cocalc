@@ -57,6 +57,7 @@ import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { get as getUsageInfo } from "@cocalc/conat/project/usage-info";
 import { delay } from "awaiting";
 import { until } from "@cocalc/util/async-utils";
+import { runCell } from "./run-cell";
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -67,7 +68,7 @@ export class JupyterActions extends JupyterActions0 {
   private cursor_manager: CursorManager;
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
-  private syncdbPath: string;
+  public syncdbPath: string;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
@@ -178,7 +179,7 @@ export class JupyterActions extends JupyterActions0 {
   // tells them to open this jupyter notebook, so it can provide the compute
   // functionality.
 
-  private conatApi = async () => {
+  conatApi = async () => {
     const compute_server_id = await this.getComputeServerId();
     const api = webapp_client.project_client.conatApi(
       this.project_id,
@@ -214,13 +215,7 @@ export class JupyterActions extends JupyterActions0 {
 
   // temporary proof of concept
   runCell = async (id: string) => {
-    const api = await this.conatApi();
-    const resp = await api.editor.jupyterRun(this.syncdbPath, [id]);
-    const output = {};
-    for (let i = 0; i < resp.length; i++) {
-      output[i] = resp[i];
-    }
-    this.syncdb.set({ id, type: "cell", output });
+    await runCell({ actions: this, id });
   };
 
   initOpenLog = () => {
@@ -278,7 +273,8 @@ export class JupyterActions extends JupyterActions0 {
         this.clear_cell(id, save);
         return;
       }
-      this.run_code_cell(id, save, no_halt);
+      this.runCell(id);
+      //this.run_code_cell(id, save, no_halt);
       if (save) {
         this.save_asap();
       }

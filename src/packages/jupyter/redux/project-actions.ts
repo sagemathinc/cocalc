@@ -718,7 +718,6 @@ export class JupyterActions extends JupyterActions0 {
       max_output_length: this.store.get("max_output_length"),
       max_output_messages: MAX_OUTPUT_MESSAGES,
       report_started_ms: 250,
-      dbg,
     });
 
     dbg("setting up jupyter_kernel.once('closed', ...) handler");
@@ -885,63 +884,19 @@ export class JupyterActions extends JupyterActions0 {
     exec.on("output", (mesg) => {
       // uncomment only for specific low level debugging -- see https://github.com/sagemathinc/cocalc/issues/7022
       // dbg(`got mesg='${JSON.stringify(mesg)}'`);  // !!!☡ ☡ ☡  -- EXTREME DANGER ☡ ☡ ☡ !!!!
-
-      if (mesg == null) {
-        // can't possibly happen, of course.
-        const err = "empty mesg";
-        dbg(`got error='${err}'`);
-        handler.error(err);
-        return;
-      }
-      if (mesg.done) {
-        // done is a special internal cocalc message.
-        handler.done();
-        return;
-      }
       if (mesg.content?.transient?.display_id != null) {
         // See https://github.com/sagemathinc/cocalc/issues/2132
         // We find any other outputs in the document with
         // the same transient.display_id, and set their output to
         // this mesg's output.
         this.handleTransientUpdate(mesg);
-        if (mesg.msg_type == "update_display_data") {
-          // don't also create a new output
-          return;
-        }
       }
-
-      if (mesg.msg_type === "clear_output") {
-        handler.clear(mesg.content.wait);
-        return;
-      }
-
-      if (mesg.content.comm_id != null) {
-        // ignore any comm/widget related messages
-        return;
-      }
-
       if (mesg.content.execution_state === "idle") {
         this.store.removeListener("cell_change", cell_change);
         return;
       }
-      if (mesg.content.execution_state === "busy") {
-        handler.start();
-      }
-      if (mesg.content.payload != null) {
-        if (mesg.content.payload.length > 0) {
-          // payload shell message:
-          // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
-          // ""Payloads are considered deprecated, though their replacement is not yet implemented."
-          // we fully have to implement them, since they are used to implement (crazy, IMHO)
-          // things like %load in the python2 kernel!
-          mesg.content.payload.map((p) => handler.payload(p));
-          return;
-        }
-      } else {
-        // Normal iopub output message
-        handler.message(mesg.content);
-        return;
-      }
+
+      handler.process(mesg);
     });
 
     exec.on("error", (err) => {

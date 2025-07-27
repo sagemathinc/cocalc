@@ -47,9 +47,12 @@ export async function jupyterStart(path: string) {
   await control.jupyterStart({ project_id, path, client: getClient(), fs });
 }
 
-export async function jupyterRun(path: string, ids: string[]) {
+export async function jupyterRun(
+  path: string,
+  cells: { id: string; input: string }[],
+) {
   await jupyterStart(path);
-  return await control.jupyterRun({ path, ids });
+  return await control.jupyterRun({ path, cells });
 }
 
 export async function jupyterStop(path: string) {

@@ -50,17 +50,17 @@ export function jupyterStart({
 // run the cells with given id...
 export async function jupyterRun({
   path,
-  ids,
+  cells,
 }: {
   path: string;
-  ids: string[];
+  cells: { id: string; input: string }[];
 }) {
-  logger.debug("jupyterRun", { path, ids });
+  logger.debug("jupyterRun", { path, cells });
   const session = sessions[path];
   if (session == null) {
     throw Error(`${path} not running`);
   }
-  const { syncdb, actions, store } = session;
+  const { syncdb, actions } = session;
   if (syncdb.isClosed()) {
     // shouldn't be possible
     throw Error("syncdb is closed");
@@ -69,22 +69,14 @@ export async function jupyterRun({
     logger.debug("jupyterRun: waiting until ready");
     await once(syncdb, "ready");
   }
-  //   for (let i = 0; i < ids.length; i++) {
-  //     actions.run_cell(ids[i], false);
-  //   }
   logger.debug("jupyterRun: running");
-  if (ids.length == 1) {
-    const code = store.get("cells").get(ids[0])?.get("input")?.trim();
-    if (code) {
-      const result: any[] = [];
-      for (const x of await actions.jupyter_kernel.execute_code_now({ code })) {
-        if (x.msg_type == "execute_result") {
-          result.push(x.content);
-        }
-      }
-      return result;
-    }
+  let v = [];
+  for (const cell of cells) {
+    v = v.concat(
+      await actions.jupyter_kernel.execute_code_now({ code: cell.input }),
+    );
   }
+  return v;
 }
 
 export function jupyterStop({ path }: { path: string }) {

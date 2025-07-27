@@ -47,7 +47,10 @@ export interface Editor {
   // path = the syncdb path (not *.ipynb)
   jupyterStart: (path: string) => Promise<void>;
   jupyterStop: (path: string) => Promise<void>;
-  jupyterRun: (path: string, ids: string[]) => Promise<void>;
+  jupyterRun: (
+    path: string,
+    cells: { id: string; input: string }[],
+  ) => Promise<any>;
 
   jupyterNbconvert: (opts: NbconvertParams) => Promise<void>;
 

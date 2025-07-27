@@ -28,7 +28,7 @@ OutputHandler emits these events:
 
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
-import { close, server_time, len, to_json, is_object } from "@cocalc/util/misc";
+import { close, server_time, len, is_object } from "@cocalc/util/misc";
 import { type TypedMap } from "@cocalc/util/types/typed-map";
 
 const now = () => server_time().valueOf() - 0;
@@ -62,7 +62,6 @@ interface Options {
   // If no messages for this many ms, then we update via set to indicate
   // that cell is being run.
   report_started_ms?: number;
-  dbg?;
 }
 
 type State = "ready" | "closed";
@@ -106,6 +105,57 @@ export class OutputHandler extends EventEmitter {
 
     this.stdin = this.stdin.bind(this);
   }
+
+  // mesg = from the kernel
+  process = (mesg) => {
+    if (mesg == null) {
+      // can't possibly happen,
+      return;
+    }
+    if (mesg.done) {
+      // done is a special internal cocalc message.
+      this.done();
+      return;
+    }
+    if (mesg.content?.transient?.display_id != null) {
+      //this.handleTransientUpdate(mesg);
+      if (mesg.msg_type == "update_display_data") {
+        // don't also create a new output
+        return;
+      }
+    }
+
+    if (mesg.msg_type === "clear_output") {
+      this.clear(mesg.content.wait);
+      return;
+    }
+
+    if (mesg.content.comm_id != null) {
+      // ignore any comm/widget related messages here
+      return;
+    }
+
+    if (mesg.content.execution_state === "busy") {
+      this.start();
+    }
+
+    if (mesg.content.payload != null) {
+      if (mesg.content.payload.length > 0) {
+        // payload shell message:
+        // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
+        // ""Payloads are considered deprecated, though their replacement is not yet implemented."
+        // we fully have to implement them, since they are used to implement (crazy, IMHO)
+        // things like %load in the python2 kernel!
+        for (const p of mesg.content.payload) {
+          this.payload(p);
+        }
+        return;
+      }
+    } else {
+      // Normal iopub output message
+      this.message(mesg.content);
+    }
+  };
 
   close = (): void => {
     if (this._state == "closed") return;
@@ -241,7 +291,8 @@ export class OutputHandler extends EventEmitter {
     this.emit("change", save);
   };
 
-  // Process incoming messages.  This may mutate mesg.
+  // Process incoming messages.  **This may mutate mesg** and
+  // definitely mutates this.cell.
   message = (mesg: Message): void => {
     let has_exec_count: boolean;
     if (this._state === "closed") {
@@ -375,10 +426,7 @@ export class OutputHandler extends EventEmitter {
       // https://github.com/sagemathinc/cocalc/issues/1933
       this.message(payload);
     } else {
-      // No idea what to do with this...
-      if (typeof this._opts.dbg === "function") {
-        this._opts.dbg(`Unknown PAYLOAD: ${to_json(payload)}`);
-      }
+      // TODO: No idea what to do with this...
     }
   };
 }

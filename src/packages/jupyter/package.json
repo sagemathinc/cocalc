@@ -47,6 +47,7 @@
     "@cocalc/util": "workspace:*",
     "awaiting": "^3.0.0",
     "debug": "^4.4.0",
+    "events": "3.3.0",
     "expect": "^26.6.2",
     "he": "^1.2.0",
     "immutable": "^4.3.0",
