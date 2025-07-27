@@ -32,7 +32,16 @@ interface InputCell {
   input: string;
 }
 
-type OutputMessage = any;
+export interface OutputMessage {
+  // id = id of the cell
+  id: string;
+  // everything below is exactly from Jupyter
+  metadata?;
+  content?;
+  buffers?;
+  msg_type?: string;
+  done?: boolean;
+}
 
 export interface RunOptions {
   // syncdb path
@@ -183,7 +192,12 @@ class JupyterClient {
         }
       },
     });
-    await this.socket.request({ path: this.path, cells });
+    // get rid of any fields except id and input from the cells, since, e.g.,
+    // if there is a lot of output in a cell, there is no need to send that to the backend.
+    const cells1 = cells.map(({ id, input }) => {
+      return { id, input };
+    });
+    await this.socket.request({ path: this.path, cells: cells1 });
     return this.iter;
   };
 }

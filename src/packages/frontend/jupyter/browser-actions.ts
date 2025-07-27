@@ -61,6 +61,8 @@ import { jupyterClient } from "@cocalc/conat/project/jupyter/run-code";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { throttle } from "lodash";
 
+const OUTPUT_FPS = 29;
+
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
 
@@ -232,7 +234,7 @@ export class JupyterActions extends JupyterActions0 {
         this.clear_cell(id, save);
         return;
       }
-      this.runCell(id, no_halt);
+      this.runCells([id], no_halt);
       //this.run_code_cell(id, save, no_halt);
       if (save) {
         this.save_asap();
@@ -1491,15 +1493,18 @@ export class JupyterActions extends JupyterActions0 {
     await api.editor.jupyterStop(this.syncdbPath);
   };
 
-  // temporary proof of concept
-  private jupyterClient?;
-  runCell = async (id: string, _noHalt) => {
-    const cell = this.store.getIn(["cells", id])?.toJS();
-    if (cell == null) {
-      // nothing to do
-      return;
-    }
+  getOutputHandler = (cell) => {
+    const handler = new OutputHandler({ cell });
+    const f = throttle(() => this._set(cell, false), 1000 / OUTPUT_FPS, {
+      leading: false,
+      trailing: true,
+    });
+    handler.on("change", f);
+    return handler;
+  };
 
+  private jupyterClient?;
+  runCells = async (ids: string[], _noHalt) => {
     if (this.jupyterClient == null) {
       // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
       // and
@@ -1515,28 +1520,43 @@ export class JupyterActions extends JupyterActions0 {
     if (client == null) {
       throw Error("bug");
     }
-
-    if (cell.output) {
-      // trick to avoid flicker
-      for (const n in cell.output) {
-        if (n == "0") continue;
-        cell.output[n] = null;
+    const cells: any[] = [];
+    for (const id of ids) {
+      const cell = this.store.getIn(["cells", id])?.toJS();
+      if (!cell?.input?.trim()) {
+        // nothing to do
+        continue;
       }
-      this._set(cell, false);
+      if (cell.output) {
+        // trick to avoid flicker
+        for (const n in cell.output) {
+          if (n == "0") continue;
+          cell.output[n] = null;
+        }
+        this._set(cell, false);
+      }
+      cells.push(cell);
     }
-    const handler = new OutputHandler({ cell });
-    const f = throttle(() => this._set(cell, false), 1000 / 24, {
-      leading: false,
-      trailing: true,
-    });
-    handler.on("change", f);
-    const runner = await client.run([cell]);
+
+    const runner = await client.run(cells);
+    let handler: null | OutputHandler = null;
+    let id: null | string = null;
     for await (const mesgs of runner) {
       for (const mesg of mesgs) {
+        if (mesg.id !== id || handler == null) {
+          id = mesg.id;
+          let cell = this.store.getIn(["cells", mesg.id])?.toJS();
+          if (cell == null) {
+            // cell removed?
+            cell = { id };
+          }
+          handler?.done();
+          handler = this.getOutputHandler(cell);
+        }
         handler.process(mesg);
       }
     }
-    handler.done();
-    this._set(cell, true);
+    handler?.done();
+    this.save_asap();
   };
 }

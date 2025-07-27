@@ -54,6 +54,14 @@ interface Message {
   data?: { [mimeType: string]: any };
 }
 
+interface JupyterMessage {
+  metadata?;
+  content?;
+  buffers?;
+  msg_type?: string;
+  done?: boolean;
+}
+
 interface Options {
   // object; the cell whose output (etc.) will get mutated
   cell: Cell;
@@ -109,7 +117,7 @@ export class OutputHandler extends EventEmitter {
   }
 
   // mesg = from the kernel
-  process = (mesg) => {
+  process = (mesg: JupyterMessage) => {
     if (mesg == null) {
       // can't possibly happen,
       return;

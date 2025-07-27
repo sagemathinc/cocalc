@@ -89,6 +89,7 @@ export async function jupyterRun({ path, cells }: RunOptions) {
         code: cell.input,
       });
       for await (const mesg of output.iter()) {
+        mesg.id = cell.id;
         yield mesg;
       }
       if (actions.jupyter_kernel.failedError) {
@@ -100,26 +101,45 @@ export async function jupyterRun({ path, cells }: RunOptions) {
   return await run();
 }
 
+class MulticellOutputHandler {
+  private id: string | null = null;
+  private handler: OutputHandler | null = null;
+
+  constructor(
+    private cells: RunOptions["cells"],
+    private actions,
+  ) {}
+
+  process = (mesg) => {
+    if (mesg.id !== this.id || this.handler == null) {
+      this.id = mesg.id;
+      let cell = this.cells[mesg.id] ?? { id: mesg.id };
+      this.handler?.done();
+      this.handler = new OutputHandler({ cell });
+      const f = throttle(
+        () => this.actions._set({ ...cell, type: "cell" }, true),
+        1000 / BACKEND_OUTPUT_FPS,
+        {
+          leading: true,
+          trailing: true,
+        },
+      );
+      this.handler.on("change", f);
+    }
+    this.handler!.process(mesg);
+  };
+
+  done = () => {
+    this.handler?.done();
+    this.handler = null;
+  };
+}
+
 const BACKEND_OUTPUT_FPS = 8;
 export function outputHandler({ path, cells }: RunOptions) {
   if (sessions[path] == null) {
     throw Error(`session '${path}' not available`);
   }
   const { actions } = sessions[path];
-  // todo: need to handle multiple cells
-  const cell = { type: "cell" as "cell", ...cells[0] };
-  const handler = new OutputHandler({ cell });
-  const f = throttle(
-    () => {
-      logger.debug("outputHandler", path, cell);
-      actions._set(cell, true);
-    },
-    1000 / BACKEND_OUTPUT_FPS,
-    {
-      leading: false,
-      trailing: true,
-    },
-  );
-  handler.on("change", f);
-  return handler;
+  return new MulticellOutputHandler(cells, actions);
 }

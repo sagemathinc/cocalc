@@ -32,8 +32,8 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
     // running code with this just results in two responses: the path and the cells
     async function jupyterRun({ path, cells }) {
       async function* runner() {
-        yield { path };
-        yield { cells };
+        yield { path, id: "0" };
+        yield { cells, id: "0" };
       }
       return runner();
     }
@@ -51,7 +51,7 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
     for await (const output of iter) {
       v.push(output);
     }
-    expect(v).toEqual([[{ path }], [{ cells }]]);
+    expect(v).toEqual([[{ path, id: "0" }], [{ cells, id: "0" }]]);
   });
 
   const count = 100;
@@ -63,7 +63,7 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
       for await (const output of await client.run(cells)) {
         v.push(output);
       }
-      expect(v).toEqual([[{ path }], [{ cells }]]);
+      expect(v).toEqual([[{ path, id: "0" }], [{ cells, id: "0" }]]);
     }
     const evalsPerSecond = Math.floor((1000 * count) / (Date.now() - start));
     if (process.env.BENCH) {
@@ -220,7 +220,7 @@ describe("create mocked jupyter runner that does failover to backend output mana
   });
 
   it("starts code running then closes the client, which causes output to have to be placed in the handler instead.", async () => {
-    const iter = await client.run(cells);
+    await client.run(cells);
     client.close();
     await wait({ until: () => handler.messages.length >= 3 });
     expect(handler.messages).toEqual([
