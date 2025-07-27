@@ -24,7 +24,7 @@
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit --maxWorkers=1",
-    "depcheck": "pnpx depcheck",
+    "depcheck": "pnpx depcheck --ignores events",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "files": [
