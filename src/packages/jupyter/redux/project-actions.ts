@@ -35,9 +35,6 @@ import { type DKV, dkv } from "@cocalc/conat/sync/dkv";
 import { computeServerManager } from "@cocalc/conat/compute/manager";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-// see https://github.com/sagemathinc/cocalc/issues/8060
-const MAX_OUTPUT_SAVE_DELAY = 30000;
-
 // refuse to open an ipynb that is bigger than this:
 const MAX_SIZE_IPYNB_MB = 150;
 
@@ -69,9 +66,9 @@ export class JupyterActions extends JupyterActions0 {
   //   }
 
   public run_cell(
-    id: string,
-    save: boolean = true,
-    no_halt: boolean = false,
+    _id: string,
+    _save: boolean = true,
+    _no_halt: boolean = false,
   ): void {
     console.log("run_cell: DEPRECATED");
   }
@@ -631,157 +628,8 @@ export class JupyterActions extends JupyterActions0 {
     return handler;
   }
 
-  manager_run_cell = (id: string) => {
-    const dbg = this.dbg(`manager_run_cell(id='${id}')`);
+  manager_run_cell = (_id: string) => {
     console.log("manager_run_cell: DEPRECATED");
-    return;
-    dbg(JSON.stringify(misc.keys(this._running_cells)));
-
-    if (this._running_cells == null) {
-      this._running_cells = {};
-    }
-
-    if (this._running_cells[id]) {
-      dbg("cell already queued to run in kernel");
-      return;
-    }
-
-    // It's important to set this._running_cells[id] to be true so that
-    // sync_exec_state doesn't declare this cell done.  The kernel identity
-    // will get set properly below in case it changes.
-    this._running_cells[id] = this.jupyter_kernel?.identity ?? "none";
-
-    const orig_cell = this.store.get("cells").get(id);
-    if (orig_cell == null) {
-      // nothing to do -- cell deleted
-      return;
-    }
-
-    let input: string | undefined = orig_cell.get("input", "");
-    if (input == null) {
-      input = "";
-    } else {
-      input = input.trim();
-    }
-
-    const halt_on_error: boolean = !orig_cell.get("no_halt", false);
-
-    if (this.jupyter_kernel == null) {
-      throw Error("bug -- this is guaranteed by the above");
-    }
-    this._running_cells[id] = this.jupyter_kernel.identity;
-
-    const cell: any = {
-      id,
-      type: "cell",
-      kernel: this.store.get("kernel"),
-    };
-
-    dbg(`using max_output_length=${this.store.get("max_output_length")}`);
-    const handler = this._output_handler(cell);
-
-    // exponentiallyThrottledSaved calls this.syncdb?.save, but
-    // it throttles the calls, and does so using exponential backoff
-    // up to MAX_OUTPUT_SAVE_DELAY milliseconds.   Basically every
-    // time exponentiallyThrottledSaved is called it increases the
-    // interval used for throttling by multiplying saveThrottleMs by 1.3
-    // until saveThrottleMs gets to MAX_OUTPUT_SAVE_DELAY.  There is no
-    // need at all to do a trailing call, since other code handles that.
-    let saveThrottleMs = 1;
-    let lastCall = 0;
-    const exponentiallyThrottledSaved = () => {
-      const now = Date.now();
-      if (now - lastCall < saveThrottleMs) {
-        return;
-      }
-      lastCall = now;
-      saveThrottleMs = Math.min(1.3 * saveThrottleMs, MAX_OUTPUT_SAVE_DELAY);
-      this.syncdb?.save();
-    };
-
-    handler.on("change", (save) => {
-      if (!this.store.getIn(["cells", id])) {
-        // The cell was deleted, but we just got some output
-        // NOTE: client shouldn't allow deleting running or queued
-        // cells, but we still want to do something useful/sensible.
-        // We put cell back where it was with same input.
-        cell.input = orig_cell.get("input");
-        cell.pos = orig_cell.get("pos");
-      }
-      this.syncdb.set(cell);
-      // This is potentially very verbose -- don't due it unless
-      // doing low level debugging:
-      //dbg(`change (save=${save}): cell='${JSON.stringify(cell)}'`);
-      if (save) {
-        exponentiallyThrottledSaved();
-      }
-    });
-
-    handler.once("done", () => {
-      dbg("handler is done");
-      this.store.removeListener("cell_change", cell_change);
-      exec.close();
-      if (this._running_cells != null) {
-        delete this._running_cells[id];
-      }
-      this.syncdb?.save();
-      setTimeout(() => this.syncdb?.save(), 100);
-    });
-
-    if (this.jupyter_kernel == null) {
-      handler.error("Unable to start Jupyter");
-      return;
-    }
-
-    const get_password = (): string => {
-      if (this.jupyter_kernel == null) {
-        dbg("get_password", id, "no kernel");
-        return "";
-      }
-      const password = this.jupyter_kernel.store.get(id);
-      dbg("get_password", id, password);
-      this.jupyter_kernel.store.delete(id);
-      return password;
-    };
-
-    // This is used only for stdin right now.
-    const cell_change = (cell_id, new_cell) => {
-      if (id === cell_id) {
-        dbg("cell_change");
-        handler.cell_changed(new_cell, get_password);
-      }
-    };
-    this.store.on("cell_change", cell_change);
-
-    const exec = this.jupyter_kernel.execute_code({
-      code: input,
-      id,
-      stdin: handler.stdin,
-      halt_on_error,
-    });
-
-    exec.on("output", (mesg) => {
-      // uncomment only for specific low level debugging -- see https://github.com/sagemathinc/cocalc/issues/7022
-      // dbg(`got mesg='${JSON.stringify(mesg)}'`);  // !!!☡ ☡ ☡  -- EXTREME DANGER ☡ ☡ ☡ !!!!
-      if (mesg.content?.transient?.display_id != null) {
-        // See https://github.com/sagemathinc/cocalc/issues/2132
-        // We find any other outputs in the document with
-        // the same transient.display_id, and set their output to
-        // this mesg's output.
-        this.handleTransientUpdate(mesg);
-      }
-      if (mesg.content.execution_state === "idle") {
-        this.store.removeListener("cell_change", cell_change);
-        return;
-      }
-
-      handler.process(mesg);
-    });
-
-    exec.on("error", (err) => {
-      dbg(`got error='${err}'`);
-      handler.error(err);
-    });
   };
 
   reset_more_output = (id: string) => {
