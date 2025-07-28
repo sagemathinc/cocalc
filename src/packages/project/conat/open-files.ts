@@ -227,6 +227,8 @@ async function handleChange({
   doctype,
   id,
 }: OpenFileEntry & { id?: number }) {
+  // DEPRECATED!
+  return;
   if (!hasBackendState(path)) {
     return;
   }
@@ -262,6 +264,7 @@ async function handleChange({
       }
     }
 
+    // @ts-ignore
     if (time != null && time >= getCutoff()) {
       if (!isOpenHere) {
         logger.debug("handleChange: opening", { path });

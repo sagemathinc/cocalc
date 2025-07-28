@@ -1541,6 +1541,9 @@ export class JupyterActions extends JupyterActions0 {
   private runQueue: any[] = [];
   private runningNow = false;
   runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
+    if (this.store?.get("read_only")) {
+      return;
+    }
     if (this.runningNow) {
       this.runQueue.push([ids, opts]);
       this.addPendingCells(ids);
@@ -1619,7 +1622,6 @@ export class JupyterActions extends JupyterActions0 {
           handler.process(mesg);
         }
       }
-      console.log("exited the runner loop");
       handler?.done();
       this.save_asap();
     } catch (err) {

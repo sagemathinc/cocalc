@@ -69,7 +69,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public is_compute_server?: boolean;
   readonly path: string;
   readonly project_id: string;
-  private _last_start?: number;
   public jupyter_kernel?: JupyterKernelInterface;
   private last_cursor_move_time: Date = new Date(0);
   private _cursor_locs?: any;
@@ -526,7 +525,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
 
-    this.onCellChange(id, new_cell, old_cell);
     this.store.emit("cell_change", id, new_cell, old_cell);
 
     return cell_list_needs_recompute;
@@ -698,11 +696,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // things in project, browser, etc.
   }
 
-  protected onCellChange(_id: string, _new_cell: any, _old_cell: any) {
-    // no-op in base class.  This is a hook though
-    // for potentially doing things when any cell changes.
-  }
-
   ensure_backend_kernel_setup() {
     // nontrivial in the project, but not in client or here.
   }
@@ -741,7 +734,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         }
       }
     }
-    //@dbg("_set")("obj=#{misc.to_json(obj)}")
     this.syncdb.set(obj);
     if (save) {
       this.syncdb.commit();
@@ -957,61 +949,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public run_code_cell(
-    id: string,
-    save: boolean = true,
-    no_halt: boolean = false,
+    _id: string,
+    _save: boolean = true,
+    _no_halt: boolean = false,
   ): void {
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      // it is trivial to run a cell that does not exist -- nothing needs to be done.
-      return;
-    }
-    const kernel = this.store.get("kernel");
-    if (kernel == null || kernel === "") {
-      // just in case, we clear any "running" indicators
-      this._set({ type: "cell", id, state: "done" });
-      // don't attempt to run a code-cell if there is no kernel defined
-      this.set_error(
-        "No kernel set for running cells. Therefore it is not possible to run a code cell. You have to select a kernel!",
-      );
-      return;
-    }
-
-    if (cell.get("state", "done") != "done") {
-      // already running -- stop it first somehow if you want to run it again...
-      return;
-    }
-
-    // We mark the start timestamp uniquely, so that the backend can sort
-    // multiple cells with a simultaneous time to start request.
-
-    let start: number = this._client.server_time().valueOf();
-    if (this._last_start != null && start <= this._last_start) {
-      start = this._last_start + 1;
-    }
-    this._last_start = start;
-    this.set_jupyter_metadata(id, "outputs_hidden", undefined, false);
-
-    this._set(
-      {
-        type: "cell",
-        id,
-        state: "start",
-        start,
-        end: null,
-        // time last evaluation took
-        last:
-          cell.get("start") != null && cell.get("end") != null
-            ? cell.get("end") - cell.get("start")
-            : cell.get("last"),
-        output: null,
-        exec_count: null,
-        collapsed: null,
-        no_halt: no_halt ? no_halt : null,
-      },
-      save,
-    );
-    this.set_trust_notebook(true, save);
+    console.log("run_code_cell: deprecated");
   }
 
   clear_cell = (id: string, save = true) => {

@@ -73,25 +73,7 @@ export class JupyterActions extends JupyterActions0 {
     save: boolean = true,
     no_halt: boolean = false,
   ): void {
-    if (this.store.get("read_only")) {
-      return;
-    }
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      // it is trivial to run a cell that does not exist -- nothing needs to be done.
-      return;
-    }
-    const cell_type = cell.get("cell_type", "code");
-    if (cell_type == "code") {
-      // when the backend is running code, just don't worry about
-      // trying to parse things like "foo?" out. We can't do
-      // it without CodeMirror, and it isn't worth it for that
-      // application.
-      this.run_code_cell(id, save, no_halt);
-    }
-    if (save) {
-      this.save_asap();
-    }
+    console.log("run_cell: DEPRECATED");
   }
 
   private set_backend_state(backend_state: BackendState): void {
@@ -389,19 +371,6 @@ export class JupyterActions extends JupyterActions0 {
       this.set_kernel_error(error);
     });
 
-    // Since we just made a new kernel, clearly no cells are running on the backend:
-    this._running_cells = {};
-
-    const toStart: string[] = [];
-    this.store?.get_cell_list().forEach((id) => {
-      if (this.store.getIn(["cells", id, "state"]) == "start") {
-        toStart.push(id);
-      }
-    });
-
-    dbg("clear cell run state");
-    this.clear_all_cell_run_state();
-
     this.restartKernelOnClose = () => {
       // When the kernel closes, make sure a new kernel gets setup.
       if (this.store == null || this._state !== "ready") {
@@ -426,11 +395,8 @@ export class JupyterActions extends JupyterActions0 {
         case "off":
         case "closed":
           // things went wrong.
-          this._running_cells = {};
-          this.clear_all_cell_run_state();
           this.set_backend_state("ready");
           this.jupyter_kernel?.close();
-          this.running_manager_run_cell_process_queue = false;
           delete this.jupyter_kernel;
           return;
         case "spawning":
@@ -446,15 +412,6 @@ export class JupyterActions extends JupyterActions0 {
     this.handle_all_cell_attachments();
     dbg("ready");
     this.set_backend_state("ready");
-
-    // Run cells that the user explicitly set to be running before the
-    // kernel actually had finished starting up.
-    // This must be done after the state is ready.
-    if (toStart.length > 0) {
-      for (const id of toStart) {
-        this.run_cell(id);
-      }
-    }
   };
 
   set_connection_file = () => {
@@ -508,34 +465,6 @@ export class JupyterActions extends JupyterActions0 {
       }
     };
     await this.syncdb.wait(is_running, 60);
-  }
-
-  // onCellChange is called after a cell change has been
-  // incorporated into the store after the syncdb change event.
-  // - If we are responsible for running cells, then it ensures
-  //   that cell gets computed.
-  // - We also handle attachments for markdown cells.
-  protected onCellChange(id: string, new_cell: any, old_cell: any) {
-    const dbg = this.dbg(`onCellChange(id='${id}')`);
-    dbg();
-    // this logging could be expensive due to toJS, so only uncomment
-    // if really needed
-    // dbg("new_cell=", new_cell?.toJS(), "old_cell", old_cell?.toJS());
-
-    if (
-      new_cell?.get("state") === "start" &&
-      old_cell?.get("state") !== "start"
-    ) {
-      this.manager_run_cell_enqueue(id);
-      // attachments below only happen for markdown cells, which don't get run,
-      // we can return here:
-      return;
-    }
-
-    const attachments = new_cell?.get("attachments");
-    if (attachments != null && attachments !== old_cell?.get("attachments")) {
-      this.handle_cell_attachments(new_cell);
-    }
   }
 
   protected __syncdb_change_post_hook(doInit: boolean) {
@@ -704,6 +633,8 @@ export class JupyterActions extends JupyterActions0 {
 
   manager_run_cell = (id: string) => {
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
+    console.log("manager_run_cell: DEPRECATED");
+    return;
     dbg(JSON.stringify(misc.keys(this._running_cells)));
 
     if (this._running_cells == null) {

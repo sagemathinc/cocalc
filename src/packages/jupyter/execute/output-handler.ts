@@ -99,6 +99,8 @@ export class OutputHandler extends EventEmitter {
     const { cell } = this._opts;
     cell.output = null;
     cell.exec_count = null;
+    // running a cell always de-collapses it:
+    cell.collapsed = false;
     cell.state = "run";
     cell.start = null;
     cell.end = null;

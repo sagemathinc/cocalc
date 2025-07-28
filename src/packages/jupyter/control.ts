@@ -84,6 +84,7 @@ export async function jupyterRun({ path, cells, noHalt }: RunOptions) {
   logger.debug("jupyterRun: running");
   async function* run() {
     for (const cell of cells) {
+      actions.ensure_backend_kernel_setup();
       const output = actions.jupyter_kernel.execute_code({
         halt_on_error: !noHalt,
         code: cell.input,
