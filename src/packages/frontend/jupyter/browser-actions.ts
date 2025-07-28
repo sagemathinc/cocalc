@@ -1483,6 +1483,9 @@ export class JupyterActions extends JupyterActions0 {
       },
     );
     handler.on("change", f);
+    //     handler.on("process", (mesg) => {
+    //       console.log("process ", mesg);
+    //     });
     return handler;
   };
 
@@ -1544,7 +1547,8 @@ export class JupyterActions extends JupyterActions0 {
 
       for (const id of ids) {
         const cell = this.store.getIn(["cells", id])?.toJS();
-        if (cell?.cell_type != "code") {
+        if ((cell?.cell_type ?? "code") != "code") {
+          // code is the default type
           continue;
         }
         if (!cell?.input?.trim()) {
