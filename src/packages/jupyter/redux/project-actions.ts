@@ -181,7 +181,6 @@ export class JupyterActions extends JupyterActions0 {
     dbg("initializing blob store");
     await this.initBlobStore();
 
-    this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(
       this.ensure_positions_are_unique,
       5000,
@@ -318,7 +317,6 @@ export class JupyterActions extends JupyterActions0 {
 
     this.ensure_there_is_a_cell();
     this._throttled_ensure_positions_are_unique();
-    this.sync_exec_state();
   };
 
   // ensure_backend_kernel_setup ensures that we have a connection
@@ -561,56 +559,6 @@ export class JupyterActions extends JupyterActions0 {
       this.manager_run_cell_process_queue();
     }
   }
-
-  // Ensure that the cells listed as running *are* exactly the
-  // ones actually running or queued up to run.
-  sync_exec_state = () => {
-    // sync_exec_state is debounced, so it is *expected* to get called
-    // after actions have been closed.
-    if (this.store == null || this._state !== "ready") {
-      // not initialized, so we better not
-      // mess with cell state (that is somebody else's responsibility).
-      return;
-    }
-
-    const dbg = this.dbg("sync_exec_state");
-    let change = false;
-    const cells = this.store.get("cells");
-    // First verify that all actual cells that are said to be running
-    // (according to the store) are in fact running.
-    if (cells != null) {
-      cells.forEach((cell, id) => {
-        const state = cell.get("state");
-        if (
-          state != null &&
-          state != "done" &&
-          state != "start" && // regarding "start", see https://github.com/sagemathinc/cocalc/issues/5467
-          !this._running_cells?.[id]
-        ) {
-          dbg(`set cell ${id} with state "${state}" to done`);
-          this._set({ type: "cell", id, state: "done" }, false);
-          change = true;
-        }
-      });
-    }
-    if (this._running_cells != null) {
-      const cells = this.store.get("cells");
-      // Next verify that every cell actually running is still in the document
-      // and listed as running.  TimeTravel, deleting cells, etc., can
-      // certainly lead to this being necessary.
-      for (const id in this._running_cells) {
-        const state = cells.getIn([id, "state"]);
-        if (state == null || state === "done") {
-          // cell no longer exists or isn't in a running state
-          dbg(`tell kernel to not run ${id}`);
-          this._cancel_run(id);
-        }
-      }
-    }
-    if (change) {
-      return this._sync();
-    }
-  };
 
   _cancel_run = (id: any) => {
     const dbg = this.dbg(`_cancel_run ${id}`);
