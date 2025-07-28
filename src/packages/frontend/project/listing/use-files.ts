@@ -15,11 +15,17 @@ import { type ConatError } from "@cocalc/conat/core/client";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import LRU from "lru-cache";
 import type { JSONValue } from "@cocalc/util/types";
+import { join } from "path";
+
 export { Files };
 
 const DEFAULT_THROTTLE_FILE_UPDATE = 500;
 
-const CACHE_SIZE = 100;
+// max number of subdirs to cache right after computing the listing for a dir
+// This makes it so clicking on a subdir for a listing is MUCH faster.
+const MAX_SUBDIR_CACHE = 10;
+
+const CACHE_SIZE = 150;
 
 const cache = new LRU<string, Files>({ max: CACHE_SIZE });
 
@@ -76,6 +82,9 @@ export default function useFiles({
       }
       if (cacheId != null) {
         cache.set(key(cacheId, path), listing.files);
+        if (listing.files != null) {
+          cacheSubdirs({ fs, cacheId, path, files: listing.files });
+        }
       }
       const update = () => {
         setFiles({ ...listing.files });
@@ -99,4 +108,55 @@ export default function useFiles({
 
 function key(cacheId: JSONValue, path: string) {
   return JSON.stringify({ cacheId, path });
+}
+
+const failed = new Set<string>();
+
+async function ensureCached({
+  cacheId,
+  fs,
+  path,
+}: {
+  fs: FilesystemClient;
+  cacheId: JSONValue;
+  path: string;
+}) {
+  const k = key(cacheId, path);
+  if (cache.has(k) || failed.has(k)) {
+    return;
+  }
+  const { files } = await fs.listing(path);
+  if (files) {
+    cache.set(k, files);
+  } else {
+    failed.add(k);
+  }
+}
+
+async function cacheSubdirs({
+  fs,
+  cacheId,
+  path,
+  files,
+}: {
+  fs: FilesystemClient;
+  cacheId: JSONValue;
+  path: string;
+  files: Files;
+}) {
+  const v: string[] = [];
+  for (const dir in files) {
+    if (!dir.startsWith(".") && files[dir].isdir) {
+      const full = join(path, dir);
+      if (!cache.has(full)) {
+        v.push(full);
+      }
+    }
+  }
+  const f = async (path: string) => {
+    ensureCached({ cacheId, fs, path });
+  };
+  v.sort();
+  // grab up to MAX_SUBDIR_CACHE missing listings in parallel
+  await Promise.all(v.slice(0, MAX_SUBDIR_CACHE).map(f));
 }
