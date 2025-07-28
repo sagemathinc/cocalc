@@ -242,7 +242,6 @@ export const SearchBar = memo(
         const command = value.slice(1, value.length);
         execute_command(command);
       } else if (listingRef.current?.[selected_file_index] != null) {
-        console.log(listingRef.current[selected_file_index]);
         const { isdir, name } = listingRef.current[selected_file_index];
         const path = join(current_path, name);
         if (isdir) {

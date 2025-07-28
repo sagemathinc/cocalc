@@ -15,7 +15,7 @@ import { type ConatError } from "@cocalc/conat/core/client";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import LRU from "lru-cache";
 import type { JSONValue } from "@cocalc/util/types";
-import { join } from "path";
+import { dirname, join } from "path";
 
 export { Files };
 
@@ -83,7 +83,7 @@ export default function useFiles({
       if (cacheId != null) {
         cache.set(key(cacheId, path), listing.files);
         if (listing.files != null) {
-          cacheSubdirs({ fs, cacheId, path, files: listing.files });
+          cacheNeighbors({ fs, cacheId, path, files: listing.files });
         }
       }
       const update = () => {
@@ -110,6 +110,8 @@ function key(cacheId: JSONValue, path: string) {
   return JSON.stringify({ cacheId, path });
 }
 
+// anything in failed we don't try to update -- this is
+// purely a convenience so no need to worry.
 const failed = new Set<string>();
 
 async function ensureCached({
@@ -125,15 +127,19 @@ async function ensureCached({
   if (cache.has(k) || failed.has(k)) {
     return;
   }
-  const { files } = await fs.listing(path);
-  if (files) {
-    cache.set(k, files);
-  } else {
+  try {
+    const { files } = await fs.listing(path);
+    if (files) {
+      cache.set(k, files);
+    } else {
+      failed.add(k);
+    }
+  } catch {
     failed.add(k);
   }
 }
 
-async function cacheSubdirs({
+async function cacheNeighbors({
   fs,
   cacheId,
   path,
@@ -144,19 +150,33 @@ async function cacheSubdirs({
   path: string;
   files: Files;
 }) {
-  const v: string[] = [];
+  let v: string[] = [];
   for (const dir in files) {
     if (!dir.startsWith(".") && files[dir].isdir) {
       const full = join(path, dir);
-      if (!cache.has(full)) {
+      const k = key(cacheId, full);
+      if (!cache.has(k) && !failed.has(k)) {
         v.push(full);
       }
     }
   }
+  if (path) {
+    let parent = dirname(path);
+    if (parent == ".") {
+      parent = "";
+    }
+    const k = key(cacheId, parent);
+    if (!cache.has(k) && !failed.has(k)) {
+      v.push(parent);
+    }
+  }
+  const t = Date.now();
   const f = async (path: string) => {
-    ensureCached({ cacheId, fs, path });
+    await ensureCached({ cacheId, fs, path });
   };
   v.sort();
   // grab up to MAX_SUBDIR_CACHE missing listings in parallel
-  await Promise.all(v.slice(0, MAX_SUBDIR_CACHE).map(f));
+  v = v.slice(0, MAX_SUBDIR_CACHE);
+  await Promise.all(v.map(f));
+  console.log(Date.now() - t, v);
 }
