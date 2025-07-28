@@ -1527,7 +1527,10 @@ export class JupyterActions extends JupyterActions0 {
     }
     try {
       this.runningNow = true;
-      if (this.jupyterClient == null) {
+      if (
+        this.jupyterClient == null ||
+        this.jupyterClient.socket.state == "closed"
+      ) {
         // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
         // and
         const compute_server_id = await this.getComputeServerId();
@@ -1536,6 +1539,12 @@ export class JupyterActions extends JupyterActions0 {
           client: webapp_client.conat_client.conat(),
           project_id: this.project_id,
           compute_server_id,
+        });
+        this.jupyterClient.socket.on("closed", () => {
+          delete this.jupyterClient;
+          // TODO: doing this is not ideal, but it's probably less confusing.
+          this.clearRunQueue();
+          this.runningNow = false;
         });
       }
       const client = this.jupyterClient;
