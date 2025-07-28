@@ -183,6 +183,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "check_select_kernel_init",
   ]);
+  const pendingCells: undefined | immutable.Set<string> = useRedux([
+    name,
+    "pendingCells",
+  ]);
 
   const computeServerId = path
     ? useTypedRedux({ project_id }, "compute_server_ids")?.get(syncdbPath(path))
@@ -318,6 +322,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         use_windowed_list={useWindowedListRef.current}
         llmTools={llmTools}
         computeServerId={computeServerId}
+        pendingCells={pendingCells}
       />
     );
   }
@@ -451,7 +456,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           overflowY: "hidden",
         }}
       >
-        <ComputeServerDocStatus id={computeServerId ?? 0} project_id={project_id} />
+        <ComputeServerDocStatus
+          id={computeServerId ?? 0}
+          project_id={project_id}
+        />
         {!read_only && <KernelWarning name={name} actions={actions} />}
         {render_error()}
         {render_modals()}

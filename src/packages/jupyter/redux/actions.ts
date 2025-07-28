@@ -1049,7 +1049,12 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   };
 
+  protected clearRunQueue() {
+    // implemented in frontend browser actions
+  }
+
   clear_all_cell_run_state = (): void => {
+    this.clearRunQueue();
     const { store } = this;
     if (!store) {
       return;

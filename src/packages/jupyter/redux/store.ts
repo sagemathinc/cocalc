@@ -103,6 +103,11 @@ export interface JupyterStoreState {
   // run progress = Percent (0-100) of runnable cells that have been run since the last
   // kernel restart. (Thus markdown and empty cells are excluded.)
   runProgress?: number;
+
+  // cells that this particular client has queued up to run. This is
+  // only known to this client, goes away on browser refresh, and is used
+  // only visually for the user to see.
+  pendingCells: Set<string>;
 }
 
 export const initial_jupyter_store_state: {

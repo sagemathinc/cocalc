@@ -8,7 +8,7 @@ browser-actions: additional actions that are only available in the
 web browser frontend.
 */
 import * as awaiting from "awaiting";
-import { fromJS, Map } from "immutable";
+import { fromJS, Map, Set as iSet } from "immutable";
 import { debounce, isEqual } from "lodash";
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
@@ -1496,74 +1496,140 @@ export class JupyterActions extends JupyterActions0 {
 
   getOutputHandler = (cell) => {
     const handler = new OutputHandler({ cell });
-    const f = throttle(() => this._set(cell, false), 1000 / OUTPUT_FPS, {
-      leading: false,
-      trailing: true,
-    });
+    let first = true;
+    const f = throttle(
+      () => {
+        // save first so that other clients know this cell is running.
+        this._set(cell, first);
+        first = false;
+      },
+      1000 / OUTPUT_FPS,
+      {
+        leading: false,
+        trailing: true,
+      },
+    );
     handler.on("change", f);
     return handler;
   };
 
-  private jupyterClient?;
-  runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
-    if (this.jupyterClient == null) {
-      // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
-      // and
-      const compute_server_id = await this.getComputeServerId();
-      this.jupyterClient = jupyterClient({
-        path: this.syncdbPath,
-        client: webapp_client.conat_client.conat(),
-        project_id: this.project_id,
-        compute_server_id,
-      });
-    }
-    const client = this.jupyterClient;
-    if (client == null) {
-      throw Error("bug");
-    }
-    const cells: any[] = [];
-    const kernel = this.store.get("kernel");
+  private addPendingCells = (ids: string[]) => {
+    let pendingCells = this.store.get("pendingCells") ?? iSet();
     for (const id of ids) {
-      const cell = this.store.getIn(["cells", id])?.toJS();
-      if (!cell?.input?.trim()) {
-        // nothing to do
-        continue;
-      }
-      if (cell.output) {
-        // trick to avoid flicker
-        for (const n in cell.output) {
-          if (n == "0") continue;
-          cell.output[n] = null;
-        }
-        // time last evaluation took
-        cell.last = cell.start && cell.end ? cell.end - cell.start : null;
-        this._set(cell, false);
-      }
-      cells.push(cell);
+      pendingCells = pendingCells.add(id);
     }
-    // ensures cells run in order:
-    cells.sort(field_cmp("pos"));
+    this.store.setState({ pendingCells });
+  };
+  private deletePendingCells = (ids: string[]) => {
+    let pendingCells = this.store.get("pendingCells");
+    if (pendingCells == null) {
+      return;
+    }
+    for (const id of ids) {
+      pendingCells = pendingCells.delete(id);
+    }
+    this.store.setState({ pendingCells });
+  };
 
-    const runner = await client.run(cells, opts);
-    let handler: null | OutputHandler = null;
-    let id: null | string = null;
-    for await (const mesgs of runner) {
-      for (const mesg of mesgs) {
-        if (mesg.id !== id || handler == null) {
-          id = mesg.id;
-          let cell = this.store.getIn(["cells", mesg.id])?.toJS();
-          if (cell == null) {
-            // cell removed?
-            cell = { id };
-          }
-          cell.kernel = kernel;
-          handler?.done();
-          handler = this.getOutputHandler(cell);
+  // uses inheritence so NOT arrow function
+  protected clearRunQueue() {
+    this.store?.setState({ pendingCells: iSet() });
+    this.runQueue.length = 0;
+  }
+
+  private jupyterClient?;
+  private runQueue: any[] = [];
+  private runningNow = false;
+  runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
+    if (this.runningNow) {
+      this.runQueue.push([ids, opts]);
+      this.addPendingCells(ids);
+      return;
+    }
+    try {
+      this.runningNow = true;
+      if (this.jupyterClient == null) {
+        // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
+        // and
+        const compute_server_id = await this.getComputeServerId();
+        this.jupyterClient = jupyterClient({
+          path: this.syncdbPath,
+          client: webapp_client.conat_client.conat(),
+          project_id: this.project_id,
+          compute_server_id,
+        });
+      }
+      const client = this.jupyterClient;
+      if (client == null) {
+        throw Error("bug");
+      }
+      const cells: any[] = [];
+      const kernel = this.store.get("kernel");
+
+      for (const id of ids) {
+        const cell = this.store.getIn(["cells", id])?.toJS();
+        if (!cell?.input?.trim()) {
+          // nothing to do
+          continue;
         }
-        handler.process(mesg);
+        if (!kernel) {
+          this._set({ type: "cell", id, state: "done" });
+          continue;
+        }
+        if (cell.output) {
+          // trick to avoid flicker
+          for (const n in cell.output) {
+            if (n == "0") continue;
+            cell.output[n] = null;
+          }
+          // time last evaluation took
+          cell.last = cell.start && cell.end ? cell.end - cell.start : null;
+          this._set(cell, false);
+        }
+        cells.push(cell);
+      }
+      this.addPendingCells(ids);
+
+      // ensures cells run in order:
+      cells.sort(field_cmp("pos"));
+
+      const runner = await client.run(cells, opts);
+      let handler: null | OutputHandler = null;
+      let id: null | string = null;
+      for await (const mesgs of runner) {
+        for (const mesg of mesgs) {
+          if (!opts.noHalt && mesg.msg_type == "error") {
+            this.clearRunQueue();
+          }
+          if (mesg.id !== id || handler == null) {
+            id = mesg.id;
+            if (id == null) {
+              continue;
+            }
+            this.deletePendingCells([id]);
+            let cell = this.store.getIn(["cells", mesg.id])?.toJS();
+            if (cell == null) {
+              // cell removed?
+              cell = { id };
+            }
+            cell.kernel = kernel;
+            handler?.done();
+            handler = this.getOutputHandler(cell);
+          }
+          handler.process(mesg);
+        }
+      }
+      console.log("exited the runner loop");
+      handler?.done();
+      this.save_asap();
+    } catch (err) {
+      console.log("runCells", err);
+    } finally {
+      this.runningNow = false;
+      if (this.runQueue.length > 0) {
+        const [ids, opts] = this.runQueue.shift();
+        this.runCells(ids, opts);
       }
     }
-    handler?.done();
-    this.save_asap();
   };
 }

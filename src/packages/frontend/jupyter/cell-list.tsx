@@ -91,6 +91,7 @@ interface CellListProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   read_only?: boolean;
+  pendingCells?: immutable.Set<string>;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -121,6 +122,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     llmTools,
     computeServerId,
     read_only,
+    pendingCells,
   } = props;
 
   const cellListDivRef = useRef<any>(null);
@@ -478,6 +480,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           dragHandle={dragHandle}
           read_only={read_only}
           isDragging={isDragging}
+          isPending={pendingCells?.has(id)}
         />
       </div>
     );

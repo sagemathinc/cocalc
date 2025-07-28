@@ -37,7 +37,6 @@ interface Props {
   font_size: number;
   id?: string; // redundant, since it's in the cell.
   actions?: JupyterActions;
-  name?: string;
   index?: number; // position of cell in the list of all cells; just used to optimize rendering and for no other reason.
   is_current?: boolean;
   is_selected?: boolean;
@@ -62,6 +61,8 @@ interface Props {
   dragHandle?: React.JSX.Element;
   read_only?: boolean;
   isDragging?: boolean;
+  isPending?: boolean;
+  name?: string;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -91,7 +92,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
       (nextProps.is_current || props.is_current)) ||
     nextProps.dragHandle !== props.dragHandle ||
     nextProps.read_only !== props.read_only ||
-    nextProps.isDragging !== props.isDragging
+    nextProps.isDragging !== props.isDragging ||
+    nextProps.isPending !== props.isPending
   );
 }
 
@@ -138,6 +140,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         computeServerId={props.computeServerId}
         setShowAICellGen={setShowAICellGen}
         dragHandle={props.dragHandle}
+        isPending={props.isPending}
       />
     );
   }
