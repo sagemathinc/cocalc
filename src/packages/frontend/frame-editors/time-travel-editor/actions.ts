@@ -151,7 +151,12 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
     this.syncdoc = mainFileActions._syncstring;
 
-    if (this.syncdoc == null || this.syncdoc.get_state() == "closed") {
+    if (
+      this.syncdoc == null ||
+      this.syncdoc.get_state() == "closed" ||
+      // @ts-ignore
+      this.syncdoc.is_fake
+    ) {
       return;
     }
     if (this.syncdoc.get_state() != "ready") {

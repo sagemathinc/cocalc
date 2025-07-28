@@ -42,8 +42,13 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return { type: "jupyter_cell_notebook" };
   }
 
-  _init2(): void {
+  protected _init_syncstring(): void {
     this.create_jupyter_actions();
+    this._syncstring = this.jupyter_actions.syncdb;
+    super._init_syncstring();
+  }
+
+  _init2(): void {
     this.init_new_frame();
     this.init_changes_state();
 

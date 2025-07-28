@@ -299,55 +299,58 @@ export class Actions<
   }
 
   protected _init_syncstring(): void {
-    if (this.doctype == "none") {
-      this._syncstring = syncstring({
-        project_id: this.project_id,
-        path: this.path,
-        cursors: !this.disable_cursors,
-        before_change_hook: () => this.set_syncstring_to_codemirror(),
-        after_change_hook: () => this.set_codemirror_to_syncstring(),
-        fake: true,
-        patch_interval: 500,
-      }) as SyncString;
-    } else if (this.doctype == "syncstring") {
-      this._syncstring = syncstring2({
-        project_id: this.project_id,
-        path: this.path,
-        cursors: !this.disable_cursors,
-      });
-    } else if (this.doctype == "syncdb") {
-      if (
-        this.primary_keys == null ||
-        this.primary_keys.length == null ||
-        this.primary_keys.length <= 0
-      ) {
-        throw Error("primary_keys must be array of positive length");
-      }
-      this._syncstring = syncdb2({
-        project_id: this.project_id,
-        path: this.path,
-        primary_keys: this.primary_keys,
-        string_cols: this.string_cols,
-        cursors: !this.disable_cursors,
-      });
-      if (this.searchEmbeddings != null) {
-        if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
-          throw Error(
-            `search embedding primaryKey must be in ${JSON.stringify(
-              this.primary_keys,
-            )}`,
-          );
+    if (this._syncstring == null) {
+      // this._syncstring wasn't set in derived class so we set it here
+      if (this.doctype == "none") {
+        this._syncstring = syncstring({
+          project_id: this.project_id,
+          path: this.path,
+          cursors: !this.disable_cursors,
+          before_change_hook: () => this.set_syncstring_to_codemirror(),
+          after_change_hook: () => this.set_codemirror_to_syncstring(),
+          fake: true,
+          patch_interval: 500,
+        }) as SyncString;
+      } else if (this.doctype == "syncstring") {
+        this._syncstring = syncstring2({
+          project_id: this.project_id,
+          path: this.path,
+          cursors: !this.disable_cursors,
+        });
+      } else if (this.doctype == "syncdb") {
+        if (
+          this.primary_keys == null ||
+          this.primary_keys.length == null ||
+          this.primary_keys.length <= 0
+        ) {
+          throw Error("primary_keys must be array of positive length");
         }
-        if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
-          throw Error(
-            `search embedding textColumn must be in ${JSON.stringify(
-              this.string_cols,
-            )}`,
-          );
+        this._syncstring = syncdb2({
+          project_id: this.project_id,
+          path: this.path,
+          primary_keys: this.primary_keys,
+          string_cols: this.string_cols,
+          cursors: !this.disable_cursors,
+        });
+        if (this.searchEmbeddings != null) {
+          if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
+            throw Error(
+              `search embedding primaryKey must be in ${JSON.stringify(
+                this.primary_keys,
+              )}`,
+            );
+          }
+          if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
+            throw Error(
+              `search embedding textColumn must be in ${JSON.stringify(
+                this.string_cols,
+              )}`,
+            );
+          }
         }
+      } else {
+        throw Error(`invalid doctype="${this.doctype}"`);
       }
-    } else {
-      throw Error(`invalid doctype="${this.doctype}"`);
     }
 
     this._syncstring.once("deleted", () => {
