@@ -95,7 +95,6 @@ interface ReduxProps {
   show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
-  selected_file_index?: number;
   file_creation_error?: string;
   ext_selection?: string;
   new_name?: string;
@@ -134,6 +133,7 @@ const Explorer0 = rclass(
     fileListingRef = React.createRef<any>();
     currentDirectoryRef = React.createRef<any>();
     miscButtonsRef = React.createRef<any>();
+    listingRef = React.createRef<any>();
 
     static reduxProps = ({ name }) => {
       return {
@@ -169,7 +169,6 @@ const Explorer0 = rclass(
           show_masked: rtypes.bool,
           error: rtypes.string,
           checked_files: rtypes.immutable,
-          selected_file_index: rtypes.number,
           file_creation_error: rtypes.string,
           ext_selection: rtypes.string,
           new_name: rtypes.string,
@@ -396,6 +395,7 @@ const Explorer0 = rclass(
           className="smc-vfill"
         >
           <FileListing
+            listingRef={this.listingRef}
             name={this.props.name}
             active_file_sort={this.props.active_file_sort}
             file_search={this.props.file_search}
@@ -404,7 +404,6 @@ const Explorer0 = rclass(
             actions={this.props.actions}
             create_file={this.create_file}
             create_folder={this.create_folder}
-            selected_file_index={this.props.selected_file_index}
             project_id={this.props.project_id}
             shift_is_down={this.state.shift_is_down}
             sort_by={this.props.actions.set_sorted_file_column}
@@ -492,10 +491,10 @@ const Explorer0 = rclass(
               actions={this.props.actions}
               current_path={this.props.current_path}
               file_search={this.props.file_search}
-              selected_file_index={this.props.selected_file_index}
               file_creation_error={this.props.file_creation_error}
               create_file={this.create_file}
               create_folder={this.create_folder}
+              listingRef={this.listingRef}
             />
           )}
           <div
@@ -664,24 +663,22 @@ const SearchTerminalBar = React.forwardRef(
       current_path,
       file_search,
       actions,
-      selected_file_index,
       file_creation_error,
       create_file,
       create_folder,
+      listingRef,
     }: {
       ref: React.Ref<any>;
       current_path: string;
       file_search: string;
       actions: ProjectActions;
-      selected_file_index?: number;
       file_creation_error?: string;
       create_file: (ext?: string, switch_over?: boolean) => void;
       create_folder: (switch_over?: boolean) => void;
+      listingRef;
     },
     ref: React.LegacyRef<HTMLDivElement> | undefined,
   ) => {
-    // [ ] TODO
-    const visible_listing = [];
     return (
       <div ref={ref} style={{ flex: "1 1 auto" }}>
         <SearchBar
@@ -689,18 +686,10 @@ const SearchTerminalBar = React.forwardRef(
           file_search={file_search}
           actions={actions}
           current_path={current_path}
-          selected_file={
-            visible_listing != undefined
-              ? visible_listing[selected_file_index || 0]
-              : undefined
-          }
-          selected_file_index={selected_file_index}
           file_creation_error={file_creation_error}
-          num_files_displayed={
-            visible_listing != undefined ? visible_listing.length : undefined
-          }
           create_file={create_file}
           create_folder={create_folder}
+          listingRef={listingRef}
         />
       </div>
     );

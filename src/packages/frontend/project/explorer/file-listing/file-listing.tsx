@@ -44,7 +44,6 @@ interface Props {
   file_search: string;
   checked_files: immutable.Set<string>;
   current_path: string;
-  selected_file_index?: number;
   project_id: string;
   shift_is_down: boolean;
   sort_by: (heading: string) => void;
@@ -58,6 +57,8 @@ interface Props {
   show_masked?: boolean;
 
   stale?: boolean;
+
+  listingRef;
 }
 
 function sortDesc(active_file_sort?): {
@@ -89,16 +90,22 @@ export function FileListing(props) {
     ...sortDesc(props.active_file_sort),
     cacheId: { project_id: props.project_id },
   });
+
+  props.listingRef.current = listing = error
+    ? null
+    : filterListing({
+        listing,
+        search: props.file_search,
+        showHidden: props.show_hidden,
+      });
+
+  useEffect(() => {
+    props.actions.setState({ numDisplayedFiles: listing?.length ?? 0 });
+  }, [listing?.length]);
+
   if (error) {
     return <ShowError error={error} />;
   }
-
-  listing = filterListing({
-    listing,
-    search: props.file_search,
-    showHidden: props.show_hidden,
-  });
-
   if (listing == null) {
     return <Spin delay={500} />;
   }
@@ -113,7 +120,6 @@ function FileListing0({
   listing,
   checked_files,
   current_path,
-  selected_file_index,
   project_id,
   shift_is_down,
   sort_by,
@@ -123,6 +129,8 @@ function FileListing0({
   // show_masked,
 }: Props) {
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
+  const selected_file_index =
+    useTypedRedux({ project_id }, "selected_file_index") ?? 0;
 
   function render_row(
     name,

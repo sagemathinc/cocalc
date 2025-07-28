@@ -166,6 +166,9 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   }
 
   const d = is_date(date) ? (date as Date) : new Date(date);
+  if (!d.valueOf()) {
+    return null;
+  }
   try {
     d.toISOString();
   } catch (error) {

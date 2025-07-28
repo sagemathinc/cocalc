@@ -1433,7 +1433,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   };
 
-  open_directory(path, change_history = true, show_files = true): void {
+  open_directory = (path, change_history = true, show_files = true): void => {
     path = normalize(path);
     this._ensure_project_is_open(async (err) => {
       if (err) {
@@ -1467,7 +1467,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_all_files_unchecked();
       }
     });
-  }
+  };
 
   // ONLY updates current path
   // Does not push to URL, browser history, or add to analytics
@@ -1585,9 +1585,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    const selected_index = store.get("selected_file_index");
-    const current_index = selected_index != null ? selected_index : -1;
-    this.setState({ selected_file_index: current_index + 1 });
+    const selected_index = store.get("selected_file_index") ?? 0;
+    const numDisplayedFiles = store.get("numDisplayedFiles") ?? 0;
+    if (selected_index + 1 < numDisplayedFiles) {
+      this.setState({ selected_file_index: selected_index + 1 });
+    }
   }
 
   // Decreases the selected file index by 1.
@@ -1598,9 +1600,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    const current_index = store.get("selected_file_index");
-    if (current_index != null && current_index > 0) {
-      this.setState({ selected_file_index: current_index - 1 });
+    const selected_index = store.get("selected_file_index") ?? 0;
+    if (selected_index > 0) {
+      this.setState({ selected_file_index: selected_index - 1 });
     }
   }
 

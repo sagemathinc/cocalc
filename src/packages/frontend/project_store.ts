@@ -100,7 +100,12 @@ export interface ProjectStoreState {
   show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
+
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
+  // the number of visible files in the listing for the current directory; this is needed
+  // for cursor based navigation by the search bar. This is the number after hiding hidden files and search filtering.
+  numDisplayedFiles?: number;
+
   new_name?: string;
   most_recent_file_click?: string;
   show_library: boolean;
@@ -360,7 +365,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       },
     },
 
-
     stripped_public_paths: {
       dependencies: ["public_paths"] as const,
       fn: () => {
@@ -464,7 +468,6 @@ export function mutate_data_to_compute_public_files(
     }
   }
 }
-
 
 export function init(project_id: string, redux: AppRedux): ProjectStore {
   const name = project_redux_name(project_id);

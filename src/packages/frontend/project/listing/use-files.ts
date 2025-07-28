@@ -65,6 +65,7 @@ export default function useFiles({
       }
       let listing;
       try {
+        setFiles(getFiles({ cacheId, path }));
         listing = await fs.listing(path);
         listingRef.current = listing;
         setError(null);
