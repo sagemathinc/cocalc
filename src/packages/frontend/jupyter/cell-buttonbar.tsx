@@ -103,7 +103,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             tooltip: "Run this cell",
             label: "Run",
             icon: "step-forward",
-            onClick: () => actions?.run_cell(id),
+            onClick: () => actions?.runCells([id]),
           };
       }
     }

@@ -18,13 +18,9 @@ import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import * as immutable from "immutable";
 import json_stable from "json-stable-stringify";
 import { debounce } from "lodash";
-import {
-  JupyterActions as JupyterActions0,
-  MAX_OUTPUT_MESSAGES,
-} from "@cocalc/jupyter/redux/actions";
+import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
 import { callback2, once } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./handle-nbconvert-change";
 import type { ClientFs } from "@cocalc/sync/client/types";
@@ -45,12 +41,10 @@ export class JupyterActions extends JupyterActions0 {
   private lastSavedBackendState?: BackendState;
   private _initialize_manager_already_done: any;
   private _kernel_state: any;
-  private _manager_run_cell_queue: any;
   private _running_cells: { [id: string]: string };
   private _throttled_ensure_positions_are_unique: any;
   private run_all_loop?: RunAllLoop;
   private clear_kernel_error?: any;
-  private running_manager_run_cell_process_queue: boolean = false;
   private last_ipynb_save: number = 0;
   protected _client: ClientFs; // this has filesystem access, etc.
   public blobs: DKV;
@@ -65,12 +59,11 @@ export class JupyterActions extends JupyterActions0 {
   //     return (...args) => console.log(f, args);
   //   }
 
-  public run_cell(
-    _id: string,
-    _save: boolean = true,
-    _no_halt: boolean = false,
-  ): void {
-    console.log("run_cell: DEPRECATED");
+  async runCells(
+    _ids: string[],
+    _opts: { noHalt?: boolean } = {},
+  ): Promise<void> {
+    throw Error("DEPRECATED");
   }
 
   private set_backend_state(backend_state: BackendState): void {
@@ -481,9 +474,6 @@ export class JupyterActions extends JupyterActions0 {
       // requested to run.
       this.initialize_manager();
     }
-    if (this.store.get("kernel")) {
-      this.manager_run_cell_process_queue();
-    }
   }
 
   _cancel_run = (id: any) => {
@@ -498,216 +488,6 @@ export class JupyterActions extends JupyterActions0 {
       this.jupyter_kernel.cancel_execute(id);
     } else {
       dbg("not canceling since wrong identity");
-    }
-  };
-
-  // Note that there is a request to run a given cell.
-  // You must call manager_run_cell_process_queue for them to actually start running.
-  protected manager_run_cell_enqueue(id: string) {
-    if (this._running_cells?.[id]) {
-      return;
-    }
-    if (this._manager_run_cell_queue == null) {
-      this._manager_run_cell_queue = {};
-    }
-    this._manager_run_cell_queue[id] = true;
-  }
-
-  // properly start running -- in order -- the cells that have been requested to run
-  protected async manager_run_cell_process_queue() {
-    if (this.running_manager_run_cell_process_queue) {
-      return;
-    }
-    this.running_manager_run_cell_process_queue = true;
-    try {
-      const dbg = this.dbg("manager_run_cell_process_queue");
-      const queue = this._manager_run_cell_queue;
-      if (queue == null) {
-        //dbg("queue is null");
-        return;
-      }
-      delete this._manager_run_cell_queue;
-      const v: any[] = [];
-      for (const id in queue) {
-        if (!this._running_cells?.[id]) {
-          v.push(this.store.getIn(["cells", id]));
-        }
-      }
-
-      if (v.length == 0) {
-        dbg("no non-running cells");
-        return; // nothing to do
-      }
-
-      v.sort((a, b) =>
-        misc.cmp(
-          a != null ? a.get("start") : undefined,
-          b != null ? b.get("start") : undefined,
-        ),
-      );
-
-      dbg(
-        `found ${v.length} non-running cell that should be running, so ensuring kernel is running...`,
-      );
-      this.ensure_backend_kernel_setup();
-      try {
-        await this.ensure_backend_kernel_is_running();
-        if (this._state == "closed") return;
-      } catch (err) {
-        // if this fails, give up on evaluation.
-        return;
-      }
-
-      dbg(
-        `kernel is now running; requesting that each ${v.length} cell gets executed`,
-      );
-      for (const cell of v) {
-        if (cell != null) {
-          this.manager_run_cell(cell.get("id"));
-        }
-      }
-
-      if (this._manager_run_cell_queue != null) {
-        // run it again to process additional entries.
-        setTimeout(this.manager_run_cell_process_queue, 1);
-      }
-    } finally {
-      this.running_manager_run_cell_process_queue = false;
-    }
-  }
-
-  // returns new output handler for this cell.
-  protected _output_handler(cell) {
-    const dbg = this.dbg(`_output_handler(id='${cell.id}')`);
-    if (
-      this.jupyter_kernel == null ||
-      this.jupyter_kernel.get_state() == "closed"
-    ) {
-      throw Error("jupyter kernel must exist and not be closed");
-    }
-    this.reset_more_output(cell.id);
-
-    const handler = new OutputHandler({
-      cell,
-      max_output_length: this.store.get("max_output_length"),
-      max_output_messages: MAX_OUTPUT_MESSAGES,
-      report_started_ms: 250,
-    });
-
-    dbg("setting up jupyter_kernel.once('closed', ...) handler");
-    const handleKernelClose = () => {
-      dbg("output handler -- closing due to jupyter kernel closed");
-      handler.close();
-    };
-    this.jupyter_kernel.once("closed", handleKernelClose);
-    // remove the "closed" handler we just defined above once
-    // we are done waiting for output from this cell.
-    // The output handler removes all listeners whenever it is
-    // finished, so we don't have to remove this listener for done.
-    handler.once("done", () =>
-      this.jupyter_kernel?.removeListener("closed", handleKernelClose),
-    );
-
-    handler.on("more_output", (mesg, mesg_length) => {
-      this.set_more_output(cell.id, mesg, mesg_length);
-    });
-
-    handler.on("process", (mesg) => {
-      // Do not enable -- mesg often very large!
-      //        dbg("handler.on('process')", mesg);
-      if (
-        this.jupyter_kernel == null ||
-        this.jupyter_kernel.get_state() == "closed"
-      ) {
-        return;
-      }
-      this.jupyter_kernel.process_output(mesg);
-      //  dbg("handler -- after processing ", mesg);
-    });
-
-    return handler;
-  }
-
-  manager_run_cell = (_id: string) => {
-    console.log("manager_run_cell: DEPRECATED");
-  };
-
-  reset_more_output = (id: string) => {
-    if (id == null) {
-      this.store._more_output = {};
-    }
-    if (this.store._more_output[id] != null) {
-      delete this.store._more_output[id];
-    }
-  };
-
-  set_more_output = (id: string, mesg: object, length: number): void => {
-    if (this.store._more_output[id] == null) {
-      this.store._more_output[id] = {
-        length: 0,
-        messages: [],
-        lengths: [],
-        discarded: 0,
-        truncated: 0,
-      };
-    }
-    const output = this.store._more_output[id];
-
-    output.length += length;
-    output.lengths.push(length);
-    output.messages.push(mesg);
-
-    const goal_length = 10 * this.store.get("max_output_length");
-    while (output.length > goal_length) {
-      let need: any;
-      let did_truncate = false;
-
-      // check if there is a text field, which we can truncate
-      let len = output.messages[0].text?.length;
-      if (len != null) {
-        need = output.length - goal_length + 50;
-        if (len > need) {
-          // Instead of throwing this message away, let's truncate its text part.  After
-          // doing this, the message is at least shorter than it was before.
-          output.messages[0].text = misc.trunc(
-            output.messages[0].text,
-            len - need,
-          );
-          did_truncate = true;
-        }
-      }
-
-      // check if there is a text/plain field, which we can thus also safely truncate
-      if (!did_truncate && output.messages[0].data != null) {
-        for (const field in output.messages[0].data) {
-          if (field === "text/plain") {
-            const val = output.messages[0].data[field];
-            len = val.length;
-            if (len != null) {
-              need = output.length - goal_length + 50;
-              if (len > need) {
-                // Instead of throwing this message away, let's truncate its text part.  After
-                // doing this, the message is at least need shorter than it was before.
-                output.messages[0].data[field] = misc.trunc(val, len - need);
-                did_truncate = true;
-              }
-            }
-          }
-        }
-      }
-
-      if (did_truncate) {
-        const new_len = JSON.stringify(output.messages[0]).length;
-        output.length -= output.lengths[0] - new_len; // how much we saved
-        output.lengths[0] = new_len;
-        output.truncated += 1;
-        break;
-      }
-
-      const n = output.lengths.shift();
-      output.messages.shift();
-      output.length -= n;
-      output.discarded += 1;
     }
   };
 
@@ -728,53 +508,6 @@ export class JupyterActions extends JupyterActions0 {
       }
     });
   };
-
-  /*
-    * Unfortunately, though I spent two hours on this approach... it just doesn't work,
-    * since, e.g., if the sync file doesn't already exist, it can't be created,
-    * which breaks everything.  So disabling for now and re-opening the issue.
-    _sync_file_mode: =>
-        dbg = @dbg("_sync_file_mode"); dbg()
-        * Make the mode of the syncdb file the same as the mode of the .ipynb file.
-        * This is used for read-only status.
-        ipynb_file  = @store.get('path')
-        locals =
-            ipynb_file_ro  : undefined
-            syncdb_file_ro : undefined
-        syncdb_file = @syncdb.get_path()
-        async.parallel([
-            (cb) ->
-                fs.access ipynb_file, fs.constants.W_OK, (err) ->
-                    * Also store in @_ipynb_file_ro to prevent starting kernel in this case.
-                    @_ipynb_file_ro = locals.ipynb_file_ro = !!err
-                    cb()
-            (cb) ->
-                fs.access syncdb_file, fs.constants.W_OK, (err) ->
-                    locals.syncdb_file_ro = !!err
-                    cb()
-        ], ->
-            if locals.ipynb_file_ro == locals.syncdb_file_ro
-                return
-            dbg("mode change")
-            async.parallel([
-                (cb) ->
-                    fs.stat ipynb_file, (err, stats) ->
-                        locals.ipynb_stats = stats
-                        cb(err)
-                (cb) ->
-                    * error if syncdb_file doesn't exist, which is GOOD, since
-                    * in that case we do not want to chmod which would create
-                    * that file as empty and blank it.
-                    fs.stat(syncdb_file, cb)
-            ], (err) ->
-                if not err
-                    dbg("changing syncb mode to match ipynb mode")
-                    fs.chmod(syncdb_file, locals.ipynb_stats.mode)
-                else
-                    dbg("error stating ipynb", err)
-            )
-        )
-    */
 
   // Load file from disk if it is  newer than
   // the last we saved to disk.

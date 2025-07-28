@@ -324,36 +324,41 @@ export class NotebookFrameActions {
     }
   }
 
-  public run_selected_cells(v?: string[]): void {
+  public run_selected_cells(ids?: string[]): void {
     this.save_input_editor();
 
-    if (v === undefined) {
-      v = this.store.get_selected_cell_ids_list();
+    if (ids == null) {
+      ids = this.store.get_selected_cell_ids_list();
     }
 
     // for whatever reason, any running of a cell deselects
     // in official jupyter
     this.unselect_all_cells();
-    for (const id of v) {
-      const save = id === v[v.length - 1]; // save only last one.
-      this.run_cell(id, save);
-    }
+    this.runCells(ids);
+  }
+
+  run_cell(id: string) {
+    this.runCells([id]);
   }
 
   // This is here since it depends on knowing the edit state
   // of markdown cells.
-  public run_cell(id: string, save: boolean = true): void {
-    const type = this.jupyter_actions.store.get_cell_type(id);
-    if (type === "markdown") {
-      if (this.store.get("md_edit_ids", Set()).contains(id)) {
-        this.set_md_cell_not_editing(id);
+  public runCells(ids: string[]): void {
+    const v: string[] = [];
+    for (const id of ids) {
+      const type = this.jupyter_actions.store.get_cell_type(id);
+      if (type === "markdown") {
+        if (this.store.get("md_edit_ids", Set()).contains(id)) {
+          this.set_md_cell_not_editing(id);
+        }
+      } else if (type === "code") {
+        v.push(id);
       }
-      return;
+      // running is a no-op for raw cells.
     }
-    if (type === "code") {
-      this.jupyter_actions.run_cell(id, save);
+    if (v.length > 0) {
+      this.jupyter_actions.runCells(v);
     }
-    // running is a no-op for raw cells.
   }
 
   /***

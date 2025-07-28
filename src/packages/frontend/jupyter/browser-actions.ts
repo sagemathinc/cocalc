@@ -216,33 +216,6 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  public run_cell(
-    id: string,
-    save: boolean = true,
-    noHalt: boolean = false,
-  ): void {
-    if (this.store.get("read_only")) return;
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      // it is trivial to run a cell that does not exist -- nothing needs to be done.
-      return;
-    }
-
-    const cell_type = cell.get("cell_type", "code");
-    if (cell_type == "code") {
-      const code = this.get_cell_input(id).trim();
-      if (!code) {
-        this.clear_cell(id, save);
-        return;
-      }
-      this.runCells([id], { noHalt });
-      //this.run_code_cell(id, save, no_halt);
-      if (save) {
-        this.save_asap();
-      }
-    }
-  }
-
   private async api_call_formatter(
     str: string,
     config: FormatterConfig,
@@ -1540,7 +1513,7 @@ export class JupyterActions extends JupyterActions0 {
   private jupyterClient?;
   private runQueue: any[] = [];
   private runningNow = false;
-  runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
+  async runCells(ids: string[], opts: { noHalt?: boolean } = {}) {
     if (this.store?.get("read_only")) {
       return;
     }
@@ -1571,6 +1544,9 @@ export class JupyterActions extends JupyterActions0 {
 
       for (const id of ids) {
         const cell = this.store.getIn(["cells", id])?.toJS();
+        if (cell?.cell_type != "code") {
+          continue;
+        }
         if (!cell?.input?.trim()) {
           // nothing to do
           continue;
@@ -1591,7 +1567,7 @@ export class JupyterActions extends JupyterActions0 {
         }
         cells.push(cell);
       }
-      this.addPendingCells(ids);
+      this.addPendingCells(cells.map(({ id }) => id));
 
       // ensures cells run in order:
       cells.sort(field_cmp("pos"));
@@ -1625,7 +1601,7 @@ export class JupyterActions extends JupyterActions0 {
       handler?.done();
       this.save_asap();
     } catch (err) {
-      console.log("runCells", err);
+      console.warn("runCells", err);
     } finally {
       this.runningNow = false;
       if (this.runQueue.length > 0) {
@@ -1633,5 +1609,5 @@ export class JupyterActions extends JupyterActions0 {
         this.runCells(ids, opts);
       }
     }
-  };
+  }
 }

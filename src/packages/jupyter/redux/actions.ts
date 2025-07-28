@@ -982,13 +982,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("run_selected_cells");
   };
 
-  public abstract run_cell(id: string, save?: boolean, no_halt?: boolean): void;
+  abstract runCells(ids: string[], opts?: { noHalt?: boolean }): Promise<void>;
 
   run_all_cells = (no_halt: boolean = false): void => {
-    this.store.get_cell_list().forEach((id) => {
-      this.run_cell(id, false, no_halt);
-    });
-    this.save_asap();
+    this.runCells(this.store.get_cell_list().toJS(), { noHalt: no_halt });
   };
 
   protected clearRunQueue() {
@@ -1022,20 +1019,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   run_all_above_cell(id: string): void {
     const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
-    for (const id of v.slice(0, i)) {
-      this.run_cell(id, false);
-    }
-    this.save_asap();
+    this.runCells(v.slice(0,i));
   }
 
   // Run all cells below (and *including*) the specified cell.
   public run_all_below_cell(id: string): void {
     const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
-    for (const id of v.slice(i)) {
-      this.run_cell(id, false);
-    }
-    this.save_asap();
+    this.runCells(v.slice(i));
   }
 
   public set_cursor_locs(locs: any[] = [], side_effect: boolean = false): void {

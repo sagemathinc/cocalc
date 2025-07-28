@@ -146,7 +146,7 @@ ax.plot(x, y)
             <Button
               type="link"
               onClick={() => {
-                actions.run_cell(cell_id);
+                actions.runCells([cell_id]);
               }}
             >
               <Icon name="step-forward" /> {msg}
