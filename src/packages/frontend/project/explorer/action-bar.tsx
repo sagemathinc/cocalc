@@ -15,7 +15,10 @@ import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { type ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
-import { file_actions, type ProjectActions } from "@cocalc/frontend/project_store";
+import {
+  file_actions,
+  type ProjectActions,
+} from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
@@ -40,22 +43,33 @@ interface Props {
   project_is_running?: boolean;
 }
 
-export function ActionBar(props: Props) {
+export function ActionBar({
+  project_id,
+  checked_files,
+  listing,
+  current_path,
+  project_map,
+  images,
+  actions,
+  available_features,
+  show_custom_software_reset,
+  project_is_running,
+}: Props) {
   const intl = useIntl();
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const { mainWidthPx } = useProjectContext();
   const buttonRef = useRef<HTMLDivElement>(null);
-  const widthThld = useRef<number>(0);
+  const tableHeaderWidth = useRef<number>(0);
   const student_project_functionality = useStudentProjectFunctionality(
-    props.actions.project_id,
+    actions.project_id,
   );
   if (student_project_functionality.disableActions) {
     return <div></div>;
   }
 
   useEffect(() => {
-    const btnbar = buttonRef.current;
-    if (btnbar == null) return;
+    const buttonBar = buttonRef.current;
+    if (buttonBar == null) return;
     const resizeObserver = new ResizeObserver(
       throttle(
         (entries) => {
@@ -65,8 +79,8 @@ export function ActionBar(props: Props) {
             // (e.g. german buttons were cutoff all the time), but could need more tweaking
             if (showLabels && width > mainWidthPx + 100) {
               setShowLabels(false);
-              widthThld.current = width;
-            } else if (!showLabels && width < widthThld.current - 1) {
+              tableHeaderWidth.current = width;
+            } else if (!showLabels && width < tableHeaderWidth.current - 1) {
               setShowLabels(true);
             }
           }
@@ -75,22 +89,20 @@ export function ActionBar(props: Props) {
         { leading: false, trailing: true },
       ),
     );
-    resizeObserver.observe(btnbar);
+    resizeObserver.observe(buttonBar);
     return () => {
       resizeObserver.disconnect();
     };
   }, [mainWidthPx, buttonRef.current]);
 
   function clear_selection(): void {
-    props.actions.set_all_files_unchecked();
+    actions.set_all_files_unchecked();
   }
 
   function check_all_click_handler(): void {
-    if (props.checked_files.size === 0) {
-      props.actions.set_file_list_checked(
-        props.listing.map((file) =>
-          misc.path_to_file(props.current_path ?? "", file.name),
-        ),
+    if (checked_files.size === 0) {
+      actions.set_file_list_checked(
+        listing.map((file) => misc.path_to_file(current_path ?? "", file.name)),
       );
     } else {
       clear_selection();
@@ -98,11 +110,11 @@ export function ActionBar(props: Props) {
   }
 
   function render_check_all_button(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
+    if (listing.length === 0) {
       return;
     }
 
-    const checked = props.checked_files.size > 0;
+    const checked = checked_files.size > 0;
     const button_text = intl.formatMessage(
       {
         id: "project.explorer.action-bar.check_all.button",
@@ -114,10 +126,10 @@ export function ActionBar(props: Props) {
     );
 
     let button_icon;
-    if (props.checked_files.size === 0) {
+    if (checked_files.size === 0) {
       button_icon = "square-o";
     } else {
-      if (props.checked_files.size >= props.listing.length) {
+      if (checked_files.size >= listing.length) {
         button_icon = "check-square-o";
       } else {
         button_icon = "minus-square-o";
@@ -136,11 +148,11 @@ export function ActionBar(props: Props) {
   }
 
   function render_currently_selected(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
+    if (listing.length === 0) {
       return;
     }
-    const checked = props.checked_files.size;
-    const total = props.listing.length;
+    const checked = checked_files.size;
+    const total = listing.length;
     const style = ROW_INFO_STYLE;
 
     if (checked === 0) {
@@ -186,12 +198,12 @@ export function ActionBar(props: Props) {
   function render_action_button(name: string): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
-      (props.current_path != null
-        ? props.current_path.startsWith(".snapshots")
+      (current_path != null
+        ? current_path.startsWith(".snapshots")
         : undefined);
     const obj = file_actions[name];
     const handle_click = (_e: React.MouseEvent) => {
-      props.actions.set_file_action(name);
+      actions.set_file_action(name);
     };
 
     return (
@@ -213,16 +225,13 @@ export function ActionBar(props: Props) {
       | "copy"
       | "share"
     )[];
-    if (!props.project_is_running) {
+    if (checked_files.size === 0) {
       return;
-    }
-    if (props.checked_files.size === 0) {
-      return;
-    } else if (props.checked_files.size === 1) {
+    } else if (checked_files.size === 1) {
       let isdir;
-      const item = props.checked_files.first();
-      for (const file of props.listing) {
-        if (misc.path_to_file(props.current_path ?? "", file.name) === item) {
+      const item = checked_files.first();
+      for (const file of listing) {
+        if (misc.path_to_file(current_path ?? "", file.name) === item) {
           ({ isdir } = file);
         }
       }
@@ -246,25 +255,25 @@ export function ActionBar(props: Props) {
   }
 
   function render_button_area(): React.JSX.Element | undefined {
-    if (props.checked_files.size === 0) {
+    if (checked_files.size === 0) {
       if (
-        props.project_id == null ||
-        props.images == null ||
-        props.project_map == null ||
-        props.available_features == null
+        project_id == null ||
+        images == null ||
+        project_map == null ||
+        available_features == null
       ) {
         return;
       }
       return (
         <Space.Compact>
           <CustomSoftwareInfo
-            project_id={props.project_id}
-            images={props.images}
-            project_map={props.project_map}
-            actions={props.actions}
-            available_features={props.available_features}
-            show_custom_software_reset={!!props.show_custom_software_reset}
-            project_is_running={!!props.project_is_running}
+            project_id={project_id}
+            images={images}
+            project_map={project_map}
+            actions={actions}
+            available_features={available_features}
+            show_custom_software_reset={!!show_custom_software_reset}
+            project_is_running={!!project_is_running}
           />
         </Space.Compact>
       );
@@ -272,7 +281,7 @@ export function ActionBar(props: Props) {
       return render_action_buttons();
     }
   }
-  if (props.checked_files.size === 0 && IS_MOBILE) {
+  if (checked_files.size === 0 && IS_MOBILE) {
     return null;
   }
   return (
@@ -280,13 +289,13 @@ export function ActionBar(props: Props) {
       <div ref={buttonRef} style={{ flex: "1 0 auto" }}>
         <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
           <Space.Compact>
-            {props.project_is_running ? render_check_all_button() : undefined}
+            {render_check_all_button()}
           </Space.Compact>
           {render_button_area()}
         </ButtonToolbar>
       </div>
       <div style={{ flex: "1 0 auto" }}>
-        {props.project_is_running ? render_currently_selected() : undefined}
+        {render_currently_selected()}
       </div>
     </div>
   );
