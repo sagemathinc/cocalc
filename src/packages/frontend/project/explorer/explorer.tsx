@@ -77,10 +77,6 @@ export function Explorer() {
     "file_creation_error",
   );
   const file_search = useTypedRedux({ project_id }, "file_search");
-  const selected_file_index = useTypedRedux(
-    { project_id },
-    "selected_file_index",
-  );
   const show_custom_software_reset = useTypedRedux(
     { project_id },
     "show_custom_software_reset",
@@ -97,49 +93,51 @@ export function Explorer() {
   }
 
   useEffect(() => {
+    const handle_files_key_down = (e): void => {
+      if (e.key === "Shift") {
+        setShiftIsDown(true);
+      } else if (e.key == "ArrowUp") {
+        if (e.shiftKey || e.ctrlKey || e.metaKey) {
+          const path = dirname(current_path);
+          actions.open_directory(path == "." ? "" : path);
+        } else {
+          actions.decrement_selected_file_index();
+        }
+      } else if (e.key == "ArrowDown") {
+        actions.increment_selected_file_index();
+      } else if (e.key == "Enter") {
+        const n =
+          redux.getProjectStore(project_id).get("selected_file_index") ?? 0;
+        const x = listingRef.current?.[n];
+        if (x != null) {
+          const { isdir, name } = x;
+          const path = join(current_path, name);
+          if (isdir) {
+            actions.open_directory(path);
+          } else {
+            actions.open_file({ path, foreground: !e.ctrlKey });
+          }
+          if (!e.ctrlKey) {
+            actions.set_file_search("");
+            actions.clear_selected_file_index();
+          }
+        }
+      }
+    };
+
+    const handle_files_key_up = (e): void => {
+      if (e.key === "Shift") {
+        setShiftIsDown(false);
+      }
+    };
+
     $(window).on("keydown", handle_files_key_down);
     $(window).on("keyup", handle_files_key_up);
     return () => {
       $(window).off("keydown", handle_files_key_down);
       $(window).off("keyup", handle_files_key_up);
     };
-  }, []);
-
-  const handle_files_key_down = (e): void => {
-    if (e.key === "Shift") {
-      setShiftIsDown(true);
-    } else if (e.key == "ArrowUp") {
-      if (e.shiftKey || e.ctrlKey || e.metaKey) {
-        const path = dirname(current_path);
-        actions.open_directory(path == "." ? "" : path);
-      } else {
-        actions.decrement_selected_file_index();
-      }
-    } else if (e.key == "ArrowDown") {
-      actions.increment_selected_file_index();
-    } else if (e.key == "Enter") {
-      const x = listingRef.current?.[selected_file_index ?? 0];
-      if (x != null) {
-        const { isdir, name } = x;
-        const path = join(current_path, name);
-        if (isdir) {
-          actions.open_directory(path);
-        } else {
-          actions.open_file({ path, foreground: !e.ctrlKey });
-        }
-        if (!e.ctrlKey) {
-          actions.set_file_search("");
-          actions.clear_selected_file_index();
-        }
-      }
-    }
-  };
-
-  const handle_files_key_up = (e): void => {
-    if (e.key === "Shift") {
-      setShiftIsDown(false);
-    }
-  };
+  }, [project_id, current_path]);
 
   const create_file = (ext, switch_over) => {
     if (switch_over == undefined) {
@@ -151,7 +149,7 @@ export function Explorer() {
       file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
     ) {
       const disabled_ext = // @ts-ignore
-        configuration?.getIn(["main", "disabled_ext"])?.toJS() ?? [];
+        configuration?.getIn(["main", "disabled_ext"])?.toJS?.() ?? [];
       ext = default_ext(disabled_ext);
     }
 
@@ -425,7 +423,7 @@ export function Explorer() {
             create_file={create_file}
             create_folder={create_folder}
             project_id={project_id}
-            shift_is_down={shiftIsDown}
+            shiftIsDown={shiftIsDown}
             configuration_main={configuration?.get("main")}
           />
         </FileUploadWrapper>

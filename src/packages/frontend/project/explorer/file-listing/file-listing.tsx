@@ -44,7 +44,7 @@ interface Props {
   checked_files: immutable.Set<string>;
   current_path: string;
   project_id: string;
-  shift_is_down: boolean;
+  shiftIsDown: boolean;
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
 
@@ -117,7 +117,7 @@ function FileListing0({
   checked_files,
   current_path,
   project_id,
-  shift_is_down,
+  shiftIsDown,
   configuration_main,
   file_search = "",
   stale,
@@ -161,7 +161,7 @@ function FileListing0({
         key={index}
         current_path={current_path}
         actions={actions}
-        no_select={shift_is_down}
+        no_select={shiftIsDown}
         link_target={link_target}
         computeServerId={computeServerId}
       />
