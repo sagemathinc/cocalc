@@ -3,14 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import type * as immutable from "immutable";
-import type { KernelSpec, KernelMetadata } from "@cocalc/util/jupyter/types";
-export type { KernelSpec, KernelMetadata };
+
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+
+import type { KernelMetadata, KernelSpec } from "@cocalc/util/jupyter/types";
+export type { KernelMetadata, KernelSpec };
 
 export type NotebookMode = "edit" | "escape";
-
-export type CellType = "raw" | "markdown" | "code" | "multi";
 
 export type Scroll =
   | number

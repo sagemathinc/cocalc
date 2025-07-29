@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Markdownを見出し5に変更",
   "jupyter.commands.change_cell_to_heading_6.label": "Markdownを見出し6に変更",
   "jupyter.commands.change_cell_to_markdown.label": "セルをMarkdownに変更",
-  "jupyter.commands.change_cell_to_row.label": "セルをRawに変更",
+  "jupyter.commands.change_cell_to_raw.label": "セルをRawに変更",
   "jupyter.commands.change_kernel": "カーネルを変更...",
   "jupyter.commands.change_kernel_title": "利用可能なカーネルから選択してください。",
   "jupyter.commands.clear_all_cells_output.label": "すべてのセルの出力をクリア",

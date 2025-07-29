@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "मार्कडाउन से शीर्षक 5 में बदलें",
   "jupyter.commands.change_cell_to_heading_6.label": "मार्कडाउन को शीर्षक 6 में बदलें",
   "jupyter.commands.change_cell_to_markdown.label": "सेल को मार्कडाउन में बदलें",
-  "jupyter.commands.change_cell_to_row.label": "सेल को Raw में बदलें",
+  "jupyter.commands.change_cell_to_raw.label": "सेल को Raw में बदलें",
   "jupyter.commands.change_kernel": "कर्नेल बदलें...",
   "jupyter.commands.change_kernel_title": "किसी भी उपलब्ध कर्नल से चयन करें।",
   "jupyter.commands.clear_all_cells_output.label": "सभी सेल आउटपुट साफ करें",

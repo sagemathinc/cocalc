@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Módosítás Markdownról Címsor 5-re",
   "jupyter.commands.change_cell_to_heading_6.label": "Alakítsa át a Markdown-t Fejléc 6-ra",
   "jupyter.commands.change_cell_to_markdown.label": "Módosítás Markdown cellára",
-  "jupyter.commands.change_cell_to_row.label": "Cell módosítása nyersre",
+  "jupyter.commands.change_cell_to_raw.label": "Cell módosítása nyersre",
   "jupyter.commands.change_kernel": "Módosítás Kernel...",
   "jupyter.commands.change_kernel_title": "Válasszon bármelyik elérhető kernelből.",
   "jupyter.commands.clear_all_cells_output.label": "Összes cellakimenet törlése",

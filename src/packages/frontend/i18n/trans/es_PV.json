@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Aldatu Markdown 5. goiburura",
   "jupyter.commands.change_cell_to_heading_6.label": "Aldatu Markdown 6. Izenburura",
   "jupyter.commands.change_cell_to_markdown.label": "Aldatu Zela Markdown-era",
-  "jupyter.commands.change_cell_to_row.label": "Aldatu Zelaia Gordin bihurtzeko",
+  "jupyter.commands.change_cell_to_raw.label": "Aldatu Zelaia Gordin bihurtzeko",
   "jupyter.commands.change_kernel": "Aldatu Kernel...",
   "jupyter.commands.change_kernel_title": "Hautatu eskuragarri dauden kernel batetik.",
   "jupyter.commands.clear_all_cells_output.label": "Garbitu Gelaxka Irteera Guztiak",

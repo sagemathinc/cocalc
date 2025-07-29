@@ -14,8 +14,9 @@ import {
 } from "@cocalc/frontend/jupyter/commands";
 import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
-import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
+import { Cell, Scroll } from "@cocalc/jupyter/types";
 import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
+import { CellType } from "@cocalc/util/jupyter/types";
 import {
   bind_methods,
   close,
@@ -214,7 +215,7 @@ export class NotebookFrameActions {
   }
 
   /***
-   * Debugging related functioanlity
+   * Debugging related functionality
    ***/
 
   private dbg(f: string, ...args): void {
@@ -281,7 +282,7 @@ export class NotebookFrameActions {
   }
 
   /* Run the selected cells; triggered by either clicking the play button or
-     press shift+enter.  Note that this has weird and inconsitent
+     press shift+enter.  Note that this has weird and inconsistent
      behavior in official Jupyter for usability reasons and due to
      their "modal" approach.
      In particular, if the selections goes to the end of the document, we
@@ -487,13 +488,37 @@ export class NotebookFrameActions {
     const cell = this.get_cell_by_id(id);
     if (cell == null) return;
 
-    if (cell.getIn(["metadata", "editable"]) === false) {
+    if (!this.jupyter_actions.store.is_cell_editable(id)) {
       // TODO: NEVER ever silently fail!
       return;
     }
     this.set_md_cell_editing(id);
     this.set_cur_id(id);
     this.set_mode("edit");
+  }
+
+  cell_md_is_editing(id): boolean {
+    let md_edit_ids = this.store.get("md_edit_ids");
+    if (md_edit_ids == null) md_edit_ids = Set();
+    return md_edit_ids.contains(id);
+  }
+
+  public toggle_md_cell_edit(id: string): void {
+    const cell = this.get_cell_by_id(id);
+    if (cell == null) return;
+    if (!this.jupyter_actions.store.is_cell_editable(id)) {
+      // TODO: NEVER ever silently fail!
+      return;
+    }
+
+    this.set_cur_id(id);
+    if (this.cell_md_is_editing(id)) {
+      this.set_md_cell_not_editing(id);
+      this.set_mode("escape");
+    } else {
+      this.switch_md_cell_to_edit(id);
+      this.set_mode("edit");
+    }
   }
 
   public switch_code_cell_to_edit(id: string): void {
@@ -594,7 +619,7 @@ export class NotebookFrameActions {
   }
 
   // select all cells, possibly of a given type.
-  select_all_cells = (cell_type?: "code" | "markdown" | "raw") => {
+  select_all_cells = (cell_type?: CellType) => {
     let sel_ids;
     if (cell_type) {
       sel_ids =

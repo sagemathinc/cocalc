@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "마크다운을 헤딩 5로 변경",
   "jupyter.commands.change_cell_to_heading_6.label": "Markdown을 제목 6으로 변경",
   "jupyter.commands.change_cell_to_markdown.label": "셀을 Markdown으로 변경",
-  "jupyter.commands.change_cell_to_row.label": "셀을 Raw로 변경",
+  "jupyter.commands.change_cell_to_raw.label": "셀을 Raw로 변경",
   "jupyter.commands.change_kernel": "커널 변경...",
   "jupyter.commands.change_kernel_title": "사용 가능한 모든 커널 중에서 선택하세요.",
   "jupyter.commands.clear_all_cells_output.label": "모든 셀 출력 지우기",

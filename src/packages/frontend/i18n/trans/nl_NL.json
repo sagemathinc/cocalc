@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Wijzig Markdown naar Kop 5",
   "jupyter.commands.change_cell_to_heading_6.label": "Wijzig Markdown naar Kop 6",
   "jupyter.commands.change_cell_to_markdown.label": "Wijzig cel naar Markdown",
-  "jupyter.commands.change_cell_to_row.label": "Wijzig cel naar Raw",
+  "jupyter.commands.change_cell_to_raw.label": "Wijzig cel naar Raw",
   "jupyter.commands.change_kernel": "Kernel wijzigen...",
   "jupyter.commands.change_kernel_title": "Selecteer uit een van de beschikbare kernels.",
   "jupyter.commands.clear_all_cells_output.label": "Wis alle uitvoer van cellen",
