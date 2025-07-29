@@ -139,16 +139,11 @@ export function Explorer() {
     actions?.setState({ numDisplayedFiles: listing?.length ?? 0 });
   }, [listing?.length]);
 
-  if (listingError) {
-    return <ShowError error={error} />;
-  }
-
-  if (actions == null || project_map == null) {
-    return <Loading />;
-  }
-
   useEffect(() => {
     const handle_files_key_down = (e): void => {
+      if (actions == null) {
+        return;
+      }
       if (e.key === "Shift") {
         setShiftIsDown(true);
       } else if (e.key == "ArrowUp") {
@@ -193,6 +188,14 @@ export function Explorer() {
       $(window).off("keyup", handle_files_key_up);
     };
   }, [project_id, current_path]);
+
+  if (listingError) {
+    return <ShowError error={error} />;
+  }
+
+  if (actions == null || project_map == null) {
+    return <Loading />;
+  }
 
   const create_file = (ext, switch_over) => {
     if (switch_over == undefined) {
@@ -471,7 +474,9 @@ export function Explorer() {
           className="smc-vfill"
         >
           {listing == null ? (
-            <Loading delay={1000} />
+            <div style={{ textAlign: "center" }}>
+              <Loading delay={1000} theme="medium" />
+            </div>
           ) : (
             <FileListing
               active_file_sort={active_file_sort}
