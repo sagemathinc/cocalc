@@ -30,8 +30,6 @@ interface Props {
   project_id?: string;
   checked_files: immutable.Set<string>;
   listing: { name: string; isdir: boolean }[];
-  page_number: number;
-  page_size: number;
   current_path?: string;
   project_map?: immutable.Map<string, string>;
   images?: ComputeImages;
@@ -47,32 +45,12 @@ export function ActionBar(props: Props) {
   const { mainWidthPx } = useProjectContext();
   const buttonRef = useRef<HTMLDivElement>(null);
   const widthThld = useRef<number>(0);
-  const [select_entire_directory, set_select_entire_directory] = useState<
-    "hidden" | "check" | "clear"
-  >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
     props.actions.project_id,
   );
   if (student_project_functionality.disableActions) {
     return <div></div>;
   }
-
-  useEffect(() => {
-    // user changed directory, hide the "select entire directory" button
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
-  }, [props.current_path]);
-
-  useEffect(() => {
-    if (
-      props.checked_files.size === props.listing.length &&
-      select_entire_directory === "check"
-    ) {
-      // user just clicked the "select entire directory" button, show the "clear" button
-      set_select_entire_directory("clear");
-    }
-  }, [props.checked_files, props.listing, select_entire_directory]);
 
   useEffect(() => {
     const btnbar = buttonRef.current;
@@ -104,26 +82,15 @@ export function ActionBar(props: Props) {
 
   function clear_selection(): void {
     props.actions.set_all_files_unchecked();
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
   }
 
   function check_all_click_handler(): void {
     if (props.checked_files.size === 0) {
-      const files_on_page = props.listing.slice(
-        props.page_size * props.page_number,
-        props.page_size * (props.page_number + 1),
-      );
       props.actions.set_file_list_checked(
-        files_on_page.map((file) =>
+        props.listing.map((file) =>
           misc.path_to_file(props.current_path ?? "", file.name),
         ),
       );
-      if (props.listing.length > props.page_size) {
-        // if there are more items than one page, show a button to select everything
-        set_select_entire_directory("check");
-      }
     } else {
       clear_selection();
     }
@@ -165,31 +132,6 @@ export function ActionBar(props: Props) {
         <Icon name={button_icon} /> {button_text}
       </Button>
     );
-  }
-
-  function do_select_entire_directory(): void {
-    props.actions.set_file_list_checked(
-      props.listing.map((file) =>
-        misc.path_to_file(props.current_path ?? "", file.name),
-      ),
-    );
-  }
-
-  function render_select_entire_directory(): React.JSX.Element | undefined {
-    switch (select_entire_directory) {
-      case "check":
-        return (
-          <Button bsSize="xsmall" onClick={do_select_entire_directory}>
-            Select All {props.listing.length} Items
-          </Button>
-        );
-      case "clear":
-        return (
-          <Button bsSize="xsmall" onClick={clear_selection}>
-            Clear Entire Selection
-          </Button>
-        );
-    }
   }
 
   function render_currently_selected(): React.JSX.Element | undefined {
@@ -235,7 +177,6 @@ export function ActionBar(props: Props) {
             )}
           </span>
           <Gap />
-          {render_select_entire_directory()}
         </div>
       );
     }

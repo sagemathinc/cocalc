@@ -93,7 +93,6 @@ export interface ProjectStoreState {
   // Project Files
   activity: any; // immutable,
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
-  page_number: number;
   file_action?: string; // undefineds is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
@@ -310,7 +309,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Files
       activity: undefined,
-      page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
       file_listing_scroll_top: undefined,

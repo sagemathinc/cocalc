@@ -19,7 +19,6 @@ import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap"
 import {
   A,
   ActivityDisplay,
-  ErrorDisplay,
   Loading,
   SettingBox,
 } from "@cocalc/frontend/components";
@@ -38,7 +37,6 @@ import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
-import { AccessErrors } from "./access-errors";
 import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
 import { FileListing } from "./file-listing";
@@ -48,6 +46,7 @@ import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
+import ShowError from "@cocalc/frontend/components/error";
 
 export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
@@ -79,7 +78,6 @@ interface ReduxProps {
   current_path: string;
   history_path: string;
   activity?: object;
-  page_number: number;
   file_action?:
     | "compress"
     | "delete"
@@ -162,7 +160,6 @@ const Explorer0 = rclass(
           current_path: rtypes.string,
           history_path: rtypes.string,
           activity: rtypes.object,
-          page_number: rtypes.number.isRequired,
           file_action: rtypes.string,
           file_search: rtypes.string,
           show_hidden: rtypes.bool,
@@ -186,7 +183,6 @@ const Explorer0 = rclass(
     };
 
     static defaultProps = {
-      page_number: 0,
       file_search: "",
       new_name: "",
       redux,
@@ -225,20 +221,6 @@ const Explorer0 = rclass(
       }
     };
 
-    previous_page = () => {
-      if (this.props.page_number > 0) {
-        this.props.actions.setState({
-          page_number: this.props.page_number - 1,
-        });
-      }
-    };
-
-    next_page = () => {
-      this.props.actions.setState({
-        page_number: this.props.page_number + 1,
-      });
-    };
-
     create_file = (ext, switch_over) => {
       if (switch_over == undefined) {
         switch_over = true;
@@ -265,7 +247,7 @@ const Explorer0 = rclass(
         current_path: this.props.current_path,
         switch_over,
       });
-      this.props.actions.setState({ file_search: "", page_number: 0 });
+      this.props.actions.setState({ file_search: "" });
     };
 
     create_folder = (switch_over = true): void => {
@@ -274,284 +256,13 @@ const Explorer0 = rclass(
         current_path: this.props.current_path,
         switch_over,
       });
-      this.props.actions.setState({ file_search: "", page_number: 0 });
+      this.props.actions.setState({ file_search: "" });
     };
-
-    render_files_action_box() {
-      return (
-        <Col sm={12}>
-          <ActionBox
-            file_map={{} /* TODO */}
-            file_action={this.props.file_action}
-            checked_files={this.props.checked_files}
-            current_path={this.props.current_path}
-            project_id={this.props.project_id}
-            actions={this.props.actions}
-            name={project_redux_name(this.props.project_id)}
-          />
-        </Col>
-      );
-    }
-
-    render_library() {
-      return (
-        <Row>
-          <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-            <SettingBox
-              icon={"book"}
-              title={
-                <span>
-                  Library{" "}
-                  <A href="https://doc.cocalc.com/project-library.html">
-                    (help...)
-                  </A>
-                </span>
-              }
-              close={() => this.props.actions.toggle_library(false)}
-            >
-              <Library
-                project_id={this.props.project_id}
-                onClose={() => this.props.actions.toggle_library(false)}
-              />
-            </SettingBox>
-          </Col>
-        </Row>
-      );
-    }
-
-    render_files_actions(project_is_running) {
-      return (
-        <ActionBar
-          listing={[] /* TODO */}
-          project_id={this.props.project_id}
-          checked_files={this.props.checked_files}
-          page_number={this.props.page_number}
-          page_size={this.file_listing_page_size()}
-          current_path={this.props.current_path}
-          project_map={this.props.project_map}
-          images={this.props.images}
-          actions={this.props.actions}
-          available_features={this.props.available_features}
-          show_custom_software_reset={this.props.show_custom_software_reset}
-          project_is_running={project_is_running}
-        />
-      );
-    }
-
-    render_new_file() {
-      return (
-        <div ref={this.newFileRef}>
-          <NewButton
-            file_search={this.props.file_search}
-            current_path={this.props.current_path}
-            actions={this.props.actions}
-            create_file={this.create_file}
-            create_folder={this.create_folder}
-            configuration={this.props.configuration}
-            disabled={!!this.props.ext_selection}
-          />
-        </div>
-      );
-    }
-
-    render_activity() {
-      return (
-        <ActivityDisplay
-          trunc={80}
-          activity={_.values(this.props.activity)}
-          on_clear={() => this.props.actions.clear_all_activity()}
-          style={{ top: "100px" }}
-        />
-      );
-    }
-
-    render_error() {
-      if (this.props.error) {
-        return (
-          <ErrorDisplay
-            error={this.props.error}
-            style={error_style}
-            onClose={() => this.props.actions.setState({ error: "" })}
-          />
-        );
-      }
-    }
-
-    render_access_error() {
-      return <AccessErrors is_logged_in={!!this.props.is_logged_in} />;
-    }
-
-    render_file_listing() {
-      return (
-        <FileUploadWrapper
-          project_id={this.props.project_id}
-          dest_path={this.props.current_path}
-          config={{ clickable: ".upload-button" }}
-          style={{
-            flex: "1 0 auto",
-            display: "flex",
-            flexDirection: "column",
-          }}
-          className="smc-vfill"
-        >
-          <FileListing
-            listingRef={this.listingRef}
-            name={this.props.name}
-            active_file_sort={this.props.active_file_sort}
-            file_search={this.props.file_search}
-            checked_files={this.props.checked_files}
-            current_path={this.props.current_path}
-            actions={this.props.actions}
-            create_file={this.create_file}
-            create_folder={this.create_folder}
-            project_id={this.props.project_id}
-            shift_is_down={this.state.shift_is_down}
-            sort_by={this.props.actions.set_sorted_file_column}
-            other_settings={this.props.other_settings}
-            library={this.props.library}
-            redux={redux}
-            last_scroll_top={this.props.file_listing_scroll_top}
-            configuration_main={this.props.configuration?.get("main")}
-            show_hidden={this.props.show_hidden}
-            show_masked={this.props.show_masked}
-          />
-        </FileUploadWrapper>
-      );
-    }
 
     file_listing_page_size() {
       return (
         this.props.other_settings &&
         this.props.other_settings.get("page_size", 50)
-      );
-    }
-
-    render_control_row(): React.JSX.Element {
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexFlow: IS_MOBILE ? undefined : "row wrap",
-            justifyContent: "space-between",
-            alignItems: "stretch",
-            marginBottom: "15px",
-          }}
-        >
-          <div
-            style={{
-              flex: "3 1 auto",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <div style={{ display: "flex", flex: "1 1 auto" }}>
-              <SelectComputeServerForFileExplorer
-                project_id={this.props.project_id}
-                key="compute-server"
-                style={{ marginRight: "5px", borderRadius: "5px" }}
-              />
-              <div
-                ref={this.currentDirectoryRef}
-                className="cc-project-files-path-nav"
-              >
-                <PathNavigator project_id={this.props.project_id} />
-              </div>
-            </div>
-            {!!this.props.compute_server_id && (
-              <div
-                style={{
-                  fontSize: "10pt",
-                  marginTop: "-10px",
-                  marginBottom: "5px",
-                }}
-              >
-                <ComputeServerDocStatus
-                  standalone
-                  id={this.props.compute_server_id}
-                  requestedId={this.props.compute_server_id}
-                  project_id={this.props.project_id}
-                />
-              </div>
-            )}
-          </div>
-          {!IS_MOBILE && (
-            <div
-              style={{
-                flex: "0 1 auto",
-                margin: "0 10px",
-              }}
-              className="cc-project-files-create-dropdown"
-            >
-              {this.render_new_file()}
-            </div>
-          )}
-          {!IS_MOBILE && (
-            <SearchTerminalBar
-              ref={this.searchAndTerminalBar}
-              actions={this.props.actions}
-              current_path={this.props.current_path}
-              file_search={this.props.file_search}
-              file_creation_error={this.props.file_creation_error}
-              create_file={this.create_file}
-              create_folder={this.create_folder}
-              listingRef={this.listingRef}
-            />
-          )}
-          <div
-            style={{
-              flex: "0 1 auto",
-            }}
-          >
-            <UsersViewing project_id={this.props.project_id} />
-          </div>
-        </div>
-      );
-    }
-
-    render_project_files_buttons(): React.JSX.Element {
-      return (
-        <div
-          ref={this.miscButtonsRef}
-          style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
-        >
-          <MiscSideButtons
-            project_id={this.props.project_id}
-            current_path={this.props.current_path}
-            show_hidden={
-              this.props.show_hidden != undefined
-                ? this.props.show_hidden
-                : false
-            }
-            show_masked={
-              this.props.show_masked != undefined
-                ? this.props.show_masked
-                : true
-            }
-            actions={this.props.actions}
-            kucalc={this.props.kucalc}
-            available_features={this.props.available_features}
-          />
-        </div>
-      );
-    }
-
-    render_custom_software_reset() {
-      if (!this.props.show_custom_software_reset) {
-        return undefined;
-      }
-      // also don't show this box, if any files are selected
-      if (this.props.checked_files.size > 0) {
-        return undefined;
-      }
-      return (
-        <CustomSoftwareReset
-          project_id={this.props.project_id}
-          images={this.props.images}
-          project_map={this.props.project_map}
-          actions={this.props.actions}
-          available_features={this.props.available_features}
-          site_name={this.props.site_name}
-        />
       );
     }
 
@@ -599,9 +310,109 @@ const Explorer0 = rclass(
               padding: "2px 2px 0 2px",
             }}
           >
-            {this.render_error()}
-            {this.render_activity()}
-            {this.render_control_row()}
+            <ShowError
+              error={this.props.error}
+              style={error_style}
+              setError={(error) => this.props.actions.setState({ error })}
+            />
+            <ActivityDisplay
+              trunc={80}
+              activity={_.values(this.props.activity)}
+              on_clear={() => this.props.actions.clear_all_activity()}
+              style={{ top: "100px" }}
+            />
+            <div
+              style={{
+                display: "flex",
+                flexFlow: IS_MOBILE ? undefined : "row wrap",
+                justifyContent: "space-between",
+                alignItems: "stretch",
+                marginBottom: "15px",
+              }}
+            >
+              <div
+                style={{
+                  flex: "3 1 auto",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div style={{ display: "flex", flex: "1 1 auto" }}>
+                  <SelectComputeServerForFileExplorer
+                    project_id={this.props.project_id}
+                    key="compute-server"
+                    style={{ marginRight: "5px", borderRadius: "5px" }}
+                  />
+                  <div
+                    ref={this.currentDirectoryRef}
+                    className="cc-project-files-path-nav"
+                  >
+                    <PathNavigator project_id={this.props.project_id} />
+                  </div>
+                </div>
+                {!!this.props.compute_server_id && (
+                  <div
+                    style={{
+                      fontSize: "10pt",
+                      marginTop: "-10px",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <ComputeServerDocStatus
+                      standalone
+                      id={this.props.compute_server_id}
+                      requestedId={this.props.compute_server_id}
+                      project_id={this.props.project_id}
+                    />
+                  </div>
+                )}
+              </div>
+              {!IS_MOBILE && (
+                <div
+                  style={{
+                    flex: "0 1 auto",
+                    margin: "0 10px",
+                  }}
+                  className="cc-project-files-create-dropdown"
+                >
+                  <div ref={this.newFileRef}>
+                    <NewButton
+                      file_search={this.props.file_search}
+                      current_path={this.props.current_path}
+                      actions={this.props.actions}
+                      create_file={this.create_file}
+                      create_folder={this.create_folder}
+                      configuration={this.props.configuration}
+                      disabled={!!this.props.ext_selection}
+                    />
+                  </div>
+                </div>
+              )}
+              {!IS_MOBILE && (
+                <div
+                  style={{ flex: "1 1 auto" }}
+                  ref={this.searchAndTerminalBar}
+                >
+                  <SearchBar
+                    actions={this.props.actions}
+                    current_path={this.props.current_path}
+                    file_search={this.props.file_search}
+                    file_creation_error={this.props.file_creation_error}
+                    create_file={this.create_file}
+                    create_folder={this.create_folder}
+                    listingRef={this.listingRef}
+                  />
+                </div>
+              )}
+              <div
+                style={{
+                  flex: "0 1 auto",
+                }}
+              >
+                <UsersViewing project_id={this.props.project_id} />
+              </div>
+            </div>
+
             {this.props.ext_selection != null && (
               <AskNewFilename project_id={this.props.project_id} />
             )}
@@ -613,20 +424,101 @@ const Explorer0 = rclass(
                   minWidth: "20em",
                 }}
               >
-                {this.render_files_actions(project_is_running)}
+                <ActionBar
+                  listing={[] /* TODO */}
+                  project_id={this.props.project_id}
+                  checked_files={this.props.checked_files}
+                  current_path={this.props.current_path}
+                  project_map={this.props.project_map}
+                  images={this.props.images}
+                  actions={this.props.actions}
+                  available_features={this.props.available_features}
+                  show_custom_software_reset={
+                    this.props.show_custom_software_reset
+                  }
+                  project_is_running={project_is_running}
+                />
               </div>
-              {this.render_project_files_buttons()}
+              <div
+                ref={this.miscButtonsRef}
+                style={{
+                  flex: "1 0 auto",
+                  marginBottom: "15px",
+                  textAlign: "right",
+                }}
+              >
+                <MiscSideButtons
+                  project_id={this.props.project_id}
+                  current_path={this.props.current_path}
+                  show_hidden={
+                    this.props.show_hidden != undefined
+                      ? this.props.show_hidden
+                      : false
+                  }
+                  show_masked={
+                    this.props.show_masked != undefined
+                      ? this.props.show_masked
+                      : true
+                  }
+                  actions={this.props.actions}
+                  kucalc={this.props.kucalc}
+                  available_features={this.props.available_features}
+                />
+              </div>
             </div>
 
-            {project_is_running
-              ? this.render_custom_software_reset()
-              : undefined}
+            {project_is_running &&
+              this.props.show_custom_software_reset &&
+              this.props.checked_files.size == 0 && (
+                <CustomSoftwareReset
+                  project_id={this.props.project_id}
+                  images={this.props.images}
+                  project_map={this.props.project_map}
+                  actions={this.props.actions}
+                  available_features={this.props.available_features}
+                  site_name={this.props.site_name}
+                />
+              )}
 
-            {this.props.show_library ? this.render_library() : undefined}
+            {this.props.show_library && (
+              <Row>
+                <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
+                  <SettingBox
+                    icon={"book"}
+                    title={
+                      <span>
+                        Library{" "}
+                        <A href="https://doc.cocalc.com/project-library.html">
+                          (help...)
+                        </A>
+                      </span>
+                    }
+                    close={() => this.props.actions.toggle_library(false)}
+                  >
+                    <Library
+                      project_id={this.props.project_id}
+                      onClose={() => this.props.actions.toggle_library(false)}
+                    />
+                  </SettingBox>
+                </Col>
+              </Row>
+            )}
 
             {this.props.checked_files.size > 0 &&
             this.props.file_action != undefined ? (
-              <Row>{this.render_files_action_box()}</Row>
+              <Row>
+                <Col sm={12}>
+                  <ActionBox
+                    file_map={{} /* TODO */}
+                    file_action={this.props.file_action}
+                    checked_files={this.props.checked_files}
+                    current_path={this.props.current_path}
+                    project_id={this.props.project_id}
+                    actions={this.props.actions}
+                    name={project_redux_name(this.props.project_id)}
+                  />
+                </Col>
+              </Row>
             ) : undefined}
           </div>
 
@@ -640,7 +532,39 @@ const Explorer0 = rclass(
               padding: "0 5px 5px 5px",
             }}
           >
-            {this.render_file_listing()}
+            <FileUploadWrapper
+              project_id={this.props.project_id}
+              dest_path={this.props.current_path}
+              config={{ clickable: ".upload-button" }}
+              style={{
+                flex: "1 0 auto",
+                display: "flex",
+                flexDirection: "column",
+              }}
+              className="smc-vfill"
+            >
+              <FileListing
+                listingRef={this.listingRef}
+                name={this.props.name}
+                active_file_sort={this.props.active_file_sort}
+                file_search={this.props.file_search}
+                checked_files={this.props.checked_files}
+                current_path={this.props.current_path}
+                actions={this.props.actions}
+                create_file={this.create_file}
+                create_folder={this.create_folder}
+                project_id={this.props.project_id}
+                shift_is_down={this.state.shift_is_down}
+                sort_by={this.props.actions.set_sorted_file_column}
+                other_settings={this.props.other_settings}
+                library={this.props.library}
+                redux={redux}
+                last_scroll_top={this.props.file_listing_scroll_top}
+                configuration_main={this.props.configuration?.get("main")}
+                show_hidden={this.props.show_hidden}
+                show_masked={this.props.show_masked}
+              />
+            </FileUploadWrapper>
           </div>
           <ExplorerTour
             open={this.props.explorerTour}
@@ -654,44 +578,5 @@ const Explorer0 = rclass(
         </div>
       );
     }
-  },
-);
-
-const SearchTerminalBar = React.forwardRef(
-  (
-    {
-      current_path,
-      file_search,
-      actions,
-      file_creation_error,
-      create_file,
-      create_folder,
-      listingRef,
-    }: {
-      ref: React.Ref<any>;
-      current_path: string;
-      file_search: string;
-      actions: ProjectActions;
-      file_creation_error?: string;
-      create_file: (ext?: string, switch_over?: boolean) => void;
-      create_folder: (switch_over?: boolean) => void;
-      listingRef;
-    },
-    ref: React.LegacyRef<HTMLDivElement> | undefined,
-  ) => {
-    return (
-      <div ref={ref} style={{ flex: "1 1 auto" }}>
-        <SearchBar
-          key={current_path}
-          file_search={file_search}
-          actions={actions}
-          current_path={current_path}
-          file_creation_error={file_creation_error}
-          create_file={create_file}
-          create_folder={create_folder}
-          listingRef={listingRef}
-        />
-      </div>
-    );
   },
 );

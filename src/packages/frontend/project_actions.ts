@@ -1500,7 +1500,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({
       current_path: path,
       history_path,
-      page_number: 0,
       most_recent_file_click: undefined,
     });
   };
@@ -1552,7 +1551,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   set_file_search(search): void {
     this.setState({
       file_search: search,
-      page_number: 0,
       file_action: undefined,
       most_recent_file_click: undefined,
       create_file_alert: false,

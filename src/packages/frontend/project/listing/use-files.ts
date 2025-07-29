@@ -170,7 +170,6 @@ async function cacheNeighbors({
       v.push(parent);
     }
   }
-  const t = Date.now();
   const f = async (path: string) => {
     await ensureCached({ cacheId, fs, path });
   };
@@ -178,5 +177,4 @@ async function cacheNeighbors({
   // grab up to MAX_SUBDIR_CACHE missing listings in parallel
   v = v.slice(0, MAX_SUBDIR_CACHE);
   await Promise.all(v.map(f));
-  console.log(Date.now() - t, v);
 }
