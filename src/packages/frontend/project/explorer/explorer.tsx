@@ -47,6 +47,14 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import ShowError from "@cocalc/frontend/components/error";
+import { join } from "path";
+
+const FLEX_ROW_STYLE = {
+  display: "flex",
+  flexFlow: "row wrap",
+  justifyContent: "space-between",
+  alignItems: "stretch",
+} as const;
 
 export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
@@ -105,6 +113,7 @@ interface ReduxProps {
   show_custom_software_reset?: boolean;
   explorerTour?: boolean;
   compute_server_id: number;
+  selected_file_index?: number;
 }
 
 interface State {
@@ -178,6 +187,7 @@ const Explorer0 = rclass(
           show_custom_software_reset: rtypes.bool,
           explorerTour: rtypes.bool,
           compute_server_id: rtypes.number,
+          selected_file_index: rtypes.number,
         },
       };
     };
@@ -212,6 +222,26 @@ const Explorer0 = rclass(
     handle_files_key_down = (e): void => {
       if (e.key === "Shift") {
         this.setState({ shift_is_down: true });
+      } else if (e.key == "ArrowUp") {
+        this.props.actions.decrement_selected_file_index();
+      } else if (e.key == "ArrowDown") {
+        this.props.actions.increment_selected_file_index();
+      } else if (e.key == "Enter") {
+        const x =
+          this.listingRef.current?.[this.props.selected_file_index ?? 0];
+        if (x != null) {
+          const { isdir, name } = x;
+          const path = join(this.props.current_path, name);
+          if (isdir) {
+            this.props.actions.open_directory(path);
+          } else {
+            this.props.actions.open_file({ path, foreground: !e.ctrlKey });
+          }
+          if (!e.ctrlKey) {
+            this.props.actions.set_file_search("");
+            this.props.actions.clear_selected_file_index();
+          }
+        }
       }
     };
 
@@ -291,13 +321,6 @@ const Explorer0 = rclass(
       } else {
         project_is_running = false;
       }
-
-      const FLEX_ROW_STYLE = {
-        display: "flex",
-        flexFlow: "row wrap",
-        justifyContent: "space-between",
-        alignItems: "stretch",
-      };
 
       // be careful with adding height:'100%'. it could cause flex to miscalculate. see #3904
       return (
@@ -400,7 +423,6 @@ const Explorer0 = rclass(
                     file_creation_error={this.props.file_creation_error}
                     create_file={this.create_file}
                     create_folder={this.create_folder}
-                    listingRef={this.listingRef}
                   />
                 </div>
               )}

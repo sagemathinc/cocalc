@@ -14,7 +14,6 @@ import { useProjectContext } from "../context";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { join } from "path";
 
 const HelpStyle = {
   wordWrap: "break-word",
@@ -50,7 +49,6 @@ interface Props {
   file_creation_error?: string;
   disabled?: boolean;
   ext_selection?: string;
-  listingRef;
 }
 
 // Commands such as CD throw a setState error.
@@ -65,14 +63,11 @@ export const SearchBar = memo(
     file_creation_error,
     disabled = false,
     ext_selection,
-    listingRef,
   }: Props) => {
     const intl = useIntl();
     const { project_id } = useProjectContext();
     const numDisplayedFiles =
       useTypedRedux({ project_id }, "numDisplayedFiles") ?? 0;
-    const selected_file_index =
-      useTypedRedux({ project_id }, "selected_file_index") ?? 0;
 
     // edit → run → edit
     // TODO use "state" to show a progress spinner while a command is running
@@ -241,19 +236,6 @@ export const SearchBar = memo(
       if (value.startsWith(TERM_MODE_CHAR)) {
         const command = value.slice(1, value.length);
         execute_command(command);
-      } else if (listingRef.current?.[selected_file_index] != null) {
-        const { isdir, name } = listingRef.current[selected_file_index];
-        const path = join(current_path, name);
-        if (isdir) {
-          actions.open_directory(path);
-        } else {
-          actions.open_file({ path, foreground: !ctrl_down });
-        }
-        if (!ctrl_down) {
-          actions.set_file_search("");
-          actions.clear_selected_file_index();
-        }
-        return;
       } else if (file_search.length > 0 && shift_down) {
         // only create a file, if shift is pressed as well to avoid creating
         // jupyter notebooks (default file-type) by accident.
@@ -263,18 +245,6 @@ export const SearchBar = memo(
           create_file(undefined, !ctrl_down);
         }
         actions.clear_selected_file_index();
-      }
-    }
-
-    function on_up_press(): void {
-      if (selected_file_index > 0) {
-        actions.decrement_selected_file_index();
-      }
-    }
-
-    function on_down_press(): void {
-      if (selected_file_index < numDisplayedFiles - 1) {
-        actions.increment_selected_file_index();
       }
     }
 
@@ -302,8 +272,6 @@ export const SearchBar = memo(
           value={file_search}
           on_change={on_change}
           on_submit={search_submit}
-          on_up={on_up_press}
-          on_down={on_down_press}
           on_clear={on_clear}
           disabled={disabled || !!ext_selection}
         />
