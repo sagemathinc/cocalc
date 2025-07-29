@@ -111,14 +111,14 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             tooltip: "Run this cell",
             label: "Run",
             icon: "step-forward",
-            onClick: () => actions?.run_cell(id),
+            onClick: () => frameActions.current?.run_cell(id),
           };
       }
     }
 
     function renderCodeBarRunStop() {
       if (
-        !isCodeCell ||
+        !(isCodeCell || isMarkdownCell) ||
         id == null ||
         actions == null ||
         actions.is_closed() ||
@@ -262,16 +262,21 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         return;
       }
 
+      const editing = frameActions.current?.cell_md_is_editing(id);
+
       return (
         <Button
           style={CODE_BAR_BTN_STYLE}
           size="small"
           type="text"
           onClick={() => {
-            frameActions.current?.toggle_md_cell_edit(cell.get("id"));
+            frameActions.current?.toggle_md_cell_edit(id);
           }}
         >
-          <Icon name="edit" /> {intl.formatMessage(labels.edit)}
+          <Icon name={editing ? "save" : "edit"} />{" "}
+          {editing
+            ? intl.formatMessage(labels.save)
+            : intl.formatMessage(labels.edit)}
         </Button>
       );
     }

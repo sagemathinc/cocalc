@@ -422,8 +422,7 @@ export class NotebookFrameActions {
       undefined,
       false,
     );
-    let md_edit_ids = this.store.get("md_edit_ids");
-    if (md_edit_ids == null) md_edit_ids = Set();
+    const md_edit_ids = this.store.get("md_edit_ids", Set());
     if (md_edit_ids.contains(id)) {
       return;
     }
@@ -497,9 +496,8 @@ export class NotebookFrameActions {
     this.set_mode("edit");
   }
 
-  cell_md_is_editing(id): boolean {
-    let md_edit_ids = this.store.get("md_edit_ids");
-    if (md_edit_ids == null) md_edit_ids = Set();
+  public cell_md_is_editing(id): boolean {
+    const md_edit_ids = this.store.get("md_edit_ids", Set());
     return md_edit_ids.contains(id);
   }
 
@@ -511,7 +509,6 @@ export class NotebookFrameActions {
       return;
     }
 
-    this.set_cur_id(id);
     if (this.cell_md_is_editing(id)) {
       this.set_md_cell_not_editing(id);
       this.set_mode("escape");
@@ -519,6 +516,7 @@ export class NotebookFrameActions {
       this.switch_md_cell_to_edit(id);
       this.set_mode("edit");
     }
+    this.set_cur_id(id);
   }
 
   public switch_code_cell_to_edit(id: string): void {

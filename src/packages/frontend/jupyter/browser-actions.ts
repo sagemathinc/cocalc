@@ -221,7 +221,7 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     const cell_type = cell.get("cell_type", "code");
-    if (cell_type == "code") {
+    if (cell_type === "code") {
       const code = this.get_cell_input(id).trim();
       if (!code) {
         this.clear_cell(id, save);
