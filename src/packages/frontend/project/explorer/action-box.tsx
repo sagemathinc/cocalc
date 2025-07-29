@@ -46,14 +46,13 @@ export const PRE_STYLE = {
 
 type FileAction = undefined | keyof typeof file_actions;
 
-interface ReactProps {
+interface Props {
   checked_files: immutable.Set<string>;
   file_action: FileAction;
   current_path: string;
   project_id: string;
   file_map: object;
   actions: ProjectActions;
-  displayed_listing?: object;
 }
 
 export function ActionBox({
@@ -63,7 +62,7 @@ export function ActionBox({
   project_id,
   file_map,
   actions,
-}: ReactProps) {
+}: Props) {
   const intl = useIntl();
   const runQuota = useRunQuota(project_id, null);
   const get_user_type: () => string = useRedux("account", "get_user_type");

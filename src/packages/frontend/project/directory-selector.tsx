@@ -26,7 +26,9 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import ShowError from "@cocalc/frontend/components/error";
 import useFs from "@cocalc/frontend/project/listing/use-fs";
-import useFiles from "@cocalc/frontend/project/listing/use-files";
+import useFiles, {
+  getCacheId,
+} from "@cocalc/frontend/project/listing/use-files";
 
 const NEW_FOLDER = "New Folder";
 
@@ -378,7 +380,7 @@ function Subdirs(props) {
   const { files, error, refresh } = useFiles({
     fs,
     path,
-    cacheId: { project_id },
+    cacheId: getCacheId({ project_id, compute_server_id: computeServerId }),
   });
   if (error) {
     return <ShowError error={error} setError={refresh} />;

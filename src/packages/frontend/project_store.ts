@@ -75,7 +75,6 @@ export interface ProjectStoreState {
 
   show_upload: boolean;
   create_file_alert: boolean;
-  displayed_listing?: any; // computed(object),
   configuration?: ProjectConfiguration;
   configuration_loading: boolean; // for UI feedback
   available_features?: TypedMap<AvailableFeatures>;
@@ -292,7 +291,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       just_closed_files: immutable.List([]),
       show_upload: false,
       create_file_alert: false,
-      displayed_listing: undefined, // computed(object),
       show_masked: true,
       configuration: undefined,
       configuration_loading: false, // for UI feedback

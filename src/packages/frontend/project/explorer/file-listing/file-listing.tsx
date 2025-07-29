@@ -34,7 +34,6 @@ import useListing, {
 import filterListing from "@cocalc/frontend/project/listing/filter-listing";
 
 interface Props {
-  // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
   actions: ProjectActions;
 
   name: string;
@@ -82,7 +81,7 @@ export function FileListing(props) {
     fs,
     path,
     ...sortDesc(props.active_file_sort),
-    cacheId: { project_id },
+    cacheId: props.actions.getCacheId(),
   });
   const showHidden = useTypedRedux({ project_id }, "show_hidden");
   const showMasked = useTypedRedux({ project_id }, "show_masked");
@@ -164,6 +163,7 @@ function FileListing0({
         no_select={shiftIsDown}
         link_target={link_target}
         computeServerId={computeServerId}
+        listing={listing}
       />
     );
   }

@@ -55,6 +55,7 @@ interface Props {
   // if given, include a little 'server' tag in this color, and tooltip etc using id.
   // Also important for download and preview links!
   computeServerId?: number;
+  listing;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
@@ -356,6 +357,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
             current_path={props.current_path}
             actions={props.actions}
             style={{ verticalAlign: "sub", color: "#888" }}
+            listing={props.listing}
           />
         )}
       </Col>

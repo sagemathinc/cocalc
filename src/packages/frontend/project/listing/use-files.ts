@@ -178,3 +178,13 @@ async function cacheNeighbors({
   v = v.slice(0, MAX_SUBDIR_CACHE);
   await Promise.all(v.map(f));
 }
+
+export function getCacheId({
+  project_id,
+  compute_server_id = 0,
+}: {
+  project_id: string;
+  compute_server_id?: number;
+}) {
+  return { project_id, compute_server_id };
+}

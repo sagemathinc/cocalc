@@ -109,9 +109,11 @@ import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
 import { type FilesystemClient } from "@cocalc/conat/files/fs";
 import {
+  getCacheId,
   getFiles,
   type Files,
 } from "@cocalc/frontend/project/listing/use-files";
+import { map as awaitMap } from "awaiting";
 
 const { defaults, required } = misc;
 
@@ -1618,7 +1620,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Set the selected state of all files between the most_recent_file_click and the given file
-  set_selected_file_range(file: string, checked: boolean): void {
+  set_selected_file_range(file: string, checked: boolean, listing): void {
     let range;
     const store = this.get_store();
     if (store == undefined) {
@@ -1631,9 +1633,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       // get the range of files
       const current_path = store.get("current_path");
-      const names = store
-        .get("displayed_listing")
-        .listing.map((a) => misc.path_to_file(current_path, a.name));
+      const names = listing.map(({ name }) =>
+        misc.path_to_file(current_path, name),
+      );
       range = misc.get_array_range(names, most_recent, file);
     }
 
@@ -1898,22 +1900,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  // DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
-  private _convert_to_displayed_path(path): string {
-    if (path.slice(-1) === "/") {
-      return path;
-    } else {
-      const store = this.get_store();
-      const file_name = misc.path_split(path).tail;
-      if (store !== undefined && store.get("displayed_listing")) {
-        const file_data = store.get("displayed_listing").file_map[file_name];
-        if (file_data !== undefined && file_data.isdir) {
-          return path + "/";
-        }
+  private appendSlashToDirectoryPaths = async (
+    paths: string[],
+    compute_server_id?: number,
+  ): Promise<string[]> => {
+    const f = async (path: string) => {
+      if (path.endsWith("/")) {
+        return path;
       }
-      return path;
-    }
-  }
+      const isdir = this.isDirViaCache(path, compute_server_id);
+      if (isdir === false) {
+        return path;
+      }
+      if (isdir === true) {
+        return path + "/";
+      }
+      if (await this.isdir(path, compute_server_id)) {
+        return path + "/";
+      } else {
+        return path;
+      }
+    };
+    return await Promise.all(paths.map(f));
+  };
 
   // this is called in "projects.cjsx" (more then once)
   // in turn, it is calling init methods just once, though
@@ -2234,12 +2243,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       dest_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
     }); // true for duplicating files
 
-    const with_slashes = opts.src.map(this._convert_to_displayed_path);
+    const withSlashes = await this.appendSlashToDirectoryPaths(
+      opts.src,
+      opts.src_compute_server_id,
+    );
 
     this.log({
       event: "file_action",
       action: "copied",
-      files: with_slashes.slice(0, 3),
+      files: withSlashes.slice(0, 3),
       count: opts.src.length > 3 ? opts.src.length : undefined,
       dest: opts.dest + (opts.only_contents ? "" : "/"),
       ...(opts.src_compute_server_id != opts.dest_compute_server_id
@@ -2253,7 +2265,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
 
     if (opts.only_contents) {
-      opts.src = with_slashes;
+      opts.src = withSlashes;
     }
 
     // If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
@@ -2341,17 +2353,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   };
 
-  copy_paths_between_projects(opts) {
-    opts = defaults(opts, {
-      public: false,
-      src_project_id: required, // id of source project
-      src: required, // list of relative paths of directories or files in the source project
-      target_project_id: required, // id of target project
-      target_path: undefined, // defaults to src_path
-      overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
-      delete_missing: false, // delete files in dest that are missing from source (destructive)
-      backup: false, // make ~ backup files instead of overwriting changed files
-    });
+  copy_paths_between_projects = async (opts: {
+    public: boolean;
+    // id of source project
+    src_project_id: string;
+    // list of relative paths of directories or files in the source project
+    src: string[];
+    // id of target project
+    target_project_id: string;
+    // defaults to src_path
+    target_path?: string;
+    // overwrite newer versions of file at destination (destructive)
+    overwrite_newer?: boolean;
+    // delete files in dest that are missing from source (destructive)
+    delete_missing?: boolean;
+    // make ~ backup files instead of overwriting changed files
+    backup?: boolean;
+  }) => {
     const id = misc.uuid();
     this.set_activity({
       id,
@@ -2361,8 +2379,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       )} to a project`,
     });
     const { src } = opts;
-    delete opts.src;
-    const with_slashes = src.map(this._convert_to_displayed_path);
+    const withSlashes = await this.appendSlashToDirectoryPaths(src);
     let dest: string | undefined = undefined;
     if (opts.target_path != null) {
       dest = opts.target_path;
@@ -2374,13 +2391,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       event: "file_action",
       action: "copied",
       dest,
-      files: with_slashes.slice(0, 3),
+      files: withSlashes.slice(0, 3),
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,
     });
-    const f = async (src_path, cb) => {
-      const opts0 = misc.copy(opts);
-      delete opts0.cb;
+    const f = async (src_path) => {
+      const opts0: any = misc.copy(opts);
+      delete opts0.src;
       opts0.src_path = src_path;
       // we do this for consistent semantics with file copy
       opts0.target_path = misc.path_to_file(
@@ -2388,15 +2405,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         misc.path_split(src_path).tail,
       );
       opts0.timeout = 90 * 1000;
-      try {
-        await webapp_client.project_client.copy_path_between_projects(opts0);
-        cb();
-      } catch (err) {
-        cb(err);
-      }
+      await webapp_client.project_client.copy_path_between_projects(opts0);
     };
-    async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
-  }
+    await awaitMap(src, 5, f);
+    this._finish_exec(id);
+  };
 
   public async rename_file(opts: {
     src: string;
@@ -2456,19 +2469,56 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (path == null) {
       return null;
     }
-    // todo: compute_server_id here and in place that does useListing!
-    return getFiles({ cacheId: { project_id: this.project_id }, path });
+    return this.getFilesCache(path);
+  };
+
+  private getCacheId = (compute_server_id?: number) => {
+    return getCacheId({
+      project_id: this.project_id,
+      compute_server_id:
+        compute_server_id ?? this.get_store()?.get("compute_server_id") ?? 0,
+    });
+  };
+
+  private getFilesCache = (
+    path: string,
+    compute_server_id?: number,
+  ): Files | null => {
+    return getFiles({
+      cacheId: this.getCacheId(compute_server_id),
+      path,
+    });
+  };
+
+  // using listings cache, attempt to tell if path is a directory;
+  // undefined if no data about path in the cache.
+  isDirViaCache = (
+    path: string,
+    compute_server_id?: number,
+  ): boolean | undefined => {
+    if (!path) {
+      return true;
+    }
+    const { head: dir, tail: base } = misc.path_split(path);
+    const files = this.getFilesCache(dir, compute_server_id);
+    const data = files?.[base];
+    if (data == null) {
+      return undefined;
+    } else {
+      return !!data.isdir;
+    }
   };
 
   // return true if exists and is a directory
-  isdir = async (path: string): Promise<boolean> => {
+  // error if doesn't exist or can't find out.
+  // Use isDirViaCache for more of a fast hint.
+  isdir = async (
+    path: string,
+    compute_server_id?: number,
+  ): Promise<boolean> => {
     if (path == "") return true; // easy special case
-    try {
-      const stats = await this.fs().stat(path);
-      return stats.isDirectory();
-    } catch (_) {
-      return false;
-    }
+    const stats = await this.fs(compute_server_id).stat(path);
+    return stats.isDirectory();
   };
 
   public async move_files(opts: {
