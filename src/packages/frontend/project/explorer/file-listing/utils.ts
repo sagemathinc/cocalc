@@ -48,9 +48,7 @@ export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "sage-chat",
 ]);
 
-export function default_ext(
-  disabled_ext: { includes: (s: string) => boolean } | undefined
-): Extension {
+export function default_ext(disabled_ext: string[] | undefined): Extension {
   if (disabled_ext != null) {
     for (const ext of EXTs) {
       if (disabled_ext.includes(ext)) continue;
@@ -79,7 +77,7 @@ export function full_path_text(file_search: string, disabled_ext: string[]) {
 export function generate_click_for(
   file_action_name: string,
   full_path: string,
-  project_actions: ProjectActions
+  project_actions: ProjectActions,
 ) {
   return (e) => {
     e.preventDefault();

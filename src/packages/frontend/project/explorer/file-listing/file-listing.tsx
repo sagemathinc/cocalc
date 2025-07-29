@@ -13,10 +13,10 @@ import { useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import {
-  AppRedux,
   Rendered,
   TypedMap,
   useTypedRedux,
+  redux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
@@ -36,7 +36,6 @@ import filterListing from "@cocalc/frontend/project/listing/filter-listing";
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
   actions: ProjectActions;
-  redux: AppRedux;
 
   name: string;
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
@@ -46,15 +45,8 @@ interface Props {
   current_path: string;
   project_id: string;
   shift_is_down: boolean;
-  sort_by: (heading: string) => void;
-  library?: object;
-  other_settings?: immutable.Map<any, any>;
-  last_scroll_top?: number;
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
-
-  show_hidden?: boolean;
-  show_masked?: boolean;
 
   stale?: boolean;
 
@@ -82,21 +74,26 @@ function sortDesc(active_file_sort?): {
 }
 
 export function FileListing(props) {
+  const { project_id } = props;
+  const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
   const path = props.current_path;
-  const fs = useFs({ project_id: props.project_id });
+  const fs = useFs({ project_id });
   let { listing, error } = useListing({
     fs,
     path,
     ...sortDesc(props.active_file_sort),
-    cacheId: { project_id: props.project_id },
+    cacheId: { project_id },
   });
+  const showHidden = useTypedRedux({ project_id }, "show_hidden");
+  const showMasked = useTypedRedux({ project_id }, "show_masked");
 
   props.listingRef.current = listing = error
     ? null
     : filterListing({
         listing,
         search: props.file_search,
-        showHidden: props.show_hidden,
+        showHidden,
+        showMasked,
       });
 
   useEffect(() => {
@@ -109,12 +106,11 @@ export function FileListing(props) {
   if (listing == null) {
     return <Spin delay={500} />;
   }
-  return <FileListing0 {...{ ...props, listing }} />;
+  return <FileListing0 {...{ ...props, listing, active_file_sort }} />;
 }
 
 function FileListing0({
   actions,
-  redux,
   name,
   active_file_sort,
   listing,
@@ -122,7 +118,6 @@ function FileListing0({
   current_path,
   project_id,
   shift_is_down,
-  sort_by,
   configuration_main,
   file_search = "",
   stale,
@@ -276,7 +271,10 @@ function FileListing0({
           flexDirection: "column",
         }}
       >
-        <ListingHeader active_file_sort={active_file_sort} sort_by={sort_by} />
+        <ListingHeader
+          active_file_sort={active_file_sort}
+          sort_by={actions.set_sorted_file_column}
+        />
         {listing.length > 0 ? render_rows() : render_no_files()}
       </div>
     </>

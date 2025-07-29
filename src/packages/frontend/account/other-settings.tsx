@@ -320,24 +320,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function render_page_size(): Rendered {
-    return (
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.other-settings._page_size.label",
-          defaultMessage: "Number of files per page",
-        })}
-      >
-        <NumberInput
-          on_change={(n) => on_change("page_size", n)}
-          min={1}
-          max={10000}
-          number={props.other_settings.get("page_size")}
-        />
-      </LabeledRow>
-    );
-  }
-
   function render_no_free_warnings(): Rendered {
     let extra;
     if (!props.is_stripe_customer) {
@@ -714,7 +696,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {render_vertical_fixed_bar_options()}
         {render_new_filenames()}
         {render_default_file_sort()}
-        {render_page_size()}
         {render_standby_timeout()}
         <div style={{ height: "10px" }} />
         <Tours />

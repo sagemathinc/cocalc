@@ -23,13 +23,12 @@ interface Props {
 
 // This path consists of several PathSegmentLinks
 export const PathNavigator: React.FC<Props> = React.memo(
-  (props: Readonly<Props>) => {
-    const {
-      project_id,
-      style,
-      className = "cc-path-navigator",
-      mode = "files",
-    } = props;
+  ({
+    project_id,
+    style,
+    className = "cc-path-navigator",
+    mode = "files",
+  }: Readonly<Props>) => {
     const current_path = useTypedRedux({ project_id }, "current_path");
     const history_path = useTypedRedux({ project_id }, "history_path");
     const actions = useActions({ project_id });

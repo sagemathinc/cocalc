@@ -10,7 +10,6 @@ import { DropdownMenu, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { COLORS } from "@cocalc/util/theme";
-import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
 
 const { file_options } = require("@cocalc/frontend/editor");
@@ -21,21 +20,18 @@ interface Props {
   actions: ProjectActions;
   create_folder: (switch_over?: boolean) => void;
   create_file: (ext?: string, switch_over?: boolean) => void;
-  configuration?: Configuration;
+  configuration?;
   disabled: boolean;
 }
 
-export const NewButton: React.FC<Props> = (props: Props) => {
-  const {
-    file_search = "",
-    /*current_path,*/
-    actions,
-    create_folder,
-    create_file,
-    configuration,
-    disabled,
-  } = props;
-
+export const NewButton: React.FC<Props> = ({
+  file_search = "",
+  actions,
+  create_folder,
+  create_file,
+  configuration,
+  disabled,
+}: Props) => {
   const intl = useIntl();
 
   function new_file_button_types() {
