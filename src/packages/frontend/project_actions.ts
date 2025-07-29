@@ -2472,7 +2472,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return this.getFilesCache(path);
   };
 
-  private getCacheId = (compute_server_id?: number) => {
+  getCacheId = (compute_server_id?: number) => {
     return getCacheId({
       project_id: this.project_id,
       compute_server_id:

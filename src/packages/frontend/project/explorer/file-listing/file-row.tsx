@@ -38,7 +38,7 @@ export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
 interface Props {
   isdir: boolean;
   name: string;
-  display_name: string; // if given, will display this, and will show true filename in popover
+  display_name?: string; // if given, will display this, and will show true filename in popover
   size: number; // sometimes is NOT known!
   time: number;
   issymlink: boolean;
@@ -46,7 +46,6 @@ interface Props {
   selected: boolean;
   color: string;
   mask: boolean;
-  public_data: object;
   is_public: boolean;
   current_path: string;
   actions: ProjectActions;
@@ -211,7 +210,9 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         explicit: true,
       });
       if (foreground) {
-        props.actions.set_file_search("");
+        // delay slightly since it looks weird to see the full listing right when you click on a file
+        const actions = props.actions;
+        setTimeout(() => actions.set_file_search(""), 10);
       }
     }
   }

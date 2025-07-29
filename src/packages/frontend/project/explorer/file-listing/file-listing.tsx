@@ -26,19 +26,12 @@ import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
 import { TERM_MODE_CHAR } from "./utils";
-import ShowError from "@cocalc/frontend/components/error";
-import useFs from "@cocalc/frontend/project/listing/use-fs";
-import useListing, {
-  type SortField,
-} from "@cocalc/frontend/project/listing/use-listing";
-import filterListing from "@cocalc/frontend/project/listing/filter-listing";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 
 interface Props {
   actions: ProjectActions;
-
-  name: string;
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
-  listing: any[];
+  listing: DirectoryListingEntry[];
   file_search: string;
   checked_files: immutable.Set<string>;
   current_path: string;
@@ -46,72 +39,11 @@ interface Props {
   shiftIsDown: boolean;
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
-
   stale?: boolean;
-
-  listingRef;
 }
 
-function sortDesc(active_file_sort?): {
-  sortField: SortField;
-  sortDirection: "asc" | "desc";
-} {
-  const { column_name, is_descending } = active_file_sort?.toJS() ?? {
-    column_name: "name",
-    is_descending: false,
-  };
-  if (column_name == "time") {
-    return {
-      sortField: "mtime",
-      sortDirection: is_descending ? "asc" : "desc",
-    };
-  }
-  return {
-    sortField: column_name,
-    sortDirection: is_descending ? "desc" : "asc",
-  };
-}
-
-export function FileListing(props) {
-  const { project_id } = props;
-  const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
-  const path = props.current_path;
-  const fs = useFs({ project_id });
-  let { listing, error } = useListing({
-    fs,
-    path,
-    ...sortDesc(props.active_file_sort),
-    cacheId: props.actions.getCacheId(),
-  });
-  const showHidden = useTypedRedux({ project_id }, "show_hidden");
-  const showMasked = useTypedRedux({ project_id }, "show_masked");
-
-  props.listingRef.current = listing = error
-    ? null
-    : filterListing({
-        listing,
-        search: props.file_search,
-        showHidden,
-        showMasked,
-      });
-
-  useEffect(() => {
-    props.actions.setState({ numDisplayedFiles: listing?.length ?? 0 });
-  }, [listing?.length]);
-
-  if (error) {
-    return <ShowError error={error} />;
-  }
-  if (listing == null) {
-    return <Spin delay={500} />;
-  }
-  return <FileListing0 {...{ ...props, listing, active_file_sort }} />;
-}
-
-function FileListing0({
+export function FileListing({
   actions,
-  name,
-  active_file_sort,
   listing,
   checked_files,
   current_path,
@@ -120,11 +52,12 @@ function FileListing0({
   configuration_main,
   file_search = "",
   stale,
-  // show_masked,
 }: Props) {
+  const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
   const selected_file_index =
     useTypedRedux({ project_id }, "selected_file_index") ?? 0;
+  const name = actions.name;
 
   function render_row(
     name,
@@ -132,8 +65,6 @@ function FileListing0({
     time,
     mask,
     isdir,
-    display_name,
-    public_data,
     issymlink,
     index: number,
     link_target?: string, // if given, is a known symlink to this file
@@ -145,7 +76,6 @@ function FileListing0({
       <FileRow
         isdir={isdir}
         name={name}
-        display_name={display_name}
         time={time}
         size={isdir ? undefined : size}
         issymlink={issymlink}
@@ -154,7 +84,6 @@ function FileListing0({
           index == selected_file_index && file_search[0] != TERM_MODE_CHAR
         }
         mask={mask}
-        public_data={public_data}
         is_public={false}
         checked={checked}
         key={index}
@@ -189,6 +118,10 @@ function FileListing0({
     lastSelectedFileIndexRef.current = selected_file_index;
   }, [selected_file_index]);
 
+  if (listing == null) {
+    return <Spin delay={500} />;
+  }
+
   function render_rows(): Rendered {
     return (
       <Virtuoso
@@ -207,8 +140,6 @@ function FileListing0({
             a.mtime,
             a.mask,
             a.isdir,
-            a.display_name,
-            a.public,
             a.issymlink,
             index,
             a.link_target,

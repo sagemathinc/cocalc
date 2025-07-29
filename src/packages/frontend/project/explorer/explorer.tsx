@@ -34,6 +34,13 @@ import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { dirname, join } from "path";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import useFs from "@cocalc/frontend/project/listing/use-fs";
+import useListing, {
+  type SortField,
+} from "@cocalc/frontend/project/listing/use-listing";
+import filterListing from "@cocalc/frontend/project/listing/filter-listing";
+import ShowError from "@cocalc/frontend/components/error";
+import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 
 const FLEX_ROW_STYLE = {
   display: "flex",
@@ -51,14 +58,34 @@ const ERROR_STYLE: CSSProperties = {
   boxShadow: "5px 5px 5px grey",
 } as const;
 
+function sortDesc(active_file_sort?): {
+  sortField: SortField;
+  sortDirection: "asc" | "desc";
+} {
+  const { column_name, is_descending } = active_file_sort?.toJS() ?? {
+    column_name: "name",
+    is_descending: false,
+  };
+  if (column_name == "time") {
+    return {
+      sortField: "mtime",
+      sortDirection: is_descending ? "asc" : "desc",
+    };
+  }
+  return {
+    sortField: column_name,
+    sortDirection: is_descending ? "desc" : "asc",
+  };
+}
+
 export function Explorer() {
   const { actions, project_id } = useProjectContext();
+
   const newFileRef = useRef<any>(null);
   const searchAndTerminalBar = useRef<any>(null);
   const fileListingRef = useRef<any>(null);
   const currentDirectoryRef = useRef<any>(null);
   const miscButtonsRef = useRef<any>(null);
-  const listingRef = useRef<any>(null);
 
   const activity = useTypedRedux({ project_id }, "activity")?.toJS();
   const available_features = useTypedRedux(
@@ -76,7 +103,7 @@ export function Explorer() {
     { project_id },
     "file_creation_error",
   );
-  const file_search = useTypedRedux({ project_id }, "file_search");
+  const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const show_custom_software_reset = useTypedRedux(
     { project_id },
     "show_custom_software_reset",
@@ -87,6 +114,34 @@ export function Explorer() {
   const project_map = useTypedRedux("projects", "project_map");
 
   const images = useTypedRedux("compute_images", "images");
+
+  const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
+  const fs = useFs({ project_id });
+  let { listing, error: listingError } = useListing({
+    fs,
+    path: current_path,
+    ...sortDesc(active_file_sort),
+    cacheId: actions?.getCacheId(compute_server_id),
+  });
+  const showHidden = useTypedRedux({ project_id }, "show_hidden");
+  const showMasked = useTypedRedux({ project_id }, "show_masked");
+
+  listing = listingError
+    ? null
+    : filterListing({
+        listing,
+        search: file_search,
+        showHidden,
+        showMasked,
+      });
+
+  useEffect(() => {
+    actions?.setState({ numDisplayedFiles: listing?.length ?? 0 });
+  }, [listing?.length]);
+
+  if (listingError) {
+    return <ShowError error={error} />;
+  }
 
   if (actions == null || project_map == null) {
     return <Loading />;
@@ -108,7 +163,7 @@ export function Explorer() {
       } else if (e.key == "Enter") {
         const n =
           redux.getProjectStore(project_id).get("selected_file_index") ?? 0;
-        const x = listingRef.current?.[n];
+        const x = listing?.[n];
         if (x != null) {
           const { isdir, name } = x;
           const path = join(current_path, name);
@@ -118,7 +173,7 @@ export function Explorer() {
             actions.open_file({ path, foreground: !e.ctrlKey });
           }
           if (!e.ctrlKey) {
-            actions.set_file_search("");
+            setTimeout(() => actions.set_file_search(""), 10);
             actions.clear_selected_file_index();
           }
         }
@@ -314,18 +369,20 @@ export function Explorer() {
               minWidth: "20em",
             }}
           >
-            <ActionBar
-              listing={[] /* TODO */}
-              project_id={project_id}
-              checked_files={checked_files}
-              current_path={current_path}
-              project_map={project_map}
-              images={images}
-              actions={actions}
-              available_features={available_features}
-              show_custom_software_reset={show_custom_software_reset}
-              project_is_running={project_is_running}
-            />
+            {listing != null && (
+              <ActionBar
+                listing={listing}
+                project_id={project_id}
+                checked_files={checked_files}
+                current_path={current_path}
+                project_map={project_map}
+                images={images}
+                actions={actions}
+                available_features={available_features}
+                show_custom_software_reset={show_custom_software_reset}
+                project_is_running={project_is_running}
+              />
+            )}
           </div>
           <div
             ref={miscButtonsRef}
@@ -413,19 +470,23 @@ export function Explorer() {
           }}
           className="smc-vfill"
         >
-          <FileListing
-            listingRef={listingRef}
-            name={name}
-            file_search={file_search}
-            checked_files={checked_files}
-            current_path={current_path}
-            actions={actions}
-            create_file={create_file}
-            create_folder={create_folder}
-            project_id={project_id}
-            shiftIsDown={shiftIsDown}
-            configuration_main={configuration?.get("main")}
-          />
+          {listing == null ? (
+            <Loading delay={1000} />
+          ) : (
+            <FileListing
+              active_file_sort={active_file_sort}
+              listing={listing}
+              file_search={file_search}
+              checked_files={checked_files}
+              current_path={current_path}
+              actions={actions}
+              project_id={project_id}
+              shiftIsDown={shiftIsDown}
+              configuration_main={
+                configuration?.get("main") as MainConfiguration | undefined
+              }
+            />
+          )}
         </FileUploadWrapper>
       </div>
       <ExplorerTour

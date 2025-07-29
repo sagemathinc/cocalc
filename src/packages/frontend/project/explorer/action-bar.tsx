@@ -19,6 +19,7 @@ import { file_actions, type ProjectActions } from "@cocalc/frontend/project_stor
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -29,7 +30,7 @@ const ROW_INFO_STYLE = {
 interface Props {
   project_id?: string;
   checked_files: immutable.Set<string>;
-  listing: { name: string; isdir: boolean }[];
+  listing: DirectoryListingEntry[];
   current_path?: string;
   project_map?;
   images?: ComputeImages;
