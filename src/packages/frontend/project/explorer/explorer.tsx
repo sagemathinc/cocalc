@@ -47,7 +47,7 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import ShowError from "@cocalc/frontend/components/error";
-import { join } from "path";
+import { dirname, join } from "path";
 
 const FLEX_ROW_STYLE = {
   display: "flex",
@@ -223,7 +223,12 @@ const Explorer0 = rclass(
       if (e.key === "Shift") {
         this.setState({ shift_is_down: true });
       } else if (e.key == "ArrowUp") {
-        this.props.actions.decrement_selected_file_index();
+        if (e.shiftKey || e.ctrlKey || e.metaKey) {
+          const path = dirname(this.props.current_path);
+          this.props.actions.open_directory(path == "." ? "" : path);
+        } else {
+          this.props.actions.decrement_selected_file_index();
+        }
       } else if (e.key == "ArrowDown") {
         this.props.actions.increment_selected_file_index();
       } else if (e.key == "Enter") {
