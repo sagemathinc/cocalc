@@ -140,6 +140,9 @@ export function Explorer() {
   }, [listing?.length]);
 
   useEffect(() => {
+    if (listing == null) {
+      return;
+    }
     const handle_files_key_down = (e): void => {
       if (actions == null) {
         return;
@@ -187,7 +190,7 @@ export function Explorer() {
       $(window).off("keydown", handle_files_key_down);
       $(window).off("keyup", handle_files_key_up);
     };
-  }, [project_id, current_path]);
+  }, [project_id, current_path, listing]);
 
   if (listingError) {
     return <ShowError error={error} />;
