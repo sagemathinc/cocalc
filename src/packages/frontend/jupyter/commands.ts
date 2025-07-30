@@ -175,10 +175,7 @@ export function commands(actions: AllActions): {
 
     "change cell to code": {
       i: "code-outlined",
-      m: defineMessage({
-        id: "jupyter.commands.change_cell_to_code.label",
-        defaultMessage: "Change Cell to Code",
-      }),
+      m: jupyter.commands.change_cell_to_code,
       k: [{ which: 89, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("code"),
     },
@@ -239,21 +236,14 @@ export function commands(actions: AllActions): {
     },
 
     "change cell to markdown": {
-      m: defineMessage({
-        id: "jupyter.commands.change_cell_to_markdown.label",
-        defaultMessage: "Change Cell to Markdown",
-        description: "Cell in a Jupyter Notebook",
-      }),
+      m: jupyter.commands.change_cell_to_markdown,
+      i: "markdown",
       k: [{ which: 77, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("markdown"),
     },
 
     "change cell to raw": {
-      m: defineMessage({
-        id: "jupyter.commands.change_cell_to_row.label",
-        defaultMessage: "Change Cell to Raw",
-        description: "Cell in a Jupyter Notebook",
-      }),
+      m: jupyter.commands.change_cell_to_raw,
       k: [{ which: 82, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("raw"),
     },

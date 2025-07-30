@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "تغيير Markdown إلى Heading 5",
   "jupyter.commands.change_cell_to_heading_6.label": "تغيير Markdown إلى العنوان 6",
   "jupyter.commands.change_cell_to_markdown.label": "تغيير الخلية إلى Markdown",
-  "jupyter.commands.change_cell_to_row.label": "تغيير الخلية إلى خام",
+  "jupyter.commands.change_cell_to_raw.label": "تغيير الخلية إلى خام",
   "jupyter.commands.change_kernel": "تغيير النواة...",
   "jupyter.commands.change_kernel_title": "اختر من أي من النوى المتاحة",
   "jupyter.commands.clear_all_cells_output.label": "مسح جميع مخرجات الخلايا",

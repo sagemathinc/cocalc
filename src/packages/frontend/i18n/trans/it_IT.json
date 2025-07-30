@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Cambia Markdown in Intestazione 5",
   "jupyter.commands.change_cell_to_heading_6.label": "Cambia Markdown in Intestazione 6",
   "jupyter.commands.change_cell_to_markdown.label": "Cambia cella in Markdown",
-  "jupyter.commands.change_cell_to_row.label": "Cambia Celle in Grezzo",
+  "jupyter.commands.change_cell_to_raw.label": "Cambia Celle in Grezzo",
   "jupyter.commands.change_kernel": "Cambia Kernel...",
   "jupyter.commands.change_kernel_title": "Seleziona da uno dei kernel disponibili.",
   "jupyter.commands.clear_all_cells_output.label": "Cancella tutti gli output delle celle",

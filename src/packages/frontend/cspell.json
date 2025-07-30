@@ -41,7 +41,8 @@
     "timetravel",
     "tolerations",
     "undelete",
-    "undeleting"
+    "undeleting",
+    "revealjs"
   ],
   "ignoreWords": [
     "antd",
@@ -64,7 +65,9 @@
     "vertexai",
     "vfill",
     "xsmall",
-    "flyouts"
+    "flyouts",
+    "buttonbar",
+    "noconf"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],

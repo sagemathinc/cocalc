@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Mudar Markdown para Título 5",
   "jupyter.commands.change_cell_to_heading_6.label": "Mudar Markdown para Título 6",
   "jupyter.commands.change_cell_to_markdown.label": "Mudar Célula para Markdown",
-  "jupyter.commands.change_cell_to_row.label": "Mudar Célula para Bruto",
+  "jupyter.commands.change_cell_to_raw.label": "Mudar Célula para Bruto",
   "jupyter.commands.change_kernel": "Mudar Kernel...",
   "jupyter.commands.change_kernel_title": "Selecione a partir de qualquer um dos kernels disponíveis.",
   "jupyter.commands.clear_all_cells_output.label": "Limpar Todas as Saídas das Células",

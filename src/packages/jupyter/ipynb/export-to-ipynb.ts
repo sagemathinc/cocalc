@@ -7,9 +7,8 @@
 Exporting from our in-memory sync-friendly format to ipynb
 */
 
-import { deep_copy, keys, filename_extension } from "@cocalc/util/misc";
-
-type CellType = "code" | "markdown" | "raw";
+import { CellType } from "@cocalc/util/jupyter/types";
+import { deep_copy, filename_extension, keys } from "@cocalc/util/misc";
 
 type Tags = { [key: string]: boolean };
 

@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Markdown'ı Başlık 5'e Değiştir",
   "jupyter.commands.change_cell_to_heading_6.label": "Markdown'u Başlık 6'ya Değiştir",
   "jupyter.commands.change_cell_to_markdown.label": "Hücreyi Markdown'a Değiştir",
-  "jupyter.commands.change_cell_to_row.label": "Hücreyi Ham Yap",
+  "jupyter.commands.change_cell_to_raw.label": "Hücreyi Ham Yap",
   "jupyter.commands.change_kernel": "Çekirdeği Değiştir...",
   "jupyter.commands.change_kernel_title": "Mevcut çekirdeklerden herhangi birini seçin.",
   "jupyter.commands.clear_all_cells_output.label": "Tüm Hücre Çıktılarını Temizle",
