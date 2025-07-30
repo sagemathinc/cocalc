@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Cambiar Markdown a Encabezado 5",
   "jupyter.commands.change_cell_to_heading_6.label": "Cambiar Markdown a Encabezado 6",
   "jupyter.commands.change_cell_to_markdown.label": "Cambiar Celda a Markdown",
-  "jupyter.commands.change_cell_to_row.label": "Cambiar Celda a Raw",
+  "jupyter.commands.change_cell_to_raw.label": "Cambiar Celda a Raw",
   "jupyter.commands.change_kernel": "Cambiar Kernel...",
   "jupyter.commands.change_kernel_title": "Seleccionar de cualquiera de los kernels disponibles",
   "jupyter.commands.clear_all_cells_output.label": "Borrar todas las salidas de celdas",

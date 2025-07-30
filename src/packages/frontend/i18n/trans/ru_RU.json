@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Изменить Markdown на Заголовок 5",
   "jupyter.commands.change_cell_to_heading_6.label": "Изменить Markdown на Заголовок 6",
   "jupyter.commands.change_cell_to_markdown.label": "Изменить ячейку на Markdown",
-  "jupyter.commands.change_cell_to_row.label": "Изменить ячейку на Raw",
+  "jupyter.commands.change_cell_to_raw.label": "Изменить ячейку на Raw",
   "jupyter.commands.change_kernel": "Изменить ядро...",
   "jupyter.commands.change_kernel_title": "Выберите любой из доступных ядер.",
   "jupyter.commands.clear_all_cells_output.label": "Очистить все выводы ячеек",

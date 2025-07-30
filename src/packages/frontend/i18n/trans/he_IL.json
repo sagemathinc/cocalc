@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "שנה את Markdown לכותרת 5",
   "jupyter.commands.change_cell_to_heading_6.label": "שנה את Markdown לכותרת 6",
   "jupyter.commands.change_cell_to_markdown.label": "שנה תא למרקדאון",
-  "jupyter.commands.change_cell_to_row.label": "שנה תא לתא גולמי",
+  "jupyter.commands.change_cell_to_raw.label": "שנה תא לתא גולמי",
   "jupyter.commands.change_kernel": "שנה קרנל...",
   "jupyter.commands.change_kernel_title": "בחר מתוך כל הליבות הזמינות",
   "jupyter.commands.clear_all_cells_output.label": "נקה את כל הפלטים של התאים",

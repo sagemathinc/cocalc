@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "Zmień Markdown na Nagłówek 5",
   "jupyter.commands.change_cell_to_heading_6.label": "Zmień Markdown na Nagłówek 6",
   "jupyter.commands.change_cell_to_markdown.label": "Zmień komórkę na Markdown",
-  "jupyter.commands.change_cell_to_row.label": "Zmień komórkę na surową",
+  "jupyter.commands.change_cell_to_raw.label": "Zmień komórkę na surową",
   "jupyter.commands.change_kernel": "Zmień Kernel...",
   "jupyter.commands.change_kernel_title": "Wybierz z dowolnego dostępnego jądra.",
   "jupyter.commands.clear_all_cells_output.label": "Wyczyść wszystkie wyniki komórek",

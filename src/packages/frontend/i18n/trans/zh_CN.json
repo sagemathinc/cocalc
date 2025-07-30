@@ -664,7 +664,7 @@
   "jupyter.commands.change_cell_to_heading_5.label": "将Markdown更改为标题5",
   "jupyter.commands.change_cell_to_heading_6.label": "将 Markdown 更改为标题 6",
   "jupyter.commands.change_cell_to_markdown.label": "更改单元格为Markdown",
-  "jupyter.commands.change_cell_to_row.label": "将单元格更改为原始",
+  "jupyter.commands.change_cell_to_raw.label": "将单元格更改为原始",
   "jupyter.commands.change_kernel": "更改内核...",
   "jupyter.commands.change_kernel_title": "从任何可用的内核中选择",
   "jupyter.commands.clear_all_cells_output.label": "清除所有单元格输出",

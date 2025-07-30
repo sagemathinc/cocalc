@@ -1280,6 +1280,20 @@ export const jupyter = {
       defaultMessage: "None",
       description: "Jupyter Notebook cell toolbar 'None' hides the toolbar",
     },
+    change_cell_to_code: {
+      id: "jupyter.commands.change_cell_to_code.label",
+      defaultMessage: "Change Cell to Code",
+    },
+    change_cell_to_markdown: {
+      id: "jupyter.commands.change_cell_to_markdown.label",
+      defaultMessage: "Change Cell to Markdown",
+      description: "Cell in a Jupyter Notebook",
+    },
+    change_cell_to_raw: {
+      id: "jupyter.commands.change_cell_to_raw.label",
+      defaultMessage: "Change Cell to Raw",
+      description: "Cell in a Jupyter Notebook",
+    },
     restart_kernel_noconf_menu: {
       id: "jupyter.commands.restart_kernel_noconf.menu",
       defaultMessage: "Restart kernel",
