@@ -274,6 +274,7 @@ export const SearchBar = memo(
           on_submit={search_submit}
           on_clear={on_clear}
           disabled={disabled || !!ext_selection}
+          focus={current_path}
         />
         {render_file_creation_error()}
         {render_help_info()}

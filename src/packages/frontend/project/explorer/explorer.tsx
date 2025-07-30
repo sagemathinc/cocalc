@@ -159,6 +159,10 @@ export function Explorer() {
       } else if (e.key == "ArrowDown") {
         actions.increment_selected_file_index();
       } else if (e.key == "Enter") {
+        if (file_search.startsWith("/")) {
+          // running a terminal command
+          return;
+        }
         const n =
           redux.getProjectStore(project_id).get("selected_file_index") ?? 0;
         const x = listing?.[n];

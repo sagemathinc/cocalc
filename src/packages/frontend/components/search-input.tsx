@@ -10,13 +10,7 @@
 */
 
 import { Input, InputRef } from "antd";
-
-import {
-  React,
-  useEffect,
-  useRef,
-  useState,
-} from "@cocalc/frontend/app-framework";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 
 interface Props {
   size?;
@@ -31,21 +25,37 @@ interface Props {
   on_down?: () => void;
   on_up?: () => void;
   on_escape?: (value: string) => void;
-  style?: React.CSSProperties;
-  input_class?: string;
+  style?: CSSProperties;
   autoFocus?: boolean;
   autoSelect?: boolean;
   placeholder?: string;
-  focus?: number; // if this changes, focus the search box.
+  focus?; // if this changes, focus the search box.
   status?: "warning" | "error";
 }
 
-export const SearchInput: React.FC<Props> = React.memo((props) => {
-  const [value, setValue] = useState<string>(
-    props.value ?? props.default_value ?? "",
-  );
+export function SearchInput({
+  size,
+  default_value,
+  value: value0,
+  on_change,
+  on_clear,
+  on_submit,
+  buttonAfter,
+  disabled,
+  clear_on_submit,
+  on_down,
+  on_up,
+  on_escape,
+  style,
+  autoFocus,
+  autoSelect,
+  placeholder,
+  focus,
+  status,
+}: Props) {
+  const [value, setValue] = useState<string>(value0 ?? default_value ?? "");
   // if value changes, we update as well!
-  useEffect(() => setValue(props.value ?? ""), [props.value]);
+  useEffect(() => setValue(value ?? ""), [value]);
 
   const [ctrl_down, set_ctrl_down] = useState<boolean>(false);
   const [shift_down, set_shift_down] = useState<boolean>(false);
@@ -53,7 +63,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   const input_ref = useRef<InputRef>(null);
 
   useEffect(() => {
-    if (props.autoSelect && input_ref.current) {
+    if (autoSelect && input_ref.current) {
       try {
         input_ref.current?.select();
       } catch (_) {}
@@ -71,20 +81,20 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
 
   function clear_value(): void {
     setValue("");
-    props.on_change?.("", get_opts());
-    props.on_clear?.();
+    on_change?.("", get_opts());
+    on_clear?.();
   }
 
   function submit(e?): void {
     if (e != null) {
       e.preventDefault();
     }
-    if (typeof props.on_submit === "function") {
-      props.on_submit(value, get_opts());
+    if (typeof on_submit === "function") {
+      on_submit(value, get_opts());
     }
-    if (props.clear_on_submit) {
+    if (clear_on_submit) {
       clear_value();
-      props.on_change?.(value, get_opts());
+      on_change?.(value, get_opts());
     }
   }
 
@@ -94,10 +104,10 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
         escape();
         break;
       case 40:
-        props.on_down?.();
+        on_down?.();
         break;
       case 38:
-        props.on_up?.();
+        on_up?.();
         break;
       case 17:
         set_ctrl_down(true);
@@ -120,35 +130,35 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }
 
   function escape(): void {
-    if (typeof props.on_escape === "function") {
-      props.on_escape(value);
+    if (typeof on_escape === "function") {
+      on_escape(value);
     }
     clear_value();
   }
 
   return (
     <Input.Search
-      size={props.size}
+      size={size}
       allowClear
-      style={{ minWidth: "150px", ...props.style }}
+      style={{ minWidth: "150px", ...style }}
       cocalc-test="search-input"
-      autoFocus={props.autoFocus}
+      autoFocus={autoFocus}
       ref={input_ref}
       type="text"
-      placeholder={props.placeholder}
+      placeholder={placeholder}
       value={value}
       onChange={(e) => {
         e.preventDefault();
         const value = e.target?.value ?? "";
         setValue(value);
-        props.on_change?.(value, get_opts());
+        on_change?.(value, get_opts());
         if (!value) clear_value();
       }}
       onKeyDown={key_down}
       onKeyUp={key_up}
-      disabled={props.disabled}
-      enterButton={props.buttonAfter}
-      status={props.status}
+      disabled={disabled}
+      enterButton={buttonAfter}
+      status={status}
     />
   );
-});
+}
