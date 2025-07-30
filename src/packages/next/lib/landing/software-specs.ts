@@ -5,7 +5,6 @@
 
 import { keys, map, sortBy, zipObject } from "lodash";
 import { promises } from "node:fs";
-import { basename } from "node:path";
 
 import {
   SOFTWARE_ENV_NAMES,
@@ -137,9 +136,8 @@ async function getSoftwareSpec(name: SoftwareEnvNames): Promise<SoftwareSpec> {
     if (nextSpec[info.lang] == null) {
       nextSpec[info.lang] = {};
     }
-    // the basename of the cmd path
-    const base = cmd.indexOf(" ") > 0 ? cmd : basename(cmd);
-    nextSpec[info.lang][base] = {
+    // use the full command as key to avoid basename collisions
+    nextSpec[info.lang][cmd] = {
       cmd,
       name: info.name,
       doc: info.doc,
