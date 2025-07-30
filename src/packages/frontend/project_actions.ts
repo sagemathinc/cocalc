@@ -2407,8 +2407,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       opts0.timeout = 90 * 1000;
       await webapp_client.project_client.copy_path_between_projects(opts0);
     };
-    await awaitMap(src, 5, f);
-    this._finish_exec(id);
+    await awaitMap(withSlashes, 5, f);
+    this.set_activity({ id, stop: "" });
   };
 
   public async rename_file(opts: {
