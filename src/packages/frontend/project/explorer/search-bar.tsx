@@ -82,6 +82,10 @@ export const SearchBar = memo(
     );
 
     useEffect(() => {
+      actions.set_file_search("");
+    }, [current_path]);
+
+    useEffect(() => {
       if (cmd == null) return;
       const { input, id } = cmd;
       const input0 = input + '\necho $HOME "`pwd`"';

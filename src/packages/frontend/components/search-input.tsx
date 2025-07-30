@@ -55,7 +55,9 @@ export function SearchInput({
 }: Props) {
   const [value, setValue] = useState<string>(value0 ?? default_value ?? "");
   // if value changes, we update as well!
-  useEffect(() => setValue(value ?? ""), [value]);
+  useEffect(() => {
+    setValue(value0 ?? "");
+  }, [value0]);
 
   const [ctrl_down, set_ctrl_down] = useState<boolean>(false);
   const [shift_down, set_shift_down] = useState<boolean>(false);
