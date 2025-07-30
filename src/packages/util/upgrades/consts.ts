@@ -22,7 +22,7 @@ export const MIN_DISK_GB = DISK_DEFAULT_GB;
 
 interface Values {
   min: number;
-  dflt: number;
+  default: number;
   max: number;
 }
 
@@ -35,25 +35,25 @@ interface Limits {
 export const REGULAR: Limits = {
   cpu: {
     min: 1,
-    dflt: DEFAULT_CPU,
+    default: DEFAULT_CPU,
     max: MAX_CPU,
   },
   ram: {
     min: 4,
-    dflt: RAM_DEFAULT_GB,
+    default: RAM_DEFAULT_GB,
     max: MAX_RAM_GB,
   },
   disk: {
     min: MIN_DISK_GB,
-    dflt: DISK_DEFAULT_GB,
+    default: DISK_DEFAULT_GB,
     max: MAX_DISK_GB,
   },
 } as const;
 
 export const BOOST: Limits = {
-  cpu: { min: 0, dflt: 0, max: MAX_CPU - 1 },
-  ram: { min: 0, dflt: 0, max: MAX_RAM_GB - 1 },
-  disk: { min: 0, dflt: 0, max: MAX_DISK_GB - 1 * DISK_DEFAULT_GB },
+  cpu: { min: 0, default: 0, max: MAX_CPU - 1 },
+  ram: { min: 0, default: 0, max: MAX_RAM_GB - 1 },
+  disk: { min: 0, default: 0, max: MAX_DISK_GB - 1 * DISK_DEFAULT_GB },
 } as const;
 
 // on-prem: this dedicated VM machine name is only used for cocalc-onprem

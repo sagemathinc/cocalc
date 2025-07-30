@@ -22,7 +22,10 @@ import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
-import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
+import {
+  file_actions,
+  type ProjectActions,
+} from "@cocalc/frontend/project_store";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import ConfigureShare from "@cocalc/frontend/share/config";
 import * as misc from "@cocalc/util/misc";
@@ -550,8 +553,8 @@ export function ActionBox({
         path={path}
         compute_server_id={compute_server_id}
         close={cancel_action}
-        action_key={action_key}
-        set_public_path={(opts) => actions.set_public_path(path, opts)}
+        onKeyUp={action_key}
+        actions={actions}
         has_network_access={!!runQuota.network}
       />
     );

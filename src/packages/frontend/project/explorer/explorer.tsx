@@ -6,7 +6,13 @@
 import * as _ from "lodash";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   A,
   ActivityDisplay,
@@ -41,6 +47,10 @@ import useListing, {
 import filterListing from "@cocalc/frontend/project/listing/filter-listing";
 import ShowError from "@cocalc/frontend/components/error";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import {
+  getPublicFiles,
+  useStrippedPublicPaths,
+} from "@cocalc/frontend/project_store";
 
 const FLEX_ROW_STYLE = {
   display: "flex",
@@ -109,6 +119,7 @@ export function Explorer() {
     "show_custom_software_reset",
   );
   const show_library = useTypedRedux({ project_id }, "show_library");
+
   const [shiftIsDown, setShiftIsDown] = useState<boolean>(false);
 
   const project_map = useTypedRedux("projects", "project_map");
@@ -138,6 +149,15 @@ export function Explorer() {
   useEffect(() => {
     actions?.setState({ numDisplayedFiles: listing?.length ?? 0 });
   }, [listing?.length]);
+
+  // ensure that listing entries have isPublic set:
+  const strippedPublicPaths = useStrippedPublicPaths(project_id);
+  const publicFiles: Set<string> = useMemo(() => {
+    if (listing == null) {
+      return new Set<string>();
+    }
+    return getPublicFiles(listing, strippedPublicPaths, current_path);
+  }, [listing, current_path, strippedPublicPaths]);
 
   useEffect(() => {
     if (listing == null) {
@@ -497,6 +517,7 @@ export function Explorer() {
               configuration_main={
                 configuration?.get("main") as MainConfiguration | undefined
               }
+              publicFiles={publicFiles}
             />
           )}
         </FileUploadWrapper>

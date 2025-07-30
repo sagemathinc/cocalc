@@ -2922,13 +2922,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = client_db.sha1(project_id, path);
 
     const projects_store = redux.getStore("projects");
-    const dflt_compute_img = await redux
+    const defaultComputeImage = await redux
       .getStore("customize")
       .getDefaultComputeImage();
 
     const compute_image: string =
       projects_store.getIn(["project_map", project_id, "compute_image"]) ??
-      dflt_compute_img;
+      defaultComputeImage;
 
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | Map<string, any> = table._table.get(id);

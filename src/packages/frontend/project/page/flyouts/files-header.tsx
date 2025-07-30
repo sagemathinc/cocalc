@@ -72,6 +72,7 @@ interface Props {
   modeState: ["open" | "select", (mode: "open" | "select") => void];
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
+  publicFiles: Set<string>;
 }
 
 export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
@@ -95,6 +96,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     modeState,
     selectAllFiles,
     clearAllSelections,
+    publicFiles,
   } = props;
 
   const intl = useIntl();
@@ -316,7 +318,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           <FormattedMessage
             id="page.flyouts.files.stale-directory.description"
             defaultMessage={"To update, <A>start this project</A>."}
-            description={"to update the outdated information in a file directory listing of a project"}
+            description={
+              "to update the outdated information in a file directory listing of a project"
+            }
             values={{
               A: (c) => (
                 <a
@@ -352,6 +356,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           getFile={getFile}
           mode="top"
           activeFile={activeFile}
+          publicFiles={publicFiles}
         />
         <FilesSelectButtons
           setMode={setMode}

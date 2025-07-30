@@ -168,9 +168,8 @@ function VersionHint({ value }: { value: string }) {
 // The production site works differently.
 // TODO: make this a more sophisticated data editor.
 function JsonEntry({ name, data, readonly, onJsonEntryChange }) {
-  const jval = JSON.parse(data ?? "{}") ?? {};
-  const dflt = FIELD_DEFAULTS[name];
-  const quotas = { ...dflt, ...jval };
+  const jsonValue = JSON.parse(data ?? "{}") ?? {};
+  const quotas = { ...FIELD_DEFAULTS[name], ...jsonValue };
   const value = JSON.stringify(quotas);
   return (
     <JsonEditor

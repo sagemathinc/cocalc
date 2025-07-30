@@ -63,6 +63,7 @@ interface FilesBottomProps {
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
   getFile: (path: string) => DirectoryListingEntry | undefined;
+  publicFiles: Set<string>;
 }
 
 export function FilesBottom({
@@ -78,6 +79,7 @@ export function FilesBottom({
   showFileSharingDialog,
   getFile,
   directoryFiles,
+  publicFiles,
 }: FilesBottomProps) {
   const [mode, setMode] = modeState;
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -268,6 +270,7 @@ export function FilesBottom({
         getFile={getFile}
         mode="bottom"
         activeFile={activeFile}
+        publicFiles={publicFiles}
       />
     );
   }
@@ -309,7 +312,7 @@ export function FilesBottom({
       const name = singleFile.name;
       const iconName = singleFile.isDir
         ? "folder"
-        : file_options(name)?.icon ?? "file";
+        : (file_options(name)?.icon ?? "file");
       return (
         <div style={{ whiteSpace: "nowrap" }} title={name}>
           <Icon name={iconName} /> {trunc_middle(name, 20)}

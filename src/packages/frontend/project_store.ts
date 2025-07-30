@@ -16,7 +16,6 @@ if (typeof window !== "undefined" && window !== null) {
 }
 
 import * as immutable from "immutable";
-
 import {
   AppRedux,
   project_redux_name,
@@ -24,7 +23,9 @@ import {
   Store,
   Table,
   TypedMap,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useMemo } from "react";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
@@ -40,7 +41,7 @@ import {
   isMainConfiguration,
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
-import * as misc from "@cocalc/util/misc";
+import { containing_public_path, deep_copy } from "@cocalc/util/misc";
 import { FixedTab } from "./project/page/file-tab";
 import {
   FlyoutActiveMode,
@@ -54,7 +55,8 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
-
+import { type PublicPath } from "@cocalc/util/db-schema/public-paths";
+import { DirectoryListing } from "@cocalc/frontend/project/explorer/types";
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
 export type ModalInfo = TypedMap<{
@@ -71,7 +73,7 @@ export interface ProjectStoreState {
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
   just_closed_files: immutable.List<string>;
-  public_paths?: immutable.Map<string, immutable.Map<string, any>>;
+  public_paths?: immutable.Map<string, TypedMap<PublicPath>>;
 
   show_upload: boolean;
   create_file_alert: boolean;
@@ -145,7 +147,6 @@ export interface ProjectStoreState {
 
   // Project Settings
   get_public_path_id?: (path: string) => any;
-  stripped_public_paths: any; //computed(immutable.List)
 
   // Project Info
   show_project_info_explanation?: boolean;
@@ -330,8 +331,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       most_recent_path: "",
 
       // Project Settings
-      stripped_public_paths: this.selectors.stripped_public_paths.fn,
-
       other_settings: undefined,
 
       compute_server_id,
@@ -358,26 +357,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
             client_db,
           );
         };
-      },
-    },
-
-    stripped_public_paths: {
-      dependencies: ["public_paths"] as const,
-      fn: () => {
-        const public_paths = this.get("public_paths");
-        if (public_paths != null) {
-          return immutable.fromJS(
-            (() => {
-              const result: any[] = [];
-              const object = public_paths.toJS();
-              for (const id in object) {
-                const x = object[id];
-                result.push(misc.copy_without(x, ["id", "project_id"]));
-              }
-              return result;
-            })(),
-          );
-        }
       },
     },
   };
@@ -432,37 +411,41 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 }
 
-// Mutates data to include info on public paths.
-export function mutate_data_to_compute_public_files(
-  data,
-  public_paths,
-  current_path,
-) {
-  const { listing } = data;
-  const pub = data.public;
-  if (public_paths != null && public_paths.size > 0) {
-    const head = current_path ? current_path + "/" : "";
-    const paths: string[] = [];
-    const public_path_data = {};
-    for (const x of public_paths.toJS()) {
-      if (x.disabled) {
-        // Do not include disabled paths.  Otherwise, it causes this confusing bug:
-        //    https://github.com/sagemathinc/cocalc/issues/6159
-        continue;
-      }
-      public_path_data[x.path] = x;
-      paths.push(x.path);
-    }
-    for (const x of listing) {
-      const full = head + x.name;
-      const p = misc.containing_public_path(full, paths);
-      if (p != null) {
-        x.public = public_path_data[p];
-        x.is_public = !x.public.disabled;
-        pub[x.name] = public_path_data[p];
-      }
+// Returns set of paths that are public in the given
+// listing, because they are in a public folder or are themselves public.
+// This is used entirely to put an extra "public" label in the row of the file,
+// when displaying it in a listing.
+export function getPublicFiles(
+  listing: DirectoryListing,
+  public_paths: PublicPath[],
+  current_path: string,
+): Set<string> {
+  if ((public_paths?.length ?? 0) == 0) {
+    return new Set();
+  }
+  const paths = public_paths
+    .filter(({ disabled }) => !disabled)
+    .map(({ path }) => path);
+
+  if (paths.length == 0) {
+    return new Set();
+  }
+
+  const head = current_path ? current_path + "/" : "";
+  if (containing_public_path(current_path, paths)) {
+    // fast special case: *every* file is public
+    return new Set(listing.map(({ name }) => name));
+  }
+
+  // maybe some files are public?
+  const X = new Set<string>();
+  for (const file of listing) {
+    const full = head + file.name;
+    if (containing_public_path(full, paths) != null) {
+      X.add(file.name);
     }
   }
+  return X;
 }
 
 export function init(project_id: string, redux: AppRedux): ProjectStore {
@@ -486,7 +469,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   actions.project_id = project_id; // so actions can assume this is available on the object
   store._init();
 
-  const queries = misc.deep_copy(QUERIES);
+  const queries = deep_copy(QUERIES);
 
   const create_table = function (table_name, q) {
     //console.log("create_table", table_name)
@@ -542,4 +525,12 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   };
 
   return store;
+}
+
+export function useStrippedPublicPaths(project_id: string): PublicPath[] {
+  const public_paths = useTypedRedux({ project_id }, "public_paths");
+  return useMemo(() => {
+    const rows = public_paths?.valueSeq()?.toJS() ?? [];
+    return rows as unknown as PublicPath[];
+  }, [public_paths]);
 }

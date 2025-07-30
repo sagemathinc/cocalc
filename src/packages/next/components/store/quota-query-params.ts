@@ -138,10 +138,10 @@ function decodeValue(val): boolean | number | string | DateRange {
 
 function fixNumVal(
   val: any,
-  param: { min: number; max: number; dflt: number },
+  param: { min: number; max: number; default: number },
 ): number {
   if (typeof val !== "number") {
-    return param.dflt;
+    return param.default;
   } else {
     return clamp(val, param.min, param.max);
   }

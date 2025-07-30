@@ -200,34 +200,34 @@ class TestShMode:
 
 
 class TestShDefaultMode:
-    def test_start_sh_dflt(self, exec2):
+    def test_start_sh_default(self, exec2):
         exec2("%default_mode sh")
 
-    def test_multiline_dflt(self, exec2):
+    def test_multiline_default(self, exec2):
         exec2("FOO=hello\necho $FOO", pattern="^hello")
 
     def test_date(self, exec2):
         exec2("date +%Y-%m-%d", pattern=r'^\d{4}-\d{2}-\d{2}')
 
-    def test_capture_sh_01_dflt(self, exec2):
+    def test_capture_sh_01_default(self, exec2):
         exec2("%capture(stdout='output')\nuptime")
 
-    def test_capture_sh_02_dflt(self, exec2):
+    def test_capture_sh_02_default(self, exec2):
         exec2("%sage\noutput", pattern="up.*user.*load average")
 
-    def test_remember_settings_01_dflt(self, exec2):
+    def test_remember_settings_01_default(self, exec2):
         exec2("FOO='testing123'")
 
-    def test_remember_settings_02_dflt(self, exec2):
+    def test_remember_settings_02_default(self, exec2):
         exec2("echo $FOO", pattern=r"^testing123\s+")
 
-    def test_sh_display_dflt(self, execblob, image_file):
+    def test_sh_display_default(self, execblob, image_file):
         execblob("display < " + str(image_file), want_html=False)
 
-    def test_sh_autocomplete_01_dflt(self, exec2):
+    def test_sh_autocomplete_01_default(self, exec2):
         exec2("TESTVAR29=xyz")
 
-    def test_sh_autocomplete_02_dflt(self, execintrospect):
+    def test_sh_autocomplete_02_default(self, execintrospect):
         execintrospect('echo $TESTV', ["AR29"], '$TESTV')
 
 
@@ -249,13 +249,13 @@ class TestRDefaultMode:
     def test_set_r_mode(self, exec2):
         exec2("%default_mode r")
 
-    def test_rdflt_assignment(self, exec2):
+    def test_rdefault_assignment(self, exec2):
         exec2("xx <- c(4,7,13)\nmean(xx)", html_pattern="^8$")
 
-    def test_dflt_capture_r_01(self, exec2):
+    def test_default_capture_r_01(self, exec2):
         exec2("%capture(stdout='output')\nsum(xx)")
 
-    def test_dflt_capture_r_02(self, exec2):
+    def test_default_capture_r_02(self, exec2):
         exec2("%sage\nprint(output)", "24\n")
 
 

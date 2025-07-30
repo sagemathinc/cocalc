@@ -637,21 +637,21 @@ function calcSiteLicenseQuotaIdleTimeout(
 // there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
 // this helps by going from one schema to the newer one
 function upgrade2quota(up: Partial<Upgrades>): RQuota {
-  const dflt_false = (x) =>
+  const defaultFalse = (x) =>
     x != null ? (typeof x === "boolean" ? x : to_int(x) >= 1) : false;
-  const dflt_num = (x) =>
+  const defaultNumber = (x) =>
     x != null ? (typeof x === "number" ? x : to_float(x)) : 0;
   return {
-    network: dflt_false(up.network),
-    member_host: dflt_false(up.member_host),
-    always_running: dflt_false(up.always_running),
-    disk_quota: dflt_num(up.disk_quota),
-    memory_limit: dflt_num(up.memory),
-    memory_request: dflt_num(up.memory_request),
-    cpu_limit: dflt_num(up.cores),
-    cpu_request: dflt_num(up.cpu_shares) / 1024,
-    privileged: dflt_false(up.privileged),
-    idle_timeout: dflt_num(up.mintime),
+    network: defaultFalse(up.network),
+    member_host: defaultFalse(up.member_host),
+    always_running: defaultFalse(up.always_running),
+    disk_quota: defaultNumber(up.disk_quota),
+    memory_limit: defaultNumber(up.memory),
+    memory_request: defaultNumber(up.memory_request),
+    cpu_limit: defaultNumber(up.cores),
+    cpu_request: defaultNumber(up.cpu_shares) / 1024,
+    privileged: defaultFalse(up.privileged),
+    idle_timeout: defaultNumber(up.mintime),
     dedicated_vm: false, // old schema has no dedicated_vm upgrades
     dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
     ext_rw: false,

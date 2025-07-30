@@ -33,8 +33,7 @@ import {
   Row,
   Space,
 } from "antd";
-import { useEffect, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
@@ -60,45 +59,19 @@ import { COLORS } from "@cocalc/util/theme";
 import { ConfigureName } from "./configure-name";
 import { License } from "./license";
 import { publicShareUrl, shareServerUrl } from "./util";
+import { containing_public_path } from "@cocalc/util/misc";
+import { type PublicPath } from "@cocalc/util/db-schema/public-paths";
+import { type ProjectActions } from "@cocalc/frontend/project_store";
 
 // https://ant.design/components/grid/
 const GUTTER: [number, number] = [20, 30];
 
-interface PublicInfo {
-  created: Date;
-  description: string;
-  disabled: boolean;
-  last_edited: Date;
-  path: string;
-  unlisted: boolean;
-  authenticated?: boolean;
-  license?: string;
-  name?: string;
-  site_license_id?: string;
-  redirect?: string;
-  jupyter_api?: boolean;
-}
-
 interface Props {
   project_id: string;
   path: string;
-  size: number;
-  mtime: number;
-  isPublic?: boolean;
-  publicInfo?: PublicInfo;
   close: (event: any) => void;
-  action_key: (event: any) => void;
-  site_license_id?: string;
-  set_public_path: (options: {
-    description?: string;
-    unlisted?: boolean;
-    license?: string;
-    disabled?: boolean;
-    authenticated?: boolean;
-    site_license_id?: string | null;
-    redirect?: string;
-    jupyter_api?: boolean;
-  }) => void;
+  onKeyUp?: (event: any) => void;
+  actions: ProjectActions;
   has_network_access?: boolean;
   compute_server_id?: number;
 }
@@ -123,26 +96,40 @@ function SC({ children }) {
 export default function Configure({
   project_id,
   path,
-  isPublic,
-  publicInfo,
   close,
-  action_key,
-  set_public_path,
+  onKeyUp,
+  actions,
   has_network_access,
   compute_server_id,
 }: Props) {
+  const publicPaths = useTypedRedux({ project_id }, "public_paths");
+  const publicInfo: null | PublicPath = useMemo(() => {
+    for (const x of publicPaths?.valueSeq() ?? []) {
+      if (
+        !x.get("disabled") &&
+        containing_public_path(path, [x.get("path")]) != null
+      ) {
+        return x.toJS();
+      }
+    }
+    return null;
+  }, [publicPaths]);
+
   const student = useStudentProjectFunctionality(project_id);
   const [description, setDescription] = useState<string>(
     publicInfo?.description ?? "",
   );
   const [sharingOptionsState, setSharingOptionsState] = useState<States>(() => {
-    if (isPublic && publicInfo?.unlisted) {
+    if (publicInfo == null) {
+      return "private";
+    }
+    if (publicInfo?.unlisted) {
       return "public_unlisted";
     }
-    if (isPublic && publicInfo?.authenticated) {
+    if (publicInfo?.authenticated) {
       return "authenticated";
     }
-    if (isPublic && !publicInfo?.unlisted) {
+    if (!publicInfo?.unlisted) {
       return "public_listed";
     }
     return "private";
@@ -176,17 +163,17 @@ export default function Configure({
     setSharingOptionsState(state);
     switch (state) {
       case "private":
-        set_public_path(SHARE_FLAGS.DISABLED);
+        actions.set_public_path(path, SHARE_FLAGS.DISABLED);
         break;
       case "public_listed":
         // public is suppose to work in this state
-        set_public_path(SHARE_FLAGS.LISTED);
+        actions.set_public_path(path, SHARE_FLAGS.LISTED);
         break;
       case "public_unlisted":
-        set_public_path(SHARE_FLAGS.UNLISTED);
+        actions.set_public_path(path, SHARE_FLAGS.UNLISTED);
         break;
       case "authenticated":
-        set_public_path(SHARE_FLAGS.AUTHENTICATED);
+        actions.set_public_path(path, SHARE_FLAGS.AUTHENTICATED);
         break;
       default:
         unreachable(state);
@@ -196,8 +183,7 @@ export default function Configure({
   const license = publicInfo?.license ?? "";
 
   // This path is public because some parent folder is public.
-  const parentIsPublic =
-    !!isPublic && publicInfo != null && publicInfo.path != path;
+  const parentIsPublic = publicInfo != null && publicInfo.path != path;
 
   const url = publicShareUrl(
     project_id,
@@ -400,9 +386,9 @@ export default function Configure({
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={parentIsPublic}
                   placeholder="Describe what you are sharing.  You can change this at any time."
-                  onKeyUp={action_key}
+                  onKeyUp={onKeyUp}
                   onBlur={() => {
-                    set_public_path({ description });
+                    actions.set_public_path(path, { description });
                   }}
                 />
               </div>
@@ -422,7 +408,9 @@ export default function Configure({
                   <License
                     disabled={parentIsPublic}
                     license={license}
-                    set_license={(license) => set_public_path({ license })}
+                    set_license={(license) =>
+                      actions.set_public_path(path, { license })
+                    }
                   />
                 </Paragraph>
 
@@ -434,7 +422,9 @@ export default function Configure({
                     licenseId={licenseId}
                     setLicenseId={(licenseId) => {
                       setLicenseId(licenseId);
-                      set_public_path({ site_license_id: licenseId });
+                      actions.set_public_path(path, {
+                        site_license_id: licenseId,
+                      });
                     }}
                   />
                   <Paragraph type="secondary">
@@ -452,7 +442,7 @@ export default function Configure({
                 disabled={parentIsPublic}
                 jupyter_api={publicInfo?.jupyter_api}
                 saveJupyterApi={(jupyter_api) => {
-                  set_public_path({ jupyter_api });
+                  actions.set_public_path(path, { jupyter_api });
                 }}
               />
             </Space>
@@ -483,7 +473,7 @@ export default function Configure({
                 project_id={project_id}
                 path={publicInfo?.path ?? path}
                 saveRedirect={(redirect) => {
-                  set_public_path({ redirect });
+                  actions.set_public_path(path, { redirect });
                 }}
                 disabled={parentIsPublic}
               />

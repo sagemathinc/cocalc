@@ -11,14 +11,10 @@ import {
   React,
   TypedMap,
   redux,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
   usePrevious,
-  useRef,
-  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -32,11 +28,13 @@ import {
   DirectoryListingEntry,
   FileMap,
 } from "@cocalc/frontend/project/explorer/types";
-import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
+import {
+  getPublicFiles,
+  useStrippedPublicPaths,
+} from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
   capitalize,
-  copy_without,
   human_readable_size,
   path_split,
   path_to_file,
@@ -73,19 +71,6 @@ export type ActiveFileSort = TypedMap<{
   column_name: string;
   is_descending: boolean;
 }>;
-
-// modeled after ProjectStore::stripped_public_paths
-function useStrippedPublicPaths(project_id: string) {
-  const public_paths = useTypedRedux({ project_id }, "public_paths");
-  return useMemo(() => {
-    if (public_paths == null) return List();
-    return public_paths
-      .valueSeq()
-      .map((public_path: any) =>
-        copy_without(public_path.toJS(), ["id", "project_id"]),
-      );
-  }, [public_paths]);
-}
 
 export function FilesFlyout({
   flyoutWidth,
@@ -183,16 +168,6 @@ export function FilesFlyout({
         (file: DirectoryListingEntry) => hidden || !file.name.startsWith("."),
       );
 
-    // this shares the logic with what's in project_store.ts
-    mutate_data_to_compute_public_files(
-      {
-        listing: processedFiles,
-        public: {},
-      },
-      strippedPublicPaths,
-      current_path,
-    );
-
     processedFiles.sort((a, b) => {
       // This replicated what project_store is doing
       const col = activeFileSort.get("column_name");
@@ -259,6 +234,12 @@ export function FilesFlyout({
     current_path,
     strippedPublicPaths,
   ]);
+
+  const publicFiles = getPublicFiles(
+    directoryFiles,
+    strippedPublicPaths,
+    current_path,
+  );
 
   const prev_current_path = usePrevious(current_path);
 
@@ -534,7 +515,7 @@ export function FilesFlyout({
     return (
       <FileListItem
         mode="files"
-        item={item}
+        item={{ ...item, isPublic: publicFiles.has(item.name) }}
         index={index}
         extra={renderListItemExtra(item)}
         extra2={renderListItemExtra2(item)}
@@ -656,6 +637,7 @@ export function FilesFlyout({
         modeState={[mode, setMode]}
         clearAllSelections={clearAllSelections}
         selectAllFiles={selectAllFiles}
+        publicFiles={publicFiles}
       />
       {disableUploads ? (
         renderListing()
@@ -686,6 +668,7 @@ export function FilesFlyout({
         open={open}
         showFileSharingDialog={showFileSharingDialog}
         getFile={getFile}
+        publicFiles={publicFiles}
       />
     </div>
   );

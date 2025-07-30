@@ -451,10 +451,10 @@ export class JupyterStore extends Store<JupyterStoreState> {
       // (??)
       return `${project_id}-${computeServerId}-default`;
     }
-    const dflt_img = await customize.getDefaultComputeImage();
+    const defaultImage = await customize.getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
-      dflt_img,
+      defaultImage,
     );
     const key = [project_id, `${computeServerId}`, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);

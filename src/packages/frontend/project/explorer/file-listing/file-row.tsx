@@ -304,7 +304,8 @@ export function FileRow({
   function render_download_button(url) {
     if (student_project_functionality.disableActions) return;
     if (isDir) return;
-    const displaySize = misc.human_readable_size(size);
+    // size=-1 is used for "we do not know size" in some places in code
+    const displaySize = (size ?? -1) < 0 ? "" : misc.human_readable_size(size);
     // TODO: This really should not be in the size column...
     return (
       <Popover

@@ -292,14 +292,14 @@ function CreateSiteLicense({
       })();
     } else {
       const vals = decodeFormValues(router, "regular");
-      const dflt = presets[DEFAULT_PRESET];
+      const defaultPreset = presets[DEFAULT_PRESET];
       // Only use the configuration fields from the default preset, not the entire object
       const defaultConfig = {
-        cpu: dflt.cpu,
-        ram: dflt.ram,
-        disk: dflt.disk,
-        uptime: dflt.uptime,
-        member: dflt.member,
+        cpu: defaultPreset.cpu,
+        ram: defaultPreset.ram,
+        disk: defaultPreset.disk,
+        uptime: defaultPreset.uptime,
+        member: defaultPreset.member,
         // Add other form fields that might be needed
         period: source === "course" ? "range" : "monthly",
         user: source === "course" ? "academic" : "business",

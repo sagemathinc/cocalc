@@ -118,19 +118,19 @@ export function sanitizeSoftwareEnv(
     return null;
   }
 
-  const swDflt = software["default"];
+  const swDefault = software["default"];
   // we check that the default is a string and that it exists in envs
-  const dflt =
-    typeof swDflt === "string" && envs[swDflt] != null
-      ? swDflt
+  const defaultSoftware =
+    typeof swDefault === "string" && envs[swDefault] != null
+      ? swDefault
       : Object.keys(envs)[0];
 
   // this is a fallback entry, when projects were created before the software env was configured
   if (envs[DEFAULT_COMPUTE_IMAGE] == null) {
-    envs[DEFAULT_COMPUTE_IMAGE] = { ...envs[dflt], hidden: true };
+    envs[DEFAULT_COMPUTE_IMAGE] = { ...envs[defaultSoftware], hidden: true };
   }
 
-  return { groups, default: dflt, environments: envs };
+  return { groups, default: defaultSoftware, environments: envs };
 }
 
 function fallback(a: any, b: any, c?: string): any {

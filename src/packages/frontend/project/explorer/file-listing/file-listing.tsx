@@ -35,6 +35,7 @@ interface Props {
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
   stale?: boolean;
+  publicFiles: Set<string>;
 }
 
 export function FileListing({
@@ -47,6 +48,7 @@ export function FileListing({
   configuration_main,
   file_search = "",
   stale,
+  publicFiles,
 }: Props) {
   const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
@@ -55,12 +57,15 @@ export function FileListing({
   const name = actions.name;
 
   function renderRow(index, file) {
-    const checked = checked_files.has(misc.path_to_file(current_path, name));
+    const checked = checked_files.has(
+      misc.path_to_file(current_path, file.name),
+    );
     const color = misc.rowBackground({ index, checked });
 
     return (
       <FileRow
         {...file}
+        isPublic={publicFiles.has(file.name)}
         color={color}
         checked={checked}
         selected={

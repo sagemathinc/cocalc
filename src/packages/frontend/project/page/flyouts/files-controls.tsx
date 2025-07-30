@@ -37,6 +37,7 @@ interface FilesSelectedControlsProps {
     skip?: boolean,
   ) => void;
   activeFile: DirectoryListingEntry | null;
+  publicFiles: Set<string>;
 }
 
 export function FilesSelectedControls({
@@ -48,6 +49,7 @@ export function FilesSelectedControls({
   project_id,
   showFileSharingDialog,
   activeFile,
+  publicFiles,
 }: FilesSelectedControlsProps) {
   const intl = useIntl();
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -117,7 +119,7 @@ export function FilesSelectedControls({
               {human_readable_size(size)}
             </Descriptions.Item>
           )}
-          {singleFile.isPublic ? (
+          {publicFiles.has(singleFile.name) ? (
             <Descriptions.Item label="Published">
               <Button
                 size="small"

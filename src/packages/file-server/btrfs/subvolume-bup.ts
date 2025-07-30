@@ -126,10 +126,10 @@ export class SubvolumeBup {
         }
         const mtime = parseBupTime(name).valueOf() / 1000;
         newest = Math.max(mtime, newest);
-        v.push({ name, isDir: true, mtime });
+        v.push({ name, isDir: true, mtime, size: -1 });
       }
       if (v.length > 0) {
-        v.push({ name: "latest", isDir: true, mtime: newest });
+        v.push({ name: "latest", isDir: true, mtime: newest, size: -1 });
       }
       return v;
     }
