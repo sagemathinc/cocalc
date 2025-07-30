@@ -40,6 +40,8 @@ import {
   decodeUUIDtoNum,
 } from "@cocalc/util/compute/manager";
 
+const STAT_DEBOUNCE = 10000;
+
 import { DEFAULT_SNAPSHOT_INTERVAL } from "@cocalc/util/db-schema/syncstring-schema";
 
 type XPatch = any;
@@ -83,7 +85,7 @@ import { isTestClient, patch_cmp } from "./util";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
-import { type Filesystem } from "@cocalc/conat/files/fs";
+import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
 import { getLogger } from "@cocalc/conat/client";
 
 const DEBUG = false;
@@ -1267,12 +1269,10 @@ export class SyncDoc extends EventEmitter {
   };
 
   private loadFromDiskIfNewer = async (): Promise<boolean> => {
-    // [ ] TODO: readonly handling...
-    if (this.fs == null) throw Error("bug");
     const dbg = this.dbg("loadFromDiskIfNewer");
     let stats;
     try {
-      stats = await this.fs.stat(this.path);
+      stats = await this.stat();
     } catch (err) {
       this.valueOnDisk = undefined; // nonexistent or don't know
       if (err.code == "ENOENT") {
@@ -2236,7 +2236,6 @@ export class SyncDoc extends EventEmitter {
   };
 
   readFile = reuseInFlight(async (): Promise<number> => {
-    if (this.fs == null) throw Error("bug");
     const dbg = this.dbg("readFile");
 
     let size: number;
@@ -2264,12 +2263,47 @@ export class SyncDoc extends EventEmitter {
   });
 
   is_read_only = (): boolean => {
-    // [ ] TODO
-    return this.syncstring_table_get_one().get("read_only");
+    if (this.stats) {
+      return isReadOnlyForOwner(this.stats);
+    } else {
+      return false;
+    }
   };
 
+  private stats?: Stats;
+  stat = async (): Promise<Stats> => {
+    const prevStats = this.stats;
+    this.stats = (await this.fs.stat(this.path)) as Stats;
+    if (prevStats?.mode != this.stats.mode) {
+      this.emit("metadata-change");
+    }
+    return this.stats;
+  };
+
+  debouncedStat = debounce(
+    async () => {
+      try {
+        await this.stat();
+      } catch {}
+    },
+    STAT_DEBOUNCE,
+    { leading: true, trailing: true },
+  );
+
   wait_until_read_only_known = async (): Promise<void> => {
-    // [ ] TODO
+    await until(async () => {
+      if (this.isClosed()) {
+        return true;
+      }
+      if (this.stats != null) {
+        return true;
+      }
+      try {
+        await this.stat();
+        return true;
+      } catch {}
+      return false;
+    });
   };
 
   /* Returns true if the current live version of this document has
@@ -2376,9 +2410,14 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     dbg();
-    if (this.fs == null) {
-      throw Error("bug");
+    if (this.is_read_only()) {
+      await this.stat();
+      if (this.is_read_only()) {
+        // it is definitely still read only.
+        return;
+      }
     }
+
     const value = this.to_str();
     // include {ignore:true} with events for this long,
     // so no clients waste resources loading in response to us saving
@@ -2391,7 +2430,17 @@ export class SyncDoc extends EventEmitter {
     }
     if (this.isClosed()) return;
     this.last_save_to_disk_time = new Date();
-    await this.fs.writeFile(this.path, value);
+    try {
+      await this.fs.writeFile(this.path, value);
+    } catch (err) {
+      if (err.code == "EACCES") {
+        try {
+          // update read only knowledge -- that may have caused save error.
+          await this.stat();
+        } catch {}
+      }
+      throw err;
+    }
     const lastChanged = this.last_changed();
     await this.fs.utimes(this.path, lastChanged / 1000, lastChanged / 1000);
     this.valueOnDisk = value;
@@ -2674,6 +2723,7 @@ export class SyncDoc extends EventEmitter {
       try {
         this.emit("handle-file-change");
         await this.readFile();
+        await this.stat();
       } catch {}
     },
     WATCH_DEBOUNCE,
@@ -2685,9 +2735,6 @@ export class SyncDoc extends EventEmitter {
 
   private fileWatcher?: any;
   private initFileWatcher = async () => {
-    if (this.fs == null) {
-      throw Error("this.fs must be defined");
-    }
     // use this.fs interface to watch path for changes -- we try once:
     try {
       this.fileWatcher = await this.fs.watch(this.path, { unique: true });
@@ -2706,6 +2753,8 @@ export class SyncDoc extends EventEmitter {
             this.valueOnDisk = undefined;
             // and we should find out!
             this.readFileDebounced();
+          } else {
+            this.debouncedStat();
           }
           if (eventType == "rename") {
             break;
@@ -2742,11 +2791,8 @@ export class SyncDoc extends EventEmitter {
   // false if it definitely does not, and throws exception otherwise,
   // e.g., network error.
   private fileExists = async (): Promise<boolean> => {
-    if (this.fs == null) {
-      throw Error("bug -- fs must be defined");
-    }
     try {
-      await this.fs.stat(this.path);
+      await this.stat();
       return true;
     } catch (err) {
       if (err.code == "ENOENT") {
@@ -2759,9 +2805,6 @@ export class SyncDoc extends EventEmitter {
 
   private closeIfFileDeleted = async () => {
     if (this.isClosed()) return;
-    if (this.fs == null) {
-      throw Error("bug -- fs must be defined");
-    }
     const start = Date.now();
     const threshold = this.deletedThreshold ?? DELETED_THRESHOLD;
     while (true) {
@@ -2807,4 +2850,9 @@ function isCompletePatchStream(dstream) {
     }
   }
   return false;
+}
+
+function isReadOnlyForOwner(stats): boolean {
+  // 0o200 is owner write permission
+  return (stats.mode & 0o200) === 0;
 }

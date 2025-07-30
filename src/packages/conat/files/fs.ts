@@ -140,7 +140,7 @@ interface IStats {
   birthtime: Date;
 }
 
-class Stats {
+export class Stats {
   dev: number;
   ino: number;
   mode: number;

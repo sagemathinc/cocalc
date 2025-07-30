@@ -47,7 +47,7 @@ export function SaveButton({
   const intl = useIntl();
 
   const label = useMemo(() => {
-    if (!no_labels) {
+    if (!no_labels || read_only) {
       return intl.formatMessage(labels.frame_editors_title_bar_save_label, {
         type: is_public ? "is_public" : read_only ? "read_only" : "save",
       });
@@ -67,7 +67,7 @@ export function SaveButton({
   );
 
   function renderLabel() {
-    if (!no_labels && label) {
+    if (label) {
       return <VisibleMDLG>{` ${label}`}</VisibleMDLG>;
     }
   }
