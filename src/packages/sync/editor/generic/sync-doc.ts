@@ -1274,7 +1274,7 @@ export class SyncDoc extends EventEmitter {
     try {
       stats = await this.fs.stat(this.path);
     } catch (err) {
-      this.lastDiskValue = undefined; // nonexistent or don't know
+      this.valueOnDisk = undefined; // nonexistent or don't know
       if (err.code == "ENOENT") {
         // path does not exist -- nothing further to do
         return false;
@@ -2243,7 +2243,7 @@ export class SyncDoc extends EventEmitter {
     let contents;
     try {
       contents = await this.fs.readFile(this.path, "utf8");
-      this.lastDiskValue = contents;
+      this.valueOnDisk = contents;
       dbg("file exists");
       size = contents.length;
       this.from_str(contents);
@@ -2286,14 +2286,15 @@ export class SyncDoc extends EventEmitter {
     return this.hasUnsavedChanges();
   };
 
-  // Returns hash of last version saved to disk (as far as we know).
+  // Returns hash of last version that we saved to disk or undefined
+  // if we haven't saved yet.
+  // NOTE: this does not take into account saving by another client
+  // anymore; it used to, but that made things much more complicated.
   hash_of_saved_version = (): number | undefined => {
-    if (!this.isReady()) {
+    if (!this.isReady() || this.valueOnDisk == null) {
       return;
     }
-    return this.syncstring_table_get_one().getIn(["save", "hash"]) as
-      | number
-      | undefined;
+    return hash_string(this.valueOnDisk);
   };
 
   /* Return hash of the live version of the document,
@@ -2359,9 +2360,13 @@ export class SyncDoc extends EventEmitter {
     return true;
   };
 
-  private lastDiskValue: string | undefined = undefined;
+  // valueOnDisk = value of the file on disk, if known.  If there's an
+  // event indicating  what was on disk may have changed, this
+  // this.valueOnDisk is deleted until the new version is loaded.
+  private valueOnDisk: string | undefined = undefined;
+
   private hasUnsavedChanges = (): boolean => {
-    return this.lastDiskValue != this.to_str();
+    return this.valueOnDisk != this.to_str();
   };
 
   writeFile = async () => {
@@ -2389,7 +2394,7 @@ export class SyncDoc extends EventEmitter {
     await this.fs.writeFile(this.path, value);
     const lastChanged = this.last_changed();
     await this.fs.utimes(this.path, lastChanged / 1000, lastChanged / 1000);
-    this.lastDiskValue = value;
+    this.valueOnDisk = value;
   };
 
   /* Initiates a save of file to disk, then waits for the
@@ -2695,10 +2700,10 @@ export class SyncDoc extends EventEmitter {
         this.emit("watching");
         for await (const { eventType, ignore } of this.fileWatcher) {
           if (this.isClosed()) return;
-          // we don't know what's on disk anymore,
-          this.lastDiskValue = undefined;
-          //console.log("got change", eventType);
           if (!ignore) {
+            // we don't know what's on disk anymore,
+            this.valueOnDisk = undefined;
+            // and we should find out!
             this.readFileDebounced();
           }
           if (eventType == "rename") {
