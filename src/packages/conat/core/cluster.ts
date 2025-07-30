@@ -272,8 +272,8 @@ export async function trimClusterStreams(
   minAge: number,
 ): Promise<{ seqsInterest: number[]; seqsSticky: number[] }> {
   const { interest, sticky } = streams;
-  // First deal with interst
-  // we iterate over the interest stream checking for subjects
+  // First deal with interest.
+  // We iterate over the interest stream checking for subjects
   // with no current interest at all; in such cases it is safe
   // to purge them entirely from the stream.
   const seqs: number[] = [];
