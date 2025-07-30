@@ -12,12 +12,7 @@ import * as immutable from "immutable";
 import { useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import {
-  Rendered,
-  TypedMap,
-  useTypedRedux,
-  redux,
-} from "@cocalc/frontend/app-framework";
+import { TypedMap, useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
@@ -26,7 +21,7 @@ import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
 import { TERM_MODE_CHAR } from "./utils";
-import { DirectoryListingEntry } from "@cocalc/util/types";
+import { type DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
 
 interface Props {
   actions: ProjectActions;
@@ -59,38 +54,22 @@ export function FileListing({
     useTypedRedux({ project_id }, "selected_file_index") ?? 0;
   const name = actions.name;
 
-  function render_row(
-    name,
-    size,
-    time,
-    mask,
-    isdir,
-    issymlink,
-    index: number,
-    link_target?: string, // if given, is a known symlink to this file
-  ): Rendered {
+  function renderRow(index, file) {
     const checked = checked_files.has(misc.path_to_file(current_path, name));
     const color = misc.rowBackground({ index, checked });
 
     return (
       <FileRow
-        isdir={isdir}
-        name={name}
-        time={time}
-        size={isdir ? undefined : size}
-        issymlink={issymlink}
+        {...file}
         color={color}
+        checked={checked}
         selected={
           index == selected_file_index && file_search[0] != TERM_MODE_CHAR
         }
-        mask={mask}
-        is_public={false}
-        checked={checked}
         key={index}
         current_path={current_path}
         actions={actions}
         no_select={shiftIsDown}
-        link_target={link_target}
         computeServerId={computeServerId}
         listing={listing}
       />
@@ -122,28 +101,19 @@ export function FileListing({
     return <Spin delay={500} />;
   }
 
-  function render_rows(): Rendered {
+  function renderRows() {
     return (
       <Virtuoso
         ref={virtuosoRef}
         increaseViewportBy={2000}
         totalCount={listing.length}
         itemContent={(index) => {
-          const a = listing[index];
-          if (a == null) {
+          const file = listing[index];
+          if (file == null) {
             // shouldn't happen
             return <div key={index} style={{ height: "1px" }}></div>;
           }
-          return render_row(
-            a.name,
-            a.size,
-            a.mtime,
-            a.mask,
-            a.isdir,
-            a.issymlink,
-            index,
-            a.link_target,
-          );
+          return renderRow(index, file);
         }}
         {...virtuosoScroll}
       />
@@ -206,7 +176,7 @@ export function FileListing({
           active_file_sort={active_file_sort}
           sort_by={actions.set_sorted_file_column}
         />
-        {listing.length > 0 ? render_rows() : render_no_files()}
+        {listing.length > 0 ? renderRows() : render_no_files()}
       </div>
     </>
   );

@@ -173,7 +173,7 @@ export function FilesFlyout({
         const filename = file.name.toLowerCase();
         return (
           filename.includes(searchWords) ||
-          (file.isdir && `${filename}/`.includes(searchWords))
+          (file.isDir && `${filename}/`.includes(searchWords))
         );
       })
       .filter(
@@ -204,8 +204,8 @@ export function FilesFlyout({
         case "time":
           return (b.mtime ?? 0) - (a.mtime ?? 0);
         case "type":
-          const aDir = a.isdir ?? false;
-          const bDir = b.isdir ?? false;
+          const aDir = a.isDir ?? false;
+          const bDir = b.isDir ?? false;
           if (aDir && !bDir) return -1;
           if (!aDir && bDir) return 1;
           const aExt = a.name.split(".").pop() ?? "";
@@ -220,10 +220,10 @@ export function FilesFlyout({
     for (const file of processedFiles) {
       const fullPath = path_to_file(current_path, file.name);
       if (openFiles.some((path) => path == fullPath)) {
-        file.isopen = true;
+        file.isOpen = true;
       }
       if (activePath === fullPath) {
-        file.isactive = true;
+        file.isActive = true;
         activeFile = file;
       }
     }
@@ -239,7 +239,9 @@ export function FilesFlyout({
     if (file_search === "" && current_path != "") {
       processedFiles.unshift({
         name: "..",
-        isdir: true,
+        isDir: true,
+        size: -1, // not used and we don't know the size in bytes
+        mtime: 0, // also not known
       });
     }
 
@@ -337,7 +339,7 @@ export function FilesFlyout({
     if (!skip) {
       const fullPath = path_to_file(current_path, file.name);
 
-      if (file.isdir) {
+      if (file.isDir) {
         // true: change history, false: do not show "files" page
         actions?.open_directory(fullPath, true, false);
         setSearchState("");
@@ -410,7 +412,7 @@ export function FilesFlyout({
     }
 
     // similar, if in open mode and already opened, just switch to it as well
-    if (mode === "open" && file.isopen && !e.shiftKey && !e.ctrlKey) {
+    if (mode === "open" && file.isOpen && !e.shiftKey && !e.ctrlKey) {
       setPrevSelected(index);
       open(e, index);
       return;
@@ -474,13 +476,13 @@ export function FilesFlyout({
   }
 
   function renderTimeAgo(item: DirectoryListingEntry) {
-    const { mtime, isopen = false } = item;
+    const { mtime, isOpen = false } = item;
     if (typeof mtime === "number") {
       return (
         <TimeAgo
           date={mtime}
           // don't popup the toggle if you just clicked to open the file
-          click_to_toggle={isopen}
+          click_to_toggle={isOpen}
         />
       );
     }
@@ -493,7 +495,7 @@ export function FilesFlyout({
       case "time":
         return renderTimeAgo(item);
       case "type":
-        if (item.isdir) return "Folder";
+        if (item.isDir) return "Folder";
         const { ext } = separate_file_extension(item.name);
         return capitalize(file_options(item.name).name) || ext;
       case "name":

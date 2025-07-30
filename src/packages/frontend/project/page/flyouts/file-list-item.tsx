@@ -107,14 +107,14 @@ const CLOSE_ICON_STYLE: CSS = {
 };
 
 interface Item {
-  isopen?: boolean;
-  isdir?: boolean;
-  isactive?: boolean;
-  is_public?: boolean;
+  isOpen?: boolean;
+  isDir?: boolean;
+  isActive?: boolean;
+  isPublic?: boolean;
   name: string;
   size?: number;
   mask?: boolean;
-  link_target?: string;
+  linkTarget?: string;
 }
 
 interface FileListItemProps {
@@ -184,7 +184,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const bodyRef = useRef<HTMLDivElement>(null);
 
   function renderCloseItem(item: Item): React.JSX.Element | null {
-    if (onClose == null || !item.isopen) return null;
+    if (onClose == null || !item.isOpen) return null;
 
     const { name } = item;
     return (
@@ -200,7 +200,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderPublishedIcon(): React.JSX.Element | undefined {
-    if (!showPublish || !item.is_public) return undefined;
+    if (!showPublish || !item.isPublic) return undefined;
     return (
       <Tooltip title="File is published" placement="right">
         <Button
@@ -220,15 +220,15 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   function renderName(): React.JSX.Element {
     const name = item.name;
     const path = isActive ? path_split(name).tail : name;
-    const { name: basename, ext } = item.isdir
+    const { name: basename, ext } = item.isDir
       ? { name: path, ext: "" }
       : separate_file_extension(path);
 
     // de-emphasize starred but closed files, unless a directory
     const activeStyle = isActive
-      ? item.isopen
+      ? item.isOpen
         ? { fontWeight: "bold" }
-        : item.isdir
+        : item.isDir
           ? undefined
           : { color: COLORS.FILE_EXT }
       : undefined;
@@ -251,10 +251,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             </span>
           )
         ) : undefined}
-        {!!item.link_target && (
+        {!!item.linkTarget && (
           <>
             <Icon name="arrow-right" style={{ margin: "0 10px" }} />
-            {item.link_target}
+            {item.linkTarget}
           </>
         )}
       </div>
@@ -283,7 +283,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         ? selected
           ? "check-square"
           : "square"
-        : item.isdir
+        : item.isDir
           ? "folder-open"
           : (file_options(item.name)?.icon ?? "file"));
 
@@ -315,7 +315,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         name={icon}
         style={{
           ...ICON_STYLE,
-          color: isStarred && item.isopen ? COLORS.STAR : COLORS.GRAY_L,
+          color: isStarred && item.isOpen ? COLORS.STAR : COLORS.GRAY_L,
         }}
         onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
@@ -329,8 +329,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     const currentExtra = type === 1 ? extra : extra2;
     if (currentExtra == null) return;
     // calculate extra margin to align the columns. if there is no "onClose", no margin
-    const closeMargin = onClose != null ? (item.isopen ? 0 : 18) : 0;
-    const publishMargin = showPublish ? (item.is_public ? 0 : 20) : 0;
+    const closeMargin = onClose != null ? (item.isOpen ? 0 : 18) : 0;
+    const publishMargin = showPublish ? (item.isPublic ? 0 : 20) : 0;
     const marginRight = type === 1 ? publishMargin + closeMargin : undefined;
     const widthPx = FLYOUT_DEFAULT_WIDTH_PX * 0.33;
     // if the 2nd extra shows up, fix the width to align the columns
@@ -405,14 +405,14 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     item: Item,
     multiple: boolean,
   ) {
-    const { isdir, name: fileName } = item;
+    const { isDir, name: fileName } = item;
     const actionNames = multiple
       ? ACTION_BUTTONS_MULTI
-      : isdir
+      : isDir
         ? ACTION_BUTTONS_DIR
         : ACTION_BUTTONS_FILE;
     for (const key of actionNames) {
-      if (key === "download" && !item.isdir) continue;
+      if (key === "download" && !item.isDir) continue;
       const disabled =
         isDisabledSnapshots(key) &&
         (current_path?.startsWith(".snapshots") ?? false);
@@ -446,13 +446,13 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function getContextMenu(): MenuProps["items"] {
-    const { name, isdir, is_public, size } = item;
+    const { name, isDir, isPublic, size } = item;
     const n = checked_files?.size ?? 0;
     const multiple = n > 1;
 
     const sizeStr = size ? human_readable_size(size) : "";
     const nameStr = trunc_middle(item.name, 30);
-    const typeStr = isdir ? "Folder" : "File";
+    const typeStr = isDir ? "Folder" : "File";
 
     const ctx: NonNullable<MenuProps["items"]> = [];
 
@@ -466,7 +466,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     } else {
       ctx.push({
         key: "header",
-        icon: <Icon name={isdir ? "folder-open" : "file"} />,
+        icon: <Icon name={isDir ? "folder-open" : "file"} />,
         label: `${typeStr} ${nameStr}${sizeStr ? ` (${sizeStr})` : ""}`,
         title: `${name}`,
         style: { fontWeight: "bold" },
@@ -474,14 +474,14 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       ctx.push({
         key: "open",
         icon: <Icon name="edit-filled" />,
-        label: isdir ? "Open folder" : "Open file",
+        label: isDir ? "Open folder" : "Open file",
         onClick: () => onClick?.(),
       });
     }
 
     ctx.push({ key: "divider-header", type: "divider" });
 
-    if (is_public && typeof onPublic === "function") {
+    if (isPublic && typeof onPublic === "function") {
       ctx.push({
         key: "public",
         label: "Item is published",
@@ -495,7 +495,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
     // view/download buttons at the bottom
     const showDownload = !student_project_functionality.disableActions;
-    if (name !== ".." && !isdir && showDownload && !multiple) {
+    if (name !== ".." && !isDir && showDownload && !multiple) {
       const full_path = path_to_file(current_path, name);
       const ext = (filename_extension(name) ?? "").toLowerCase();
       const showView = VIEWABLE_FILE_EXT.includes(ext);
@@ -528,11 +528,11 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   // because all those files are opened
   const activeStyle: CSS =
     mode === "active"
-      ? item.isactive
+      ? item.isActive
         ? FILE_ITEM_ACTIVE_STYLE_2
         : {}
-      : item.isopen
-        ? item.isactive
+      : item.isOpen
+        ? item.isActive
           ? FILE_ITEM_ACTIVE_STYLE
           : FILE_ITEM_OPENED_STYLE
         : {};

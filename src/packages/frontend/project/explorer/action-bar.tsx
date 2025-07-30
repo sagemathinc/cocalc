@@ -228,15 +228,15 @@ export function ActionBar({
     if (checked_files.size === 0) {
       return;
     } else if (checked_files.size === 1) {
-      let isdir;
+      let isDir;
       const item = checked_files.first();
       for (const file of listing) {
         if (misc.path_to_file(current_path ?? "", file.name) === item) {
-          ({ isdir } = file);
+          ({ isDir } = file);
         }
       }
 
-      if (isdir) {
+      if (isDir) {
         // one directory selected
         action_buttons = [...ACTION_BUTTONS_DIR];
       } else {

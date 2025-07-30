@@ -347,13 +347,13 @@ export function LogFlyout({
     const time = entry.time;
     const account_id = entry.account_id;
     const path = entry.filename;
-    const isOpened: boolean = openFiles.some((p) => p === path);
+    const isOpen: boolean = openFiles.some((p) => p === path);
     const isActive: boolean = activePath === path;
 
     return (
       <FileListItem
         mode="log"
-        item={{ name: path, isopen: isOpened, isactive: isActive }}
+        item={{ name: path, isOpen, isActive }}
         extra={renderFileItemExtra(entry)}
         extra2={renderFileItemExtra2(entry)}
         itemStyle={fileItemStyle(time?.getTime())}

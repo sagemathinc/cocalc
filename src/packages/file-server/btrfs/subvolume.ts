@@ -4,7 +4,7 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { isdir, sudo } from "./util";
+import { isDir, sudo } from "./util";
 import { join } from "path";
 import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
@@ -94,7 +94,7 @@ export class Subvolume {
     if (target.endsWith("/")) {
       targetPath += "/";
     }
-    if (!srcPath.endsWith("/") && (await isdir(srcPath))) {
+    if (!srcPath.endsWith("/") && (await isDir(srcPath))) {
       srcPath += "/";
       if (!targetPath.endsWith("/")) {
         targetPath += "/";

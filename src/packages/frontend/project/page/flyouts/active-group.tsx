@@ -75,7 +75,7 @@ export function Group({
     const fileType = file_options(`foo.${group}`);
     return {
       iconName:
-        group === "" ? UNKNOWN_FILE_TYPE_ICON : fileType?.icon ?? "file",
+        group === "" ? UNKNOWN_FILE_TYPE_ICON : (fileType?.icon ?? "file"),
       display: (group === "" ? "No extension" : fileType?.name) || group,
     };
   }
@@ -83,7 +83,7 @@ export function Group({
   switch (mode) {
     case "folder":
       const isHome = group === "";
-      const isopen = openFilesGrouped[group].some((path) =>
+      const isOpen = openFilesGrouped[group].some((path) =>
         openFiles.includes(path),
       );
       return (
@@ -93,9 +93,9 @@ export function Group({
           mode="active"
           item={{
             name: group,
-            isdir: true,
-            isopen,
-            isactive: current_path === group && activeTab === "files",
+            isDir: true,
+            isOpen,
+            isActive: current_path === group && activeTab === "files",
           }}
           multiline={false}
           displayedNameOverride={displayed}

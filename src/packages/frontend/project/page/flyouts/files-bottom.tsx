@@ -185,8 +185,8 @@ export function FilesBottom({
 
   function renderDownloadView() {
     if (!singleFile) return;
-    const { name, isdir, size = 0 } = singleFile;
-    if (isdir) return;
+    const { name, isDir, size = 0 } = singleFile;
+    if (isDir) return;
     const full_path = path_to_file(current_path, name);
     const ext = (filename_extension(name) ?? "").toLowerCase();
     const showView = VIEWABLE_FILE_EXT.includes(ext);
@@ -276,7 +276,7 @@ export function FilesBottom({
     if (checked_files.size === 0) {
       let totSize = 0;
       for (const f of directoryFiles) {
-        if (!f.isdir) totSize += f.size ?? 0;
+        if (!f.isDir) totSize += f.size ?? 0;
       }
       return (
         <div style={PANEL_STYLE_BOTTOM}>
@@ -292,7 +292,7 @@ export function FilesBottom({
     if (checked_files.size === 0) {
       let [nFiles, nDirs] = [0, 0];
       for (const f of directoryFiles) {
-        if (f.isdir) {
+        if (f.isDir) {
           nDirs++;
         } else {
           nFiles++;
@@ -307,7 +307,7 @@ export function FilesBottom({
       );
     } else if (singleFile) {
       const name = singleFile.name;
-      const iconName = singleFile.isdir
+      const iconName = singleFile.isDir
         ? "folder"
         : file_options(name)?.icon ?? "file";
       return (

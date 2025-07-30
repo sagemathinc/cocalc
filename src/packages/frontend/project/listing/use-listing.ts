@@ -5,7 +5,7 @@ TESTS: See packages/test/project/listing/
 */
 
 import { useMemo } from "react";
-import { DirectoryListingEntry } from "@cocalc/util/types";
+import { type DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
 import { field_cmp } from "@cocalc/util/misc";
 import useFiles from "./use-files";
 import { type FilesystemClient } from "@cocalc/conat/files/fs";

@@ -25,6 +25,7 @@ import { url_href } from "@cocalc/frontend/project/utils";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
+import { type DirectoryListing } from "@cocalc/frontend/project/explorer/types";
 
 export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "md",
@@ -36,41 +37,59 @@ export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
 ] as const;
 
 interface Props {
-  isdir: boolean;
+  isDir: boolean;
   name: string;
-  display_name?: string; // if given, will display this, and will show true filename in popover
-  size: number; // sometimes is NOT known!
-  time: number;
-  issymlink: boolean;
+  // if given, will display this, and will show true filename in popover
+  display_name?: string;
+  size: number;
+  mtime: number;
+  isSymLink: boolean;
   checked: boolean;
   selected: boolean;
   color: string;
   mask: boolean;
-  is_public: boolean;
+  isPublic: boolean;
   current_path: string;
   actions: ProjectActions;
   no_select: boolean;
-  link_target?: string;
+  linkTarget?: string;
   // if given, include a little 'server' tag in this color, and tooltip etc using id.
   // Also important for download and preview links!
   computeServerId?: number;
-  listing;
+  listing: DirectoryListing;
 }
 
-export const FileRow: React.FC<Props> = React.memo((props) => {
+export function FileRow({
+  isDir,
+  name,
+  display_name,
+  size,
+  mtime,
+  checked,
+  selected,
+  color,
+  mask,
+  isPublic,
+  current_path,
+  actions,
+  no_select,
+  linkTarget,
+  computeServerId,
+  listing,
+}: Props) {
   const student_project_functionality = useStudentProjectFunctionality(
-    props.actions.project_id,
+    actions.project_id,
   );
   const [selection_at_last_mouse_down, set_selection_at_last_mouse_down] =
     useState<string | undefined>(undefined);
 
   function render_icon() {
     const style: React.CSSProperties = {
-      color: props.mask ? "#bbbbbb" : COLORS.FILE_ICON,
+      color: mask ? "#bbbbbb" : COLORS.FILE_ICON,
       verticalAlign: "sub",
     } as const;
     let body: React.JSX.Element;
-    if (props.isdir) {
+    if (isDir) {
       body = (
         <>
           <Icon
@@ -89,95 +108,85 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       );
     } else {
       // get the file_associations[ext] just like it is defined in the editor
-      let name: IconName;
-      const info = file_options(props.name);
-      if (info != null) {
-        name = info.icon;
-      } else {
-        name = "file";
-      }
+      const info = file_options(name);
+      const iconName: IconName = info?.icon ?? "file";
 
-      body = <Icon name={name} style={{ fontSize: "14pt" }} />;
+      body = <Icon name={iconName} style={{ fontSize: "14pt" }} />;
     }
 
     return <a style={style}>{body}</a>;
-  }
-
-  function render_link_target() {
-    if (props.link_target == null || props.link_target == props.name) return;
-    return (
-      <>
-        {" "}
-        <Icon name="arrow-right" style={{ margin: "0 10px" }} />{" "}
-        {props.link_target}{" "}
-      </>
-    );
   }
 
   function render_name_link(styles, name, ext) {
     return (
       <a style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
-        <span style={{ color: !props.mask ? COLORS.FILE_EXT : undefined }}>
+        <span style={{ color: !mask ? COLORS.FILE_EXT : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
-        {render_link_target()}
+        {linkTarget != null && linkTarget != name && (
+          <>
+            {" "}
+            <Icon name="arrow-right" style={{ margin: "0 10px" }} />{" "}
+            {linkTarget}{" "}
+          </>
+        )}
       </a>
     );
   }
 
   function render_name() {
-    let name = props.display_name ?? props.name;
+    let name0 = display_name ?? name;
     let ext: string;
-    if (props.isdir) {
+    if (isDir) {
       ext = "";
     } else {
-      const name_and_ext = misc.separate_file_extension(name);
-      ({ name, ext } = name_and_ext);
+      const name_and_ext = misc.separate_file_extension(name0);
+      ({ name: name0, ext } = name_and_ext);
     }
 
     const show_tip =
-      (props.display_name != undefined && props.name !== props.display_name) ||
-      name.length > 50;
+      (display_name != undefined && name0 !== display_name) ||
+      name0.length > 50;
 
     const styles = {
       whiteSpace: "pre-wrap",
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
-      color: props.mask ? "#bbbbbb" : COLORS.TAB,
+      color: mask ? "#bbbbbb" : COLORS.TAB,
     };
 
     if (show_tip) {
       return (
         <Tip
           title={
-            props.display_name
+            display_name
               ? "Displayed filename is an alias. The actual name is:"
               : "Full name"
           }
-          tip={props.name}
+          tip={name0}
         >
-          {render_name_link(styles, name, ext)}
+          {render_name_link(styles, name0, ext)}
         </Tip>
       );
     } else {
-      return render_name_link(styles, name, ext);
+      return render_name_link(styles, name0, ext);
     }
   }
 
   const generate_on_share_click = memoizeOne((full_path: string) => {
-    return generate_click_for("share", full_path, props.actions);
+    return generate_click_for("share", full_path, actions);
   });
 
   function render_public_file_info() {
-    if (props.is_public) {
+    if (isPublic) {
       return <PublicButton on_click={generate_on_share_click(full_path())} />;
     }
   }
 
   function full_path() {
-    return misc.path_to_file(props.current_path, props.name);
+    return misc.path_to_file(current_path, name);
   }
 
   function handle_mouse_down() {
@@ -193,25 +202,24 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       // the click to do the selection triggering opening of the file.
       return;
     }
-    if (props.isdir) {
-      props.actions.open_directory(full_path());
-      props.actions.set_file_search("");
+    if (isDir) {
+      actions.open_directory(full_path());
+      actions.set_file_search("");
     } else {
       const foreground = should_open_in_foreground(e);
       const path = full_path();
       track("open-file", {
-        project_id: props.actions.project_id,
+        project_id: actions.project_id,
         path,
         how: "click-on-listing",
       });
-      props.actions.open_file({
+      actions.open_file({
         path,
         foreground,
         explicit: true,
       });
       if (foreground) {
         // delay slightly since it looks weird to see the full listing right when you click on a file
-        const actions = props.actions;
         setTimeout(() => actions.set_file_search(""), 10);
       }
     }
@@ -220,7 +228,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   function handle_download_click(e) {
     e.preventDefault();
     e.stopPropagation();
-    props.actions.download_file({
+    actions.download_file({
       path: full_path(),
       log: true,
     });
@@ -236,7 +244,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     try {
       return (
         <TimeAgo
-          date={new Date(props.time).toISOString()}
+          date={new Date(mtime).toISOString()}
           style={{ color: "#666" }}
         />
       );
@@ -295,7 +303,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_download_button(url) {
     if (student_project_functionality.disableActions) return;
-    const size = misc.human_readable_size(props.size);
+    if (isDir) return;
+    const displaySize = misc.human_readable_size(size);
     // TODO: This really should not be in the size column...
     return (
       <Popover
@@ -307,7 +316,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         }
         content={
           <>
-            Download this {size} file
+            Download this {displaySize} file
             <br />
             to your computer.
           </>
@@ -320,7 +329,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           onClick={handle_download_click}
           style={{ color: COLORS.GRAY, padding: 0 }}
         >
-          {size}
+          {displaySize}
           <Icon name="cloud-download" style={{ color: COLORS.GRAY }} />
         </Button>
       </Popover>
@@ -330,35 +339,31 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   const row_styles: CSS = {
     cursor: "pointer",
     borderRadius: "4px",
-    backgroundColor: props.color,
+    backgroundColor: color,
     borderStyle: "solid",
-    borderColor: props.selected ? "#08c" : "transparent",
+    borderColor: selected ? "#08c" : "transparent",
     margin: "1px 1px 1px 1px",
   } as const;
 
   // See https://github.com/sagemathinc/cocalc/issues/1020
   // support right-click → copy url for the download button
-  const url = url_href(
-    props.actions.project_id,
-    full_path(),
-    props.computeServerId,
-  );
+  const url = url_href(actions.project_id, full_path(), computeServerId);
 
   return (
     <Row
       style={row_styles}
       onMouseDown={handle_mouse_down}
-      className={props.no_select ? "noselect" : undefined}
+      className={no_select ? "noselect" : undefined}
     >
       <Col sm={2} xs={6} style={{ textAlign: "center" }}>
         {!student_project_functionality.disableActions && (
           <FileCheckbox
-            name={props.name}
-            checked={props.checked}
-            current_path={props.current_path}
-            actions={props.actions}
+            name={name}
+            checked={checked}
+            current_path={current_path}
+            actions={actions}
             style={{ verticalAlign: "sub", color: "#888" }}
-            listing={props.listing}
+            listing={listing}
           />
         )}
       </Col>
@@ -386,34 +391,13 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           <span style={{ marginLeft: "16px" }} />
         </VisibleXS>
         {render_timestamp()}
-        {props.isdir ? (
-          <>
-            <DirectorySize size={props.size} />
-          </>
-        ) : (
+        {!isDir && (
           <span className="pull-right" style={{ color: "#666" }}>
             {render_download_button(url)}
-            {render_view_button(url, props.name)}
+            {render_view_button(url, name)}
           </span>
         )}
       </Col>
     </Row>
-  );
-});
-
-const directory_size_style: React.CSSProperties = {
-  color: COLORS.GRAY,
-  marginRight: "3em",
-} as const;
-
-function DirectorySize({ size }) {
-  if (size == undefined) {
-    return null;
-  }
-
-  return (
-    <span className="pull-right" style={directory_size_style}>
-      {size} {misc.plural(size, "item")}
-    </span>
   );
 }

@@ -44,7 +44,7 @@ export async function btrfs(
   return await sudo({ ...opts, command: "btrfs" });
 }
 
-export async function isdir(path: string) {
+export async function isDir(path: string) {
   return (await stat(path)).isDirectory();
 }
 

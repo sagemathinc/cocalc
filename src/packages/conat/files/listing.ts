@@ -27,11 +27,11 @@ interface FileData {
   // last modification time as time since epoch in **milliseconds** (as is usual for javascript)
   mtime: number;
   size: number;
-  // isdir = mainly for backward compat:
-  isdir?: boolean;
+  // isDir = mainly for backward compat:
+  isDir?: boolean;
   // issymlink = mainly for backward compat:
-  issymlink?: boolean;
-  link_target?: string;
+  isSymLink?: boolean;
+  linkTarget?: string;
   // see typeDescription above.
   type?: FileTypeLabel;
 }
@@ -114,13 +114,13 @@ export class Listing extends EventEmitter {
       };
       if (stats.isSymbolicLink()) {
         // resolve target.
-        data.link_target = await this.opts.fs.readlink(
+        data.linkTarget = await this.opts.fs.readlink(
           join(this.opts.path, filename),
         );
-        data.issymlink = true;
+        data.isSymLink = true;
       }
       if (stats.isDirectory()) {
-        data.isdir = true;
+        data.isDir = true;
       }
       this.files[filename] = data;
     } catch (err) {
@@ -167,13 +167,13 @@ async function getListing(
       const size = parseInt(v[2]);
       files[name] = { mtime, size, type: v[3] as FileTypeLabel };
       if (v[3] == "l") {
-        files[name].issymlink = true;
+        files[name].isSymLink = true;
       }
       if (v[3] == "d") {
-        files[name].isdir = true;
+        files[name].isDir = true;
       }
       if (v[4]) {
-        files[name].link_target = v[4];
+        files[name].linkTarget = v[4];
       }
     } catch {}
   }

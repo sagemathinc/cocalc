@@ -394,7 +394,7 @@ function Subdirs(props) {
   const paths: string[] = [];
   const newPaths: string[] = [];
   for (const name in files) {
-    if (!files[name].isdir) continue;
+    if (!files[name].isDir) continue;
     if (name.startsWith(".") && !showHidden) continue;
     if (name.startsWith(NEW_FOLDER)) {
       newPaths.push(name);

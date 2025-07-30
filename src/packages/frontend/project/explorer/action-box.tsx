@@ -104,7 +104,7 @@ export function ActionBox({
     }
   }
 
-  function render_selected_files_list(): React.JSX.Element {
+  function render_selected_files_list() {
     return (
       <pre style={PRE_STYLE}>
         {checked_files.toArray().map((name) => (
@@ -124,7 +124,7 @@ export function ActionBox({
     actions.set_all_files_unchecked();
   }
 
-  function render_delete_warning(): React.JSX.Element | undefined {
+  function render_delete_warning() {
     if (current_path === ".trash") {
       return (
         <Col sm={5}>
@@ -139,7 +139,7 @@ export function ActionBox({
     }
   }
 
-  function render_delete(): React.JSX.Element | undefined {
+  function render_delete() {
     const { size } = checked_files;
     return (
       <div>
@@ -213,7 +213,7 @@ export function ActionBox({
     return dest !== current_path;
   }
 
-  function render_move(): React.JSX.Element {
+  function render_move() {
     const { size } = checked_files;
     return (
       <div>
@@ -261,7 +261,7 @@ export function ActionBox({
     }
   }
 
-  function render_different_project_dialog(): React.JSX.Element | undefined {
+  function render_different_project_dialog() {
     if (show_different_project) {
       return (
         <Col sm={4} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
@@ -279,9 +279,7 @@ export function ActionBox({
     }
   }
 
-  function render_copy_different_project_options():
-    | React.JSX.Element
-    | undefined {
+  function render_copy_different_project_options() {
     if (project_id !== copy_destination_project_id) {
       return (
         <div>
@@ -431,7 +429,7 @@ export function ActionBox({
     );
   }
 
-  function render_copy(): React.JSX.Element {
+  function render_copy() {
     const { size } = checked_files;
     const signed_in = get_user_type() === "signed_in";
     if (!signed_in) {
@@ -540,27 +538,17 @@ export function ActionBox({
     }
   }
 
-  function render_share(): React.JSX.Element {
+  function render_share() {
     // currently only works for a single selected file
     const path: string = checked_files.first() ?? "";
     if (!path) {
-      return <></>;
-    }
-    const public_data = file_map[misc.path_split(path).tail];
-    if (public_data == undefined) {
-      // directory listing not loaded yet... (will get re-rendered when loaded)
-      return <Loading />;
+      return null;
     }
     return (
       <ConfigureShare
         project_id={project_id}
         path={path}
         compute_server_id={compute_server_id}
-        isdir={public_data.isdir}
-        size={public_data.size}
-        mtime={public_data.mtime}
-        is_public={public_data.is_public}
-        public={public_data.public}
         close={cancel_action}
         action_key={action_key}
         set_public_path={(opts) => actions.set_public_path(path, opts)}
@@ -569,9 +557,7 @@ export function ActionBox({
     );
   }
 
-  function render_action_box(
-    action: FileAction,
-  ): React.JSX.Element | undefined {
+  function render_action_box(action: FileAction) {
     switch (action) {
       case "compress":
         return <CreateArchive />;

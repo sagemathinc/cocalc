@@ -167,9 +167,9 @@ export function Explorer() {
           redux.getProjectStore(project_id).get("selected_file_index") ?? 0;
         const x = listing?.[n];
         if (x != null) {
-          const { isdir, name } = x;
+          const { isDir, name } = x;
           const path = join(current_path, name);
-          if (isdir) {
+          if (isDir) {
             actions.open_directory(path);
           } else {
             actions.open_file({ path, foreground: !e.ctrlKey });

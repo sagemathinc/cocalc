@@ -496,7 +496,7 @@ export class ProjectClient {
     return (await this.api(opts.project_id)).realpath(opts.path);
   };
 
-  isdir = async ({
+  isDir = async ({
     project_id,
     path,
   }: {

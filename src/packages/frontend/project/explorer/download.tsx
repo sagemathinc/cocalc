@@ -44,9 +44,9 @@ export default function Download() {
       return;
     }
     const file = checked_files.first();
-    const isdir = !!actions.isDirViaCache(file);
-    setArchiveMode(!!isdir);
-    if (!isdir) {
+    const isDir = !!actions.isDirViaCache(file);
+    setArchiveMode(!!isDir);
+    if (!isDir) {
       const store = actions?.get_store();
       setUrl(store?.fileURL(file) ?? "");
     }

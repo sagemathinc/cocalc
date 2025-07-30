@@ -4,7 +4,7 @@ import getLogger from "@cocalc/backend/logger";
 import { SNAPSHOTS } from "./subvolume-snapshots";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { join, normalize } from "path";
-import { btrfs, isdir } from "./util";
+import { btrfs, isDir } from "./util";
 import { chmod, rename, rm } from "node:fs/promises";
 import { executeCode } from "@cocalc/backend/execute-code";
 
@@ -99,7 +99,7 @@ export class Subvolumes {
     if (!targetPath.startsWith(this.filesystem.opts.mount)) {
       throw Error("suspicious target");
     }
-    if (!srcPath.endsWith("/") && (await isdir(srcPath))) {
+    if (!srcPath.endsWith("/") && (await isDir(srcPath))) {
       srcPath += "/";
       if (!targetPath.endsWith("/")) {
         targetPath += "/";

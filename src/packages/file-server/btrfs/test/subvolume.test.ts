@@ -248,7 +248,7 @@ describe("test bup backups", () => {
   it("confirm a.txt is in our backup", async () => {
     const x = await vol.bup.ls("latest");
     expect(x).toEqual([
-      { name: "a.txt", size: 5, mtime: x[0].mtime, isdir: false },
+      { name: "a.txt", size: 5, mtime: x[0].mtime, isDir: false },
     ]);
   });
 
@@ -270,8 +270,8 @@ describe("test bup backups", () => {
     await vol.bup.save();
     const x = await vol.bup.ls("latest");
     expect(x).toEqual([
-      { name: "a.txt", size: 5, mtime: x[0].mtime, isdir: false },
-      { name: "mydir", size: 0, mtime: x[1].mtime, isdir: true },
+      { name: "a.txt", size: 5, mtime: x[0].mtime, isDir: false },
+      { name: "mydir", size: 0, mtime: x[1].mtime, isDir: true },
     ]);
     expect(Math.abs((x[0].mtime ?? 0) * 1000 - Date.now())).toBeLessThan(
       5 * 60_000,

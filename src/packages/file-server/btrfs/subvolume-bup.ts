@@ -110,6 +110,7 @@ export class SubvolumeBup {
     });
   };
 
+  // [ ] TODO: remove this ls and instead rely only on the fs sandbox code.
   ls = async (path: string = ""): Promise<DirectoryListingEntry[]> => {
     if (!path) {
       const { stdout } = await sudo({
@@ -125,10 +126,10 @@ export class SubvolumeBup {
         }
         const mtime = parseBupTime(name).valueOf() / 1000;
         newest = Math.max(mtime, newest);
-        v.push({ name, isdir: true, mtime });
+        v.push({ name, isDir: true, mtime });
       }
       if (v.length > 0) {
-        v.push({ name: "latest", isdir: true, mtime: newest });
+        v.push({ name: "latest", isDir: true, mtime: newest });
       }
       return v;
     }
@@ -153,20 +154,20 @@ export class SubvolumeBup {
       // [-rw-------","6b851643360e435eb87ef9a6ab64a8b1/6b851643360e435eb87ef9a6ab64a8b1","5","2025-07-15","06:12","a.txt"]
       const w = x.split(/\s+/);
       if (w.length >= 6) {
-        let isdir, name;
+        let isDir, name;
         if (w[5].endsWith("@") || w[5].endsWith("=") || w[5].endsWith("|")) {
           w[5] = w[5].slice(0, -1);
         }
         if (w[5].endsWith("/")) {
-          isdir = true;
+          isDir = true;
           name = w[5].slice(0, -1);
         } else {
           name = w[5];
-          isdir = false;
+          isDir = false;
         }
         const size = parseInt(w[2]);
         const mtime = new Date(w[3] + "T" + w[4]).valueOf() / 1000;
-        v.push({ name, size, mtime, isdir });
+        v.push({ name, size, mtime, isDir });
       }
     }
     return v;

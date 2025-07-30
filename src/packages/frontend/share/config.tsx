@@ -84,9 +84,8 @@ interface Props {
   path: string;
   size: number;
   mtime: number;
-  isdir?: boolean;
-  is_public?: boolean;
-  public?: PublicInfo;
+  isPublic?: boolean;
+  publicInfo?: PublicInfo;
   close: (event: any) => void;
   action_key: (event: any) => void;
   site_license_id?: string;
@@ -121,31 +120,41 @@ function SC({ children }) {
   return <Text strong>{children}</Text>;
 }
 
-export default function Configure(props: Props) {
-  const student = useStudentProjectFunctionality(props.project_id);
+export default function Configure({
+  project_id,
+  path,
+  isPublic,
+  publicInfo,
+  close,
+  action_key,
+  set_public_path,
+  has_network_access,
+  compute_server_id,
+}: Props) {
+  const student = useStudentProjectFunctionality(project_id);
   const [description, setDescription] = useState<string>(
-    props.public?.description ?? "",
+    publicInfo?.description ?? "",
   );
   const [sharingOptionsState, setSharingOptionsState] = useState<States>(() => {
-    if (props.is_public && props.public?.unlisted) {
+    if (isPublic && publicInfo?.unlisted) {
       return "public_unlisted";
     }
-    if (props.is_public && props.public?.authenticated) {
+    if (isPublic && publicInfo?.authenticated) {
       return "authenticated";
     }
-    if (props.is_public && !props.public?.unlisted) {
+    if (isPublic && !publicInfo?.unlisted) {
       return "public_listed";
     }
     return "private";
   });
 
   const [licenseId, setLicenseId] = useState<string | null | undefined>(
-    props.public?.site_license_id,
+    publicInfo?.site_license_id,
   );
   const kucalc = useTypedRedux("customize", "kucalc");
   const shareServer = useTypedRedux("customize", "share_server");
 
-  if (props.compute_server_id) {
+  if (compute_server_id) {
     return (
       <Alert
         type="warning"
@@ -167,35 +176,33 @@ export default function Configure(props: Props) {
     setSharingOptionsState(state);
     switch (state) {
       case "private":
-        props.set_public_path(SHARE_FLAGS.DISABLED);
+        set_public_path(SHARE_FLAGS.DISABLED);
         break;
       case "public_listed":
-        // props.public is suppose to work in this state
-        props.set_public_path(SHARE_FLAGS.LISTED);
+        // public is suppose to work in this state
+        set_public_path(SHARE_FLAGS.LISTED);
         break;
       case "public_unlisted":
-        props.set_public_path(SHARE_FLAGS.UNLISTED);
+        set_public_path(SHARE_FLAGS.UNLISTED);
         break;
       case "authenticated":
-        props.set_public_path(SHARE_FLAGS.AUTHENTICATED);
+        set_public_path(SHARE_FLAGS.AUTHENTICATED);
         break;
       default:
         unreachable(state);
     }
   };
 
-  const license = props.public?.license ?? "";
+  const license = publicInfo?.license ?? "";
 
   // This path is public because some parent folder is public.
-  const parent_is_public =
-    !!props.is_public &&
-    props.public != null &&
-    props.public.path != props.path;
+  const parentIsPublic =
+    !!isPublic && publicInfo != null && publicInfo.path != path;
 
   const url = publicShareUrl(
-    props.project_id,
-    parent_is_public && props.public != null ? props.public.path : props.path,
-    props.path,
+    project_id,
+    parentIsPublic && publicInfo != null ? publicInfo.path : path,
+    path,
   );
 
   const server = shareServerUrl();
@@ -242,7 +249,7 @@ export default function Configure(props: Props) {
 
   function renderFinishedButton() {
     return (
-      <Button onClick={props.close} type="primary">
+      <Button onClick={close} type="primary">
         <Icon name="check" /> Finished
       </Button>
     );
@@ -253,12 +260,10 @@ export default function Configure(props: Props) {
       <Title level={3} style={{ color: COLORS.GRAY_M, textAlign: "center" }}>
         <a
           onClick={() => {
-            redux
-              .getProjectActions(props.project_id)
-              ?.load_target("files/" + props.path);
+            redux.getProjectActions(project_id)?.load_target("files/" + path);
           }}
         >
-          {trunc_middle(props.path, 128)}
+          {trunc_middle(path, 128)}
         </a>
         <span style={{ float: "right" }}>{renderFinishedButton()}</span>
       </Title>
@@ -282,7 +287,7 @@ export default function Configure(props: Props) {
       </Row>
       <Row gutter={GUTTER}>
         <Col span={12}>
-          {!parent_is_public && (
+          {!parentIsPublic && (
             <>
               <Paragraph style={{ fontSize: FONTSIZE_TOP }}>
                 <Radio.Group
@@ -293,14 +298,14 @@ export default function Configure(props: Props) {
                     <Radio
                       name="sharing_options"
                       value="public_listed"
-                      disabled={!props.has_network_access}
+                      disabled={!has_network_access}
                       style={ACCESS_LEVEL_OPTION_STYLE}
                     >
                       <Icon name="eye" style={{ marginRight: "5px" }} />
                       <SC>{STATES.public_listed}</SC> - on the{" "}
                       <A href={shareServerUrl()}>
                         public search engine indexed server.{" "}
-                        {!props.has_network_access && (
+                        {!has_network_access && (
                           <b>
                             (This project must be upgraded to have Internet
                             access.)
@@ -349,16 +354,16 @@ export default function Configure(props: Props) {
               </Paragraph>
             </>
           )}
-          {parent_is_public && props.public != null && (
+          {parentIsPublic && publicInfo != null && (
             <Alert
               showIcon
               type="warning"
               style={{ wordWrap: "break-word" }}
               description={
                 <>
-                  This {props.isdir ? "directory" : "file"} is public because it
-                  is in the public folder "{props.public.path}". Adjust the
-                  sharing configuration of that folder instead.
+                  This is public because it is in the public folder "
+                  {publicInfo.path}". Adjust the sharing configuration of that
+                  folder instead.
                 </>
               }
             />
@@ -393,11 +398,11 @@ export default function Configure(props: Props) {
                   style={{ paddingTop: "5px", margin: "15px 0" }}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  disabled={parent_is_public}
+                  disabled={parentIsPublic}
                   placeholder="Describe what you are sharing.  You can change this at any time."
-                  onKeyUp={props.action_key}
+                  onKeyUp={action_key}
                   onBlur={() => {
-                    props.set_public_path({ description });
+                    set_public_path({ description });
                   }}
                 />
               </div>
@@ -415,11 +420,9 @@ export default function Configure(props: Props) {
                 </Paragraph>
                 <Paragraph style={{ marginBottom: "5px" }}>
                   <License
-                    disabled={parent_is_public}
+                    disabled={parentIsPublic}
                     license={license}
-                    set_license={(license) =>
-                      props.set_public_path({ license })
-                    }
+                    set_license={(license) => set_public_path({ license })}
                   />
                 </Paragraph>
 
@@ -431,7 +434,7 @@ export default function Configure(props: Props) {
                     licenseId={licenseId}
                     setLicenseId={(licenseId) => {
                       setLicenseId(licenseId);
-                      props.set_public_path({ site_license_id: licenseId });
+                      set_public_path({ site_license_id: licenseId });
                     }}
                   />
                   <Paragraph type="secondary">
@@ -446,10 +449,10 @@ export default function Configure(props: Props) {
                 </Paragraph>
               </div>
               <ConfigureJupyterApi
-                disabled={parent_is_public}
-                jupyter_api={props.public?.jupyter_api}
+                disabled={parentIsPublic}
+                jupyter_api={publicInfo?.jupyter_api}
                 saveJupyterApi={(jupyter_api) => {
-                  props.set_public_path({ jupyter_api });
+                  set_public_path({ jupyter_api });
                 }}
               />
             </Space>
@@ -477,12 +480,12 @@ export default function Configure(props: Props) {
                 </Paragraph>
               </div>
               <ConfigureName
-                project_id={props.project_id}
-                path={props.public?.path ?? props.path}
+                project_id={project_id}
+                path={publicInfo?.path ?? path}
                 saveRedirect={(redirect) => {
-                  props.set_public_path({ redirect });
+                  set_public_path({ redirect });
                 }}
-                disabled={parent_is_public}
+                disabled={parentIsPublic}
               />
             </Space>
           </Col>

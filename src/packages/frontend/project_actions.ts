@@ -1908,14 +1908,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (path.endsWith("/")) {
         return path;
       }
-      const isdir = this.isDirViaCache(path, compute_server_id);
-      if (isdir === false) {
+      const isDir = this.isDirViaCache(path, compute_server_id);
+      if (isDir === false) {
         return path;
       }
-      if (isdir === true) {
+      if (isDir === true) {
         return path + "/";
       }
-      if (await this.isdir(path, compute_server_id)) {
+      if (await this.isDir(path, compute_server_id)) {
         return path + "/";
       } else {
         return path;
@@ -2436,7 +2436,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         event: "file_action",
         action: "renamed",
         src: opts.src,
-        dest: opts.dest + ((await this.isdir(opts.dest)) ? "/" : ""),
+        dest: opts.dest + ((await this.isDir(opts.dest)) ? "/" : ""),
         compute_server_id,
       });
     } catch (err) {
@@ -2505,14 +2505,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (data == null) {
       return undefined;
     } else {
-      return !!data.isdir;
+      return !!data.isDir;
     }
   };
 
   // return true if exists and is a directory
   // error if doesn't exist or can't find out.
   // Use isDirViaCache for more of a fast hint.
-  isdir = async (
+  isDir = async (
     path: string,
     compute_server_id?: number,
   ): Promise<boolean> => {
@@ -2991,7 +2991,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // can't just change always since we frequently update last_edited to get the share to get copied over.
       this.log({
         event: "public_path",
-        path: path + ((await this.isdir(path)) ? "/" : ""),
+        path: path + ((await this.isDir(path)) ? "/" : ""),
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
@@ -3271,8 +3271,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
 
         // We check whether the path is a directory or not:
-        const isdir = await this.isdir(full_path);
-        if (isdir) {
+        const isDir = await this.isDir(full_path);
+        if (isDir) {
           this.open_directory(full_path, change_history);
         } else {
           this.open_file({

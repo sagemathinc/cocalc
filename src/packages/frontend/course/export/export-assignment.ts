@@ -82,7 +82,7 @@ async function export_one_directory(
   let x: any;
   const timeout = 60; // 60 seconds
   for (x of listing) {
-    if (x.isdir) continue; // we ignore subdirectories...
+    if (x.isDir) continue; // we ignore subdirectories...
     const { name } = x;
     if (startswith(name, "STUDENT")) continue;
     if (startswith(name, ".")) continue;

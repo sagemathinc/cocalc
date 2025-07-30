@@ -102,7 +102,7 @@ export function CommandsGuide({ actions, local_view_state }: Props) {
       if (!hidden && name.startsWith(".")) {
         continue;
       }
-      if (files[name].isdir) {
+      if (files[name].isDir) {
         dirnames.push(name);
       } else {
         filenames.push(name);

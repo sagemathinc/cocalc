@@ -152,7 +152,7 @@ async function cacheNeighbors({
 }) {
   let v: string[] = [];
   for (const dir in files) {
-    if (!dir.startsWith(".") && files[dir].isdir) {
+    if (!dir.startsWith(".") && files[dir].isDir) {
       const full = join(path, dir);
       const k = key(cacheId, full);
       if (!cache.has(k) && !failed.has(k)) {

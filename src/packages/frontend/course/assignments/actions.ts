@@ -1598,7 +1598,7 @@ ${details}
 
     let has_student_subdir: boolean = false;
     for (const entry of listing) {
-      if (entry.isdir && entry.name == STUDENT_SUBDIR) {
+      if (entry.isDir && entry.name == STUDENT_SUBDIR) {
         has_student_subdir = true;
         break;
       }

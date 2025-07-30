@@ -1,12 +1,15 @@
 export interface DirectoryListingEntry {
+  // relative path (to containing directory)
   name: string;
-  isdir?: boolean;
-  issymlink?: boolean;
+  // number of *bytes* used to store this path.
+  size: number;
+  // last modification time in ms of this file
+  mtime: number;
+  // true if it is a directory
+  isDir?: boolean;
+  // true if it is a symlink
+  isSymLink?: boolean;
   // set if issymlink is true and we're able to determine the target of the link
-  link_target?: string;
-  // bytes for file, number of entries for directory (*including* . and ..).
-  size?: number;
-  mtime?: number;
+  linkTarget?: string;
   error?: string;
-  mask?: boolean;
 }
