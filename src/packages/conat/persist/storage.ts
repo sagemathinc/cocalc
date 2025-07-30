@@ -367,7 +367,9 @@ export class PersistentStream extends EventEmitter {
     try {
       await this.db.backup(path);
     } catch (err) {
-      console.log(err);
+      if (!process.env.COCALC_TEST_MODE) {
+        console.log(err);
+      }
       logger.debug("WARNING: error creating a backup", path, err);
     }
   });
@@ -537,10 +539,12 @@ export class PersistentStream extends EventEmitter {
 
   delete = ({
     seq,
+    seqs: seqs0,
     last_seq,
     all,
   }: {
     seq?: number;
+    seqs?: number[];
     last_seq?: number;
     all?: boolean;
   }): { seqs: number[] } => {
@@ -565,6 +569,15 @@ export class PersistentStream extends EventEmitter {
         .all(seq)
         .map((row: any) => row.seq);
       this.db.prepare("DELETE FROM messages WHERE seq=?").run(seq);
+    } else if (seqs0) {
+      const statement = this.db.prepare("DELETE FROM messages WHERE seq=?");
+      const transaction = this.db.transaction((seqs) => {
+        for (const s of seqs) {
+          statement.run(s);
+        }
+      });
+      transaction(seqs0);
+      seqs = seqs0;
     }
     this.emit("change", { op: "delete", seqs });
     this.throttledBackup();
