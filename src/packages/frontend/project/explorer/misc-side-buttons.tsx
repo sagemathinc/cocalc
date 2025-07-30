@@ -30,7 +30,6 @@ const OPEN_MSG = defineMessage({
 export function MiscSideButtons() {
   const { actions, project_id } = useProjectContext();
   const show_hidden = useTypedRedux({ project_id }, "show_hidden");
-  const show_masked = useTypedRedux({ project_id }, "show_masked");
   const current_path = useTypedRedux({ project_id }, "current_path");
   const available_features = useTypedRedux(
     { project_id },
@@ -46,13 +45,6 @@ export function MiscSideButtons() {
     e.preventDefault();
     return actions?.setState({
       show_hidden: !show_hidden,
-    });
-  };
-
-  const handle_masked_toggle = (e: MouseEvent): void => {
-    e.preventDefault();
-    actions?.setState({
-      show_masked: !show_masked,
     });
   };
 
@@ -73,25 +65,6 @@ export function MiscSideButtons() {
           placement={"bottom"}
         >
           <Icon name={icon} />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_masked_toggle(): JSX.Element {
-    return (
-      <Button
-        onClick={handle_masked_toggle}
-        active={!show_masked}
-        bsSize={"small"}
-      >
-        <Tip
-          title={intl.formatMessage(labels.masked_files, {
-            masked: show_masked,
-          })}
-          placement={"bottomLeft"}
-        >
-          <Icon name={"mask"} />
         </Tip>
       </Button>
     );
@@ -211,7 +184,6 @@ export function MiscSideButtons() {
       <div className="pull-right">
         <Space.Compact>
           {render_hidden_toggle()}
-          {render_masked_toggle()}
           {render_backup()}
           <TourButton project_id={project_id} />
         </Space.Compact>

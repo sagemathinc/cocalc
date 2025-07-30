@@ -4,16 +4,11 @@ export default function filterListing({
   listing,
   search,
   showHidden,
-  showMasked,
 }: {
   listing?: DirectoryListingEntry[] | null;
   search?: string;
   showHidden?: boolean;
-  showMasked?: boolean;
 }): DirectoryListingEntry[] | null {
-  if (!showMasked) {
-    console.log("TODO: show masked");
-  }
   if (listing == null) {
     return null;
   }

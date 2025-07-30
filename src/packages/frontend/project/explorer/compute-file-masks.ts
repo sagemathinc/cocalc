@@ -4,10 +4,10 @@
  */
 
 import { derive_rmd_output_filename } from "@cocalc/frontend/frame-editors/rmd-editor/utils";
-import { dict, filename_extension, startswith } from "@cocalc/util/misc";
+import { dict, filename_extension } from "@cocalc/util/misc";
 import { DirectoryListing, DirectoryListingEntry } from "./types";
 
-const MASKED_FILENAMES = ["__pycache__"] as const;
+const MASKED_FILENAMES = new Set(["__pycache__"]);
 
 const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
@@ -60,12 +60,13 @@ export function computeFileMasks(listing: DirectoryListing): void {
     listing.map((item) => [item.name, item]),
   );
   for (const file of listing) {
-    // mask certain known directories
-    if (MASKED_FILENAMES.indexOf(file.name as any) >= 0) {
+    // mask certain known paths
+    if (MASKED_FILENAMES.has(file.name as any)) {
       filename_map[file.name].mask = true;
     }
 
-    // note: never skip already masked files, because of rnw/rtex->tex
+    // NOTE: never skip already masked files, because of rnw/rtex->tex
+
     const ext = filename_extension(file.name).toLowerCase();
 
     // some extensions like Rmd modify the basename during compilation
@@ -77,16 +78,16 @@ export function computeFileMasks(listing: DirectoryListing): void {
       // check each possible compiled extension
       let derivedBasename;
       // some uppercase-strings have special meaning
-      if (startswith(mask_ext, "NODOT")) {
+      if (mask_ext.startsWith("NODOT")) {
         derivedBasename = basename.slice(0, -1); // exclude the trailing dot
         mask_ext = mask_ext.slice("NODOT".length);
-      } else if (mask_ext.indexOf("FILENAME") >= 0) {
+      } else if (mask_ext.includes("FILENAME")) {
         derivedBasename = mask_ext.replace("FILENAME", filename);
         mask_ext = "";
-      } else if (mask_ext.indexOf("BASENAME") >= 0) {
+      } else if (mask_ext.includes("BASENAME")) {
         derivedBasename = mask_ext.replace("BASENAME", basename.slice(0, -1));
         mask_ext = "";
-      } else if (mask_ext.indexOf("BASEDASHNAME") >= 0) {
+      } else if (mask_ext.includes("BASEDASHNAME")) {
         // BASEDASHNAME is like BASENAME, but replaces spaces by dashes
         // https://github.com/sagemathinc/cocalc/issues/3229
         const fragment = basename.slice(0, -1).replace(/ /g, "-");

@@ -106,6 +106,7 @@ function filesToListing({
     console.warn(`invalid sort direction: '${sortDirection}'`);
   }
   if (mask) {
+    // note -- this masking is as much time as everything above
     computeFileMasks(v);
   }
   return v;

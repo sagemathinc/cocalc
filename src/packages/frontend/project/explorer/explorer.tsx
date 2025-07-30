@@ -114,6 +114,7 @@ export function Explorer() {
   const project_map = useTypedRedux("projects", "project_map");
 
   const images = useTypedRedux("compute_images", "images");
+  const mask = useTypedRedux("account", "other_settings")?.get("mask_files");
 
   const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
   const fs = useFs({ project_id });
@@ -122,10 +123,9 @@ export function Explorer() {
     path: current_path,
     ...sortDesc(active_file_sort),
     cacheId: actions?.getCacheId(compute_server_id),
-    mask: true,
+    mask,
   });
   const showHidden = useTypedRedux({ project_id }, "show_hidden");
-  const showMasked = useTypedRedux({ project_id }, "show_masked");
 
   listing = listingError
     ? null
@@ -133,7 +133,6 @@ export function Explorer() {
         listing,
         search: file_search,
         showHidden,
-        showMasked,
       });
 
   useEffect(() => {
