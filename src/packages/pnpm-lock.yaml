@@ -476,9 +476,6 @@ importers:
       dog-names:
         specifier: ^2.1.0
         version: 2.1.0
-      domhandler:
-        specifier: ^4.3.1
-        version: 4.3.1
       dropzone:
         specifier: ^5.9.2
         version: 5.9.3
