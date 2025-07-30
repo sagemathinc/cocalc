@@ -2395,6 +2395,7 @@ export class SyncDoc extends EventEmitter {
     const lastChanged = this.last_changed();
     await this.fs.utimes(this.path, lastChanged / 1000, lastChanged / 1000);
     this.valueOnDisk = value;
+    this.emit("save-to-disk");
   };
 
   /* Initiates a save of file to disk, then waits for the
