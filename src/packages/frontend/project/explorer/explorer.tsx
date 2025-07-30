@@ -122,6 +122,7 @@ export function Explorer() {
     path: current_path,
     ...sortDesc(active_file_sort),
     cacheId: actions?.getCacheId(compute_server_id),
+    mask: true,
   });
   const showHidden = useTypedRedux({ project_id }, "show_hidden");
   const showMasked = useTypedRedux({ project_id }, "show_masked");

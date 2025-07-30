@@ -12,6 +12,7 @@ import { type FilesystemClient } from "@cocalc/conat/files/fs";
 import { type ConatError } from "@cocalc/conat/core/client";
 import type { JSONValue } from "@cocalc/util/types";
 import { getFiles, type Files } from "./use-files";
+import { computeFileMasks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 
 export type SortField = "name" | "mtime" | "size" | "type";
 export type SortDirection = "asc" | "desc";
@@ -39,6 +40,7 @@ export default function useListing({
   sortDirection = "asc",
   throttleUpdate,
   cacheId,
+  mask,
 }: {
   // fs = undefined is supported and just waits until you provide a fs that is defined
   fs?: FilesystemClient | null;
@@ -47,6 +49,7 @@ export default function useListing({
   sortDirection?: SortDirection;
   throttleUpdate?: number;
   cacheId?: JSONValue;
+  mask?: boolean;
 }): {
   listing: null | DirectoryListingEntry[];
   error: null | ConatError;
@@ -60,7 +63,7 @@ export default function useListing({
   });
 
   const listing = useMemo<null | DirectoryListingEntry[]>(() => {
-    return filesToListing({ files, sortField, sortDirection });
+    return filesToListing({ files, sortField, sortDirection, mask });
   }, [sortField, sortDirection, files]);
 
   return { listing, error, refresh };
@@ -70,10 +73,12 @@ function filesToListing({
   files,
   sortField = "name",
   sortDirection = "asc",
+  mask,
 }: {
   files?: Files | null;
   sortField?: SortField;
   sortDirection?: SortDirection;
+  mask?: boolean;
 }): null | DirectoryListingEntry[] {
   if (files == null) {
     return null;
@@ -99,6 +104,9 @@ function filesToListing({
   } else if (sortDirection == "asc") {
   } else {
     console.warn(`invalid sort direction: '${sortDirection}'`);
+  }
+  if (mask) {
+    computeFileMasks(v);
   }
   return v;
 }

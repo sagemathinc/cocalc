@@ -54,7 +54,7 @@ const MASKED_FILE_EXTENSIONS = {
  * the general outcome of this function is to set for some file entry objects
  * in "listing" the attribute <file>.mask=true
  */
-export function compute_file_masks(listing: DirectoryListing): void {
+export function computeFileMasks(listing: DirectoryListing): void {
   // map filename to file for easier lookup
   const filename_map: { [name: string]: DirectoryListingEntry } = dict(
     listing.map((item) => [item.name, item]),
@@ -75,29 +75,29 @@ export function compute_file_masks(listing: DirectoryListing): void {
 
     for (let mask_ext of MASKED_FILE_EXTENSIONS[ext] ?? []) {
       // check each possible compiled extension
-      let bn; // derived basename
+      let derivedBasename;
       // some uppercase-strings have special meaning
       if (startswith(mask_ext, "NODOT")) {
-        bn = basename.slice(0, -1); // exclude the trailing dot
+        derivedBasename = basename.slice(0, -1); // exclude the trailing dot
         mask_ext = mask_ext.slice("NODOT".length);
       } else if (mask_ext.indexOf("FILENAME") >= 0) {
-        bn = mask_ext.replace("FILENAME", filename);
+        derivedBasename = mask_ext.replace("FILENAME", filename);
         mask_ext = "";
       } else if (mask_ext.indexOf("BASENAME") >= 0) {
-        bn = mask_ext.replace("BASENAME", basename.slice(0, -1));
+        derivedBasename = mask_ext.replace("BASENAME", basename.slice(0, -1));
         mask_ext = "";
       } else if (mask_ext.indexOf("BASEDASHNAME") >= 0) {
         // BASEDASHNAME is like BASENAME, but replaces spaces by dashes
         // https://github.com/sagemathinc/cocalc/issues/3229
         const fragment = basename.slice(0, -1).replace(/ /g, "-");
-        bn = mask_ext.replace("BASEDASHNAME", fragment);
+        derivedBasename = mask_ext.replace("BASEDASHNAME", fragment);
         mask_ext = "";
       } else {
-        bn = basename;
+        derivedBasename = basename;
       }
-      const mask_fn = `${bn}${mask_ext}`;
-      if (filename_map[mask_fn] != null) {
-        filename_map[mask_fn].mask = true;
+      const maskFilename = `${derivedBasename}${mask_ext}`;
+      if (filename_map[maskFilename] != null) {
+        filename_map[maskFilename].mask = true;
       }
     }
   }

@@ -26,7 +26,7 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
+import { computeFileMasks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
   DirectoryListingEntry,
@@ -164,7 +164,7 @@ export function FilesFlyout({
     const files = directoryListing;
     if (files == null) return EMPTY_LISTING;
     let activeFile: DirectoryListingEntry | null = null;
-    compute_file_masks(files);
+    computeFileMasks(files);
     const searchWords = file_search.trim().toLowerCase();
 
     const processedFiles: DirectoryListingEntry[] = files
