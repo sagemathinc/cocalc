@@ -4,13 +4,15 @@
  */
 
 import { HomeOutlined } from "@ant-design/icons";
-import { Breadcrumb } from "antd";
+import { Breadcrumb, Button, Flex, Tooltip } from "antd";
 
 import {
+  CSS,
   React,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import { trunc_middle } from "@cocalc/util/misc";
 import { createPathSegmentLink } from "./path-segment-link";
 
@@ -29,36 +31,53 @@ export const PathNavigator: React.FC<Props> = React.memo(
     className = "cc-path-navigator",
     mode = "files",
   }: Readonly<Props>) => {
-    const current_path = useTypedRedux({ project_id }, "current_path");
-    const history_path = useTypedRedux({ project_id }, "history_path");
+    const currentPath = useTypedRedux({ project_id }, "current_path");
+    const historyPath = useTypedRedux({ project_id }, "history_path");
     const actions = useActions({ project_id });
 
     function make_path() {
       const v: any[] = [];
 
-      const current_path_depth =
-        (current_path == "" ? 0 : current_path.split("/").length) - 1;
-      const history_segments = history_path.split("/");
-      const is_root = current_path[0] === "/";
+      const currentPathDepth =
+        (currentPath == "" ? 0 : currentPath.split("/").length) - 1;
+      const historySegments = historyPath.split("/");
+      const isRoot = currentPath[0] === "/";
+
+      const homeStyle: CSS = {
+        fontSize: style?.fontSize,
+        fontWeight: "bold",
+      } as const;
+
+      const homeDisplay =
+        mode === "files" ? (
+          <>
+            <HomeOutlined style={homeStyle} />{" "}
+            <span style={homeStyle}>Home</span>
+          </>
+        ) : (
+          <HomeOutlined style={homeStyle} />
+        );
 
       v.push(
         createPathSegmentLink({
           path: "",
-          display: <HomeOutlined style={{ fontSize: style?.fontSize }} />,
+          display: (
+            <Tooltip title="Go to home directory">{homeDisplay}</Tooltip>
+          ),
           full_name: "",
           key: 0,
           on_click: () => actions?.open_directory("", true, false),
-          active: current_path_depth === -1,
+          active: currentPathDepth === -1,
         }),
       );
 
-      const pathLen = current_path_depth;
+      const pathLen = currentPathDepth;
       const condense = mode === "flyout";
 
-      history_segments.forEach((segment, i) => {
-        if (is_root && i === 0) return;
-        const is_current = i === current_path_depth;
-        const is_history = i > current_path_depth;
+      historySegments.forEach((segment, i) => {
+        if (isRoot && i === 0) return;
+        const is_current = i === currentPathDepth;
+        const is_history = i > currentPathDepth;
 
         // don't show too much in flyout mode
         const hide =
@@ -69,7 +88,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
         v.push(
           // yes, must be called as a normal function.
           createPathSegmentLink({
-            path: history_segments.slice(0, i + 1 || undefined).join("/"),
+            path: historySegments.slice(0, i + 1 || undefined).join("/"),
             display: hide ? <>&bull;</> : trunc_middle(segment, 15),
             full_name: segment,
             key: i + 1,
@@ -82,10 +101,38 @@ export const PathNavigator: React.FC<Props> = React.memo(
       return v;
     }
 
+    function renderUP() {
+      const canGoUp = currentPath !== "";
+
+      return (
+        <Button
+          icon={<Icon name="arrow-circle-up" />}
+          type="text"
+          onClick={() => {
+            if (!canGoUp) return;
+            const pathSegments = currentPath.split("/");
+            pathSegments.pop();
+            const parentPath = pathSegments.join("/");
+            actions?.open_directory(parentPath, true, false);
+          }}
+          disabled={!canGoUp}
+          title={canGoUp ? "Go up one directory" : "Already at home directory"}
+        />
+      );
+    }
+
     // Background color is set via .cc-project-files-path-nav > nav
     // so that things look good even for multiline long paths.
-    return (
+    const bc = (
       <Breadcrumb style={style} className={className} items={make_path()} />
+    );
+    return mode === "files" ? (
+      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>{bc}</div>
+        {renderUP()}
+      </Flex>
+    ) : (
+      bc
     );
   },
 );
