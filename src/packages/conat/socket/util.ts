@@ -13,7 +13,7 @@ export type Role = "client" | "server";
 // socketio and use those to manage things.  This ping
 // is entirely a "just in case" backup if some event
 // were missed (e.g., a kill -9'd process...)
-export const PING_PONG_INTERVAL = 90000;
+export const PING_PONG_INTERVAL = 90_000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond this size result in an exception.
@@ -22,7 +22,7 @@ export const PING_PONG_INTERVAL = 90000;
 // Also note that this is just the *number* of messages, and a message can have
 // any size. But determining message size is very difficult without serializing the
 // message, which costs.
-export const DEFAULT_MAX_QUEUE_SIZE = 10_000;
+export const DEFAULT_MAX_QUEUE_SIZE = 1_000;
 
 export let DEFAULT_COMMAND_TIMEOUT = 10_000;
 export let DEFAULT_KEEP_ALIVE = 25_000;

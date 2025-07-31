@@ -14,7 +14,10 @@ import {
 } from "@cocalc/conat/socket";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { getLogger } from "@cocalc/conat/client";
-
+import { Throttle } from "@cocalc/util/throttle";
+const MAX_MSGS_PER_SECOND = parseInt(
+  process.env.COCALC_JUPYTER_MAX_MSGS_PER_SECOND ?? "20",
+);
 const logger = getLogger("conat:project:jupyter:run-code");
 
 function getSubject({
@@ -147,42 +150,59 @@ async function handleRequest({
 }) {
   const runner = await jupyterRun({ path, cells, noHalt });
   const output: OutputMessage[] = [];
-  let handler: OutputHandler | null = null;
-  for await (const mesg of runner) {
-    if (socket.state == "closed") {
-      // client socket has closed -- the backend server must take over!
-      if (handler == null) {
-        logger.debug("socket closed -- server must handle output");
-        if (outputHandler == null) {
-          throw Error("no output handler available");
-        }
-        handler = outputHandler({ path, cells });
-        if (handler == null) {
-          throw Error("bug -- outputHandler must return a handler");
-        }
-        for (const prev of output) {
-          handler.process(prev);
-        }
-        output.length = 0;
-      }
-      handler.process(mesg);
-    } else {
-      output.push(mesg);
-      try {
-        socket.write([mesg]);
-      } catch (err) {
-        if (err.code == "ENOBUFS") {
-          // wait for the over-filled socket to finish writing out data.
-          await socket.drain();
-          socket.write([mesg]);
-        } else {
-          throw err;
-        }
+
+  const throttle = new Throttle<OutputMessage>(MAX_MSGS_PER_SECOND);
+  let unhandledClientWriteError: any = undefined;
+  throttle.on("data", async (mesgs) => {
+    try {
+      socket.write(mesgs);
+    } catch (err) {
+      if (err.code == "ENOBUFS") {
+        // wait for the over-filled socket to finish writing out data.
+        await socket.drain();
+        socket.write(mesgs);
+      } else {
+        unhandledClientWriteError = err;
       }
     }
+  });
+
+  try {
+    let handler: OutputHandler | null = null;
+    for await (const mesg of runner) {
+      if (socket.state == "closed") {
+        // client socket has closed -- the backend server must take over!
+        if (handler == null) {
+          logger.debug("socket closed -- server must handle output");
+          if (outputHandler == null) {
+            throw Error("no output handler available");
+          }
+          handler = outputHandler({ path, cells });
+          if (handler == null) {
+            throw Error("bug -- outputHandler must return a handler");
+          }
+          for (const prev of output) {
+            handler.process(prev);
+          }
+          output.length = 0;
+        }
+        handler.process(mesg);
+      } else {
+        if (unhandledClientWriteError) {
+          throw unhandledClientWriteError;
+        }
+        output.push(mesg);
+        throttle.write(mesg);
+      }
+    }
+    handler?.done();
+  } finally {
+    if (socket.state != "closed" && !unhandledClientWriteError) {
+      throttle.flush();
+      socket.write(null);
+    }
+    throttle.close();
   }
-  handler?.done();
-  socket.write(null);
 }
 
 class JupyterClient {

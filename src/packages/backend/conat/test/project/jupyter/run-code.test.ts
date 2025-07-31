@@ -54,9 +54,12 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
     const iter = await client.run(cells);
     const v: any[] = [];
     for await (const output of iter) {
-      v.push(output);
+      v.push(...output);
     }
-    expect(v).toEqual([[{ path, id: "0" }], [{ cells, id: "0" }]]);
+    expect(v).toEqual([
+      { path, id: "0" },
+      { cells, id: "0" },
+    ]);
   });
 
   it("start iterating over the output after waiting", async () => {
@@ -67,14 +70,15 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
     // when implementing async iterators.
     client.verbose = true;
     const iter = await client.run(cells);
-    iter.verbose = true;
     const v: any[] = [];
     await delay(500);
     for await (const output of iter) {
-      v.push(output);
+      v.push(...output);
     }
-    client.verbose = false;
-    expect(v).toEqual([[{ path, id: "0" }], [{ cells, id: "0" }]]);
+    expect(v).toEqual([
+      { path, id: "0" },
+      { cells, id: "0" },
+    ]);
   });
 
   const count = 100;
@@ -84,9 +88,12 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
       const v: any[] = [];
       const cells = [{ id: `${i}`, input: `${i} + ${i}` }];
       for await (const output of await client.run(cells)) {
-        v.push(output);
+        v.push(...output);
       }
-      expect(v).toEqual([[{ path, id: "0" }], [{ cells, id: "0" }]]);
+      expect(v).toEqual([
+        { path, id: "0" },
+        { cells, id: "0" },
+      ]);
     }
     const evalsPerSecond = Math.floor((1000 * count) / (Date.now() - start));
     if (process.env.BENCH) {
@@ -146,9 +153,12 @@ describe("create simple mocked jupyter runner that does actually eval an express
     const iter = await client.run(cells);
     const v: any[] = [];
     for await (const output of iter) {
-      v.push(output);
+      v.push(...output);
     }
-    expect(v).toEqual([[{ id: "a", output: 5 }], [{ id: "b", output: 243 }]]);
+    expect(v).toEqual([
+      { id: "a", output: 5 },
+      { id: "b", output: 243 },
+    ]);
   });
 
   it("run code that FAILS and see error is visible to client properly", async () => {
