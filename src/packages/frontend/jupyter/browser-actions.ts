@@ -58,7 +58,10 @@ import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { get as getUsageInfo } from "@cocalc/conat/project/usage-info";
 import { delay } from "awaiting";
 import { until } from "@cocalc/util/async-utils";
-import { jupyterClient } from "@cocalc/conat/project/jupyter/run-code";
+import {
+  jupyterClient,
+  type InputCell,
+} from "@cocalc/conat/project/jupyter/run-code";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { throttle } from "lodash";
 
@@ -1556,11 +1559,11 @@ export class JupyterActions extends JupyterActions0 {
       if (client == null) {
         throw Error("bug");
       }
-      const cells: any[] = [];
+      const cells: InputCell[] = [];
       const kernel = this.store.get("kernel");
 
       for (const id of ids) {
-        const cell = this.store.getIn(["cells", id])?.toJS();
+        const cell = this.store.getIn(["cells", id])?.toJS() as InputCell;
         if ((cell?.cell_type ?? "code") != "code") {
           // code is the default type
           continue;

@@ -27,14 +27,15 @@ function getSubject({
   return `jupyter.project-${project_id}.${compute_server_id}`;
 }
 
-interface InputCell {
+export interface InputCell {
   id: string;
   input: string;
-  output?: { [n: string]: OutputMessage } | null;
+  output?: { [n: string]: OutputMessage | null } | null;
   state?: "done" | "busy" | "run";
   exec_count?: number | null;
   start?: number | null;
   end?: number | null;
+  cell_type?: "code";
 }
 
 export interface OutputMessage {
@@ -189,7 +190,9 @@ class JupyterClient {
 
   run = async (cells: InputCell[], opts: { noHalt?: boolean } = {}) => {
     if (this.iter) {
-      // one evaluation at a time.
+      // one evaluation at a time -- starting a new one ends the previous one.
+      // Each client browser has a separate instance of JupyterClient, so
+      // a properly implemented frontend client would never hit this.
       this.iter.end();
       delete this.iter;
     }
@@ -201,7 +204,7 @@ class JupyterClient {
         }
         if (args[0] == null) {
           this.iter?.end();
-          return null;
+          return;
         } else {
           return args[0];
         }

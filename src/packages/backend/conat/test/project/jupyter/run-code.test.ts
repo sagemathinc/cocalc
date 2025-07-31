@@ -6,13 +6,18 @@ pnpm test `pwd`/run-code.test.ts
 
 */
 
-import { before, after, connect, wait } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  connect,
+  delay,
+  wait,
+} from "@cocalc/backend/conat/test/setup";
 import {
   jupyterClient,
   jupyterServer,
 } from "@cocalc/conat/project/jupyter/run-code";
 import { uuid } from "@cocalc/util/misc";
-import { delay } from "awaiting";
 
 // it's really 100+, but tests fails if less than this.
 const MIN_EVALS_PER_SECOND = 10;
@@ -51,6 +56,24 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
     for await (const output of iter) {
       v.push(output);
     }
+    expect(v).toEqual([[{ path, id: "0" }], [{ cells, id: "0" }]]);
+  });
+
+  it("start iterating over the output after waiting", async () => {
+    // this is the same as the previous test, except we insert a
+    // delay from when we create the iterator, and when we start
+    // reading values out of it.  This is important to test, because
+    // it was broken in my first implementation, and is a common mistake
+    // when implementing async iterators.
+    client.verbose = true;
+    const iter = await client.run(cells);
+    iter.verbose = true;
+    const v: any[] = [];
+    await delay(500);
+    for await (const output of iter) {
+      v.push(output);
+    }
+    client.verbose = false;
     expect(v).toEqual([[{ path, id: "0" }], [{ cells, id: "0" }]]);
   });
 

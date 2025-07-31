@@ -169,7 +169,6 @@ export class EventIterator<V extends unknown>
     if (this.#ended) return;
     this.resolveNext?.();
     this.#ended = true;
-    this.#queue = [];
 
     this.emitter.off(this.event, this.#push);
     const maxListeners = this.emitter.getMaxListeners();
@@ -189,6 +188,9 @@ export class EventIterator<V extends unknown>
    * The next value that's received from the EventEmitter.
    */
   public async next(): Promise<IteratorResult<V>> {
+    //     if (this.verbose) {
+    //       console.log("next", this.#queue);
+    //     }
     if (this.err) {
       const err = this.err;
       delete this.err;
@@ -279,11 +281,23 @@ export class EventIterator<V extends unknown>
    * Pushes a value into the queue.
    */
   protected push(...args): void {
+    //     if (this.verbose) {
+    //       console.log("push", args, this.#queue);
+    //     }
     if (this.err) {
       return;
     }
     try {
       const value = this.map(args);
+      if (this.#ended) {
+        // the this.map... call could have decided to end
+        // the iterator, by calling this.end() instead of returning a value.
+        if (value !== undefined) {
+          // not undefined so at least give the user the opportunity to get this final value.
+          this.#queue.push(value);
+        }
+        return;
+      }
       this.#queue.push(value);
       while (this.#queue.length > this.#maxQueue && this.#queue.length > 0) {
         if (this.#overflow == "throw") {
