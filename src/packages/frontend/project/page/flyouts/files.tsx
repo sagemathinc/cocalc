@@ -100,7 +100,9 @@ export function FilesFlyout({
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
-  const openFiles = useTypedRedux({ project_id }, "open_files_order");
+  const openFiles = new Set<string>(
+    useTypedRedux({ project_id }, "open_files_order")?.toJS() ?? [],
+  );
   // mainly controls what a single click does, plus additional UI elements
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
@@ -192,17 +194,6 @@ export function FilesFlyout({
       }
     });
 
-    for (const file of processedFiles) {
-      const fullPath = path_to_file(current_path, file.name);
-      if (openFiles.some((path) => path == fullPath)) {
-        file.isOpen = true;
-      }
-      if (activePath === fullPath) {
-        file.isActive = true;
-        activeFile = file;
-      }
-    }
-
     if (activeFileSort.get("is_descending")) {
       processedFiles.reverse(); // inplace op
     }
@@ -229,11 +220,14 @@ export function FilesFlyout({
     activeFileSort,
     hidden,
     file_search,
-    openFiles,
     show_masked,
     current_path,
     strippedPublicPaths,
   ]);
+
+  const isOpen = (file) => openFiles.has(path_to_file(current_path, file.name));
+  const isActive = (file) =>
+    activePath == path_to_file(current_path, file.name);
 
   const publicFiles = getPublicFiles(
     directoryFiles,
@@ -393,7 +387,7 @@ export function FilesFlyout({
     }
 
     // similar, if in open mode and already opened, just switch to it as well
-    if (mode === "open" && file.isOpen && !e.shiftKey && !e.ctrlKey) {
+    if (mode === "open" && isOpen(file) && !e.shiftKey && !e.ctrlKey) {
       setPrevSelected(index);
       open(e, index);
       return;
@@ -457,13 +451,13 @@ export function FilesFlyout({
   }
 
   function renderTimeAgo(item: DirectoryListingEntry) {
-    const { mtime, isOpen = false } = item;
+    const { mtime } = item;
     if (typeof mtime === "number") {
       return (
         <TimeAgo
           date={mtime}
           // don't popup the toggle if you just clicked to open the file
-          click_to_toggle={isOpen}
+          click_to_toggle={isOpen(item)}
         />
       );
     }
@@ -515,7 +509,12 @@ export function FilesFlyout({
     return (
       <FileListItem
         mode="files"
-        item={{ ...item, isPublic: publicFiles.has(item.name) }}
+        item={{
+          ...item,
+          isPublic: publicFiles.has(item.name),
+          isOpen: isOpen(item),
+          isActive: isActive(item),
+        }}
         index={index}
         extra={renderListItemExtra(item)}
         extra2={renderListItemExtra2(item)}

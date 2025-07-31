@@ -26,6 +26,7 @@ import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
 import { type DirectoryListing } from "@cocalc/frontend/project/explorer/types";
+import { FILE_ITEM_OPENED_STYLE } from "@cocalc/frontend/project/page/flyouts/file-list-item";
 
 export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "md",
@@ -49,6 +50,7 @@ interface Props {
   color: string;
   mask: boolean;
   isPublic: boolean;
+  isOpen: boolean;
   current_path: string;
   actions: ProjectActions;
   no_select: boolean;
@@ -70,6 +72,7 @@ export function FileRow({
   color,
   mask,
   isPublic,
+  isOpen,
   current_path,
   actions,
   no_select,
@@ -149,12 +152,14 @@ export function FileRow({
       (display_name != undefined && name0 !== display_name) ||
       name0.length > 50;
 
-    const styles = {
+    const style = {
       whiteSpace: "pre-wrap",
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
       color: mask ? "#bbbbbb" : COLORS.TAB,
+      ...(isOpen ? FILE_ITEM_OPENED_STYLE : undefined),
+      backgroundColor: undefined,
     };
 
     if (show_tip) {
@@ -167,11 +172,11 @@ export function FileRow({
           }
           tip={name0}
         >
-          {render_name_link(styles, name0, ext)}
+          {render_name_link(style, name0, ext)}
         </Tip>
       );
     } else {
-      return render_name_link(styles, name0, ext);
+      return render_name_link(style, name0, ext);
     }
   }
 

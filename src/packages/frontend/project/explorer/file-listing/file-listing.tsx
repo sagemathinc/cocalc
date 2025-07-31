@@ -16,7 +16,7 @@ import { TypedMap, useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import * as misc from "@cocalc/util/misc";
+import { path_to_file, rowBackground } from "@cocalc/util/misc";
 import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
@@ -55,16 +55,18 @@ export function FileListing({
   const selected_file_index =
     useTypedRedux({ project_id }, "selected_file_index") ?? 0;
   const name = actions.name;
+  const openFiles = new Set<string>(
+    useTypedRedux({ project_id }, "open_files_order")?.toJS() ?? [],
+  );
 
   function renderRow(index, file) {
-    const checked = checked_files.has(
-      misc.path_to_file(current_path, file.name),
-    );
-    const color = misc.rowBackground({ index, checked });
+    const checked = checked_files.has(path_to_file(current_path, file.name));
+    const color = rowBackground({ index, checked });
 
     return (
       <FileRow
         {...file}
+        isOpen={openFiles.has(path_to_file(current_path, file.name))}
         isPublic={publicFiles.has(file.name)}
         color={color}
         checked={checked}
