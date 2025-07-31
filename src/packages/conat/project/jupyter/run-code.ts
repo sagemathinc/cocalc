@@ -30,6 +30,11 @@ function getSubject({
 interface InputCell {
   id: string;
   input: string;
+  output?: { [n: string]: OutputMessage } | null;
+  state?: "done" | "busy" | "run";
+  exec_count?: number | null;
+  start?: number | null;
+  end?: number | null;
 }
 
 export interface OutputMessage {

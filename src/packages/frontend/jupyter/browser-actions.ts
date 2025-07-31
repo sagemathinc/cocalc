@@ -1469,11 +1469,16 @@ export class JupyterActions extends JupyterActions0 {
 
   getOutputHandler = (cell) => {
     const handler = new OutputHandler({ cell });
+
+    // save first time, so that other clients know this cell is running.
     let first = true;
     const f = throttle(
       () => {
-        // save first so that other clients know this cell is running.
-        this._set(cell, first);
+        // we ONLY set certain fields; e.g., setting the input would be
+        // extremely annoying since the user can edit the input while the
+        // cell is running.
+        const { id, state, output, start, end, exec_count } = cell;
+        this._set({ id, state, output, start, end, exec_count }, first);
         first = false;
       },
       1000 / OUTPUT_FPS,
@@ -1575,8 +1580,8 @@ export class JupyterActions extends JupyterActions0 {
             cell.output[n] = null;
           }
           // time last evaluation took
-          cell.last = cell.start && cell.end ? cell.end - cell.start : null;
-          this._set(cell, false);
+          const last = cell.start && cell.end ? cell.end - cell.start : null;
+          this._set({ id: cell.id, last, output: cell.output }, false);
         }
         cells.push(cell);
       }

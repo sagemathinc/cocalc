@@ -122,7 +122,13 @@ class MulticellOutputHandler {
       this.handler?.done();
       this.handler = new OutputHandler({ cell });
       const f = throttle(
-        () => this.actions._set({ ...cell, type: "cell" }, true),
+        () => {
+          const { id, state, output, start, end, exec_count } = cell;
+          this.actions._set(
+            { type:"cell", id, state, output, start, end, exec_count },
+            true,
+          );
+        },
         1000 / BACKEND_OUTPUT_FPS,
         {
           leading: true,
