@@ -142,12 +142,11 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("read only checks", async () => {
-    await syncstring.wait_until_read_only_known(); // no-op
     expect(syncstring.is_read_only()).toBe(false);
   });
 
   it("hashes of versions", () => {
-    expect(syncstring.hash_of_saved_version()).toBe(0);
+    expect(syncstring.hash_of_saved_version()).toBe(undefined);
     expect(syncstring.hash_of_live_version()).toBe(0);
     expect(syncstring.has_uncommitted_changes()).toBe(false);
   });

@@ -2291,19 +2291,22 @@ export class SyncDoc extends EventEmitter {
   );
 
   wait_until_read_only_known = async (): Promise<void> => {
-    await until(async () => {
-      if (this.isClosed()) {
-        return true;
-      }
-      if (this.stats != null) {
-        return true;
-      }
-      try {
-        await this.stat();
-        return true;
-      } catch {}
-      return false;
-    });
+    await until(
+      async () => {
+        if (this.isClosed()) {
+          return true;
+        }
+        if (this.stats != null) {
+          return true;
+        }
+        try {
+          await this.stat();
+          return true;
+        } catch {}
+        return false;
+      },
+      { min: 3000 },
+    );
   };
 
   /* Returns true if the current live version of this document has
