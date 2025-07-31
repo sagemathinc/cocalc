@@ -69,6 +69,9 @@ describe("the useFiles hook", () => {
     await waitFor(() => {
       expect(result.current.files?.["hello.txt"]).not.toBeDefined();
     });
+    await waitFor(() => {
+      expect(result.current.error).not.toBe(null);
+    });
     expect(result.current.error?.code).toBe("ENOENT");
 
     await act(async () => {
