@@ -20,8 +20,9 @@ export const PING_PONG_INTERVAL = 90000;
 // NOTE: in nodejs the default for exactly this is "infinite=use up all RAM", so
 // maybe we should make this even larger (?).
 // Also note that this is just the *number* of messages, and a message can have
-// any size.
-export const DEFAULT_MAX_QUEUE_SIZE = 1000;
+// any size. But determining message size is very difficult without serializing the
+// message, which costs.
+export const DEFAULT_MAX_QUEUE_SIZE = 10_000;
 
 export let DEFAULT_COMMAND_TIMEOUT = 10_000;
 export let DEFAULT_KEEP_ALIVE = 25_000;

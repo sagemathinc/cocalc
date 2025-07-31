@@ -168,7 +168,7 @@ describe("create a client first and write more messages than the queue size resu
   });
 
   it("wait for client to drain; then we can now send another message without an error", async () => {
-    await client.waitUntilDrain();
+    await client.drain();
     client.write("foo");
   });
 

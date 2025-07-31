@@ -91,8 +91,8 @@ export class ConatSocketClient extends ConatSocketBase {
     });
   }
 
-  waitUntilDrain = async () => {
-    await this.tcp?.send.waitUntilDrain();
+  drain = async () => {
+    await this.tcp?.send.drain();
   };
 
   private sendCommandToServer = async (

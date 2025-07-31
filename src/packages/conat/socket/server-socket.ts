@@ -238,7 +238,7 @@ export class ServerSocket extends EventEmitter {
     }
   });
 
-  waitUntilDrain = async () => {
-    await this.tcp?.send.waitUntilDrain();
+  drain = async () => {
+    await this.tcp?.send.drain();
   };
 }

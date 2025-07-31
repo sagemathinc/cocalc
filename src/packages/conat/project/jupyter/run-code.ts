@@ -120,7 +120,11 @@ export function jupyterServer({
         //console.log(err);
         logger.debug("server: failed response -- ", err);
         if (socket.state != "closed") {
-          socket.write(null, { headers: { error: `${err}` } });
+          try {
+            socket.write(null, { headers: { error: `${err}` } });
+          } catch {
+            // an error trying to report an error shouldn't crash everything
+          }
         }
       }
     });
@@ -146,6 +150,7 @@ async function handleRequest({
   let handler: OutputHandler | null = null;
   for await (const mesg of runner) {
     if (socket.state == "closed") {
+      // client socket has closed -- the backend server must take over!
       if (handler == null) {
         logger.debug("socket closed -- server must handle output");
         if (outputHandler == null) {
@@ -163,7 +168,17 @@ async function handleRequest({
       handler.process(mesg);
     } else {
       output.push(mesg);
-      socket.write([mesg]);
+      try {
+        socket.write([mesg]);
+      } catch (err) {
+        if (err.code == "ENOBUFS") {
+          // wait for the over-filled socket to finish writing out data.
+          await socket.drain();
+          socket.write([mesg]);
+        } else {
+          throw err;
+        }
+      }
     }
   }
   handler?.done();

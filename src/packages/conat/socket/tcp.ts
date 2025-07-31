@@ -275,7 +275,7 @@ export class Sender extends EventEmitter {
     }
   };
 
-  waitUntilDrain = reuseInFlight(async () => {
+  drain = reuseInFlight(async () => {
     if (this.unsent == 0) {
       return;
     }
