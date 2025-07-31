@@ -11,11 +11,6 @@ import {
 import { dko as createDKO, type DKO } from "@cocalc/conat/sync/dko";
 import { project_id } from "@cocalc/project/data";
 import {
-  createOpenFiles,
-  type OpenFiles,
-  Entry as OpenFileEntry,
-} from "@cocalc/conat/sync/open-files";
-import {
   inventory as createInventory,
   type Inventory,
 } from "@cocalc/conat/sync/inventory";
@@ -26,7 +21,7 @@ import {
   type AStream,
 } from "@cocalc/conat/sync/astream";
 
-export type { DStream, DKV, OpenFiles, OpenFileEntry };
+export type { DStream, DKV };
 
 export async function dstream<T = any>(
   opts: DStreamOptions,
@@ -48,10 +43,6 @@ export function astream<T = any>(opts: DStreamOptions): AStream<T> {
 
 export async function dko<T = any>(opts: DKVOptions): Promise<DKO<T>> {
   return await createDKO<T>({ project_id, ...opts });
-}
-
-export async function openFiles(): Promise<OpenFiles> {
-  return await createOpenFiles({ project_id });
 }
 
 export async function inventory(): Promise<Inventory> {

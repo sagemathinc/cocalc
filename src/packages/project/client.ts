@@ -27,7 +27,6 @@ import { join } from "node:path";
 import { FileSystemClient } from "@cocalc/sync-client/lib/client-fs";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
-import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
@@ -54,7 +53,6 @@ import {
   type CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import { connectToConat } from "./conat/connection";
-import { getSyncDoc } from "@cocalc/project/conat/open-files";
 import { isDeleted } from "@cocalc/project/conat/listings";
 
 const winston = getLogger("client");
@@ -518,15 +516,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       ...options,
       project_id: this.project_id,
     });
-  };
-
-  // WARNING: making two of the exact same sync_string or sync_db will definitely
-  // lead to corruption!
-
-  // Get the synchronized doc with the given path.  Returns undefined
-  // if currently no such sync-doc.
-  syncdoc = ({ path }: { path: string }): SyncDoc | undefined => {
-    return getSyncDoc(path);
   };
 
   public path_access(opts: { path: string; mode: string; cb: CB }): void {

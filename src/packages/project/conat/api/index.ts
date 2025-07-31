@@ -53,7 +53,6 @@ Remember, if you don't set API_KEY, then the project MUST be running so that the
 import { type ProjectApi } from "@cocalc/conat/project/api";
 import { connectToConat } from "@cocalc/project/conat/connection";
 import { getSubject } from "../names";
-import { terminate as terminateOpenFiles } from "@cocalc/project/conat/open-files";
 import { close as closeListings } from "@cocalc/project/conat/listings";
 import { project_id } from "@cocalc/project/data";
 import { close as closeFilesRead } from "@cocalc/project/conat/files/read";
@@ -102,11 +101,7 @@ async function handleMessage(api, subject, mesg) {
     // TODO: should be part of handleApiRequest below, but done differently because
     // one case halts this loop
     const { service } = request.args[0] ?? {};
-    if (service == "open-files") {
-      terminateOpenFiles();
-      await mesg.respond({ status: "terminated", service });
-      return;
-    } else if (service == "listings") {
+    if (service == "listings") {
       closeListings();
       await mesg.respond({ status: "terminated", service });
       return;

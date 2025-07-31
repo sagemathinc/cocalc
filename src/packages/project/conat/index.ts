@@ -9,7 +9,7 @@ Start the NATS servers:
 import "./connection";
 import { getLogger } from "@cocalc/project/logger";
 import { init as initAPI } from "./api";
-import { init as initOpenFiles } from "./open-files";
+// import { init as initOpenFiles } from "./open-files";
 // TODO: initWebsocketApi is temporary
 import { init as initWebsocketApi } from "./browser-websocket-api";
 import { init as initListings } from "./listings";
@@ -25,7 +25,7 @@ export default async function init() {
   logger.debug("starting Conat project services");
   await initAPI();
   await initJupyter();
-  await initOpenFiles();
+  // await initOpenFiles();
   initWebsocketApi();
   await initListings();
   await initRead();

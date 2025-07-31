@@ -382,8 +382,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.remove_table(table);
     }
 
-    webapp_client.conat_client.closeOpenFiles(this.project_id);
-
     const store = this.get_store();
     store?.close_all_tables();
   };
@@ -3539,14 +3537,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == null) return;
     this.setRecentlyDeleted(path, 0);
-    (async () => {
-      try {
-        const o = await webapp_client.conat_client.openFiles(this.project_id);
-        o.setNotDeleted(path);
-      } catch (err) {
-        console.log("WARNING: issue undeleting file", err);
-      }
-    })();
   };
 
   private initProjectStatus = async () => {

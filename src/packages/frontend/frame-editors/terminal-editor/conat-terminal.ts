@@ -10,7 +10,6 @@ import {
   SIZE_TIMEOUT_MS,
   createBrowserClient,
 } from "@cocalc/conat/service/terminal";
-import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import { until } from "@cocalc/util/async-utils";
 
 type State = "disconnected" | "init" | "running" | "closed";
@@ -58,7 +57,6 @@ export class ConatTerminal extends EventEmitter {
     this.path = path;
     this.termPath = termPath;
     this.options = options;
-    this.touchLoop({ project_id, path: termPath });
     this.sizeLoop(measureSize);
     this.api = createTerminalClient({ project_id, termPath });
     this.createBrowserService();
@@ -140,25 +138,6 @@ export class ConatTerminal extends EventEmitter {
           this.writeQueue += data;
         }
       }
-    }
-  };
-
-  touchLoop = async ({ project_id, path }) => {
-    while (this.state != ("closed" as State)) {
-      try {
-        // this marks the path as being of interest for editing and starts
-        // the service; it doesn't actually create a file on disk.
-        await webapp_client.touchOpenFile({
-          project_id,
-          path,
-        });
-      } catch (err) {
-        console.warn(err);
-      }
-      if (this.state == ("closed" as State)) {
-        break;
-      }
-      await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
     }
   };
 

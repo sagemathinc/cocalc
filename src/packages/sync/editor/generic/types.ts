@@ -169,12 +169,6 @@ export interface Client extends ProjectClient {
 
   sage_session: (opts: { path: string }) => any;
 
-  touchOpenFile?: (opts: {
-    project_id: string;
-    path: string;
-    doctype?;
-  }) => Promise<void>;
-
   touch_project?: (path: string) => void;
 }
 
