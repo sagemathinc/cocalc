@@ -84,7 +84,7 @@ export async function jupyterRun({ path, cells, noHalt }: RunOptions) {
   logger.debug("jupyterRun: running");
   async function* run() {
     for (const cell of cells) {
-      actions.ensure_backend_kernel_setup();
+      actions.initKernel();
       const output = actions.jupyter_kernel.execute_code({
         halt_on_error: !noHalt,
         code: cell.input,
@@ -125,7 +125,7 @@ class MulticellOutputHandler {
         () => {
           const { id, state, output, start, end, exec_count } = cell;
           this.actions._set(
-            { type:"cell", id, state, output, start, end, exec_count },
+            { type: "cell", id, state, output, start, end, exec_count },
             true,
           );
         },

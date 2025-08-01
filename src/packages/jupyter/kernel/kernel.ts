@@ -36,7 +36,6 @@ import { jupyterSockets, type JupyterSockets } from "@cocalc/jupyter/zmq";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
-import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
   type BlobStoreInterface,
   CodeExecutionEmitterInterface,
@@ -44,6 +43,7 @@ import {
   JupyterKernelInterface,
   KernelInfo,
 } from "@cocalc/jupyter/types/project-interface";
+import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
@@ -151,7 +151,6 @@ export function initJupyterRedux(syncdb: SyncDB, client: Client) {
   }
   const store = redux.createStore(name, JupyterStore);
   const actions = redux.createActions(name, JupyterActions);
-
   actions._init(project_id, path, syncdb, store, client);
 
   syncdb.once("error", (err) =>

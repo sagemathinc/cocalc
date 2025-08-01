@@ -1299,7 +1299,9 @@ export class SyncDoc extends EventEmitter {
       await this.readFile();
       if (firstLoad) {
         dbg("emitting first-load event");
-        // this event is emited the first time the document is ever loaded from disk.
+        // this event is emited the first time the document is ever
+        // loaded from disk.  It's used, e.g., for notebook "trust" state,
+        // so important from a security POV.
         this.emit("first-load");
       }
       dbg("loaded");
