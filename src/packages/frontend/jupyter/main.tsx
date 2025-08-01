@@ -12,11 +12,10 @@ import {
   CSS,
   React,
   redux,
-  Rendered,
   useRedux,
-  useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useRef } from "react";
 // Support for all the MIME types
 import { Button, Tooltip } from "antd";
 import "./output-messages/mime-types/init-frontend";
@@ -117,7 +116,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "show_kernel_selector",
   ]);
   // string name of the kernel
-  const kernels: undefined | KernelsType = useRedux([name, "kernels"]);
   const kernelspec = useRedux([name, "kernel_info"]);
   const error: undefined | KernelsType = useRedux([name, "error"]);
   // settings for all the codemirror editors
@@ -261,25 +259,11 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_loading(): Rendered {
-    return (
-      <Loading
-        style={{
-          fontSize: "24pt",
-          textAlign: "center",
-          marginTop: "15px",
-          color: COLORS.GRAY,
-        }}
-      />
-    );
-  }
-
   function render_cells() {
     if (
       cell_list == null ||
       font_size == null ||
       cm_options == null ||
-      kernels == null ||
       cells == null
     ) {
       return (
@@ -327,95 +311,20 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_about() {
-    return (
-      <About
-        actions={actions}
-        about={about}
-        backend_kernel_info={backend_kernel_info}
-      />
-    );
-  }
-
-  function render_nbconvert() {
-    if (path == null || project_id == null) return;
-    return (
-      <NBConvert
-        actions={actions}
-        path={path}
-        project_id={project_id}
-        nbconvert={nbconvert}
-        nbconvert_dialog={nbconvert_dialog}
-        backend_kernel_info={backend_kernel_info}
-      />
-    );
-  }
-
-  function render_edit_attachments() {
-    if (edit_attachments == null || cells == null) {
-      return;
-    }
-    const cell = cells.get(edit_attachments);
-    if (cell == null) {
-      return;
-    }
-    return <EditAttachments actions={actions} cell={cell} />;
-  }
-
-  function render_edit_cell_metadata() {
-    if (edit_cell_metadata == null) {
-      return;
-    }
-    return (
-      <EditCellMetadata
-        actions={actions}
-        id={edit_cell_metadata.get("id")}
-        metadata={edit_cell_metadata.get("metadata")}
-        font_size={font_size}
-        cm_options={cm_options != null ? cm_options.get("options") : undefined}
-      />
-    );
-  }
-
-  function render_find_and_replace() {
-    if (cells == null || cur_id == null) {
-      return;
-    }
-    return (
-      <FindAndReplace
-        actions={actions}
-        find_and_replace={find_and_replace}
-        sel_ids={sel_ids}
-        cur_id={cur_id}
-        cells={cells}
-        cell_list={cell_list}
-      />
-    );
-  }
-
-  function render_confirm_dialog() {
-    if (confirm_dialog == null || actions == null) return;
-    return <ConfirmDialog actions={actions} confirm_dialog={confirm_dialog} />;
-  }
-
   function render_select_kernel() {
     return <KernelSelector actions={actions} />;
   }
 
-  function render_keyboard_shortcuts() {
-    if (actions == null) return;
-    return (
-      <KeyboardShortcuts
-        actions={actions}
-        editor_actions={editor_actions}
-        keyboard_shortcuts={keyboard_shortcuts}
-      />
-    );
-  }
-
   function render_main() {
     if (!check_select_kernel_init) {
-      return render_loading();
+      <Loading
+        style={{
+          fontSize: "24pt",
+          textAlign: "center",
+          marginTop: "15px",
+          color: COLORS.GRAY,
+        }}
+      />;
     } else if (show_kernel_selector) {
       return render_select_kernel();
     } else {
@@ -427,13 +336,58 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     if (!is_focused) return;
     return (
       <>
-        {render_about()}
-        {render_nbconvert()}
-        {render_edit_attachments()}
-        {render_edit_cell_metadata()}
-        {render_find_and_replace()}
-        {render_keyboard_shortcuts()}
-        {render_confirm_dialog()}
+        <About
+          actions={actions}
+          about={about}
+          backend_kernel_info={backend_kernel_info}
+        />
+        {path != null && project_id != null && (
+          <NBConvert
+            actions={actions}
+            path={path}
+            project_id={project_id}
+            nbconvert={nbconvert}
+            nbconvert_dialog={nbconvert_dialog}
+            backend_kernel_info={backend_kernel_info}
+          />
+        )}
+        {edit_attachments != null && (
+          <EditAttachments
+            actions={actions}
+            cell={cells?.get(edit_attachments)}
+          />
+        )}
+        {edit_cell_metadata != null && (
+          <EditCellMetadata
+            actions={actions}
+            id={edit_cell_metadata.get("id")}
+            metadata={edit_cell_metadata.get("metadata")}
+            font_size={font_size}
+            cm_options={
+              cm_options != null ? cm_options.get("options") : undefined
+            }
+          />
+        )}
+        {cells != null && cur_id != null && (
+          <FindAndReplace
+            actions={actions}
+            find_and_replace={find_and_replace}
+            sel_ids={sel_ids}
+            cur_id={cur_id}
+            cells={cells}
+            cell_list={cell_list}
+          />
+        )}
+        {actions != null && (
+          <KeyboardShortcuts
+            actions={actions}
+            editor_actions={editor_actions}
+            keyboard_shortcuts={keyboard_shortcuts}
+          />
+        )}
+        {actions != null && confirm_dialog != null && (
+          <ConfirmDialog actions={actions} confirm_dialog={confirm_dialog} />
+        )}
       </>
     );
   }

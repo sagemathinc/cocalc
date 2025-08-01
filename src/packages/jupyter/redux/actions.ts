@@ -688,6 +688,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       this.set_cell_list();
     }
 
+    this.ensureThereIsACell();
     this.__syncdb_change_post_hook(doInit);
   };
 
@@ -2504,6 +2505,25 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     this.setState({ runProgress: total > 0 ? (100 * ran) / total : 100 });
+  };
+
+  ensureThereIsACell = () => {
+    if (this._state !== "ready") {
+      return;
+    }
+    const cells = this.store.get("cells");
+    if (cells == null || cells.size === 0) {
+      this._set({
+        type: "cell",
+        // by using the same id across clients we solve the problem of multiple
+        // clients creating a cell at the same time.
+        id: "alpha",
+        pos: 0,
+        input: "",
+      });
+      // We are obviously contributing content to this (empty!) notebook.
+      return this.set_trust_notebook(true);
+    }
   };
 }
 

@@ -80,7 +80,6 @@ export class JupyterActions extends JupyterActions0 {
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
-    this.initBackend();
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
     this.setState({
       toolbar: !this.get_local_storage("hide_toolbar"),
@@ -140,6 +139,7 @@ export class JupyterActions extends JupyterActions0 {
     this.nbgrader_actions = new NBGraderActions(this, this.redux);
 
     this.syncdb.once("ready", () => {
+      this._syncdb_init_kernel();
       const ipywidgets_state = this.syncdb.ipywidgets_state;
       if (ipywidgets_state == null) {
         throw Error("bug -- ipywidgets_state must be defined");
@@ -1156,8 +1156,8 @@ export class JupyterActions extends JupyterActions0 {
       // we either let the user select a kernel, or use a stored one
       let using_default_kernel = false;
 
-      const account_store = this.redux.getStore("account") as any;
-      const editor_settings = account_store.get("editor_settings") as any;
+      const account_store = this.redux.getStore("account");
+      const editor_settings = account_store.get("editor_settings");
       if (
         editor_settings != null &&
         !editor_settings.get("ask_jupyter_kernel")

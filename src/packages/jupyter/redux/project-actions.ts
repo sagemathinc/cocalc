@@ -287,7 +287,6 @@ export class JupyterActions extends JupyterActions0 {
       });
     }
 
-    this.ensure_there_is_a_cell();
     this._throttled_ensure_positions_are_unique();
   };
 
@@ -781,23 +780,6 @@ export class JupyterActions extends JupyterActions0 {
       const e = `error writing file: ${err}`;
       dbg(e);
       throw Error(e);
-    }
-  };
-
-  ensure_there_is_a_cell = () => {
-    if (this._state !== "ready") {
-      return;
-    }
-    const cells = this.store.get("cells");
-    if (cells == null || cells.size === 0) {
-      this._set({
-        type: "cell",
-        id: this.new_id(),
-        pos: 0,
-        input: "",
-      });
-      // We are obviously contributing content to this (empty!) notebook.
-      return this.set_trust_notebook(true);
     }
   };
 
