@@ -16,8 +16,7 @@ Then run this code in nodejs:
 
 */
 
-
-import { jupyterRun } from "@cocalc/project/conat/api/editor";
+import { run } from "@cocalc/project/conat/api/jupyter";
 import { outputHandler } from "@cocalc/jupyter/control";
 import { jupyterServer } from "@cocalc/conat/project/jupyter/run-code";
 import { connectToConat } from "@cocalc/project/conat/connection";
@@ -34,7 +33,7 @@ export function init() {
     client,
     project_id,
     compute_server_id,
-    jupyterRun,
+    run,
     outputHandler,
   });
 }

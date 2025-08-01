@@ -152,11 +152,13 @@ async function handleApiRequest(request, mesg) {
 
 import * as system from "./system";
 import * as editor from "./editor";
+import * as jupyter from "./jupyter";
 import * as sync from "./sync";
 
 export const projectApi: ProjectApi = {
   system,
   editor,
+  jupyter,
   sync,
 };
 

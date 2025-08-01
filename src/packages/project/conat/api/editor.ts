@@ -1,9 +1,4 @@
-export { jupyter_strip_notebook as jupyterStripNotebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
-export { jupyter_run_notebook as jupyterRunNotebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
-export { nbconvert as jupyterNbconvert } from "../../jupyter/convert";
 export { formatString } from "../../formatters";
-export { logo as jupyterKernelLogo } from "@cocalc/jupyter/kernel/logo";
-export { get_kernel_data as jupyterKernels } from "@cocalc/jupyter/kernel/kernel-data";
 export { newFile } from "@cocalc/backend/misc/new-file";
 
 import { printSageWS as printSageWS0 } from "@cocalc/project/print_to_pdf";
@@ -34,30 +29,3 @@ export async function printSageWS(opts): Promise<string> {
 }
 
 export { createTerminalService } from "@cocalc/project/conat/terminal";
-
-import { getClient } from "@cocalc/project/client";
-import { project_id } from "@cocalc/project/data";
-import * as control from "@cocalc/jupyter/control";
-import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
-
-export async function jupyterStart(path: string) {
-  const fs = new SandboxedFilesystem(process.env.HOME ?? "/tmp", {
-    unsafeMode: true,
-  });
-  await control.jupyterStart({ project_id, path, client: getClient(), fs });
-}
-
-// IMPORTANT: jupyterRun is NOT used directly by the API, but instead by packages/project/conat/jupyter.ts
-// It is convenient to have it here so it can call jupyterStart above, etc.  The reason is because
-// this returns an async iterator managed using a dedicated socket, and the api is request/response..
-export async function jupyterRun(opts: {
-  path: string;
-  cells: { id: string; input: string }[];
-}) {
-  await jupyterStart(opts.path);
-  return await control.jupyterRun(opts);
-}
-
-export async function jupyterStop(path: string) {
-  await control.jupyterStop({ path });
-}

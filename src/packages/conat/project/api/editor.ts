@@ -1,18 +1,7 @@
-import type { NbconvertParams } from "@cocalc/util/jupyter/types";
-import type { RunNotebookOptions } from "@cocalc/util/jupyter/nbgrader-types";
 import type { Options as FormatterOptions } from "@cocalc/util/code-formatter";
-import type { KernelSpec } from "@cocalc/util/jupyter/types";
 
 export const editor = {
   newFile: true,
-
-  jupyterStart: true,
-  jupyterStop: true,
-  jupyterStripNotebook: true,
-  jupyterNbconvert: true,
-  jupyterRunNotebook: true,
-  jupyterKernelLogo: true,
-  jupyterKernels: true,
 
   formatString: true,
 
@@ -40,23 +29,6 @@ export interface Editor {
   // is in editor, since it's meant to be for creating a file aware of the
   // context of our editors.
   newFile: (path: string) => Promise<void>;
-
-  jupyterStripNotebook: (path_ipynb: string) => Promise<string>;
-
-  // path = the syncdb path (not *.ipynb)
-  jupyterStart: (path: string) => Promise<void>;
-  jupyterStop: (path: string) => Promise<void>;
-
-  jupyterNbconvert: (opts: NbconvertParams) => Promise<void>;
-
-  jupyterRunNotebook: (opts: RunNotebookOptions) => Promise<string>;
-
-  jupyterKernelLogo: (
-    kernelName: string,
-    opts?: { noCache?: boolean },
-  ) => Promise<{ filename: string; base64: string }>;
-
-  jupyterKernels: (opts?: { noCache?: boolean }) => Promise<KernelSpec[]>;
 
   // returns formatted version of str.
   formatString: (opts: {

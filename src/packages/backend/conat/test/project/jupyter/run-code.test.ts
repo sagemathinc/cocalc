@@ -35,7 +35,7 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
   const project_id = uuid();
   it("create jupyter code run server", () => {
     // running code with this just results in two responses: the path and the cells
-    async function jupyterRun({ path, cells }) {
+    async function run({ path, cells }) {
       async function* runner() {
         yield { path, id: "0" };
         yield { cells, id: "0" };
@@ -43,7 +43,7 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
       return runner();
     }
 
-    server = jupyterServer({ client: client1, project_id, jupyterRun });
+    server = jupyterServer({ client: client1, project_id, run });
   });
 
   let client;
@@ -120,7 +120,7 @@ describe("create simple mocked jupyter runner that does actually eval an express
   const compute_server_id = 3;
   it("create jupyter code run server", () => {
     // running code with this just results in two responses: the path and the cells
-    async function jupyterRun({ cells }) {
+    async function run({ cells }) {
       async function* runner() {
         for (const { id, input } of cells) {
           yield { id, output: eval(input) };
@@ -132,7 +132,7 @@ describe("create simple mocked jupyter runner that does actually eval an express
     server = jupyterServer({
       client: client1,
       project_id,
-      jupyterRun,
+      run,
       compute_server_id,
     });
   });
@@ -197,7 +197,7 @@ describe("create mocked jupyter runner that does failover to backend output mana
   let handler: any = null;
 
   it("create jupyter code run server that also takes as long as the output to run", () => {
-    async function jupyterRun({ cells }) {
+    async function run({ cells }) {
       async function* runner() {
         for (const { id, input } of cells) {
           const output = eval(input);
@@ -232,7 +232,7 @@ describe("create mocked jupyter runner that does failover to backend output mana
     server = jupyterServer({
       client: client1,
       project_id,
-      jupyterRun,
+      run,
       outputHandler,
     });
   });

@@ -14,7 +14,7 @@ const logger = getLogger("jupyter:control");
 const sessions: { [path: string]: { syncdb: SyncDB; actions; store } } = {};
 let project_id: string = "";
 
-export function jupyterStart({
+export function start({
   path,
   client,
   project_id: project_id0,
@@ -27,10 +27,10 @@ export function jupyterStart({
 }) {
   project_id = project_id0;
   if (sessions[path] != null) {
-    logger.debug("jupyterStart: ", path, " - already running");
+    logger.debug("start: ", path, " - already running");
     return;
   }
-  logger.debug("jupyterStart: ", path, " - starting it");
+  logger.debug("start: ", path, " - starting it");
   const syncdb = new SyncDB({
     ...SYNCDB_OPTIONS,
     project_id,
@@ -41,22 +41,22 @@ export function jupyterStart({
   // [ ] TODO: some way to convey this to clients (?)
   syncdb.on("error", (err) => {
     logger.debug(`syncdb error -- ${err}`, path);
-    jupyterStop({ path });
+    stop({ path });
   });
   syncdb.on("close", () => {
-    jupyterStop({ path });
+    stop({ path });
   });
   const { actions, store } = initJupyterRedux(syncdb, client);
   sessions[path] = { syncdb, actions, store };
 }
 
-export function jupyterStop({ path }: { path: string }) {
+export function stop({ path }: { path: string }) {
   const session = sessions[path];
   if (session == null) {
-    logger.debug("jupyterStop: ", path, " - not running");
+    logger.debug("stop: ", path, " - not running");
   } else {
     const { syncdb } = session;
-    logger.debug("jupyterStop: ", path, " - stopping it");
+    logger.debug("stop: ", path, " - stopping it");
     syncdb.close();
     delete sessions[path];
     const path_ipynb = original_path(path);
@@ -65,8 +65,8 @@ export function jupyterStop({ path }: { path: string }) {
 }
 
 // Returns async iterator over outputs
-export async function jupyterRun({ path, cells, noHalt }: RunOptions) {
-  logger.debug("jupyterRun", { path, noHalt });
+export async function run({ path, cells, noHalt }: RunOptions) {
+  logger.debug("run:", { path, noHalt });
 
   const session = sessions[path];
   if (session == null) {

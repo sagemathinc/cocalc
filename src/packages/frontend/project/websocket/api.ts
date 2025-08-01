@@ -306,7 +306,7 @@ export class API {
         compute_server_id ?? this.getComputeServerId(opts.args[0]),
       timeout: (opts.timeout ?? 60) * 1000 + 5000,
     });
-    return await api.editor.jupyterNbconvert(opts);
+    return await api.jupyter.nbconvert(opts);
   };
 
   // Get contents of an ipynb file, but with output and attachments removed (to save space)
@@ -318,7 +318,7 @@ export class API {
       compute_server_id:
         compute_server_id ?? this.getComputeServerId(ipynb_path),
     });
-    return await api.editor.jupyterStripNotebook(ipynb_path);
+    return await api.jupyter.stripNotebook(ipynb_path);
   };
 
   // Run the notebook filling in the output of all cells, then return the
@@ -338,7 +338,7 @@ export class API {
       compute_server_id,
       timeout: 60 + 2 * max_total_time_ms,
     });
-    return await api.editor.jupyterRunNotebook(opts);
+    return await api.jupyter.runNotebook(opts);
   };
 
   // Get the x11 *channel* for the given '.x11' path.

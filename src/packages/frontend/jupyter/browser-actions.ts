@@ -1464,7 +1464,7 @@ export class JupyterActions extends JupyterActions0 {
         }
         try {
           const api = await this.conatApi();
-          await api.editor.jupyterStart(this.syncdbPath);
+          await api.jupyter.start(this.syncdbPath);
           return true;
         } catch (err) {
           console.log("failed to initialize ", this.path, err);
@@ -1477,7 +1477,7 @@ export class JupyterActions extends JupyterActions0 {
 
   stopBackend = async () => {
     const api = await this.conatApi();
-    await api.editor.jupyterStop(this.syncdbPath);
+    await api.jupyter.stop(this.syncdbPath);
   };
 
   getOutputHandler = (cell) => {

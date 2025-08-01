@@ -79,9 +79,9 @@ export function jupyterServer({
   client,
   project_id,
   compute_server_id = 0,
-  // jupyterRun takes a path and cells to run and returns an async iterator
+  // run takes a path and cells to run and returns an async iterator
   // over the outputs.
-  jupyterRun,
+  run,
   // outputHandler takes a path and returns an OutputHandler, which can be
   // used to process the output and include it in the notebook.  It is used
   // as a fallback in case the client that initiated running cells is
@@ -91,7 +91,7 @@ export function jupyterServer({
   client: ConatClient;
   project_id: string;
   compute_server_id?: number;
-  jupyterRun: JupyterCodeRunner;
+  run: JupyterCodeRunner;
   outputHandler?: CreateOutputHandler;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
@@ -113,7 +113,7 @@ export function jupyterServer({
         mesg.respondSync(null);
         await handleRequest({
           socket,
-          jupyterRun,
+          run,
           outputHandler,
           path,
           cells,
@@ -142,13 +142,13 @@ export function jupyterServer({
 
 async function handleRequest({
   socket,
-  jupyterRun,
+  run,
   outputHandler,
   path,
   cells,
   noHalt,
 }) {
-  const runner = await jupyterRun({ path, cells, noHalt });
+  const runner = await run({ path, cells, noHalt });
   const output: OutputMessage[] = [];
 
   const throttle = new Throttle<OutputMessage>(MAX_MSGS_PER_SECOND);

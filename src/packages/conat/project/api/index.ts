@@ -1,17 +1,20 @@
 import { type System, system } from "./system";
 import { type Editor, editor } from "./editor";
+import { type Jupyter, jupyter } from "./jupyter";
 import { type Sync, sync } from "./sync";
 import { handleErrorMessage } from "@cocalc/conat/util";
 
 export interface ProjectApi {
   system: System;
   editor: Editor;
+  jupyter: Jupyter;
   sync: Sync;
 }
 
 const ProjectApiStructure = {
   system,
   editor,
+  jupyter,
   sync,
 } as const;
 
