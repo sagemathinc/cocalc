@@ -3,21 +3,27 @@ import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
 import { type Filesystem } from "@cocalc/conat/files/fs";
 import { getLogger } from "@cocalc/backend/logger";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
-import { original_path } from "@cocalc/util/misc";
+import { syncdbPath, ipynbPath } from "@cocalc/util/jupyter/names";
 import { once } from "@cocalc/util/async-utils";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { throttle } from "lodash";
 import { type RunOptions } from "@cocalc/conat/project/jupyter/run-code";
+import { type JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 
 const logger = getLogger("jupyter:control");
 
-const sessions: { [path: string]: { syncdb: SyncDB; actions; store } } = {};
+const jupyterActions: { [ipynbPath: string]: JupyterActions } = {};
+
+export function isRunning(path): boolean {
+  return jupyterActions[ipynbPath(path)] != null;
+}
+
 let project_id: string = "";
 
 export function start({
   path,
-  client,
   project_id: project_id0,
+  client,
   fs,
 }: {
   path: string;
@@ -25,42 +31,40 @@ export function start({
   project_id: string;
   fs: Filesystem;
 }) {
-  project_id = project_id0;
-  if (sessions[path] != null) {
-    logger.debug("start: ", path, " - already running");
+  if (isRunning(path)) {
     return;
   }
+  project_id = project_id0;
   logger.debug("start: ", path, " - starting it");
   const syncdb = new SyncDB({
     ...SYNCDB_OPTIONS,
     project_id,
-    path,
+    path: syncdbPath(path),
     client,
     fs,
   });
-  // [ ] TODO: some way to convey this to clients (?)
   syncdb.on("error", (err) => {
+    // [ ] TODO: some way to convey this to clients (?)
     logger.debug(`syncdb error -- ${err}`, path);
     stop({ path });
   });
-  syncdb.on("close", () => {
+  syncdb.once("closed", () => {
     stop({ path });
   });
-  const { actions, store } = initJupyterRedux(syncdb, client);
-  sessions[path] = { syncdb, actions, store };
+  const { actions } = initJupyterRedux(syncdb, client);
+  jupyterActions[ipynbPath(path)] = actions;
 }
 
 export function stop({ path }: { path: string }) {
-  const session = sessions[path];
-  if (session == null) {
+  const actions = jupyterActions[ipynbPath(path)];
+  if (actions == null) {
     logger.debug("stop: ", path, " - not running");
   } else {
-    const { syncdb } = session;
+    delete jupyterActions[ipynbPath(path)];
+    const { syncdb } = actions;
     logger.debug("stop: ", path, " - stopping it");
     syncdb.close();
-    delete sessions[path];
-    const path_ipynb = original_path(path);
-    removeJupyterRedux(path_ipynb, project_id);
+    removeJupyterRedux(ipynbPath(path), project_id);
   }
 }
 
@@ -68,42 +72,42 @@ export function stop({ path }: { path: string }) {
 export async function run({ path, cells, noHalt }: RunOptions) {
   logger.debug("run:", { path, noHalt });
 
-  const session = sessions[path];
-  if (session == null) {
-    throw Error(`${path} not running`);
+  const actions = jupyterActions[ipynbPath(path)];
+  if (actions == null) {
+    throw Error(`${ipynbPath(path)} not running`);
   }
-  const { syncdb, actions } = session;
-  if (syncdb.isClosed()) {
+  if (actions.syncdb.isClosed()) {
     // shouldn't be possible
     throw Error("syncdb is closed");
   }
-  if (!syncdb.isReady()) {
+  if (!actions.syncdb.isReady()) {
     logger.debug("jupyterRun: waiting until ready");
-    await once(syncdb, "ready");
+    await once(actions.syncdb, "ready");
   }
   logger.debug("jupyterRun: running");
-  async function* run() {
+  async function* runCells() {
     for (const cell of cells) {
-      actions.initKernel();
-      const output = actions.jupyter_kernel.execute_code({
+      actions.ensureKernelIsReady();
+      const kernel = actions.jupyter_kernel!;
+      const output = kernel.execute_code({
         halt_on_error: !noHalt,
         code: cell.input,
       });
-      for await (const mesg of output.iter()) {
-        mesg.id = cell.id;
+      for await (const mesg0 of output.iter()) {
+        const mesg = { ...mesg0, id: cell.id };
         yield mesg;
         if (!noHalt && mesg.msg_type == "error") {
           // done running code because there was an error.
           return;
         }
       }
-      if (actions.jupyter_kernel.failedError) {
+      if (kernel.failedError) {
         // kernel failed during call
-        throw Error(actions.jupyter_kernel.failedError);
+        throw Error(kernel.failedError);
       }
     }
   }
-  return await run();
+  return await runCells();
 }
 
 class MulticellOutputHandler {
@@ -156,9 +160,33 @@ class MulticellOutputHandler {
 
 const BACKEND_OUTPUT_FPS = 8;
 export function outputHandler({ path, cells }: RunOptions) {
-  if (sessions[path] == null) {
-    throw Error(`session '${path}' not available`);
+  if (jupyterActions[ipynbPath(path)] == null) {
+    throw Error(`session '${ipynbPath(path)}' not available`);
   }
-  const { actions } = sessions[path];
+  const actions = jupyterActions[ipynbPath(path)];
   return new MulticellOutputHandler(cells, actions);
+}
+
+function getKernel(path: string) {
+  const actions = jupyterActions[ipynbPath(path)];
+  if (actions == null) {
+    throw Error(`${ipynbPath(path)} not running`);
+  }
+  actions.ensureKernelIsReady();
+  return actions.jupyter_kernel!;
+}
+
+export async function introspect(opts: {
+  path: string;
+  code: string;
+  cursor_pos: number;
+  detail_level: 0 | 1;
+}) {
+  const kernel = getKernel(opts.path);
+  return await kernel.introspect(opts);
+}
+
+export async function signal(opts: { path: string; signal: string }) {
+  const kernel = getKernel(opts.path);
+  await kernel.signal(opts.signal);
 }

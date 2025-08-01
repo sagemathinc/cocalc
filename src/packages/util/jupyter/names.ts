@@ -1,12 +1,23 @@
-import { meta_file } from "@cocalc/util/misc";
+import { meta_file, original_path } from "@cocalc/util/misc";
 
 export const JUPYTER_POSTFIX = "jupyter2";
 export const JUPYTER_SYNCDB_EXTENSIONS = `sage-${JUPYTER_POSTFIX}`;
 
-// a.ipynb --> ".a.ipynb.sage-jupyter2"
-export function syncdbPath(ipynbPath: string) {
-  if (!ipynbPath.endsWith(".ipynb")) {
-    throw Error(`ipynbPath must end with .ipynb but it is "${ipynbPath}"`);
+// a.ipynb or .a.ipynb.sage-jupyter2  --> .a.ipynb.sage-jupyter2
+export function syncdbPath(path: string) {
+  if (path.endsWith(JUPYTER_POSTFIX)) {
+    return path;
   }
-  return meta_file(ipynbPath, JUPYTER_POSTFIX);
+  if (!path.endsWith(".ipynb")) {
+    throw Error(`must end with .ipynb but it is "${ipynbPath}"`);
+  }
+  return meta_file(path, JUPYTER_POSTFIX);
+}
+
+// a.ipynb or .a.ipynb.sage-jupyter2 --> a.ipynb
+export function ipynbPath(path: string) {
+  if (path.endsWith(".ipynb")) {
+    return path;
+  }
+  return original_path(path);
 }

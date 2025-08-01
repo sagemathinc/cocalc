@@ -250,7 +250,7 @@ export class JupyterKernel
   public _execute_code_queue: CodeExecutionEmitter[] = [];
   public sockets?: JupyterSockets;
   private has_ensured_running: boolean = false;
-  private failedError: string = "";
+  public failedError: string = "";
 
   constructor(
     name: string | undefined,
@@ -283,6 +283,8 @@ export class JupyterKernel
     const dbg = this.dbg("constructor");
     dbg("done");
   }
+
+  isClosed = () => this._state == "closed";
 
   get_path = () => {
     return this._path;
@@ -388,7 +390,7 @@ export class JupyterKernel
     } catch (err) {
       dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
       // @ts-ignore
-      if (this._state == "closed") {
+      if (this.isClosed()) {
         throw Error("closed");
       }
       // console.trace(err);
@@ -554,6 +556,7 @@ export class JupyterKernel
 
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
+  // this does NOT raise an error.
   signal = (signal: string): void => {
     const dbg = this.dbg("signal");
     const pid = this.pid();
@@ -564,9 +567,7 @@ export class JupyterKernel
     try {
       process.kill(-pid, signal); // negative to signal the process group
       this.clear_execute_code_queue();
-    } catch (err) {
-      dbg(`error: ${err}`);
-    }
+    } catch {}
   };
 
   close = (): void => {
@@ -628,7 +629,7 @@ export class JupyterKernel
   ensure_running = reuseInFlight(async (): Promise<void> => {
     const dbg = this.dbg("ensure_running");
     dbg(this._state);
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("closed so not possible to ensure running");
     }
     if (this._state == "running") {
@@ -659,7 +660,7 @@ export class JupyterKernel
       opts.halt_on_error = true;
     }
     if (this._state === "closed") {
-      throw Error("closed -- kernel -- execute_code");
+      throw Error("execute_code: jupyter kernel is closed");
     }
     const code = new CodeExecutionEmitter(this, opts);
     if (skipToFront) {
@@ -740,7 +741,7 @@ export class JupyterKernel
     const dbg = this.dbg("_clear_execute_code_queue");
     // ensure no future queued up evaluation occurs (currently running
     // one will complete and new executions could happen)
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       dbg("no op since state is closed");
       return;
     }
@@ -762,7 +763,7 @@ export class JupyterKernel
   // the terminal and nbgrader and the stateless api.
   execute_code_now = async (opts: ExecOpts): Promise<object[]> => {
     this.dbg("execute_code_now")();
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     if (this.failedError) {
@@ -854,7 +855,7 @@ export class JupyterKernel
       await this.ensure_running();
     }
     // Do a paranoid double check anyways...
-    if (this.sockets == null || this._state == "closed") {
+    if (this.sockets == null || this.isClosed()) {
       throw Error("not running, so can't call");
     }
 

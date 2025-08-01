@@ -26,9 +26,13 @@ export class JupyterActions extends JupyterActions0 {
   capture_output_message = (_opts) => {};
   process_comm_message_from_kernel = (_mesg) => {};
 
-  initKernel = () => {
+  ensureKernelIsReady = () => {
     if (this.jupyter_kernel != null) {
-      return;
+      if (this.jupyter_kernel.isClosed()) {
+        delete this.jupyter_kernel;
+      } else {
+        return;
+      }
     }
     const kernel = this.store.get("kernel");
     console.log("initKernel", { kernel, path: this.path });

@@ -18,7 +18,6 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
 import { CellToolbarName } from "@cocalc/jupyter/types";
@@ -27,6 +26,7 @@ import { base64ToBuffer, bufferToBase64 } from "@cocalc/util/base64";
 import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
 import {
   closest_kernel_match,
+  cmp,
   field_cmp,
   from_json,
   history_path,
@@ -64,6 +64,11 @@ import {
 } from "@cocalc/conat/project/jupyter/run-code";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { throttle } from "lodash";
+import {
+  char_idx_to_js_idx,
+  codemirror_to_jupyter_pos,
+  js_idx_to_char_idx,
+} from "@cocalc/jupyter/util/misc";
 
 const OUTPUT_FPS = 29;
 
@@ -77,6 +82,8 @@ export class JupyterActions extends JupyterActions0 {
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
   public syncdbPath: string;
+  private last_cursor_move_time: Date = new Date(0);
+  private _introspect_request?: any;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
@@ -125,15 +132,15 @@ export class JupyterActions extends JupyterActions0 {
     this.fetch_jupyter_kernels();
 
     // Load kernel (once ipynb file loads).
-    (async () => {
-      await this.set_kernel_after_load();
-      if (!this.store) return;
-      track("jupyter", {
-        kernel: this.store.get("kernel"),
-        project_id: this.project_id,
-        path: this.path,
-      });
-    })();
+    //     (async () => {
+    //       await this.set_kernel_after_load();
+    //       if (!this.store) return;
+    //       track("jupyter", {
+    //         kernel: this.store.get("kernel"),
+    //         project_id: this.project_id,
+    //         path: this.path,
+    //       });
+    //     })();
 
     // nbgrader support
     this.nbgrader_actions = new NBGraderActions(this, this.redux);
@@ -1132,22 +1139,22 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  private set_kernel_after_load = async (): Promise<void> => {
-    // Browser Client: Wait until the .ipynb file has actually been parsed into
-    // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
-    // then set the kernel, if necessary.
-    try {
-      await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
-    } catch (err) {
-      if (this._state != "ready") {
-        // Probably user just closed the notebook before it finished
-        // loading, so we don't need to set the kernel.
-        return;
-      }
-      throw Error("error waiting for ipynb file to load");
-    }
-    this._syncdb_init_kernel();
-  };
+  //   private set_kernel_after_load = async (): Promise<void> => {
+  //     // Browser Client: Wait until the .ipynb file has actually been parsed into
+  //     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
+  //     // then set the kernel, if necessary.
+  //     try {
+  //       await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
+  //     } catch (err) {
+  //       if (this._state != "ready") {
+  //         // Probably user just closed the notebook before it finished
+  //         // loading, so we don't need to set the kernel.
+  //         return;
+  //       }
+  //       throw Error("error waiting for ipynb file to load");
+  //     }
+  //     this._syncdb_init_kernel();
+  //   };
 
   private _syncdb_init_kernel = (): void => {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
@@ -1534,7 +1541,7 @@ export class JupyterActions extends JupyterActions0 {
   private jupyterClient?;
   private runQueue: any[] = [];
   private runningNow = false;
-  async runCells(ids: string[], opts: { noHalt?: boolean } = {}) {
+  runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
     if (this.store?.get("read_only")) {
       return;
     }
@@ -1552,6 +1559,7 @@ export class JupyterActions extends JupyterActions0 {
         // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
         // and
         const compute_server_id = await this.getComputeServerId();
+        if (this.isClosed()) return;
         this.jupyterClient = jupyterClient({
           path: this.syncdbPath,
           client: webapp_client.conat_client.conat(),
@@ -1604,9 +1612,11 @@ export class JupyterActions extends JupyterActions0 {
       cells.sort(field_cmp("pos"));
 
       const runner = await client.run(cells, opts);
+      if (this.isClosed()) return;
       let handler: null | OutputHandler = null;
       let id: null | string = null;
       for await (const mesgs of runner) {
+        if (this.isClosed()) return;
         for (const mesg of mesgs) {
           if (!opts.noHalt && mesg.msg_type == "error") {
             this.clearRunQueue();
@@ -1630,15 +1640,309 @@ export class JupyterActions extends JupyterActions0 {
         }
       }
       handler?.done();
-      this.save_asap();
+      this.syncdb.save();
+      setTimeout(() => {
+        if (!this.isClosed()) {
+          this.syncdb.save();
+        }
+      }, 1000);
     } catch (err) {
       console.warn("runCells", err);
     } finally {
+      if (this.isClosed()) return;
       this.runningNow = false;
       if (this.runQueue.length > 0) {
         const [ids, opts] = this.runQueue.shift();
         this.runCells(ids, opts);
       }
     }
+  };
+
+  is_introspecting(): boolean {
+    const actions = this.getFrameActions();
+    return actions?.store?.get("introspect") != null;
+  }
+
+  introspect_close = () => {
+    if (this.is_introspecting()) {
+      this.getFrameActions()?.setState({ introspect: undefined });
+    }
+  };
+
+  introspect_at_pos = async (
+    code: string,
+    detail_level: 0 | 1 = 0,
+    pos: { ch: number; line: number },
+  ): Promise<void> => {
+    if (code === "") return; // no-op if there is no code (should never happen)
+    await this.introspect(
+      code,
+      detail_level,
+      codemirror_to_jupyter_pos(code, pos),
+    );
+  };
+
+  introspect = async (
+    code: string,
+    detail_level: 0 | 1,
+    cursor_pos?: number,
+  ): Promise<Map<string, any> | undefined> => {
+    const req = (this._introspect_request =
+      (this._introspect_request != null ? this._introspect_request : 0) + 1);
+
+    if (cursor_pos == null) {
+      cursor_pos = code.length;
+    }
+    cursor_pos = js_idx_to_char_idx(cursor_pos, code);
+
+    let introspect;
+    try {
+      const api = await this.conatApi();
+      introspect = await api.jupyter.introspect({
+        path: this.path,
+        code,
+        cursor_pos,
+        detail_level,
+      });
+      if (introspect.status !== "ok") {
+        introspect = { error: "completion failed" };
+      }
+      delete introspect.status;
+    } catch (err) {
+      introspect = { error: err };
+    }
+    if (this._introspect_request > req) return;
+    const i = fromJS(introspect);
+    this.getFrameActions()?.setState({
+      introspect: i,
+    });
+    return introspect; // convenient / useful, e.g., for use by whiteboard.
+  };
+
+  clear_introspect = (): void => {
+    this._introspect_request =
+      (this._introspect_request != null ? this._introspect_request : 0) + 1;
+    this.getFrameActions()?.setState({ introspect: undefined });
+  };
+
+  // Attempt to fetch completions for give code and cursor_pos
+  // If successful, the completions are put in store.get('completions') and looks like
+  // this (as an immutable map):
+  //    cursor_end   : 2
+  //    cursor_start : 0
+  //    matches      : ['the', 'completions', ...]
+  //    status       : "ok"
+  //    code         : code
+  //    cursor_pos   : cursor_pos
+  //
+  // If not successful, result is:
+  //    status       : "error"
+  //    code         : code
+  //    cursor_pos   : cursor_pos
+  //    error        : 'an error message'
+  //
+  // Only the most recent fetch has any impact, and calling
+  // clear_complete() ensures any fetch made before that
+  // is ignored.
+
+  // Returns true if a dialog with options appears, and false otherwise.
+  complete = async (
+    code: string,
+    pos?: { line: number; ch: number } | number,
+    id?: string,
+    offset?: any,
+  ): Promise<boolean> => {
+    let cursor_pos;
+    const req = (this._complete_request =
+      (this._complete_request != null ? this._complete_request : 0) + 1);
+
+    this.setState({ complete: undefined });
+
+    // pos can be either a {line:?, ch:?} object as in codemirror,
+    // or a number.
+    if (pos == null || typeof pos == "number") {
+      cursor_pos = pos;
+    } else {
+      cursor_pos = codemirror_to_jupyter_pos(code, pos);
+    }
+    cursor_pos = js_idx_to_char_idx(cursor_pos, code);
+
+    const start = new Date();
+    let complete;
+    try {
+      complete = await this.api().complete({
+        code,
+        cursor_pos,
+      });
+    } catch (err) {
+      if (this._complete_request > req) return false;
+      this.setState({ complete: { error: err } });
+      // no op for now...
+      throw Error(`ignore -- ${err}`);
+      //return false;
+    }
+
+    if (this.last_cursor_move_time >= start) {
+      // see https://github.com/sagemathinc/cocalc/issues/3611
+      throw Error("ignore");
+      //return false;
+    }
+    if (this._complete_request > req) {
+      // future completion or clear happened; so ignore this result.
+      throw Error("ignore");
+      //return false;
+    }
+
+    if (complete.status !== "ok") {
+      this.setState({
+        complete: {
+          error: complete.error ? complete.error : "completion failed",
+        },
+      });
+      return false;
+    }
+
+    if (complete.matches == 0) {
+      return false;
+    }
+
+    delete complete.status;
+    complete.base = code;
+    complete.code = code;
+    complete.pos = char_idx_to_js_idx(cursor_pos, code);
+    complete.cursor_start = char_idx_to_js_idx(complete.cursor_start, code);
+    complete.cursor_end = char_idx_to_js_idx(complete.cursor_end, code);
+    complete.id = id;
+    // Set the result so the UI can then react to the change.
+    if (offset != null) {
+      complete.offset = offset;
+    }
+    // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
+    // and breaks an assumption in our react code too.
+    // I think the reason is e.g., a filename and a variable could be the same.   We're not
+    // worrying about that now.
+    complete.matches = Array.from(new Set(complete.matches));
+    // sort in a way that matches how JupyterLab sorts completions, which
+    // is case insensitive with % magics at the bottom
+    complete.matches.sort((x, y) => {
+      const c = cmp(getCompletionGroup(x), getCompletionGroup(y));
+      if (c) {
+        return c;
+      }
+      return cmp(x.toLowerCase(), y.toLowerCase());
+    });
+    const i_complete = fromJS(complete);
+    if (complete.matches && complete.matches.length === 1 && id != null) {
+      // special case -- a unique completion and we know id of cell in which completing is given.
+      this.select_complete(id, complete.matches[0], i_complete);
+      return false;
+    } else {
+      this.setState({ complete: i_complete });
+      return true;
+    }
+  };
+
+  clear_complete = (): void => {
+    this._complete_request =
+      (this._complete_request != null ? this._complete_request : 0) + 1;
+    this.setState({ complete: undefined });
+  };
+
+  public select_complete(
+    id: string,
+    item: string,
+    complete?: Map<string, any>,
+  ): void {
+    if (complete == null) {
+      complete = this.store.get("complete");
+    }
+    this.clear_complete();
+    if (complete == null) {
+      return;
+    }
+    const input = complete.get("code");
+    if (input != null && complete.get("error") == null) {
+      const starting = input.slice(0, complete.get("cursor_start"));
+      const ending = input.slice(complete.get("cursor_end"));
+      const new_input = starting + item + ending;
+      const base = complete.get("base");
+      this.complete_cell(id, base, new_input);
+    }
+  }
+
+  complete_cell(id: string, base: string, new_input: string): void {
+    this.merge_cell_input(id, base, new_input);
+  }
+
+  public set_cursor_locs(locs: any[] = [], side_effect: boolean = false): void {
+    this.last_cursor_move_time = new Date();
+    if (this.syncdb == null) {
+      // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
+      return;
+    }
+    if (locs.length === 0) {
+      // don't remove on blur -- cursor will fade out just fine
+      return;
+    }
+    this._cursor_locs = locs; // remember our own cursors for splitting cell
+    this.syncdb.set_cursor_locs(locs, side_effect);
+  }
+
+  async signal(signal = "SIGINT"): Promise<void> {
+    const api = await this.conatApi();
+    try {
+      await api.jupyter.signal({ path: this.path, signal });
+    } catch (err) {
+      this.set_error(err);
+    }
+  }
+
+  // Kill the running kernel and does NOT start it up again.
+  halt = reuseInFlight(async (): Promise<void> => {
+    if (this.restartKernelOnClose != null && this.jupyter_kernel != null) {
+      this.jupyter_kernel.removeListener("closed", this.restartKernelOnClose);
+      delete this.restartKernelOnClose;
+    }
+    this.clear_all_cell_run_state();
+    await this.signal("SIGKILL");
+    // Wait a little, since SIGKILL has to really happen on backend,
+    // and server has to respond and change state.
+    const not_running = (s): boolean => {
+      if (this._state === "closed") return true;
+      const t = s.get_one({ type: "settings" });
+      return t != null && t.get("backend_state") != "running";
+    };
+    try {
+      await this.syncdb.wait(not_running, 30);
+      // worked -- and also no need to show "kernel got killed" message since this was intentional.
+      this.set_error("");
+    } catch (err) {
+      // failed
+      this.set_error(err);
+    }
+  });
+
+  restart = reuseInFlight(async (): Promise<void> => {
+    await this.halt();
+    if (this.is_closed()) return;
+    this.clear_all_cell_run_state();
+  });
+
+  shutdown = reuseInFlight(async (): Promise<void> => {
+    if (this.is_closed()) return;
+    await this.signal("SIGKILL");
+    if (this.is_closed()) return;
+    this.clear_all_cell_run_state();
+  });
+}
+
+function getCompletionGroup(x: string): number {
+  switch (x[0]) {
+    case "_":
+      return 1;
+    case "%":
+      return 2;
+    default:
+      return 0;
   }
 }

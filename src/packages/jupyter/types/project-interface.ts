@@ -76,7 +76,7 @@ export interface ExecOpts {
   timeout_ms?: number;
 }
 
-export type OutputMessage = object; // todo
+export type OutputMessage = any; // todo
 
 export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
   emit_output(result: OutputMessage): void;
@@ -97,7 +97,9 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   name: string | undefined; // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
   store: any;
   readonly identity: string;
+  failedError: string;
 
+  isClosed(): boolean;
   get_state(): string;
   signal(signal: string): void;
   close(): void;
