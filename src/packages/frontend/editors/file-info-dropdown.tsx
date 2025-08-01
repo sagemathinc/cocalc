@@ -11,7 +11,7 @@ import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
 import { DropdownMenu, Icon, IconName } from "@cocalc/frontend/components";
 import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { file_actions } from "@cocalc/frontend/project_store";
+import { file_actions, type FileAction } from "@cocalc/frontend/project_store";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
 
 interface Props {
@@ -57,9 +57,9 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
       }
       for (const key in file_actions) {
         if (key === name) {
-          actions.show_file_action_panel({
+          actions.showFileActionPanel({
             path: filename,
-            action: key,
+            action: key as FileAction,
           });
           break;
         }

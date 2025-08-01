@@ -18,6 +18,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import {
   file_actions,
   type ProjectActions,
+  type FileAction,
 } from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -195,7 +196,7 @@ export function ActionBar({
     }
   }
 
-  function render_action_button(name: string): React.JSX.Element {
+  function render_action_button(name: FileAction): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
       (current_path != null

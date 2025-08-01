@@ -38,7 +38,7 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { IntlMessage, dialogs } from "@cocalc/frontend/i18n";
+import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
@@ -186,14 +186,7 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-interface FileAction {
-  name: IntlMessage;
-  icon: IconName;
-  allows_multiple_files?: boolean;
-  hideFlyout?: boolean;
-}
-
-export const FILE_ACTIONS: { [key: string]: FileAction } = {
+export const FILE_ACTIONS = {
   compress: {
     name: defineMessage({
       id: "file_actions.compress.name",
@@ -202,6 +195,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "compress" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   delete: {
     name: defineMessage({
@@ -211,6 +205,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "trash" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   rename: {
     name: defineMessage({
@@ -220,6 +215,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "swap" as IconName,
     allows_multiple_files: false,
+    hideFlyout: false,
   },
   duplicate: {
     name: defineMessage({
@@ -229,6 +225,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "clone" as IconName,
     allows_multiple_files: false,
+    hideFlyout: false,
   },
   move: {
     name: defineMessage({
@@ -238,6 +235,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "move" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   copy: {
     name: defineMessage({
@@ -247,6 +245,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "files" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   share: {
     name: defineMessage({
@@ -256,6 +255,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "share-square" as IconName,
     allows_multiple_files: false,
+    hideFlyout: false,
   },
   download: {
     name: defineMessage({
@@ -265,6 +265,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "cloud-download" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   upload: {
     name: defineMessage({
@@ -273,6 +274,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
       description: "Upload a file",
     }),
     icon: "upload" as IconName,
+    allows_multiple_files: false,
     hideFlyout: true,
   },
   create: {
@@ -282,9 +284,12 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
       description: "Create a file",
     }),
     icon: "plus-circle" as IconName,
+    allows_multiple_files: false,
     hideFlyout: true,
   },
 } as const;
+
+export type FileAction = keyof typeof FILE_ACTIONS;
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
@@ -426,18 +431,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  public _ensure_project_is_open(cb): void {
-    const s: any = this.redux.getStore("projects");
+  ensureProjectIsOpen = async () => {
+    const s = this.redux.getStore("projects");
     if (!s.is_project_open(this.project_id)) {
-      (this.redux.getActions("projects") as any).open_project({
+      this.redux.getActions("projects").open_project({
         project_id: this.project_id,
         switch_to: true,
       });
-      s.wait_until_project_is_open(this.project_id, 30, cb);
-    } else {
-      cb();
+      await s.waitUntilProjectIsOpen(this.project_id, 30);
     }
-  }
+  };
 
   public get_store(): ProjectStore | undefined {
     if (this.redux.hasStore(this.name)) {
@@ -1415,58 +1418,55 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   // Makes this project the active project tab
-  foreground_project = (change_history = true): void => {
-    this._ensure_project_is_open((err) => {
-      if (err) {
-        // TODO!
-        console.warn(
-          "error putting project in the foreground: ",
-          err,
-          this.project_id,
-        );
-      } else {
-        (this.redux.getActions("projects") as any).foreground_project(
-          this.project_id,
-          change_history,
-        );
-      }
-    });
+  foreground_project = async (change_history = true) => {
+    try {
+      await this.ensureProjectIsOpen();
+    } catch (err) {
+      console.warn(
+        "error putting project in the foreground: ",
+        err,
+        this.project_id,
+      );
+      return;
+    }
+    this.redux
+      .getActions("projects")
+      .foreground_project(this.project_id, change_history);
   };
 
-  open_directory = (path, change_history = true, show_files = true): void => {
+  open_directory = async (path, change_history = true, show_files = true) => {
     path = normalize(path);
-    this._ensure_project_is_open(async (err) => {
-      if (err) {
-        // TODO!
-        console.log(
-          "error opening directory in project: ",
-          err,
-          this.project_id,
-          path,
-        );
-      } else {
-        if (path[path.length - 1] === "/") {
-          path = path.slice(0, -1);
-        }
-        this.foreground_project(change_history);
-        this.set_current_path(path);
-        const store = this.get_store();
-        if (store == undefined) {
-          return;
-        }
-        if (show_files) {
-          this.set_active_tab("files", {
-            update_file_listing: false,
-            change_history: false, // see "if" below
-          });
-        }
-        if (change_history) {
-          // i.e. regardless of show_files is true or false, we might want to record this in the history
-          this.set_url_to_path(store.get("current_path") ?? "", "");
-        }
-        this.set_all_files_unchecked();
-      }
-    });
+    try {
+      await this.ensureProjectIsOpen();
+    } catch (err) {
+      console.warn(
+        "error opening directory in project: ",
+        err,
+        this.project_id,
+        path,
+      );
+      return;
+    }
+    if (path[path.length - 1] === "/") {
+      path = path.slice(0, -1);
+    }
+    this.foreground_project(change_history);
+    this.set_current_path(path);
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+    if (show_files) {
+      this.set_active_tab("files", {
+        update_file_listing: false,
+        change_history: false, // see "if" below
+      });
+    }
+    if (change_history) {
+      // i.e. regardless of show_files is true or false, we might want to record this in the history
+      this.set_url_to_path(store.get("current_path") ?? "", "");
+    }
+    this.set_all_files_unchecked();
   };
 
   // ONLY updates current path
@@ -1652,7 +1652,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files?: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction | undefined;
     } = {};
     if (checked) {
       changes.checked_files = store.get("checked_files").add(file);
@@ -1682,7 +1682,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction | undefined;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
     if (
@@ -1704,7 +1704,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction | undefined;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
     if (changes.checked_files.size === 0) {
@@ -1746,21 +1746,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  set_file_action(action?: string): void {
+  set_file_action = (action?: FileAction): void => {
     const store = this.get_store();
     if (store == null) {
       return;
     }
     this.setState({ file_action: action });
-  }
+  };
 
-  show_file_action_panel(opts): void {
-    opts = defaults(opts, {
-      path: required,
-      action: required,
-    });
+  showFileActionPanel = async ({
+    path,
+    action,
+  }: {
+    path: string;
+    action:
+      | FileAction
+      | "open"
+      | "open_recent"
+      | "quit"
+      | "close"
+      | "new"
+      | "create"
+      | "upload";
+  }) => {
     this.set_all_files_unchecked();
-    if (opts.action == "new" || opts.action == "create") {
+    if (action == "new" || action == "create") {
       // special case because it isn't a normal "file action panel",
       // but it is convenient to still support this.
       if (this.get_store()?.get("flyout") != "new") {
@@ -1768,13 +1778,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       this.setState({
         default_filename: default_filename(
-          misc.filename_extension(opts.path),
+          misc.filename_extension(path),
           this.project_id,
         ),
       });
       return;
     }
-    if (opts.action == "upload") {
+    if (action == "upload") {
       this.set_active_tab("files");
       setTimeout(() => {
         // NOTE: I'm not proud of this, but right now our upload functionality
@@ -1783,34 +1793,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }, 100);
       return;
     }
-    if (opts.action == "open") {
+    if (action == "open") {
       if (this.get_store()?.get("flyout") != "files") {
         this.toggleFlyout("files");
       }
       return;
     }
-    if (opts.action == "open_recent") {
+    if (action == "open_recent") {
       if (this.get_store()?.get("flyout") != "log") {
         this.toggleFlyout("log");
       }
       return;
     }
 
-    const path_splitted = misc.path_split(opts.path);
-    this.open_directory(path_splitted.head);
+    const path_splitted = misc.path_split(path);
+    await this.open_directory(path_splitted.head);
 
-    if (opts.action == "quit") {
+    if (action == "quit") {
       // TODO: for jupyter and terminal at least, should also do more!
-      this.close_tab(opts.path);
+      this.close_tab(path);
       return;
     }
-    if (opts.action == "close") {
-      this.close_tab(opts.path);
+    if (action == "close") {
+      this.close_tab(path);
       return;
     }
-    this.set_file_checked(opts.path, true);
-    this.set_file_action(opts.action);
-  }
+    this.set_file_checked(path, true);
+    this.set_file_action(action);
+  };
 
   private async get_from_web(opts: {
     url: string;

@@ -4,7 +4,7 @@
  */
 
 import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { file_actions } from "@cocalc/frontend/project_store";
+import { file_actions, type FileAction } from "@cocalc/frontend/project_store";
 
 export const TERM_MODE_CHAR = "/";
 
@@ -75,7 +75,7 @@ export function full_path_text(file_search: string, disabled_ext: string[]) {
 }
 
 export function generate_click_for(
-  file_action_name: string,
+  file_action_name: FileAction,
   full_path: string,
   project_actions: ProjectActions,
 ) {

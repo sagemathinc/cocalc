@@ -35,6 +35,7 @@ import {
   FILE_ACTIONS,
   ProjectActions,
   QUERIES,
+  type FileAction,
 } from "@cocalc/frontend/project_actions";
 import {
   Available as AvailableFeatures,
@@ -57,7 +58,7 @@ import {
 } from "./project/page/flyouts/utils";
 import { type PublicPath } from "@cocalc/util/db-schema/public-paths";
 import { DirectoryListing } from "@cocalc/frontend/project/explorer/types";
-export { FILE_ACTIONS as file_actions, ProjectActions };
+export { FILE_ACTIONS as file_actions, type FileAction, ProjectActions };
 
 export type ModalInfo = TypedMap<{
   title: string | React.JSX.Element;
@@ -94,7 +95,7 @@ export interface ProjectStoreState {
   // Project Files
   activity: any; // immutable,
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
-  file_action?: string; // undefineds is meaningfully none here
+  file_action?: FileAction;
   file_search?: string;
   show_hidden?: boolean;
   show_masked?: boolean;

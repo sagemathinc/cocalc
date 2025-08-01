@@ -18,7 +18,7 @@ import {
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
+import { Icon, LoginLink } from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
@@ -54,7 +54,6 @@ interface Props {
   file_action: FileAction;
   current_path: string;
   project_id: string;
-  file_map: object;
   actions: ProjectActions;
 }
 
@@ -63,7 +62,6 @@ export function ActionBox({
   file_action,
   current_path,
   project_id,
-  file_map,
   actions,
 }: Props) {
   const intl = useIntl();
@@ -588,44 +586,40 @@ export function ActionBox({
   if (action_button == undefined) {
     return <div>Undefined action</div>;
   }
-  if (file_map == undefined) {
-    return <Loading />;
-  } else {
-    return (
-      <Well
-        style={{
-          margin: "15px 30px",
-          overflowY: "auto",
-          maxHeight: "50vh",
-          backgroundColor: "#fafafa",
-        }}
-      >
-        <Row>
-          <Col
-            sm={12}
-            style={{
-              color: COLORS.GRAY_M,
-              fontWeight: "bold",
-              fontSize: "15pt",
-            }}
-          >
-            <Icon name={action_button.icon ?? "exclamation-circle"} />{" "}
-            {intl.formatMessage(action_button.name)}
-            <div style={{ float: "right" }}>
-              <AntdButton onClick={cancel_action} type="text">
-                <Icon name="times" />
-              </AntdButton>
-            </div>
-            {!!compute_server_id && (
-              <ComputeServerTag
-                id={compute_server_id}
-                style={{ float: "right", top: "5px" }}
-              />
-            )}
-          </Col>
-          <Col sm={12}>{render_action_box(action)}</Col>
-        </Row>
-      </Well>
-    );
-  }
+  return (
+    <Well
+      style={{
+        margin: "15px 30px",
+        overflowY: "auto",
+        maxHeight: "50vh",
+        backgroundColor: "#fafafa",
+      }}
+    >
+      <Row>
+        <Col
+          sm={12}
+          style={{
+            color: COLORS.GRAY_M,
+            fontWeight: "bold",
+            fontSize: "15pt",
+          }}
+        >
+          <Icon name={action_button.icon ?? "exclamation-circle"} />{" "}
+          {intl.formatMessage(action_button.name)}
+          <div style={{ float: "right" }}>
+            <AntdButton onClick={cancel_action} type="text">
+              <Icon name="times" />
+            </AntdButton>
+          </div>
+          {!!compute_server_id && (
+            <ComputeServerTag
+              id={compute_server_id}
+              style={{ float: "right", top: "5px" }}
+            />
+          )}
+        </Col>
+        <Col sm={12}>{render_action_box(action)}</Col>
+      </Row>
+    </Well>
+  );
 }

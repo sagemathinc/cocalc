@@ -467,7 +467,6 @@ export function Explorer() {
           <Row>
             <Col sm={12}>
               <ActionBox
-                file_map={{} /* TODO */}
                 file_action={file_action}
                 checked_files={checked_files}
                 current_path={current_path}

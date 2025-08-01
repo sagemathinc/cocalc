@@ -5,7 +5,6 @@
 
 // Implement the open_file actions for opening one single file in a project.
 
-import { callback } from "awaiting";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
@@ -225,7 +224,7 @@ export async function open_file(
     // Wait for the project to start opening (only do this if not public -- public users don't
     // know anything about the state of the project).
     try {
-      await callback(actions._ensure_project_is_open.bind(actions));
+      await actions.ensureProjectIsOpen();
       if (!tabIsOpened()) {
         return;
       }
