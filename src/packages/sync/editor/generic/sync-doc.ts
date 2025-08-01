@@ -32,6 +32,12 @@ const DELETED_THRESHOLD = 2000;
 const DELETED_CHECK_INTERVAL = 750;
 const WATCH_RECREATE_WAIT = 3000;
 
+// all clients ignore file changes from when a save starts until this
+// amount of time later, so they avoid loading a file just because it was
+// saved by themself or another client.  This is very important for
+// large files.
+const IGNORE_ON_SAVE_INTERVAL = 10000;
+
 const WATCH_DEBOUNCE = 250;
 
 import {
@@ -2426,7 +2432,7 @@ export class SyncDoc extends EventEmitter {
     // so no clients waste resources loading in response to us saving
     // to disk.
     try {
-      await this.fileWatcher?.ignore(2000);
+      await this.fileWatcher?.ignore(IGNORE_ON_SAVE_INTERVAL);
     } catch {
       // not a big problem if we can't ignore (e.g., this happens potentially
       // after deleting the file or if file doesn't exist)
