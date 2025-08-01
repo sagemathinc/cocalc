@@ -1329,6 +1329,16 @@ export class JupyterActions extends JupyterActions0 {
     return export_to_ipynb({ ...options, blob_store: blob_store2 });
   };
 
+  private saveIpynb = async () => {
+    const ipynb = await this.toIpynb();
+    const serialize = JSON.stringify(ipynb, undefined, 2);
+    this.syncdb.fs.writeFile(this.path, serialize);
+  };
+
+  save = async () => {
+    await Promise.all([this.saveIpynb(), this.syncdb.save_to_disk()]);
+  };
+
   private getBase64Blobs = async (cells) => {
     const blobs: { [hash: string]: string } = {};
     const failed = new Set<string>();

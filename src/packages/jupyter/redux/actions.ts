@@ -1019,7 +1019,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   run_all_above_cell(id: string): void {
     const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
-    this.runCells(v.slice(0,i));
+    this.runCells(v.slice(0, i));
   }
 
   // Run all cells below (and *including*) the specified cell.
