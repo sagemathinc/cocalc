@@ -13,7 +13,7 @@ import { field_cmp, len } from "@cocalc/util/misc";
 export function positions_between(
   before_pos: number | undefined,
   after_pos: number | undefined,
-  num: number
+  num: number,
 ) {
   // Return an array of num equally spaced positions starting after
   // before_pos and ending before after_pos, so
@@ -66,22 +66,22 @@ export function sorted_cell_list(cells: Map<string, any>): List<string> {
     .toList();
 }
 
-export function ensure_positions_are_unique(cells?: Map<string, any>) {
+export function ensurePositionsAreUnique(cells?: Map<string, any>) {
   // Verify that pos's of cells are distinct.  If not
   // return map from id's to new unique positions.
   if (cells == null) {
     return;
   }
-  const v: any = {};
+  const v = new Set<number>();
   let all_unique = true;
   cells.forEach((cell) => {
     const pos = cell.get("pos");
-    if (pos == null || v[pos]) {
+    if (pos == null || v.has(pos)) {
       // dup! (or not defined)
       all_unique = false;
       return false;
     }
-    v[pos] = true;
+    v.add(pos);
   });
   if (all_unique) {
     return;
@@ -99,7 +99,7 @@ export function new_cell_pos(
   cells: Map<string, any>,
   cell_list: List<string>,
   cur_id: string,
-  delta: -1 | 1
+  delta: -1 | 1,
 ): number {
   /*
     Returns pos for a new cell whose position
@@ -145,7 +145,7 @@ export function new_cell_pos(
 export function move_selected_cells(
   v?: string[],
   selected?: { [id: string]: true },
-  delta?: number
+  delta?: number,
 ) {
   /*
     - v = ordered js array of all cell id's

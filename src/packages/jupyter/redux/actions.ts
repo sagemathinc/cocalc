@@ -1300,7 +1300,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         cell = cell.set("pos", i);
         this._set(cell, false);
       });
-      this.ensure_positions_are_unique();
+      this.ensurePositionsAreUnique();
       this._sync();
       return;
     }
@@ -1731,7 +1731,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._state = "ready";
   };
 
-  public set_cell_slide(id: string, value: any): void {
+  set_cell_slide = (id: string, value: any) => {
     if (!value) {
       value = null; // delete
     }
@@ -1743,15 +1743,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id,
       slide: value,
     });
-  }
+  };
 
-  public ensure_positions_are_unique(): void {
-    if (this._state != "ready" || this.store == null) {
-      // because of debouncing, this ensure_positions_are_unique can
-      // be called after jupyter actions are closed.
-      return;
-    }
-    const changes = cell_utils.ensure_positions_are_unique(
+  ensurePositionsAreUnique = () => {
+    if (this.isClosed()) return;
+    const changes = cell_utils.ensurePositionsAreUnique(
       this.store.get("cells"),
     );
     if (changes != null) {
@@ -1761,9 +1757,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     this._sync();
-  }
+  };
 
-  public set_default_kernel(kernel?: string): void {
+  set_default_kernel = (kernel?: string) => {
     if (kernel == null || kernel === "") return;
     // doesn't make sense for project (right now at least)
     if (this.is_project || this.is_compute_server) return;
@@ -1780,7 +1776,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur },
     });
-  }
+  };
 
   edit_attachments = (id: string): void => {
     this.setState({ edit_attachments: id });

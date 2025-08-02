@@ -86,7 +86,6 @@ export class JupyterActions extends JupyterActions0 {
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
-    this.update_contents = debounce(this.update_contents.bind(this), 2000);
     this.setState({
       toolbar: !this.get_local_storage("hide_toolbar"),
       cell_toolbar: this.get_local_storage("cell_toolbar"),
@@ -116,13 +115,16 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("connected", this.sync_read_only);
 
     // first update
-    this.syncdb.once("change", this.updateContentsNow);
-    this.syncdb.once("change", this.updateRunProgress);
+    this.syncdb.once("change", () => {
+      this.updateContentsNow();
+      this.updateRunProgress();
+      this.ensurePositionsAreUnique();
+    });
 
     this.syncdb.on("change", () => {
       // And activity indicator
       this.activity();
-      // Update table of contents
+      // Update table of contents -- this is debounced
       this.update_contents();
       // run progress
       this.updateRunProgress();
@@ -319,7 +321,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public async close(): Promise<void> {
-    if (this.is_closed()) return;
+    if (this.isClosed()) return;
     this.jupyterClient?.close();
     await super.close();
   }
@@ -987,9 +989,10 @@ export class JupyterActions extends JupyterActions0 {
     this.setState({ contents });
   };
 
-  public update_contents(): void {
+  update_contents = debounce(() => {
+    if (this.isClosed()) return;
     this.updateContentsNow();
-  }
+  }, 2000);
 
   protected __syncdb_change_post_hook(_doInit: boolean) {
     if (this._state === "init") {
@@ -1336,7 +1339,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   private saveIpynb = async () => {
-    if(this.isClosed()) return;
+    if (this.isClosed()) return;
     const ipynb = await this.toIpynb();
     const serialize = JSON.stringify(ipynb, undefined, 2);
     this.syncdb.fs.writeFile(this.path, serialize);
