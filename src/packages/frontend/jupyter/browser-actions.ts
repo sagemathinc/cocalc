@@ -1336,6 +1336,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   private saveIpynb = async () => {
+    if(this.isClosed()) return;
     const ipynb = await this.toIpynb();
     const serialize = JSON.stringify(ipynb, undefined, 2);
     this.syncdb.fs.writeFile(this.path, serialize);
@@ -1639,6 +1640,9 @@ export class JupyterActions extends JupyterActions0 {
         }
       }
       handler?.done();
+      if (this.isClosed()) {
+        return;
+      }
       this.syncdb.save();
       setTimeout(() => {
         if (!this.isClosed()) {
@@ -1934,6 +1938,11 @@ export class JupyterActions extends JupyterActions0 {
     if (this.is_closed()) return;
     this.clear_all_cell_run_state();
   });
+
+  getConnectionFile = async (): Promise<string> => {
+    const api = await this.jupyterApi();
+    return await api.getConnectionFile({ path: this.path });
+  };
 }
 
 function getCompletionGroup(x: string): number {

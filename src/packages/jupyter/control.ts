@@ -195,6 +195,16 @@ export async function complete(opts: {
   return await kernel.complete(opts);
 }
 
+export async function getConnectionFile(opts: { path }) {
+  const kernel = getKernel(opts.path);
+  await kernel.ensure_running();
+  const c = kernel.getConnectionFile();
+  if (c == null) {
+    throw Error("unable to start kernel");
+  }
+  return c;
+}
+
 export async function signal(opts: { path: string; signal: string }) {
   const kernel = getKernel(opts.path);
   await kernel.signal(opts.signal);

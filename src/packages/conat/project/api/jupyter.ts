@@ -13,6 +13,7 @@ export const jupyter = {
   introspect: true,
   complete: true,
   signal: true,
+  getConnectionFile: true,
 };
 
 // In the functions below path can be either the .ipynb or the .sage-jupyter2 path, and
@@ -47,6 +48,8 @@ export interface Jupyter {
     code: string;
     cursor_pos: number;
   }) => Promise<any>;
+
+  getConnectionFile: (opts: { path: string }) => Promise<string>;
 
   signal: (opts: { path: string; signal: string }) => Promise<void>;
 }

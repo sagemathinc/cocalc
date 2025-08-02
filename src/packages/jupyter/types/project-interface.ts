@@ -127,7 +127,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
     buffers?: any[];
     buffers64?: any[];
   }): void;
-  get_connection_file(): string | undefined;
+  getConnectionFile(): string | undefined;
 
   _execute_code_queue: CodeExecutionEmitterInterface[];
   clear_execute_code_queue(): void;

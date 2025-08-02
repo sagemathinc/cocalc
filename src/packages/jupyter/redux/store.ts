@@ -60,7 +60,6 @@ export interface JupyterStoreState {
   cm_options: any;
   complete: any;
   confirm_dialog: any;
-  connection_file?: string;
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
   default_kernel?: string;
   directory: string;

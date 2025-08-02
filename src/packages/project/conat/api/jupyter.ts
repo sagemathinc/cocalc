@@ -47,6 +47,11 @@ export async function complete(opts) {
   return await control.complete(opts);
 }
 
+export async function getConnectionFile(opts) {
+  await start(opts.path);
+  return await control.getConnectionFile(opts);
+}
+
 export async function signal(opts) {
   if (!control.isRunning(opts.path)) {
     return;

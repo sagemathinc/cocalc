@@ -404,7 +404,7 @@ export class JupyterKernel
     return this._kernel;
   };
 
-  get_connection_file = (): string | undefined => {
+  getConnectionFile = (): string | undefined => {
     return this._kernel?.connectionFile;
   };
 
