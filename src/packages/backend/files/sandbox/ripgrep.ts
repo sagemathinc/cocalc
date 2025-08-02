@@ -3,6 +3,7 @@ import { realpath } from "node:fs/promises";
 import * as path from "node:path";
 import type { RipgrepOptions } from "@cocalc/conat/files/fs";
 export type { RipgrepOptions };
+import { rgPath } from "./install-ripgrep";
 
 const MAX_OUTPUT_SIZE = 10 * 1024 * 1024; // 10MB limit
 
@@ -69,6 +70,9 @@ const SAFE_OPTIONS = new Set([
   "--encoding",
   "-E",
   "--no-encoding",
+
+  // basic info
+  "--version",
 ]);
 
 // Options that take values - need special validation
@@ -180,13 +184,10 @@ function parseAndValidateOptions(options: string[]): string[] {
           throw new Error(`Invalid color option: ${value}`);
         }
       }
-
       validatedOptions.push(value);
     }
-
     i++;
   }
-
   return validatedOptions;
 }
 
@@ -200,10 +201,10 @@ export default async function ripgrep(
   code: number | null;
   truncated: boolean;
 }> {
-  if (!searchPath) {
+  if (searchPath == null) {
     throw Error("path must be specified");
   }
-  if (!regexp) {
+  if (regexp == null) {
     throw Error("regexp must be specified");
   }
 
@@ -258,7 +259,7 @@ export default async function ripgrep(
     let stdoutSize = 0;
     let stderrSize = 0;
 
-    const child = spawn("rg", args, {
+    const child = spawn(rgPath, args, {
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         // Minimal environment - only what ripgrep needs
