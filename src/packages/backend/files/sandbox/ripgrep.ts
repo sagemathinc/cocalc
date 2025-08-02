@@ -73,6 +73,11 @@ const SAFE_OPTIONS = new Set([
 
   // basic info
   "--version",
+
+  // allow searching in binary files (files that contain NUL)
+  // this should be safe, since we're capturing output to buffers.
+  "--text",
+  "-a",
 ]);
 
 // Options that take values - need special validation
