@@ -73,7 +73,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   protected restartKernelOnClose?: (...args: any[]) => void;
   public asyncBlobStore: AKV;
 
-  public _complete_request?: number;
   public store: JupyterStore;
   public syncdb: SyncDB;
   private labels?: {

@@ -186,6 +186,15 @@ export async function introspect(opts: {
   return await kernel.introspect(opts);
 }
 
+export async function complete(opts: {
+  path: string;
+  code: string;
+  cursor_pos: number;
+}) {
+  const kernel = getKernel(opts.path);
+  return await kernel.complete(opts);
+}
+
 export async function signal(opts: { path: string; signal: string }) {
   const kernel = getKernel(opts.path);
   await kernel.signal(opts.signal);

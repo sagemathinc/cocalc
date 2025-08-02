@@ -41,6 +41,7 @@ import { WebappClient } from "./client";
 import { throttle } from "lodash";
 import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
 import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
+import { type ProjectApi } from "@cocalc/conat/project/api";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -50,7 +51,7 @@ export class ProjectClient {
     this.client = client;
   }
 
-  conatApi = (project_id: string, compute_server_id = 0) => {
+  conatApi = (project_id: string, compute_server_id = 0): ProjectApi => {
     return this.client.conat_client.projectApi({
       project_id,
       compute_server_id,

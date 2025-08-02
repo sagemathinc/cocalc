@@ -166,7 +166,9 @@ async function getResponse({ name, args }) {
   const [group, functionName] = name.split(".");
   const f = projectApi[group]?.[functionName];
   if (f == null) {
-    throw Error(`unknown function '${name}'`);
+    throw Error(
+      `unknown function '${name}' -- available functions are ${JSON.stringify(Object.keys(projectApi[group]))}`,
+    );
   }
   return await f(...args);
 }

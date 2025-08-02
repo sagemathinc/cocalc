@@ -11,6 +11,7 @@ export const jupyter = {
   kernelLogo: true,
   kernels: true,
   introspect: true,
+  complete: true,
   signal: true,
 };
 
@@ -39,6 +40,12 @@ export interface Jupyter {
     code: string;
     cursor_pos: number;
     detail_level: 0 | 1;
+  }) => Promise<any>;
+
+  complete: (opts: {
+    path: string;
+    code: string;
+    cursor_pos: number;
   }) => Promise<any>;
 
   signal: (opts: { path: string; signal: string }) => Promise<void>;

@@ -82,8 +82,7 @@ export class JupyterActions extends JupyterActions0 {
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
   public syncdbPath: string;
-  private last_cursor_move_time: Date = new Date(0);
-  private _introspect_request?: any;
+  private lastCursorMoveTime: number = 0;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
@@ -1454,13 +1453,13 @@ export class JupyterActions extends JupyterActions0 {
   // tells them to open this jupyter notebook, so it can provide the compute
   // functionality.
 
-  conatApi = async () => {
+  private jupyterApi = async () => {
     const compute_server_id = await this.getComputeServerId();
     const api = webapp_client.project_client.conatApi(
       this.project_id,
       compute_server_id,
     );
-    return api;
+    return api.jupyter;
   };
 
   initBackend = async () => {
@@ -1470,8 +1469,8 @@ export class JupyterActions extends JupyterActions0 {
           return true;
         }
         try {
-          const api = await this.conatApi();
-          await api.jupyter.start(this.syncdbPath);
+          const api = await this.jupyterApi();
+          await api.start(this.syncdbPath);
           return true;
         } catch (err) {
           console.log("failed to initialize ", this.path, err);
@@ -1483,8 +1482,8 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   stopBackend = async () => {
-    const api = await this.conatApi();
-    await api.jupyter.stop(this.syncdbPath);
+    const api = await this.jupyterApi();
+    await api.stop(this.syncdbPath);
   };
 
   getOutputHandler = (cell) => {
@@ -1684,14 +1683,14 @@ export class JupyterActions extends JupyterActions0 {
     );
   };
 
+  private introspectRequest: number = 0;
   introspect = async (
     code: string,
     detail_level: 0 | 1,
     cursor_pos?: number,
   ): Promise<Map<string, any> | undefined> => {
-    const req = (this._introspect_request =
-      (this._introspect_request != null ? this._introspect_request : 0) + 1);
-
+    this.introspectRequest++;
+    const req = this.introspectRequest;
     if (cursor_pos == null) {
       cursor_pos = code.length;
     }
@@ -1699,8 +1698,8 @@ export class JupyterActions extends JupyterActions0 {
 
     let introspect;
     try {
-      const api = await this.conatApi();
-      introspect = await api.jupyter.introspect({
+      const api = await this.jupyterApi();
+      introspect = await api.introspect({
         path: this.path,
         code,
         cursor_pos,
@@ -1713,55 +1712,56 @@ export class JupyterActions extends JupyterActions0 {
     } catch (err) {
       introspect = { error: err };
     }
-    if (this._introspect_request > req) return;
-    const i = fromJS(introspect);
-    this.getFrameActions()?.setState({
-      introspect: i,
-    });
+    if (this.introspectRequest > req) return;
+    this.getFrameActions()?.setState({ introspect });
     return introspect; // convenient / useful, e.g., for use by whiteboard.
   };
 
   clear_introspect = (): void => {
-    this._introspect_request =
-      (this._introspect_request != null ? this._introspect_request : 0) + 1;
+    this.introspectRequest =
+      (this.introspectRequest != null ? this.introspectRequest : 0) + 1;
     this.getFrameActions()?.setState({ introspect: undefined });
   };
 
-  // Attempt to fetch completions for give code and cursor_pos
-  // If successful, the completions are put in store.get('completions') and looks like
-  // this (as an immutable map):
-  //    cursor_end   : 2
-  //    cursor_start : 0
-  //    matches      : ['the', 'completions', ...]
-  //    status       : "ok"
-  //    code         : code
-  //    cursor_pos   : cursor_pos
-  //
-  // If not successful, result is:
-  //    status       : "error"
-  //    code         : code
-  //    cursor_pos   : cursor_pos
-  //    error        : 'an error message'
-  //
-  // Only the most recent fetch has any impact, and calling
-  // clear_complete() ensures any fetch made before that
-  // is ignored.
+  /*
+  complete:
+
+  Attempt to fetch completions for give code and cursor_pos
+  If successful, the completions are put in store.get('completions') and looks
+  like this (as an immutable map):
+     cursor_end   : 2
+     cursor_start : 0
+     matches      : ['the', 'completions', ...]
+     status       : "ok"
+     code         : code
+     cursor_pos   : cursor_pos
+
+  If not successful, result is:
+     status       : "error"
+     code         : code
+     cursor_pos   : cursor_pos
+     error        : 'an error message'
+
+  Only the most recent fetch has any impact, and calling
+  clear_complete() ensures any fetch made before that
+  is ignored.
 
   // Returns true if a dialog with options appears, and false otherwise.
+  */
+  private completeRequest = 0;
   complete = async (
     code: string,
     pos?: { line: number; ch: number } | number,
     id?: string,
     offset?: any,
   ): Promise<boolean> => {
-    let cursor_pos;
-    const req = (this._complete_request =
-      (this._complete_request != null ? this._complete_request : 0) + 1);
-
+    this.completeRequest++;
+    const req = this.completeRequest;
     this.setState({ complete: undefined });
 
     // pos can be either a {line:?, ch:?} object as in codemirror,
     // or a number.
+    let cursor_pos;
     if (pos == null || typeof pos == "number") {
       cursor_pos = pos;
     } else {
@@ -1769,30 +1769,28 @@ export class JupyterActions extends JupyterActions0 {
     }
     cursor_pos = js_idx_to_char_idx(cursor_pos, code);
 
-    const start = new Date();
+    const start = Date.now();
     let complete;
     try {
-      complete = await this.api().complete({
+      const api = await this.jupyterApi();
+      complete = await api.complete({
+        path: this.path,
         code,
         cursor_pos,
       });
     } catch (err) {
-      if (this._complete_request > req) return false;
+      if (this.completeRequest > req) return false;
       this.setState({ complete: { error: err } });
-      // no op for now...
       throw Error(`ignore -- ${err}`);
-      //return false;
     }
 
-    if (this.last_cursor_move_time >= start) {
+    if (this.lastCursorMoveTime >= start) {
       // see https://github.com/sagemathinc/cocalc/issues/3611
       throw Error("ignore");
-      //return false;
     }
-    if (this._complete_request > req) {
+    if (this.completeRequest > req) {
       // future completion or clear happened; so ignore this result.
       throw Error("ignore");
-      //return false;
     }
 
     if (complete.status !== "ok") {
@@ -1845,8 +1843,8 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   clear_complete = (): void => {
-    this._complete_request =
-      (this._complete_request != null ? this._complete_request : 0) + 1;
+    this.completeRequest =
+      (this.completeRequest != null ? this.completeRequest : 0) + 1;
     this.setState({ complete: undefined });
   };
 
@@ -1872,12 +1870,12 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
-  complete_cell(id: string, base: string, new_input: string): void {
+  complete_cell = (id: string, base: string, new_input: string): void => {
     this.merge_cell_input(id, base, new_input);
-  }
+  };
 
-  public set_cursor_locs(locs: any[] = [], side_effect: boolean = false): void {
-    this.last_cursor_move_time = new Date();
+  set_cursor_locs = (locs: any[] = [], side_effect: boolean = false): void => {
+    this.lastCursorMoveTime = Date.now();
     if (this.syncdb == null) {
       // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
       return;
@@ -1888,16 +1886,16 @@ export class JupyterActions extends JupyterActions0 {
     }
     this._cursor_locs = locs; // remember our own cursors for splitting cell
     this.syncdb.set_cursor_locs(locs, side_effect);
-  }
+  };
 
-  async signal(signal = "SIGINT"): Promise<void> {
-    const api = await this.conatApi();
+  signal = async (signal = "SIGINT"): Promise<void> => {
+    const api = await this.jupyterApi();
     try {
-      await api.jupyter.signal({ path: this.path, signal });
+      await api.signal({ path: this.path, signal });
     } catch (err) {
       this.set_error(err);
     }
-  }
+  };
 
   // Kill the running kernel and does NOT start it up again.
   halt = reuseInFlight(async (): Promise<void> => {

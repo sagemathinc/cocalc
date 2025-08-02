@@ -42,6 +42,11 @@ export async function introspect(opts) {
   return await control.introspect(opts);
 }
 
+export async function complete(opts) {
+  await start(opts.path);
+  return await control.complete(opts);
+}
+
 export async function signal(opts) {
   if (!control.isRunning(opts.path)) {
     return;
