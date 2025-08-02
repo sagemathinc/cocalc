@@ -31,10 +31,10 @@
       "tar-fs@3.0.8": "3.0.9"
     },
     "onlyBuiltDependencies": [
+      "@vscode/ripgrep",
+      "better-sqlite3",
       "websocket-sftp",
       "websocketfs",
-      "zeromq",
-      "better-sqlite3",
       "zstd-napi"
     ]
   }

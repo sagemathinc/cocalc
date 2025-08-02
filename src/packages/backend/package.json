@@ -17,7 +17,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "build": "pnpm exec tsc --build",
+    "install-ripgrep": "echo 'require(\"@vscode/ripgrep/lib/postinstall\")' | node",
+    "build": "pnpm install-ripgrep && pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",
@@ -37,6 +38,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@vscode/ripgrep": "^1.15.14",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^11.10.0",
     "chokidar": "^3.6.0",

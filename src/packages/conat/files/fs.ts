@@ -17,6 +17,11 @@ import { isValidUUID } from "@cocalc/util/misc";
 
 export const DEFAULT_FILE_SERVICE = "fs";
 
+export interface RipgrepOptions {
+  timeout?: number;
+  options?: string[];
+}
+
 export interface FindOptions {
   // timeout is very limited (e.g., 3s?) if fs is running on file
   // server (not in own project)
@@ -76,13 +81,28 @@ export interface Filesystem {
   // arbitrary directory listing info, which is just not possible
   // with the fs API, but required in any serious application.
   // find -P {path} -maxdepth 1 -mindepth 1 -printf {printf}
+  // For security reasons, this does not support all find arguments,
+  // and can only use limited resources.
   find: (
     path: string,
     printf: string,
     options?: FindOptions,
   ) => Promise<{ stdout: Buffer; truncated: boolean }>;
 
+  // Convenience function that uses the find and stat support to
+  // provide all files in a directory by using tricky options to find,
+  // and ensuring they are used by stat in a consistent way for updates.
   listing?: (path: string) => Promise<Listing>;
+
+  // We add ripgrep, as a 1-call way to very efficiently search in files
+  // directly on whatever is serving files.
+  // For security reasons, this does not support all ripgrep arguments,
+  // and can only use limited resources.
+  ripgrep: (
+    path: string,
+    regexp: string,
+    options?: RipgrepOptions,
+  ) => Promise<{ stdout: Buffer; stderr: Buffer; truncated: boolean }>;
 }
 
 interface IDirent {
@@ -271,6 +291,9 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     },
     async rename(oldPath: string, newPath: string) {
       await (await fs(this.subject)).rename(oldPath, newPath);
+    },
+    async ripgrep(path: string, regexp: string, options?: RipgrepOptions) {
+      return await (await fs(this.subject)).ripgrep(path, regexp, options);
     },
     async rm(path: string, options?) {
       await (await fs(this.subject)).rm(path, options);

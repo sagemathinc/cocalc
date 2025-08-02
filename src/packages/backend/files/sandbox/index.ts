@@ -70,11 +70,15 @@ import { replace_all } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions } from "@cocalc/conat/files/watch";
 import find, { type FindOptions } from "./find";
+import ripgrep, { type RipgrepOptions } from "./ripgrep";
 
-// max time a user find request can run -- this can cause excessive
+// max time a user find request can run (in safe mode) -- this can cause excessive
 // load on a server if there were a directory with a massive number of files,
 // so must be limited.
 const MAX_FIND_TIMEOUT = 3000;
+
+// max time a user ripgrep can run (when in safe mode)
+const MAX_RIPGREP_TIMEOUT = 3000;
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
@@ -204,15 +208,40 @@ export class SandboxedFilesystem {
     printf: string,
     options?: FindOptions,
   ): Promise<{ stdout: Buffer; truncated: boolean }> => {
-    options = { ...options };
-    if (
-      !this.unsafeMode &&
-      (!options.timeout || options.timeout > MAX_FIND_TIMEOUT)
-    ) {
-      options.timeout = MAX_FIND_TIMEOUT;
-    }
-
+    options = {
+      ...options,
+      timeout: capTimeout(options?.timeout, MAX_FIND_TIMEOUT),
+    };
     return await find(await this.safeAbsPath(path), printf, options);
+  };
+
+  ripgrep = async (
+    path: string,
+    regexp: string,
+    options?: RipgrepOptions,
+  ): Promise<{
+    stdout: Buffer;
+    stderr: Buffer;
+    code: number | null;
+    truncated: boolean;
+  }> => {
+    if (this.unsafeMode) {
+      // unsafeMode = slightly less locked down...
+      return await ripgrep(path, regexp, {
+        timeout: options?.timeout,
+        options: options?.options,
+        allowedBasePath: "/",
+      });
+    }
+    options = {
+      ...options,
+      timeout: capTimeout(options?.timeout, MAX_RIPGREP_TIMEOUT),
+    };
+    return await ripgrep(await this.safeAbsPath(path), regexp, {
+      timeout: capTimeout(options?.timeout, MAX_RIPGREP_TIMEOUT),
+      options: options?.options,
+      allowedBasePath: this.path,
+    });
   };
 
   // hard link
@@ -356,4 +385,16 @@ export class SandboxError extends Error {
     this.syscall = syscall;
     this.path = path;
   }
+}
+
+function capTimeout(timeout: any, max: number): number {
+  try {
+    timeout = parseFloat(timeout);
+  } catch {
+    return max;
+  }
+  if (!isFinite(timeout)) {
+    return max;
+  }
+  return Math.min(timeout, max);
 }
