@@ -150,7 +150,13 @@ export class CodeExecutionEmitter
   };
 
   throw_error = (err): void => {
-    this.emit("error", err);
+    if (this._iter != null) {
+      // using the iter, so we can use that to report the error
+      this._iter.throw(err);
+    } else {
+      // no iter so make error known via error event
+      this.emit("error", err);
+    }
     this.close();
   };
 

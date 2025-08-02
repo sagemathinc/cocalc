@@ -120,13 +120,16 @@ export function jupyterServer({
           noHalt,
         });
       } catch (err) {
-        //console.log(err);
-        logger.debug("server: failed response -- ", err);
+        logger.debug("server: failed to handle execute request -- ", err);
         if (socket.state != "closed") {
           try {
-            socket.write(null, { headers: { error: `${err}` } });
-          } catch {
+            logger.debug("sending to client: ", {
+              headers: { error: `${err}` },
+            });
+            socket.write(null, { headers: { foo: "bar", error: `${err}` } });
+          } catch (err) {
             // an error trying to report an error shouldn't crash everything
+            logger.debug("WARNING: unable to send error to client", err);
           }
         }
       }
@@ -195,12 +198,14 @@ async function handleRequest({
         throttle.write(mesg);
       }
     }
+    // no errors happened, so close up and flush and
+    // remaining data immediately:
     handler?.done();
-  } finally {
-    if (socket.state != "closed" && !unhandledClientWriteError) {
+    if (socket.state != "closed") {
       throttle.flush();
       socket.write(null);
     }
+  } finally {
     throttle.close();
   }
 }

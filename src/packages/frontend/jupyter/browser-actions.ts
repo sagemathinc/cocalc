@@ -1648,6 +1648,8 @@ export class JupyterActions extends JupyterActions0 {
       }, 1000);
     } catch (err) {
       console.warn("runCells", err);
+      this.clearRunQueue();
+      this.set_error(err);
     } finally {
       if (this.isClosed()) return;
       this.runningNow = false;
