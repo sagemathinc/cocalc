@@ -12,7 +12,7 @@ import { path_split, path_to_file, plural } from "@cocalc/util/misc";
 import { PRE_STYLE } from "./action-box";
 import CheckedFiles from "./checked-files";
 
-export default function Download() {
+export default function Download({ clear }) {
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -98,8 +98,8 @@ export default function Download() {
     } finally {
       setLoading(false);
     }
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
+
+    clear();
   };
 
   if (actions == null) {

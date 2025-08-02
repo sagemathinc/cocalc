@@ -160,10 +160,12 @@ export function Explorer() {
   }, [listing, current_path, strippedPublicPaths]);
 
   useEffect(() => {
-    if (listing == null) {
+    if (listing == null || file_action) {
       return;
     }
+    console.log("enabling key handler");
     const handle_files_key_down = (e): void => {
+      console.log("key down", e.key);
       if (actions == null) {
         return;
       }
@@ -179,6 +181,11 @@ export function Explorer() {
       } else if (e.key == "ArrowDown") {
         actions.increment_selected_file_index();
       } else if (e.key == "Enter") {
+        console.log("Enter key", checked_files.size, file_action);
+        if (checked_files.size > 0 && file_action != undefined) {
+          // using the action box.
+          return;
+        }
         if (file_search.startsWith("/")) {
           // running a terminal command
           return;
@@ -211,10 +218,11 @@ export function Explorer() {
     $(window).on("keydown", handle_files_key_down);
     $(window).on("keyup", handle_files_key_up);
     return () => {
+      console.log("disabling key handler");
       $(window).off("keydown", handle_files_key_down);
       $(window).off("keyup", handle_files_key_up);
     };
-  }, [project_id, current_path, listing]);
+  }, [project_id, current_path, listing, file_action]);
 
   if (listingError) {
     return <ShowError error={error} />;

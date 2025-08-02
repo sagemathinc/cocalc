@@ -84,8 +84,15 @@ export function ActionBox({
     compute_server_id ?? 0,
   );
 
+  function clear() {
+    actions.set_all_files_unchecked();
+    setTimeout(() => {
+      actions.set_file_action();
+    }, 1);
+  }
+
   function cancel_action(): void {
-    actions.set_file_action();
+    clear();
   }
 
   function action_key(e): void {
@@ -121,8 +128,7 @@ export function ActionBox({
       actions.close_tab(path);
     }
     actions.delete_files({ paths });
-    actions.set_file_action();
-    actions.set_all_files_unchecked();
+    clear();
   }
 
   function render_delete_warning() {
@@ -195,8 +201,7 @@ export function ActionBox({
       src: checked_files.toArray(),
       dest: move_destination,
     });
-    actions.set_file_action();
-    actions.set_all_files_unchecked();
+    clear();
   }
 
   function valid_move_input(): boolean {
@@ -340,7 +345,7 @@ export function ActionBox({
       }
     }
 
-    actions.set_file_action();
+    clear();
   }
 
   function valid_copy_input(): boolean {
@@ -561,17 +566,17 @@ export function ActionBox({
   function render_action_box(action: FileAction) {
     switch (action) {
       case "compress":
-        return <CreateArchive />;
+        return <CreateArchive clear={clear} />;
       case "copy":
         return render_copy();
       case "delete":
         return render_delete();
       case "download":
-        return <Download />;
+        return <Download clear={clear} />;
       case "rename":
-        return <RenameFile />;
+        return <RenameFile clear={clear} />;
       case "duplicate":
-        return <RenameFile duplicate />;
+        return <RenameFile clear={clear} duplicate />;
       case "move":
         return render_move();
       case "share":

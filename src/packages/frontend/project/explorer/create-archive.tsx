@@ -9,7 +9,7 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import { path_split, plural } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
-export default function CreateArchive({}) {
+export default function CreateArchive({ clear }) {
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -53,8 +53,7 @@ export default function CreateArchive({}) {
       setLoading(false);
     }
 
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
+    clear();
   };
 
   if (actions == null) {
