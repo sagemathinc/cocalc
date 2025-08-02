@@ -17,6 +17,14 @@ import { isValidUUID } from "@cocalc/util/misc";
 
 export const DEFAULT_FILE_SERVICE = "fs";
 
+export interface ExecOutput {
+  stdout: Buffer;
+  stderr: Buffer;
+  code: number | null;
+  // true if terminated early due to output size or time
+  truncated?: boolean;
+}
+
 export interface RipgrepOptions {
   timeout?: number;
   options?: string[];
@@ -43,6 +51,15 @@ export type FindExpression =
   | { type: "and"; left: FindExpression; right: FindExpression }
   | { type: "or"; left: FindExpression; right: FindExpression }
   | { type: "not"; expr: FindExpression };
+
+export interface FdOptions {
+  pattern?: string;
+  options?: string[];
+  darwin?: string[];
+  linux?: string[];
+  timeout?: number;
+  maxSize?: number;
+}
 
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
@@ -93,6 +110,11 @@ export interface Filesystem {
   // provide all files in a directory by using tricky options to find,
   // and ensuring they are used by stat in a consistent way for updates.
   listing?: (path: string) => Promise<Listing>;
+
+  // fd is a rust rewrite of find that is extremely fast at finding
+  // files that match an expression, e.g.,
+  //   options: { type: "name", pattern:"^\.DS_Store$" }
+  fd: (path: string, options?: FdOptions) => Promise<ExecOutput>;
 
   // We add ripgrep, as a 1-call way to very efficiently search in files
   // directly on whatever is serving files.
@@ -256,6 +278,9 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     },
     async exists(path: string): Promise<boolean> {
       return await (await fs(this.subject)).exists(path);
+    },
+    async fd(path: string, options?: FdOptions) {
+      return await (await fs(this.subject)).fd(path, options);
     },
     async find(path: string, printf: string, options?: FindOptions) {
       return await (await fs(this.subject)).find(path, printf, options);

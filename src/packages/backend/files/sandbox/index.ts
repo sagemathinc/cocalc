@@ -71,6 +71,8 @@ import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions } from "@cocalc/conat/files/watch";
 import find, { type FindOptions } from "./find";
 import ripgrep, { type RipgrepOptions } from "./ripgrep";
+import fd, { type FdOptions } from "./fd";
+import { type ExecOutput } from "./exec";
 
 // max time a user find request can run (in safe mode) -- this can cause excessive
 // load on a server if there were a directory with a massive number of files,
@@ -79,6 +81,8 @@ const MAX_FIND_TIMEOUT = 3000;
 
 // max time a user ripgrep can run (when in safe mode)
 const MAX_RIPGREP_TIMEOUT = 3000;
+
+const MAX_FD_TIMEOUT = 3000;
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
@@ -208,11 +212,15 @@ export class SandboxedFilesystem {
     printf: string,
     options?: FindOptions,
   ): Promise<{ stdout: Buffer; truncated: boolean }> => {
-    options = {
-      ...options,
-      timeout: capTimeout(options?.timeout, MAX_FIND_TIMEOUT),
-    };
+    options = capTimeout(options, MAX_FIND_TIMEOUT);
     return await find(await this.safeAbsPath(path), printf, options);
+  };
+
+  fd = async (path: string, options?: FdOptions): Promise<ExecOutput> => {
+    return await fd(
+      await this.safeAbsPath(path),
+      capTimeout(options, MAX_FD_TIMEOUT),
+    );
   };
 
   ripgrep = async (
@@ -233,10 +241,7 @@ export class SandboxedFilesystem {
         allowedBasePath: "/",
       });
     }
-    options = {
-      ...options,
-      timeout: capTimeout(options?.timeout, MAX_RIPGREP_TIMEOUT),
-    };
+    options = capTimeout(options, MAX_RIPGREP_TIMEOUT);
     return await ripgrep(await this.safeAbsPath(path), regexp, {
       timeout: capTimeout(options?.timeout, MAX_RIPGREP_TIMEOUT),
       options: options?.options,
@@ -387,14 +392,19 @@ export class SandboxError extends Error {
   }
 }
 
-function capTimeout(timeout: any, max: number): number {
+function capTimeout(options, max: number) {
+  if (options == null) {
+    return { timeout: max };
+  }
+
+  let timeout;
   try {
-    timeout = parseFloat(timeout);
+    timeout = parseFloat(options.timeout);
   } catch {
-    return max;
+    return { ...options, timeout: max };
   }
   if (!isFinite(timeout)) {
-    return max;
+    return { ...options, timeout: max };
   }
-  return Math.min(timeout, max);
+  return { ...options, timeout: Math.min(timeout, max) };
 }

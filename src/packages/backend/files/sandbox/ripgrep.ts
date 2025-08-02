@@ -78,6 +78,13 @@ const SAFE_OPTIONS = new Set([
   // this should be safe, since we're capturing output to buffers.
   "--text",
   "-a",
+
+  // this ignores gitignore, hidden, and binary restrictions, which we allow
+  // above, so should be safe.
+  "--unrestricted",
+  "-u",
+
+  "--debug",
 ]);
 
 // Options that take values - need special validation

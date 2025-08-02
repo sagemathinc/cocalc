@@ -1,3 +1,14 @@
+/*
+
+NOTE: there is a program https://github.com/sharkdp/fd that is a very fast
+parallel rust program for finding files matching a pattern.  It is complementary
+to find here though, because we mainly use find to compute directory
+listing info (e.g., file size, mtime, etc.), and fd does NOT do that; it can
+exec ls, but that is slower than using find.  So both find and fd are useful
+for different tasks -- find is *better* for directory listings and fd is better
+for finding filesnames in a directory tree that match a pattern.
+*/
+
 import { spawn } from "node:child_process";
 import type { FindOptions, FindExpression } from "@cocalc/conat/files/fs";
 export type { FindOptions, FindExpression };
