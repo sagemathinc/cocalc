@@ -168,7 +168,10 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   const config: Configuration = {
     // this makes things 10x slower:
     //cache: RSPACK_DEV_SERVER || PRODMODE ? false : true,
-    ignoreWarnings: [/Failed to parse source map/],
+    ignoreWarnings: [
+      /Failed to parse source map/,
+      /formItemNode = ReactDOM.findDOMNode/,
+    ],
     devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
     mode: PRODMODE
       ? ("production" as "production")

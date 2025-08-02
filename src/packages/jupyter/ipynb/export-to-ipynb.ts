@@ -12,7 +12,9 @@ import { deep_copy, filename_extension, keys } from "@cocalc/util/misc";
 
 type Tags = { [key: string]: boolean };
 
-interface Cell {
+export interface Cell {
+  type?: "cell";
+  id?: string;
   cell_type?: CellType;
   input?: string;
   collapsed?: boolean;
@@ -20,9 +22,13 @@ interface Cell {
   slide?;
   attachments?;
   tags?: Tags;
-  output?: { [n: string]: OutputMessage };
+  output?: { [n: string]: OutputMessage } | null;
   metadata?: Metadata;
-  exec_count?: number;
+  exec_count?: number | null;
+
+  start?: number | null;
+  end?: number | null;
+  state?: "done" | "busy" | "run";
 }
 
 type OutputMessage = any;

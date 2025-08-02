@@ -44,6 +44,7 @@ import {
   initConatChangefeedServer,
   initConatApi,
   initConatPersist,
+  initConatFileserver,
 } from "@cocalc/server/conat";
 import { initConatServer } from "@cocalc/server/conat/socketio";
 
@@ -182,6 +183,10 @@ async function startServer(): Promise<void> {
     await initConatServer({ kucalc: program.mode == "kucalc" });
   }
 
+  if (program.conatFileserver || program.conatServer) {
+    await initConatFileserver();
+  }
+
   if (program.conatApi || program.conatServer) {
     await initConatApi();
     await initConatChangefeedServer();
@@ -318,11 +323,15 @@ async function main(): Promise<void> {
     )
     .option(
       "--conat-server",
-      "run a hub that provides a single-core conat server (i.e., conat-router but integrated with the http server), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
+      "run a hub that provides a single-core conat server (i.e., conat-router but integrated with the http server), api, and persistence, fileserver, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
     )
     .option(
       "--conat-router",
       "run a hub that provides the core conat communication layer server over a websocket (but not http server).",
+    )
+    .option(
+      "--conat-fileserver",
+      "run a hub that provides a fileserver conat service",
     )
     .option(
       "--conat-api",

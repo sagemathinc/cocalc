@@ -12,7 +12,7 @@ import {
 } from "@cocalc/conat/service/terminal";
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { throttle } from "lodash";
-import { ThrottleString as Throttle } from "@cocalc/util/throttle";
+import { ThrottleString  } from "@cocalc/util/throttle";
 import { join } from "path";
 import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 import { delay } from "awaiting";
@@ -55,7 +55,7 @@ const MAX_BYTES_PER_SECOND = parseInt(
 // having to discard writes.  This is basically the "frame rate"
 // we are supporting for users.
 const MAX_MSGS_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "20",
 );
 
 type State = "running" | "off" | "closed";
@@ -236,7 +236,7 @@ export class Session {
 
     // use slighlty less than MAX_MSGS_PER_SECOND to avoid reject
     // due to being *slightly* off.
-    const throttle = new Throttle(1000 / (MAX_MSGS_PER_SECOND - 3));
+    const throttle = new ThrottleString(MAX_MSGS_PER_SECOND - 3);
     throttle.on("data", (data: string) => {
       // logger.debug("got data out of pty");
       this.handleBackendMessages(data);

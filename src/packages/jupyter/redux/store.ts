@@ -60,7 +60,6 @@ export interface JupyterStoreState {
   cm_options: any;
   complete: any;
   confirm_dialog: any;
-  connection_file?: string;
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
   default_kernel?: string;
   directory: string;
@@ -103,6 +102,11 @@ export interface JupyterStoreState {
   // run progress = Percent (0-100) of runnable cells that have been run since the last
   // kernel restart. (Thus markdown and empty cells are excluded.)
   runProgress?: number;
+
+  // cells that this particular client has queued up to run. This is
+  // only known to this client, goes away on browser refresh, and is used
+  // only visually for the user to see.
+  pendingCells: Set<string>;
 }
 
 export const initial_jupyter_store_state: {
@@ -446,10 +450,10 @@ export class JupyterStore extends Store<JupyterStoreState> {
       // (??)
       return `${project_id}-${computeServerId}-default`;
     }
-    const dflt_img = await customize.getDefaultComputeImage();
+    const defaultImage = await customize.getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
-      dflt_img,
+      defaultImage,
     );
     const key = [project_id, `${computeServerId}`, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);

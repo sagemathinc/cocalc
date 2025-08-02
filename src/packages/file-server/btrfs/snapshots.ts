@@ -50,9 +50,9 @@ export async function updateRollingSnapshots({
   }
 
   // get exactly the iso timestamp snapshot names:
-  const snapshotNames = (await snapshots.ls())
-    .map((x) => x.name)
-    .filter((name) => DATE_REGEXP.test(name));
+  const snapshotNames = (await snapshots.readdir()).filter((name) =>
+    DATE_REGEXP.test(name),
+  );
   snapshotNames.sort();
   if (snapshotNames.length > 0) {
     const age = Date.now() - new Date(snapshotNames.slice(-1)[0]).valueOf();

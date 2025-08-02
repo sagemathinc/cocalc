@@ -25,6 +25,8 @@ export class FakeSyncstring extends EventEmitter {
     this.emit("ready");
   }
 
+  hasFullHistory = () => true;
+
   close() {}
 
   from_str() {}

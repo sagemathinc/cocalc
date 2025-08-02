@@ -90,6 +90,11 @@ describe("stress operations with subvolumes", () => {
       `deleted ${Math.round((count2 / (Date.now() - t)) * 1000)} subvolumes per second in parallel`,
     );
   });
+
+  it("everything should be gone except the clones", async () => {
+    const v = await fs.subvolumes.list();
+    expect(v.length).toBe(count1 + count2);
+  });
 });
 
 afterAll(after);

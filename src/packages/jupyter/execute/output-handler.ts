@@ -28,52 +28,79 @@ OutputHandler emits these events:
 
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
-import {
-  close,
-  defaults,
-  required,
-  server_time,
-  len,
-  to_json,
-  is_object,
-} from "@cocalc/util/misc";
+import { close, len, is_object } from "@cocalc/util/misc";
+import { type TypedMap } from "@cocalc/util/types/typed-map";
 
-const now = () => server_time().valueOf() - 0;
+const now = () => Date.now();
 
 const MIN_SAVE_INTERVAL_MS = 500;
 const MAX_SAVE_INTERVAL_MS = 45000;
 
+import { type Cell } from "@cocalc/jupyter/ipynb/export-to-ipynb";
+
+export { type Cell };
+
+interface Message {
+  execution_state?;
+  execution_count?: number;
+  exec_count?: number | null;
+  code?: string;
+  status?;
+  source?;
+  name?: string;
+  opts?;
+  more_output?: boolean;
+  text?: string;
+  data?: { [mimeType: string]: any };
+}
+
+interface JupyterMessage {
+  metadata?;
+  content?;
+  buffers?;
+  msg_type?: string;
+  done?: boolean;
+}
+
+interface Options {
+  // object; the cell whose output (etc.) will get mutated
+  cell: Cell;
+  // If given, used to truncate, discard output messages; extra
+  // messages are saved and made available.
+  max_output_length?: number;
+  max_output_messages?: number;
+  // If no messages for this many ms, then we update via set to indicate
+  // that cell is being run.
+  report_started_ms?: number;
+}
+
+type State = "ready" | "closed";
+
 export class OutputHandler extends EventEmitter {
-  private _opts: any;
+  private _opts: Options;
   private _n: number;
   private _clear_before_next_output: boolean;
   private _output_length: number;
-  private _in_more_output_mode: any;
-  private _state: any;
-  private _stdin_cb: any;
+  private _in_more_output_mode: boolean;
+  private _state: State;
+  private _stdin_cb?: Function;
 
-  // Never commit output to send to the frontend more frequently than this.saveIntervalMs
+  // Never commit output to send to the frontend more frequently
+  // than this.saveIntervalMs
   // Otherwise, we'll end up with a large number of patches.
   // We start out with MIN_SAVE_INTERVAL_MS and exponentially back it off to
   // MAX_SAVE_INTERVAL_MS.
   private lastSave: number = 0;
   private saveIntervalMs = MIN_SAVE_INTERVAL_MS;
 
-  constructor(opts: any) {
+  constructor(opts: Options) {
     super();
-    this._opts = defaults(opts, {
-      cell: required, // object; the cell whose output (etc.) will get mutated
-      // If given, used to truncate, discard output messages; extra
-      // messages are saved and made available.
-      max_output_length: undefined,
-      max_output_messages: undefined,
-      report_started_ms: undefined, // If no messages for this many ms, then we update via set to indicate
-      // that cell is being run.
-      dbg: undefined,
-    });
+    this._opts = opts;
     const { cell } = this._opts;
     cell.output = null;
     cell.exec_count = null;
+    // running a cell always de-collapses it:
+    cell.collapsed = false;
     cell.state = "run";
     cell.start = null;
     cell.end = null;
@@ -90,6 +117,57 @@ export class OutputHandler extends EventEmitter {
 
     this.stdin = this.stdin.bind(this);
   }
+
+  // mesg = from the kernel
+  process = (mesg: JupyterMessage) => {
+    if (mesg == null) {
+      // can't possibly happen,
+      return;
+    }
+    if (mesg.done) {
+      // done is a special internal cocalc message.
+      this.done();
+      return;
+    }
+    if (mesg.content?.transient?.display_id != null) {
+      //this.handleTransientUpdate(mesg);
+      if (mesg.msg_type == "update_display_data") {
+        // don't also create a new output
+        return;
+      }
+    }
+
+    if (mesg.msg_type === "clear_output") {
+      this.clear(mesg.content.wait);
+      return;
+    }
+
+    if (mesg.content.comm_id != null) {
+      // ignore any comm/widget related messages here
+      return;
+    }
+
+    if (mesg.content.execution_state === "busy") {
+      this.start();
+    }
+
+    if (mesg.content.payload != null) {
+      if (mesg.content.payload.length > 0) {
+        // payload shell message:
+        // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
+        // ""Payloads are considered deprecated, though their replacement is not yet implemented."
+        // we fully have to implement them, since they are used to implement (crazy, IMHO)
+        // things like %load in the python2 kernel!
+        for (const p of mesg.content.payload) {
+          this.payload(p);
+        }
+        return;
+      }
+    } else {
+      // Normal iopub output message
+      this.message(mesg.content);
+    }
+  };
 
   close = (): void => {
     if (this._state == "closed") return;
@@ -177,7 +255,7 @@ export class OutputHandler extends EventEmitter {
     this._clear_output();
   };
 
-  _clean_mesg = (mesg: any): void => {
+  _clean_mesg = (mesg: Message): void => {
     delete mesg.execution_state;
     delete mesg.code;
     delete mesg.status;
@@ -190,7 +268,7 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  private _push_mesg = (mesg: any, save?: boolean): void => {
+  private _push_mesg = (mesg: Message, save?: boolean): void => {
     if (this._state === "closed") {
       return;
     }
@@ -209,7 +287,7 @@ export class OutputHandler extends EventEmitter {
       this.lastSave = now();
     }
 
-    if (this._opts.cell.output === null) {
+    if (this._opts.cell.output == null) {
       this._opts.cell.output = {};
     }
     this._opts.cell.output[`${this._n}`] = mesg;
@@ -217,7 +295,7 @@ export class OutputHandler extends EventEmitter {
     this.emit("change", save);
   };
 
-  set_input = (input: any, save = true): void => {
+  set_input = (input: string, save = true): void => {
     if (this._state === "closed") {
       return;
     }
@@ -225,9 +303,10 @@ export class OutputHandler extends EventEmitter {
     this.emit("change", save);
   };
 
-  // Process incoming messages.  This may mutate mesg.
-  message = (mesg: any): void => {
-    let has_exec_count: any;
+  // Process incoming messages.  **This may mutate mesg** and
+  // definitely mutates this.cell.
+  message = (mesg: Message): void => {
+    let has_exec_count: boolean;
     if (this._state === "closed") {
       return;
     }
@@ -299,7 +378,7 @@ export class OutputHandler extends EventEmitter {
   };
 
   async stdin(prompt: string, password: boolean): Promise<string> {
-    // See docs for stdin option to execute_code in backend jupyter.coffee
+    // See docs for stdin option to execute_code in backend.
     this._push_mesg({ name: "input", opts: { prompt, password } });
     // Now we wait until the output message we just included has its
     // value set.  Then we call cb with that value.
@@ -310,14 +389,14 @@ export class OutputHandler extends EventEmitter {
   }
 
   // Call this when the cell changes; only used for stdin right now.
-  cell_changed = (cell: any, get_password: any): void => {
+  cell_changed = (cell: TypedMap<Cell>, get_password: () => string): void => {
     if (this._state === "closed") {
       return;
     }
     if (this._stdin_cb == null) {
       return;
     }
-    const output = cell != null ? cell.get("output") : undefined;
+    const output = cell?.get("output");
     if (output == null) {
       return;
     }
@@ -346,7 +425,7 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  payload = (payload: any): void => {
+  payload = (payload: { source?; text: string }): void => {
     if (this._state === "closed") {
       return;
     }
@@ -359,10 +438,7 @@ export class OutputHandler extends EventEmitter {
       // https://github.com/sagemathinc/cocalc/issues/1933
       this.message(payload);
     } else {
-      // No idea what to do with this...
-      if (typeof this._opts.dbg === "function") {
-        this._opts.dbg(`Unknown PAYLOAD: ${to_json(payload)}`);
-      }
+      // TODO: No idea what to do with this...
     }
   };
 }

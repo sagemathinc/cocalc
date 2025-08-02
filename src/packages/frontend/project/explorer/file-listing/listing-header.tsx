@@ -24,11 +24,7 @@ const row_style: React.CSSProperties = {
 
 const inner_icon_style = { marginRight: "10px" };
 
-// TODO: Something should uniformly describe how sorted table headers work.
-// 5/8/2017 We have 3 right now, Course students, assignments panel and this one.
-export const ListingHeader: React.FC<Props> = (props: Props) => {
-  const { active_file_sort, sort_by } = props;
-
+export function ListingHeader({ active_file_sort, sort_by }: Props) {
   function render_sort_link(
     column_name: string,
     display_name: string,
@@ -81,4 +77,4 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
       </Col>
     </Row>
   );
-};
+}

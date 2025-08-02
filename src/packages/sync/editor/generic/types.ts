@@ -102,7 +102,7 @@ export interface ProjectClient extends EventEmitter {
   // Only required to work on project client.
   path_access: (opts: { path: string; mode: string; cb: Function }) => void;
 
-  path_exists: (opts: { path: string; cb: Function }) => void;
+  path_exists?: (opts: { path: string; cb: Function }) => void;
 
   path_stat: (opts: { path: string; cb: Function }) => void;
 
@@ -168,12 +168,6 @@ export interface Client extends ProjectClient {
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
 
   sage_session: (opts: { path: string }) => any;
-
-  touchOpenFile?: (opts: {
-    project_id: string;
-    path: string;
-    doctype?;
-  }) => Promise<void>;
 
   touch_project?: (path: string) => void;
 }

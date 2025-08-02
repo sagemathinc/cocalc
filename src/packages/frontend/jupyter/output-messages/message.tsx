@@ -10,7 +10,6 @@ Handling of output messages.
 import Anser from "anser";
 import type { Map } from "immutable";
 import React from "react";
-
 import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import { LLMTools } from "@cocalc/jupyter/types";
 import { Input } from "./input";
@@ -130,8 +129,10 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       const mesg = obj[n];
       if (mesg != null) {
         if (mesg.get("traceback")) {
-          hasError = true;
-          traceback += mesg.get("traceback").join("\n") + "\n";
+          const t = mesg.get("traceback").join("\n");
+          // if user clicks "Stop" there is a traceback, but it's not an error to fix with AI.
+          hasError = !t.includes("KeyboardInterrupt");
+          traceback += t + "\n";
         }
         if (scrolled && !hasIframes && mesg.getIn(["data", "iframe"])) {
           hasIframes = true;

@@ -428,15 +428,15 @@ export function getValidLanguageModelName({
   }
 
   for (const free of [true, false]) {
-    const dflt = getDefaultLLM(
+    const defaultModel = getDefaultLLM(
       selectable_llms,
       filter,
       ollama,
       custom_openai,
       free,
     );
-    if (dflt != null) {
-      return dflt;
+    if (defaultModel != null) {
+      return defaultModel;
     }
   }
   return DEFAULT_MODEL;

@@ -407,7 +407,7 @@ export function Assignment({
     );
   }
 
-  function open_assignment_path(): void {
+  async function open_assignment_path() {
     if (assignment.get("listing")?.size == 0) {
       // there are no files yet, so we *close* the assignment
       // details panel.  This is just **a hack** so that the user
@@ -421,7 +421,7 @@ export function Assignment({
         assignment.get("assignment_id"),
       );
     }
-    return redux
+    await redux
       .getProjectActions(project_id)
       .open_directory(assignment.get("path"));
   }

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
-import { redux, useRedux } from "@cocalc/frontend/app-framework";
+import { useRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { labels } from "@cocalc/frontend/i18n";
@@ -12,7 +12,7 @@ import { path_split, path_to_file, plural } from "@cocalc/util/misc";
 import { PRE_STYLE } from "./action-box";
 import CheckedFiles from "./checked-files";
 
-export default function Download({}) {
+export default function Download({ clear }) {
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -33,6 +33,9 @@ export default function Download({}) {
   );
 
   useEffect(() => {
+    if (actions == null) {
+      return;
+    }
     if (checked_files == null) {
       return;
     }
@@ -41,10 +44,9 @@ export default function Download({}) {
       return;
     }
     const file = checked_files.first();
-    const isdir = redux.getProjectStore(project_id).get("displayed_listing")
-      ?.file_map?.[path_split(file).tail]?.isdir;
-    setArchiveMode(!!isdir);
-    if (!isdir) {
+    const isDir = !!actions.isDirViaCache(file);
+    setArchiveMode(!!isDir);
+    if (!isDir) {
       const store = actions?.get_store();
       setUrl(store?.fileURL(file) ?? "");
     }
@@ -89,9 +91,6 @@ export default function Download({}) {
         dest = files[0];
       }
       actions.download_file({ path: dest, log: files });
-      await actions.fetch_directory_listing({
-        path: store.get("current_path"),
-      });
     } catch (err) {
       console.log(err);
       setLoading(false);
@@ -99,8 +98,8 @@ export default function Download({}) {
     } finally {
       setLoading(false);
     }
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
+
+    clear();
   };
 
   if (actions == null) {
