@@ -73,7 +73,9 @@ import find, { type FindOptions } from "./find";
 import ripgrep, { type RipgrepOptions } from "./ripgrep";
 import fd, { type FdOptions } from "./fd";
 import dust, { type DustOptions } from "./dust";
+import rustic from "./rustic";
 import { type ExecOutput } from "./exec";
+import { rusticRepo } from "@cocalc/backend/data";
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -96,11 +98,13 @@ const INTERNAL_METHODS = new Set([
   "unsafeMode",
   "readonly",
   "assertWritable",
+  "rusticRepo",
 ]);
 
 export class SandboxedFilesystem {
   public readonly unsafeMode: boolean;
   public readonly readonly: boolean;
+  private readonly rusticRepo: string = rusticRepo;
   constructor(
     // path should be the path to a FOLDER on the filesystem (not a file)
     public readonly path: string,
@@ -221,8 +225,17 @@ export class SandboxedFilesystem {
       await this.safeAbsPath(path),
       // dust reasonably takes longer than the other commands and is used less,
       // so for now we give it more breathing room.
-      capTimeout(options, 4*MAX_TIMEOUT),
+      capTimeout(options, 4 * MAX_TIMEOUT),
     );
+  };
+
+  rustic = async (args: string[]): Promise<ExecOutput> => {
+    return await rustic(args, {
+      repo: this.rusticRepo,
+      safeAbsPath: this.safeAbsPath,
+      timeout: 120_000,
+      maxSize: 10_000,
+    });
   };
 
   ripgrep = async (

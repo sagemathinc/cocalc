@@ -180,6 +180,8 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+export const rusticRepo: string =
+  process.env.RUSTIC_REPO ?? join(data, "rustic");
 
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory

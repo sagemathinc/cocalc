@@ -122,6 +122,8 @@ export interface Filesystem {
     pattern: string,
     options?: RipgrepOptions,
   ) => Promise<ExecOutput>;
+
+  rustic: (args: string[]) => Promise<ExecOutput>;
 }
 
 interface IDirent {
@@ -319,6 +321,9 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     },
     async ripgrep(path: string, pattern: string, options?: RipgrepOptions) {
       return await (await fs(this.subject)).ripgrep(path, pattern, options);
+    },
+    async rustic(args: string[]) {
+      return await (await fs(this.subject)).rustic(args);
     },
     async rm(path: string, options?) {
       await (await fs(this.subject)).rm(path, options);

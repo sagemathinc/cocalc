@@ -23,6 +23,15 @@ const binPath = join(
   "node_modules/.bin",
 );
 
+interface Spec {
+  VERSION: string;
+  BASE: string;
+  binary: string;
+  path: string;
+  stripComponents?: number;
+  pathInArchive?: string;
+}
+
 const SPEC = {
   ripgrep: {
     // See https://github.com/BurntSushi/ripgrep/releases
@@ -45,11 +54,21 @@ const SPEC = {
     binary: "dust",
     path: join(binPath, "dust"),
   },
-} as const;
+  rustic: {
+    // See https://github.com/rustic-rs/rustic/releases
+    VERSION: "v0.9.5",
+    BASE: "https://github.com/rustic-rs/rustic/releases/download",
+    binary: "rustic",
+    path: join(binPath, "rustic"),
+    stripComponents: 0,
+    pathInArchive: "rustic",
+  },
+};
 
 export const ripgrep = SPEC.ripgrep.path;
 export const fd = SPEC.fd.path;
 export const dust = SPEC.dust.path;
+export const rustic = SPEC.rustic.path;
 
 type App = keyof typeof SPEC;
 
@@ -90,7 +109,13 @@ export async function install(app?: App) {
   //    ...
   //    ripgrep-14.1.1-x86_64-unknown-linux-musl/rg
 
-  const { VERSION, binary, path } = SPEC[app];
+  const {
+    VERSION,
+    binary,
+    path,
+    stripComponents = 1,
+    pathInArchive = `${app}-${VERSION}-${getOS()}/${binary}`,
+  } = SPEC[app] as Spec;
 
   const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
   try {
@@ -104,10 +129,10 @@ export async function install(app?: App) {
     execFileSync("tar", [
       "xzf",
       tmpFile,
-      "--strip-components=1",
+      `--strip-components=${stripComponents}`,
       `-C`,
       binPath,
-      `${app}-${VERSION}-${getOS()}/${binary}`,
+      pathInArchive,
     ]);
 
     // - 3. Make the file rg executable
