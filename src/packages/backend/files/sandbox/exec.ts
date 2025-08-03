@@ -2,6 +2,9 @@ import { spawn } from "node:child_process";
 import { arch } from "node:os";
 import { type ExecOutput } from "@cocalc/conat/files/fs";
 export { type ExecOutput };
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("files:sandbox:exec");
 
 const DEFAULT_TIMEOUT = 3_000;
 const DEFAULT_MAX_SIZE = 10_000_000;
@@ -9,13 +12,15 @@ const DEFAULT_MAX_SIZE = 10_000_000;
 export interface Options {
   // the path to the command
   cmd: string;
-  // positional arguments; these are not checked in any way, so are given after '--' for safety
+  // position args *before* any options; these are not sanitized
+  prefixArgs?: string[];
+  // positional arguments; these are not sanitized, but are given after '--' for safety
   positionalArgs?: string[];
   // whitelisted args flags; these are checked according to the whitelist specified below
   options?: string[];
-  // if given, use these options when os.arch()=='darwin' (i.e., macOS)
+  // if given, use these options when os.arch()=='darwin' (i.e., macOS); these must match whitelist
   darwin?: string[];
-  // if given, use these options when os.arch()=='linux'
+  // if given, use these options when os.arch()=='linux'; these must match whitelist
   linux?: string[];
   // when total size of stdout and stderr hits this amount, command is terminated, and
   // truncated is set.  The total amount of output may thus be slightly larger than maxOutput
@@ -31,6 +36,9 @@ export interface Options {
   whitelist?: { [option: string]: true | ValidateFunction };
   // where to launch command
   cwd?: string;
+
+  // options that are always included first for safety and need NOT match whitelist
+  safety?: string[];
 }
 
 type ValidateFunction = (value: string) => void;
@@ -38,9 +46,11 @@ type ValidateFunction = (value: string) => void;
 export default async function exec({
   cmd,
   positionalArgs = [],
+  prefixArgs = [],
   options = [],
   linux = [],
   darwin = [],
+  safety = [],
   maxSize = DEFAULT_MAX_SIZE,
   timeout = DEFAULT_TIMEOUT,
   whitelist = {},
@@ -51,7 +61,7 @@ export default async function exec({
   } else if (arch() == "linux") {
     options = options.concat(linux);
   }
-  options = parseAndValidateOptions(options, whitelist);
+  options = safety.concat(parseAndValidateOptions(options, whitelist));
 
   return new Promise((resolve, reject) => {
     const stdoutChunks: Buffer[] = [];
@@ -60,7 +70,13 @@ export default async function exec({
     let stdoutSize = 0;
     let stderrSize = 0;
 
-    const args = options.concat(["--"]).concat(positionalArgs);
+    const args = prefixArgs.concat(options);
+    if (positionalArgs.length > 0) {
+      args.push("--", ...positionalArgs);
+    }
+
+    // console.log(`${cmd} ${args.join(" ")}`);
+    logger.debug({ cmd, args });
     const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
       env: {},
@@ -144,7 +160,7 @@ function parseAndValidateOptions(options: string[], whitelist): string[] {
       if (i >= options.length) {
         throw new Error(`Option ${opt} requires a value`);
       }
-      const value = options[i];
+      const value = String(options[i]);
       validate(value);
       // didn't throw, so good to go
       validatedOptions.push(value);
@@ -153,3 +169,27 @@ function parseAndValidateOptions(options: string[], whitelist): string[] {
   }
   return validatedOptions;
 }
+
+export const validate = {
+  str: () => {},
+  set: (allowed) => {
+    allowed = new Set(allowed);
+    return (value: string) => {
+      if (!allowed.includes(value)) {
+        throw Error("invalid value");
+      }
+    };
+  },
+  int: (value: string) => {
+    const x = parseInt(value);
+    if (!isFinite(x)) {
+      throw Error("argument must be a number");
+    }
+  },
+  float: (value: string) => {
+    const x = parseFloat(value);
+    if (!isFinite(x)) {
+      throw Error("argument must be a number");
+    }
+  },
+};

@@ -26,31 +26,21 @@ export interface ExecOutput {
 }
 
 export interface RipgrepOptions {
-  timeout?: number;
   options?: string[];
+  darwin?: string[];
+  linux?: string[];
+  timeout?: number;
+  maxSize?: number;
 }
 
 export interface FindOptions {
-  // timeout is very limited (e.g., 3s?) if fs is running on file
-  // server (not in own project)
   timeout?: number;
-  // recursive is false by default (unlike actual find command)
-  recursive?: boolean;
-  // see typing below -- we can't just pass arbitrary args since
-  // that would not be secure.
-  expression?: FindExpression;
+  // all safe whitelisted options to the find command
+  options?: string[];
+  darwin?: string[];
+  linux?: string[];
+  maxSize?: number;
 }
-
-export type FindExpression =
-  | { type: "name"; pattern: string }
-  | { type: "iname"; pattern: string }
-  | { type: "type"; value: "f" | "d" | "l" }
-  | { type: "size"; operator: "+" | "-"; value: string }
-  | { type: "mtime"; operator: "+" | "-"; days: number }
-  | { type: "newer"; file: string }
-  | { type: "and"; left: FindExpression; right: FindExpression }
-  | { type: "or"; left: FindExpression; right: FindExpression }
-  | { type: "not"; expr: FindExpression };
 
 export interface FdOptions {
   pattern?: string;
@@ -100,11 +90,7 @@ export interface Filesystem {
   // find -P {path} -maxdepth 1 -mindepth 1 -printf {printf}
   // For security reasons, this does not support all find arguments,
   // and can only use limited resources.
-  find: (
-    path: string,
-    printf: string,
-    options?: FindOptions,
-  ) => Promise<{ stdout: Buffer; truncated: boolean }>;
+  find: (path: string, options?: FindOptions) => Promise<ExecOutput>;
 
   // Convenience function that uses the find and stat support to
   // provide all files in a directory by using tricky options to find,
@@ -122,9 +108,9 @@ export interface Filesystem {
   // and can only use limited resources.
   ripgrep: (
     path: string,
-    regexp: string,
+    pattern: string,
     options?: RipgrepOptions,
-  ) => Promise<{ stdout: Buffer; stderr: Buffer; truncated: boolean }>;
+  ) => Promise<ExecOutput>;
 }
 
 interface IDirent {
@@ -282,8 +268,8 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     async fd(path: string, options?: FdOptions) {
       return await (await fs(this.subject)).fd(path, options);
     },
-    async find(path: string, printf: string, options?: FindOptions) {
-      return await (await fs(this.subject)).find(path, printf, options);
+    async find(path: string, options?: FindOptions) {
+      return await (await fs(this.subject)).find(path, options);
     },
     async link(existingPath: string, newPath: string) {
       await (await fs(this.subject)).link(existingPath, newPath);
@@ -317,8 +303,8 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     async rename(oldPath: string, newPath: string) {
       await (await fs(this.subject)).rename(oldPath, newPath);
     },
-    async ripgrep(path: string, regexp: string, options?: RipgrepOptions) {
-      return await (await fs(this.subject)).ripgrep(path, regexp, options);
+    async ripgrep(path: string, pattern: string, options?: RipgrepOptions) {
+      return await (await fs(this.subject)).ripgrep(path, pattern, options);
     },
     async rm(path: string, options?) {
       await (await fs(this.subject)).rm(path, options);

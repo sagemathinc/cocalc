@@ -298,22 +298,7 @@ function ProjectSearchInput({
           type="primary"
           onClick={() => actions?.search()}
         >
-          {neural ? (
-            <>
-              <Icon name="robot" />
-              {small ? "" : " Neural Search"}
-            </>
-          ) : git ? (
-            <>
-              <Icon name="git" />
-              {small ? "" : " Git Grep Search"}
-            </>
-          ) : (
-            <>
-              <Icon name="search" />
-              {small ? "" : " Grep Search"}
-            </>
-          )}
+          Search
         </Button>
       }
     />

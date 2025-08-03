@@ -207,13 +207,11 @@ export class SandboxedFilesystem {
     return await exists(await this.safeAbsPath(path));
   };
 
-  find = async (
-    path: string,
-    printf: string,
-    options?: FindOptions,
-  ): Promise<{ stdout: Buffer; truncated: boolean }> => {
-    options = capTimeout(options, MAX_FIND_TIMEOUT);
-    return await find(await this.safeAbsPath(path), printf, options);
+  find = async (path: string, options?: FindOptions): Promise<ExecOutput> => {
+    return await find(
+      await this.safeAbsPath(path),
+      capTimeout(options, MAX_FIND_TIMEOUT),
+    );
   };
 
   fd = async (path: string, options?: FdOptions): Promise<ExecOutput> => {
@@ -225,28 +223,14 @@ export class SandboxedFilesystem {
 
   ripgrep = async (
     path: string,
-    regexp: string,
+    pattern: string,
     options?: RipgrepOptions,
-  ): Promise<{
-    stdout: Buffer;
-    stderr: Buffer;
-    code: number | null;
-    truncated: boolean;
-  }> => {
-    if (this.unsafeMode) {
-      // unsafeMode = slightly less locked down...
-      return await ripgrep(path, regexp, {
-        timeout: options?.timeout,
-        options: options?.options,
-        allowedBasePath: "/",
-      });
-    }
-    options = capTimeout(options, MAX_RIPGREP_TIMEOUT);
-    return await ripgrep(await this.safeAbsPath(path), regexp, {
-      timeout: capTimeout(options?.timeout, MAX_RIPGREP_TIMEOUT),
-      options: options?.options,
-      allowedBasePath: this.path,
-    });
+  ): Promise<ExecOutput> => {
+    return await ripgrep(
+      await this.safeAbsPath(path),
+      pattern,
+      capTimeout(options, MAX_RIPGREP_TIMEOUT),
+    );
   };
 
   // hard link

@@ -1,22 +1,24 @@
-import exec, { type ExecOutput } from "./exec";
+import exec, { type ExecOutput, validate } from "./exec";
 import { type FdOptions } from "@cocalc/conat/files/fs";
 export { type FdOptions };
+import { fd as fdPath } from "./install";
 
 export default async function fd(
   path: string,
-  { options, darwin, linux, pattern, timeout, maxSize }: FdOptions,
+  { options, darwin, linux, pattern, timeout, maxSize }: FdOptions = {},
 ): Promise<ExecOutput> {
   if (path == null) {
     throw Error("path must be specified");
   }
 
   return await exec({
-    cmd: "/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/bin/fd",
+    cmd: fdPath,
     cwd: path,
     positionalArgs: pattern ? [pattern] : [],
     options,
     darwin,
     linux,
+    safety: ["--no-follow"],
     maxSize,
     timeout,
     whitelist,
@@ -50,7 +52,7 @@ const whitelist = {
   "-F": true,
   "--fixed-strings": true,
 
-  "--and": anyValue,
+  "--and": validate.str,
 
   "-l": true,
   "--list-details": true,
@@ -61,7 +63,7 @@ const whitelist = {
   "-0": true,
   "--print0": true,
 
-  "--max-results": validateInt,
+  "--max-results": validate.int,
 
   "-1": true,
 
@@ -70,7 +72,7 @@ const whitelist = {
 
   "--show-errors": true,
 
-  "--strip-cwd-prefix": validateEnum(["never", "always", "auto"]),
+  "--strip-cwd-prefix": validate.set(["never", "always", "auto"]),
 
   "--one-file-system": true,
   "--mount": true,
@@ -82,53 +84,36 @@ const whitelist = {
   "-V": true,
   "--version": true,
 
-  "-d": validateInt,
-  "--max-depth": validateInt,
+  "-d": validate.int,
+  "--max-depth": validate.int,
 
-  "--min-depth": validateInt,
+  "--min-depth": validate.int,
 
-  "--exact-depth": validateInt,
+  "--exact-depth": validate.int,
 
   "--prune": true,
 
-  "--type": anyValue,
+  "--type": validate.str,
 
-  "-e": anyValue,
-  "--extension": anyValue,
+  "-e": validate.str,
+  "--extension": validate.str,
 
-  "-E": anyValue,
-  "--exclude": anyValue,
+  "-E": validate.str,
+  "--exclude": validate.str,
 
-  "--ignore-file": anyValue,
+  "--ignore-file": validate.str,
 
-  "-c": validateEnum(["never", "always", "auto"]),
-  "--color": validateEnum(["never", "always", "auto"]),
+  "-c": validate.set(["never", "always", "auto"]),
+  "--color": validate.set(["never", "always", "auto"]),
 
-  "-S": anyValue,
-  "--size": anyValue,
+  "-S": validate.str,
+  "--size": validate.str,
 
-  "--changed-within": anyValue,
-  "--changed-before": anyValue,
+  "--changed-within": validate.str,
+  "--changed-before": validate.str,
 
-  "-o": anyValue,
-  "--owner": anyValue,
+  "-o": validate.str,
+  "--owner": validate.str,
 
-  "--format": anyValue,
+  "--format": validate.str,
 } as const;
-
-function anyValue() {}
-
-function validateEnum(allowed: string[]) {
-  return (value: string) => {
-    if (!allowed.includes(value)) {
-      throw Error("invalid value");
-    }
-  };
-}
-
-function validateInt(value: string) {
-  const count = parseInt(value);
-  if (!isFinite(count)) {
-    throw Error("argument must be a number");
-  }
-}

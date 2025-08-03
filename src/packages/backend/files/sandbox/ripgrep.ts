@@ -1,357 +1,237 @@
-import { spawn } from "node:child_process";
-import { realpath } from "node:fs/promises";
-import * as path from "node:path";
+import exec, { type ExecOutput, validate } from "./exec";
 import type { RipgrepOptions } from "@cocalc/conat/files/fs";
 export type { RipgrepOptions };
-import { rgPath } from "./install-ripgrep";
+import { ripgrep as ripgrepPath } from "./install";
 
-const MAX_OUTPUT_SIZE = 10 * 1024 * 1024; // 10MB limit
-
-// Safely allowed options that don't pose security risks
-const SAFE_OPTIONS = new Set([
-  // Search behavior
-  "--case-sensitive",
-  "-s",
-  "--ignore-case",
-  "-i",
-  "--word-regexp",
-  "-w",
-  "--line-number",
-  "-n",
-  "--count",
-  "-c",
-  "--files-with-matches",
-  "-l",
-  "--files-without-match",
-  "--fixed-strings",
-  "-F",
-  "--invert-match",
-  "-v",
-
-  // Output format
-  "--heading",
-  "--no-heading",
-  "--column",
-  "--pretty",
-  "--color",
-  "--no-line-number",
-  "-N",
-
-  // Context lines (safe as long as we control the path)
-  "--context",
-  "-C",
-  "--before-context",
-  "-B",
-  "--after-context",
-  "-A",
-
-  // Performance/filtering
-  "--max-count",
-  "-m",
-  "--max-depth",
-  "--max-filesize",
-  "--type",
-  "-t",
-  "--type-not",
-  "-T",
-  "--glob",
-  "-g",
-  "--iglob",
-
-  // File selection
-  "--no-ignore",
-  "--hidden",
-  "--one-file-system",
-  "--null-data",
-  "--multiline",
-  "-U",
-  "--multiline-dotall",
-  "--crlf",
-  "--encoding",
-  "-E",
-  "--no-encoding",
-
-  // basic info
-  "--version",
-
-  // allow searching in binary files (files that contain NUL)
-  // this should be safe, since we're capturing output to buffers.
-  "--text",
-  "-a",
-
-  // this ignores gitignore, hidden, and binary restrictions, which we allow
-  // above, so should be safe.
-  "--unrestricted",
-  "-u",
-
-  "--debug",
-]);
-
-// Options that take values - need special validation
-const OPTIONS_WITH_VALUES = new Set([
-  "--max-count",
-  "-m",
-  "--max-depth",
-  "--max-filesize",
-  "--type",
-  "-t",
-  "--type-not",
-  "-T",
-  "--glob",
-  "-g",
-  "--iglob",
-  "--context",
-  "-C",
-  "--before-context",
-  "-B",
-  "--after-context",
-  "-A",
-  "--encoding",
-  "-E",
-  "--color",
-]);
-
-interface ExtendedRipgrepOptions extends RipgrepOptions {
-  options?: string[];
-  allowedBasePath?: string; // The base path users are allowed to search within
-}
-
-function validateGlobPattern(pattern: string): boolean {
-  // Reject patterns that could escape directory
-  if (pattern.includes("../") || pattern.includes("..\\")) {
-    return false;
+export default async function ripgrep(
+  path: string,
+  pattern: string,
+  { options, darwin, linux, timeout, maxSize }: RipgrepOptions = {},
+): Promise<ExecOutput> {
+  if (path == null) {
+    throw Error("path must be specified");
   }
-  // Reject absolute paths
-  if (path.isAbsolute(pattern)) {
-    return false;
+  if (pattern == null) {
+    throw Error("pattern must be specified");
   }
-  return true;
+
+  return await exec({
+    cmd: ripgrepPath,
+    cwd: path,
+    positionalArgs: [pattern],
+    options,
+    darwin,
+    linux,
+    maxSize,
+    timeout,
+    whitelist,
+    // if large memory usage is an issue, it might be caused by parallel interleaving; using
+    // -j1 below will prevent that, but will make ripgrep much slower (since not in parallel).
+    // See the ripgrep man page.
+    safety: ["--no-follow", "--block-buffered", "--no-config" /* "-j1"*/],
+  });
 }
 
-function validateNumber(value: string): boolean {
-  return /^\d+$/.test(value);
-}
+const whitelist = {
+  "-e": validate.str,
 
-function validateEncoding(value: string): boolean {
-  // Allow only safe encodings
-  const safeEncodings = [
+  "-s": true,
+  "--case-sensitive": true,
+
+  "--crlf": true,
+
+  "-E": validate.set([
     "utf-8",
     "utf-16",
     "utf-16le",
     "utf-16be",
     "ascii",
     "latin-1",
-  ];
-  return safeEncodings.includes(value.toLowerCase());
-}
+  ]),
+  "--encoding": validate.set([
+    "utf-8",
+    "utf-16",
+    "utf-16le",
+    "utf-16be",
+    "ascii",
+    "latin-1",
+  ]),
 
-function parseAndValidateOptions(options: string[]): string[] {
-  const validatedOptions: string[] = [];
-  let i = 0;
+  "--engine": validate.set(["default", "pcre2", "auto"]),
 
-  while (i < options.length) {
-    const opt = options[i];
+  "-F": true,
+  "--fixed-strings": true,
 
-    // Check if this is a safe option
-    if (!SAFE_OPTIONS.has(opt)) {
-      throw new Error(`Disallowed option: ${opt}`);
-    }
+  "-i": true,
+  "--ignore-case": true,
 
-    validatedOptions.push(opt);
+  "-v": true,
+  "--invert-match": true,
 
-    // Handle options that take values
-    if (OPTIONS_WITH_VALUES.has(opt)) {
-      i++;
-      if (i >= options.length) {
-        throw new Error(`Option ${opt} requires a value`);
-      }
+  "-x": true,
+  "--line-regexp": true,
 
-      const value = options[i];
+  "-m": validate.int,
+  "--max-count": validate.int,
 
-      // Validate based on option type
-      if (opt === "--glob" || opt === "-g" || opt === "--iglob") {
-        if (!validateGlobPattern(value)) {
-          throw new Error(`Invalid glob pattern: ${value}`);
-        }
-      } else if (
-        opt === "--max-count" ||
-        opt === "-m" ||
-        opt === "--max-depth" ||
-        opt === "--context" ||
-        opt === "-C" ||
-        opt === "--before-context" ||
-        opt === "-B" ||
-        opt === "--after-context" ||
-        opt === "-A"
-      ) {
-        if (!validateNumber(value)) {
-          throw new Error(`Invalid number for ${opt}: ${value}`);
-        }
-      } else if (opt === "--encoding" || opt === "-E") {
-        if (!validateEncoding(value)) {
-          throw new Error(`Invalid encoding: ${value}`);
-        }
-      } else if (opt === "--color") {
-        if (!["never", "auto", "always", "ansi"].includes(value)) {
-          throw new Error(`Invalid color option: ${value}`);
-        }
-      }
-      validatedOptions.push(value);
-    }
-    i++;
-  }
-  return validatedOptions;
-}
+  "-U": true,
+  "--multiline": true,
 
-export default async function ripgrep(
-  searchPath: string,
-  regexp: string,
-  { timeout = 0, options = [], allowedBasePath }: ExtendedRipgrepOptions = {},
-): Promise<{
-  stdout: Buffer;
-  stderr: Buffer;
-  code: number | null;
-  truncated: boolean;
-}> {
-  if (searchPath == null) {
-    throw Error("path must be specified");
-  }
-  if (regexp == null) {
-    throw Error("regexp must be specified");
-  }
+  "--multiline-dotall": true,
 
-  // Validate and normalize the search path
-  let normalizedPath: string;
-  try {
-    // Resolve to real path (follows symlinks to get actual path)
-    normalizedPath = await realpath(searchPath);
-  } catch (err) {
-    // If path doesn't exist, use normalize to check it
-    normalizedPath = path.normalize(searchPath);
-  }
+  "--no-unicode": true,
 
-  // Security check: ensure path is within allowed base path
-  if (allowedBasePath) {
-    const normalizedBase = await realpath(allowedBasePath);
-    const relative = path.relative(normalizedBase, normalizedPath);
+  "--null-data": true,
 
-    // If relative path starts with .. or is absolute, it's outside allowed path
-    if (relative.startsWith("..") || path.isAbsolute(relative)) {
-      throw new Error("Search path is outside allowed directory");
-    }
-  }
+  "-P": true,
+  "--pcre2": true,
 
-  // Validate regexp doesn't contain null bytes (command injection protection)
-  if (regexp.includes("\0")) {
-    throw new Error("Invalid regexp: contains null bytes");
-  }
+  "-S": true,
+  "--smart-case": true,
 
-  // Build arguments array with security flags first
-  const args = [
-    "--no-follow", // Don't follow symlinks
-    "--no-config", // Ignore config files
-    "--no-ignore-global", // Don't use global gitignore
-    "--no-require-git", // Don't require git repo
-    "--no-messages", // Suppress error messages that might leak info
-  ];
+  "--stop-on-nonmatch": true,
 
-  // Add validated user options
-  if (options.length > 0) {
-    const validatedOptions = parseAndValidateOptions(options);
-    args.push(...validatedOptions);
-  }
+  // this allows searching in binary files -- there is some danger of this
+  // using a lot more memory.  Hence we do not allow it.
+  //   "-a": true,
+  //   "--text": true,
 
-  // Add the search pattern and path last
-  args.push("--", regexp, normalizedPath); // -- prevents regexp from being treated as option
+  "-w": true,
+  "--word-regexp": true,
 
-  return new Promise((resolve, reject) => {
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-    let truncated = false;
-    let stdoutSize = 0;
-    let stderrSize = 0;
+  "--binary": true,
 
-    const child = spawn(rgPath, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        // Minimal environment - only what ripgrep needs
-        PATH: process.env.PATH,
-        HOME: "/tmp", // Prevent access to user's home
-        RIPGREP_CONFIG_PATH: "/dev/null", // Explicitly disable config
-      },
-      cwd: allowedBasePath || process.cwd(), // Restrict working directory
-    });
+  "-g": validate.str,
+  "--glob": validate.str,
+  "--glob-case-insensitive": true,
 
-    let timeoutHandle: NodeJS.Timeout | null = null;
+  "-.": true,
+  "--hidden": true,
 
-    if (timeout > 0) {
-      timeoutHandle = setTimeout(() => {
-        truncated = true;
-        child.kill("SIGTERM");
-        // Force kill after grace period
-        setTimeout(() => {
-          if (!child.killed) {
-            child.kill("SIGKILL");
-          }
-        }, 1000);
-      }, timeout);
-    }
+  "--iglob": validate.str,
 
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdoutSize += chunk.length;
-      if (stdoutSize > MAX_OUTPUT_SIZE) {
-        truncated = true;
-        child.kill("SIGTERM");
-        return;
-      }
-      stdoutChunks.push(chunk);
-    });
+  "--ignore-file-case-insensitive": true,
 
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderrSize += chunk.length;
-      if (stderrSize > MAX_OUTPUT_SIZE) {
-        truncated = true;
-        child.kill("SIGTERM");
-        return;
-      }
-      stderrChunks.push(chunk);
-    });
+  "-d": validate.int,
+  "--max-depth": validate.int,
 
-    child.on("error", (err) => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-      reject(err);
-    });
+  "--max-filesize": validate.str,
 
-    child.on("close", (code) => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
+  "--no-ignore": true,
+  "--no-ignore-dot": true,
+  "--no-ignore-exclude": true,
+  "--no-ignore-files": true,
+  "--no-ignore-global": true,
+  "--no-ignore-parent": true,
+  "--no-ignore-vcs": true,
+  "--no-require-git": true,
+  "--one-file-system": true,
 
-      const stdout = Buffer.concat(stdoutChunks);
-      const stderr = Buffer.concat(stderrChunks);
+  "-t": validate.str,
+  "--type": validate.str,
+  "-T": validate.str,
+  "--type-not": validate.str,
+  "--type-add": validate.str,
+  "--type-list": true,
+  "--type-clear": validate.str,
 
-      // Truncate output if it's too large
-      const finalStdout =
-        stdout.length > MAX_OUTPUT_SIZE
-          ? stdout.slice(0, MAX_OUTPUT_SIZE)
-          : stdout;
-      const finalStderr =
-        stderr.length > MAX_OUTPUT_SIZE
-          ? stderr.slice(0, MAX_OUTPUT_SIZE)
-          : stderr;
+  "-u": true,
+  "--unrestricted": true,
 
-      resolve({
-        stdout: finalStdout,
-        stderr: finalStderr,
-        code,
-        truncated,
-      });
-    });
-  });
-}
+  "-A": validate.int,
+  "--after-context": validate.int,
+  "-B": validate.int,
+  "--before-context": validate.int,
 
-// Export utility functions for testing
-export const _internal = {
-  validateGlobPattern,
-  validateNumber,
-  validateEncoding,
-  parseAndValidateOptions,
-};
+  "-b": true,
+  "--byte-offset": true,
+
+  "--color": validate.set(["never", "auto", "always", "ansi"]),
+  "--colors": validate.str,
+
+  "--column": true,
+  "-C": validate.int,
+  "--context": validate.int,
+
+  "--context-separator": validate.str,
+  "--field-context-separator": validate.str,
+  "--field-match-separator": validate.str,
+
+  "--heading": true,
+  "--no-heading": true,
+
+  "-h": true,
+  "--help": true,
+
+  "--include-zero": true,
+
+  "-n": true,
+  "--line-number": true,
+  "-N": true,
+  "--no-line-number": true,
+
+  "-M": validate.int,
+  "--max-columns": validate.int,
+
+  "--max-columns-preview": validate.int,
+
+  "-O": true,
+  "--null": true,
+
+  "--passthru": true,
+
+  "-p": true,
+  "--pretty": true,
+
+  "-q": true,
+  "--quiet": true,
+
+  // From the docs: "Neither this flag nor any other ripgrep flag will modify your files."
+  "-r": validate.str,
+  "--replace": validate.str,
+
+  "--sort": validate.set(["none", "path", "modified", "accessed", "created"]),
+  "--sortr": validate.set(["none", "path", "modified", "accessed", "created"]),
+
+  "--trim": true,
+  "--no-trim": true,
+
+  "--vimgrep": true,
+
+  "-H": true,
+  "--with-filename": true,
+
+  "-I": true,
+  "--no-filename": true,
+
+  "-c": true,
+  "--count": true,
+
+  "--count-matches": true,
+  "-l": true,
+  "--files-with-matches": true,
+  "--files-without-match": true,
+  "--json": true,
+
+  "--debug": true,
+  "--no-ignore-messages": true,
+  "--no-messages": true,
+
+  "--stats": true,
+
+  "--trace": true,
+
+  "--files": true,
+
+  "--generate": validate.set([
+    "man",
+    "complete-bash",
+    "complete-zsh",
+    "complete-fish",
+    "complete-powershell",
+  ]),
+
+  "--pcre2-version": true,
+  "-V": true,
+  "--version": true,
+} as const;

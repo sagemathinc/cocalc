@@ -146,11 +146,17 @@ export class Listing extends EventEmitter {
 async function getListing(
   fs: FilesystemClient,
   path: string,
-): Promise<{ files: Files; truncated: boolean }> {
-  const { stdout, truncated } = await fs.find(
-    path,
-    "%f\\0%T@\\0%s\\0%y\\0%l\n",
-  );
+): Promise<{ files: Files; truncated?: boolean }> {
+  const { stdout, truncated } = await fs.find(path, {
+    options: [
+      "-maxdepth",
+      "1",
+      "-mindepth",
+      "1",
+      "-printf",
+      "%f\\0%T@\\0%s\\0%y\\0%l\n",
+    ],
+  });
   const buf = Buffer.from(stdout);
   const files: Files = {};
   // todo -- what about non-utf8...?

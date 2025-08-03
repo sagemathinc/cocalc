@@ -1,11 +1,7 @@
 /*
-Download a ripgrep binary.
+Download a ripgrep or fd binary for the operating system
 
-This supports:
-
-- x86_64 Linux
-- aarch64 Linux
-- arm64 macos
+This supports x86_64/arm64 linux & macos
 
 This assumes tar is installed.
 
@@ -17,22 +13,61 @@ e.g.,
 */
 
 import { arch, platform } from "os";
-import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { execFileSync } from "child_process";
-import { writeFile, unlink, chmod } from "fs/promises";
+import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 
-// See https://github.com/BurntSushi/ripgrep/releases
-const VERSION = "14.1.1";
-const BASE = "https://github.com/BurntSushi/ripgrep/releases/download";
+const i = __dirname.lastIndexOf("packages/backend");
+const binPath = join(
+  __dirname.slice(0, i + "packages/backend".length),
+  "node_modules/.bin",
+);
+export const ripgrep = join(binPath, "rg");
+export const fd = join(binPath, "fd");
 
-export const rgPath = join(__dirname, "rg");
+const SPEC = {
+  ripgrep: {
+    // See https://github.com/BurntSushi/ripgrep/releases
+    VERSION: "14.1.1",
+    BASE: "https://github.com/BurntSushi/ripgrep/releases/download",
+    binary: "rg",
+    path: join(binPath, "rg"),
+  },
+  fd: {
+    // See https://github.com/sharkdp/fd/releases
+    VERSION: "v10.2.0",
+    BASE: "https://github.com/sharkdp/fd/releases/download",
+    binary: "fd",
+    path: join(binPath, "fd"),
+  },
+} as const;
 
-export async function install() {
-  if (await exists(rgPath)) {
+type App = keyof typeof SPEC;
+
+// https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-unknown-linux-musl.tar.gz
+// https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz
+
+async function exists(path: string) {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function install(app?: App) {
+  if (app == null) {
+    await Promise.all([install("ripgrep"), install("fd")]);
     return;
   }
-  const url = getUrl();
+  if (app == "ripgrep" && (await exists(ripgrep))) {
+    return;
+  }
+  if (app == "fd" && (await exists(fd))) {
+    return;
+  }
+  const url = getUrl(app);
   // - 1. Fetch the tarball from the github url (using the fetch library)
   const response = await downloadFromGithub(url);
   const tarballBuffer = Buffer.from(await response.arrayBuffer());
@@ -43,21 +78,34 @@ export async function install() {
   // we have "tar tvf ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz" outputs
   //    ...
   //    ripgrep-14.1.1-x86_64-unknown-linux-musl/rg
-  const tmpFile = join(__dirname, `ripgrep-${VERSION}.tar.gz`);
-  await writeFile(tmpFile, tarballBuffer);
-  // sync is fine since this is run at *build time*.
-  execFileSync("tar", [
-    "xzf",
-    tmpFile,
-    "--strip-components=1",
-    `-C`,
-    __dirname,
-    `ripgrep-${VERSION}-${getName()}/rg`,
-  ]);
-  await unlink(tmpFile);
 
-  // - 3. Make the file rg executable
-  await chmod(rgPath, 0o755);
+  const { VERSION, binary, path } = SPEC[app];
+
+  const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
+  try {
+    try {
+      if (!(await exists(binPath))) {
+        await mkdir(binPath);
+      }
+    } catch {}
+    await writeFile(tmpFile, tarballBuffer);
+    // sync is fine since this is run at *build time*.
+    execFileSync("tar", [
+      "xzf",
+      tmpFile,
+      "--strip-components=1",
+      `-C`,
+      binPath,
+      `${app}-${VERSION}-${getOS()}/${binary}`,
+    ]);
+
+    // - 3. Make the file rg executable
+    await chmod(path, 0o755);
+  } finally {
+    try {
+      await unlink(tmpFile);
+    } catch {}
+  }
 }
 
 // Download from github, but aware of rate limits, the retry-after header, etc.
@@ -106,11 +154,12 @@ async function downloadFromGithub(url: string) {
   throw new Error("Should not reach here");
 }
 
-function getUrl() {
-  return `${BASE}/${VERSION}/ripgrep-${VERSION}-${getName()}.tar.gz`;
+function getUrl(app: App) {
+  const { BASE, VERSION } = SPEC[app];
+  return `${BASE}/${VERSION}/${app}-${VERSION}-${getOS()}.tar.gz`;
 }
 
-function getName() {
+function getOS() {
   switch (platform()) {
     case "linux":
       switch (arch()) {

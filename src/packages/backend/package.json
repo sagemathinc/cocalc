@@ -20,7 +20,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "install-ripgrep": "echo 'require(\"@cocalc/backend/files/sandbox/install-ripgrep\").install()' | node",
+    "install-ripgrep": "echo 'require(\"@cocalc/backend/files/sandbox/install\").install()' | node",
     "build": "pnpm exec tsc --build && pnpm install-ripgrep",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
