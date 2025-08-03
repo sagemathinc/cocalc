@@ -197,7 +197,9 @@ describe("use all the standard api functions of fs", () => {
   });
 
   it("use the find command instead of readdir", async () => {
-    const { stdout } = await fs.find("dirtest", "%f\n");
+    const { stdout } = await fs.find("dirtest", {
+      options: ["-maxdepth", "1", "-mindepth", "1", "-printf", "%f\n"],
+    });
     const v = stdout.toString().trim().split("\n");
     // output of find is NOT in alphabetical order:
     expect(new Set(v)).toEqual(new Set(["0", "1", "2", "3", "4", fire]));
