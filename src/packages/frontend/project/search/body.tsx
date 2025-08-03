@@ -84,11 +84,7 @@ export const ProjectSearchBody: React.FC<{
     return (
       <Row>
         <Col sm={12}>
-          <ProjectSearchInput
-            project_id={project_id}
-            neural={neural_search}
-            git={!neural_search && git_grep}
-          />
+          <ProjectSearchInput project_id={project_id} />
           {mode != "flyout" ? (
             <ProjectSearchOutputHeader project_id={project_id} />
           ) : undefined}
@@ -151,12 +147,7 @@ export const ProjectSearchBody: React.FC<{
   function renderHeaderFlyout() {
     return (
       <div style={{ flexDirection: "column", padding: "5px" }}>
-        <ProjectSearchInput
-          project_id={project_id}
-          neural={neural_search}
-          git={!neural_search && git_grep}
-          small={true}
-        />
+        <ProjectSearchInput project_id={project_id} small={true} />
         <SelectComputeServerForFileExplorer
           project_id={project_id}
           style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
@@ -259,15 +250,11 @@ export const ProjectSearchBody: React.FC<{
 
 interface ProjectSearchInputProps {
   project_id: string;
-  neural?: boolean;
-  git?: boolean;
   small?: boolean;
 }
 
 function ProjectSearchInput({
-  neural,
   project_id,
-  git,
   small = false,
 }: ProjectSearchInputProps) {
   const actions = useActions({ project_id });
@@ -278,9 +265,7 @@ function ProjectSearchInput({
       size={small ? "medium" : "large"}
       autoFocus={true}
       value={user_input}
-      placeholder={`Search contents of files ${
-        neural ? "(semantic similarity)" : "(supports regular expressions)"
-      }...`}
+      placeholder={"Search contents of files..."}
       on_change={(value) => actions?.setState({ user_input: value })}
       on_submit={() => actions?.search()}
       on_clear={() =>
