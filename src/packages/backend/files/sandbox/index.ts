@@ -219,7 +219,9 @@ export class SandboxedFilesystem {
   dust = async (path: string, options?: DustOptions): Promise<ExecOutput> => {
     return await dust(
       await this.safeAbsPath(path),
-      capTimeout(options, MAX_TIMEOUT),
+      // dust reasonably takes longer than the other commands and is used less,
+      // so for now we give it more breathing room.
+      capTimeout(options, 4*MAX_TIMEOUT),
     );
   };
 
