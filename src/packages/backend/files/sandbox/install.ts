@@ -22,8 +22,6 @@ const binPath = join(
   __dirname.slice(0, i + "packages/backend".length),
   "node_modules/.bin",
 );
-export const ripgrep = join(binPath, "rg");
-export const fd = join(binPath, "fd");
 
 const SPEC = {
   ripgrep: {
@@ -40,7 +38,18 @@ const SPEC = {
     binary: "fd",
     path: join(binPath, "fd"),
   },
+  dust: {
+    // See https://github.com/bootandy/dust/releases
+    VERSION: "v1.2.3",
+    BASE: "https://github.com/bootandy/dust/releases/download",
+    binary: "dust",
+    path: join(binPath, "dust"),
+  },
 } as const;
+
+export const ripgrep = SPEC.ripgrep.path;
+export const fd = SPEC.fd.path;
+export const dust = SPEC.dust.path;
 
 type App = keyof typeof SPEC;
 
@@ -56,15 +65,17 @@ async function exists(path: string) {
   }
 }
 
+async function alreadyInstalled(app: App) {
+  return await exists(SPEC[app].path);
+}
+
 export async function install(app?: App) {
   if (app == null) {
-    await Promise.all([install("ripgrep"), install("fd")]);
+    // @ts-ignore
+    await Promise.all(Object.keys(SPEC).map(install));
     return;
   }
-  if (app == "ripgrep" && (await exists(ripgrep))) {
-    return;
-  }
-  if (app == "fd" && (await exists(fd))) {
+  if (await alreadyInstalled(app)) {
     return;
   }
   const url = getUrl(app);

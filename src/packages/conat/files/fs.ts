@@ -51,6 +51,14 @@ export interface FdOptions {
   maxSize?: number;
 }
 
+export interface DustOptions {
+  options?: string[];
+  darwin?: string[];
+  linux?: string[];
+  timeout?: number;
+  maxSize?: number;
+}
+
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
   chmod: (path: string, mode: string | number) => Promise<void>;
@@ -101,6 +109,9 @@ export interface Filesystem {
   // files that match an expression, e.g.,
   //   options: { type: "name", pattern:"^\.DS_Store$" }
   fd: (path: string, options?: FdOptions) => Promise<ExecOutput>;
+
+  // dust is an amazing disk space tool
+  dust: (path: string, options?: DustOptions) => Promise<ExecOutput>;
 
   // We add ripgrep, as a 1-call way to very efficiently search in files
   // directly on whatever is serving files.
@@ -261,6 +272,9 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     },
     async cp(src: string, dest: string, options?) {
       await (await fs(this.subject)).cp(src, dest, options);
+    },
+    async dust(path: string, options?: DustOptions) {
+      return await (await fs(this.subject)).dust(path, options);
     },
     async exists(path: string): Promise<boolean> {
       return await (await fs(this.subject)).exists(path);

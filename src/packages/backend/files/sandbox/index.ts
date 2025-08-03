@@ -72,17 +72,12 @@ import { type WatchOptions } from "@cocalc/conat/files/watch";
 import find, { type FindOptions } from "./find";
 import ripgrep, { type RipgrepOptions } from "./ripgrep";
 import fd, { type FdOptions } from "./fd";
+import dust, { type DustOptions } from "./dust";
 import { type ExecOutput } from "./exec";
 
-// max time a user find request can run (in safe mode) -- this can cause excessive
-// load on a server if there were a directory with a massive number of files,
-// so must be limited.
-const MAX_FIND_TIMEOUT = 3000;
-
-// max time a user ripgrep can run (when in safe mode)
-const MAX_RIPGREP_TIMEOUT = 3000;
-
-const MAX_FD_TIMEOUT = 3000;
+// max time code can run (in safe mode), e.g., for find,
+// ripgrep, fd, and dust.
+const MAX_TIMEOUT = 5000;
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
@@ -210,14 +205,21 @@ export class SandboxedFilesystem {
   find = async (path: string, options?: FindOptions): Promise<ExecOutput> => {
     return await find(
       await this.safeAbsPath(path),
-      capTimeout(options, MAX_FIND_TIMEOUT),
+      capTimeout(options, MAX_TIMEOUT),
     );
   };
 
   fd = async (path: string, options?: FdOptions): Promise<ExecOutput> => {
     return await fd(
       await this.safeAbsPath(path),
-      capTimeout(options, MAX_FD_TIMEOUT),
+      capTimeout(options, MAX_TIMEOUT),
+    );
+  };
+
+  dust = async (path: string, options?: DustOptions): Promise<ExecOutput> => {
+    return await dust(
+      await this.safeAbsPath(path),
+      capTimeout(options, MAX_TIMEOUT),
     );
   };
 
@@ -229,7 +231,7 @@ export class SandboxedFilesystem {
     return await ripgrep(
       await this.safeAbsPath(path),
       pattern,
-      capTimeout(options, MAX_RIPGREP_TIMEOUT),
+      capTimeout(options, MAX_TIMEOUT),
     );
   };
 
