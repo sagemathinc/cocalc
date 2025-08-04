@@ -87,6 +87,7 @@ interface Options {
   unsafeMode?: boolean;
   // readonly -- only allow operations that don't change files
   readonly?: boolean;
+  project_id?: string;
 }
 
 // If you add any methods below that are NOT for the public api
@@ -99,19 +100,22 @@ const INTERNAL_METHODS = new Set([
   "readonly",
   "assertWritable",
   "rusticRepo",
+  "project_id",
 ]);
 
 export class SandboxedFilesystem {
   public readonly unsafeMode: boolean;
   public readonly readonly: boolean;
   private readonly rusticRepo: string = rusticRepo;
+  private project_id?: string;
   constructor(
     // path should be the path to a FOLDER on the filesystem (not a file)
     public readonly path: string,
-    { unsafeMode = false, readonly = false }: Options = {},
+    { unsafeMode = false, readonly = false, project_id }: Options = {},
   ) {
     this.unsafeMode = !!unsafeMode;
     this.readonly = !!readonly;
+    this.project_id = project_id;
     for (const f in this) {
       if (INTERNAL_METHODS.has(f)) {
         continue;
@@ -235,6 +239,7 @@ export class SandboxedFilesystem {
       safeAbsPath: this.safeAbsPath,
       timeout: 120_000,
       maxSize: 10_000,
+      host: this.project_id ?? "global",
     });
   };
 

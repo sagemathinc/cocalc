@@ -140,7 +140,7 @@ export default async function exec({
   });
 }
 
-function parseAndValidateOptions(options: string[], whitelist): string[] {
+export function parseAndValidateOptions(options: string[], whitelist): string[] {
   const validatedOptions: string[] = [];
   let i = 0;
 

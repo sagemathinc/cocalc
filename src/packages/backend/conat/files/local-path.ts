@@ -39,7 +39,7 @@ export async function localPathFileserver({
         try {
           await mkdir(p);
         } catch {}
-        return new SandboxedFilesystem(p, { unsafeMode });
+        return new SandboxedFilesystem(p, { unsafeMode, project_id });
       }
     },
   });
