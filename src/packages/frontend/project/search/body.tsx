@@ -120,8 +120,8 @@ export const ProjectSearchBody: React.FC<{
             checked={git_grep}
             onChange={() => actions?.toggle_search_checkbox_git_grep()}
           >
-            <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep"
-            to only search files in the git repo.
+            <Icon name="git" /> <b>.gitignore aware</b>: exclude files via
+            .gitignore and similar rules.
           </Checkbox>
           {neural_search_enabled && (
             <Checkbox

@@ -3562,8 +3562,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       fs: this.fs(),
       query: store.get("user_input").trim(),
       path: store.get("current_path"),
-      project_id: this.project_id,
-      compute_server_id: this.getComputeServerId(),
       options: {
         case_sensitive: store.get("case_sensitive"),
         git_grep: store.get("git_grep"),
