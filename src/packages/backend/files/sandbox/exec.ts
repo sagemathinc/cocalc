@@ -75,7 +75,7 @@ export default async function exec({
       args.push("--", ...positionalArgs);
     }
 
-    // console.log(`${cmd} ${args.join(" ")}`);
+    // console.log(`${cmd} ${args.join(" ")}`, { cmd, args });
     logger.debug({ cmd, args });
     const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
@@ -140,7 +140,10 @@ export default async function exec({
   });
 }
 
-export function parseAndValidateOptions(options: string[], whitelist): string[] {
+export function parseAndValidateOptions(
+  options: string[],
+  whitelist,
+): string[] {
   const validatedOptions: string[] = [];
   let i = 0;
 

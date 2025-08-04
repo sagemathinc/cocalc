@@ -16,6 +16,9 @@ import { arch, platform } from "os";
 import { execFileSync } from "child_process";
 import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
 import { join } from "path";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("files:sandbox:install");
 
 const i = __dirname.lastIndexOf("packages/backend");
 const binPath = join(
@@ -98,6 +101,7 @@ export async function install(app?: App) {
     return;
   }
   const url = getUrl(app);
+  logger.debug("install", { app, url });
   // - 1. Fetch the tarball from the github url (using the fetch library)
   const response = await downloadFromGithub(url);
   const tarballBuffer = Buffer.from(await response.arrayBuffer());
