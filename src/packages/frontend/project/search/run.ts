@@ -1,4 +1,10 @@
 import { type FilesystemClient } from "@cocalc/conat/files/fs";
+import { trunc } from "@cocalc/util/misc";
+
+// we get about this many bytes of results from the filesystem, then stop...
+const MAX_SIZE = 1_000_000;
+
+const MAX_LINE_LENGTH = 256;
 
 interface SearchResult {
   filename: string;
@@ -30,7 +36,7 @@ export async function search({
     return;
   }
 
-  const rgOptions = ["--json", "-M", "256"];
+  const rgOptions = ["--json"]; // note that -M doesn't seem to combine with --json, so can't do -M {MAX_LINE_LENGTH}
   if (!options.subdirectories) {
     rgOptions.push("-d", "1");
   }
@@ -46,7 +52,7 @@ export async function search({
 
   const { stdout, truncated } = await fs.ripgrep(path, query, {
     options: rgOptions,
-    maxSize: 100_000,
+    maxSize: MAX_SIZE,
   });
   const lines = Buffer.from(stdout).toString().split("\n");
 
@@ -60,10 +66,11 @@ export async function search({
     }
     if (result.type == "match") {
       const { line_number, lines, path } = result.data;
+      const description = trunc(lines?.text ?? "", MAX_LINE_LENGTH);
       search_results.push({
         filename: path?.text ?? "-",
-        description: `${(line_number.toString() + ":").padEnd(8, " ")}${lines.text}`,
-        filter: `${path?.text?.toLowerCase?.() ?? ""} ${lines.text.toLowerCase()}`,
+        description: `${(line_number.toString() + ":").padEnd(8, " ")}${description}`,
+        filter: `${path?.text?.toLowerCase?.() ?? ""} ${description.toLowerCase()}`,
         line_number,
       });
     }

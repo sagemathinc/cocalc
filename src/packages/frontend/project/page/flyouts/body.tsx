@@ -4,7 +4,6 @@
  */
 
 import { debounce } from "lodash";
-
 import {
   CSS,
   redux,
@@ -97,7 +96,7 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
       style={style}
       onFocus={() => {
         // Remove any active key handler that is next to this side chat.
-        // E.g, this is critical for taks lists...
+        // E.g, this is critical for task lists...
         redux.getActions("page").erase_active_key_handler();
       }}
     >

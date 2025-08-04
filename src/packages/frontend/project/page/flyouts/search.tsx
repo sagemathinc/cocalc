@@ -5,6 +5,6 @@
 
 import { ProjectSearchBody } from "@cocalc/frontend/project/search/body";
 
-export function SearchFlyout({ wrap }) {
-  return <ProjectSearchBody mode="flyout" wrap={wrap} />;
+export function SearchFlyout() {
+  return <ProjectSearchBody mode="flyout" />;
 }
