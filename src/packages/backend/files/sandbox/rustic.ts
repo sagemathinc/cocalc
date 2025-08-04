@@ -86,7 +86,7 @@ export default async function rustic(
     return await exec({
       cmd: rusticPath,
       cwd: base,
-      safety: [...common, ...sanitizedArgs],
+      safety: [...common, args[0], ...sanitizedArgs],
       maxSize,
       timeout,
     });
@@ -102,18 +102,10 @@ export default async function rustic(
       whitelist.backup,
     );
 
-    return await run([
-      "backup",
-      ...options,
-      "--no-scan",
-      "--host",
-      host,
-      "--",
-      source,
-    ]);
+    return await run([...options, "--no-scan", "--host", host, "--", source]);
   } else if (args[0] == "snapshots") {
     const options = parseAndValidateOptions(args.slice(1), whitelist.snapshots);
-    return await run(["snapshots", ...options, "--filter-host", host]);
+    return await run([args[0], ...options, "--filter-host", host]);
   } else if (args[0] == "ls") {
     if (args.length <= 1) {
       throw Error("missing <SNAPSHOT[:PATH]>");
@@ -121,7 +113,32 @@ export default async function rustic(
     const snapshot = args.slice(-1)[0]; // <SNAPSHOT[:PATH]>
     await assertValidSnapshot({ snapshot, host, repo });
     const options = parseAndValidateOptions(args.slice(1, -1), whitelist.ls);
-    return await run(["ls", ...options, snapshot]);
+    return await run([...options, snapshot]);
+  } else if (args[0] == "restore") {
+    if (args.length <= 2) {
+      throw Error("missing <SNAPSHOT[:PATH]>");
+    }
+    const snapshot = args.slice(-2)[0]; // <SNAPSHOT[:PATH]>
+    await assertValidSnapshot({ snapshot, host, repo });
+    const destination = await safeAbsPath(args.slice(-1)[0]); // <destination>
+    const options = parseAndValidateOptions(
+      args.slice(1, -2),
+      whitelist.restore,
+    );
+    return await run([...options, snapshot, destination]);
+  } else if (args[0] == "find") {
+    const options = parseAndValidateOptions(args.slice(1), whitelist.find);
+    return await run([...options, "--filter-host", host]);
+  } else if (args[0] == "forget") {
+    if (args.length == 2 && !args[1].startsWith("-")) {
+      // delete exactly id
+      const snapshot = args[1];
+      await assertValidSnapshot({ snapshot, host, repo });
+      return await run([snapshot]);
+    }
+    // delete several defined by rules.
+    const options = parseAndValidateOptions(args.slice(1), whitelist.forget);
+    return await run([...options, "--filter-host", host]);
   } else {
     throw Error(`subcommand not allowed: ${args[0]}`);
   }
@@ -131,7 +148,7 @@ async function ensureInitialized(repo: string) {
   if (!(await exists(join(repo, "config")))) {
     await exec({
       cmd: rusticPath,
-      safety: ["--password", "", "-r", repo, "init"],
+      safety: ["--no-progress", "--password", "", "-r", repo, "init"],
     });
   }
 }
@@ -176,19 +193,88 @@ const whitelist = {
     "--filter-size-added": validate.str,
     "--filter-jq": validate.str,
   },
-  restore: {},
+  restore: {
+    "--delete": true,
+    "--verify-existing": true,
+    "--recursive": true,
+    "-h": true,
+    "--help": true,
+    "--glob": validate.str,
+    "--iglob": validate.str,
+  },
   ls: {
     "-s": true,
     "--summary": true,
     "-l": true,
     "--long": true,
     "--json": true,
-    "--numeric-uid-gid": true,
     "--recursive": true,
     "-h": true,
     "--help": true,
     "--glob": validate.str,
     "--iglob": validate.str,
+  },
+  find: {
+    "--glob": validate.str,
+    "--iglob": validate.str,
+    "--path": validate.str,
+    "-g": validate.str,
+    "--group-by": validate.str,
+    "--all": true,
+    "--show-misses": true,
+    "-h": true,
+    "--help": true,
+    "--filter-label": validate.str,
+    "--filter-paths": validate.str,
+    "--filter-paths-exact": validate.str,
+    "--filter-after": validate.str,
+    "--filter-before": validate.str,
+    "--filter-size": validate.str,
+    "--filter-size-added": validate.str,
+    "--filter-jq": validate.str,
+  },
+  forget: {
+    "--json": true,
+    "-g": validate.str,
+    "--group-by": validate.str,
+    "-h": true,
+    "--help": true,
+    "--filter-label": validate.str,
+    "--filter-paths": validate.str,
+    "--filter-paths-exact": validate.str,
+    "--filter-after": validate.str,
+    "--filter-before": validate.str,
+    "--filter-size": validate.str,
+    "--filter-size-added": validate.str,
+    "--filter-jq": validate.str,
+    "--keep-tags": validate.str,
+    "--keep-id": validate.str,
+    "-l": validate.int,
+    "--keep-last": validate.int,
+    "-M": validate.int,
+    "--keep-minutely": validate.int,
+    "-H": validate.int,
+    "--keep-hourly": validate.int,
+    "-d": validate.int,
+    "--keep-daily": validate.int,
+    "-w": validate.int,
+    "--keep-weekly": validate.int,
+    "-m": validate.int,
+    "--keep-monthly": validate.int,
+    "--keep-quarter-yearly": validate.int,
+    "--keep-half-yearly": validate.int,
+    "-y": validate.int,
+    "--keep-yearly": validate.int,
+    "--keep-within": validate.str,
+    "--keep-within-minutely": validate.str,
+    "--keep-within-hourly": validate.str,
+    "--keep-within-daily": validate.str,
+    "--keep-within-weekly": validate.str,
+    "--keep-within-monthly": validate.str,
+    "--keep-within-quarter-yearly": validate.str,
+    "--keep-within-half-yearly": validate.str,
+    "--keep-within-yearly": validate.str,
+    "--keep-none": validate.str,
   },
 } as const;
 
