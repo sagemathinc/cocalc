@@ -59,6 +59,24 @@ export interface DustOptions {
   maxSize?: number;
 }
 
+interface ZipOptions {
+  format: "zip";
+  comment?: string;
+  forceLocalTime?: boolean;
+  forceZip64?: boolean;
+  namePrependSlash?: boolean;
+  store?: boolean;
+  zlib?: object;
+}
+
+interface TarOptions {
+  format: "tar";
+  gzip?: boolean;
+  gzipOPtions?: object;
+}
+
+export type ArchiverOptions = ZipOptions | TarOptions;
+
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
   chmod: (path: string, mode: string | number) => Promise<void>;
@@ -90,6 +108,12 @@ export interface Filesystem {
   writeFile: (path: string, data: string | Buffer) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
+
+  archiver: (
+    path: string, // archive to create, e.g., a.zip, a.tar or a.tar.gz
+    paths: string, // paths to include in archive -- can be files or directories in the sandbox.
+    options?: ArchiverOptions, // options -- see https://www.archiverjs.com/
+  ) => Promise<void>;
 
   // We add very little to the Filesystem api, but we have to add
   // a sandboxed "find" command, since it is a 1-call way to get
@@ -262,6 +286,9 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
   const sub = await client.service<Filesystem & { subject?: string }>(subject, {
     async appendFile(path: string, data: string | Buffer, encoding?) {
       await (await fs(this.subject)).appendFile(path, data, encoding);
+    },
+    async archiver(path: string, paths: string, options?: ArchiverOptions) {
+      return await (await fs(this.subject)).archiver(path, paths, options);
     },
     async chmod(path: string, mode: string | number) {
       await (await fs(this.subject)).chmod(path, mode);

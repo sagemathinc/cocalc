@@ -76,6 +76,7 @@ import dust, { type DustOptions } from "./dust";
 import rustic from "./rustic";
 import { type ExecOutput } from "./exec";
 import { rusticRepo } from "@cocalc/backend/data";
+import archiver, { type ArchiverOptions } from "./archiver";
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -241,6 +242,21 @@ export class SandboxedFilesystem {
       maxSize: 10_000,
       host: this.project_id ?? "global",
     });
+  };
+
+  archiver = async (
+    path: string,
+    paths: string[] | string,
+    options?: ArchiverOptions,
+  ): Promise<void> => {
+    if (typeof paths == "string") {
+      paths = [paths];
+    }
+    await archiver(
+      await this.safeAbsPath(path),
+      await Promise.all(paths.map(this.safeAbsPath)),
+      options,
+    );
   };
 
   ripgrep = async (
