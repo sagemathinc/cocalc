@@ -33,6 +33,7 @@ interface Spec {
   path: string;
   stripComponents?: number;
   pathInArchive?: string;
+  skip?: string[];
 }
 
 const SPEC = {
@@ -57,6 +58,16 @@ const SPEC = {
     binary: "dust",
     path: join(binPath, "dust"),
   },
+  ouch: {
+    // See https://github.com/ouch-org/ouch/releases
+    VERSION: "0.6.1",
+    BASE: "https://github.com/ouch-org/ouch/releases/download",
+    binary: "ouch",
+    path: join(binPath, "ouch"),
+    // See https://github.com/ouch-org/ouch/issues/45; note that ouch is in home brew
+    // for this platform.
+    skip: ["aarch64-apple-darwin"],
+  },
   rustic: {
     // See https://github.com/rustic-rs/rustic/releases
     VERSION: "v0.9.5",
@@ -72,6 +83,7 @@ export const ripgrep = SPEC.ripgrep.path;
 export const fd = SPEC.fd.path;
 export const dust = SPEC.dust.path;
 export const rustic = SPEC.rustic.path;
+export const ouch = SPEC.ouch.path;
 
 type App = keyof typeof SPEC;
 
@@ -101,6 +113,10 @@ export async function install(app?: App) {
     return;
   }
   const url = getUrl(app);
+  if (!url) {
+    logger.debug("install: skipping ", app);
+    return;
+  }
   logger.debug("install", { app, url });
   // - 1. Fetch the tarball from the github url (using the fetch library)
   const response = await downloadFromGithub(url);
@@ -118,7 +134,9 @@ export async function install(app?: App) {
     binary,
     path,
     stripComponents = 1,
-    pathInArchive = `${app}-${VERSION}-${getOS()}/${binary}`,
+    pathInArchive = app == "ouch"
+      ? `${app}-${getOS()}/${binary}`
+      : `${app}-${VERSION}-${getOS()}/${binary}`,
   } = SPEC[app] as Spec;
 
   const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
@@ -186,7 +204,7 @@ async function downloadFromGithub(url: string) {
 
       const delay = baseDelay * Math.pow(2, attempt - 1);
       console.log(
-        `Fetch failed. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
+        `Fetch ${url} failed. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
       );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -195,8 +213,16 @@ async function downloadFromGithub(url: string) {
 }
 
 function getUrl(app: App) {
-  const { BASE, VERSION } = SPEC[app];
-  return `${BASE}/${VERSION}/${app}-${VERSION}-${getOS()}.tar.gz`;
+  const { BASE, VERSION, skip } = SPEC[app] as Spec;
+  const os = getOS();
+  if (skip?.includes(os)) {
+    return "";
+  }
+  if (app == "ouch") {
+    return `${BASE}/${VERSION}/${app}-${os}.tar.gz`;
+  } else {
+    return `${BASE}/${VERSION}/${app}-${VERSION}-${os}.tar.gz`;
+  }
 }
 
 function getOS() {

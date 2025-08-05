@@ -59,20 +59,26 @@ export interface DustOptions {
   maxSize?: number;
 }
 
+export interface OuchOptions {
+  cwd?: string;
+  options?: string[];
+  timeout?: number;
+}
+
 interface ZipOptions {
-  format: "zip";
   comment?: string;
   forceLocalTime?: boolean;
   forceZip64?: boolean;
   namePrependSlash?: boolean;
   store?: boolean;
   zlib?: object;
+  timeout?: number;
 }
 
 interface TarOptions {
-  format: "tar";
   gzip?: boolean;
   gzipOPtions?: object;
+  timeout?: number;
 }
 
 export type ArchiverOptions = ZipOptions | TarOptions;
@@ -111,9 +117,13 @@ export interface Filesystem {
 
   archiver: (
     path: string, // archive to create, e.g., a.zip, a.tar or a.tar.gz
-    paths: string, // paths to include in archive -- can be files or directories in the sandbox.
+    // map from path relative to sandbox to the name that path should get in the archive.
+    pathMap: { [path: string]: string | null },
     options?: ArchiverOptions, // options -- see https://www.archiverjs.com/
   ) => Promise<void>;
+
+  // compression
+  ouch: (args: string[], options?: OuchOptions) => Promise<ExecOutput>;
 
   // We add very little to the Filesystem api, but we have to add
   // a sandboxed "find" command, since it is a 1-call way to get
@@ -287,8 +297,12 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     async appendFile(path: string, data: string | Buffer, encoding?) {
       await (await fs(this.subject)).appendFile(path, data, encoding);
     },
-    async archiver(path: string, paths: string, options?: ArchiverOptions) {
-      return await (await fs(this.subject)).archiver(path, paths, options);
+    async archiver(
+      path: string,
+      pathMap: { [path: string]: string | null },
+      options?: ArchiverOptions,
+    ) {
+      return await (await fs(this.subject)).archiver(path, pathMap, options);
     },
     async chmod(path: string, mode: string | number) {
       await (await fs(this.subject)).chmod(path, mode);
@@ -322,6 +336,9 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     },
     async mkdir(path: string, options?) {
       await (await fs(this.subject)).mkdir(path, options);
+    },
+    async ouch(args: string[], options?: OuchOptions) {
+      return await (await fs(this.subject)).ouch(args, options);
     },
     async readFile(path: string, encoding?) {
       return await (await fs(this.subject)).readFile(path, encoding);
@@ -451,15 +468,19 @@ export function fsSubject({
   return `${getService({ service, compute_server_id })}.project-${project_id}`;
 }
 
+const DEFAULT_FS_CALL_TIMEOUT = 5 * 60_000;
+
 export function fsClient({
   client,
   subject,
+  timeout = DEFAULT_FS_CALL_TIMEOUT,
 }: {
   client?: Client;
   subject: string;
+  timeout?: number;
 }): FilesystemClient {
   client ??= conat();
-  let call = client.call<FilesystemClient>(subject);
+  let call = client.call<FilesystemClient>(subject, { timeout });
 
   const readdir0 = call.readdir.bind(call);
   call.readdir = async (path: string, options?) => {

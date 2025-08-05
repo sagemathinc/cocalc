@@ -76,6 +76,7 @@ import dust, { type DustOptions } from "./dust";
 import rustic from "./rustic";
 import { type ExecOutput } from "./exec";
 import { rusticRepo } from "@cocalc/backend/data";
+import ouch, { type OuchOptions } from "./ouch";
 import archiver, { type ArchiverOptions } from "./archiver";
 
 // max time code can run (in safe mode), e.g., for find,
@@ -218,6 +219,7 @@ export class SandboxedFilesystem {
     );
   };
 
+  // find files
   fd = async (path: string, options?: FdOptions): Promise<ExecOutput> => {
     return await fd(
       await this.safeAbsPath(path),
@@ -225,6 +227,7 @@ export class SandboxedFilesystem {
     );
   };
 
+  // disk usage
   dust = async (path: string, options?: DustOptions): Promise<ExecOutput> => {
     return await dust(
       await this.safeAbsPath(path),
@@ -234,6 +237,19 @@ export class SandboxedFilesystem {
     );
   };
 
+  // compression
+  ouch = async (args: string[], options?: OuchOptions): Promise<ExecOutput> => {
+    options = { ...options };
+    if (options.cwd) {
+      options.cwd = await this.safeAbsPath(options.cwd);
+    }
+    return await ouch(
+      [args[0]].concat(await Promise.all(args.slice(1).map(this.safeAbsPath))),
+      capTimeout(options, 6 * MAX_TIMEOUT),
+    );
+  };
+
+  // backups
   rustic = async (args: string[]): Promise<ExecOutput> => {
     return await rustic(args, {
       repo: this.rusticRepo,
@@ -246,17 +262,21 @@ export class SandboxedFilesystem {
 
   archiver = async (
     path: string,
-    paths: string[] | string,
+    // map from path relative to sandbox to the name that path should get in the archive.
+    pathMap0: { [path: string]: string | null },
     options?: ArchiverOptions,
   ): Promise<void> => {
-    if (typeof paths == "string") {
-      paths = [paths];
+    const pathMap: { [absPath: string]: string } = {};
+    const v = Object.keys(pathMap0);
+    const absPaths = await Promise.all(v.map(this.safeAbsPath));
+    for (let i = 0; i < v.length; i++) {
+      pathMap[absPaths[i]] =
+        pathMap0[v[i]] ?? absPaths[i].slice(this.path.length + 1);
     }
-    await archiver(
-      await this.safeAbsPath(path),
-      await Promise.all(paths.map(this.safeAbsPath)),
-      options,
-    );
+    await archiver(await this.safeAbsPath(path), pathMap, {
+      timeout: 4 * MAX_TIMEOUT,
+      ...options,
+    });
   };
 
   ripgrep = async (
