@@ -11,14 +11,12 @@ import CheckedFiles from "./checked-files";
 import { join } from "path";
 import { OUCH_FORMATS } from "@cocalc/conat/files/fs";
 
-const defaultFormat = OUCH_FORMATS.includes("tar.gz")
+export const defaultFormat = OUCH_FORMATS.includes("tar.gz")
   ? "tar.gz"
   : OUCH_FORMATS[0];
 
 export default function CreateArchive({ clear }) {
-  const [format, setFormat] = useState<string>(
-    localStorage.defaultCompressionFormat ?? defaultFormat,
-  );
+  const [format, setFormat] = useState<string>("");
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -50,15 +48,7 @@ export default function CreateArchive({ clear }) {
       setLoading(true);
       const files = checked_files.toArray();
       const path = store.get("current_path");
-      const fs = actions.fs();
-      const { code, stderr } = await fs.ouch([
-        "compress",
-        ...files,
-        join(path, target + "." + format),
-      ]);
-      if (code) {
-        throw Error(Buffer.from(stderr).toString());
-      }
+      await createArchive({ path, files, target, format, actions });
       clear();
     } catch (err) {
       setLoading(false);
@@ -102,17 +92,7 @@ export default function CreateArchive({ clear }) {
           Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}
           {loading && <Spin />}
         </Button>
-        <Select
-          value={format}
-          style={{ width: "150px" }}
-          options={OUCH_FORMATS.map((value) => {
-            return { value };
-          })}
-          onChange={(format) => {
-            setFormat(format);
-            localStorage.defaultCompressionFormat = format;
-          }}
-        />
+        <SelectFormat format={format} setFormat={setFormat} />
       </Space>
       <ShowError
         setError={setError}
@@ -120,5 +100,43 @@ export default function CreateArchive({ clear }) {
         style={{ marginTop: "15px" }}
       />
     </Card>
+  );
+}
+
+export async function createArchive({ path, files, target, format, actions }) {
+  const fs = actions.fs();
+  const { code, stderr } = await fs.ouch([
+    "compress",
+    ...files,
+    join(path, target + "." + format),
+  ]);
+  if (code) {
+    throw Error(Buffer.from(stderr).toString());
+  }
+}
+
+export function SelectFormat({ format, setFormat }) {
+  useEffect(() => {
+    if (!OUCH_FORMATS.includes(format)) {
+      if (OUCH_FORMATS.includes(localStorage.defaultCompressionFormat)) {
+        setFormat(localStorage.defaultCompressionFormat);
+      } else {
+        setFormat(defaultFormat);
+      }
+    }
+  }, [format]);
+
+  return (
+    <Select
+      value={format}
+      style={{ width: "150px" }}
+      options={OUCH_FORMATS.map((value) => {
+        return { value };
+      })}
+      onChange={(format) => {
+        setFormat(format);
+        localStorage.defaultCompressionFormat = format;
+      }}
+    />
   );
 }

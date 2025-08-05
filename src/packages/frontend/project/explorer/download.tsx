@@ -1,18 +1,20 @@
 import { Button, Card, Input, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-
 import { default_filename } from "@cocalc/frontend/account";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { path_split, path_to_file, plural } from "@cocalc/util/misc";
+import { path_split, plural } from "@cocalc/util/misc";
 import { PRE_STYLE } from "./action-box";
 import CheckedFiles from "./checked-files";
+import { SelectFormat, createArchive } from "./create-archive";
+import { join } from "path";
 
 export default function Download({ clear }) {
+  const [format, setFormat] = useState<string>("");
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -81,16 +83,12 @@ export default function Download({ clear }) {
       let dest;
       if (archiveMode) {
         const path = store.get("current_path");
-        dest = path_to_file(path, target + ".zip");
-        await actions.zip_files({
-          src: path ? files.map((x) => x.slice(path.length + 1)) : files,
-          dest: target + ".zip",
-          path: store.get("current_path"),
-        });
+        dest = join(path, target + "." + format);
+        await createArchive({ path, files, target, format, actions });
       } else {
         dest = files[0];
       }
-      actions.download_file({ path: dest, log: files });
+      await actions.download_file({ path: dest, log: files });
     } catch (err) {
       console.log(err);
       setLoading(false);
@@ -121,9 +119,9 @@ export default function Download({ clear }) {
               autoFocus
               onChange={(e) => setTarget(e.target.value)}
               value={target}
-              placeholder="Name of zip archive..."
+              placeholder={`Name of ${format} archive...`}
               onPressEnter={doDownload}
-              suffix=".zip"
+              suffix={"." + format}
             />
           </div>
         )}
@@ -166,9 +164,10 @@ export default function Download({ clear }) {
           </Button>{" "}
           <Button onClick={doDownload} type="primary" disabled={loading}>
             <Icon name="cloud-download" /> Compress {checked_files?.size}{" "}
-            {plural(checked_files?.size, "item")} and Download {target}.zip{" "}
+            {plural(checked_files?.size, "item")} and Download {target}.{format}{" "}
             {loading && <Spin />}
           </Button>
+          <SelectFormat format={format} setFormat={setFormat} />
         </Space>
       )}
       {!archiveMode && (
