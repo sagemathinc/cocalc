@@ -77,7 +77,6 @@ import rustic from "./rustic";
 import { type ExecOutput } from "./exec";
 import { rusticRepo } from "@cocalc/backend/data";
 import ouch, { type OuchOptions } from "./ouch";
-import archiver, { type ArchiverOptions } from "./archiver";
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -257,25 +256,6 @@ export class SandboxedFilesystem {
       timeout: 120_000,
       maxSize: 10_000,
       host: this.project_id ?? "global",
-    });
-  };
-
-  archiver = async (
-    path: string,
-    // map from path relative to sandbox to the name that path should get in the archive.
-    pathMap0: { [path: string]: string | null },
-    options?: ArchiverOptions,
-  ): Promise<void> => {
-    const pathMap: { [absPath: string]: string } = {};
-    const v = Object.keys(pathMap0);
-    const absPaths = await Promise.all(v.map(this.safeAbsPath));
-    for (let i = 0; i < v.length; i++) {
-      pathMap[absPaths[i]] =
-        pathMap0[v[i]] ?? absPaths[i].slice(this.path.length + 1);
-    }
-    await archiver(await this.safeAbsPath(path), pathMap, {
-      timeout: 4 * MAX_TIMEOUT,
-      ...options,
     });
   };
 

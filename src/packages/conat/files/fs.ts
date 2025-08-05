@@ -65,24 +65,6 @@ export interface OuchOptions {
   timeout?: number;
 }
 
-interface ZipOptions {
-  comment?: string;
-  forceLocalTime?: boolean;
-  forceZip64?: boolean;
-  namePrependSlash?: boolean;
-  store?: boolean;
-  zlib?: object;
-  timeout?: number;
-}
-
-interface TarOptions {
-  gzip?: boolean;
-  gzipOPtions?: object;
-  timeout?: number;
-}
-
-export type ArchiverOptions = ZipOptions | TarOptions;
-
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
   chmod: (path: string, mode: string | number) => Promise<void>;
@@ -114,13 +96,6 @@ export interface Filesystem {
   writeFile: (path: string, data: string | Buffer) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
-
-  archiver: (
-    path: string, // archive to create, e.g., a.zip, a.tar or a.tar.gz
-    // map from path relative to sandbox to the name that path should get in the archive.
-    pathMap: { [path: string]: string | null },
-    options?: ArchiverOptions, // options -- see https://www.archiverjs.com/
-  ) => Promise<void>;
 
   // compression
   ouch: (args: string[], options?: OuchOptions) => Promise<ExecOutput>;
@@ -296,13 +271,6 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
   const sub = await client.service<Filesystem & { subject?: string }>(subject, {
     async appendFile(path: string, data: string | Buffer, encoding?) {
       await (await fs(this.subject)).appendFile(path, data, encoding);
-    },
-    async archiver(
-      path: string,
-      pathMap: { [path: string]: string | null },
-      options?: ArchiverOptions,
-    ) {
-      return await (await fs(this.subject)).archiver(path, pathMap, options);
     },
     async chmod(path: string, mode: string | number) {
       await (await fs(this.subject)).chmod(path, mode);

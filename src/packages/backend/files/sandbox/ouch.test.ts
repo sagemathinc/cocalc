@@ -5,7 +5,7 @@ Test the ouch compression api.
 import ouch from "./ouch";
 import { mkdtemp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 let tempDir, options;
