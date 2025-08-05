@@ -65,6 +65,20 @@ export interface OuchOptions {
   timeout?: number;
 }
 
+export const OUCH_FORMATS = [
+  "zip",
+  "7z",
+  "tar.gz",
+  "tar.xz",
+  "tar.bz",
+  "tar.bz2",
+  "tar.bz3",
+  "tar.lz4",
+  "tar.sz",
+  "tar.zst",
+  "tar.br",
+];
+
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
   chmod: (path: string, mode: string | number) => Promise<void>;

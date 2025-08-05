@@ -1,4 +1,4 @@
-import { Button, Card, Input, Space, Spin } from "antd";
+import { Button, Card, Input, Select, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { default_filename } from "@cocalc/frontend/account";
@@ -9,10 +9,16 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import { path_split, plural } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 import { join } from "path";
+import { OUCH_FORMATS } from "@cocalc/conat/files/fs";
 
-const FORMAT = ".tar.gz";
+const defaultFormat = OUCH_FORMATS.includes("tar.gz")
+  ? "tar.gz"
+  : OUCH_FORMATS[0];
 
 export default function CreateArchive({ clear }) {
+  const [format, setFormat] = useState<string>(
+    localStorage.defaultCompressionFormat ?? defaultFormat,
+  );
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -48,7 +54,7 @@ export default function CreateArchive({ clear }) {
       const { code, stderr } = await fs.ouch([
         "compress",
         ...files,
-        join(path, target + FORMAT),
+        join(path, target + "." + format),
       ]);
       if (code) {
         throw Error(Buffer.from(stderr).toString());
@@ -69,7 +75,7 @@ export default function CreateArchive({ clear }) {
   return (
     <Card
       title=<>
-        Create a downloadable {FORMAT} archive from the following{" "}
+        Create a downloadable {format} archive from the following{" "}
         {checked_files?.size} selected {plural(checked_files?.size, "item")}
       </>
     >
@@ -82,7 +88,7 @@ export default function CreateArchive({ clear }) {
           value={target}
           placeholder="Name of archive..."
           onPressEnter={doCompress}
-          suffix={FORMAT}
+          suffix={"." + format}
         />
         <div style={{ marginLeft: "5px" }} />
         <Button
@@ -96,6 +102,17 @@ export default function CreateArchive({ clear }) {
           Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}
           {loading && <Spin />}
         </Button>
+        <Select
+          value={format}
+          style={{ width: "150px" }}
+          options={OUCH_FORMATS.map((value) => {
+            return { value };
+          })}
+          onChange={(format) => {
+            setFormat(format);
+            localStorage.defaultCompressionFormat = format;
+          }}
+        />
       </Space>
       <ShowError
         setError={setError}
