@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { arch } from "node:os";
 import { type ExecOutput } from "@cocalc/conat/files/fs";
 export { type ExecOutput };
@@ -39,6 +39,10 @@ export interface Options {
 
   // options that are always included first for safety and need NOT match whitelist
   safety?: string[];
+
+  // if nodejs is running as root and give this username, then cmd runs as this
+  // user instead.
+  username?: string;
 }
 
 type ValidateFunction = (value: string) => void;
@@ -55,6 +59,7 @@ export default async function exec({
   timeout = DEFAULT_TIMEOUT,
   whitelist = {},
   cwd,
+  username,
 }: Options): Promise<ExecOutput> {
   if (arch() == "darwin") {
     options = options.concat(darwin);
@@ -62,6 +67,7 @@ export default async function exec({
     options = options.concat(linux);
   }
   options = safety.concat(parseAndValidateOptions(options, whitelist));
+  const userId = username ? await getUserIds(username) : undefined;
 
   return new Promise((resolve, reject) => {
     const stdoutChunks: Buffer[] = [];
@@ -81,6 +87,7 @@ export default async function exec({
       stdio: ["ignore", "pipe", "pipe"],
       env: {},
       cwd,
+      ...userId,
     });
 
     let timeoutHandle: NodeJS.Timeout | null = null;
@@ -196,3 +203,22 @@ export const validate = {
     }
   },
 };
+
+async function getUserIds(
+  username: string,
+): Promise<{ uid: number; gid: number }> {
+  return Promise.all([
+    new Promise<number>((resolve, reject) => {
+      execFile("id", ["-u", username], (err, stdout) => {
+        if (err) return reject(err);
+        resolve(parseInt(stdout.trim(), 10));
+      });
+    }),
+    new Promise<number>((resolve, reject) => {
+      execFile("id", ["-g", username], (err, stdout) => {
+        if (err) return reject(err);
+        resolve(parseInt(stdout.trim(), 10));
+      });
+    }),
+  ]).then(([uid, gid]) => ({ uid, gid }));
+}

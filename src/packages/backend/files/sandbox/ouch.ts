@@ -37,6 +37,7 @@ export default async function ouch(
 const commands = ["compress", "c", "decompress", "d", "list", "l", "ls"];
 
 const whitelist = {
+  // general options,
   "-H": true,
   "--hidden": true,
   g: true,
@@ -49,4 +50,20 @@ const whitelist = {
   "--help": true,
   "-V": true,
   "--version": true,
+
+  // compression-specific options
+  // do NOT enable '-S, --follow-symlinks' as that could escape the sandbox!
+  // It's off by default.
+
+  "-l": validate.str,
+  "--level": validate.str,
+  "--fast": true,
+  "--slow": true,
+
+  // decompress specific options
+  "-d": validate.str,
+  "--dir": validate.str,
+  r: true,
+  "--remove": true,
+  "--no-smart-unpack": true,
 } as const;
