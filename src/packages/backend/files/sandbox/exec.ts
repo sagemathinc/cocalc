@@ -3,6 +3,7 @@ import { arch } from "node:os";
 import { type ExecOutput } from "@cocalc/conat/files/fs";
 export { type ExecOutput };
 import getLogger from "@cocalc/backend/logger";
+import { nsjail as nsjailPath } from "./install";
 
 const logger = getLogger("files:sandbox:exec");
 
@@ -43,6 +44,10 @@ export interface Options {
   // if nodejs is running as root and give this username, then cmd runs as this
   // user instead.
   username?: string;
+
+  // run command under nsjail with these options, which are not sanitized
+  // in any way.
+  nsjail?: string[];
 }
 
 type ValidateFunction = (value: string) => void;
@@ -60,6 +65,7 @@ export default async function exec({
   whitelist = {},
   cwd,
   username,
+  nsjail,
 }: Options): Promise<ExecOutput> {
   if (arch() == "darwin") {
     options = options.concat(darwin);
@@ -76,13 +82,18 @@ export default async function exec({
     let stdoutSize = 0;
     let stderrSize = 0;
 
-    const args = prefixArgs.concat(options);
+    let args = prefixArgs.concat(options);
     if (positionalArgs.length > 0) {
       args.push("--", ...positionalArgs);
     }
 
-    // console.log(`${cmd} ${args.join(" ")}`, { cmd, args });
     logger.debug({ cmd, args });
+    if (nsjail) {
+      args = [...nsjail, "--", cmd, ...args];
+      cmd = nsjailPath;
+    }
+
+    // console.log(`${cmd} ${args.join(" ")}`);
     const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
       env: {},

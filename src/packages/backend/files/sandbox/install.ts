@@ -84,13 +84,14 @@ export const fd = SPEC.fd.path;
 export const dust = SPEC.dust.path;
 export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
+export const nsjail = join(binPath, "nsjail");
 
 type App = keyof typeof SPEC;
 
 // https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-unknown-linux-musl.tar.gz
 // https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz
 
-async function exists(path: string) {
+export async function exists(path: string) {
   try {
     await stat(path);
     return true;
