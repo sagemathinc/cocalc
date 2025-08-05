@@ -8,6 +8,9 @@ import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { path_split, plural } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
+import { join } from "path";
+
+const FORMAT = ".tar.gz";
 
 export default function CreateArchive({ clear }) {
   const intl = useIntl();
@@ -41,19 +44,22 @@ export default function CreateArchive({ clear }) {
       setLoading(true);
       const files = checked_files.toArray();
       const path = store.get("current_path");
-      await actions.zip_files({
-        src: path ? files.map((x) => x.slice(path.length + 1)) : files,
-        dest: target + ".zip",
-        path,
-      });
+      const fs = actions.fs();
+      const { code, stderr } = await fs.ouch([
+        "compress",
+        ...files,
+        join(path, target + FORMAT),
+      ]);
+      if (code) {
+        throw Error(Buffer.from(stderr).toString());
+      }
+      clear();
     } catch (err) {
       setLoading(false);
       setError(err);
     } finally {
       setLoading(false);
     }
-
-    clear();
   };
 
   if (actions == null) {
@@ -63,8 +69,8 @@ export default function CreateArchive({ clear }) {
   return (
     <Card
       title=<>
-        Create a zip file from the following {checked_files?.size} selected{" "}
-        {plural(checked_files?.size, "item")}
+        Create a downloadable {FORMAT} archive from the following{" "}
+        {checked_files?.size} selected {plural(checked_files?.size, "item")}
       </>
     >
       <CheckedFiles />
@@ -74,9 +80,9 @@ export default function CreateArchive({ clear }) {
           autoFocus
           onChange={(e) => setTarget(e.target.value)}
           value={target}
-          placeholder="Name of zip archive..."
+          placeholder="Name of archive..."
           onPressEnter={doCompress}
-          suffix=".zip"
+          suffix={FORMAT}
         />
         <div style={{ marginLeft: "5px" }} />
         <Button
@@ -91,7 +97,11 @@ export default function CreateArchive({ clear }) {
           {loading && <Spin />}
         </Button>
       </Space>
-      <ShowError setError={setError} error={error} />
+      <ShowError
+        setError={setError}
+        error={error}
+        style={{ marginTop: "15px" }}
+      />
     </Card>
   );
 }

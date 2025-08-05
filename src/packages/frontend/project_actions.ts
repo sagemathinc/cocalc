@@ -1746,7 +1746,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   set_file_action = (action?: FileAction): void => {
-    console.trace("set_file_action", action);
     const store = this.get_store();
     if (store == null) {
       return;
