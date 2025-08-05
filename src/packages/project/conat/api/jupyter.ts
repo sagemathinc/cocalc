@@ -8,7 +8,7 @@ export { newFile } from "@cocalc/backend/misc/new-file";
 import { getClient } from "@cocalc/project/client";
 import { project_id } from "@cocalc/project/data";
 import * as control from "@cocalc/jupyter/control";
-import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
+import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 
 let fs: SandboxedFilesystem | null = null;
 export async function start(path: string) {

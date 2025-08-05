@@ -7,7 +7,7 @@
     "./database": "./dist/database/index.js",
     "./conat": "./dist/conat/index.js",
     "./files/*": "./dist/files/*.js",
-    "./files/sandbox": "./dist/files/sandbox/index.js",
+    "./sandbox": "./dist/sandbox/index.js",
     "./conat/sync/*": "./dist/conat/sync/*.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
@@ -20,7 +20,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "install-sandbox-tools": "echo 'require(\"@cocalc/backend/files/sandbox/install\").install()' | node",
+    "install-sandbox-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install()' | node",
     "build": "pnpm exec tsc --build && pnpm install-sandbox-tools",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",

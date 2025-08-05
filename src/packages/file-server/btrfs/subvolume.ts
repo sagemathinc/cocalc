@@ -9,7 +9,7 @@ import { join } from "path";
 import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
-import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
+import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 import getLogger from "@cocalc/backend/logger";

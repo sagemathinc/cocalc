@@ -1,6 +1,6 @@
 import { before, after, client, wait } from "@cocalc/backend/conat/test/setup";
 import { watchServer, watchClient } from "@cocalc/conat/files/watch";
-import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
+import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "path";

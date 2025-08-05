@@ -13,7 +13,7 @@ e.g.,
 */
 
 import { arch, platform } from "os";
-import { execFileSync } from "child_process";
+import { execFileSync, execSync } from "child_process";
 import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
@@ -27,14 +27,18 @@ const binPath = join(
 );
 
 interface Spec {
-  VERSION: string;
-  BASE: string;
-  binary: string;
+  VERSION?: string;
+  BASE?: string;
+  binary?: string;
   path: string;
   stripComponents?: number;
   pathInArchive?: string;
   skip?: string[];
+  script?: string;
+  platforms?: string[];
 }
+
+const NSJAIL_VERSION = "3.4";
 
 const SPEC = {
   ripgrep: {
@@ -77,6 +81,13 @@ const SPEC = {
     stripComponents: 0,
     pathInArchive: "rustic",
   },
+  nsjail: {
+    platforms: ["linux"],
+    VERSION: NSJAIL_VERSION,
+    BASE: "https://github.com/google/nsjail/releases",
+    path: join(binPath, "nsjail"),
+    script: `cd /tmp && rm -rf /tmp/nsjail && sudo apt-get update && sudo apt-get install -y autoconf bison flex gcc g++ git libprotobuf-dev libnl-route-3-dev libtool make pkg-config protobuf-compiler libseccomp-dev && git clone --branch ${NSJAIL_VERSION} --depth 1 --single-branch https://github.com/google/nsjail.git  && cd nsjail && make -j8 && strip nsjail && cp nsjail ${join(binPath, "nsjail")} && rm -rf /tmp/nsjail`,
+  },
 };
 
 export const ripgrep = SPEC.ripgrep.path;
@@ -84,7 +95,7 @@ export const fd = SPEC.fd.path;
 export const dust = SPEC.dust.path;
 export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
-export const nsjail = join(binPath, "nsjail");
+export const nsjail = SPEC.nsjail.path;
 
 type App = keyof typeof SPEC;
 
@@ -110,9 +121,26 @@ export async function install(app?: App) {
     await Promise.all(Object.keys(SPEC).map(install));
     return;
   }
+
   if (await alreadyInstalled(app)) {
     return;
   }
+
+  const spec = SPEC[app] as Spec;
+
+  if (spec.platforms != null && !spec.platforms?.includes(platform())) {
+    return;
+  }
+
+  const { script } = spec;
+  if (script) {
+    execSync(script);
+    if (!(await alreadyInstalled(app))) {
+      throw Error(`failed to install ${app}`);
+    }
+    return;
+  }
+
   const url = getUrl(app);
   if (!url) {
     logger.debug("install: skipping ", app);
@@ -138,7 +166,7 @@ export async function install(app?: App) {
     pathInArchive = app == "ouch"
       ? `${app}-${getOS()}/${binary}`
       : `${app}-${VERSION}-${getOS()}/${binary}`,
-  } = SPEC[app] as Spec;
+  } = spec;
 
   const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
   try {

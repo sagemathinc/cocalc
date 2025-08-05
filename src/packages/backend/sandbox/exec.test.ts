@@ -35,7 +35,7 @@ describe("exec works", () => {
 
   if (haveJail) {
     it("run ls in a jail", async () => {
-      const { stderr, stdout, truncated, code } = await exec({
+      const { stdout, truncated, code } = await exec({
         cmd: "/usr/bin/ls",
         nsjail: [
           "-Mo",
@@ -57,7 +57,7 @@ describe("exec works", () => {
     });
 
     it("ls in a jail sees only a small amount of the filesystem", async () => {
-      const { stderr, stdout, truncated, code } = await exec({
+      const { stdout, truncated, code } = await exec({
         cmd: "/usr/bin/ls",
         positionalArgs: ["/"],
         nsjail: [

@@ -1,4 +1,4 @@
-import { SandboxedFilesystem } from "@cocalc/backend/files/sandbox";
+import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import {
   mkdtemp,
   mkdir,
