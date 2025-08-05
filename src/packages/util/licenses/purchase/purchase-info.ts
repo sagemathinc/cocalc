@@ -1,11 +1,12 @@
+import dayjs from "dayjs";
+
+import type { Date0 } from "@cocalc/util/types/store";
 import type {
   Period,
   SiteLicenseDescriptionDB,
 } from "@cocalc/util/upgrades/shopping";
-import type { PurchaseInfo, StartEndDates, Subscription } from "./types";
 import { CURRENT_VERSION } from "./consts";
-import type { Date0 } from "@cocalc/util/types/store";
-import dayjs from "dayjs";
+import type { PurchaseInfo, StartEndDates, Subscription } from "./types";
 
 // this ALWAYS returns purchaseInfo that is the *current* version.
 export default function getPurchaseInfo(
