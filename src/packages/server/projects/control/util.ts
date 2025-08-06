@@ -5,7 +5,7 @@ import spawnAsync from "await-spawn";
 import * as fs from "fs";
 import { writeFile } from "fs/promises";
 import { projects, root } from "@cocalc/backend/data";
-import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { is_valid_uuid_string, split } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
@@ -17,6 +17,7 @@ import { conatServer } from "@cocalc/backend/data";
 import { pidFilename } from "@cocalc/util/project-info";
 import { executeCode } from "@cocalc/backend/execute-code";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 const logger = getLogger("project-control:util");
 
@@ -55,7 +56,7 @@ function pidFile(HOME: string): string {
   return join(dataPath(HOME), pidFilename);
 }
 
-function parseDarwinTime(output:string) : number {
+function parseDarwinTime(output: string): number {
   // output = '{ sec = 1747866131, usec = 180679 } Wed May 21 15:22:11 2025';
   const match = output.match(/sec\s*=\s*(\d+)/);
 
@@ -72,7 +73,10 @@ export async function bootTime(): Promise<number> {
   if (!_bootTime) {
     if (process.platform === "darwin") {
       // uptime isn't available on macos.
-      const { stdout } = await executeCode({ command: "sysctl", args: ['-n', 'kern.boottime']});
+      const { stdout } = await executeCode({
+        command: "sysctl",
+        args: ["-n", "kern.boottime"],
+      });
       _bootTime = parseDarwinTime(stdout);
     } else {
       const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
@@ -98,6 +102,17 @@ export async function getProjectPID(HOME: string): Promise<number> {
 }
 
 export async function isProjectRunning(HOME: string): Promise<boolean> {
+  if (NSJAIL) {
+    try {
+      const stats = await stat(join(HOME, ".smc", "log"));
+      const modificationTime = stats.mtime.getTime();
+      if (Math.abs(Date.now() - modificationTime) <= 15000) {
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
   try {
     const pid = await getProjectPID(HOME);
     //logger.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
@@ -150,14 +165,39 @@ async function logLaunchParams(params): Promise<void> {
   }
 }
 
+const NSJAIL = true;
+
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
-  const cmd = "pnpm";
-  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
+  let cmd = "pnpm";
+  let args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
   logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
+
+  if (NSJAIL) {
+    /* nsjail -q -E HOME='/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/data/projects/f0ae87b8-88e2-428e-bdcc-65ed1d24138c' --hostname=project-f0ae87b8-88e2-428e-bdcc-65ed1d24138c -B /dev -R /var --disable_clone_newnet --keep_env --cwd=/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/packages/project -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/ -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid --disable_rlimits -B /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/data/projects/f0ae87b8-88e2-428e-bdcc-65ed1d24138c -- /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/.local/share/pnpm/pnpm cocalc-project
+    
+    
+    nsjail -q --hostname=project-f0ae87b8-88e2-428e-bdcc-65ed1d24138c -B /dev -R /var --disable_clone_newnet --keep_env --cwd=/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/packages/project -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/ -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid --disable_rlimits -B /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/data/projects/f0ae87b8-88e2-428e-bdcc-65ed1d24138c -- /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/.local/share/pnpm/pnpm cocalc-project 
+    */
+
+    // just a proof of concept to see what it is like!
+    const lib64 = await exists("/lib64");
+    const user = uid != null ? `-u ${uid} -g ${uid}` : "";
+    args = [
+      ...split(
+        `-q ${user} --hostname=project-${env.COCALC_PROJECT_ID} -B /dev -R /var --disable_clone_newnet --keep_env --cwd=${cwd} -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R ${process.env.HOME} ${lib64 ? "-R /lib64" : ""} -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid  --disable_rlimits  -B ${env.HOME}`,
+      ),
+      "--",
+      join(process.env.HOME ?? "", ".local/share/pnpm/pnpm"),
+      "cocalc-project",
+    ];
+    cmd = "nsjail";
+  }
+  console.log({ env, cwd });
+  console.log(`${cmd} ${args.join(" ")}`);
   logLaunchParams({ cwd, env, cmd, args, uid });
   await promisify((cb: Function) => {
     const child = spawn(cmd, args, {
@@ -166,6 +206,10 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       uid,
       gid: uid,
     });
+    if (NSJAIL) {
+      cb();
+      return;
+    }
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (data) => {
