@@ -46,6 +46,7 @@ import { conat } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { close as terminateChangefeedServer } from "@cocalc/database/conat/changefeed-api";
 import { close as terminatePersistServer } from "@cocalc/backend/conat/persist";
+import { close as terminateProjectRunner } from "@cocalc/server/conat/project/run";
 import { delay } from "awaiting";
 
 const logger = getLogger("server:conat:api");
@@ -115,6 +116,10 @@ async function handleMessage({ api, subject, mesg }) {
       return;
     } else if (service == "persist") {
       terminatePersistServer();
+      mesg.respond({ status: "terminated", service }, { noThrow: true });
+      return;
+    } else if (service == "project-run") {
+      terminateProjectRunner();
       mesg.respond({ status: "terminated", service }, { noThrow: true });
       return;
     } else if (service == "api") {

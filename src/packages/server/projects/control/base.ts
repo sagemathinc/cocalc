@@ -108,7 +108,7 @@ export abstract class BaseProject extends EventEmitter {
     }
   }
 
-  protected async saveStateToDatabase(state: ProjectState): Promise<void> {
+  async saveStateToDatabase(state: ProjectState): Promise<void> {
     await callback2(db().set_project_state, {
       ...state,
       project_id: this.project_id,
@@ -139,7 +139,7 @@ export abstract class BaseProject extends EventEmitter {
   // about the project, including ports of various services.
   abstract status(): Promise<ProjectStatus>;
 
-  abstract start(): Promise<void>;
+  abstract start(): Promise<any>;
 
   abstract stop(): Promise<void>;
 

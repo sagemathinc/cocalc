@@ -58,7 +58,6 @@ import {
 const logger = getLogger("project-control:single-user");
 
 // Usually should fully start in about 5 seconds, but we give it 20s.
-const MAX_START_TIME_MS = 20000;
 const MAX_STOP_TIME_MS = 10000;
 
 class Project extends BaseProject {
@@ -88,12 +87,32 @@ class Project extends BaseProject {
     return status;
   }
 
-  async start(): Promise<void> {
+  async start(flag?) {
+    if (!flag) {
+      return;
+    }
     logger.debug("start", this.project_id);
-    if (this.stateChanging != null) return;
 
     // Home directory
     const HOME = this.HOME;
+
+    await mkdir(HOME, { recursive: true });
+    await ensureConfFilesExists(HOME);
+
+    // this.get('env') = extra env vars for project (from synctable):
+    const env = await getEnvironment(this.project_id);
+    logger.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
+
+    // Setup files
+    await setupDataPath(HOME);
+    await writeSecretToken(HOME, await getProjectSecretToken(this.project_id));
+    this.touch(undefined, { noStart: true });
+
+    // Fork and launch project server
+    return await launchProjectDaemon(env);
+
+    /*
+
 
     if (await isProjectRunning(HOME)) {
       logger.debug("start -- already running");
@@ -139,6 +158,7 @@ class Project extends BaseProject {
       // ensure state valid in database
       await this.state();
     }
+    */
   }
 
   async stop(): Promise<void> {

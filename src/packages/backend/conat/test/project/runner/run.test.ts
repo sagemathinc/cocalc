@@ -22,12 +22,11 @@ describe("create basic mocked project runner service and test", () => {
     client2 = connect();
   });
 
-  let server;
   const subject = "project-server";
 
   it("create project runner server", async () => {
     const running = new Set<string>();
-    server = await projectRunnerServer({
+    await projectRunnerServer({
       subject,
       client: client1,
       start: async ({ project_id }) => {

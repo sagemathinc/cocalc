@@ -7,6 +7,7 @@ import { createTimeService } from "@cocalc/conat/service/time";
 export { initConatPersist } from "./persist";
 import { conatApiCount, projects } from "@cocalc/backend/data";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
+import { init as initProjectRun } from "./project/run";
 
 export { loadConatConfiguration };
 
@@ -29,6 +30,7 @@ export async function initConatApi() {
     initAPI();
   }
   initLLM();
+  initProjectRun();
   createTimeService();
 }
 

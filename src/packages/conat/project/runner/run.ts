@@ -11,11 +11,11 @@ Tests are in
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
 
-interface ProjectStatus {
+export interface ProjectStatus {
   state: "running" | "stopped";
 }
 
-interface Options {
+export interface Options {
   subject: string;
   client?: Client;
   start: (opts: { project_id: string }) => Promise<void>;
@@ -23,7 +23,7 @@ interface Options {
   status: (opts: { project_id: string }) => Promise<ProjectStatus>;
 }
 
-interface API {
+export interface API {
   start: (opts: { project_id: string }) => Promise<void>;
   stop: (opts: { project_id: string }) => Promise<void>;
   status: (opts: { project_id: string }) => Promise<ProjectStatus>;

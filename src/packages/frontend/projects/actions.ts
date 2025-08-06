@@ -5,7 +5,6 @@
 
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
@@ -32,6 +31,7 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import type {
   CourseInfo,
@@ -926,102 +926,80 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   // return true, if it actually started the project
-  start_project = async (
-    project_id: string,
-    options: { disablePayAsYouGo?: boolean } = {},
-  ): Promise<boolean> => {
-    if (
-      !(await allow_project_to_run(project_id)) ||
-      !store.getIn(["project_map", project_id])
-    ) {
-      return false;
-    }
-    if (!options.disablePayAsYouGo) {
-      const quota = store
-        .getIn([
-          "project_map",
-          project_id,
-          "pay_as_you_go_quotas",
-          webapp_client.account_id ?? "",
-        ])
-        ?.toJS();
-      if (quota?.enabled) {
-        return await startProjectPayg({ project_id, quota });
+  start_project = reuseInFlight(
+    async (
+      project_id: string,
+      options: { disablePayAsYouGo?: boolean } = {},
+    ): Promise<boolean> => {
+      if (
+        !(await allow_project_to_run(project_id)) ||
+        !store.getIn(["project_map", project_id])
+      ) {
+        return false;
       }
-    }
+      if (!options.disablePayAsYouGo) {
+        const quota = store
+          .getIn([
+            "project_map",
+            project_id,
+            "pay_as_you_go_quotas",
+            webapp_client.account_id ?? "",
+          ])
+          ?.toJS();
+        if (quota?.enabled) {
+          return await startProjectPayg({ project_id, quota });
+        }
+      }
 
-    const t0 = webapp_client.server_time().getTime();
-    // make an action request:
-    this.project_log(project_id, {
-      event: "project_start_requested",
-    });
-    await this.projects_table_set({
-      project_id,
-      action_request: {
-        action: "start",
-        time: webapp_client.server_time(),
-      },
-    });
+      const t0 = webapp_client.server_time().getTime();
+      // make an action request:
+      this.project_log(project_id, {
+        event: "project_start_requested",
+      });
+      const runner = webapp_client.conat_client.projectRunner(project_id);
+      await runner.start({ project_id });
 
-    // Wait until it is running
-    await store.async_wait({
-      timeout: 120,
-      until(store) {
-        return store.get_state(project_id) == "running";
-      },
-    });
-    this.project_log(project_id, {
-      event: "project_started",
-      duration_ms: webapp_client.server_time().getTime() - t0,
-      ...store.classify_project(project_id),
-    });
+      this.project_log(project_id, {
+        event: "project_started",
+        duration_ms: webapp_client.server_time().getTime() - t0,
+        ...store.classify_project(project_id),
+      });
 
-    return true;
-  };
+      return true;
+    },
+  );
 
   // returns true, if it actually stopped the project
-  stop_project = async (project_id: string): Promise<boolean> => {
+  stop_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
     const t0 = webapp_client.server_time().getTime();
     this.project_log(project_id, {
       event: "project_stop_requested",
     });
-    await this.projects_table_set({
-      project_id,
-      action_request: { action: "stop", time: webapp_client.server_time() },
-    });
-
-    // Wait until it is no longer running or stopping.  We don't
-    // wait for "opened" because something or somebody else could
-    // have started the project and we missed that, and don't
-    // want to get stuck.
-    await store.async_wait({
-      timeout: 60,
-      until(store) {
-        const state = store.get_state(project_id);
-        return state != "running" && state != "stopping";
-      },
-    });
+    const runner = webapp_client.conat_client.projectRunner(project_id);
+    await runner.stop({ project_id });
     this.project_log(project_id, {
       event: "project_stopped",
       duration_ms: webapp_client.server_time().getTime() - t0,
       ...store.classify_project(project_id),
     });
     return true;
-  };
+  });
 
-  restart_project = async (project_id: string, options?): Promise<void> => {
-    if (!(await allow_project_to_run(project_id))) {
-      return;
-    }
-    this.project_log(project_id, {
-      event: "project_restart_requested",
-    });
-    const state = store.get_state(project_id);
-    if (state == "running") {
-      await this.stop_project(project_id);
-    }
-    await this.start_project(project_id, options);
-  };
+  restart_project = reuseInFlight(
+    async (project_id: string, options?): Promise<void> => {
+      if (!(await allow_project_to_run(project_id))) {
+        return;
+      }
+      this.project_log(project_id, {
+        event: "project_restart_requested",
+      });
+      const state = store.get_state(project_id);
+      if (state == "running") {
+        await this.stop_project(project_id);
+      }
+      await this.start_project(project_id, options);
+    },
+  );
 
   // Explcitly set whether or not project is hidden for the given account
   // (hide=true means hidden)

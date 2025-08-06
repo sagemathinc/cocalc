@@ -167,7 +167,10 @@ async function logLaunchParams(params): Promise<void> {
 
 const NSJAIL = true;
 
-export async function launchProjectDaemon(env, uid?: number): Promise<void> {
+export async function launchProjectDaemon(
+  env,
+  uid?: number,
+): Promise<ReturnType<typeof spawn>> {
   logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   let cmd = "pnpm";
@@ -178,9 +181,9 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
 
   if (NSJAIL) {
     /* nsjail -q -E HOME='/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/data/projects/f0ae87b8-88e2-428e-bdcc-65ed1d24138c' --hostname=project-f0ae87b8-88e2-428e-bdcc-65ed1d24138c -B /dev -R /var --disable_clone_newnet --keep_env --cwd=/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/packages/project -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/ -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid --disable_rlimits -B /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/data/projects/f0ae87b8-88e2-428e-bdcc-65ed1d24138c -- /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/.local/share/pnpm/pnpm cocalc-project
-    
-    
-    nsjail -q --hostname=project-f0ae87b8-88e2-428e-bdcc-65ed1d24138c -B /dev -R /var --disable_clone_newnet --keep_env --cwd=/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/packages/project -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/ -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid --disable_rlimits -B /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/data/projects/f0ae87b8-88e2-428e-bdcc-65ed1d24138c -- /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/.local/share/pnpm/pnpm cocalc-project 
+
+
+    nsjail -q --hostname=project-f0ae87b8-88e2-428e-bdcc-65ed1d24138c -B /dev -R /var --disable_clone_newnet --keep_env --cwd=/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/packages/project -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/ -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid --disable_rlimits -B /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/data/projects/f0ae87b8-88e2-428e-bdcc-65ed1d24138c -- /projects/3fa218e5-7196-4020-8b30-e2127847cc4f/.local/share/pnpm/pnpm cocalc-project
     */
 
     // just a proof of concept to see what it is like!
@@ -199,17 +202,17 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   console.log({ env, cwd });
   console.log(`${cmd} ${args.join(" ")}`);
   logLaunchParams({ cwd, env, cmd, args, uid });
+  const child = spawn(cmd, args, {
+    env,
+    cwd,
+    uid,
+    gid: uid,
+  });
+  if (NSJAIL) {
+    return child;
+  }
+
   await promisify((cb: Function) => {
-    const child = spawn(cmd, args, {
-      env,
-      cwd,
-      uid,
-      gid: uid,
-    });
-    if (NSJAIL) {
-      cb();
-      return;
-    }
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (data) => {
@@ -246,6 +249,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       cb(code);
     });
   })();
+  return child;
 }
 
 async function exec(

@@ -45,6 +45,7 @@ import {
   deleteRememberMe,
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
+import { projectRunnerClient } from "@cocalc/conat/project/runner/run";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -480,6 +481,13 @@ export class ConatClient extends EventEmitter {
   };
 
   refCacheInfo = () => refCacheInfo();
+
+  projectRunner = (project_id: string) => {
+    return projectRunnerClient({
+      subject: `project.${project_id}.run`,
+      client: this.conat(),
+    });
+  };
 }
 
 async function waitForOnline(): Promise<void> {
