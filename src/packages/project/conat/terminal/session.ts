@@ -86,7 +86,7 @@ export class Session {
   }) {
     logger.debug("create session ", { termPath, options });
     this.termPath = termPath;
-    this.njsail = nsjail;
+    this.nsjail = nsjail;
     this.browserApi = createBrowserClient({ project_id, termPath });
     this.options = options;
     this.streamName = `terminal-${termPath}`;
@@ -221,7 +221,7 @@ export class Session {
     if (this.nsjail) {
       args = [
         ...split(
-          `-q -B /dev -B /var --disable_clone_newnet -E TERM=screen -E HOME=/home/user --cwd=/home/user -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /lib64 -R /lib -R /dev/urandom -R /usr -B ${env.HOME}:/home/user --keep_caps --skip_setsid`,
+          `-q -B /dev -B /var --disable_clone_newnet -E TERM=screen -E HOME=/home/user --cwd=/home/user -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /lib64 -R /lib -R /dev/urandom -R /usr -B ${process.env.HOME}:/home/user --keep_caps --skip_setsid`,
         ),
         "--",
         command,
