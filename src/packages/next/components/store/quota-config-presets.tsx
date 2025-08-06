@@ -7,6 +7,7 @@ import { ReactNode } from "react";
 
 import { IconName } from "@cocalc/frontend/components/icon";
 import { Uptime } from "@cocalc/util/consts/site-license";
+import { MAX_DISK_GB } from "@cocalc/util/upgrades/consts";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { STANDARD_DISK } from "@cocalc/util/consts/billing";
@@ -150,7 +151,7 @@ export const SITE_LICENSE: PresetEntries = {
     ),
     cpu: 1,
     ram: 2 * STANDARD_RAM,
-    disk: Math.max(15, 4 * STANDARD_DISK),
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
     uptime: "medium",
     member: true,
   },
@@ -193,7 +194,7 @@ export const SITE_LICENSE: PresetEntries = {
     ),
     cpu: 2,
     ram: 2 * STANDARD_RAM,
-    disk: Math.max(15, 4 * STANDARD_DISK),
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
     uptime: "day",
     member: true,
   },
@@ -247,7 +248,7 @@ export const COURSE = {
     ),
     cpu: 1,
     ram: 8,
-    disk: 2 * STANDARD_DISK,
+    disk: Math.min(2 * STANDARD_DISK, MAX_DISK_GB),
     uptime: "medium",
     member: true,
   },

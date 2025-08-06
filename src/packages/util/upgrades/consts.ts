@@ -17,6 +17,7 @@ export const DEFAULT_CPU = 1;
 export const MAX_CPU = upgrades.max_per_project.cores;
 
 // DISK
+// TODO (Aug 2025): increase this once the new file server is released
 export const MAX_DISK_GB = 15;
 // Aug 2025: in anticipation of the new file server, the minimum and standard is increased
 export const DISK_DEFAULT_GB = STANDARD_DISK;
