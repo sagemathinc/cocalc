@@ -6,12 +6,20 @@ pnpm test `pwd`/run-code.test.ts
 
 */
 
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  connect,
+  delay,
+} from "@cocalc/backend/conat/test/setup";
 import {
   server as projectRunnerServer,
   client as projectRunnerClient,
-  getRunners,
 } from "@cocalc/conat/project/runner/run";
+import {
+  server as lbServer,
+  client as lbClient,
+} from "@cocalc/conat/project/runner/load-balancer";
 import { uuid } from "@cocalc/util/misc";
 
 beforeAll(before);
@@ -34,8 +42,11 @@ describe("create basic mocked project runner service and test", () => {
       stop: async ({ project_id }) => {
         running.delete(project_id);
       },
-      status: async ({ project_id }) =>
-        running.has(project_id) ? { state: "running" } : { state: "stopped" },
+      status: async ({ project_id }) => {
+        return running.has(project_id)
+          ? { state: "running" }
+          : { state: "stopped" };
+      },
     });
   });
 
@@ -58,9 +69,34 @@ describe("create basic mocked project runner service and test", () => {
     });
   });
 
-  it("get the status of the server", async () => {
-    const v = await getRunners({ client: client2, maxWait: 500 });
-    expect(v).toEqual([{ id: "0" }]);
+  it("make a load balancer", async () => {
+    await lbServer({ client: client1, maxWait: 250 });
+    await delay(300);
+  });
+
+  it("make a client for the load balancer, and test the runner via the load balancer", async () => {
+    const project_id = uuid();
+    const lbc = lbClient({
+      subject: `project.${project_id}.run`,
+      client: client2,
+    });
+    await lbc.start();
+    expect(await lbc.status()).toEqual({
+      state: "running",
+    });
+
+    const lbc2 = lbClient({
+      subject: `project.${uuid()}.run`,
+      client: client2,
+    });
+    expect(await lbc2.status()).toEqual({
+      state: "stopped",
+    });
+
+    await lbc.stop();
+    expect(await lbc.status()).toEqual({
+      state: "stopped",
+    });
   });
 });
 

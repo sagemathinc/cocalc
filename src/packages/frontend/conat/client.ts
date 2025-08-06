@@ -45,7 +45,7 @@ import {
   deleteRememberMe,
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
-import { projectRunnerClient } from "@cocalc/conat/project/runner/run";
+import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
