@@ -1,6 +1,6 @@
 import { spawn } from "@lydell/node-pty";
 import { envForSpawn } from "@cocalc/backend/misc";
-import { path_split } from "@cocalc/util/misc";
+import { path_split, split } from "@cocalc/util/misc";
 import { console_init_filename, len } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getLogger } from "@cocalc/project/logger";
@@ -12,7 +12,7 @@ import {
 } from "@cocalc/conat/service/terminal";
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { throttle } from "lodash";
-import { ThrottleString  } from "@cocalc/util/throttle";
+import { ThrottleString } from "@cocalc/util/throttle";
 import { join } from "path";
 import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 import { delay } from "awaiting";
@@ -35,7 +35,7 @@ const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${SOFT_RESET}; history -d $(hist
 
 const PROJECT_INIT = `${SOFT_RESET}; history -d $(history 1);\n`;
 
-const DEFAULT_COMMAND = "/bin/bash";
+const DEFAULT_COMMAND = "/usr/bin/bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
@@ -73,10 +73,20 @@ export class Session {
     [browser_id: string]: { rows: number; cols: number; time: number };
   } = {};
   public pid: number;
+  private nsjail?: boolean;
 
-  constructor({ termPath, options }) {
+  constructor({
+    termPath,
+    options,
+    nsjail = false,
+  }: {
+    termPath: string;
+    options: CreateTerminalOptions;
+    nsjail?: boolean;
+  }) {
     logger.debug("create session ", { termPath, options });
     this.termPath = termPath;
+    this.njsail = nsjail;
     this.browserApi = createBrowserClient({ project_id, termPath });
     this.options = options;
     this.streamName = `terminal-${termPath}`;
@@ -196,8 +206,8 @@ export class Session {
       COCALC_TERMINAL_FILENAME: tail,
       TMUX: undefined, // ensure not set
     };
-    const command = this.options.command ?? DEFAULT_COMMAND;
-    const args = this.options.args ?? [];
+    let command = this.options.command ?? DEFAULT_COMMAND;
+    let args = this.options.args ?? [];
     const initFilename: string = console_init_filename(this.termPath);
     if (await exists(initFilename)) {
       args.push("--init-file");
@@ -208,6 +218,17 @@ export class Session {
     }
     const cwd = getCWD(head, this.options.cwd);
     logger.debug("creating pty");
+    if (this.nsjail) {
+      args = [
+        ...split(
+          `-q -B /dev -B /var --disable_clone_newnet -E TERM=screen -E HOME=/home/user --cwd=/home/user -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin -R /lib64 -R /lib -R /dev/urandom -R /usr -B ${env.HOME}:/home/user --keep_caps --skip_setsid`,
+        ),
+        "--",
+        command,
+        ...args,
+      ];
+      command = "nsjail";
+    }
     this.pty = spawn(command, args, {
       cwd,
       env,
