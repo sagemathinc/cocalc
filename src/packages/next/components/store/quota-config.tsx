@@ -22,7 +22,13 @@ import { HelpIcon } from "@cocalc/frontend/components/help-icon";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
 import { plural, unreachable } from "@cocalc/util/misc";
-import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
+import {
+  BOOST,
+  DISK_DEFAULT_GB,
+  MAX_DISK_GB,
+  MIN_DISK_GB,
+  REGULAR,
+} from "@cocalc/util/upgrades/consts";
 import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 
 import PricingItem, { Line } from "components/landing/pricing-item";
@@ -281,8 +287,29 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function generateDiskPresets(min: number, max: number): number[] {
+    if (min >= max) return [min];
+
+    const range = max - min;
+    const presets = [min]; // Always include minimum
+
+    //  Create 3-4 evenly spaced values
+    const step = Math.ceil(range / 4);
+    let current = min + step;
+    while (current < max) {
+      presets.push(current);
+      current += step;
+    }
+
+    presets.push(max); // Always include maximum
+    return [...new Set(presets)].sort((a, b) => a - b); // Remove duplicates and sort
+  }
+
   function disk() {
-    // 2022-06: price increase "version 2": minimum disk we sell (also the free quota) is 3gb, not 1gb
+    // Generate dynamic presets based on MIN_DISK_GB and MAX_DISK_GB
+    const presets = boost
+      ? [0, ...generateDiskPresets(MIN_DISK_GB, PARAMS.disk.max).slice(0, 3)] // For boost, include 0 and limit to 3 additional values
+      : generateDiskPresets(MIN_DISK_GB, MAX_DISK_GB);
     return (
       <Form.Item
         label="Disk space"
@@ -314,9 +341,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             onChange();
           }}
           units={"G Disk"}
-          presets={
-            boost ? [0, 3, 6, PARAMS.disk.max] : [3, 5, 10, PARAMS.disk.max]
-          }
+          presets={presets}
         />
       </Form.Item>
     );
