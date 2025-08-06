@@ -19,5 +19,7 @@ export const BANNER_NON_DISMISSIBLE_DAYS = 7;
 
 // The "standard license" disk size.
 // used in next/store and student-pay
-// TODO: once the new file storage is in place, incease it to 10
-export const STANDARD_DISK = 3;
+// Aug 2025: changed from 3 to 10 GB in anticipation of the new file server
+// However, the actual presets are capped at the maximum disk size.
+// That disk max is in util/upgrades/consts.ts
+export const STANDARD_DISK = 10;
