@@ -11,7 +11,6 @@ pnpm test `pwd`/load-balancer-2.test.ts
 import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 import {
   server as projectRunnerServer,
-  client as projectRunnerClient,
 } from "@cocalc/conat/project/runner/run";
 import {
   server as lbServer,
@@ -28,7 +27,7 @@ describe("create runner and load balancer with getConfig function", () => {
     client2 = connect();
   });
 
-  const running: { [project_id: string]: config } = {};
+  const running: { [project_id: string]: any } = {};
   const projectState: { [project_id: string]: any } = {};
 
   it("create project runner server and load balancer with getConfig and setState functions", async () => {
@@ -49,10 +48,10 @@ describe("create runner and load balancer with getConfig function", () => {
     });
     await lbServer({
       client: client1,
-      getConfig: ({ project_id }) => {
+      getConfig: async ({ project_id }) => {
         return { name: project_id };
       },
-      setState: ({ project_id, state }) => {
+      setState: async ({ project_id, state }) => {
         projectState[project_id] = state;
       },
     });
