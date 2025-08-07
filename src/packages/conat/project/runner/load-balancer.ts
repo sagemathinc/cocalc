@@ -83,14 +83,20 @@ export async function server({ subject = "project.*.run", client }: Options) {
   const sub = await client.service<API>(subject, {
     async start() {
       const project_id = getProjectId(this);
+      const cur = projects.get(project_id);
+      if (cur?.state == "starting" || cur?.state == "running") {
+        return;
+      }
       const runClient = await getClient(project_id);
       await runClient.start({ project_id });
     },
+
     async stop() {
       const project_id = getProjectId(this);
       const runClient = await getClient(project_id);
       await runClient.stop({ project_id });
     },
+
     async status() {
       const project_id = getProjectId(this);
       const runClient = await getClient(project_id);
