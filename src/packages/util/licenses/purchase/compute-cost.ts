@@ -134,7 +134,9 @@ export function compute_cost(info: PurchaseInfo): Cost {
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
 
-  cost_per_project_per_month = round2up(cost_per_project_per_month);
+  // If the numbers were picked to give clean prices, it is possible to get
+  // things like 12.50000001 and we do NOT want to round it up to 12.51.
+  cost_per_project_per_month = round2up(cost_per_project_per_month - 0.00001);
 
   // It's convenient in all cases to have the actual amount we will be charging
   // for both monthly and yearly available.

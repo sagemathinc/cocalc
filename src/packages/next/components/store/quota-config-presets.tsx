@@ -3,11 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { ReactNode } from "react";
+
 import { IconName } from "@cocalc/frontend/components/icon";
 import { Uptime } from "@cocalc/util/consts/site-license";
+import { MAX_DISK_GB } from "@cocalc/util/upgrades/consts";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
-import { ReactNode } from "react";
+import { STANDARD_DISK } from "@cocalc/util/consts/billing";
 
 export type Preset = "standard" | "instructor" | "research";
 
@@ -19,7 +22,7 @@ export const PRESET_MATCH_FIELDS: Record<string, string> = {
   ram: "memory",
   uptime: "idle timeout",
   member: "member hosting",
-};
+} as const;
 
 export interface PresetConfig {
   icon: IconName;
@@ -42,7 +45,6 @@ type PresetEntries = {
 // some constants to keep text and preset in sync
 const STANDARD_CPU = 1;
 const STANDARD_RAM = 4;
-const STANDARD_DISK = 3;
 
 const PRESET_STANDARD_NAME = "Standard";
 
@@ -149,7 +151,7 @@ export const SITE_LICENSE: PresetEntries = {
     ),
     cpu: 1,
     ram: 2 * STANDARD_RAM,
-    disk: 15,
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
     uptime: "medium",
     member: true,
   },
@@ -191,8 +193,8 @@ export const SITE_LICENSE: PresetEntries = {
       </>
     ),
     cpu: 2,
-    ram: 10,
-    disk: 10,
+    ram: 2 * STANDARD_RAM,
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
     uptime: "day",
     member: true,
   },
@@ -246,7 +248,7 @@ export const COURSE = {
     ),
     cpu: 1,
     ram: 8,
-    disk: 2 * STANDARD_DISK,
+    disk: Math.min(2 * STANDARD_DISK, MAX_DISK_GB),
     uptime: "medium",
     member: true,
   },
