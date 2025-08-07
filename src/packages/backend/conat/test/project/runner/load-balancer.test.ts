@@ -6,12 +6,7 @@ pnpm test `pwd`/run-code.test.ts
 
 */
 
-import {
-  before,
-  after,
-  connect,
-  delay,
-} from "@cocalc/backend/conat/test/setup";
+import { before, after, connect } from "@cocalc/backend/conat/test/setup";
 import {
   server as projectRunnerServer,
   client as projectRunnerClient,
@@ -45,7 +40,7 @@ describe("create basic mocked project runner service and test", () => {
       status: async ({ project_id }) => {
         return running.has(project_id)
           ? { state: "running" }
-          : { state: "stopped" };
+          : { state: "opened" };
       },
     });
   });
@@ -58,20 +53,22 @@ describe("create basic mocked project runner service and test", () => {
     });
     await runClient.start({ project_id });
     expect(await runClient.status({ project_id })).toEqual({
+      server: "0",
       state: "running",
     });
     expect(await runClient.status({ project_id: uuid() })).toEqual({
-      state: "stopped",
+      server: "0",
+      state: "opened",
     });
     await runClient.stop({ project_id });
     expect(await runClient.status({ project_id })).toEqual({
-      state: "stopped",
+      server: "0",
+      state: "opened",
     });
   });
 
   it("make a load balancer", async () => {
-    await lbServer({ client: client1, maxWait: 250 });
-    await delay(300);
+    await lbServer({ client: client1 });
   });
 
   it("make a client for the load balancer, and test the runner via the load balancer", async () => {
@@ -82,6 +79,7 @@ describe("create basic mocked project runner service and test", () => {
     });
     await lbc.start();
     expect(await lbc.status()).toEqual({
+      server: "0",
       state: "running",
     });
 
@@ -90,12 +88,14 @@ describe("create basic mocked project runner service and test", () => {
       client: client2,
     });
     expect(await lbc2.status()).toEqual({
-      state: "stopped",
+      server: "0",
+      state: "opened",
     });
 
     await lbc.stop();
     expect(await lbc.status()).toEqual({
-      state: "stopped",
+      server: "0",
+      state: "opened",
     });
   });
 });

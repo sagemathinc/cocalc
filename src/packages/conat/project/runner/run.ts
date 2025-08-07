@@ -10,10 +10,10 @@ Tests are in
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
 import { randomId } from "@cocalc/conat/names";
+import state, { type ProjectStatus } from "./state";
+import { until } from "@cocalc/util/async-utils";
 
-export interface ProjectStatus {
-  state: "running" | "stopped";
-}
+export const UPDATE_INTERVAL = 15_000;
 
 export interface Options {
   id?: string;
@@ -24,13 +24,9 @@ export interface Options {
 }
 
 export interface API {
-  start: (opts: { project_id: string }) => Promise<void>;
-  stop: (opts: { project_id: string }) => Promise<void>;
+  start: (opts: { project_id: string }) => Promise<ProjectStatus>;
+  stop: (opts: { project_id: string }) => Promise<ProjectStatus>;
   status: (opts: { project_id: string }) => Promise<ProjectStatus>;
-}
-
-export interface RunnerStatus {
-  id: string;
 }
 
 export async function server({
@@ -41,55 +37,48 @@ export async function server({
   status,
 }: Options) {
   client ??= conat();
+  const { projects, runners } = await state({ client });
+  let running = true;
+
+  until(
+    () => {
+      if (!running) {
+        return true;
+      }
+      runners.set(id, { time: Date.now() });
+      return false;
+    },
+    { min: UPDATE_INTERVAL, max: UPDATE_INTERVAL },
+  );
+
   const sub = await client.service<API>(`project-runner.${id}`, {
     async start(opts: { project_id: string }) {
+      projects.set(opts.project_id, { server: id, state: "starting" } as const);
       await start(opts);
+      const s = { server: id, state: "running" } as const;
+      projects.set(opts.project_id, s);
+      return s;
     },
     async stop(opts: { project_id: string }) {
+      projects.set(opts.project_id, { server: id, state: "stopping" } as const);
       await stop(opts);
+      const s = { server: id, state: "opened" } as const;
+      projects.set(opts.project_id, s);
+      return s;
     },
     async status(opts: { project_id: string }) {
-      return await status(opts);
-    },
-  });
-
-  const sub2 = await client.service<StatusApi>(`project-runner`, {
-    async status() {
-      return { id };
+      const s = { ...(await status(opts)), server: id };
+      projects.set(opts.project_id, s);
+      return s;
     },
   });
 
   return {
     close: () => {
+      running = false;
       sub.close();
-      sub2.close();
     },
   };
-}
-
-export interface StatusApi {
-  status: () => Promise<RunnerStatus>;
-}
-
-export interface StatusApiMany {
-  status(): AsyncGenerator<RunnerStatus>;
-}
-
-export async function getRunners({
-  client,
-  maxWait,
-}: {
-  client?: Client;
-  maxWait?: number;
-}): Promise<RunnerStatus[]> {
-  client ??= conat();
-
-  const f = client.callMany<StatusApiMany>("project-runner", { maxWait });
-  const v: RunnerStatus[] = [];
-  for await (const x of await f.status()) {
-    v.push(x);
-  }
-  return v;
 }
 
 export function client({

@@ -5,7 +5,11 @@ import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
 export { initConatPersist } from "./persist";
-import { conatApiCount, projects } from "@cocalc/backend/data";
+import {
+  conatApiCount,
+  projects,
+  conatProjectRunnerCount,
+} from "@cocalc/backend/data";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initProjectRunner } from "./project/run";
 import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
@@ -31,7 +35,9 @@ export async function initConatApi() {
     initAPI();
   }
   initLLM();
-  initProjectRunner();
+  for (let i = 0; i < conatProjectRunnerCount; i++) {
+    initProjectRunner();
+  }
   initProjectRunnerLoadBalancer();
   createTimeService();
 }

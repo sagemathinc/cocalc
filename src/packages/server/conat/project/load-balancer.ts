@@ -13,7 +13,7 @@ let server;
 export async function init() {
   logger.debug("init");
   await loadConatConfiguration();
-  server = await loadBalancer({ client: conat(), maxWait: 3000 /* for now */ });
+  server = await loadBalancer({ client: conat() });
   logger.debug("running");
 }
 

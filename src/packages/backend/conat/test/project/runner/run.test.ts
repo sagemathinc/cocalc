@@ -6,13 +6,13 @@ pnpm test `pwd`/run-code.test.ts
 
 */
 
-import { before, after, connect } from "@cocalc/backend/conat/test/setup";
+import { before, after, connect, wait } from "@cocalc/backend/conat/test/setup";
 import {
   server as projectRunnerServer,
   client as projectRunnerClient,
-  getRunners,
 } from "@cocalc/conat/project/runner/run";
 import { uuid } from "@cocalc/util/misc";
+import state from "@cocalc/conat/project/runner/state";
 
 beforeAll(before);
 
@@ -35,12 +35,13 @@ describe("create basic mocked project runner service and test", () => {
         running.delete(project_id);
       },
       status: async ({ project_id }) =>
-        running.has(project_id) ? { state: "running" } : { state: "stopped" },
+        running.has(project_id) ? { state: "running" } : { state: "opened" },
     });
   });
 
+  let project_id;
   it("make a client and test the server", async () => {
-    const project_id = uuid();
+    project_id = uuid();
     const runClient = projectRunnerClient({
       subject: "project-runner.0",
       client: client2,
@@ -48,19 +49,55 @@ describe("create basic mocked project runner service and test", () => {
     await runClient.start({ project_id });
     expect(await runClient.status({ project_id })).toEqual({
       state: "running",
+      server: "0",
     });
     expect(await runClient.status({ project_id: uuid() })).toEqual({
-      state: "stopped",
+      state: "opened",
+      server: "0",
     });
     await runClient.stop({ project_id });
     expect(await runClient.status({ project_id })).toEqual({
-      state: "stopped",
+      state: "opened",
+      server: "0",
     });
   });
 
-  it("get the status of the server", async () => {
-    const v = await getRunners({ client: client2, maxWait: 500 });
-    expect(v).toEqual([{ id: "0" }]);
+  it("get the status of the runner", async () => {
+    const { projects, runners } = await state({ client: client2 });
+    expect(runners.getAll()).toEqual({ "0": { time: runners.get("0")?.time } });
+    await wait({ until: () => projects.get(project_id)?.state == "opened" });
+    expect(projects.get(project_id)).toEqual({ state: "opened", server: "0" });
+  });
+
+  it("add another runner and observe it appears", async () => {
+    const running = new Set<string>();
+    await projectRunnerServer({
+      id: "1",
+      client: client1,
+      start: async ({ project_id }) => {
+        running.add(project_id);
+      },
+      stop: async ({ project_id }) => {
+        running.delete(project_id);
+      },
+      status: async ({ project_id }) =>
+        running.has(project_id) ? { state: "running" } : { state: "opened" },
+    });
+
+    const { runners } = await state({ client: client2 });
+    await wait({
+      until: () => runners.get("1") != null,
+    });
+  });
+
+  it("run a projects on server 1", async () => {
+    const runClient = projectRunnerClient({
+      subject: "project-runner.1",
+      client: client2,
+    });
+    const project_id = uuid();
+    const x = await runClient.start({ project_id });
+    expect(x.server).toEqual("1");
   });
 });
 

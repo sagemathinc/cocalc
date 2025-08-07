@@ -1739,7 +1739,7 @@ function socketSubjectRoom({ socket, subject }) {
   return JSON.stringify({ id: socket.id, subject });
 }
 
-export function randomChoice(v: Set<string>): string {
+export function randomChoice<T>(v: Set<T>): T {
   if (v.size == 0) {
     throw Error("v must have size at least 1");
   }

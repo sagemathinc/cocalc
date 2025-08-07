@@ -254,6 +254,9 @@ export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
 
 // number of api servers (if configured to run)
 export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
+export let conatProjectRunnerCount = parseInt(
+  process.env.CONAT_PROJECT_RUNNER_COUNT ?? "1",
+);
 
 // if configured, will create a socketio cluster using
 // the cluster adapter, listening on the given port.
