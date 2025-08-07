@@ -36,6 +36,7 @@ interface Spec {
   skip?: string[];
   script?: string;
   platforms?: string[];
+  fix?: string;
 }
 
 const NSJAIL_VERSION = "3.4";
@@ -86,7 +87,8 @@ const SPEC = {
     VERSION: NSJAIL_VERSION,
     BASE: "https://github.com/google/nsjail/releases",
     path: join(binPath, "nsjail"),
-    script: `cd /tmp && rm -rf /tmp/nsjail && sudo apt-get update && sudo apt-get install -y autoconf bison flex gcc g++ git libprotobuf-dev libnl-route-3-dev libtool make pkg-config protobuf-compiler libseccomp-dev && git clone --branch ${NSJAIL_VERSION} --depth 1 --single-branch https://github.com/google/nsjail.git  && cd nsjail && make -j8 && strip nsjail && cp nsjail ${join(binPath, "nsjail")} && rm -rf /tmp/nsjail`,
+    fix: "sudo apt-get update && sudo apt-get install -y autoconf bison flex gcc g++ git libprotobuf-dev libnl-route-3-dev libtool make pkg-config protobuf-compiler libseccomp-dev",
+    script: `cd /tmp && rm -rf /tmp/nsjail && git clone --branch ${NSJAIL_VERSION} --depth 1 --single-branch https://github.com/google/nsjail.git  && cd nsjail && make -j8 && strip nsjail && cp nsjail ${join(binPath, "nsjail")} && rm -rf /tmp/nsjail`,
   },
 };
 
@@ -134,7 +136,14 @@ export async function install(app?: App) {
 
   const { script } = spec;
   if (script) {
-    execSync(script);
+    try {
+      execSync(script);
+    } catch (err) {
+      if (spec.fix) {
+        console.warn(`BUILD OF ${app} FAILED: Suggested fix -- ${spec.fix}`);
+      }
+      throw err;
+    }
     if (!(await alreadyInstalled(app))) {
       throw Error(`failed to install ${app}`);
     }
