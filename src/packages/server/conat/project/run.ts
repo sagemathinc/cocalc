@@ -184,6 +184,14 @@ async function start({
     gid: uid,
   });
   children[project_id] = child;
+
+  child.stdout.on("data", (chunk: Buffer) => {
+    logger.debug(`project_id=${project_id}.stdout: `, chunk.toString());
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
+  });
+
   touch(project_id);
   setProjectState({ project_id, state: "running" });
 }
@@ -231,6 +239,11 @@ export async function init(count: number = 1) {
 }
 
 export function close() {
+  for (const project_id in children) {
+    logger.debug(`killing project_id=${project_id}`);
+    children[project_id]?.kill("SIGKILL");
+    delete children[project_id];
+  }
   for (const server of servers) {
     server.close();
   }
