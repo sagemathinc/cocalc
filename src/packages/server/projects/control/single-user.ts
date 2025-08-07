@@ -27,7 +27,6 @@ Type ".help" for more information.
 > await p.start()
 */
 
-import { kill } from "node:process";
 import getLogger from "@cocalc/backend/logger";
 import {
   BaseProject,
@@ -36,29 +35,9 @@ import {
   ProjectStatus,
   getProject,
 } from "./base";
-import {
-  copyPath,
-  ensureConfFilesExists,
-  getEnvironment,
-  getProjectPID,
-  getState,
-  getStatus,
-  homePath,
-  isProjectRunning,
-  launchProjectDaemon,
-  mkdir,
-  setupDataPath,
-  writeSecretToken,
-} from "./util";
-import {
-  getProjectSecretToken,
-  deleteProjectSecretToken,
-} from "./secret-token";
+import { copyPath, getState, getStatus, homePath } from "./util";
 
 const logger = getLogger("project-control:single-user");
-
-// Usually should fully start in about 5 seconds, but we give it 20s.
-const MAX_STOP_TIME_MS = 10000;
 
 class Project extends BaseProject {
   private HOME: string;
@@ -85,122 +64,6 @@ class Project extends BaseProject {
     );
     await this.saveStatusToDatabase(status);
     return status;
-  }
-
-  async start(flag?) {
-    if (!flag) {
-      return;
-    }
-    logger.debug("start", this.project_id);
-
-    // Home directory
-    const HOME = this.HOME;
-
-    await mkdir(HOME, { recursive: true });
-    await ensureConfFilesExists(HOME);
-
-    // this.get('env') = extra env vars for project (from synctable):
-    const env = await getEnvironment(this.project_id);
-    logger.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
-
-    // Setup files
-    await setupDataPath(HOME);
-    await writeSecretToken(HOME, await getProjectSecretToken(this.project_id));
-    this.touch(undefined, { noStart: true });
-
-    // Fork and launch project server
-    return await launchProjectDaemon(env);
-
-    /*
-
-
-    if (await isProjectRunning(HOME)) {
-      logger.debug("start -- already running");
-      await this.saveStateToDatabase({ state: "running" });
-      return;
-    }
-
-    try {
-      this.stateChanging = { state: "starting" };
-      await this.saveStateToDatabase(this.stateChanging);
-      await this.computeQuota();
-      await mkdir(HOME, { recursive: true });
-      await ensureConfFilesExists(HOME);
-
-      // this.get('env') = extra env vars for project (from synctable):
-      const env = await getEnvironment(this.project_id);
-      logger.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
-
-      // Setup files
-      await setupDataPath(HOME);
-
-      await writeSecretToken(
-        HOME,
-        await getProjectSecretToken(this.project_id),
-      );
-
-      // Fork and launch project server
-      await launchProjectDaemon(env);
-      await this.touch(undefined, { noStart: true });
-
-      await this.wait({
-        until: async () => {
-          if (!(await isProjectRunning(this.HOME))) {
-            return false;
-          }
-          const status = await this.status();
-          return !!status["hub-server.port"];
-        },
-        maxTime: MAX_START_TIME_MS,
-      });
-    } finally {
-      this.stateChanging = undefined;
-      // ensure state valid in database
-      await this.state();
-    }
-    */
-  }
-
-  async stop(): Promise<void> {
-    if (this.stateChanging != null) return;
-    logger.debug("stop: ", this.project_id);
-    if (!(await isProjectRunning(this.HOME))) {
-      logger.debug("stop: project not running so nothing to kill");
-      await this.saveStateToDatabase({ state: "opened" });
-      return;
-    }
-    try {
-      this.stateChanging = { state: "stopping" };
-      await this.saveStateToDatabase(this.stateChanging);
-      const pid = await getProjectPID(this.HOME);
-      const killProject = () => {
-        try {
-          logger.debug(`stop: sending kill -${pid}`);
-          kill(-pid, "SIGKILL");
-        } catch (err) {
-          // expected exception if no pid
-          logger.debug(`stop: kill err ${err}`);
-        }
-      };
-      killProject();
-      await this.wait({
-        until: async () => {
-          if (await isProjectRunning(this.HOME)) {
-            killProject();
-            return false;
-          } else {
-            return true;
-          }
-        },
-        maxTime: MAX_STOP_TIME_MS,
-      });
-      await deleteProjectSecretToken(this.project_id);
-      logger.debug("stop: project is not running");
-    } finally {
-      this.stateChanging = undefined;
-      // ensure state valid.
-      await this.state();
-    }
   }
 
   async copyPath(opts: CopyOptions): Promise<string> {

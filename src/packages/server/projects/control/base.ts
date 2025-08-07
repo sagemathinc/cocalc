@@ -39,6 +39,8 @@ import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quota
 import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
 import { query } from "@cocalc/database/postgres/query";
 import { getProjectSecretToken } from "./secret-token";
+import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
+import { conat } from "@cocalc/backend/conat";
 
 export type { CopyOptions };
 export type { ProjectState, ProjectStatus };
@@ -131,6 +133,13 @@ export abstract class BaseProject extends EventEmitter {
     };
   }
 
+  private projectRunner = () => {
+    return projectRunnerClient({
+      subject: `project.${this.project_id}.run`,
+      client: conat(),
+    });
+  };
+
   // Get the state of the project -- state is just whether or not
   // it is runnig, stopping, starting.  It's not much info.
   abstract state(): Promise<ProjectState>;
@@ -139,9 +148,15 @@ export abstract class BaseProject extends EventEmitter {
   // about the project, including ports of various services.
   abstract status(): Promise<ProjectStatus>;
 
-  abstract start(): Promise<any>;
+  start = async (): Promise<void> => {
+    const runner = this.projectRunner();
+    await runner.start({ project_id: this.project_id });
+  };
 
-  abstract stop(): Promise<void>;
+  stop = async (): Promise<void> => {
+    const runner = this.projectRunner();
+    await runner.stop({ project_id: this.project_id });
+  };
 
   async restart(): Promise<void> {
     this.dbg("restart")();
