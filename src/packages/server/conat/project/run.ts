@@ -64,6 +64,13 @@ export async function setProjectState({ project_id, state }) {
   } catch {}
 }
 
+async function touch(project_id) {
+  try {
+    const p = await getProject(project_id);
+    await p.touch(undefined, { noStart: true });
+  } catch {}
+}
+
 const mounts = {
   "-R": [
     "/etc",
@@ -106,13 +113,13 @@ async function start({
     logger.debug("start -- already running");
     return;
   }
-  const HOME = homePath(project_id);
-  await mkdir(HOME, { recursive: true });
-  await ensureConfFilesExists(HOME);
+  const home = homePath(project_id);
+  await mkdir(home, { recursive: true });
+  await ensureConfFilesExists(home);
   const env = await getEnvironment(project_id);
   const cwd = join(root, "packages/project");
-  await setupDataPath(HOME);
-  await writeSecretToken(HOME, await getProjectSecretToken(project_id));
+  await setupDataPath(home);
+  await writeSecretToken(home, await getProjectSecretToken(project_id));
 
   const args = [
     "-q",
@@ -138,7 +145,7 @@ async function start({
       args.push(type, path);
     }
   }
-  args.push("-B", HOME);
+  args.push("-B", `${home}:${env.HOME}`);
 
   args.push(
     "--",
@@ -156,6 +163,7 @@ async function start({
     gid: uid,
   });
   children[project_id] = child;
+  touch(project_id);
   setProjectState({ project_id, state: "running" });
 }
 

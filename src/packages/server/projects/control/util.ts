@@ -185,7 +185,6 @@ export async function launchProjectDaemon(
     gid: uid,
   });
 
-
   await promisify((cb: Function) => {
     let stdout = "";
     let stderr = "";
@@ -339,7 +338,7 @@ export async function getEnvironment(
   );
 
   const USER = getUsername(project_id);
-  const HOME = homePath(project_id);
+  const HOME = "/home/user";
   const DATA = dataPath(HOME);
 
   return {
