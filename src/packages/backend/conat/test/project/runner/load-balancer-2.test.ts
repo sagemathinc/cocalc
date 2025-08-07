@@ -2,7 +2,9 @@
 
 DEVELOPMENT:
 
-pnpm test `pwd`/load-balancer.test.ts
+
+pnpm test `pwd`/load-balancer-2.test.ts
+
 
 */
 
@@ -19,56 +21,41 @@ import { uuid } from "@cocalc/util/misc";
 
 beforeAll(before);
 
-describe("create basic mocked project runner service and test", () => {
+describe("create runner and load balancer with getConfig function", () => {
   let client1, client2;
   it("create two clients", () => {
     client1 = connect();
     client2 = connect();
   });
 
-  it("create project runner server", async () => {
-    const running = new Set<string>();
+  const running: { [project_id: string]: config } = {};
+  const projectState: { [project_id: string]: any } = {};
+
+  it("create project runner server and load balancer with getConfig and setState functions", async () => {
     await projectRunnerServer({
       id: "0",
       client: client1,
-      start: async ({ project_id }) => {
-        running.add(project_id);
+      start: async ({ project_id, config }) => {
+        running[project_id] = { ...config };
       },
       stop: async ({ project_id }) => {
-        running.delete(project_id);
+        delete running[project_id];
       },
       status: async ({ project_id }) => {
-        return running.has(project_id)
+        return running[project_id] != null
           ? { state: "running" }
           : { state: "opened" };
       },
     });
-  });
-
-  it("make a client and test the server", async () => {
-    const project_id = uuid();
-    const runClient = projectRunnerClient({
-      subject: "project-runner.0",
-      client: client2,
+    await lbServer({
+      client: client1,
+      getConfig: ({ project_id }) => {
+        return { name: project_id };
+      },
+      setState: ({ project_id, state }) => {
+        projectState[project_id] = state;
+      },
     });
-    await runClient.start({ project_id });
-    expect(await runClient.status({ project_id })).toEqual({
-      server: "0",
-      state: "running",
-    });
-    expect(await runClient.status({ project_id: uuid() })).toEqual({
-      server: "0",
-      state: "opened",
-    });
-    await runClient.stop({ project_id });
-    expect(await runClient.status({ project_id })).toEqual({
-      server: "0",
-      state: "opened",
-    });
-  });
-
-  it("make a load balancer", async () => {
-    await lbServer({ client: client1 });
   });
 
   it("make a client for the load balancer, and test the runner via the load balancer", async () => {
@@ -78,6 +65,10 @@ describe("create basic mocked project runner service and test", () => {
       client: client2,
     });
     await lbc.start();
+
+    expect(projectState).toEqual({ [project_id]: "running" });
+    expect(running[project_id]).toEqual({ name: project_id });
+
     expect(await lbc.status()).toEqual({
       server: "0",
       state: "running",

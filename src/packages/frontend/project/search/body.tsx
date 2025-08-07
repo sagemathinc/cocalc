@@ -321,6 +321,9 @@ function ProjectSearchOutput({
         totalCount={search_results.size}
         itemContent={(index) => {
           const result = search_results.get(index);
+          if (result == null) {
+            return null;
+          }
           return (
             <ProjectSearchResultLine
               key={index}

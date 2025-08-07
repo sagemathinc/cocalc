@@ -50,6 +50,7 @@ import { mkdir } from "fs/promises";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { spawn } from "node:child_process";
+//import { projects } from "@cocalc/backend/data";
 
 const logger = getLogger("server:conat:project:run");
 
@@ -72,16 +73,7 @@ async function touch(project_id) {
 }
 
 const mounts = {
-  "-R": [
-    "/etc",
-    "/var",
-    "/etc",
-    "/bin",
-    "/lib",
-    "/usr",
-    "/lib64",
-    process.env.HOME,
-  ],
+  "-R": ["/etc", "/var", "/bin", "/lib", "/usr", "/lib64", process.env.HOME],
   "-B": ["/dev"],
 };
 
@@ -99,15 +91,15 @@ async function initMounts() {
 
 async function start({
   project_id,
-  uid,
+  config,
 }: {
   project_id: string;
-  uid?: number;
+  config?: any;
 }) {
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
   }
-  logger.debug("start", { project_id });
+  logger.debug("start", { project_id, config });
   setProjectState({ project_id, state: "starting" });
   if (children[project_id] != null && children[project_id].exitCode == null) {
     logger.debug("start -- already running");
@@ -130,21 +122,34 @@ async function start({
     "--keep_env",
     "--cwd",
     cwd,
-    "-m",
-    "none:/tmp:tmpfs:size=500000000",
     "--keep_caps",
     "--skip_setsid",
     "--disable_rlimits",
   ];
-  if (uid != null) {
-    args.push("-u", `${uid}`, "-g", `${uid}`);
+  let uid, gid;
+  if (config?.uid != null) {
+    uid = config?.uid;
+    gid = config?.gid ?? uid;
+    args.push("-u", `${uid}`, "-g", `${gid}`);
+  } else {
+    uid = gid = undefined;
   }
 
-  for (const type in mounts) {
-    for (const path of mounts[type]) {
-      args.push(type, path);
+  if (config?.admin) {
+    // this is, e.g., needed to run nsjail in nsjail,
+    // which is needed for development of cocalc inside cocalc.
+    args.push("--proc_rw");
+    args.push("-B", "/");
+  } else {
+    for (const type in mounts) {
+      for (const path of mounts[type]) {
+        args.push(type, path);
+      }
     }
+    // need a /tmp directory
+    args.push("-m", "none:/tmp:tmpfs:size=500000000");
   }
+
   args.push("-B", `${home}:${env.HOME}`);
 
   args.push(
@@ -215,3 +220,11 @@ export function close() {
   }
   servers.length = 0;
 }
+
+// important to close, because it kills all the processes that were spawned
+process.once("exit", close);
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    process.exit();
+  });
+});

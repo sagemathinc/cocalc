@@ -18,13 +18,13 @@ export const UPDATE_INTERVAL = 5_000;
 export interface Options {
   id?: string;
   client?: Client;
-  start: (opts: { project_id: string }) => Promise<void>;
+  start: (opts: { project_id: string; config?: any }) => Promise<void>;
   stop: (opts: { project_id: string }) => Promise<void>;
   status: (opts: { project_id: string }) => Promise<ProjectStatus>;
 }
 
 export interface API {
-  start: (opts: { project_id: string }) => Promise<ProjectStatus>;
+  start: (opts: { project_id: string; config?: any }) => Promise<ProjectStatus>;
   stop: (opts: { project_id: string }) => Promise<ProjectStatus>;
   status: (opts: { project_id: string }) => Promise<ProjectStatus>;
 }
@@ -52,7 +52,7 @@ export async function server({
   );
 
   const sub = await client.service<API>(`project-runner.${id}`, {
-    async start(opts: { project_id: string }) {
+    async start(opts: { project_id: string; config?: any }) {
       projects.set(opts.project_id, { server: id, state: "starting" } as const);
       await start(opts);
       const s = { server: id, state: "running" } as const;

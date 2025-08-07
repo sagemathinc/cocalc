@@ -20,10 +20,11 @@ const logger = getLogger("conat:project:runner:load-balancer");
 export interface Options {
   subject?: string;
   client?: Client;
-  setProjectState?: (opts: {
+  setState?: (opts: {
     project_id: string;
     state: ProjectState;
   }) => Promise<void>;
+  getConfig?: ({ project_id }: { project_id: string }) => Promise<any>;
 }
 
 export interface API {
@@ -35,7 +36,8 @@ export interface API {
 export async function server({
   subject = "project.*.run",
   client,
-  setProjectState,
+  setState,
+  getConfig,
 }: Options) {
   client ??= conat();
 
@@ -89,15 +91,32 @@ export async function server({
     return project_id;
   };
 
+  const setState1 =
+    setState == null
+      ? undefined
+      : async (opts: { project_id: string; state: ProjectState }) => {
+          if (setState == null) {
+            return;
+          }
+          try {
+            await setState(opts);
+          } catch (err) {
+            logger.debug(`WARNING: issue calling setState`, opts, err);
+          }
+        };
+
   const sub = await client.service<API>(subject, {
     async start() {
       const project_id = getProjectId(this);
+      const config = await getConfig?.({ project_id });
       const cur = projects.get(project_id);
       if (cur?.state == "starting" || cur?.state == "running") {
         return;
       }
       const runClient = await getClient(project_id);
-      await runClient.start({ project_id });
+      await setState1?.({ project_id, state: "starting" });
+      await runClient.start({ project_id, config });
+      await setState1?.({ project_id, state: "running" });
     },
 
     async stop() {
@@ -105,10 +124,11 @@ export async function server({
       const runClient = await getClient(project_id);
       try {
         await runClient.stop({ project_id });
+        await setState1?.({ project_id, state: "opened" });
       } catch (err) {
         if (err.code == 503) {
           // the runner is no longer running, so obviously project isn't running there.
-          await setProjectState?.({ project_id, state: "opened" });
+          await setState1?.({ project_id, state: "opened" });
         }
         throw err;
       }
@@ -118,11 +138,13 @@ export async function server({
       const project_id = getProjectId(this);
       const runClient = await getClient(project_id);
       try {
-        return await runClient.status({ project_id });
+        const s = await runClient.status({ project_id });
+        await setState1?.({ project_id, ...s });
+        return s;
       } catch (err) {
         if (err.code == 503) {
           // the runner is no longer running, so obviously project isn't running there.
-          await setProjectState?.({ project_id, state: "opened" });
+          await setState1?.({ project_id, state: "opened" });
         }
         throw err;
       }
