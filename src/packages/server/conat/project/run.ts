@@ -7,16 +7,49 @@ code to use nsjail:
     sudo sysctl -w kernel.apparmor_restrict_unprivileged_unconfined=0 && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
 See https://github.com/google/nsjail/issues/236#issuecomment-2267096267
+
+
+
+---
+
+DEV
+
+ Turn off in the hub by sending this message from a browser as an admin:
+
+   await cc.client.conat_client.hub.system.terminate({service:'project-runner'})
+
+Then start this in nodejs
+
+   a = require('@cocalc/server/conat/project/run'); await a.init()
+
+   // when done:
+   a.close()
+
+
+
+
 */
 
 import { conat } from "@cocalc/backend/conat";
 import { server as projectRunnerServer } from "@cocalc/conat/project/runner/run";
 import { isValidUUID } from "@cocalc/util/misc";
-import { getProject } from "@cocalc/server/projects/control";
 import { loadConatConfiguration } from "../configuration";
+import { getProject } from "@cocalc/server/projects/control";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
-// import { homePath } from "@cocalc/server/projects/control/util";
+import { root } from "@cocalc/backend/data";
+import { join } from "node:path";
+import {
+  ensureConfFilesExists,
+  getEnvironment,
+  homePath,
+  setupDataPath,
+  writeSecretToken,
+} from "@cocalc/server/projects/control/util";
+import { mkdir } from "fs/promises";
+import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { spawn } from "node:child_process";
 
 const logger = getLogger("server:conat:project:run");
 
@@ -24,28 +57,106 @@ let servers: any[] = [];
 
 const children: { [project_id: string]: any } = {};
 
-async function setProjectState(project_id, state) {
+export async function setProjectState({ project_id, state }) {
   try {
     const p = await getProject(project_id);
     await p.saveStateToDatabase({ state });
   } catch {}
 }
 
-async function start({ project_id }) {
+const mounts = {
+  "-R": [
+    "/etc",
+    "/var",
+    "/etc",
+    "/bin",
+    "/lib",
+    "/usr",
+    "/lib64",
+    process.env.HOME,
+  ],
+  "-B": ["/dev"],
+};
+
+async function initMounts() {
+  for (const type in mounts) {
+    const v: string[] = [];
+    for (const path of mounts[type]) {
+      if (await exists(path)) {
+        v.push(path);
+      }
+    }
+    mounts[type] = v;
+  }
+}
+
+async function start({
+  project_id,
+  uid,
+}: {
+  project_id: string;
+  uid?: number;
+}) {
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
   }
   logger.debug("start", { project_id });
-  setProjectState(project_id, "starting");
+  setProjectState({ project_id, state: "starting" });
   if (children[project_id] != null && children[project_id].exitCode == null) {
     logger.debug("start -- already running");
     return;
   }
-  const p = await getProject(project_id);
-  // @ts-ignore
-  const child = await p.start(true);
+  const HOME = homePath(project_id);
+  await mkdir(HOME, { recursive: true });
+  await ensureConfFilesExists(HOME);
+  const env = await getEnvironment(project_id);
+  const cwd = join(root, "packages/project");
+  await setupDataPath(HOME);
+  await writeSecretToken(HOME, await getProjectSecretToken(project_id));
+
+  const args = [
+    "-q",
+    "-Mo",
+    "--hostname",
+    `project-${env.COCALC_PROJECT_ID}`,
+    "--disable_clone_newnet",
+    "--keep_env",
+    "--cwd",
+    cwd,
+    "-m",
+    "none:/tmp:tmpfs:size=500000000",
+    "--keep_caps",
+    "--skip_setsid",
+    "--disable_rlimits",
+  ];
+  if (uid != null) {
+    args.push("-u", `${uid}`, "-g", `${uid}`);
+  }
+
+  for (const type in mounts) {
+    for (const path of mounts[type]) {
+      args.push(type, path);
+    }
+  }
+  args.push("-B", HOME);
+
+  args.push(
+    "--",
+    join(process.env.HOME ?? "", ".local/share/pnpm/pnpm"),
+    "cocalc-project",
+    "--init",
+    "project_init.sh",
+  );
+  const cmd = "nsjail";
+  console.log(`${cmd} ${args.join(" ")}`);
+  const child = spawn(cmd, args, {
+    env,
+    cwd,
+    uid,
+    gid: uid,
+  });
   children[project_id] = child;
-  setProjectState(project_id, "running");
+  setProjectState({ project_id, state: "running" });
 }
 
 async function stop({ project_id }) {
@@ -54,11 +165,11 @@ async function stop({ project_id }) {
   }
   logger.debug("stop", { project_id });
   if (children[project_id] != null && children[project_id].exitCode == null) {
-    setProjectState(project_id, "stopping");
+    setProjectState({ project_id, state: "stopping" });
     children[project_id]?.kill("SIGKILL");
     delete children[project_id];
   }
-  setProjectState(project_id, "opened");
+  setProjectState({ project_id, state: "opened" });
 }
 
 async function status({ project_id }) {
@@ -72,11 +183,12 @@ async function status({ project_id }) {
   } else {
     state = "running";
   }
-  setProjectState(project_id, state);
+  setProjectState({ project_id, state });
   return { state };
 }
 
 export async function init(count: number = 1) {
+  await initMounts();
   await loadConatConfiguration();
   for (let i = 0; i < count; i++) {
     const server = await projectRunnerServer({

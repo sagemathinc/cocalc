@@ -13,7 +13,7 @@ import { randomId } from "@cocalc/conat/names";
 import state, { type ProjectStatus } from "./state";
 import { until } from "@cocalc/util/async-utils";
 
-export const UPDATE_INTERVAL = 15_000;
+export const UPDATE_INTERVAL = 5_000;
 
 export interface Options {
   id?: string;

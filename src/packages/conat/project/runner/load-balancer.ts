@@ -12,7 +12,7 @@ import { randomChoice } from "@cocalc/conat/core/server";
 import { conat } from "@cocalc/conat/client";
 import { client as projectRunnerClient, UPDATE_INTERVAL } from "./run";
 import { getLogger } from "@cocalc/conat/client";
-import state, { type ProjectStatus } from "./state";
+import state, { type ProjectStatus, type ProjectState } from "./state";
 import { field_cmp } from "@cocalc/util/misc";
 
 const logger = getLogger("conat:project:runner:load-balancer");
@@ -20,6 +20,10 @@ const logger = getLogger("conat:project:runner:load-balancer");
 export interface Options {
   subject?: string;
   client?: Client;
+  setProjectState?: (opts: {
+    project_id: string;
+    state: ProjectState;
+  }) => Promise<void>;
 }
 
 export interface API {
@@ -28,7 +32,11 @@ export interface API {
   status: () => Promise<ProjectStatus>;
 }
 
-export async function server({ subject = "project.*.run", client }: Options) {
+export async function server({
+  subject = "project.*.run",
+  client,
+  setProjectState,
+}: Options) {
   client ??= conat();
 
   // - [ ] get info about the runner's status (use a stream?) -- write that here.
@@ -37,7 +45,7 @@ export async function server({ subject = "project.*.run", client }: Options) {
   const { projects, runners } = await state({ client });
 
   const getClient = async (project_id: string) => {
-    const cutoff = Date.now() - UPDATE_INTERVAL * 2.5;
+    const cutoff = Date.now() - UPDATE_INTERVAL * 2.1;
 
     const cur = projects.get(project_id);
     if (cur != null && cur.state != "opened") {
@@ -66,6 +74,7 @@ export async function server({ subject = "project.*.run", client }: Options) {
     if (v.length == 0) {
       throw Error("no project runners available -- try again later");
     }
+    // this is a very dumb first attempt; it should also try another server in case a server isn't reachable
     const server = randomChoice(new Set(v)).server;
     logger.debug("getClient -- assigning to ", { project_id, server });
     return projectRunnerClient({
@@ -94,7 +103,15 @@ export async function server({ subject = "project.*.run", client }: Options) {
     async stop() {
       const project_id = getProjectId(this);
       const runClient = await getClient(project_id);
-      await runClient.stop({ project_id });
+      try {
+        await runClient.stop({ project_id });
+      } catch (err) {
+        if (err.code == 503) {
+          // the runner is no longer running, so obviously project isn't running there.
+          await setProjectState?.({ project_id, state: "opened" });
+        }
+        throw err;
+      }
     },
 
     async status() {
