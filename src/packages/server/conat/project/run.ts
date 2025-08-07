@@ -20,14 +20,7 @@ DEV
 
 Then start this in nodejs
 
-   a = require('@cocalc/server/conat/project/run'); await a.init()
-
-   // when done:
-   a.close()
-
-
-
-
+   require('@cocalc/server/conat/project/run').init()
 */
 
 import { conat } from "@cocalc/backend/conat";
@@ -38,7 +31,7 @@ import { getProject } from "@cocalc/server/projects/control";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { root } from "@cocalc/backend/data";
-import { join } from "node:path";
+import { dirname } from "node:path";
 import { userInfo } from "node:os";
 import {
   chown,
@@ -52,7 +45,6 @@ import { mkdir } from "fs/promises";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { spawn } from "node:child_process";
-import which from "which";
 //import { projects } from "@cocalc/backend/data";
 //
 const DEFAULT_UID = 2001;
@@ -78,18 +70,9 @@ async function touch(project_id) {
 }
 
 const MOUNTS = {
-  "-R": [
-    "/cocalc",
-    "/etc",
-    "/var",
-    "/bin",
-    "/lib",
-    "/usr",
-    "/lib64",
-    process.env.HOME,
-  ],
+  "-R": ["/etc", "/var", "/bin", "/lib", "/usr", "/lib64"],
   "-B": ["/dev"],
-} as const;
+};
 
 async function initMounts() {
   for (const type in MOUNTS) {
@@ -101,12 +84,7 @@ async function initMounts() {
     }
     MOUNTS[type] = v;
   }
-}
-
-let pnpm: string | undefined = undefined;
-async function getPnpmPath(): Promise<string> {
-  pnpm ??= await which("pnpm");
-  return pnpm!;
+  MOUNTS["-R"].push(`${dirname(root)}:/cocalc`);
 }
 
 async function start({
@@ -126,17 +104,12 @@ async function start({
     return;
   }
   let uid, gid;
-  if (config?.uid != null) {
-    uid = config?.uid;
-    gid = config?.gid ?? uid;
+  if (userInfo().uid) {
+    // server running as non-root user -- single user mode
+    uid = gid = userInfo().uid;
   } else {
-    if(userInfo().uid) {
-      // single user mode
-      uid = gid = undefined;
-    } else {
-      // server is running as root	    
-      uid = gid = DEFAULT_UID;
-    }
+    // server is running as root -- multiuser mode
+    uid = gid = DEFAULT_UID;
   }
 
   const home = homePath(project_id);
@@ -144,7 +117,7 @@ async function start({
   await chown(home, uid);
   await ensureConfFilesExists(home, uid);
   const env = await getEnvironment(project_id);
-  const cwd = join(root, "packages/project");
+  const cwd = "/cocalc/src/packages/project";
   await setupDataPath(home, uid);
   await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
 
@@ -162,7 +135,7 @@ async function start({
     "--disable_rlimits",
   ];
 
-  if(uid != null && gid != null) {
+  if (uid != null && gid != null) {
     args.push("-u", `${uid}`, "-g", `${gid}`);
   }
 
@@ -185,12 +158,13 @@ async function start({
 
   args.push(
     "--",
-    await getPnpmPath(),
-    "cocalc-project",
+    process.execPath,
+    "./bin/cocalc-project.js",
     "--init",
     "project_init.sh",
   );
   const cmd = "nsjail";
+  logEnv(env);
   console.log(`${cmd} ${args.join(" ")}`);
   const child = spawn(cmd, args, {
     env,
@@ -272,3 +246,11 @@ process.once("exit", close);
     process.exit();
   });
 });
+
+function logEnv(env) {
+  let s = "export ";
+  for (const key in env) {
+    s += `${key}="${env[key]}" `;
+  }
+  console.log(s);
+}
