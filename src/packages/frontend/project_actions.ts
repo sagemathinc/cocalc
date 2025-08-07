@@ -3199,6 +3199,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   async show(): Promise<void> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
+    this.redux.getActions("projects").updateProjectState(this.project_id);
     const a = store.get("active_project_tab");
     if (!misc.startswith(a, "editor-")) return;
     this.show_file(misc.tab_to_path(a));

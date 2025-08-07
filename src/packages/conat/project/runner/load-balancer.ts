@@ -117,7 +117,15 @@ export async function server({
     async status() {
       const project_id = getProjectId(this);
       const runClient = await getClient(project_id);
-      return await runClient.status({ project_id });
+      try {
+        return await runClient.status({ project_id });
+      } catch (err) {
+        if (err.code == 503) {
+          // the runner is no longer running, so obviously project isn't running there.
+          await setProjectState?.({ project_id, state: "opened" });
+        }
+        throw err;
+      }
     },
   });
 

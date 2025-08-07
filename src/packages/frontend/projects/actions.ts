@@ -1001,6 +1001,12 @@ export class ProjectsActions extends Actions<ProjectsState> {
     },
   );
 
+  updateProjectState = reuseInFlight(async (project_id: string) => {
+    const runner = webapp_client.conat_client.projectRunner(project_id);
+    // this causes an update
+    return await runner.status({ project_id });
+  });
+
   // Explcitly set whether or not project is hidden for the given account
   // (hide=true means hidden)
   public async set_project_hide(
