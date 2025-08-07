@@ -50,6 +50,7 @@ import { mkdir } from "fs/promises";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { spawn } from "node:child_process";
+import which from "which";
 //import { projects } from "@cocalc/backend/data";
 
 const logger = getLogger("server:conat:project:run");
@@ -72,21 +73,36 @@ async function touch(project_id) {
   } catch {}
 }
 
-const mounts = {
-  "-R": ["/etc", "/var", "/bin", "/lib", "/usr", "/lib64", process.env.HOME],
+const MOUNTS = {
+  "-R": [
+    "/cocalc",
+    "/etc",
+    "/var",
+    "/bin",
+    "/lib",
+    "/usr",
+    "/lib64",
+    process.env.HOME,
+  ],
   "-B": ["/dev"],
-};
+} as const;
 
 async function initMounts() {
-  for (const type in mounts) {
+  for (const type in MOUNTS) {
     const v: string[] = [];
-    for (const path of mounts[type]) {
+    for (const path of MOUNTS[type]) {
       if (await exists(path)) {
         v.push(path);
       }
     }
-    mounts[type] = v;
+    MOUNTS[type] = v;
   }
+}
+
+let pnpm: string | undefined = undefined;
+async function getPnpmPath(): Promise<string> {
+  pnpm ??= await which("pnpm");
+  return pnpm!;
 }
 
 async function start({
@@ -141,8 +157,8 @@ async function start({
     args.push("--proc_rw");
     args.push("-B", "/");
   } else {
-    for (const type in mounts) {
-      for (const path of mounts[type]) {
+    for (const type in MOUNTS) {
+      for (const path of MOUNTS[type]) {
         args.push(type, path);
       }
     }
@@ -154,7 +170,7 @@ async function start({
 
   args.push(
     "--",
-    join(process.env.HOME ?? "", ".local/share/pnpm/pnpm"),
+    await getPnpmPath(),
     "cocalc-project",
     "--init",
     "project_init.sh",
