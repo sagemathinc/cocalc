@@ -39,7 +39,9 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { root } from "@cocalc/backend/data";
 import { join } from "node:path";
+import { userInfo } from "node:os";
 import {
+  chown,
   ensureConfFilesExists,
   getEnvironment,
   homePath,
@@ -52,6 +54,8 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { spawn } from "node:child_process";
 import which from "which";
 //import { projects } from "@cocalc/backend/data";
+//
+const DEFAULT_UID = 2001;
 
 const logger = getLogger("server:conat:project:run");
 
@@ -121,13 +125,28 @@ async function start({
     logger.debug("start -- already running");
     return;
   }
+  let uid, gid;
+  if (config?.uid != null) {
+    uid = config?.uid;
+    gid = config?.gid ?? uid;
+  } else {
+    if(userInfo().uid) {
+      // single user mode
+      uid = gid = undefined;
+    } else {
+      // server is running as root	    
+      uid = gid = DEFAULT_UID;
+    }
+  }
+
   const home = homePath(project_id);
   await mkdir(home, { recursive: true });
-  await ensureConfFilesExists(home);
+  await chown(home, uid);
+  await ensureConfFilesExists(home, uid);
   const env = await getEnvironment(project_id);
   const cwd = join(root, "packages/project");
-  await setupDataPath(home);
-  await writeSecretToken(home, await getProjectSecretToken(project_id));
+  await setupDataPath(home, uid);
+  await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
 
   const args = [
     "-q",
@@ -142,13 +161,9 @@ async function start({
     "--skip_setsid",
     "--disable_rlimits",
   ];
-  let uid, gid;
-  if (config?.uid != null) {
-    uid = config?.uid;
-    gid = config?.gid ?? uid;
+
+  if(uid != null && gid != null) {
     args.push("-u", `${uid}`, "-g", `${gid}`);
-  } else {
-    uid = gid = undefined;
   }
 
   if (config?.admin) {
