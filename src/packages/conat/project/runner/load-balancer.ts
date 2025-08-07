@@ -40,7 +40,7 @@ export async function server({ subject = "project.*.run", client }: Options) {
     const cutoff = Date.now() - UPDATE_INTERVAL * 2.5;
 
     const cur = projects.get(project_id);
-    if (cur != null) {
+    if (cur != null && cur.state != "opened") {
       const { server } = cur;
       if (server) {
         const s = runners.get(server);

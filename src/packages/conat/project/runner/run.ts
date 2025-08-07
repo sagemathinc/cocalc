@@ -76,6 +76,7 @@ export async function server({
   return {
     close: () => {
       running = false;
+      runners.delete(id);
       sub.close();
     },
   };
