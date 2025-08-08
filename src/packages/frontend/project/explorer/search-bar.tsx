@@ -164,7 +164,21 @@ export const SearchBar = memo(
 
     function render_help_info() {
       if (file_search[0] == TERM_MODE_CHAR) {
-        return <TerminalModeDisplay style={HelpStyle} />;
+        return (
+          <TerminalModeDisplay
+            style={{
+              top: "35px",
+              left: "-260px",
+              position: "absolute",
+              width: "260px",
+              height: "38",
+              boxShadow: "#999 6px 6px 6px",
+              zIndex: 100,
+              borderRadius: "5px",
+              opacity: 0.8,
+            }}
+          />
+        );
       }
       if (file_search.length > 0 && numDisplayedFiles > 0) {
         let text;
