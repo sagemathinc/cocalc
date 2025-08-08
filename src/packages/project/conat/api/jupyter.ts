@@ -9,6 +9,7 @@ import { getClient } from "@cocalc/project/client";
 import { project_id } from "@cocalc/project/data";
 import * as control from "@cocalc/jupyter/control";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
+import { type ServerSocket } from "@cocalc/conat/socket";
 
 let fs: SandboxedFilesystem | null = null;
 export async function start(path: string) {
@@ -28,6 +29,7 @@ export async function start(path: string) {
 export async function run(opts: {
   path: string;
   cells: { id: string; input: string }[];
+  socket: ServerSocket;
 }) {
   await start(opts.path);
   return await control.run(opts);

@@ -20,8 +20,7 @@ interface CellTimingProps {
   kernel?: string;
 }
 
-// make this small so smooth.
-const DELAY_MS = 100;
+const DELAY_MS = 1000;
 
 function humanReadableSeconds(s) {
   if (s >= 0.9) {

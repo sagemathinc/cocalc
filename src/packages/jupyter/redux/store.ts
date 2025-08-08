@@ -107,6 +107,8 @@ export interface JupyterStoreState {
   // only known to this client, goes away on browser refresh, and is used
   // only visually for the user to see.
   pendingCells: Set<string>;
+
+  stdin?: { id: string; prompt: string; password?: boolean };
 }
 
 export const initial_jupyter_store_state: {

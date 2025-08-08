@@ -132,17 +132,6 @@ export class JupyterActions extends JupyterActions0 {
 
     this.fetch_jupyter_kernels();
 
-    // Load kernel (once ipynb file loads).
-    //     (async () => {
-    //       await this.set_kernel_after_load();
-    //       if (!this.store) return;
-    //       track("jupyter", {
-    //         kernel: this.store.get("kernel"),
-    //         project_id: this.project_id,
-    //         path: this.path,
-    //       });
-    //     })();
-
     // nbgrader support
     this.nbgrader_actions = new NBGraderActions(this, this.redux);
 
@@ -1517,9 +1506,6 @@ export class JupyterActions extends JupyterActions0 {
       },
     );
     handler.on("change", f);
-    //     handler.on("process", (mesg) => {
-    //       console.log("process ", mesg);
-    //     });
     return handler;
   };
 
@@ -1574,6 +1560,18 @@ export class JupyterActions extends JupyterActions0 {
           client: webapp_client.conat_client.conat(),
           project_id: this.project_id,
           compute_server_id,
+          stdin: async ({ id, prompt, password }) => {
+            // set the redux store so that it is known we would like some stdin,
+            // wait for the user to respond, and return the result.
+            this.setState({ stdin: { id, prompt, password } });
+            try {
+              const [input] = await once(this.store, "stdin");
+              this.setState({ stdin: undefined, stdinNoRun: true });
+              return input;
+            } catch (err) {
+              return `${err}`;
+            }
+          },
         });
         this.jupyterClient.socket.on("closed", () => {
           delete this.jupyterClient;

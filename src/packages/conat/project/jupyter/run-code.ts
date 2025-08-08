@@ -59,6 +59,9 @@ export interface RunOptions {
   cells: InputCell[];
   // if true do not halt running the cells, even if one fails with an error
   noHalt?: boolean;
+  // the socket is used for raw_input, to communicate between the client
+  // that initiated the request and the server.
+  socket: ServerSocket;
 }
 
 type JupyterCodeRunner = (
@@ -151,7 +154,7 @@ async function handleRequest({
   cells,
   noHalt,
 }) {
-  const runner = await run({ path, cells, noHalt });
+  const runner = await run({ path, cells, noHalt, socket });
   const output: OutputMessage[] = [];
 
   const throttle = new Throttle<OutputMessage>(MAX_MSGS_PER_SECOND);
@@ -217,9 +220,31 @@ class JupyterClient {
     private client: ConatClient,
     private subject: string,
     private path: string,
+    private stdin: (opts: {
+      id: string;
+      prompt: string;
+      password?: boolean;
+    }) => Promise<string>,
   ) {
     this.socket = this.client.socket.connect(this.subject);
     this.socket.once("close", () => this.iter?.end());
+    this.socket.on("request", async (mesg) => {
+      const { data } = mesg;
+      try {
+        switch (data.type) {
+          case "stdin":
+            await mesg.respond(await this.stdin(data));
+            return;
+          default:
+            console.warn(`Jupyter: got unknown message type '${data.type}'`);
+            await mesg.respond(
+              new Error(`unknown message type '${data.type}'`),
+            );
+        }
+      } catch (err) {
+        console.warn("error responding to jupyter request", err);
+      }
+    });
   }
 
   close = () => {
@@ -269,7 +294,12 @@ export function jupyterClient(opts: {
   project_id: string;
   compute_server_id?: number;
   client: ConatClient;
+  stdin: (opts: {
+    id: string;
+    prompt: string;
+    password?: boolean;
+  }) => Promise<string>;
 }) {
   const subject = getSubject(opts);
-  return new JupyterClient(opts.client, subject, opts.path);
+  return new JupyterClient(opts.client, subject, opts.path, opts.stdin);
 }

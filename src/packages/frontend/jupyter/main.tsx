@@ -134,6 +134,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "cell_list",
   ]);
+
+  // if there is a stdin request:
+  const stdin = useRedux([name, "stdin"]);
+
   // map from ids to cells
   const cells: undefined | immutable.Map<string, any> = useRedux([
     name,
@@ -283,6 +287,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         actions={actions}
         read_only={read_only}
         cell_list={cell_list}
+        stdin={stdin}
         cell_toolbar={cell_toolbar}
         cells={cells}
         cm_options={cm_options}

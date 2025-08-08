@@ -32,6 +32,7 @@ import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
+  stdin?;
   cm_options: Map<string, any>;
   mode: "edit" | "escape";
   font_size: number;
@@ -69,6 +70,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
   // note: we assume project_id and directory don't change
   return !(
     nextProps.id !== props.id ||
+    nextProps.stdin !== props.stdin ||
     nextProps.index !== props.index ||
     nextProps.cm_options !== props.cm_options ||
     nextProps.cell !== props.cell ||
@@ -165,6 +167,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         complete={props.is_current && props.complete != null}
         llmTools={props.llmTools}
         isDragging={props.isDragging}
+        stdin={props.stdin}
       />
     );
   }

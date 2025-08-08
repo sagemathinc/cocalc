@@ -69,7 +69,7 @@ export function stop({ path }: { path: string }) {
 }
 
 // Returns async iterator over outputs
-export async function run({ path, cells, noHalt }: RunOptions) {
+export async function run({ path, cells, noHalt, socket }: RunOptions) {
   logger.debug("run:", { path, noHalt });
 
   const actions = jupyterActions[ipynbPath(path)];
@@ -92,6 +92,23 @@ export async function run({ path, cells, noHalt }: RunOptions) {
       const output = kernel.execute_code({
         halt_on_error: !noHalt,
         code: cell.input,
+        stdin: async (prompt: string, password: boolean) => {
+          try {
+            const resp = await socket.request(
+              {
+                type: "stdin",
+                id: cell.id,
+                prompt,
+                password,
+              },
+              // timeout
+              { timeout: 1000 * 60 * 15 },
+            );
+            return resp.data;
+          } catch (err) {
+            return `${err}`;
+          }
+        },
       });
       for await (const mesg0 of output.iter()) {
         const mesg = { ...mesg0, id: cell.id };

@@ -67,6 +67,7 @@ const BOTTOM_PADDING_CELL = (
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything is read only
   cell_list: immutable.List<string>; // list of ids of cells in order
+  stdin?;
   cell_toolbar?: string;
   cells: immutable.Map<string, any>;
   cm_options: immutable.Map<string, any>;
@@ -98,6 +99,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const {
     actions,
     cell_list,
+    stdin,
     cell_toolbar,
     cells,
     cm_options,
@@ -452,6 +454,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <div key={id}>
         <Cell
           id={id}
+          stdin={stdin?.get("id") == id ? stdin : undefined}
           index={index}
           actions={actions}
           name={name}
