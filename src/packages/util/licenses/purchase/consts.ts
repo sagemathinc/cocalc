@@ -11,7 +11,7 @@ import costVersions from "./cost-versions";
 // is used when the version is not defined.
 const FALLBACK_VERSION = "1";
 
-export const CURRENT_VERSION = "1";
+export const CURRENT_VERSION = "3";
 
 // Another gamble implicit in this is that pre's are available.  When they
 // aren't, cocalc.com switches to uses MUCH more expensive non-preemptibles.

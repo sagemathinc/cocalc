@@ -42,7 +42,9 @@
     "tolerations",
     "undelete",
     "undeleting",
-    "revealjs"
+    "revealjs",
+    "conat",
+    "SocketIO"
   ],
   "ignoreWords": [
     "antd",
@@ -68,7 +70,8 @@
     "xsmall",
     "flyouts",
     "buttonbar",
-    "noconf"
+    "noconf",
+    "flyoutdragbar"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
