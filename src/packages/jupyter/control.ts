@@ -1,7 +1,6 @@
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
 import { type Filesystem } from "@cocalc/conat/files/fs";
-import { getLogger } from "@cocalc/backend/logger";
 import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { syncdbPath, ipynbPath } from "@cocalc/util/jupyter/names";
 import { once } from "@cocalc/util/async-utils";
@@ -9,6 +8,7 @@ import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { throttle } from "lodash";
 import { type RunOptions } from "@cocalc/conat/project/jupyter/run-code";
 import { type JupyterActions } from "@cocalc/jupyter/redux/project-actions";
+import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("jupyter:control");
 

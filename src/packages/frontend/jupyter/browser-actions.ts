@@ -1199,7 +1199,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  set_kernel = (kernel: string | null) => {
+  set_kernel = async (kernel: string | null) => {
     if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
@@ -1215,8 +1215,14 @@ export class JupyterActions extends JupyterActions0 {
     if (this.store.get("show_kernel_selector") || kernel === "") {
       this.hide_select_kernel();
     }
-    if (kernel === "") {
-      this.halt(); // user "detaches" kernel from notebook, we stop the kernel
+    try {
+      if (kernel === "") {
+        await this.halt(); // user "detaches" kernel from notebook, we stop the kernel
+      } else {
+        await this.restart();
+      }
+    } catch (err) {
+      console.warn(err);
     }
   };
 

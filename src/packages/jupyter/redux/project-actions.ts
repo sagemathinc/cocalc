@@ -16,6 +16,9 @@ NOTE: this is also now the actions used by remote compute servers as well.
 
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
+import { getLogger } from "@cocalc/backend/logger";
+
+const logger = getLogger("jupyter:project-actions");
 
 export class JupyterActions extends JupyterActions0 {
   public blobs = {
@@ -35,7 +38,7 @@ export class JupyterActions extends JupyterActions0 {
       }
     }
     const kernel = this.store.get("kernel");
-    console.log("initKernel", { kernel, path: this.path });
+    logger.debug("initKernel", { kernel, path: this.path });
     // No kernel wrapper object setup at all. Make one.
     this.jupyter_kernel = createJupyterKernel({
       name: kernel,
