@@ -87,7 +87,6 @@
     "google-auth-library": "^9.4.1",
     "googleapis": "^137.1.0",
     "gpt3-tokenizer": "^1.1.5",
-    "human-format": "^1.2.1",
     "json-stable-stringify": "^1.0.1",
     "jwt-decode": "^3.1.2",
     "lambda-cloud-node-api": "^1.0.1",
