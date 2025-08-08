@@ -15,14 +15,10 @@ status updates.
 Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
-import { getLogger } from "@cocalc/project/logger";
-import { how_long_ago_m, round1 } from "@cocalc/util/misc";
-import { version as smcVersion } from "@cocalc/util/smc-version";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "@cocalc/util/types/project-info/types";
+
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
@@ -38,6 +34,11 @@ import {
 import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 import { createPublisher } from "@cocalc/conat/project/project-status";
 import { compute_server_id, project_id } from "@cocalc/project/data";
+import { getLogger } from "@cocalc/project/logger";
+import { how_long_ago_m, round1 } from "@cocalc/util/misc";
+import { version as smcVersion } from "@cocalc/util/smc-version";
+import { ProjectInfo } from "@cocalc/util/types/project-info/types";
+import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
 
 // TODO: only return the "next" value, if it is significantly different from "prev"
 //function threshold(prev?: number, next?: number): number | undefined {
