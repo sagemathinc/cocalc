@@ -40,6 +40,7 @@ async function getConfig({ project_id }) {
   if (rows[0].settings?.admin) {
     return { admin: true };
   } else {
-    return { cpu: 500, memory: "300Gi", pids: 100, swap: "500Gi" };
+    // some defaults, mainly for testing
+    return { cpu: "1000m", memory: "8Gi", pids: 10000, swap: "5000Gi" };
   }
 }

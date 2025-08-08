@@ -1,21 +1,39 @@
 import { k8sCpuParser, k8sMemoryParser } from "@cocalc/util/misc";
 import { type Configuration } from "./types";
 
+// I have not figured out how to use cgroups yet, or which cgroups to use.
+// See discussion here: https://github.com/google/nsjail/issues/196
+// TODO: cgroups are of course much better.
+const USE_CGROUPS = false;
+
 export function limits(config?: Configuration): string[] {
   const args: string[] = [];
   if (config == null) {
+    args.push("--disable_rlimits");
     return args;
   }
+  // rlimits we don't change below
+  args.push("--rlimit_cpu", "max");
+  args.push("--rlimit_fsize", "max");
+  args.push("--rlimit_nofile", "max");
 
   // need '--detect_cgroupv2' or it won't work at all since it'll try to use ancient cgroups v1
-  args.push("--detect_cgroupv2");
+  if (USE_CGROUPS) {
+    args.push("--detect_cgroupv2");
+  }
 
   if (config.cpu != null) {
     const cpu = k8sCpuParser(config.cpu);
     if (!isFinite(cpu) || cpu <= 0) {
       throw Error(`invalid cpu limit: '${cpu}'`);
     }
-    args.push("--max_cpus", `${cpu}`);
+    if (USE_CGROUPS) {
+      // "Number of milliseconds of CPU time per second"
+      args.push("--cgroup_cpu_ms_per_sec", `${Math.ceil(cpu * 1000)}`);
+    } else {
+      // --max_cpus only takes an INTEGER as input, hence ceil
+      args.push("--max_cpus", `${Math.ceil(cpu)}`);
+    }
   }
 
   if (config.memory != null) {
@@ -23,15 +41,24 @@ export function limits(config?: Configuration): string[] {
     if (!isFinite(memory) || memory <= 0) {
       throw Error(`invalid memory limit: '${memory}'`);
     }
-    args.push("--cgroup_mem_max", `${memory}`);
+    if (USE_CGROUPS) {
+      args.push("--cgroup_mem_max", `${memory}`);
+      args.push("--rlimit_as", "hard");
+    } else {
+      args.push("--rlimit_as", `${Math.ceil(memory / 1000000)}`);
+    }
+  } else {
+    args.push("--rlimit_as", "hard");
   }
 
   if (config.swap != null) {
-    const swap = k8sMemoryParser(config.swap);
-    if (!isFinite(swap) || swap <= 0) {
-      throw Error(`invalid swap limit: '${swap}'`);
+    if (USE_CGROUPS) {
+      const swap = k8sMemoryParser(config.swap);
+      if (!isFinite(swap) || swap <= 0) {
+        throw Error(`invalid swap limit: '${swap}'`);
+      }
+      args.push("--cgroup_mem_swap_max", `${swap}`);
     }
-    args.push("--cgroup_mem_swap_max", `${swap}`);
   }
 
   if (config.pids != null) {
@@ -39,7 +66,12 @@ export function limits(config?: Configuration): string[] {
     if (!isFinite(pids) || pids <= 0) {
       throw Error(`invalid pids limit: '${pids}'`);
     }
-    args.push("--cgroup_pids_max", `${pids}`);
+    if (USE_CGROUPS) {
+      args.push("--cgroup_pids_max", `${pids}`);
+    } else {
+      // nproc is maybe a bit tighter than limiting pids, due to threads
+      args.push("--rlimit_nproc", `${pids}`);
+    }
   }
 
   return args;

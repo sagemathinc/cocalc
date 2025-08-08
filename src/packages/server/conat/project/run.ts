@@ -147,7 +147,6 @@ async function start({
       cwd,
       "--keep_caps",
       "--skip_setsid",
-      "--disable_rlimits",
     ];
 
     if (uid != null && gid != null) {
