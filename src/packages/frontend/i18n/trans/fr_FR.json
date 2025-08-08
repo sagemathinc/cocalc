@@ -1222,7 +1222,7 @@
   "project.no-internet-modal.add-license": "Ajouter une licence",
   "project.no-internet-modal.info": "<strong>L'accès à Internet est désactivé pour ce projet.</strong> Cette restriction empêche l'installation de packages Python (pip, conda) ou de packages R, l'utilisation de Git pour cloner des dépôts, le téléchargement de jeux de données ou l'accès aux APIs. Les commandes qui tentent d'accéder à Internet peuvent se bloquer ou échouer à se terminer, car les connexions réseau sont bloquées pour prévenir les abus. <A>En savoir plus</A>.",
   "project.no-internet-modal.message": "Pour résoudre ce problème, vous <A1>devez appliquer</A1> une <A2>licence valide</A2> offrant des mises à jour ou <A3>acheter une licence</A3>.",
-  "project.no-internet-modal.title": "Pas d'accès Internet",
+  "project.no-internet-modal.title": "Le projet \"{name}\" n'a pas d'accès à Internet",
   "project.open_file.what": "ouvrir le fichier \"{path}\"",
   "project.page.activity-bar-layout.title": "Disposition de la barre d'activités",
   "project.page.activity-bar.explanation": "Cette fonctionnalité modifie la fonctionnalité de la barre de boutons à gauche du projet. Par défaut, elle affiche des boutons pour les pages complètes et de petits signes de chevron pour les panneaux déroulants. En sélectionnant l'option \"pages complètes\", seuls les boutons sont affichés et ils ouvrent des pages complètes en cliquant dessus. À l'inverse, en choisissant le mode \"panneaux déroulants\", seuls les panneaux déroulants se déploient en cliquant dessus. Dans les deux derniers cas, le type de panneau alternatif peut être affiché en cliquant tout en maintenant la touche majuscule sur le bouton correspondant.",

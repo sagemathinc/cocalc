@@ -1222,7 +1222,7 @@
   "project.no-internet-modal.add-license": "라이센스 추가",
   "project.no-internet-modal.info": "<strong>이 프로젝트의 인터넷 접근이 비활성화되었습니다.</strong> 이 제한은 Python 패키지(pip, conda) 또는 R 패키지 설치, Git을 사용한 저장소 복제, 데이터셋 다운로드 또는 API 접근을 방지합니다. 인터넷에 접근하려는 명령은 네트워크 연결이 차단되어 남용을 방지하기 위해 중단되거나 완료되지 않을 수 있습니다. <A>자세히 알아보기</A>.",
   "project.no-internet-modal.message": "이 문제를 해결하려면 <A1>유효한 라이센스를</A1> 적용하여 업그레이드를 제공하거나 <A3>라이센스를 구매</A3>해야 합니다.",
-  "project.no-internet-modal.title": "인터넷 연결 없음",
+  "project.no-internet-modal.title": "프로젝트 \"{name}\"는 인터넷에 액세스할 수 없습니다",
   "project.open_file.what": "파일 \"{path}\" 열기",
   "project.page.activity-bar-layout.title": "활동 표시줄 레이아웃",
   "project.page.activity-bar.explanation": "이 기능은 프로젝트의 왼쪽 버튼 막대의 기능을 수정합니다. 기본적으로 전체 페이지 버튼과 플라이아웃 패널의 작은 캐럿 기호를 표시합니다. \"전체 페이지\" 옵션을 선택하면 버튼만 표시되고 클릭 시 전체 페이지가 열립니다. 반대로 \"플라이아웃 패널\" 모드를 선택하면 클릭 시 플라이아웃 패널만 확장됩니다. 두 경우 모두, 해당 버튼을 쉬프트 클릭하여 대체 패널 유형을 표시할 수 있습니다.",

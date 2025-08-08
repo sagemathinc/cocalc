@@ -1222,7 +1222,7 @@
   "project.no-internet-modal.add-license": "添加许可证",
   "project.no-internet-modal.info": "<strong>此项目已禁用互联网访问。</strong> 此限制阻止安装Python软件包（pip, conda）或R软件包，使用Git克隆存储库，下载数据集或访问API。试图访问互联网的命令可能会挂起或无法完成，因为网络连接被阻止以防止滥用。<A>了解更多</A>。",
   "project.no-internet-modal.message": "要解决此问题，您<A1>需要申请</A1>一个<A2>有效许可证</A2>以提供升级或<A3>购买许可证</A3>。",
-  "project.no-internet-modal.title": "无网络连接",
+  "project.no-internet-modal.title": "项目“{name}”无法访问互联网",
   "project.open_file.what": "打开文件\"{path}\"",
   "project.page.activity-bar-layout.title": "活动栏布局",
   "project.page.activity-bar.explanation": "此功能修改项目左侧按钮栏的功能。默认情况下，它显示完整页面的按钮和用于展开面板的小箭头标志。选择“完整页面”选项时，只显示按钮，点击后打开完整页面。相反，选择“展开面板”模式时，只展开面板。在这两种情况下，通过按住Shift键点击相应按钮可以显示另一种面板类型。",

@@ -1222,7 +1222,7 @@
   "project.no-internet-modal.add-license": "Lisans Ekle",
   "project.no-internet-modal.info": "<strong>Bu projede internet erişimi devre dışı bırakılmıştır.</strong> Bu kısıtlama, Python paketlerinin (pip, conda) veya R paketlerinin yüklenmesini, Git kullanarak depoların klonlanmasını, veri setlerinin indirilmesini veya API'lere erişilmesini engeller. İnternete erişmeye çalışan komutlar, ağ bağlantıları kötüye kullanımı önlemek için engellendiğinden, takılabilir veya tamamlanamayabilir. <A>Daha fazla bilgi edinin</A>.",
   "project.no-internet-modal.message": "Bunu düzeltmek için yükseltmeler sağlayan geçerli bir lisans <A1>uygulamanız</A1> veya bir lisans <A3>satın almanız</A3> <A2>gerekiyor</A2>.",
-  "project.no-internet-modal.title": "İnternet Erişimi Yok",
+  "project.no-internet-modal.title": "Proje \"{name}\" internet erişimine sahip değil",
   "project.open_file.what": "dosyayı aç \"{path}\"",
   "project.page.activity-bar-layout.title": "Etkinlik çubuğu düzeni",
   "project.page.activity-bar.explanation": "Bu özellik, projenin sol tarafındaki düğme çubuğunun işlevselliğini değiştirir. Varsayılan olarak, tam sayfalar için düğmeler ve açılır paneller için küçük işaretler görüntüler. \"Tam sayfalar\" seçeneğini seçtiğinizde, yalnızca düğmeler gösterilir ve tıklama ile tam sayfalar açılır. Buna karşılık, \"açılır paneller\" modunu seçtiğinizde, yalnızca açılır paneller tıklama ile genişler. Her iki durumda da, alternatif panel türü ilgili düğmeye shift-tıklanarak görüntülenebilir.",
