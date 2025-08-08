@@ -946,7 +946,7 @@
   "labels.linux_terminal": "Linux Terminal",
   "labels.loading": "Laden...",
   "labels.log": "Logboek",
-  "labels.masked_files": "{masked, select, true {Verborgen bestanden verbergen} other {Verborgen bestanden weergeven}}. Verborgen bestanden zijn automatisch gegenereerde of tijdelijke bestanden, die niet bedoeld zijn om te bewerken. Ze worden grijs weergegeven.",
+  "labels.masked_files": "{masked, select, true {Verborgen bestanden verbergen} other {Verborgen bestanden tonen}}. Verborgen bestanden zijn automatisch gegenereerde of tijdelijke bestanden, die niet bedoeld zijn om te worden bewerkt. Ze worden grijs weergegeven.",
   "labels.message.plural": "{num, plural, one {bericht} other {berichten}}",
   "labels.messages": "Berichten",
   "labels.messages.all_messages": "Alle berichten",

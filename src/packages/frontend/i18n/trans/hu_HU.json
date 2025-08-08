@@ -946,7 +946,7 @@
   "labels.linux_terminal": "Linux terminál",
   "labels.loading": "Betöltés...",
   "labels.log": "Napló",
-  "labels.masked_files": "{masked, select, true {Rejtett fájlok elrejtése} other {Rejtett fájlok megjelenítése}}. A rejtett fájlok automatikusan generált vagy ideiglenes fájlok, amelyeket nem szándékoznak szerkeszteni. Szürkével jelennek meg.",
+  "labels.masked_files": "{masked, select, true {Maszkos fájlok elrejtése} other {Maszkos fájlok megjelenítése}}. A maszkos fájlok automatikusan generált vagy ideiglenes fájlok, amelyeket nem szándékoznak szerkeszteni. Ezek szürkével vannak kiemelve.",
   "labels.message.plural": "{num, plural, one {üzenet} other {üzenetek}}",
   "labels.messages": "Üzenetek",
   "labels.messages.all_messages": "Összes üzenet",

@@ -946,7 +946,7 @@
   "labels.linux_terminal": "Terminal Linux",
   "labels.loading": "Ładowanie...",
   "labels.log": "Dziennik",
-  "labels.masked_files": "{masked, select, true {Ukryj zamaskowane pliki} other {Pokaż zamaskowane pliki}}. Zamaskowane pliki są plikami generowanymi automatycznie lub tymczasowymi, które nie są przeznaczone do edycji. Są wyszarzone.",
+  "labels.masked_files": "{masked, select, true {Ukryj zamaskowane pliki} other {Pokaż zamaskowane pliki}}. Zamaskowane pliki to pliki generowane automatycznie lub tymczasowe, które nie są przeznaczone do edycji. Są wyszarzone.",
   "labels.message.plural": "{num, plural, one {wiadomość} other {wiadomości}}",
   "labels.messages": "Wiadomości",
   "labels.messages.all_messages": "Wszystkie wiadomości",
