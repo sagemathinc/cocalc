@@ -5,6 +5,7 @@
 
 import * as _ from "lodash";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import { Button, Space } from "antd";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   type CSSProperties,
@@ -51,6 +52,7 @@ import {
   getPublicFiles,
   useStrippedPublicPaths,
 } from "@cocalc/frontend/project_store";
+import { Icon } from "@cocalc/frontend/components";
 
 const FLEX_ROW_STYLE = {
   display: "flex",
@@ -129,7 +131,11 @@ export function Explorer() {
 
   const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
   const fs = useFs({ project_id });
-  let { listing, error: listingError } = useListing({
+  let {
+    refresh,
+    listing,
+    error: listingError,
+  } = useListing({
     fs,
     path: current_path,
     ...sortDesc(active_file_sort),
@@ -220,10 +226,6 @@ export function Explorer() {
     };
   }, [project_id, current_path, listing, file_action]);
 
-  if (listingError) {
-    return <ShowError error={error} />;
-  }
-
   if (actions == null || project_map == null) {
     return <Loading />;
   }
@@ -280,6 +282,34 @@ export function Explorer() {
     project_is_running = project_state?.get("state") == "running";
   } else {
     project_is_running = false;
+  }
+
+  if (listingError?.code == 403 || listingError?.code == 408) {
+    // 403 = permission denied, 408 = connection being closed (due to permission?)
+    return (
+      <div style={{ margin: "30px auto", textAlign: "center" }}>
+        <ShowError
+          message={
+            "Permission Issues: You are probably using the wrong account to access this project."
+          }
+          error={listingError}
+          style={{ textAlign: "left" }}
+        />
+        <br />
+        <Space.Compact>
+          <Button
+            size="large"
+            type="primary"
+            style={{ margin: "auto" }}
+            onClick={() => {
+              redux.getActions("page").close_project_tab(project_id);
+            }}
+          >
+            <Icon name="times-circle" /> Close Project
+          </Button>
+        </Space.Compact>
+      </div>
+    );
   }
 
   // be careful with adding height:'100%'. it could cause flex to miscalculate. see #3904
@@ -482,49 +512,78 @@ export function Explorer() {
         ) : undefined}
       </div>
 
-      <div
-        ref={fileListingRef}
-        className="smc-vfill"
-        style={{
-          flex: "1 0 auto",
-          display: "flex",
-          flexDirection: "column",
-          padding: "0 5px 5px 5px",
-        }}
-      >
-        <FileUploadWrapper
-          project_id={project_id}
-          dest_path={current_path}
-          config={{ clickable: ".upload-button" }}
+      {listingError && (
+        <div style={{ margin: "30px auto", textAlign: "center" }}>
+          <ShowError error={listingError} style={{ textAlign: "left" }} />
+          <br />
+          <Space.Compact>
+            <Button size="large" style={{ margin: "auto" }} onClick={refresh}>
+              <Icon name="refresh" /> Refresh
+            </Button>
+            <Button
+              size="large"
+              style={{ margin: "auto" }}
+              onClick={async () => {
+                const fs = actions?.fs();
+                try {
+                  await fs.mkdir(current_path, { recursive: true });
+                  refresh();
+                } catch (err) {
+                  actions?.setState({ error: err });
+                }
+              }}
+            >
+              <Icon name="folder-open" /> Create Directory
+            </Button>
+          </Space.Compact>
+        </div>
+      )}
+
+      {!listingError && (
+        <div
+          ref={fileListingRef}
+          className="smc-vfill"
           style={{
             flex: "1 0 auto",
             display: "flex",
             flexDirection: "column",
+            padding: "0 5px 5px 5px",
           }}
-          className="smc-vfill"
         >
-          {listing == null ? (
-            <div style={{ textAlign: "center" }}>
-              <Loading delay={1000} theme="medium" />
-            </div>
-          ) : (
-            <FileListing
-              active_file_sort={active_file_sort}
-              listing={listing}
-              file_search={file_search}
-              checked_files={checked_files}
-              current_path={current_path}
-              actions={actions}
-              project_id={project_id}
-              shiftIsDown={shiftIsDown}
-              configuration_main={
-                configuration?.get("main") as MainConfiguration | undefined
-              }
-              publicFiles={publicFiles}
-            />
-          )}
-        </FileUploadWrapper>
-      </div>
+          <FileUploadWrapper
+            project_id={project_id}
+            dest_path={current_path}
+            config={{ clickable: ".upload-button" }}
+            style={{
+              flex: "1 0 auto",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            className="smc-vfill"
+          >
+            {listing == null ? (
+              <div style={{ textAlign: "center" }}>
+                <Loading delay={1000} theme="medium" />
+              </div>
+            ) : (
+              <FileListing
+                active_file_sort={active_file_sort}
+                listing={listing}
+                file_search={file_search}
+                checked_files={checked_files}
+                current_path={current_path}
+                actions={actions}
+                project_id={project_id}
+                shiftIsDown={shiftIsDown}
+                configuration_main={
+                  configuration?.get("main") as MainConfiguration | undefined
+                }
+                publicFiles={publicFiles}
+              />
+            )}
+          </FileUploadWrapper>
+        </div>
+      )}
       <ExplorerTour
         project_id={project_id}
         newFileRef={newFileRef}

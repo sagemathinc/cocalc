@@ -48,6 +48,10 @@ import { spawn } from "node:child_process";
 import { type Configuration } from "./types";
 import { limits } from "./limits";
 
+// for development it may be useful to just disabling using nsjail namespaces
+// entirely -- change this to true to do so.
+const DISABLE_NSJAIL = false;
+
 const DEFAULT_UID = 2001;
 
 const logger = getLogger("server:conat:project:run");
@@ -141,7 +145,7 @@ async function start({
   let script: string,
     cmd: string,
     args: string[] = [];
-  if (config?.admin) {
+  if (config?.admin || DISABLE_NSJAIL) {
     // DANGEROUS: no safety at all here!
     // This is needed to develop cocalc, since we want to run btrfs and nsjail
     // from within a cocalc project.

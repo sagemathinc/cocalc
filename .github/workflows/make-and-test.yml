@@ -124,30 +124,30 @@ jobs:
           name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
           path: 'src/packages/*/junit.xml'
 
-  report:
-    runs-on: ubuntu-latest
+#   report:
+#     runs-on: ubuntu-latest
 
-    needs: [test]
+#     needs: [test]
 
-    if: ${{ !cancelled() }}
+#     if: ${{ !cancelled() }}
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Download all test artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: "test-results-*"
-          merge-multiple: true
-          path: test-results/
+#       - name: Download all test artifacts
+#         uses: actions/download-artifact@v4
+#         with:
+#           pattern: "test-results-*"
+#           merge-multiple: true
+#           path: test-results/
 
-      - name: Test Report
-        uses: dorny/test-reporter@v2
-        with:
-          name: CoCalc Jest Tests
-          path: 'test-results/**/junit.xml'
-          reporter: jest-junit
-          use-actions-summary: 'true'
-          fail-on-error: false
+#       - name: Test Report
+#         uses: dorny/test-reporter@v2
+#         with:
+#           name: CoCalc Jest Tests
+#           path: 'test-results/**/junit.xml'
+#           reporter: jest-junit
+#           use-actions-summary: 'true'
+#           fail-on-error: false
 

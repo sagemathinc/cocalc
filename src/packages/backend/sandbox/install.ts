@@ -27,6 +27,7 @@ const binPath = join(
 );
 
 interface Spec {
+  nonFatal?: boolean; // true if failure to install is non-fatal
   VERSION?: string;
   BASE?: string;
   binary?: string;
@@ -83,6 +84,7 @@ const SPEC = {
     pathInArchive: "rustic",
   },
   nsjail: {
+    nonFatal: true,
     platforms: ["linux"],
     VERSION: NSJAIL_VERSION,
     BASE: "https://github.com/google/nsjail/releases",
@@ -135,72 +137,80 @@ export async function install(app?: App) {
   }
 
   const { script } = spec;
-  if (script) {
-    try {
-      execSync(script);
-    } catch (err) {
-      if (spec.fix) {
-        console.warn(`BUILD OF ${app} FAILED: Suggested fix -- ${spec.fix}`);
+  try {
+    if (script) {
+      try {
+        execSync(script);
+      } catch (err) {
+        if (spec.fix) {
+          console.warn(`BUILD OF ${app} FAILED: Suggested fix -- ${spec.fix}`);
+        }
+        throw err;
       }
+      if (!(await alreadyInstalled(app))) {
+        throw Error(`failed to install ${app}`);
+      }
+      return;
+    }
+
+    const url = getUrl(app);
+    if (!url) {
+      logger.debug("install: skipping ", app);
+      return;
+    }
+    logger.debug("install", { app, url });
+    // - 1. Fetch the tarball from the github url (using the fetch library)
+    const response = await downloadFromGithub(url);
+    const tarballBuffer = Buffer.from(await response.arrayBuffer());
+
+    // - 2. Extract the file "rg" from the tarball to ${__dirname}/rg
+    // The tarball contains this one file "rg" at the top level, i.e., for
+    //   ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz
+    // we have "tar tvf ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz" outputs
+    //    ...
+    //    ripgrep-14.1.1-x86_64-unknown-linux-musl/rg
+
+    const {
+      VERSION,
+      binary,
+      path,
+      stripComponents = 1,
+      pathInArchive = app == "ouch"
+        ? `${app}-${getOS()}/${binary}`
+        : `${app}-${VERSION}-${getOS()}/${binary}`,
+    } = spec;
+
+    const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
+    try {
+      try {
+        if (!(await exists(binPath))) {
+          await mkdir(binPath);
+        }
+      } catch {}
+      await writeFile(tmpFile, tarballBuffer);
+      // sync is fine since this is run at *build time*.
+      execFileSync("tar", [
+        "xzf",
+        tmpFile,
+        `--strip-components=${stripComponents}`,
+        `-C`,
+        binPath,
+        pathInArchive,
+      ]);
+
+      // - 3. Make the file rg executable
+      await chmod(path, 0o755);
+    } finally {
+      try {
+        await unlink(tmpFile);
+      } catch {}
+    }
+  } catch (err) {
+    if (spec.nonFatal) {
+      console.log(`WARNING: unable to install ${app}`, err);
+    } else {
       throw err;
     }
-    if (!(await alreadyInstalled(app))) {
-      throw Error(`failed to install ${app}`);
-    }
-    return;
-  }
-
-  const url = getUrl(app);
-  if (!url) {
-    logger.debug("install: skipping ", app);
-    return;
-  }
-  logger.debug("install", { app, url });
-  // - 1. Fetch the tarball from the github url (using the fetch library)
-  const response = await downloadFromGithub(url);
-  const tarballBuffer = Buffer.from(await response.arrayBuffer());
-
-  // - 2. Extract the file "rg" from the tarball to ${__dirname}/rg
-  // The tarball contains this one file "rg" at the top level, i.e., for
-  //   ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz
-  // we have "tar tvf ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz" outputs
-  //    ...
-  //    ripgrep-14.1.1-x86_64-unknown-linux-musl/rg
-
-  const {
-    VERSION,
-    binary,
-    path,
-    stripComponents = 1,
-    pathInArchive = app == "ouch"
-      ? `${app}-${getOS()}/${binary}`
-      : `${app}-${VERSION}-${getOS()}/${binary}`,
-  } = spec;
-
-  const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
-  try {
-    try {
-      if (!(await exists(binPath))) {
-        await mkdir(binPath);
-      }
-    } catch {}
-    await writeFile(tmpFile, tarballBuffer);
-    // sync is fine since this is run at *build time*.
-    execFileSync("tar", [
-      "xzf",
-      tmpFile,
-      `--strip-components=${stripComponents}`,
-      `-C`,
-      binPath,
-      pathInArchive,
-    ]);
-
-    // - 3. Make the file rg executable
-    await chmod(path, 0o755);
-  } finally {
-    try {
-      await unlink(tmpFile);
-    } catch {}
   }
 }
 
