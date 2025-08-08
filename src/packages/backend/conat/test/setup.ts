@@ -133,10 +133,21 @@ export async function restartPersistServer() {
 
 // one pre-made client
 export let client;
-export async function before() {
+export async function before(
+  opts: { archive?: string; backup?: string; archiveInterval?: number } = {},
+) {
+  // syncFiles and tempDir define where the persist server persists data.
   tempDir = await mkdtemp(join(tmpdir(), "conat-test"));
   syncFiles.local = join(tempDir, "local");
-  syncFiles.archive = join(tempDir, "archive");
+  if (opts.archive) {
+    syncFiles.archive = join(tempDir, "archive");
+  }
+  if (opts.archiveInterval) {
+    syncFiles.archiveInterval = opts.archiveInterval;
+  }
+  if (opts.backup) {
+    syncFiles.backup = join(tempDir, "backup");
+  }
 
   server = await createServer();
   client = connect();

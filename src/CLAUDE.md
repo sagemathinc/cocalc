@@ -1,6 +1,6 @@
-# CLAUDE.md
+# CLAUDE.md and GEMINI.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI (https://github.com/google-gemini/gemini-cli) when working with code in this repository.
 
 # CoCalc Source Repository
 
@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development
 
-- After code changes, run `pretter -w [filename]` to ensure consistent styling
+- **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
 - After TypeScript or `*.tsx` changes, run `pnpm build` in the relevant package directory
 
 ## Architecture Overview
@@ -87,6 +87,7 @@ CoCalc is organized as a monorepo with key packages:
 - **Database Queries**: Structured query system with typed interfaces
 - **Event Emitters**: Inter-service communication within backend
 - **REST-like APIs**: Some HTTP endpoints for specific operations
+- **API Schema**: API endpoints in `packages/next/pages/api/v2/` use Zod schemas in `packages/next/lib/api/schema/` for validation. These schemas must be kept in harmony with the TypeScript types sent from frontend applications using `apiPost` (in `packages/next/lib/api/post.ts`) or `api` (in `packages/frontend/client/api.ts`). When adding new fields to API requests, both the frontend types and the API schema validation must be updated.
 
 ### Key Technologies
 

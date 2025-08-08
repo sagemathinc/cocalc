@@ -33,7 +33,16 @@
     "locales/*/*.json",
     "locales/en/common.ts"
   ],
-  "exclude": ["node_modules", "public", "styles", "dist"],
+  "exclude": [
+    "node_modules",
+    "public",
+    "styles",
+    "dist",
+    ".next",
+    "target",
+    "locales",
+    "software-inventory"
+  ],
   "references": [
     { "path": "../backend" },
     { "path": "../database" },

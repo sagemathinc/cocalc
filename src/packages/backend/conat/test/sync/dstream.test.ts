@@ -110,7 +110,7 @@ describe("create two dstreams and observe sync between them", () => {
   });
 });
 
-describe.only("get sequence number and time of message", () => {
+describe("get sequence number and time of message", () => {
   let s;
 
   it("creates stream and write message", async () => {
@@ -412,6 +412,17 @@ describe("test delete of messages from stream", () => {
     expect(seqs[1]).toBe(seq);
     await wait({ until: () => s1.length == 2 });
     expect(s1.get()).toEqual(["x", "y"]);
+  });
+
+  it("delete an array of sequence numbers", async () => {
+    s1.push("x", "y", "z");
+    await s1.save();
+    const v = await s1.getAll();
+    const seqs0 = [s1.seq(0), s1.seq(2)];
+    const { seqs } = await s1.delete({ seqs: seqs0 });
+    expect(seqs).toEqual(seqs0);
+    await wait({ until: () => s1.length == v.length - 2 });
+    expect(s1.getAll()).toEqual([v[1]].concat(v.slice(3)));
   });
 });
 

@@ -34,6 +34,9 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@18.19.118)
+      jest-junit:
+        specifier: ^16.0.0
+        version: 16.0.0
       ts-jest:
         specifier: ^29.2.3
         version: 29.4.0(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@30.0.1)(babel-jest@29.7.0(@babel/core@7.28.0))(jest-util@30.0.2)(jest@29.7.0(@types/node@18.19.118))(typescript@5.8.3)
@@ -473,9 +476,6 @@ importers:
       dog-names:
         specifier: ^2.1.0
         version: 2.1.0
-      domhandler:
-        specifier: ^4.3.1
-        version: 4.3.1
       dropzone:
         specifier: ^5.9.2
         version: 5.9.3
@@ -1223,8 +1223,8 @@ importers:
         specifier: ^0.6.1
         version: 0.6.1(@langchain/core@0.3.64(@opentelemetry/api@1.9.0)(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76)))(ws@8.18.3)
       '@node-saml/passport-saml':
-        specifier: ^5.0.1
-        version: 5.0.1
+        specifier: ^5.1.0
+        version: 5.1.0
       '@passport-js/passport-twitter':
         specifier: ^1.0.8
         version: 1.0.10
@@ -1259,8 +1259,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       axios:
-        specifier: ^1.7.5
-        version: 1.10.0
+        specifier: ^1.11.0
+        version: 1.11.0
       base62:
         specifier: ^2.0.1
         version: 2.0.2
@@ -3440,12 +3440,12 @@ packages:
   '@node-rs/helper@1.6.0':
     resolution: {integrity: sha512-2OTh/tokcLA1qom1zuCJm2gQzaZljCCbtX1YCrwRVd/toz7KxaDRFeLTAPwhs8m9hWgzrBn5rShRm6IaZofCPw==}
 
-  '@node-saml/node-saml@5.0.1':
-    resolution: {integrity: sha512-YQzFPEC+CnsfO9AFYnwfYZKIzOLx3kITaC1HrjHVLTo6hxcQhc+LgHODOMvW4VCV95Gwrz1MshRUWCPzkDqmnA==}
+  '@node-saml/node-saml@5.1.0':
+    resolution: {integrity: sha512-t3cJnZ4aC7HhPZ6MGylGZULvUtBOZ6FzuUndaHGXjmIZHXnLfC/7L8a57O9Q9V7AxJGKAiRM5zu2wNm9EsvQpw==}
     engines: {node: '>= 18'}
 
-  '@node-saml/passport-saml@5.0.1':
-    resolution: {integrity: sha512-fMztg3zfSnjLEgxvpl6HaDMNeh0xeQX4QHiF9e2Lsie2dc4qFE37XYbQZhVmn8XJ2awPpSWLQ736UskYgGU8lQ==}
+  '@node-saml/passport-saml@5.1.0':
+    resolution: {integrity: sha512-pBm+iFjv9eihcgeJuSUs4c0AuX1QEFdHwP8w1iaWCfDzXdeWZxUBU5HT2bY2S4dvNutcy+A9hYsH7ZLBGtgwDg==}
     engines: {node: '>= 18'}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -4942,6 +4942,9 @@ packages:
 
   axios@1.10.0:
     resolution: {integrity: sha512-/1xYAC4MP/HEG+3duIhFr4ZQXR4sQXOIe+o6sdqzeykGLx6Upp/1p8MHqhINOvGeP7xyNHe7tsiJByc4SSVUxw==}
+
+  axios@1.11.0:
+    resolution: {integrity: sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==}
 
   babel-jest@29.7.0:
     resolution: {integrity: sha512-BrvGY3xZSwEcCzKvKsCi2GgHqDqsYkOP4/by5xCgIwGXQxIEh+8ew3gmrE1y7XRR6LHZIj6yLYnUi/mm2KXKBg==}
@@ -6786,6 +6789,10 @@ packages:
     resolution: {integrity: sha512-qsITQPfmvMOSAdeyZ+12I1c+CKSstAFAwu+97zrnWAbIr5u8wfsExUzCesVLC8NgHuRUqNN4Zy6UPWUTRGslcA==}
     engines: {node: '>= 6'}
 
+  form-data@4.0.4:
+    resolution: {integrity: sha512-KrGhL9Q4zjj0kiUt5OO4Mr/A/jlI2jDYs5eHBpYHPcBEVSiipAvn2Ko2HnPe20rmcuuvMHNdZFp+4IlGTMF0Ow==}
+    engines: {node: '>= 6'}
+
   formdata-node@4.4.1:
     resolution: {integrity: sha512-0iirZp3uVDjVGt9p49aTaqjk84TrglENEDuqfdlZQ1roC9CWlPk6Avf8EEnZNcAqPonwkG35x4n3ww/1THYAeQ==}
     engines: {node: '>= 12.20'}
@@ -7860,6 +7867,10 @@ packages:
   jest-haste-map@29.7.0:
     resolution: {integrity: sha512-fP8u2pyfqx0K1rGn1R9pyE0/KTn+G7PxktWidOBTqFPLYX0b9ksaMFkhK5vrS3DVun09pckLdlx90QthlW7AmA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  jest-junit@16.0.0:
+    resolution: {integrity: sha512-A94mmw6NfJab4Fg/BlvVOUXzXgF0XIH6EmTgJ5NDPp4xoKq0Kr7sErb+4Xs9nZvu58pJojz5RFGpqnZYJTrRfQ==}
+    engines: {node: '>=10.12.0'}
 
   jest-leak-detector@29.7.0:
     resolution: {integrity: sha512-kYA8IJcSYtST2BY9I+SMC32nDpBT3J2NvWJx8+JCuCdl/CR1I4EKUJROiP8XtCcxqgTTBGJNdbB1A8XRKbTetw==}
@@ -11614,6 +11625,9 @@ packages:
     resolution: {integrity: sha512-T4rieHaC1EXcES0Kxxj4JWgaUQHDk+qwHcYOCFHfiwKz7tOVPLq7Hjq9dM1WCMhylqMEfP7hMcOIChvotiZegA==}
     engines: {node: '>=4.0.0'}
 
+  xml@1.0.1:
+    resolution: {integrity: sha512-huCv9IH9Tcf95zuYCsQraZtWnJvBtLVE0QHMOs8bWyZAFZNDcYjsPq1nEx8jKA9y+Beo9v+7OBPRisQTjinQMw==}
+
   xmlbuilder2@3.1.1:
     resolution: {integrity: sha512-WCSfbfZnQDdLQLiMdGUQpMxxckeQ4oZNMNhLVkcekTu7xhD4tuUDyAPoY8CwXvBYE6LwBHd6QW2WZXlOWr1vCw==}
     engines: {node: '>=12.0'}
@@ -13552,7 +13566,7 @@ snapshots:
     dependencies:
       '@napi-rs/triples': 1.2.0
 
-  '@node-saml/node-saml@5.0.1':
+  '@node-saml/node-saml@5.1.0':
     dependencies:
       '@types/debug': 4.1.12
       '@types/qs': 6.14.0
@@ -13569,9 +13583,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@node-saml/passport-saml@5.0.1':
+  '@node-saml/passport-saml@5.1.0':
     dependencies:
-      '@node-saml/node-saml': 5.0.1
+      '@node-saml/node-saml': 5.1.0
       '@types/express': 4.17.23
       '@types/passport': 1.0.17
       '@types/passport-strategy': 0.2.38
@@ -14112,7 +14126,7 @@ snapshots:
   '@sendgrid/client@8.1.5':
     dependencies:
       '@sendgrid/helpers': 8.0.0
-      axios: 1.10.0
+      axios: 1.11.0
     transitivePeerDependencies:
       - debug
 
@@ -15330,6 +15344,14 @@ snapshots:
     dependencies:
       follow-redirects: 1.15.9(debug@4.4.1)
       form-data: 4.0.3
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
+
+  axios@1.11.0:
+    dependencies:
+      follow-redirects: 1.15.9(debug@4.4.1)
+      form-data: 4.0.4
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
@@ -17503,6 +17525,14 @@ snapshots:
       hasown: 2.0.2
       mime-types: 2.1.35
 
+  form-data@4.0.4:
+    dependencies:
+      asynckit: 0.4.0
+      combined-stream: 1.0.8
+      es-set-tostringtag: 2.1.0
+      hasown: 2.0.2
+      mime-types: 2.1.35
+
   formdata-node@4.4.1:
     dependencies:
       node-domexception: 1.0.0
@@ -18832,6 +18862,13 @@ snapshots:
       walker: 1.0.8
     optionalDependencies:
       fsevents: 2.3.3
+
+  jest-junit@16.0.0:
+    dependencies:
+      mkdirp: 1.0.4
+      strip-ansi: 6.0.1
+      uuid: 8.3.2
+      xml: 1.0.1
 
   jest-leak-detector@29.7.0:
     dependencies:
@@ -23328,6 +23365,8 @@ snapshots:
     dependencies:
       sax: 1.4.1
       xmlbuilder: 11.0.1
+
+  xml@1.0.1: {}
 
   xmlbuilder2@3.1.1:
     dependencies:

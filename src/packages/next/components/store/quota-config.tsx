@@ -17,16 +17,27 @@ import {
   Typography,
 } from "antd";
 import { useEffect, useRef, useState, type JSX } from "react";
+
+import { HelpIcon } from "@cocalc/frontend/components/help-icon";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
-import { plural } from "@cocalc/util/misc";
-import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
+import { plural, unreachable } from "@cocalc/util/misc";
+import {
+  BOOST,
+  DISK_DEFAULT_GB,
+  MAX_DISK_GB,
+  MIN_DISK_GB,
+  REGULAR,
+} from "@cocalc/util/upgrades/consts";
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
+
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { CSS, Paragraph } from "components/misc";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import {
-  PRESETS,
+  COURSE,
+  SITE_LICENSE,
   PRESET_MATCH_FIELDS,
   Preset,
   PresetConfig,
@@ -57,6 +68,7 @@ interface Props {
   setPreset?: (preset: Preset | null) => void;
   presetAdjusted?: boolean;
   setPresetAdjusted?: (adjusted: boolean) => void;
+  source: LicenseSource;
 }
 
 export const QuotaConfig: React.FC<Props> = (props: Props) => {
@@ -72,6 +84,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     setPreset,
     presetAdjusted,
     setPresetAdjusted,
+    source,
   } = props;
 
   const presetsRef = useRef<HTMLDivElement>(null);
@@ -107,7 +120,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (boost) {
       return "Booster";
     } else {
-      return "Quota Upgrades";
+      switch (source) {
+        case "site-license":
+          return "Quota Upgrades";
+        case "course":
+          return "Project Upgrades";
+        default:
+          unreachable(source);
+      }
     }
   }
 
@@ -267,8 +287,29 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function generateDiskPresets(min: number, max: number): number[] {
+    if (min >= max) return [min];
+
+    const range = max - min;
+    const presets = [min]; // Always include minimum
+
+    //  Create 3-4 evenly spaced values
+    const step = Math.ceil(range / 4);
+    let current = min + step;
+    while (current < max) {
+      presets.push(current);
+      current += step;
+    }
+
+    presets.push(max); // Always include maximum
+    return [...new Set(presets)].sort((a, b) => a - b); // Remove duplicates and sort
+  }
+
   function disk() {
-    // 2022-06: price increase "version 2": minimum disk we sell (also the free quota) is 3gb, not 1gb
+    // Generate dynamic presets based on MIN_DISK_GB and MAX_DISK_GB
+    const presets = boost
+      ? [0, ...generateDiskPresets(MIN_DISK_GB, PARAMS.disk.max).slice(0, 3)] // For boost, include 0 and limit to 3 additional values
+      : generateDiskPresets(MIN_DISK_GB, MAX_DISK_GB);
     return (
       <Form.Item
         label="Disk space"
@@ -300,9 +341,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             onChange();
           }}
           units={"G Disk"}
-          presets={
-            boost ? [0, 3, 6, PARAMS.disk.max] : [3, 5, 10, PARAMS.disk.max]
-          }
+          presets={presets}
         />
       </Form.Item>
     );
@@ -310,7 +349,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
   function presetIsAdjusted() {
     if (preset == null) return;
-    const presetData: PresetConfig = PRESETS[preset];
+    const presetData: PresetConfig = SITE_LICENSE[preset];
     if (presetData == null) {
       return (
         <div>
@@ -357,6 +396,20 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderIdleTimeoutWithHelp(text?: string) {
+    return (
+      <HelpIcon title="Idle Timeout" extra={text || "idle timeout"}>
+        The idle timeout determines how long your project stays running after
+        you stop using it. For example, if you work in your project for 2 hours,
+        it will keep running during that time. When you close your browser or
+        stop working, the project will automatically shut down after the idle
+        timeout period. Don't worry - your files are always saved and you can
+        restart the project anytime to continue your work exactly where you left
+        off.
+      </HelpIcon>
+    );
+  }
+
   function presetsCommon() {
     if (!showExplanations) return null;
     return (
@@ -365,7 +418,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <>After selecting a preset, feel free to</>
         ) : (
           <>
-            Selected preset <strong>"{PRESETS[preset]?.name}"</strong>. You can
+            Selected preset <strong>"{SITE_LICENSE[preset]?.name}"</strong>. You
+            can
           </>
         )}{" "}
         fine tune the selection in the "{EXPERT_CONFIG}" tab. Subsequent preset
@@ -384,8 +438,65 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderCoursePresets() {
+    const p = preset != null ? COURSE[preset] : undefined;
+    let presetInfo: JSX.Element | undefined = undefined;
+    if (p != null) {
+      const { name, cpu, disk, ram, uptime, note, details } = p;
+      const basic = (
+        <>
+          Each student project will be outfitted with up to{" "}
+          <Text strong>
+            {cpu} {plural(cpu, "vCPU")}
+          </Text>
+          , <Text strong>{ram} GB memory</Text>, and{" "}
+          <Text strong>{disk} GB disk space</Text> with an{" "}
+          <Text strong>
+            {renderIdleTimeoutWithHelp()} of {displaySiteLicense(uptime)}
+          </Text>
+          .
+        </>
+      );
+      presetInfo = (
+        <>
+          <Paragraph>
+            <strong>{name}:</strong> {note} {basic}
+          </Paragraph>
+          <Paragraph type="secondary">{details}</Paragraph>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Form.Item label="Presets">
+          <Radio.Group
+            size="large"
+            value={preset}
+            onChange={(e) => onPresetChange(COURSE, e.target.value)}
+          >
+            <Space direction="vertical">
+              {(Object.keys(COURSE) as Array<Preset>).map((p) => {
+                const { name, icon, descr } = COURSE[p];
+                return (
+                  <Radio key={p} value={p}>
+                    <span>
+                      <Icon name={icon ?? "arrow-up"} />{" "}
+                      <strong>{name}:</strong> {descr}
+                    </span>
+                  </Radio>
+                );
+              })}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+        <Form.Item label={null}>{presetInfo}</Form.Item>
+      </>
+    );
+  }
+
   function renderPresetsNarrow() {
-    const p = preset != null ? PRESETS[preset] : undefined;
+    const p = preset != null ? SITE_LICENSE[preset] : undefined;
     let presetInfo: JSX.Element | undefined = undefined;
     if (p != null) {
       const { name, cpu, disk, ram, uptime, note } = p;
@@ -402,7 +513,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       const ut = (
         <>
           the project's{" "}
-          <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
+          <Text strong>
+            {renderIdleTimeoutWithHelp()} is {displaySiteLicense(uptime)}
+          </Text>
         </>
       );
       presetInfo = (
@@ -418,11 +531,11 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <Radio.Group
             size="large"
             value={preset}
-            onChange={(e) => onPresetChange(e.target.value)}
+            onChange={(e) => onPresetChange(SITE_LICENSE, e.target.value)}
           >
             <Space direction="vertical">
-              {(Object.keys(PRESETS) as Array<Preset>).map((p) => {
-                const { name, icon, descr } = PRESETS[p];
+              {(Object.keys(SITE_LICENSE) as Array<Preset>).map((p) => {
+                const { name, icon, descr } = SITE_LICENSE[p];
                 return (
                   <Radio key={p} value={p}>
                     <span>
@@ -443,58 +556,62 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   function renderPresetPanels() {
     if (narrow) return renderPresetsNarrow();
 
-    const panels = (Object.keys(PRESETS) as Array<Preset>).map((p, idx) => {
-      const { name, icon, cpu, ram, disk, uptime, expect, descr, note } =
-        PRESETS[p];
-      const active = preset === p;
-      return (
-        <PricingItem
-          key={idx}
-          title={name}
-          icon={icon}
-          style={{ flex: 1 }}
-          active={active}
-          onClick={() => onPresetChange(p)}
-        >
-          <Paragraph>
-            <strong>{name}</strong> {descr}.
-          </Paragraph>
-          <Divider />
-          <Line amount={cpu} desc={"CPU"} indent={false} />
-          <Line amount={ram} desc={"RAM"} indent={false} />
-          <Line amount={disk} desc={"Disk space"} indent={false} />
-          <Line
-            amount={displaySiteLicense(uptime)}
-            desc={"Idle timeout"}
-            indent={false}
-          />
-          <Divider />
-          <Paragraph>
-            <Text type="secondary">In each project, you will be able to:</Text>
-            <ul>
-              {expect.map((what, idx) => (
-                <li key={idx}>{what}</li>
-              ))}
-            </ul>
-          </Paragraph>
-          {active && note != null ? (
-            <>
-              <Divider />
-              <Paragraph type="secondary">{note}</Paragraph>
-            </>
-          ) : undefined}
-          <Paragraph style={{ marginTop: "20px", textAlign: "center" }}>
-            <Button
-              onClick={() => onPresetChange(p)}
-              size="large"
-              type={active ? "primary" : undefined}
-            >
-              {name}
-            </Button>
-          </Paragraph>
-        </PricingItem>
-      );
-    });
+    const panels = (Object.keys(SITE_LICENSE) as Array<Preset>).map(
+      (p, idx) => {
+        const { name, icon, cpu, ram, disk, uptime, expect, descr, note } =
+          SITE_LICENSE[p];
+        const active = preset === p;
+        return (
+          <PricingItem
+            key={idx}
+            title={name}
+            icon={icon}
+            style={{ flex: 1 }}
+            active={active}
+            onClick={() => onPresetChange(SITE_LICENSE, p)}
+          >
+            <Paragraph>
+              <strong>{name}</strong> {descr}.
+            </Paragraph>
+            <Divider />
+            <Line amount={cpu} desc={"CPU"} indent={false} />
+            <Line amount={ram} desc={"RAM"} indent={false} />
+            <Line amount={disk} desc={"Disk space"} indent={false} />
+            <Line
+              amount={displaySiteLicense(uptime)}
+              desc={renderIdleTimeoutWithHelp("Idle timeout")}
+              indent={false}
+            />
+            <Divider />
+            <Paragraph>
+              <Text type="secondary">
+                In each project, you will be able to:
+              </Text>
+              <ul>
+                {expect.map((what, idx) => (
+                  <li key={idx}>{what}</li>
+                ))}
+              </ul>
+            </Paragraph>
+            {active && note != null ? (
+              <>
+                <Divider />
+                <Paragraph type="secondary">{note}</Paragraph>
+              </>
+            ) : undefined}
+            <Paragraph style={{ marginTop: "20px", textAlign: "center" }}>
+              <Button
+                onClick={() => onPresetChange(SITE_LICENSE, p)}
+                size="large"
+                type={active ? "primary" : undefined}
+              >
+                {name}
+              </Button>
+            </Paragraph>
+          </PricingItem>
+        );
+      },
+    );
     return (
       <Flex
         style={{ width: "100%" }}
@@ -520,11 +637,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function onPresetChange(val: Preset) {
+  function onPresetChange(
+    preset: { [key: string]: PresetConfig },
+    val: Preset,
+  ) {
     if (val == null || setPreset == null) return;
     setPreset(val);
     setPresetAdjusted?.(false);
-    const presetData = PRESETS[val];
+    const presetData = preset[val];
     if (presetData != null) {
       const { cpu, ram, disk, uptime = "short", member = true } = presetData;
       form.setFieldsValue({ uptime, member, cpu, ram, disk });
@@ -560,38 +680,45 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         </>
       );
     } else {
-      return (
-        <Tabs
-          activeKey={configMode}
-          onChange={setConfigMode}
-          type="card"
-          tabPosition="top"
-          size="middle"
-          centered={true}
-          items={[
-            {
-              key: "preset",
-              label: (
-                <span>
-                  <Icon name="gears" style={{ marginRight: "5px" }} />
-                  Presets
-                </span>
-              ),
-              children: presetExtra(),
-            },
-            {
-              key: "expert",
-              label: (
-                <span>
-                  <Icon name="wrench" style={{ marginRight: "5px" }} />
-                  {EXPERT_CONFIG}
-                </span>
-              ),
-              children: detailed(),
-            },
-          ]}
-        />
-      );
+      switch (source) {
+        case "site-license":
+          return (
+            <Tabs
+              activeKey={configMode}
+              onChange={setConfigMode}
+              type="card"
+              tabPosition="top"
+              size="middle"
+              centered={true}
+              items={[
+                {
+                  key: "preset",
+                  label: (
+                    <span>
+                      <Icon name="gears" style={{ marginRight: "5px" }} />
+                      Presets
+                    </span>
+                  ),
+                  children: presetExtra(),
+                },
+                {
+                  key: "expert",
+                  label: (
+                    <span>
+                      <Icon name="wrench" style={{ marginRight: "5px" }} />
+                      {EXPERT_CONFIG}
+                    </span>
+                  ),
+                  children: detailed(),
+                },
+              ]}
+            />
+          );
+        case "course":
+          return renderCoursePresets();
+        default:
+          unreachable(source);
+      }
     }
   }
 

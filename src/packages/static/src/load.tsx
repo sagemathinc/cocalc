@@ -17,7 +17,6 @@ const loadContainer = document.getElementById("cocalc-load-container");
 if (loadContainer) {
   createRoot(loadContainer).render(
     <>
-      <Manifest />
       <PreflightCheck />
       <StartupBanner />
     </>
@@ -32,6 +31,7 @@ const scriptsContainer = document.getElementById("cocalc-scripts-container");
 if (scriptsContainer != null) {
   createRoot(scriptsContainer).render(
     <span>
+      <Manifest />
       <Meta />
       <Favicons />
     </span>

@@ -17,8 +17,8 @@ import React from "react";
 import htmlReactParser, {
   attributesToProps,
   domToReact,
+  Element, Text
 } from "html-react-parser";
-import { Element, Text } from "domhandler";
 import stripXSS, { safeAttrValue, whiteList } from "xss";
 import type { IFilterXSSOptions } from "xss";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
@@ -116,6 +116,7 @@ export default function HTML({
     }
 
     try {
+      if (!(domNode instanceof Element)) return;
       const { name, children, attribs } = domNode;
 
       if (name == "script") {

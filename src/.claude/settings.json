@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(npm show:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm ts-build:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(prettier -w:*)",
+      "WebFetch(domain:cocalc.com)",
+      "WebFetch(domain:doc.cocalc.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": []
+  }
+}

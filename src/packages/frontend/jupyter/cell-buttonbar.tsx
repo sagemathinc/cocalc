@@ -11,14 +11,16 @@ import { Button, Dropdown, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import React, { useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName } from "@cocalc/frontend/components";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { jupyter } from "@cocalc/frontend/i18n";
+import { jupyter, labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { FormattedMessage, useIntl } from "react-intl";
+import { CellType } from "@cocalc/util/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { CodeBarDropdownMenu } from "./cell-buttonbar-menu";
 import { CellIndexNumber } from "./cell-index-number";
@@ -33,6 +35,7 @@ import { LLMCellTool } from "./llm";
 
 interface Props {
   id: string;
+  cell_type: CellType;
   actions?: JupyterActions;
   cell: Map<string, any>;
   is_current: boolean;
@@ -47,6 +50,7 @@ interface Props {
 function areEqual(prev: Props, next: Props): boolean {
   return !(
     next.id !== prev.id ||
+    next.cell_type !== prev.cell_type ||
     next.index !== prev.index ||
     next.cell !== prev.cell ||
     next.is_current !== prev.is_current ||
@@ -61,6 +65,7 @@ function areEqual(prev: Props, next: Props): boolean {
 export const CellButtonBar: React.FC<Props> = React.memo(
   ({
     id,
+    cell_type,
     actions,
     cell,
     is_current,
@@ -76,6 +81,9 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     const { project_id, path } = useFrameContext();
     const frameActions = useNotebookFrameActions();
     const [formatting, setFormatting] = useState<boolean>(false);
+
+    const isCodeCell = cell_type === "code";
+    const isMarkdownCell = cell_type === "markdown";
 
     function trackButton(button: string) {
       track("jupyter_cell_buttonbar", { button, project_id, path });
@@ -103,13 +111,19 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             tooltip: "Run this cell",
             label: "Run",
             icon: "step-forward",
-            onClick: () => actions?.run_cell(id),
+            onClick: () => frameActions.current?.run_cell(id),
           };
       }
     }
 
     function renderCodeBarRunStop() {
-      if (id == null || actions == null || actions.is_closed() || is_readonly) {
+      if (
+        !(isCodeCell || isMarkdownCell) ||
+        id == null ||
+        actions == null ||
+        actions.is_closed() ||
+        is_readonly
+      ) {
         return;
       }
 
@@ -157,11 +171,12 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarComputeServer() {
-      if (!is_current || !computeServerId || is_readonly) return;
+      if (!is_current || !isCodeCell || !computeServerId || is_readonly) return;
       return <ComputeServerPrompt id={computeServerId} />;
     }
 
     function renderCodeBarCellTiming() {
+      if (!isCodeCell) return;
       return (
         <div style={{ margin: "2.5px 4px 4px 10px" }}>
           <CellTiming
@@ -177,13 +192,15 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarLLMButtons() {
-      if (!llmTools || !haveLLMCellTools || is_readonly) return;
+      if (!isCodeCell || !llmTools || !haveLLMCellTools || is_readonly) return;
       return <LLMCellTool id={id} actions={actions} llmTools={llmTools} />;
     }
 
     function renderCodeBarFormatButton() {
       // Should only show formatter button if there is a way to format this code.
-      if (is_readonly || actions == null || input_is_readonly) return;
+      if (!isCodeCell || is_readonly || actions == null || input_is_readonly) {
+        return;
+      }
       return (
         <Tooltip
           title={intl.formatMessage({
@@ -222,7 +239,47 @@ export const CellButtonBar: React.FC<Props> = React.memo(
       );
     }
 
-    //const input: string | undefined = cell.get("input")?.trim();
+    function renderDropdownMenu() {
+      if (is_readonly || input_is_readonly) return;
+
+      return (
+        <CodeBarDropdownMenu
+          actions={actions}
+          frameActions={frameActions}
+          id={id}
+          cell={cell}
+        />
+      );
+    }
+
+    function renderMarkdownEditButton() {
+      if (
+        !isMarkdownCell ||
+        is_readonly ||
+        actions == null ||
+        input_is_readonly
+      ) {
+        return;
+      }
+
+      const editing = frameActions.current?.cell_md_is_editing(id);
+
+      return (
+        <Button
+          style={CODE_BAR_BTN_STYLE}
+          size="small"
+          type="text"
+          onClick={() => {
+            frameActions.current?.toggle_md_cell_edit(id);
+          }}
+        >
+          <Icon name={editing ? "save" : "edit"} />{" "}
+          {editing
+            ? intl.formatMessage(labels.save)
+            : intl.formatMessage(labels.edit)}
+        </Button>
+      );
+    }
 
     return (
       <div className="hidden-xs" style={MINI_BUTTONS_STYLE_INNER}>
@@ -230,15 +287,9 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         {renderCodeBarRunStop()}
         {renderCodeBarComputeServer()}
         {renderCodeBarLLMButtons()}
+        {renderMarkdownEditButton()}
         {renderCodeBarFormatButton()}
-        {!is_readonly && !input_is_readonly && (
-          <CodeBarDropdownMenu
-            actions={actions}
-            frameActions={frameActions}
-            id={id}
-            cell={cell}
-          />
-        )}
+        {renderDropdownMenu()}
         <CellIndexNumber index={index} />
       </div>
     );

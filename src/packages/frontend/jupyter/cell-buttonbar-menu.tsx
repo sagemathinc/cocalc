@@ -10,7 +10,7 @@ import { useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Icon } from "@cocalc/frontend/components";
-import { labels } from "@cocalc/frontend/i18n";
+import { jupyter, labels } from "@cocalc/frontend/i18n";
 import {
   CODE_BAR_BTN_STYLE,
   COPY_CELL_ICON,
@@ -57,6 +57,19 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
 
   const items: MenuProps["items"] = [
     {
+      key: "undo",
+      label: intl.formatMessage(labels.undo),
+      icon: <Icon name="undo" />,
+      onClick: () => actions.undo(),
+    },
+    {
+      key: "redo",
+      label: intl.formatMessage(labels.redo),
+      icon: <Icon name="redo" />,
+      onClick: () => actions.redo(),
+    },
+    { key: "divider3", type: "divider" },
+    {
       key: "copy",
       label: intl.formatMessage({
         id: "jupyter.cell-buttonbar-menu.copy-clipboard",
@@ -74,18 +87,31 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       icon: <Icon name="paste" />,
       onClick: pasteFromClipboard,
     },
-    { key: "divider3", type: "divider" },
+    { key: "divider5", type: "divider" },
     {
-      key: "undo",
-      label: intl.formatMessage(labels.undo),
-      icon: <Icon name="undo" />,
-      onClick: () => actions.undo(),
-    },
-    {
-      key: "redo",
-      label: intl.formatMessage(labels.redo),
-      icon: <Icon name="redo" />,
-      onClick: () => actions.redo(),
+      key: "cell-type",
+      label: intl.formatMessage(jupyter.commands.cell_type_menu),
+      icon: <Icon name="code-outlined" />,
+      children: [
+        {
+          key: "cell-type-code",
+          label: intl.formatMessage(jupyter.commands.change_cell_to_code),
+          icon: <Icon name="code-outlined" />,
+          onClick: () => frameActions.current?.set_selected_cell_type("code"),
+        },
+        {
+          key: "cell-type-markdown",
+          label: intl.formatMessage(jupyter.commands.change_cell_to_markdown),
+          icon: <Icon name="markdown" />,
+          onClick: () =>
+            frameActions.current?.set_selected_cell_type("markdown"),
+        },
+        {
+          key: "cell-type-raw",
+          label: intl.formatMessage(jupyter.commands.change_cell_to_raw),
+          onClick: () => frameActions.current?.set_selected_cell_type("raw"),
+        },
+      ],
     },
     { key: "divider4", type: "divider" },
     {
@@ -163,7 +189,8 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       icon: <Icon name={DELETE_CELL_ICON} />,
       onClick: () => frameActions.current?.delete_selected_cells(),
     },
-    { key: "divider5", type: "divider" },
+
+    { key: "divider6", type: "divider" },
     {
       key: "split-cell",
       label: intl.formatMessage({
@@ -207,7 +234,7 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       ),
       onClick: () => frameActions.current?.merge_cell_below(),
     },
-    { key: "divider6", type: "divider" },
+    { key: "divider7", type: "divider" },
     {
       key: "move-cell-up",
       label: intl.formatMessage({
@@ -228,12 +255,13 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       icon: <Icon name="arrow-down" />,
       onClick: () => move_cell(1),
     },
-  ].map(({ key, label, icon, onClick }) => {
+  ].map(({ key, label, icon, onClick, children }) => {
     return {
       key,
       label,
       onClick,
       icon: <span style={{ width: "24px" }}>{icon}</span>,
+      children,
     };
   });
 
