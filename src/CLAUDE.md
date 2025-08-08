@@ -149,6 +149,40 @@ CoCalc is organized as a monorepo with key packages:
 - REFUSE to modify files when the git repository is on the `master` or `main` branch.
 - NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User.
 
+## React-intl / Internationalization (i18n)
+
+CoCalc uses react-intl for internationalization with SimpleLocalize as the translation platform.
+
+### Translation ID Naming Convention
+
+Translation IDs follow a hierarchical pattern: `[directory].[subdir].[filename].[aspect].[label|title|tooltip|...]`
+
+Examples:
+- `labels.masked_files` - for common UI labels
+- `account.sign-out.button.title` - for account sign-out dialog
+- `command.generic.force_build.label` - for command labels
+
+### Translation Workflow
+
+**For new translation keys:**
+1. Add the translation to source code (e.g., `packages/frontend/i18n/common.ts`)
+2. Run `pnpm i18n:extract` - updates `extracted.json` from source code
+3. Run `pnpm i18n:upload` - sends new strings to SimpleLocalize
+4. New keys are automatically translated to all languages
+5. Run `pnpm i18n:download` - fetches translations
+6. Run `pnpm i18n:compile` - compiles translation files
+
+**For editing existing translation keys:**
+Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys are auto-translated. `pnpm i18n:delete [id]`.
+
+### Translation File Structure
+
+- `packages/frontend/i18n/README.md` - more information
+- `packages/frontend/i18n/common.ts` - shared translation definitions
+- `packages/frontend/i18n/extracted.json` - auto-generated, do not edit manually
+- `packages/frontend/i18n/[locale].json` - downloaded translations per language
+- `packages/frontend/i18n/[locale].compiled.json` - compiled for runtime use
+
 # Ignore
 
 - Ignore files covered by `.gitignore`
