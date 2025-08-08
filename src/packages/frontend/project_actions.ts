@@ -3199,7 +3199,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   async show(): Promise<void> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
-    this.redux.getActions("projects").updateProjectState(this.project_id);
+    try {
+      await this.redux
+        .getActions("projects")
+        .updateProjectState(this.project_id);
+    } catch {
+      // this can fail, e.g., if user is not a collab on the project, server down, etc.
+    }
     const a = store.get("active_project_tab");
     if (!misc.startswith(a, "editor-")) return;
     this.show_file(misc.tab_to_path(a));
@@ -3351,10 +3357,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   private initProjectStatus = async () => {
-    this.projectStatusSub = await getProjectStatus({
-      project_id: this.project_id,
-      compute_server_id: 0,
-    });
+    try {
+      this.projectStatusSub = await getProjectStatus({
+        project_id: this.project_id,
+        compute_server_id: 0,
+      });
+    } catch (err) {
+      // happens if you open a project you are not a collab on
+      console.warn(`unable to subscribe to project status updates: `, err);
+      return;
+    }
     for await (const mesg of this.projectStatusSub) {
       const status = mesg.data;
       this.setState({ status });

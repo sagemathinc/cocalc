@@ -284,6 +284,34 @@ export function Explorer() {
     project_is_running = false;
   }
 
+  if (listingError?.code == 403 || listingError?.code == 408) {
+    // 403 = permission denied, 408 = connection being closed (due to permission?)
+    return (
+      <div style={{ margin: "30px auto", textAlign: "center" }}>
+        <ShowError
+          message={
+            "Permission Issues: You are probably using the wrong account to access this project."
+          }
+          error={listingError}
+          style={{ textAlign: "left" }}
+        />
+        <br />
+        <Space.Compact>
+          <Button
+            size="large"
+            type="primary"
+            style={{ margin: "auto" }}
+            onClick={() => {
+              redux.getActions("page").close_project_tab(project_id);
+            }}
+          >
+            <Icon name="times-circle" /> Close Project
+          </Button>
+        </Space.Compact>
+      </div>
+    );
+  }
+
   // be careful with adding height:'100%'. it could cause flex to miscalculate. see #3904
   return (
     <div className={"smc-vfill"}>
