@@ -117,37 +117,36 @@ async function start({
   await mkdir(home, { recursive: true });
   await chown(home, uid);
   await ensureConfFilesExists(home, uid);
-  const env = await getEnvironment(project_id);
+  const env = await getEnvironment(
+    project_id,
+    // for admin HOME stays with original source, to avoid complexity of bind mounting /home/user
+    // via the unshare system call...
+    config?.admin ? { HOME: home } : undefined,
+  );
   const cwd = "/cocalc/src/packages/project";
   await setupDataPath(home, uid);
   await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
 
-  let cmd: string, args: string[];
+  let cmd: string,
+    args: string[] = [];
   if (config?.admin) {
-    // DANGEROUS: We do arbitrarily dangerous things here!
-    // This is, e.g., needed to run nsjail in nsjail,
-    // which is needed for development of cocalc inside cocalc.
-    // It sets things up so its possible to use nsjail
-    // from inside a jail, i.e., nested jailing.
-    cmd = "unshare";
-    const shellScript = `
-      mount --bind ${home} ${env.HOME} && \
-      exec ${process.execPath} ./bin/cocalc-project.js --init project_init.sh
-    `;
-    args = ["--mount", "bash", "-c", shellScript];
+    // DANGEROUS: no safety at all here!
+    // This is needed to develop cocalc, since we want to run btrfs and nsjail
+    // from within a cocalc project.
+    cmd = process.execPath;
   } else {
-    args = [
-      "-q",
-      "-Mo",
-      "--hostname",
-      `project-${env.COCALC_PROJECT_ID}`,
-      "--disable_clone_newnet",
-      "--keep_env",
-      "--cwd",
-      cwd,
-      "--keep_caps",
-      "--skip_setsid",
-    ];
+    args.push(
+      "-q", // not too verbose
+      "-Mo", // run a command once
+      "--disable_clone_newnet", // [ ] TODO: for now we have the full host network
+      "--keep_env", // this just keeps env
+      "--keep_caps", // [ ] TODO: maybe NOT needed!
+      "--skip_setsid", // evidently needed for terminal signals (e.g., ctrl+z); dangerous.  [ ] TODO -- really needed?
+    );
+
+    args.push("--hostname", `project-${env.COCALC_PROJECT_ID}`);
+
+    args.push("--cwd", cwd);
 
     if (uid != null && gid != null) {
       args.push("-u", `${uid}`, "-g", `${gid}`);
@@ -163,16 +162,13 @@ async function start({
 
     args.push("-B", `${home}:${env.HOME}`);
     args.push(...limits(config));
-
-    args.push(
-      "--",
-      process.execPath,
-      "./bin/cocalc-project.js",
-      "--init",
-      "project_init.sh",
-    );
+    args.push("--");
+    args.push(process.execPath);
     cmd = "nsjail";
   }
+
+  args.push("./bin/cocalc-project.js", "--init", "project_init.sh");
+
   //logEnv(env);
   console.log(`${cmd} ${args.join(" ")}`);
   const child = spawn(cmd, args, {

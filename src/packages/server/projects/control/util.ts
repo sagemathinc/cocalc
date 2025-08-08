@@ -328,6 +328,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
 
 export async function getEnvironment(
   project_id: string,
+  { HOME = "/home/user" }: { HOME?: string } = {},
 ): Promise<{ [key: string]: any }> {
   const extra: { [key: string]: any } = await callback2(
     db().get_project_extra_env,
@@ -338,7 +339,6 @@ export async function getEnvironment(
   );
 
   const USER = getUsername(project_id);
-  const HOME = "/home/user";
   const DATA = dataPath(HOME);
 
   return {
