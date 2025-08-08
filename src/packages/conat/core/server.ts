@@ -28,53 +28,56 @@ cd packages/server
 */
 
 import type { ConnectionStats, ServerInfo } from "./types";
+
+import { delay } from "awaiting";
+import { EventEmitter } from "events";
+import { throttle } from "lodash";
+import { Server } from "socket.io";
+
+import { getClientIpAddress } from "@cocalc/util/get-client-ip-address";
+import { getLogger } from "@cocalc/conat/client";
+import { UsageMonitor } from "@cocalc/conat/monitor/usage";
+import { type ConatSocketServer } from "@cocalc/conat/socket";
 import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/conat/util";
-import { Server } from "socket.io";
-import { delay } from "awaiting";
+import { once, until } from "@cocalc/util/async-utils";
+import { is_array } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { Metrics } from "../types";
 import {
-  ConatError,
-  connect,
   Client,
   type ClientOptions,
+  ConatError,
+  connect,
   MAX_INTEREST_TIMEOUT,
   STICKY_QUEUE_GROUP,
 } from "./client";
-import {
-  RESOURCE,
-  MAX_CONNECTIONS_PER_USER,
-  MAX_CONNECTIONS,
-  MAX_PAYLOAD,
-  MAX_SUBSCRIPTIONS_PER_CLIENT,
-  MAX_SUBSCRIPTIONS_PER_HUB,
-} from "./constants";
-import { Patterns } from "./patterns";
-import { is_array } from "@cocalc/util/misc";
-import { UsageMonitor } from "@cocalc/conat/monitor/usage";
-import { once, until } from "@cocalc/util/async-utils";
 import {
   clusterLink,
   type ClusterLink,
   clusterStreams,
   type ClusterStreams,
-  trimClusterStreams,
   createClusterPersistServer,
-  Sticky,
-  Interest,
   hashInterest,
   hashSticky,
+  Interest,
+  Sticky,
+  trimClusterStreams,
 } from "./cluster";
-import { type ConatSocketServer } from "@cocalc/conat/socket";
-import { throttle } from "lodash";
-import { getLogger } from "@cocalc/conat/client";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
+import {
+  MAX_CONNECTIONS,
+  MAX_CONNECTIONS_PER_USER,
+  MAX_PAYLOAD,
+  MAX_SUBSCRIPTIONS_PER_CLIENT,
+  MAX_SUBSCRIPTIONS_PER_HUB,
+  RESOURCE,
+} from "./constants";
+import { Patterns } from "./patterns";
 import { forkedConatServer } from "./start-server";
 import { stickyChoice } from "./sticky";
-import { EventEmitter } from "events";
-import { Metrics } from "../types";
+import { sysApi, sysApiSubject, type SysConatServer } from "./sys";
 
 const logger = getLogger("conat:core:server");
 
@@ -1755,27 +1758,7 @@ export function randomChoice(v: Set<string>): string {
 
 // See https://socket.io/how-to/get-the-ip-address-of-the-client
 function getAddress(socket) {
-  const header = socket.handshake.headers["forwarded"];
-  if (header) {
-    for (const directive of header.split(",")[0].split(";")) {
-      if (directive.startsWith("for=")) {
-        return directive.substring(4);
-      }
-    }
-  }
-
-  let addr = socket.handshake.headers["x-forwarded-for"]?.split(",")?.[0];
-  if (addr) {
-    return addr;
-  }
-  for (const other of ["cf-connecting-ip", "fastly-client-ip"]) {
-    addr = socket.handshake.headers[other];
-    if (addr) {
-      return addr;
-    }
-  }
-
-  return socket.handshake.address;
+  return getClientIpAddress(socket.handshake) ?? socket.handshake.address;
 }
 
 export function updateInterest(
