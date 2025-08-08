@@ -122,34 +122,38 @@ async function start({
   await setupDataPath(home, uid);
   await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
 
-  const args = [
-    "-q",
-    "-Mo",
-    "--hostname",
-    `project-${env.COCALC_PROJECT_ID}`,
-    "--disable_clone_newnet",
-    "--keep_env",
-    "--cwd",
-    cwd,
-    "--keep_caps",
-    "--skip_setsid",
-    "--disable_rlimits",
-  ];
-
-  if (uid != null && gid != null) {
-    args.push("-u", `${uid}`, "-g", `${gid}`);
-  }
-
+  let cmd: string, args: string[];
   if (config?.admin) {
     // DANGEROUS: We do arbitrarily dangerous things here!
     // This is, e.g., needed to run nsjail in nsjail,
     // which is needed for development of cocalc inside cocalc.
     // It sets things up so its possible to use nsjail
     // from inside a jail, i.e., nested jailing.
-    args.push("--proc_rw");
-    args.push("--disable_no_new_privs");
-    args.push("-B", "/");
+    cmd = "unshare";
+    const shellScript = `
+      mount --bind ${home} ${env.HOME} && \
+      exec ${process.execPath} ./bin/cocalc-project.js --init project_init.sh
+    `;
+    args = ["--mount", "bash", "-c", shellScript];
   } else {
+    args = [
+      "-q",
+      "-Mo",
+      "--hostname",
+      `project-${env.COCALC_PROJECT_ID}`,
+      "--disable_clone_newnet",
+      "--keep_env",
+      "--cwd",
+      cwd,
+      "--keep_caps",
+      "--skip_setsid",
+      "--disable_rlimits",
+    ];
+
+    if (uid != null && gid != null) {
+      args.push("-u", `${uid}`, "-g", `${gid}`);
+    }
+
     for (const type in MOUNTS) {
       for (const path of MOUNTS[type]) {
         args.push(type, path);
@@ -157,19 +161,19 @@ async function start({
     }
     // need a /tmp directory
     args.push("-m", "none:/tmp:tmpfs:size=500000000");
+
+    args.push("-B", `${home}:${env.HOME}`);
+    args.push(...limits(config));
+
+    args.push(
+      "--",
+      process.execPath,
+      "./bin/cocalc-project.js",
+      "--init",
+      "project_init.sh",
+    );
+    cmd = "nsjail";
   }
-
-  args.push("-B", `${home}:${env.HOME}`);
-  args.push(...limits(config));
-
-  args.push(
-    "--",
-    process.execPath,
-    "./bin/cocalc-project.js",
-    "--init",
-    "project_init.sh",
-  );
-  const cmd = "nsjail";
   //logEnv(env);
   console.log(`${cmd} ${args.join(" ")}`);
   const child = spawn(cmd, args, {
