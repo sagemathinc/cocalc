@@ -45,8 +45,9 @@ import { mkdir } from "fs/promises";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { spawn } from "node:child_process";
-//import { projects } from "@cocalc/backend/data";
-//
+import { type Configuration } from "./types";
+import { limits } from "./limits";
+
 const DEFAULT_UID = 2001;
 
 const logger = getLogger("server:conat:project:run");
@@ -92,7 +93,7 @@ async function start({
   config,
 }: {
   project_id: string;
-  config?: any;
+  config?: Configuration;
 }) {
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
@@ -140,9 +141,13 @@ async function start({
   }
 
   if (config?.admin) {
-    // this is, e.g., needed to run nsjail in nsjail,
+    // DANGEROUS: We do arbitrarily dangerous things here!
+    // This is, e.g., needed to run nsjail in nsjail,
     // which is needed for development of cocalc inside cocalc.
+    // It sets things up so its possible to use nsjail
+    // from inside a jail, i.e., nested jailing.
     args.push("--proc_rw");
+    args.push("--disable_no_new_privs");
     args.push("-B", "/");
   } else {
     for (const type in MOUNTS) {
@@ -155,6 +160,7 @@ async function start({
   }
 
   args.push("-B", `${home}:${env.HOME}`);
+  args.push(...limits(config));
 
   args.push(
     "--",

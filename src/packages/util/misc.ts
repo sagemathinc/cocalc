@@ -501,7 +501,7 @@ export function trunc_left<T>(
   sArg: T,
   max_length = 1024,
   ellipsis = ELLIPSIS,
-): T | string  {
+): T | string {
   if (sArg == null) {
     return sArg;
   }
@@ -2734,4 +2734,43 @@ export function uint8ArrayToBase64(uint8Array: Uint8Array) {
     binaryString += String.fromCharCode(uint8Array[i]);
   }
   return btoa(binaryString);
+}
+
+// Inspired by https://github.com/etiennedi/kubernetes-resource-parser/tree/master
+export function k8sCpuParser(input: string | number): number {
+  if (typeof input == "number") {
+    return input;
+  }
+  const milliMatch = input.match(/^([0-9]+)m$/);
+  if (milliMatch) {
+    return parseFloat(milliMatch[1]) / 1000;
+  }
+  return parseFloat(input);
+}
+
+const memoryMultipliers = {
+  k: 1000,
+  M: 1000 ** 2,
+  G: 1000 ** 3,
+  T: 1000 ** 4,
+  P: 1000 ** 5,
+  E: 1000 ** 6,
+  Ki: 1024,
+  Mi: 1024 ** 2,
+  Gi: 1024 ** 3,
+  Ti: 1024 ** 4,
+  Pi: 1024 ** 5,
+  Ei: 1024 ** 6,
+} as const;
+
+export function k8sMemoryParser(input: string | number): number {
+  if (typeof input == "number") {
+    return input;
+  }
+  const unitMatch = input.match(/^([0-9]+)([A-Za-z]{1,2})$/);
+  if (unitMatch) {
+    return parseInt(unitMatch[1], 10) * memoryMultipliers[unitMatch[2]];
+  }
+
+  return parseInt(input, 10);
 }
