@@ -1222,7 +1222,7 @@
   "project.no-internet-modal.add-license": "Adicionar Licença",
   "project.no-internet-modal.info": "<strong>O acesso à Internet está desativado para este projeto.</strong> Esta restrição impede a instalação de pacotes Python (pip, conda) ou pacotes R, a utilização do Git para clonar repositórios, o download de conjuntos de dados ou o acesso a APIs. Comandos que tentem acessar a internet podem ficar pendentes ou falhar ao completar, pois as conexões de rede estão bloqueadas para prevenir abusos. <A>Saiba mais</A>.",
   "project.no-internet-modal.message": "Para corrigir isto, você <A1>precisa aplicar</A1> uma <A2>licença válida</A2> que forneça atualizações ou <A3>comprar uma licença</A3>.",
-  "project.no-internet-modal.title": "Sem Acesso à Internet",
+  "project.no-internet-modal.title": "O projeto \"{name}\" não tem acesso à internet",
   "project.open_file.what": "abrir o ficheiro \"{path}\"",
   "project.page.activity-bar-layout.title": "Layout da barra de atividade",
   "project.page.activity-bar.explanation": "Esta funcionalidade modifica a funcionalidade da barra de botões à esquerda do projeto. Por defeito, exibe botões para páginas completas e pequenos sinais de acento circunflexo para painéis deslizantes. Ao selecionar a opção \"páginas completas\", apenas são mostrados botões, e eles abrem páginas completas ao clicar. Por outro lado, ao optar pelo modo \"painéis deslizantes\", apenas os painéis deslizantes expandem ao clicar. Em ambos os últimos casos, o tipo de painel alternativo pode ser exibido ao clicar com a tecla Shift pressionada no botão correspondente.",

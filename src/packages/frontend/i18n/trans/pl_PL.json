@@ -1222,7 +1222,7 @@
   "project.no-internet-modal.add-license": "Dodaj licencję",
   "project.no-internet-modal.info": "<strong>Dostęp do internetu jest wyłączony dla tego projektu.</strong> To ograniczenie uniemożliwia instalowanie pakietów Pythona (pip, conda) lub pakietów R, korzystanie z Git do klonowania repozytoriów, pobieranie zestawów danych lub dostęp do interfejsów API. Polecenia próbujące uzyskać dostęp do internetu mogą zawiesić się lub nie zakończyć pomyślnie, ponieważ połączenia sieciowe są blokowane, aby zapobiec nadużyciom. <A>Dowiedz się więcej</A>.",
   "project.no-internet-modal.message": "Aby to naprawić, <A1>musisz zastosować</A1> <A2>ważną licencję</A2> zapewniającą aktualizacje lub <A3>zakupić licencję</A3>.",
-  "project.no-internet-modal.title": "Brak dostępu do Internetu",
+  "project.no-internet-modal.title": "Projekt \"{name}\" nie ma dostępu do internetu",
   "project.open_file.what": "otwórz plik \"{path}\"",
   "project.page.activity-bar-layout.title": "Układ paska aktywności",
   "project.page.activity-bar.explanation": "Ta funkcja modyfikuje funkcjonalność lewego paska przycisków projektu. Domyślnie wyświetla przyciski dla pełnych stron i małe znaki karatów dla paneli wysuwanych. Wybierając opcję \"pełne strony\", wyświetlane są tylko przyciski, które otwierają pełne strony po kliknięciu. Natomiast, wybierając tryb \"paneli wysuwanych\", tylko panele wysuwane rozwijają się po kliknięciu. W obu przypadkach alternatywny typ panelu można wyświetlić, klikając z wciśniętym klawiszem Shift odpowiedni przycisk.",
