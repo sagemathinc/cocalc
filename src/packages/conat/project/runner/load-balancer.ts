@@ -14,6 +14,7 @@ import { client as projectRunnerClient, UPDATE_INTERVAL } from "./run";
 import { getLogger } from "@cocalc/conat/client";
 import state, { type ProjectStatus, type ProjectState } from "./state";
 import { field_cmp } from "@cocalc/util/misc";
+import { delay } from "awaiting";
 
 const logger = getLogger("conat:project:runner:load-balancer");
 
@@ -47,7 +48,7 @@ export async function server({
   const { projects, runners } = await state({ client });
 
   const getClient = async (project_id: string) => {
-    const cutoff = Date.now() - UPDATE_INTERVAL * 2.1;
+    const cutoff = Date.now() - UPDATE_INTERVAL * 2.5;
 
     const cur = projects.get(project_id);
     if (cur != null && cur.state != "opened") {
@@ -137,17 +138,25 @@ export async function server({
     async status() {
       const project_id = getProjectId(this);
       const runClient = await getClient(project_id);
-      try {
-        const s = await runClient.status({ project_id });
-        await setState1?.({ project_id, ...s });
-        return s;
-      } catch (err) {
-        if (err.code == 503) {
-          // the runner is no longer running, so obviously project isn't running there.
-          await setState1?.({ project_id, state: "opened" });
+      const MAX_TRIES = 3;
+      for (let i = 0; i < MAX_TRIES; i++) {
+        try {
+          const s = await runClient.status({ project_id });
+          await setState1?.({ project_id, ...s });
+          return s;
+        } catch (err) {
+          if (i < MAX_TRIES - 1) {
+            await delay(3000);
+            continue;
+          }
+          if (err.code == 503) {
+            // the runner is no longer running, so obviously project isn't running there.
+            await setState1?.({ project_id, state: "opened" });
+          }
+          throw err;
         }
-        throw err;
       }
+      throw Error("bug");
     },
   });
 

@@ -170,7 +170,7 @@ async function start({
     "project_init.sh",
   );
   const cmd = "nsjail";
-  logEnv(env);
+  //logEnv(env);
   console.log(`${cmd} ${args.join(" ")}`);
   const child = spawn(cmd, args, {
     env,
@@ -253,10 +253,10 @@ process.once("exit", close);
   });
 });
 
-function logEnv(env) {
-  let s = "export ";
-  for (const key in env) {
-    s += `${key}="${env[key]}" `;
-  }
-  console.log(s);
-}
+// function logEnv(env) {
+//   let s = "export ";
+//   for (const key in env) {
+//     s += `${key}="${env[key]}" `;
+//   }
+//   console.log(s);
+// }
