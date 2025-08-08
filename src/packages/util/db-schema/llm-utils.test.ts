@@ -123,7 +123,7 @@ describe("llm", () => {
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
     expect(getModel("gpt-4")).toEqual("gpt-4");
     expect(getModel(DEFAULT_MODEL)).toEqual(DEFAULT_MODEL);
-    expect(getModel("mistral-medium-latest")).toEqual(DEFAULT_MODEL);
+    expect(getModel("magistral-medium-latest")).toEqual(DEFAULT_MODEL);
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
     expect(getModel("claude-3-5-haiku-8k")).toEqual("claude-3-5-haiku-8k");
     // anthropic service disabled

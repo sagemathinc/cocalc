@@ -95,6 +95,50 @@ const GPT_O1_MINI_8K: Spec = {
   display: "OpenAI o1 mini",
 } as const;
 
+const GPT_O3_8K: Spec = {
+  display: "OpenAI o3",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
+const GPT_O3_128k: Spec = {
+  ...GPT_O3_8K,
+  display: "OpenAI o3 128k",
+} as const;
+
+const GPT_O4_MINI_8K: Spec = {
+  display: "OpenAI o4-mini",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
+const GPT_O4_MINI_128k: Spec = {
+  ...GPT_O4_MINI_8K,
+  display: "OpenAI o4-mini 128k",
+} as const;
+
+const GPT_5_8K: Spec = {
+  display: "OpenAI GPT-5",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
+const GPT_5_128k: Spec = {
+  ...GPT_5_8K,
+  display: "OpenAI GPT-5 128k",
+} as const;
+
+const GPT_5_MINI_8K: Spec = {
+  display: "OpenAI GPT-5 Mini",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
+const GPT_5_MINI_128k: Spec = {
+  ...GPT_5_MINI_8K,
+  display: "OpenAI GPT-5 Mini 128k",
+} as const;
+
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
   credit: {
@@ -202,6 +246,14 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-o1-8k": GPT_O1_MINI_8K,
   "openai-o1-mini": GPT_O1_8K,
   "openai-o1": GPT_O1_MINI_8K,
+  "openai-o3-8k": GPT_O3_8K,
+  "openai-o3": GPT_O3_128k,
+  "openai-o4-mini-8k": GPT_O4_MINI_8K,
+  "openai-o4-mini": GPT_O4_MINI_128k,
+  "openai-gpt-5-8k": GPT_5_8K,
+  "openai-gpt-5": GPT_5_128k,
+  "openai-gpt-5-mini-8k": GPT_5_MINI_8K,
+  "openai-gpt-5-mini": GPT_5_MINI_128k,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: GOOGLE_AI_COLOR,
@@ -340,6 +392,16 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: MISTRALAI_COLOR, // the orange from their website
     category: "ai",
   },
+  "mistralai-devstral-medium-2507": {
+    display: LLM_USERNAMES["devstral-medium-2507"],
+    color: MISTRALAI_COLOR, // the orange from their website
+    category: "ai",
+  },
+  // "mistralai-magistral-medium-latest": {
+  //   display: LLM_USERNAMES["magistral-medium-latest"],
+  //   color: MISTRALAI_COLOR, // the orange from their website
+  //   category: "ai",
+  // },
   "project-upgrade": {
     display: "Project Upgrade",
     color: "#5bc0de",
