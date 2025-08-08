@@ -86,6 +86,18 @@ async function initMounts() {
     MOUNTS[type] = v;
   }
   MOUNTS["-R"].push(`${dirname(root)}:/cocalc`);
+
+  // also if this node is install via nvm, we make exactly this
+  // version of node's install available
+  if (!process.execPath.startsWith("/usr/")) {
+    // not already in an obvious system-wide place we included above
+    if (process.execPath.includes("nvm/versions/node/")) {
+      const j = process.execPath.lastIndexOf("/bin/node");
+      if (j != -1) {
+        MOUNTS["-R"].push(process.execPath.slice(0, j));
+      }
+    }
+  }
 }
 
 async function start({
