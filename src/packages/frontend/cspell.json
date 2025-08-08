@@ -42,7 +42,9 @@
     "tolerations",
     "undelete",
     "undeleting",
-    "revealjs"
+    "revealjs",
+    "conat",
+    "SocketIO"
   ],
   "ignoreWords": [
     "antd",
