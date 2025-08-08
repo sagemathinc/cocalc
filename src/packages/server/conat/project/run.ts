@@ -31,7 +31,7 @@ import { getProject } from "@cocalc/server/projects/control";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { root } from "@cocalc/backend/data";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { userInfo } from "node:os";
 import {
   chown,
@@ -135,18 +135,20 @@ async function start({
     // via the unshare system call...
     config?.admin ? { HOME: home } : undefined,
   );
-  const cwd = "/cocalc/src/packages/project";
   await setupDataPath(home, uid);
   await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
 
-  let cmd: string,
+  let script: string,
+    cmd: string,
     args: string[] = [];
   if (config?.admin) {
     // DANGEROUS: no safety at all here!
     // This is needed to develop cocalc, since we want to run btrfs and nsjail
     // from within a cocalc project.
     cmd = process.execPath;
+    script = join(root, 'packages/project/bin/cocalc-project.js');
   } else {
+    script = join('/cocalc/src/packages/project/bin/cocalc-project.js');
     args.push(
       "-q", // not too verbose
       "-Mo", // run a command once
@@ -157,8 +159,6 @@ async function start({
     );
 
     args.push("--hostname", `project-${env.COCALC_PROJECT_ID}`);
-
-    args.push("--cwd", cwd);
 
     if (uid != null && gid != null) {
       args.push("-u", `${uid}`, "-g", `${gid}`);
@@ -179,13 +179,12 @@ async function start({
     cmd = "nsjail";
   }
 
-  args.push("./bin/cocalc-project.js", "--init", "project_init.sh");
+  args.push(script, "--init", "project_init.sh");
 
   //logEnv(env);
   console.log(`${cmd} ${args.join(" ")}`);
   const child = spawn(cmd, args, {
     env,
-    cwd,
     uid,
     gid: uid,
   });
