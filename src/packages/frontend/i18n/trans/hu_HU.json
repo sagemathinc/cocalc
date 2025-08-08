@@ -1222,7 +1222,7 @@
   "project.no-internet-modal.add-license": "Licenc hozzáadása",
   "project.no-internet-modal.info": "<strong>Az internet-hozzáférés le van tiltva ehhez a projekthez.</strong> Ez a korlátozás megakadályozza Python csomagok (pip, conda) vagy R csomagok telepítését, Git segítségével tárolók klónozását, adathalmazok letöltését vagy API-k elérését. Azok a parancsok, amelyek megpróbálják elérni az internetet, elakadhatnak vagy nem fejeződhetnek be, mivel a hálózati kapcsolatok le vannak tiltva a visszaélések megelőzése érdekében. <A>Tudj meg többet</A>.",
   "project.no-internet-modal.message": "A javításhoz <A1>érvényes licencet kell alkalmaznia</A1>, amely frissítéseket biztosít, vagy <A3>licencet kell vásárolnia</A3>.",
-  "project.no-internet-modal.title": "Nincs internetkapcsolat",
+  "project.no-internet-modal.title": "A(z) \"{name}\" projekt nem fér hozzá az internethez",
   "project.open_file.what": "nyisd meg a fájlt \"{path}\"",
   "project.page.activity-bar-layout.title": "Tevékenységi sáv elrendezés",
   "project.page.activity-bar.explanation": "Ez a funkció módosítja a projekt bal oldali gombos sávjának funkcionalitását. Alapértelmezés szerint teljes oldalakhoz tartozó gombokat és kis nyíljeleket jelenít meg a felugró panelekhez. A \"teljes oldalak\" opció kiválasztásakor csak a gombok jelennek meg, és ezek a teljes oldalakat nyitják meg kattintáskor. Ezzel szemben, a \"felugró panelek\" mód választásakor csak a felugró panelek nyílnak meg kattintáskor. Mindkét utóbbi esetben az alternatív paneltípus megjeleníthető a megfelelő gomb shift-kattintásával.",

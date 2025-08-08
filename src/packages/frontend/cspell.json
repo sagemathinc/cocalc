@@ -67,7 +67,8 @@
     "xsmall",
     "flyouts",
     "buttonbar",
-    "noconf"
+    "noconf",
+    "flyoutdragbar"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
