@@ -158,6 +158,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.path,
       this.project_id,
     );
+    this.jupyter_actions.jupyterEditorActions = this;
   }
 
   private close_jupyter_actions(): void {

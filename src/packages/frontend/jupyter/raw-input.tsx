@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "antd";
 import type { InputRef } from "antd";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import type { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 
 export default function RawInput({ prompt, password, actions, style }) {
-  const frame = useFrameContext();
   const inputRef = useRef<InputRef>(null);
   const [value, setValue] = useState<string>("");
   useEffect(() => {
     inputRef.current?.focus({ cursor: "start" });
   }, []);
+  if (actions == null) {
+    return null;
+  }
 
   const C = password ? Input.Password : Input;
   return (
@@ -25,13 +27,25 @@ export default function RawInput({ prompt, password, actions, style }) {
       onPressEnter={() => {
         actions.store.emit("stdin", value);
         setTimeout(() => {
-          (frame.actions as any).frame_actions[frame.id].enable_key_handler(
-            true,
-          );
+          const frame_actions = actions?.jupyterEditorActions?.frame_actions;
+          if (frame_actions != null) {
+            for (const a of Object.values(
+              frame_actions,
+            ) as NotebookFrameActions[]) {
+              a.enable_key_handler(true);
+            }
+          }
         }, 1);
       }}
       onFocus={() => {
-        (frame.actions as any).frame_actions[frame.id].disable_key_handler();
+        const frame_actions = actions?.jupyterEditorActions?.frame_actions;
+        if (frame_actions != null) {
+          for (const a of Object.values(
+            frame_actions,
+          ) as NotebookFrameActions[]) {
+            a.disable_key_handler();
+          }
+        }
       }}
     />
   );

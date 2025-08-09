@@ -83,6 +83,7 @@ export class JupyterActions extends JupyterActions0 {
   private update_keyboard_shortcuts: any;
   public syncdbPath: string;
   private lastCursorMoveTime: number = 0;
+  public jupyterEditorActions?;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
