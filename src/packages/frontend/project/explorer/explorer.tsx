@@ -533,21 +533,23 @@ export function Explorer() {
             <Button size="large" style={{ margin: "auto" }} onClick={refresh}>
               <Icon name="refresh" /> Refresh
             </Button>
-            <Button
-              size="large"
-              style={{ margin: "auto" }}
-              onClick={async () => {
-                const fs = actions?.fs();
-                try {
-                  await fs.mkdir(current_path, { recursive: true });
-                  refresh();
-                } catch (err) {
-                  actions?.setState({ error: err });
-                }
-              }}
-            >
-              <Icon name="folder-open" /> Create Directory
-            </Button>
+            {listingError.code == "ENOENT" && (
+              <Button
+                size="large"
+                style={{ margin: "auto" }}
+                onClick={async () => {
+                  const fs = actions?.fs();
+                  try {
+                    await fs.mkdir(current_path, { recursive: true });
+                    refresh();
+                  } catch (err) {
+                    actions?.setState({ error: err });
+                  }
+                }}
+              >
+                <Icon name="folder-open" /> Create Directory
+              </Button>
+            )}
           </Space.Compact>
         </div>
       )}
