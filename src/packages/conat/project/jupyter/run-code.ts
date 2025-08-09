@@ -294,12 +294,12 @@ export function jupyterClient(opts: {
   project_id: string;
   compute_server_id?: number;
   client: ConatClient;
-  stdin: (opts: {
+  stdin?: (opts: {
     id: string;
     prompt: string;
     password?: boolean;
   }) => Promise<string>;
 }) {
   const subject = getSubject(opts);
-  return new JupyterClient(opts.client, subject, opts.path, opts.stdin);
+  return new JupyterClient(opts.client, subject, opts.path, opts.stdin??(async ()=>"stdin not implemented"));
 }
