@@ -337,6 +337,17 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       syncdoc.revert(version);
     }
     await syncdoc.commit(true);
+    if (this.docpath.endsWith(".ipynb")) {
+      const a = this.redux.getEditorActions(
+        this.project_id,
+        this.docpath,
+      )?.jupyter_actions;
+      if (a != null) {
+        // make sure nothing is running or appears to be (due to it being running in history)
+        a.clear_all_cell_run_state();
+        a.signal("SIGINT");
+      }
+    }
 
     // Some editors, e.g., the code text editor, only update Codemirror when
     // "after-change" is emitted (not just "change"), and commit does NOT result

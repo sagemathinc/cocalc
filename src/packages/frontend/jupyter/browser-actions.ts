@@ -1903,6 +1903,7 @@ export class JupyterActions extends JupyterActions0 {
     const api = await this.jupyterApi();
     try {
       await api.signal({ path: this.path, signal });
+      this.clear_all_cell_run_state();
     } catch (err) {
       this.set_error(err);
     }
