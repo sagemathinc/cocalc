@@ -19,6 +19,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { BASE_URL } from "@cocalc/frontend/misc";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { defaults, is_array, merge } from "@cocalc/util/misc";
+import { alert_message } from "@cocalc/frontend/alerts";
 
 // very large upload limit -- should be plenty?
 // there is no cost for ingress, and as cocalc is a data plaform
@@ -540,7 +541,20 @@ export function BlobUpload(props) {
         removedfile: props.event_handlers?.removedfile,
         complete: (file) => {
           if (file.xhr?.responseText) {
-            const { uuid } = JSON.parse(file.xhr.responseText);
+            let uuid;
+            try {
+              ({ uuid } = JSON.parse(file.xhr.responseText));
+            } catch (err) {
+              // this will happen if the server is down/broken, e.g., instead of proper json, we get
+              // back an error from cloudflare.
+              console.warn("WARNING: upload failure", file.xhr.responseText);
+              alert_message({
+                type: "error",
+                message:
+                  "Failed to upload. Server may be down.  Please try again later.",
+              });
+              return;
+            }
             const url = `${BASE_URL}/blobs/${encodeURIComponent(
               file.upload.filename,
             )}?uuid=${uuid}`;
