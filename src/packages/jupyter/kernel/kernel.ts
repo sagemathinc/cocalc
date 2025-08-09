@@ -46,6 +46,7 @@ import {
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
+import { isSha1 } from "@cocalc/util/misc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success, until } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
@@ -837,6 +838,11 @@ export class JupyterKernel
         dbg("removing ", type);
         // Store all images and PDF and text/html in a binary blob store, so we don't have
         // to involve it in realtime sync.  It tends to be large, etc.
+        if (isSha1(content.data[type])) {
+          // it was already processed, e.g., this happens when a browser that was
+          // processing output closes and we cutoff to the project processing output.
+          continue;
+        }
         const sha1 = await saveBlob(content.data[type], type);
         if (sha1) {
           // only remove if the save actually worked -- we don't want to break output

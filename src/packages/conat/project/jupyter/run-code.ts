@@ -301,5 +301,10 @@ export function jupyterClient(opts: {
   }) => Promise<string>;
 }) {
   const subject = getSubject(opts);
-  return new JupyterClient(opts.client, subject, opts.path, opts.stdin??(async ()=>"stdin not implemented"));
+  return new JupyterClient(
+    opts.client,
+    subject,
+    opts.path,
+    opts.stdin ?? (async () => "stdin not implemented"),
+  );
 }

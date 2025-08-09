@@ -132,6 +132,8 @@ export async function run({ path, cells, noHalt, socket }: RunOptions) {
   return await runCells();
 }
 
+const BACKEND_OUTPUT_FPS = 8;
+
 class MulticellOutputHandler {
   private id: string | null = null;
   private handler: OutputHandler | null = null;
@@ -163,12 +165,12 @@ class MulticellOutputHandler {
       );
       this.handler.on("change", f);
 
-      this.handler.on("process", (mesg) => {
+      this.handler.on("process", async (mesg) => {
         const kernel = this.actions.jupyter_kernel;
         if ((kernel?.get_state() ?? "closed") == "closed") {
           return;
         }
-        kernel.process_output(mesg);
+        await kernel.process_output(mesg);
       });
     }
     this.handler!.process(mesg);
@@ -180,7 +182,7 @@ class MulticellOutputHandler {
   };
 }
 
-const BACKEND_OUTPUT_FPS = 8;
+
 export function outputHandler({ path, cells }: RunOptions) {
   if (jupyterActions[ipynbPath(path)] == null) {
     throw Error(`session '${ipynbPath(path)}' not available`);

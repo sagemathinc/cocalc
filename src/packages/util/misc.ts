@@ -335,6 +335,12 @@ export function uuidsha1(data: string): string {
   });
 }
 
+const SHA1_REGEXP = /^[a-f0-9]{40}$/;
+export function isSha1(s: string): boolean {
+  return s.length === 40 && !!s.match(SHA1_REGEXP);
+}
+
+
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 export function len(obj: object | undefined | null): number {
   if (obj == null) {
