@@ -139,8 +139,11 @@ export interface ProjectStoreState {
   command?: string;
   most_recent_search?: string;
   most_recent_path: string;
+
+  // TODO: these shouldn't be top level!
   subdirectories?: boolean;
   case_sensitive?: boolean;
+  regexp?: boolean;
   hidden_files?: boolean;
   git_grep: boolean;
   info_visible?: boolean;
@@ -328,6 +331,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       subdirectories: other_settings?.get("find_subdirectories"),
       case_sensitive: other_settings?.get("find_case_sensitive"),
       hidden_files: other_settings?.get("find_hidden_files"),
+      regexp: other_settings?.get("regexp"),
 
       most_recent_path: "",
 

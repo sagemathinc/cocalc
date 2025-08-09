@@ -2999,6 +2999,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_subdirectories", subdirectories);
+    this.search();
   };
 
   toggle_search_checkbox_case_sensitive = () => {
@@ -3011,6 +3012,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_case_sensitive", case_sensitive);
+    this.search();
   };
 
   toggle_search_checkbox_hidden_files() {
@@ -3023,6 +3025,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_hidden_files", hidden_files);
+    this.search();
   }
 
   toggle_search_checkbox_git_grep() {
@@ -3033,6 +3036,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const git_grep = !store.get("git_grep");
     this.setState({ git_grep });
     redux.getActions("account")?.set_other_settings("find_git_grep", git_grep);
+    this.search();
+  }
+
+  toggle_search_checkbox_regexp() {
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+    const regexp = !store.get("regexp");
+    this.setState({ regexp });
+    redux.getActions("account")?.set_other_settings("regexp", regexp);
+    this.search();
   }
 
   set_file_listing_scroll(scroll_top) {
@@ -3531,17 +3546,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       this.setState(x);
     };
-    await search({
-      setState,
-      fs: this.fs(),
-      query: store.get("user_input").trim(),
-      path: store.get("current_path"),
-      options: {
-        case_sensitive: store.get("case_sensitive"),
-        git_grep: store.get("git_grep"),
-        subdirectories: store.get("subdirectories"),
-        hidden_files: store.get("hidden_files"),
-      },
-    });
+    try {
+      await search({
+        setState,
+        fs: this.fs(),
+        query: store.get("user_input").trim(),
+        path: store.get("current_path"),
+        options: {
+          case_sensitive: store.get("case_sensitive"),
+          git_grep: store.get("git_grep"),
+          subdirectories: store.get("subdirectories"),
+          hidden_files: store.get("hidden_files"),
+          regexp: store.get("regexp"),
+        },
+      });
+    } catch (err) {
+      setState({ search_error: `${err}` });
+    }
   };
 }

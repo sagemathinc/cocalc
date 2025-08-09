@@ -42,6 +42,8 @@ import { COLORS } from "@cocalc/util/theme";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { A } from "@cocalc/frontend/components/A";
+import ShowError from "@cocalc/frontend/components/error";
 
 export const ProjectSearchBody: React.FC<{
   mode: "project" | "flyout";
@@ -49,6 +51,7 @@ export const ProjectSearchBody: React.FC<{
   const { project_id } = useProjectContext();
   const subdirectories = useTypedRedux({ project_id }, "subdirectories");
   const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
+  const regexp = useTypedRedux({ project_id }, "regexp");
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
   const git_grep = useTypedRedux({ project_id }, "git_grep");
   const neural_search = useTypedRedux({ project_id }, "neural_search");
@@ -59,10 +62,6 @@ export const ProjectSearchBody: React.FC<{
 
   const actions = useActions({ project_id });
 
-  function renderResultList() {
-    return <ProjectSearchOutput project_id={project_id} mode={mode} />;
-  }
-
   function renderHeaderProject() {
     return (
       <Row>
@@ -70,7 +69,7 @@ export const ProjectSearchBody: React.FC<{
           sm={12}
           style={{ paddingTop: mode != "flyout" ? "50px" : undefined }}
         >
-          <ProjectSearchInput project_id={project_id} />
+          <ProjectSearchInput project_id={project_id} regexp={regexp} />
           {mode != "flyout" ? (
             <ProjectSearchOutputHeader project_id={project_id} />
           ) : undefined}
@@ -92,7 +91,7 @@ export const ProjectSearchBody: React.FC<{
             checked={case_sensitive}
             onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
           >
-            <Icon name="font-size" /> <b>Case sensitive</b> search
+            <Icon name="font-size" /> <b>Case sensitive</b>
           </Checkbox>
           <Checkbox
             disabled={neural_search}
@@ -108,6 +107,17 @@ export const ProjectSearchBody: React.FC<{
           >
             <Icon name="git" /> <b>Git aware</b>: exclude files via .gitignore
             and similar rules.
+          </Checkbox>
+          <Checkbox
+            disabled={neural_search}
+            checked={regexp}
+            onChange={() => actions?.toggle_search_checkbox_regexp()}
+          >
+            <Icon name="code" /> <b>Regular expressions</b> (
+            <A href="https://docs.rs/regex/1.11.1/regex/#syntax">
+              ripgrep syntax
+            </A>
+            )
           </Checkbox>
           {neural_search_enabled && (
             <Checkbox
@@ -133,7 +143,11 @@ export const ProjectSearchBody: React.FC<{
   function renderHeaderFlyout() {
     return (
       <div style={{ flexDirection: "column", padding: "5px" }}>
-        <ProjectSearchInput project_id={project_id} small={true} />
+        <ProjectSearchInput
+          project_id={project_id}
+          small={true}
+          regexp={regexp}
+        />
         <SelectComputeServerForFileExplorer
           project_id={project_id}
           style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
@@ -173,6 +187,17 @@ export const ProjectSearchBody: React.FC<{
             files.
           </HelpIcon>
         </Checkbox>
+        <Checkbox
+          disabled={neural_search}
+          checked={regexp}
+          onChange={() => actions?.toggle_search_checkbox_regexp()}
+        >
+          <Icon name="code" /> <b>Regular expressions</b> (
+          <A href="https://docs.rs/regex/1.11.1/regex/#syntax">
+            ripgrep syntax
+          </A>
+          )
+        </Checkbox>
         {neural_search_enabled && (
           <Checkbox
             checked={neural_search}
@@ -201,7 +226,11 @@ export const ProjectSearchBody: React.FC<{
   return (
     <div className="smc-vfill">
       {renderHeader()}
-      {renderResultList()}
+      <ProjectSearchOutput
+        project_id={project_id}
+        mode={mode}
+        actions={actions}
+      />
     </div>
   );
 };
@@ -209,21 +238,26 @@ export const ProjectSearchBody: React.FC<{
 interface ProjectSearchInputProps {
   project_id: string;
   small?: boolean;
+  regexp?: boolean;
 }
 
 function ProjectSearchInput({
   project_id,
   small = false,
+  regexp,
 }: ProjectSearchInputProps) {
   const actions = useActions({ project_id });
   const user_input = useTypedRedux({ project_id }, "user_input");
-
   return (
     <SearchInput
       size={small ? "medium" : "large"}
       autoFocus={true}
       value={user_input}
-      placeholder={"Search contents of files..."}
+      placeholder={
+        regexp
+          ? "Search file contents using regexp..."
+          : "Search contents of files..."
+      }
       on_change={(value) => actions?.setState({ user_input: value })}
       on_submit={() => actions?.search()}
       on_clear={() =>
@@ -252,11 +286,13 @@ interface ProjectSearchOutputProps {
   project_id: string;
   wrap?: Function;
   mode?: "project" | "flyout";
+  actions?;
 }
 
 function ProjectSearchOutput({
   project_id,
   mode = "project",
+  actions,
 }: ProjectSearchOutputProps) {
   const [filter, setFilter] = useState<string>("");
   const [currentFilter, setCurrentFilter] = useState<string>("");
@@ -301,18 +337,10 @@ function ProjectSearchOutput({
   }
 
   function render_get_results() {
-    if (search_error != null) {
-      return (
-        <Alert bsStyle="warning">
-          Search error: {search_error} Please try a different type of search or
-          a more restrictive search.
-        </Alert>
-      );
-    }
-    if (search_results?.size == 0) {
+    if (search_results?.size == 0 && !search_error) {
       return (
         <Alert bsStyle="warning" banner={true}>
-          There are no results for your search.
+          No results for your search.
         </Alert>
       );
     }
@@ -342,10 +370,6 @@ function ProjectSearchOutput({
     );
   }
 
-  function renderResultList() {
-    return <div className="smc-vfill">{render_get_results()}</div>;
-  }
-
   return (
     <div className="smc-vfill">
       <Input.Search
@@ -373,7 +397,14 @@ function ProjectSearchOutput({
           </b>
         </Alert>
       )}
-      {renderResultList()}
+      <ShowError
+        style={{ margin: "15px 0" }}
+        error={search_error}
+        setError={() => {
+          actions?.setState({ search_error: undefined });
+        }}
+      />
+      <div className="smc-vfill">{render_get_results()}</div>
     </div>
   );
 }

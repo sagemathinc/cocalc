@@ -4,6 +4,9 @@ import { trunc } from "@cocalc/util/misc";
 // we get about this many bytes of results from the filesystem, then stop...
 const MAX_SIZE = 1_000_000;
 
+// 2s to be responsive and minimize server load.
+const TIMEOUT = 2_000;
+
 const MAX_LINE_LENGTH = 256;
 
 interface SearchResult {
@@ -29,10 +32,10 @@ export async function search({
     git_grep?: boolean;
     subdirectories?: boolean;
     hidden_files?: boolean;
+    regexp?: boolean;
   };
 }) {
-  query = query?.trim()?.replace(/"/g, '\\"');
-  if (!query) {
+  if (!query.trim()) {
     return;
   }
 
@@ -49,10 +52,14 @@ export async function search({
   if (!options.git_grep) {
     rgOptions.push("--no-ignore");
   }
+  if (!options.regexp) {
+    rgOptions.push("-F");
+  }
 
-  const { stdout, truncated } = await fs.ripgrep(path, query, {
+  const { stdout, stderr, truncated } = await fs.ripgrep(path, query, {
     options: rgOptions,
     maxSize: MAX_SIZE,
+    timeout: TIMEOUT,
   });
   const lines = Buffer.from(stdout).toString().split("\n");
 
@@ -81,5 +88,6 @@ export async function search({
     search_results,
     most_recent_search: query,
     most_recent_path: path,
+    search_error: Buffer.from(stderr).toString(),
   });
 }
