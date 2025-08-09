@@ -1566,7 +1566,7 @@ export class JupyterActions extends JupyterActions0 {
             this.setState({ stdin: { id, prompt, password } });
             try {
               const [input] = await once(this.store, "stdin");
-              this.setState({ stdin: undefined, stdinNoRun: true });
+              this.setState({ stdin: undefined });
               return input;
             } catch (err) {
               return `${err}`;
