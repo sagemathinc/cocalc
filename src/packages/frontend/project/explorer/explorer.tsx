@@ -53,6 +53,7 @@ import {
   useStrippedPublicPaths,
 } from "@cocalc/frontend/project_store";
 import { Icon } from "@cocalc/frontend/components";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 
 const FLEX_ROW_STYLE = {
   display: "flex",
@@ -143,6 +144,7 @@ export function Explorer() {
     mask,
   });
   const showHidden = useTypedRedux({ project_id }, "show_hidden");
+  const flyout = useTypedRedux({ project_id }, "flyout");
 
   listing = listingError
     ? null
@@ -165,17 +167,23 @@ export function Explorer() {
     return getPublicFiles(listing, strippedPublicPaths, current_path);
   }, [listing, current_path, strippedPublicPaths]);
 
+  const { val: clicked, inc: clickedOnExplorer } = useCounter();
   useEffect(() => {
     if (listing == null || file_action) {
       return;
     }
-    const handle_files_key_down = (e): void => {
+    const handleKeyDown = (e): void => {
       if (actions == null) {
         return;
       }
       if (e.key === "Shift") {
         setShiftIsDown(true);
-      } else if (e.key == "ArrowUp") {
+        return;
+      }
+      if (flyout && $(":focus").length > 0) {
+        return;
+      }
+      if (e.key == "ArrowUp") {
         if (e.shiftKey || e.ctrlKey || e.metaKey) {
           const path = dirname(current_path);
           actions.open_directory(path == "." ? "" : path);
@@ -212,19 +220,19 @@ export function Explorer() {
       }
     };
 
-    const handle_files_key_up = (e): void => {
+    const handleKeyUp = (e): void => {
       if (e.key === "Shift") {
         setShiftIsDown(false);
       }
     };
 
-    $(window).on("keydown", handle_files_key_down);
-    $(window).on("keyup", handle_files_key_up);
+    $(window).on("keydown", handleKeyDown);
+    $(window).on("keyup", handleKeyUp);
     return () => {
-      $(window).off("keydown", handle_files_key_down);
-      $(window).off("keyup", handle_files_key_up);
+      $(window).off("keydown", handleKeyDown);
+      $(window).off("keyup", handleKeyUp);
     };
-  }, [project_id, current_path, listing, file_action]);
+  }, [project_id, current_path, listing, file_action, flyout, clicked]);
 
   if (actions == null || project_map == null) {
     return <Loading />;
@@ -314,7 +322,12 @@ export function Explorer() {
 
   // be careful with adding height:'100%'. it could cause flex to miscalculate. see #3904
   return (
-    <div className={"smc-vfill"}>
+    <div
+      className={"smc-vfill"}
+      onClick={() => {
+        clickedOnExplorer();
+      }}
+    >
       <div
         style={{
           flex: "0 0 auto",
