@@ -8,6 +8,7 @@ interface Props {
   style?: CSSProperties;
   message?;
   banner?;
+  noMarkdown?: boolean;
 }
 export default function ShowError({
   message = "Error",
@@ -15,6 +16,7 @@ export default function ShowError({
   setError,
   style,
   banner,
+  noMarkdown,
 }: Props) {
   if (!error) return null;
   const err = `${error}`.replace(/Error:/g, "").trim();
@@ -27,7 +29,7 @@ export default function ShowError({
       type="error"
       description={
         <div style={{ maxHeight: "150px", overflow: "auto", textWrap: "wrap" }}>
-          <StaticMarkdown value={err} />
+          {noMarkdown ? err : <StaticMarkdown value={err} />}
         </div>
       }
       onClose={() => setError?.("")}

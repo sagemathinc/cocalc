@@ -398,6 +398,7 @@ function ProjectSearchOutput({
         </Alert>
       )}
       <ShowError
+        noMarkdown
         style={{ margin: "15px 0" }}
         error={search_error}
         setError={() => {
