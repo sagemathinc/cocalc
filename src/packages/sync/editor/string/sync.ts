@@ -6,6 +6,8 @@
 import { SyncDoc, SyncOpts0, SyncOpts } from "../generic/sync-doc";
 import { StringDocument } from "./doc";
 
+export type SyncStringOpts = SyncOpts0;
+
 export class SyncString extends SyncDoc {
   constructor(opts: SyncOpts0) {
     // TS question -- What is the right way to do this?

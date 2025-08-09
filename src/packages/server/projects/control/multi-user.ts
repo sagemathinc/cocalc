@@ -16,23 +16,7 @@ This code is very similar to single-user.ts, except with some
 small modifications due to having to create and delete Linux users.
 */
 
-import {
-  chown,
-  copyPath,
-  createUser,
-  //   deleteUser,
-  ensureConfFilesExists,
-  getEnvironment,
-  getState,
-  getStatus,
-  homePath,
-  isProjectRunning,
-  launchProjectDaemon,
-  mkdir,
-  setupDataPath,
-  stopProjectProcesses,
-  writeSecretToken,
-} from "./util";
+import { copyPath, getState, getStatus, homePath } from "./util";
 import {
   BaseProject,
   CopyOptions,
@@ -42,24 +26,15 @@ import {
 } from "./base";
 import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
-import {
-  deleteProjectSecretToken,
-  getProjectSecretToken,
-} from "./secret-token";
 
 const winston = getLogger("project-control:multi-user");
 
-const MAX_START_TIME_MS = 30000;
-const MAX_STOP_TIME_MS = 20000;
-
 class Project extends BaseProject {
   private HOME: string;
-  private uid: number;
 
   constructor(project_id: string) {
     super(project_id);
     this.HOME = homePath(this.project_id);
-    this.uid = getUid(this.project_id);
   }
 
   async state(): Promise<ProjectState> {
@@ -80,88 +55,6 @@ class Project extends BaseProject {
     );
     this.saveStatusToDatabase(status);
     return status;
-  }
-
-  async start(): Promise<void> {
-    if (this.stateChanging != null) return;
-    winston.info(`start ${this.project_id}`);
-
-    // Home directory
-    const HOME = this.HOME;
-
-    if (await isProjectRunning(HOME)) {
-      winston.debug("start -- already running");
-      await this.saveStateToDatabase({ state: "running" });
-      return;
-    }
-
-    try {
-      this.stateChanging = { state: "starting" };
-      await this.saveStateToDatabase(this.stateChanging);
-      await this.computeQuota();
-      await mkdir(HOME, { recursive: true });
-      await createUser(this.project_id);
-      await chown(HOME, this.uid);
-      await ensureConfFilesExists(HOME, this.uid);
-
-      // this.get('env') = extra env vars for project (from synctable):
-      const env = await getEnvironment(this.project_id);
-
-      winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
-
-      // Setup files
-      await setupDataPath(HOME, this.uid);
-
-      await writeSecretToken(
-        HOME,
-        await getProjectSecretToken(this.project_id),
-        this.uid,
-      );
-
-      await this.touch(undefined, { noStart: true });
-
-      // Fork and launch project server daemon
-      await launchProjectDaemon(env, this.uid);
-
-      await this.wait({
-        until: async () => {
-          if (!(await isProjectRunning(this.HOME))) {
-            return false;
-          }
-          const status = await this.status();
-          return !!status["hub-server.port"];
-        },
-        maxTime: MAX_START_TIME_MS,
-      });
-    } finally {
-      this.stateChanging = undefined;
-      // ensure state valid
-      await this.state();
-    }
-  }
-
-  async stop(): Promise<void> {
-    if (this.stateChanging != null) return;
-    winston.info("stop ", this.project_id);
-    if (!(await isProjectRunning(this.HOME))) {
-      await this.saveStateToDatabase({ state: "opened" });
-      return;
-    }
-    try {
-      this.stateChanging = { state: "stopping" };
-      await this.saveStateToDatabase(this.stateChanging);
-      await stopProjectProcesses(this.project_id);
-      //   await deleteUser(this.project_id);
-      await this.wait({
-        until: async () => !(await isProjectRunning(this.HOME)),
-        maxTime: MAX_STOP_TIME_MS,
-      });
-      await deleteProjectSecretToken(this.project_id);
-    } finally {
-      this.stateChanging = undefined;
-      // ensure state valid in database
-      await this.state();
-    }
   }
 
   async copyPath(opts: CopyOptions): Promise<string> {

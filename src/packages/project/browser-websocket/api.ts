@@ -16,7 +16,7 @@
 
 import { getClient } from "@cocalc/project/client";
 import { get_configuration } from "../configuration";
-import { run_formatter, run_formatter_string } from "../formatters";
+import { formatString } from "../formatters";
 import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
 import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
@@ -131,12 +131,8 @@ export async function handleApiCall({
       return await canonical_paths(data.paths);
     case "configuration":
       return await get_configuration(data.aspect, data.no_cache);
-    case "prettier": // deprecated
-    case "formatter":
-      return await run_formatter(data);
-    case "prettier_string": // deprecated
     case "formatter_string":
-      return await run_formatter_string(data);
+      return await formatString(data);
     case "exec":
       if (data.opts == null) {
         throw Error("opts must not be null");

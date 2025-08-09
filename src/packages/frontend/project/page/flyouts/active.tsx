@@ -194,7 +194,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
     filteredFiles.forEach((path) => {
       const { head, tail } = path_split(path);
       const group =
-        mode === "folder" ? head : filename_extension_notilde(tail) ?? "";
+        mode === "folder" ? head : (filename_extension_notilde(tail) ?? "");
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
@@ -258,7 +258,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
     group?: string,
     isLast?: boolean,
   ): React.JSX.Element {
-    const isactive: boolean = activePath === path;
+    const isActive: boolean = activePath === path;
     const style =
       group != null
         ? {
@@ -267,12 +267,12 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
           }
         : undefined;
 
-    const isdir = path.endsWith("/");
-    const isopen = openFiles.includes(path);
+    const isDir = path.endsWith("/");
+    const isOpen = openFiles.includes(path);
 
     // if it is a directory, remove the trailing slash
     // and if it starts with ".smc/root/", replace that by a "/"
-    const display = isdir
+    const display = isDir
       ? path.slice(0, -1).replace(/^\.smc\/root\//, "/")
       : undefined;
 
@@ -280,7 +280,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
       <FileListItem
         key={path}
         mode="active"
-        item={{ name: path, isopen, isdir, isactive }}
+        item={{ name: path, isOpen, isDir, isActive }}
         displayedNameOverride={display}
         style={style}
         multiline={false}
@@ -300,7 +300,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
           // we only toggle star, if it is currently opened!
           // otherwise, when closed and accidentally clicking on the star
           // the file unstarred and just vanishes
-          if (isopen) {
+          if (isOpen) {
             setStarredPath(path, starState);
           } else {
             handleFileClick(undefined, path, "star");

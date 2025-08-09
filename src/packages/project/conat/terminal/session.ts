@@ -1,6 +1,6 @@
 import { spawn } from "@lydell/node-pty";
 import { envForSpawn } from "@cocalc/backend/misc";
-import { path_split } from "@cocalc/util/misc";
+import { path_split, split } from "@cocalc/util/misc";
 import { console_init_filename, len } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getLogger } from "@cocalc/project/logger";
@@ -12,7 +12,7 @@ import {
 } from "@cocalc/conat/service/terminal";
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { throttle } from "lodash";
-import { ThrottleString as Throttle } from "@cocalc/util/throttle";
+import { ThrottleString } from "@cocalc/util/throttle";
 import { join } from "path";
 import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 import { delay } from "awaiting";
@@ -28,14 +28,13 @@ const INPUT_CHUNK_SIZE = 50;
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
-const SOFT_RESET =
-  "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x; sleep 0.1; clear -x; sleep 0.1; clear -x";
+const HARD_RESET = "reset";
 
-const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${SOFT_RESET}; history -d $(history 1);\n`;
+const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${HARD_RESET}; history -d $(history 1);\n`;
 
-const PROJECT_INIT = `${SOFT_RESET}; history -d $(history 1);\n`;
+const PROJECT_INIT = `${HARD_RESET}; history -d $(history 1);\n`;
 
-const DEFAULT_COMMAND = "/bin/bash";
+const DEFAULT_COMMAND = "/usr/bin/bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
@@ -55,7 +54,7 @@ const MAX_BYTES_PER_SECOND = parseInt(
 // having to discard writes.  This is basically the "frame rate"
 // we are supporting for users.
 const MAX_MSGS_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "20",
 );
 
 type State = "running" | "off" | "closed";
@@ -73,10 +72,21 @@ export class Session {
     [browser_id: string]: { rows: number; cols: number; time: number };
   } = {};
   public pid: number;
+  private nsjail?: boolean;
 
-  constructor({ termPath, options }) {
+  constructor({
+    termPath,
+    options,
+    nsjail = false,
+  }: {
+    termPath: string;
+    options: CreateTerminalOptions;
+    // nsjail -- just a proof of concept for experimentation
+    nsjail?: boolean;
+  }) {
     logger.debug("create session ", { termPath, options });
     this.termPath = termPath;
+    this.nsjail = nsjail;
     this.browserApi = createBrowserClient({ project_id, termPath });
     this.options = options;
     this.streamName = `terminal-${termPath}`;
@@ -196,8 +206,8 @@ export class Session {
       COCALC_TERMINAL_FILENAME: tail,
       TMUX: undefined, // ensure not set
     };
-    const command = this.options.command ?? DEFAULT_COMMAND;
-    const args = this.options.args ?? [];
+    let command = this.options.command ?? DEFAULT_COMMAND;
+    let args = this.options.args ?? [];
     const initFilename: string = console_init_filename(this.termPath);
     if (await exists(initFilename)) {
       args.push("--init-file");
@@ -208,6 +218,19 @@ export class Session {
     }
     const cwd = getCWD(head, this.options.cwd);
     logger.debug("creating pty");
+    if (this.nsjail) {
+      // just a proof of concept to see what it is like!
+      const lib64 = await exists("/lib64");
+      args = [
+        ...split(
+          `-q -B /dev -R /var --disable_clone_newnet -E TERM=screen -E HOME=/home/user --cwd=/home/user -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin ${lib64 ? "-R /lib64" : ""} -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid  --disable_rlimits  -B ${process.env.HOME}:/home/user `,
+        ),
+        "--",
+        command,
+        ...args,
+      ];
+      command = "nsjail";
+    }
     this.pty = spawn(command, args, {
       cwd,
       env,
@@ -236,7 +259,7 @@ export class Session {
 
     // use slighlty less than MAX_MSGS_PER_SECOND to avoid reject
     // due to being *slightly* off.
-    const throttle = new Throttle(1000 / (MAX_MSGS_PER_SECOND - 3));
+    const throttle = new ThrottleString(MAX_MSGS_PER_SECOND - 3);
     throttle.on("data", (data: string) => {
       // logger.debug("got data out of pty");
       this.handleBackendMessages(data);

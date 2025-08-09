@@ -55,7 +55,7 @@ function pidFile(HOME: string): string {
   return join(dataPath(HOME), pidFilename);
 }
 
-function parseDarwinTime(output:string) : number {
+function parseDarwinTime(output: string): number {
   // output = '{ sec = 1747866131, usec = 180679 } Wed May 21 15:22:11 2025';
   const match = output.match(/sec\s*=\s*(\d+)/);
 
@@ -72,7 +72,10 @@ export async function bootTime(): Promise<number> {
   if (!_bootTime) {
     if (process.platform === "darwin") {
       // uptime isn't available on macos.
-      const { stdout } = await executeCode({ command: "sysctl", args: ['-n', 'kern.boottime']});
+      const { stdout } = await executeCode({
+        command: "sysctl",
+        args: ["-n", "kern.boottime"],
+      });
       _bootTime = parseDarwinTime(stdout);
     } else {
       const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
@@ -98,6 +101,17 @@ export async function getProjectPID(HOME: string): Promise<number> {
 }
 
 export async function isProjectRunning(HOME: string): Promise<boolean> {
+  if (NSJAIL) {
+    try {
+      const stats = await stat(join(HOME, ".smc", "log"));
+      const modificationTime = stats.mtime.getTime();
+      if (Math.abs(Date.now() - modificationTime) <= 15000) {
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
   try {
     const pid = await getProjectPID(HOME);
     //logger.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
@@ -150,22 +164,28 @@ async function logLaunchParams(params): Promise<void> {
   }
 }
 
-export async function launchProjectDaemon(env, uid?: number): Promise<void> {
+const NSJAIL = true;
+
+export async function launchProjectDaemon(
+  env,
+  uid?: number,
+): Promise<ReturnType<typeof spawn>> {
   logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
-  const cmd = "pnpm";
-  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
+  let cmd = "pnpm";
+  let args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
   logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
   logLaunchParams({ cwd, env, cmd, args, uid });
+  const child = spawn(cmd, args, {
+    env,
+    cwd,
+    uid,
+    gid: uid,
+  });
+
   await promisify((cb: Function) => {
-    const child = spawn(cmd, args, {
-      env,
-      cwd,
-      uid,
-      gid: uid,
-    });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (data) => {
@@ -202,6 +222,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       cb(code);
     });
   })();
+  return child;
 }
 
 async function exec(
@@ -307,6 +328,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
 
 export async function getEnvironment(
   project_id: string,
+  { HOME = "/home/user" }: { HOME?: string } = {},
 ): Promise<{ [key: string]: any }> {
   const extra: { [key: string]: any } = await callback2(
     db().get_project_extra_env,
@@ -317,7 +339,6 @@ export async function getEnvironment(
   );
 
   const USER = getUsername(project_id);
-  const HOME = homePath(project_id);
   const DATA = dataPath(HOME);
 
   return {

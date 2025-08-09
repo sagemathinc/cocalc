@@ -67,6 +67,7 @@ const BOTTOM_PADDING_CELL = (
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything is read only
   cell_list: immutable.List<string>; // list of ids of cells in order
+  stdin?;
   cell_toolbar?: string;
   cells: immutable.Map<string, any>;
   cm_options: immutable.Map<string, any>;
@@ -91,12 +92,14 @@ interface CellListProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   read_only?: boolean;
+  pendingCells?: immutable.Set<string>;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const {
     actions,
     cell_list,
+    stdin,
     cell_toolbar,
     cells,
     cm_options,
@@ -121,6 +124,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     llmTools,
     computeServerId,
     read_only,
+    pendingCells,
   } = props;
 
   const cellListDivRef = useRef<any>(null);
@@ -434,7 +438,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       index = cell_list.indexOf(id) ?? 0;
     }
-    const dragHandle = actions?.store.is_cell_editable(id) ? (
+    const dragHandle = actions?.store?.is_cell_editable(id) ? (
       <DragHandle
         id={id}
         style={{
@@ -450,6 +454,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <div key={id}>
         <Cell
           id={id}
+          stdin={stdin?.get("id") == id ? stdin : undefined}
           index={index}
           actions={actions}
           name={name}
@@ -478,6 +483,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           dragHandle={dragHandle}
           read_only={read_only}
           isDragging={isDragging}
+          isPending={pendingCells?.has(id)}
         />
       </div>
     );

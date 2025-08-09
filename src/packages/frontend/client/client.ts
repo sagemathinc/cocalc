@@ -317,26 +317,6 @@ class Client extends EventEmitter implements WebappClient {
   public set_deleted(): void {
     throw Error("not implemented for frontend");
   }
-
-  touchOpenFile = async ({
-    project_id,
-    path,
-    setNotDeleted,
-    doctype,
-  }: {
-    project_id: string;
-    path: string;
-    id?: number;
-    doctype?;
-    // if file is deleted, this explicitly undeletes it.
-    setNotDeleted?: boolean;
-  }) => {
-    const x = await this.conat_client.openFiles(project_id);
-    if (setNotDeleted) {
-      x.setNotDeleted(path);
-    }
-    x.touch(path, doctype);
-  };
 }
 
 export const webapp_client = new Client();

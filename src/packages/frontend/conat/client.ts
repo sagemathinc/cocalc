@@ -11,7 +11,6 @@ import { parseQueryWithOptions } from "@cocalc/sync/table/util";
 import { type HubApi, initHubApi } from "@cocalc/conat/hub/api";
 import { type ProjectApi, initProjectApi } from "@cocalc/conat/project/api";
 import { isValidUUID } from "@cocalc/util/misc";
-import { createOpenFiles, OpenFiles } from "@cocalc/conat/sync/open-files";
 import { PubSub } from "@cocalc/conat/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { dkv } from "@cocalc/conat/sync/dkv";
@@ -46,6 +45,7 @@ import {
   deleteRememberMe,
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
+import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -62,7 +62,6 @@ export class ConatClient extends EventEmitter {
   client: WebappClient;
   public hub: HubApi;
   public sessionId = randomId();
-  private openFilesCache: { [project_id: string]: OpenFiles } = {};
   private clientWithState: ClientWithState;
   private _conatClient: null | ReturnType<typeof connectToConat>;
   public numConnectionAttempts = 0;
@@ -262,7 +261,7 @@ export class ConatClient extends EventEmitter {
         console.log(
           `Connecting to ${this._conatClient?.options.address}: attempts ${attempts}`,
         );
-        this._conatClient?.conn.io.connect();
+        this._conatClient?.connect();
         return false;
       },
       { min: 3000, max: 15000 },
@@ -314,7 +313,13 @@ export class ConatClient extends EventEmitter {
       const resp = await cn.request(subject, data, { timeout });
       return resp.data;
     } catch (err) {
-      err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
+      try {
+        err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
+      } catch {
+        err = new Error(
+          `${err.message} - callHub: subject='${subject}', name='${name}', `,
+        );
+      }
       throw err;
     }
   };
@@ -392,10 +397,7 @@ export class ConatClient extends EventEmitter {
     query0,
     options?,
   ): Promise<ConatSyncTable> => {
-    const { query, table } = parseQueryWithOptions(query0, options);
-    if (options?.project_id != null && query[table][0]["project_id"] === null) {
-      query[table][0]["project_id"] = options.project_id;
-    }
+    const { query } = parseQueryWithOptions(query0, options);
     return await this.conat().sync.synctable({
       ...options,
       query,
@@ -423,42 +425,6 @@ export class ConatClient extends EventEmitter {
     return this.conat().socket.connect(subject, {
       desc: `primus-${channel ?? ""}`,
     });
-  };
-
-  openFiles = reuseInFlight(async (project_id: string) => {
-    if (this.openFilesCache[project_id] == null) {
-      const openFiles = await createOpenFiles({
-        project_id,
-      });
-      this.openFilesCache[project_id] = openFiles;
-      openFiles.on("closed", () => {
-        delete this.openFilesCache[project_id];
-      });
-      openFiles.on("change", (entry) => {
-        if (entry.deleted?.deleted) {
-          setDeleted({
-            project_id,
-            path: entry.path,
-            deleted: entry.deleted.time,
-          });
-        } else {
-          setNotDeleted({ project_id, path: entry.path });
-        }
-      });
-      const recentlyDeletedPaths: any = {};
-      for (const { path, deleted } of openFiles.getAll()) {
-        if (deleted?.deleted) {
-          recentlyDeletedPaths[path] = deleted.time;
-        }
-      }
-      const store = redux.getProjectStore(project_id);
-      store.setState({ recentlyDeletedPaths });
-    }
-    return this.openFilesCache[project_id]!;
-  });
-
-  closeOpenFiles = (project_id) => {
-    this.openFilesCache[project_id]?.close();
   };
 
   pubsub = async ({
@@ -515,22 +481,13 @@ export class ConatClient extends EventEmitter {
   };
 
   refCacheInfo = () => refCacheInfo();
-}
 
-function setDeleted({ project_id, path, deleted }) {
-  if (!redux.hasProjectStore(project_id)) {
-    return;
-  }
-  const actions = redux.getProjectActions(project_id);
-  actions.setRecentlyDeleted(path, deleted);
-}
-
-function setNotDeleted({ project_id, path }) {
-  if (!redux.hasProjectStore(project_id)) {
-    return;
-  }
-  const actions = redux.getProjectActions(project_id);
-  actions?.setRecentlyDeleted(path, 0);
+  projectRunner = (project_id: string) => {
+    return projectRunnerClient({
+      subject: `project.${project_id}.run`,
+      client: this.conat(),
+    });
+  };
 }
 
 async function waitForOnline(): Promise<void> {

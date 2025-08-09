@@ -16,9 +16,6 @@ import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 import { expire_time, is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 
-import getLogger from "@cocalc/backend/logger";
-const winston = getLogger("project-control-kucalc");
-
 class Project extends BaseProject {
   constructor(project_id: string) {
     super(project_id);
@@ -43,59 +40,6 @@ class Project extends BaseProject {
     status["hub-server.port"] = 6000;
     status["browser-server.port"] = 6001;
     return status;
-  }
-
-  async start(): Promise<void> {
-    if (this.stateChanging != null) return;
-    winston.info(`start ${this.project_id}`);
-
-    if ((await this.state()).state == "running") {
-      winston.debug("start -- already running");
-      return;
-    }
-    try {
-      this.stateChanging = { state: "starting" };
-
-      // TODO: once "manage" processes site licenses, we can remove this line!
-      // Manage has to do the equivalent of this.computeQuota()
-      await this.siteLicenseHook(false);
-      await this.actionRequest("start");
-      await this.touch(undefined, { noStart: true });
-      await this.waitUntilProject(
-        (project) =>
-          project.state?.state == "running" || project.action_request?.finished,
-        120,
-      );
-    } finally {
-      this.stateChanging = undefined;
-    }
-  }
-
-  // TODO/ATTN: I don't think this is actualy used by kucalc yet.
-  // In kucalc there's cluster2/addons/manage/image/src/k8s-control.coffee
-  // which does a lot of this stuff *directly* via the database and
-  // kubernetes.  It needs to be rewritten...
-  async stop(): Promise<void> {
-    if (this.stateChanging != null) return;
-    winston.info("stop ", this.project_id);
-    await this.closePayAsYouGoPurchases();
-    if ((await this.state()).state != "running") {
-      return;
-    }
-    try {
-      this.stateChanging = { state: "stopping" };
-      await this.actionRequest("stop");
-      await this.waitUntilProject(
-        (project) =>
-          (project.state != null &&
-            project.state != "running" &&
-            project.state != "stopping") ||
-          project.action_request?.finished,
-        60,
-      );
-    } finally {
-      this.stateChanging = undefined;
-    }
   }
 
   async copyPath(opts: CopyOptions): Promise<string> {
@@ -185,48 +129,6 @@ class Project extends BaseProject {
     } else {
       dbg("NOT waiting for copy to complete");
       return copyID;
-    }
-  }
-
-  private getProjectSynctable() {
-    // this is all in coffeescript, hence the any type above.
-    return db().synctable({
-      table: "projects",
-      columns: ["state", "action_request"],
-      where: { "project_id = $::UUID": this.project_id },
-      // where_function is a fast easy test for matching:
-      where_function: (project_id) => project_id == this.project_id,
-    });
-  }
-
-  private async actionRequest(action: "start" | "stop"): Promise<void> {
-    await callback2(db()._query, {
-      query: "UPDATE projects",
-      where: { "project_id  = $::UUID": this.project_id },
-      jsonb_set: {
-        action_request: {
-          action,
-          time: new Date(),
-          started: undefined,
-          finished: undefined,
-        },
-      },
-    });
-  }
-
-  private async waitUntilProject(
-    until: (obj) => boolean,
-    timeout: number, // in seconds
-  ): Promise<void> {
-    let synctable: any = undefined;
-    try {
-      synctable = this.getProjectSynctable();
-      await callback2(synctable.wait, {
-        until: () => until(synctable.get(this.project_id)?.toJS() ?? {}),
-        timeout,
-      });
-    } finally {
-      synctable?.close();
     }
   }
 

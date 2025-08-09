@@ -3,10 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// DEPRECATABLE?
+
 /*
 This is used by backends to serve directory listings to clients:
 
-{files:[..., {size:?,name:?,mtime:?,isdir:?}]}
+{files:[..., {size:?,name:?,mtime:?,isDir:?}]}
 
 where mtime is integer SECONDS since epoch, size is in bytes, and isdir
 is only there if true.
@@ -46,7 +48,7 @@ const getListing = reuseInFlight(
       if (!hidden && file.name[0] === ".") {
         continue;
       }
-      let entry: DirectoryListingEntry;
+      let entry: Partial<DirectoryListingEntry>;
       try {
         // I don't actually know if file.name can fail to be JSON-able with node.js -- is there
         // even a string in Node.js that cannot be dumped to JSON?  With python
@@ -61,14 +63,14 @@ const getListing = reuseInFlight(
       try {
         let stats: Stats;
         if (file.isSymbolicLink()) {
-          // Optimization: don't explicitly set issymlink if it is false
-          entry.issymlink = true;
+          // Optimization: don't explicitly set isSymLink if it is false
+          entry.isSymLink = true;
         }
-        if (entry.issymlink) {
+        if (entry.isSymLink) {
           // at least right now we only use this symlink stuff to display
           // information to the user in a listing, and nothing else.
           try {
-            entry.link_target = await readlink(dir + "/" + entry.name);
+            entry.linkTarget = await readlink(dir + "/" + entry.name);
           } catch (err) {
             // If we don't know the link target for some reason; just ignore this.
           }
@@ -81,7 +83,7 @@ const getListing = reuseInFlight(
         }
         entry.mtime = stats.mtime.valueOf() / 1000;
         if (stats.isDirectory()) {
-          entry.isdir = true;
+          entry.isDir = true;
           const v = await readdir(dir + "/" + entry.name);
           if (hidden) {
             entry.size = v.length;
@@ -100,7 +102,7 @@ const getListing = reuseInFlight(
       } catch (err) {
         entry.error = `${entry.error ? entry.error : ""}${err}`;
       }
-      files.push(entry);
+      files.push(entry as DirectoryListingEntry);
     }
     return files;
   },

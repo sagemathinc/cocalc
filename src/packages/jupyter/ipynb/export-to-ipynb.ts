@@ -9,10 +9,13 @@ Exporting from our in-memory sync-friendly format to ipynb
 
 import { CellType } from "@cocalc/util/jupyter/types";
 import { deep_copy, filename_extension, keys } from "@cocalc/util/misc";
+import { isSha1 } from "@cocalc/util/misc";
 
 type Tags = { [key: string]: boolean };
 
-interface Cell {
+export interface Cell {
+  type?: "cell";
+  id?: string;
   cell_type?: CellType;
   input?: string;
   collapsed?: boolean;
@@ -20,9 +23,13 @@ interface Cell {
   slide?;
   attachments?;
   tags?: Tags;
-  output?: { [n: string]: OutputMessage };
+  output?: { [n: string]: OutputMessage } | null;
   metadata?: Metadata;
-  exec_count?: number;
+  exec_count?: number | null;
+
+  start?: number | null;
+  end?: number | null;
+  state?: "done" | "busy" | "run";
 }
 
 type OutputMessage = any;
@@ -277,7 +284,10 @@ function processOutputN(
       if (k.slice(0, 5) === "text/") {
         output_n.data[k] = diff_friendly(output_n.data[k]);
       }
-      if (k.startsWith("image/") || k === "application/pdf" || k === "iframe") {
+      if (
+        isSha1(v) &&
+        (k.startsWith("image/") || k === "application/pdf" || k === "iframe")
+      ) {
         if (blob_store != null) {
           let value;
           if (k === "iframe") {

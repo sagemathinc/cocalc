@@ -32,12 +32,12 @@ import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
+  stdin?;
   cm_options: Map<string, any>;
   mode: "edit" | "escape";
   font_size: number;
   id?: string; // redundant, since it's in the cell.
   actions?: JupyterActions;
-  name?: string;
   index?: number; // position of cell in the list of all cells; just used to optimize rendering and for no other reason.
   is_current?: boolean;
   is_selected?: boolean;
@@ -62,12 +62,15 @@ interface Props {
   dragHandle?: React.JSX.Element;
   read_only?: boolean;
   isDragging?: boolean;
+  isPending?: boolean;
+  name?: string;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
   // note: we assume project_id and directory don't change
   return !(
     nextProps.id !== props.id ||
+    nextProps.stdin !== props.stdin ||
     nextProps.index !== props.index ||
     nextProps.cm_options !== props.cm_options ||
     nextProps.cell !== props.cell ||
@@ -91,7 +94,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
       (nextProps.is_current || props.is_current)) ||
     nextProps.dragHandle !== props.dragHandle ||
     nextProps.read_only !== props.read_only ||
-    nextProps.isDragging !== props.isDragging
+    nextProps.isDragging !== props.isDragging ||
+    nextProps.isPending !== props.isPending
   );
 }
 
@@ -138,6 +142,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         computeServerId={props.computeServerId}
         setShowAICellGen={setShowAICellGen}
         dragHandle={props.dragHandle}
+        isPending={props.isPending}
       />
     );
   }
@@ -162,6 +167,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         complete={props.is_current && props.complete != null}
         llmTools={props.llmTools}
         isDragging={props.isDragging}
+        stdin={props.stdin}
       />
     );
   }

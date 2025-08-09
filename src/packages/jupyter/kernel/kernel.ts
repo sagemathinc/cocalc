@@ -36,7 +36,6 @@ import { jupyterSockets, type JupyterSockets } from "@cocalc/jupyter/zmq";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
-import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
   type BlobStoreInterface,
   CodeExecutionEmitterInterface,
@@ -44,8 +43,10 @@ import {
   JupyterKernelInterface,
   KernelInfo,
 } from "@cocalc/jupyter/types/project-interface";
+import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
+import { isSha1 } from "@cocalc/util/misc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success, until } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
@@ -121,7 +122,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 // the ipynb file, and this function creates the corresponding
 // actions and store, which make it possible to work with this
 // notebook.
-export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
+export function initJupyterRedux(syncdb: SyncDB, client: Client) {
   const project_id = syncdb.project_id;
   if (project_id == null) {
     throw Error("project_id must be defined");
@@ -147,11 +148,10 @@ export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
     // Having two at once basically results in things feeling hung.
     // This should never happen, but we ensure it
     // See https://github.com/sagemathinc/cocalc/issues/4331
-    await removeJupyterRedux(path, project_id);
+    removeJupyterRedux(path, project_id);
   }
   const store = redux.createStore(name, JupyterStore);
   const actions = redux.createActions(name, JupyterActions);
-
   actions._init(project_id, path, syncdb, store, client);
 
   syncdb.once("error", (err) =>
@@ -160,6 +160,8 @@ export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
   syncdb.once("ready", () =>
     logger.debug("initJupyterRedux", path, "syncdb ready"),
   );
+
+  return { actions, store };
 }
 
 export async function getJupyterRedux(syncdb: SyncDB) {
@@ -171,14 +173,11 @@ export async function getJupyterRedux(syncdb: SyncDB) {
 
 // Remove the store/actions for a given Jupyter notebook,
 // and also close the kernel if it is running.
-export async function removeJupyterRedux(
-  path: string,
-  project_id: string,
-): Promise<void> {
+export function removeJupyterRedux(path: string, project_id: string): void {
   logger.debug("removeJupyterRedux", path);
   // if there is a kernel, close it
   try {
-    await kernels.get(path)?.close();
+    kernels.get(path)?.close();
   } catch (_err) {
     // ignore
   }
@@ -186,7 +185,7 @@ export async function removeJupyterRedux(
   const actions = redux.getActions(name);
   if (actions != null) {
     try {
-      await actions.close();
+      actions.close();
     } catch (err) {
       logger.debug(
         "removeJupyterRedux",
@@ -252,7 +251,7 @@ export class JupyterKernel
   public _execute_code_queue: CodeExecutionEmitter[] = [];
   public sockets?: JupyterSockets;
   private has_ensured_running: boolean = false;
-  private failedError: string = "";
+  public failedError: string = "";
 
   constructor(
     name: string | undefined,
@@ -285,6 +284,8 @@ export class JupyterKernel
     const dbg = this.dbg("constructor");
     dbg("done");
   }
+
+  isClosed = () => this._state == "closed";
 
   get_path = () => {
     return this._path;
@@ -390,7 +391,7 @@ export class JupyterKernel
     } catch (err) {
       dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
       // @ts-ignore
-      if (this._state == "closed") {
+      if (this.isClosed()) {
         throw Error("closed");
       }
       // console.trace(err);
@@ -404,7 +405,7 @@ export class JupyterKernel
     return this._kernel;
   };
 
-  get_connection_file = (): string | undefined => {
+  getConnectionFile = (): string | undefined => {
     return this._kernel?.connectionFile;
   };
 
@@ -556,6 +557,7 @@ export class JupyterKernel
 
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
+  // this does NOT raise an error.
   signal = (signal: string): void => {
     const dbg = this.dbg("signal");
     const pid = this.pid();
@@ -566,9 +568,7 @@ export class JupyterKernel
     try {
       process.kill(-pid, signal); // negative to signal the process group
       this.clear_execute_code_queue();
-    } catch (err) {
-      dbg(`error: ${err}`);
-    }
+    } catch {}
   };
 
   close = (): void => {
@@ -630,7 +630,7 @@ export class JupyterKernel
   ensure_running = reuseInFlight(async (): Promise<void> => {
     const dbg = this.dbg("ensure_running");
     dbg(this._state);
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("closed so not possible to ensure running");
     }
     if (this._state == "running") {
@@ -661,7 +661,7 @@ export class JupyterKernel
       opts.halt_on_error = true;
     }
     if (this._state === "closed") {
-      throw Error("closed -- kernel -- execute_code");
+      throw Error("execute_code: jupyter kernel is closed");
     }
     const code = new CodeExecutionEmitter(this, opts);
     if (skipToFront) {
@@ -742,7 +742,7 @@ export class JupyterKernel
     const dbg = this.dbg("_clear_execute_code_queue");
     // ensure no future queued up evaluation occurs (currently running
     // one will complete and new executions could happen)
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       dbg("no op since state is closed");
       return;
     }
@@ -764,7 +764,7 @@ export class JupyterKernel
   // the terminal and nbgrader and the stateless api.
   execute_code_now = async (opts: ExecOpts): Promise<object[]> => {
     this.dbg("execute_code_now")();
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     if (this.failedError) {
@@ -782,9 +782,8 @@ export class JupyterKernel
     return v;
   };
 
-  private saveBlob = (data: string, type: string) => {
-    const blobs = this._actions?.blobs;
-    if (blobs == null) {
+  private saveBlob = async (data: string, type: string) => {
+    if (this._actions == null) {
       throw Error("blob store not available");
     }
     const buf: Buffer = !type.startsWith("text/")
@@ -792,15 +791,16 @@ export class JupyterKernel
       : Buffer.from(data);
 
     const sha1: string = misc_node_sha1(buf);
-    blobs.set(sha1, buf);
+    await this._actions.asyncBlobStore.set(sha1, buf);
     return sha1;
   };
 
-  process_output = (content: any): void => {
+  process_output = async (content: any) => {
     if (this._state === "closed") {
       return;
     }
     const dbg = this.dbg("process_output");
+    dbg();
     if (content.data == null) {
       // No data -- https://github.com/sagemathinc/cocalc/issues/6665
       // NO do not do this sort of thing.  This is exactly the sort of situation where
@@ -814,11 +814,11 @@ export class JupyterKernel
 
     remove_redundant_reps(content.data);
 
-    const saveBlob = (data, type) => {
+    const saveBlob = async (data, type) => {
       try {
-        return this.saveBlob(data, type);
+        return await this.saveBlob(data, type);
       } catch (err) {
-        dbg(`WARNING: Jupyter blob store not working -- ${err}`);
+        dbg("WARNING: Jupyter blob store not working -- skipping use", err);
         // i think it'll just send the large data on in the usual way instead
         // via the output, instead of using the blob store.  It's probably just
         // less efficient.
@@ -835,16 +835,26 @@ export class JupyterKernel
         type === "application/pdf" ||
         type === "text/html"
       ) {
+        dbg("removing ", type);
         // Store all images and PDF and text/html in a binary blob store, so we don't have
         // to involve it in realtime sync.  It tends to be large, etc.
-        const sha1 = saveBlob(content.data[type], type);
-        if (type == "text/html") {
-          // NOTE: in general, this may or may not get rendered as an iframe --
-          // we use iframe for backward compatibility.
-          content.data["iframe"] = sha1;
-          delete content.data["text/html"];
-        } else {
-          content.data[type] = sha1;
+        if (isSha1(content.data[type])) {
+          // it was already processed, e.g., this happens when a browser that was
+          // processing output closes and we cutoff to the project processing output.
+          continue;
+        }
+        const sha1 = await saveBlob(content.data[type], type);
+        if (sha1) {
+          // only remove if the save actually worked -- we don't want to break output
+          // for the user for a little optimization!
+          if (type == "text/html") {
+            // NOTE: in general, this may or may not get rendered as an iframe --
+            // we use iframe for backward compatibility.
+            content.data["iframe"] = sha1;
+            delete content.data["text/html"];
+          } else {
+            content.data[type] = sha1;
+          }
         }
       }
     }
@@ -856,7 +866,7 @@ export class JupyterKernel
       await this.ensure_running();
     }
     // Do a paranoid double check anyways...
-    if (this.sockets == null || this._state == "closed") {
+    if (this.sockets == null || this.isClosed()) {
       throw Error("not running, so can't call");
     }
 

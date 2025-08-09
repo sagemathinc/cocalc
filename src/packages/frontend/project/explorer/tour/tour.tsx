@@ -1,14 +1,12 @@
 import type { TourProps } from "antd";
 import { Checkbox, Tour } from "antd";
-
-import { redux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Paragraph, Text } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import actionsImage from "./actions.png";
 
 export default function ExplorerTour({
-  open,
   project_id,
   newFileRef,
   searchAndTerminalBar,
@@ -16,6 +14,7 @@ export default function ExplorerTour({
   currentDirectoryRef,
   miscButtonsRef,
 }) {
+  const open = useTypedRedux({ project_id }, "explorerTour");
   const steps: TourProps["steps"] = [
     {
       title: (

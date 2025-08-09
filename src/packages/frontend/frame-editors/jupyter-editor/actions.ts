@@ -42,8 +42,13 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return { type: "jupyter_cell_notebook" };
   }
 
-  _init2(): void {
+  protected _init_syncstring(): void {
     this.create_jupyter_actions();
+    this._syncstring = this.jupyter_actions.syncdb;
+    super._init_syncstring();
+  }
+
+  _init2(): void {
     this.init_new_frame();
     this.init_changes_state();
 
@@ -112,26 +117,12 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   private watchJupyterStore = (): void => {
     const store = this.jupyter_actions.store;
-    let connection_file = store.get("connection_file");
     store.on("change", () => {
       // sync read only state -- source of true is jupyter_actions.store.get('read_only')
       const read_only = store.get("read_only");
       if (read_only != this.store.get("read_only")) {
         this.setState({ read_only });
       }
-      // sync connection file
-      const c = store.get("connection_file");
-      if (c == connection_file) {
-        return;
-      }
-      connection_file = c;
-      const id = this._get_most_recent_shell_id("jupyter");
-      if (id == null) {
-        // There is no Jupyter console open right now...
-        return;
-      }
-      // This will update the connection file
-      this.shell(id, true);
     });
   };
 
@@ -167,6 +158,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.path,
       this.project_id,
     );
+    this.jupyter_actions.jupyterEditorActions = this;
   }
 
   private close_jupyter_actions(): void {
@@ -290,14 +282,12 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   protected async get_shell_spec(
-    id: string,
-  ): Promise<undefined | { command: string; args: string[] }> {
-    id = id; // not used
-    const connection_file = this.jupyter_actions.store.get("connection_file");
-    if (connection_file == null) return;
+    _id: string,
+  ): Promise<{ command: string; args: string[] }> {
+    const connectionFile = await this.jupyter_actions.getConnectionFile();
     return {
       command: "jupyter",
-      args: ["console", "--existing", connection_file],
+      args: ["console", "--existing", connectionFile],
     };
   }
 

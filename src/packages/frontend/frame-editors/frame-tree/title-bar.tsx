@@ -717,8 +717,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />

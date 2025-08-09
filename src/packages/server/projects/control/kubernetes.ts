@@ -39,17 +39,6 @@ class Project extends BaseProject {
     throw Error("implement me");
   }
 
-  async start(): Promise<void> {
-    winston.debug("start ", this.project_id);
-    //await this.touch(undefined, { noStart: true });
-    throw Error("implement me");
-  }
-
-  async stop(): Promise<void> {
-    winston.debug("stop ", this.project_id);
-    throw Error("implement me");
-  }
-
   async copyPath(opts: CopyOptions): Promise<string> {
     winston.debug("doCopyPath ", this.project_id, opts);
     throw Error("implement me");
