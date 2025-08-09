@@ -258,7 +258,12 @@ export class NotebookFrameActions {
     this.frame_tree_actions.save(explicit);
   }
 
-  public enable_key_handler(): void {
+  public enable_key_handler(force?): void {
+    if (!force && this.jupyter_actions.store.get("stdin")) {
+      // do not enable when getting input from stdin, since user may be typing
+      // and keyboard shortcuts would be very confusing.
+      return;
+    }
     if (this.is_closed()) {
       // should be a no op -- no point in enabling the key handler after CellNotebookActions are closed.
       return;
