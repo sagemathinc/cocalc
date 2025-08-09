@@ -111,6 +111,11 @@ export async function run({ path, cells, noHalt, socket }: RunOptions) {
         },
       });
       for await (const mesg0 of output.iter()) {
+        const content = mesg0?.content;
+        if (content != null) {
+          // this mutates content, removing large messages
+          await kernel.process_output(content);
+        }
         const mesg = { ...mesg0, id: cell.id };
         yield mesg;
         if (!noHalt && mesg.msg_type == "error") {

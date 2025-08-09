@@ -781,9 +781,8 @@ export class JupyterKernel
     return v;
   };
 
-  private saveBlob = (data: string, type: string) => {
-    const blobs = this._actions?.blobs;
-    if (blobs == null) {
+  private saveBlob = async (data: string, type: string) => {
+    if (this._actions == null) {
       throw Error("blob store not available");
     }
     const buf: Buffer = !type.startsWith("text/")
@@ -791,15 +790,16 @@ export class JupyterKernel
       : Buffer.from(data);
 
     const sha1: string = misc_node_sha1(buf);
-    blobs.set(sha1, buf);
+    await this._actions.asyncBlobStore.set(sha1, buf);
     return sha1;
   };
 
-  process_output = (content: any): void => {
+  process_output = async (content: any) => {
     if (this._state === "closed") {
       return;
     }
     const dbg = this.dbg("process_output");
+    dbg();
     if (content.data == null) {
       // No data -- https://github.com/sagemathinc/cocalc/issues/6665
       // NO do not do this sort of thing.  This is exactly the sort of situation where
@@ -813,11 +813,11 @@ export class JupyterKernel
 
     remove_redundant_reps(content.data);
 
-    const saveBlob = (data, type) => {
+    const saveBlob = async (data, type) => {
       try {
-        return this.saveBlob(data, type);
+        return await this.saveBlob(data, type);
       } catch (err) {
-        dbg(`WARNING: Jupyter blob store not working -- ${err}`);
+        dbg("WARNING: Jupyter blob store not working -- skipping use", err);
         // i think it'll just send the large data on in the usual way instead
         // via the output, instead of using the blob store.  It's probably just
         // less efficient.
@@ -834,16 +834,21 @@ export class JupyterKernel
         type === "application/pdf" ||
         type === "text/html"
       ) {
+        dbg("removing ", type);
         // Store all images and PDF and text/html in a binary blob store, so we don't have
         // to involve it in realtime sync.  It tends to be large, etc.
-        const sha1 = saveBlob(content.data[type], type);
-        if (type == "text/html") {
-          // NOTE: in general, this may or may not get rendered as an iframe --
-          // we use iframe for backward compatibility.
-          content.data["iframe"] = sha1;
-          delete content.data["text/html"];
-        } else {
-          content.data[type] = sha1;
+        const sha1 = await saveBlob(content.data[type], type);
+        if (sha1) {
+          // only remove if the save actually worked -- we don't want to break output
+          // for the user for a little optimization!
+          if (type == "text/html") {
+            // NOTE: in general, this may or may not get rendered as an iframe --
+            // we use iframe for backward compatibility.
+            content.data["iframe"] = sha1;
+            delete content.data["text/html"];
+          } else {
+            content.data[type] = sha1;
+          }
         }
       }
     }
