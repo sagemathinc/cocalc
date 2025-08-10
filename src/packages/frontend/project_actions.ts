@@ -2216,8 +2216,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.log({
       event: "file_action",
       action: "copied",
-      files: withSlashes.slice(0, 3),
-      count: src.length > 3 ? src.length : undefined,
+      files: withSlashes,
+      count: src.length,
       dest: dest + (only_contents ? "" : "/"),
       ...(src_compute_server_id != dest_compute_server_id
         ? {
@@ -2299,11 +2299,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
+  // Copy 1 or more paths from one project to another (possibly the same) project.
   copyPathBetweenProjects = async (opts: {
     src: { project_id: string; path: string | string[] };
     dest: { project_id: string; path: string };
     options?: CopyOptions;
-    account_id?: string;
   }) => {
     const id = misc.uuid();
     const files =
@@ -2315,15 +2315,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         "path",
       )} to a project`,
     });
+
+    await webapp_client.project_client.copyPathBetweenProjects(opts);
+    const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
     this.log({
       event: "file_action",
       action: "copied",
       dest: opts.dest.path,
-      files,
+      files: withSlashes,
       count: files.length,
       project: opts.dest.project_id,
     });
-    await webapp_client.project_client.copyPathBetweenProjects(opts);
+
     this.set_activity({ id, stop: "" });
   };
 
