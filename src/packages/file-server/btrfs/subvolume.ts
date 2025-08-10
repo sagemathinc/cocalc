@@ -4,7 +4,7 @@ A subvolume
 
 import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { isDir, sudo } from "./util";
+import { sudo } from "./util";
 import { join } from "path";
 import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
@@ -23,7 +23,6 @@ interface Options {
 
 export class Subvolume {
   public readonly name: string;
-
   public readonly filesystem: Filesystem;
   public readonly path: string;
   public readonly fs: SandboxedFilesystem;
@@ -74,37 +73,6 @@ export class Subvolume {
     await sudo({
       command: "chown",
       args: [`${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`, path],
-    });
-  };
-
-  rsync = async ({
-    src,
-    target,
-    timeout = 5 * 60 * 1000,
-  }: {
-    src: string;
-    target: string;
-    timeout?: number;
-  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
-    let srcPath = await this.fs.safeAbsPath(src);
-    let targetPath = await this.fs.safeAbsPath(target);
-    if (src.endsWith("/")) {
-      srcPath += "/";
-    }
-    if (target.endsWith("/")) {
-      targetPath += "/";
-    }
-    if (!srcPath.endsWith("/") && (await isDir(srcPath))) {
-      srcPath += "/";
-      if (!targetPath.endsWith("/")) {
-        targetPath += "/";
-      }
-    }
-    return await sudo({
-      command: "rsync",
-      args: [srcPath, targetPath],
-      err_on_exit: false,
-      timeout: timeout / 1000,
     });
   };
 }

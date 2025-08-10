@@ -52,6 +52,14 @@ describe("create basic mocked file server and test it out", () => {
       }): Promise<void> => {
         quotaSize[project_id] = typeof size == "string" ? parseInt(size) : size;
       },
+
+      cp: async (_opts: {
+        // the src paths are relative to the src volume
+        src: { project_id: string; path: string | string[] };
+        // the dest path is relative to the dest volume
+        dest: { project_id: string; path: string };
+        options?;
+      }): Promise<void> => {},
     });
   });
 
@@ -81,6 +89,11 @@ describe("create basic mocked file server and test it out", () => {
     expect(await fileClient.getQuota({ project_id })).toEqual({
       size: 10,
       used: 0,
+    });
+
+    await fileClient.cp({
+      src: { project_id, path: "x" },
+      dest: { project_id, path: "y" },
     });
   });
 });

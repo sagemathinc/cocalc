@@ -23,6 +23,8 @@ Additional functionality:
 
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
+import { type CopyOptions } from "./fs";
+export { type CopyOptions };
 
 const SUBJECT = "file-server";
 
@@ -43,6 +45,12 @@ export interface Fileserver {
   setQuota: (opts: {
     project_id: string;
     size: number | string;
+  }) => Promise<void>;
+
+  cp: (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
   }) => Promise<void>;
 }
 

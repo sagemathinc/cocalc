@@ -79,6 +79,8 @@ import { type ExecOutput } from "./exec";
 import { rusticRepo } from "@cocalc/backend/data";
 import ouch, { type OuchOptions } from "./ouch";
 import cpExec from "./cp";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
+export { type CopyOptions };
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -207,20 +209,7 @@ export class SandboxedFilesystem {
     await copyFile(await this.safeAbsPath(src), await this.safeAbsPath(dest));
   };
 
-  cp = async (
-    src: string | string[],
-    dest: string,
-    options?: {
-      dereference?: boolean;
-      errorOnExist?: boolean;
-      force?: boolean;
-      preserveTimestamps?: boolean;
-      recursive?: boolean;
-      verbatimSymlinks?: boolean;
-      // if true, will try to use copy-on-write - this spawns the operating system 'cp' command.
-      reflink?: boolean;
-    },
-  ) => {
+  cp = async (src: string | string[], dest: string, options?: CopyOptions) => {
     this.assertWritable(dest);
     dest = await this.safeAbsPath(dest);
     const v = await this.safeAbsPaths(src);
@@ -230,7 +219,7 @@ export class SandboxedFilesystem {
         await cp(path, dest, options);
       }
     } else {
-      await cpExec(v, dest, options);
+      await cpExec(v, dest, capTimeout(options, MAX_TIMEOUT));
     }
   };
 

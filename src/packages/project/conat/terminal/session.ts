@@ -181,7 +181,7 @@ export class Session {
         max_msgs_per_second: 5 * MAX_MSGS_PER_SECOND,
       },
     });
-    this.stream.publish("\r\n".repeat((this.size?.rows ?? 40) + 40));
+    // this.stream.publish("\r\n".repeat((this.size?.rows ?? 40) + 40));
     this.stream.on("reject", () => {
       this.throttledEllipses();
     });

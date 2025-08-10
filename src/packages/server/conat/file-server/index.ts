@@ -1,5 +1,13 @@
 /*
 
+
+DEVELOPMENT:
+
+~/cocalc/src/packages/server/conat/file-server$ node
+Welcome to Node.js v20.19.1.
+Type ".help" for more information.
+> require('@cocalc/backend/conat'); c = require('@cocalc/conat/files/file-server').client()
+
 */
 
 import { conat } from "@cocalc/backend/conat";
@@ -7,6 +15,7 @@ import {
   server as createFileServer,
   client as createFileClient,
   type Fileserver,
+  CopyOptions,
 } from "@cocalc/conat/files/file-server";
 export type { Fileserver };
 import { loadConatConfiguration } from "../configuration";
@@ -72,6 +81,36 @@ async function setQuota({
   await vol.quota.set(size);
 }
 
+async function cp({
+  src,
+  dest,
+  options,
+}: {
+  // the src paths are relative to the src volume
+  src: { project_id: string; path: string | string[] };
+  // the dest path is relative to the dest volume
+  dest: { project_id: string; path: string };
+  options?: CopyOptions;
+}): Promise<void> {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  const srcVolume = await getVolume(src.project_id);
+  const destVolume = await getVolume(dest.project_id);
+  let srcPaths = await srcVolume.fs.safeAbsPaths(src.path);
+  let destPath = await destVolume.fs.safeAbsPath(dest.path);
+
+  const toRelative = (path) => {
+    if (!path.startsWith(fs!.subvolumes.fs.path)) {
+      throw Error("bug");
+    }
+    return path.slice(fs!.subvolumes.fs.path.length + 1);
+  };
+  srcPaths = srcPaths.map(toRelative);
+  destPath = toRelative(destPath);
+  await fs.subvolumes.fs.cp(srcPaths, destPath, options);
+}
+
 let fs: Filesystem | null = null;
 let server: any = null;
 export async function init() {
@@ -102,6 +141,7 @@ export async function init() {
     getUsage: reuseInFlight(getUsage),
     getQuota: reuseInFlight(getQuota),
     setQuota,
+    cp,
   });
 }
 

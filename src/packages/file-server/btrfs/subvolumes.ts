@@ -3,17 +3,21 @@ import { subvolume, type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
 import { SNAPSHOTS } from "./subvolume-snapshots";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { join, normalize } from "path";
-import { btrfs, isDir } from "./util";
+import { join } from "path";
+import { btrfs } from "./util";
 import { chmod, rename, rm } from "node:fs/promises";
-import { executeCode } from "@cocalc/backend/execute-code";
+import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 
 const RESERVED = new Set(["bup", SNAPSHOTS]);
 
 const logger = getLogger("file-server:btrfs:subvolumes");
 
 export class Subvolumes {
-  constructor(public filesystem: Filesystem) {}
+  public readonly fs: SandboxedFilesystem;
+
+  constructor(public filesystem: Filesystem) {
+    this.fs = new SandboxedFilesystem(this.filesystem.opts.mount);
+  }
 
   get = async (name: string): Promise<Subvolume> => {
     if (RESERVED.has(name)) {
@@ -78,38 +82,5 @@ export class Subvolumes {
       .map((x) => x.split(" ").slice(-1)[0])
       .filter((x) => x)
       .sort();
-  };
-
-  rsync = async ({
-    src,
-    target,
-    args = ["-axH"],
-    timeout = 5 * 60 * 1000,
-  }: {
-    src: string;
-    target: string;
-    args?: string[];
-    timeout?: number;
-  }): Promise<{ stdout: string; stderr: string; exit_code: number }> => {
-    let srcPath = normalize(join(this.filesystem.opts.mount, src));
-    if (!srcPath.startsWith(this.filesystem.opts.mount)) {
-      throw Error("suspicious source");
-    }
-    let targetPath = normalize(join(this.filesystem.opts.mount, target));
-    if (!targetPath.startsWith(this.filesystem.opts.mount)) {
-      throw Error("suspicious target");
-    }
-    if (!srcPath.endsWith("/") && (await isDir(srcPath))) {
-      srcPath += "/";
-      if (!targetPath.endsWith("/")) {
-        targetPath += "/";
-      }
-    }
-    return await executeCode({
-      command: "rsync",
-      args: [...args, srcPath, targetPath],
-      err_on_exit: false,
-      timeout: timeout / 1000,
-    });
   };
 }

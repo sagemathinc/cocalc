@@ -62,24 +62,37 @@ describe("operations with subvolumes", () => {
     ]);
   });
 
-  it("rsync from one volume to another", async () => {
-    await fs.subvolumes.rsync({ src: "sagemath", target: "cython" });
+  it("cp from one volume to another", async () => {
+    await fs.subvolumes.fs.cp("sagemath", "cython", {
+      recursive: true,
+      reflink: true,
+    });
   });
 
-  it("rsync an actual file", async () => {
+  it("cp an actual file", async () => {
     const sagemath = await fs.subvolumes.get("sagemath");
     const cython = await fs.subvolumes.get("cython");
-    await sagemath.fs.writeFile("README.md", "hi");
-    await fs.subvolumes.rsync({ src: "sagemath", target: "cython" });
+    await sagemath.fs.writeFile("README.md", "hi5");
+    await fs.subvolumes.fs.cp("sagemath/README.md", "cython/README.md", {
+      reflink: true,
+    });
     const copy = await cython.fs.readFile("README.md", "utf8");
-    expect(copy).toEqual("hi");
+    expect(copy).toEqual("hi5");
+
+    // also one without reflink
+    await sagemath.fs.writeFile("README2.md", "hi2");
+    await fs.subvolumes.fs.cp("sagemath/README2.md", "cython/README2.md", {
+      reflink: false,
+    });
+    const copy2 = await cython.fs.readFile("README2.md", "utf8");
+    expect(copy2).toEqual("hi2");
   });
 
   it("clone a subvolume with contents", async () => {
     await fs.subvolumes.clone("cython", "pyrex");
     const pyrex = await fs.subvolumes.get("pyrex");
     const clone = await pyrex.fs.readFile("README.md", "utf8");
-    expect(clone).toEqual("hi");
+    expect(clone).toEqual("hi5");
   });
 });
 

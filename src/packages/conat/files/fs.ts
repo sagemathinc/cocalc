@@ -79,6 +79,19 @@ export const OUCH_FORMATS = [
   "tar.br",
 ];
 
+export interface CopyOptions {
+  dereference?: boolean;
+  errorOnExist?: boolean;
+  force?: boolean;
+  preserveTimestamps?: boolean;
+  recursive?: boolean;
+  verbatimSymlinks?: boolean;
+  // if true, will try to use copy-on-write - this spawns the operating system '/usr/bin/cp' command.
+  reflink?: boolean;
+  // when using /usr/bin/cp:
+  timeout?: number;
+}
+
 export interface Filesystem {
   appendFile: (path: string, data: string | Buffer, encoding?) => Promise<void>;
   chmod: (path: string, mode: string | number) => Promise<void>;
@@ -88,16 +101,7 @@ export interface Filesystem {
     // we also support any array of src's unlike node's cp.
     src: string | string[],
     dest: string,
-    options?: {
-      dereference?: boolean;
-      errorOnExist?: boolean;
-      force?: boolean;
-      preserveTimestamps?: boolean;
-      recursive?: boolean;
-      verbatimSymlinks?: boolean;
-      // if true, will try to use copy-on-write - this spawns the operating system 'cp' command.
-      reflink?: boolean;
-    },
+    options?: CopyOptions,
   ) => Promise<void>;
   exists: (path: string) => Promise<boolean>;
   link: (existingPath: string, newPath: string) => Promise<void>;

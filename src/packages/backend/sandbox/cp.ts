@@ -5,19 +5,13 @@ the full benefit of btrfs's copy-on-write functionality.
 */
 
 import exec from "./exec";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
+export { type CopyOptions };
 
 export default async function cp(
   src: string[],
   dest: string,
-  options: {
-    dereference?: boolean;
-    errorOnExist?: boolean;
-    force?: boolean;
-    preserveTimestamps?: boolean;
-    recursive?: boolean;
-    verbatimSymlinks?: boolean;
-    reflink?: boolean;
-  } = {},
+  options: CopyOptions = {},
 ): Promise<void> {
   const args = [...src, dest];
   const opts: string[] = [];
@@ -45,6 +39,7 @@ export default async function cp(
   const { code, stderr } = await exec({
     cmd: "/usr/bin/cp",
     safety: [...opts, ...args],
+    timeout: options.timeout,
   });
   if (code) {
     throw Error(stderr.toString());
