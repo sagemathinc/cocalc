@@ -18,6 +18,8 @@ import { delay } from "awaiting";
 
 const logger = getLogger("conat:project:runner:load-balancer");
 
+const MAX_STATUS_TRIES = 3;
+
 export interface Options {
   subject?: string;
   client?: Client;
@@ -138,24 +140,32 @@ export async function server({
     async status() {
       const project_id = getProjectId(this);
       const runClient = await getClient(project_id);
-      const MAX_TRIES = 3;
-      for (let i = 0; i < MAX_TRIES; i++) {
+      for (let i = 0; i < MAX_STATUS_TRIES; i++) {
         try {
+          logger.debug("status", { project_id });
           const s = await runClient.status({ project_id });
+          logger.debug("status: got ", s);
           await setState1?.({ project_id, ...s });
           return s;
         } catch (err) {
-          if (i < MAX_TRIES - 1) {
+          logger.debug("status: got err", err);
+          if (i < MAX_STATUS_TRIES - 1) {
+            logger.debug("status: waiting 3s and trying again...");
             await delay(3000);
             continue;
           }
           if (err.code == 503) {
+            logger.debug(
+              "status: running is no longer running -- giving up on project",
+            );
             // the runner is no longer running, so obviously project isn't running there.
             await setState1?.({ project_id, state: "opened" });
           }
+          logger.debug("status: reporting error");
           throw err;
         }
       }
+      logger.debug("status: bug");
       throw Error("bug");
     },
   });
