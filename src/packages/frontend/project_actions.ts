@@ -110,7 +110,6 @@ import {
   getFiles,
   type Files,
 } from "@cocalc/frontend/project/listing/use-files";
-import { map as awaitMap } from "awaiting";
 import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 
@@ -2307,18 +2306,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     account_id?: string;
   }) => {
     const id = misc.uuid();
+    const files =
+      typeof opts.src.path == "string" ? [opts.src.path] : opts.src.path;
     this.set_activity({
       id,
-      status: `Copying ${opts.src.length} ${misc.plural(
-        opts.src.length,
+      status: `Copying ${files.length} ${misc.plural(
+        files.length,
         "path",
       )} to a project`,
     });
-    const files = typeof src.path == "string" ? [src.path] : src.path;
     this.log({
       event: "file_action",
       action: "copied",
-      dest,
+      dest: opts.dest.path,
       files,
       count: files.length,
       project: opts.dest.project_id,

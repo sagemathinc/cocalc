@@ -97,8 +97,12 @@ export interface Filesystem {
   chmod: (path: string, mode: string | number) => Promise<void>;
   constants: () => Promise<{ [key: string]: number }>;
   copyFile: (src: string, dest: string) => Promise<void>;
+
   cp: (
-    // we also support any array of src's unlike node's cp.
+    // NOTE!: we also support any array of src's unlike node's cp;
+    // however, when src is an array, the target *must* be a directory and this works like
+    // /usr/bin/cp, where files are copied INTO that target.
+    // When src is a string, this is just normal node cp behavior.
     src: string | string[],
     dest: string,
     options?: CopyOptions,

@@ -78,8 +78,7 @@ export function ActionBox({
   const [move_destination, set_move_destination] = useState<string>("");
   const [show_different_project, set_show_different_project] =
     useState<boolean>(false);
-  const [overwrite_newer, set_overwrite_newer] = useState<boolean>();
-  const [delete_extra_files, set_delete_extra_files] = useState<boolean>();
+  const [overwrite, set_overwrite] = useState<boolean>(true);
   const [dest_compute_server_id, set_dest_compute_server_id] = useState<number>(
     compute_server_id ?? 0,
   );
@@ -289,15 +288,8 @@ export function ActionBox({
     if (project_id !== copy_destination_project_id) {
       return (
         <div>
-          <Checkbox
-            onChange={(e) => set_delete_extra_files((e.target as any).checked)}
-          >
-            Delete extra files in target directory
-          </Checkbox>
-          <Checkbox
-            onChange={(e) => set_overwrite_newer((e.target as any).checked)}
-          >
-            Overwrite newer versions of files
+          <Checkbox onChange={(e) => set_overwrite((e.target as any).checked)}>
+            Overwrite existing files or directories
           </Checkbox>
         </div>
       );
@@ -318,14 +310,13 @@ export function ActionBox({
       destination_project_id != undefined &&
       project_id !== destination_project_id
     ) {
-      actions.copy_paths_between_projects({
-        public: false,
-        src_project_id: project_id,
-        src: paths,
-        target_project_id: destination_project_id,
-        target_path: destination_directory,
-        overwrite_newer,
-        delete_missing: delete_extra_files,
+      actions.copyPathBetweenProjects({
+        src: { project_id, path: paths },
+        dest: {
+          project_id: destination_project_id,
+          path: destination_directory,
+        },
+        options: { force: overwrite, recursive: true },
       });
     } else {
       if (compute_server_id) {

@@ -66,7 +66,7 @@ import {
 import { move } from "fs-extra";
 import { watch } from "node:fs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { join, resolve } from "path";
+import { basename, join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions } from "@cocalc/conat/files/watch";
@@ -216,7 +216,12 @@ export class SandboxedFilesystem {
     if (!options?.reflink) {
       // can use node cp:
       for (const path of v) {
-        await cp(path, dest, options);
+        if (typeof src == "string") {
+          await cp(path, dest, options);
+        } else {
+          // copying multiple files to a directory
+          await cp(path, join(dest, basename(path)), options);
+        }
       }
     } else {
       await cpExec(v, dest, capTimeout(options, MAX_TIMEOUT));
