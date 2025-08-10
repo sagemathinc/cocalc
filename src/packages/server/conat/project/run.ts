@@ -129,7 +129,7 @@ async function start({
     uid = gid = DEFAULT_UID;
   }
 
-  const home = homePath(project_id);
+  const home = await homePath(project_id);
   await mkdir(home, { recursive: true });
   await chown(home, uid);
   await ensureConfFilesExists(home, uid);
@@ -150,9 +150,9 @@ async function start({
     // This is needed to develop cocalc, since we want to run btrfs and nsjail
     // from within a cocalc project.
     cmd = process.execPath;
-    script = join(root, 'packages/project/bin/cocalc-project.js');
+    script = join(root, "packages/project/bin/cocalc-project.js");
   } else {
-    script = join('/cocalc/src/packages/project/bin/cocalc-project.js');
+    script = join("/cocalc/src/packages/project/bin/cocalc-project.js");
     args.push(
       "-q", // not too verbose
       "-Mo", // run a command once

@@ -6,7 +6,9 @@ import { conat } from "@cocalc/backend/conat";
 import {
   server as createFileServer,
   client as createFileClient,
+  type Fileserver,
 } from "@cocalc/conat/files/file-server";
+export type { Fileserver };
 import { isValidUUID } from "@cocalc/util/misc";
 import { loadConatConfiguration } from "../configuration";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -23,7 +25,11 @@ function name(project_id: string) {
   return `project-${project_id}`;
 }
 
-async function mount({ project_id }: { project_id: string }) {
+async function mount({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<{ path: string }> {
   if (!isValidUUID(project_id)) {
     throw Error("create: project_id must be a valid UUID");
   }
@@ -31,7 +37,8 @@ async function mount({ project_id }: { project_id: string }) {
   if (fs == null) {
     throw Error("file server not initialized");
   }
-  await fs.subvolumes.get(name(project_id));
+  const vol = await fs.subvolumes.get(name(project_id));
+  return { path: vol.path };
 }
 
 let fs: Filesystem | null = null;
@@ -69,6 +76,6 @@ export function close() {
   server = null;
 }
 
-export function client() {
+export function client(): Fileserver {
   return createFileClient({ client: conat() });
 }

@@ -28,19 +28,19 @@ const SUBJECT = "file-server";
 
 export interface Options {
   client?: Client;
-  mount: (opts: { project_id: string }) => Promise<void>;
+  mount: (opts: { project_id: string }) => Promise<{ path: string }>;
 }
 
-export interface API {
-  mount: (opts: { project_id: string }) => Promise<void>;
+export interface Fileserver {
+  mount: (opts: { project_id: string }) => Promise<{ path: string }>;
 }
 
 export async function server({ client, mount }: Options) {
   client ??= conat();
 
-  const sub = await client.service<API>(SUBJECT, {
+  const sub = await client.service<Fileserver>(SUBJECT, {
     async mount(opts: { project_id: string }) {
-      await mount(opts);
+      return await mount(opts);
     },
   });
 
@@ -51,7 +51,7 @@ export async function server({ client, mount }: Options) {
   };
 }
 
-export function client({ client }: { client?: Client }): API {
+export function client({ client }: { client?: Client } = {}): Fileserver {
   client ??= conat();
-  return client.call<API>(SUBJECT);
+  return client.call<Fileserver>(SUBJECT);
 }

@@ -18,8 +18,9 @@ describe("create basic mocked file server and test it out", () => {
   it("create file server", async () => {
     await createFileServer({
       client: client1,
-      mount: async ({ project_id }) => {
+      mount: async ({ project_id }): Promise<{ path: string }> => {
         volumes.add(project_id);
+        return { path: `/mnt/${project_id}` };
       },
     });
   });
@@ -30,7 +31,8 @@ describe("create basic mocked file server and test it out", () => {
     const fileClient = createFileClient({
       client: client2,
     });
-    await fileClient.mount({ project_id });
+    const { path } = await fileClient.mount({ project_id });
+    expect(path).toEqual(`/mnt/${project_id}`);
     expect(volumes.has(project_id));
   });
 });

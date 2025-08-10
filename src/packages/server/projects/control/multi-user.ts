@@ -30,17 +30,17 @@ import { getUid } from "@cocalc/backend/misc";
 const winston = getLogger("project-control:multi-user");
 
 class Project extends BaseProject {
-  private HOME: string;
+  private HOME?: string;
 
   constructor(project_id: string) {
     super(project_id);
-    this.HOME = homePath(this.project_id);
   }
 
   async state(): Promise<ProjectState> {
     if (this.stateChanging != null) {
       return this.stateChanging;
     }
+    this.HOME ??= await homePath(this.project_id);
     const state = await getState(this.HOME);
     winston.debug(`got state of ${this.project_id} = ${JSON.stringify(state)}`);
     this.saveStateToDatabase(state);
@@ -48,6 +48,7 @@ class Project extends BaseProject {
   }
 
   async status(): Promise<ProjectStatus> {
+    this.HOME ??= await homePath(this.project_id);
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
     winston.debug(

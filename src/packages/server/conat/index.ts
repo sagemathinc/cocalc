@@ -13,6 +13,7 @@ import {
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initProjectRunner } from "./project/run";
 import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
+import { init as initFileserver } from "@cocalc/server/conat/file-server";
 
 export { loadConatConfiguration };
 
@@ -50,7 +51,7 @@ export async function initConatFileserver() {
       `projects must be a template containing /[project_id] -- ${projects}`,
     );
   }
-  const path = projects.slice(0, i);
-  logger.debug("initFileserver", { path });
-  localPathFileserver({ path });
+  logger.debug("initFileserver");
+  localPathFileserver();
+  initFileserver();
 }

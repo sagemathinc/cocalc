@@ -4,7 +4,7 @@ import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
 import { writeFile } from "fs/promises";
-import { projects, root } from "@cocalc/backend/data";
+import { root } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
@@ -17,7 +17,10 @@ import { conatServer } from "@cocalc/backend/data";
 import { pidFilename } from "@cocalc/util/project-info";
 import { executeCode } from "@cocalc/backend/execute-code";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
-
+import {
+  client as fileserverClient,
+  type Fileserver,
+} from "@cocalc/server/conat/file-server";
 const logger = getLogger("project-control:util");
 
 export const mkdir = promisify(fs.mkdir);
@@ -34,12 +37,15 @@ export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
 }
 
-export function homePath(project_id: string): string {
-  return projects.replace("[project_id]", project_id);
+let fsclient: Fileserver | null = null;
+export async function homePath(project_id: string): Promise<string> {
+  fsclient ??= fileserverClient();
+  const { path } = await fsclient.mount({ project_id });
+  return path;
 }
 
-export function getUsername(project_id: string): string {
-  return project_id.split("-").join("");
+export function getUsername(_project_id: string): string {
+  return "user";
 }
 
 function pidIsRunning(pid: number): boolean {
@@ -100,29 +106,6 @@ export async function getProjectPID(HOME: string): Promise<number> {
   return parseInt((await readFile(path)).toString());
 }
 
-export async function isProjectRunning(HOME: string): Promise<boolean> {
-  if (NSJAIL) {
-    try {
-      const stats = await stat(join(HOME, ".smc", "log"));
-      const modificationTime = stats.mtime.getTime();
-      if (Math.abs(Date.now() - modificationTime) <= 15000) {
-        return true;
-      }
-    } catch {}
-    return false;
-  }
-
-  try {
-    const pid = await getProjectPID(HOME);
-    //logger.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
-    return pidIsRunning(pid);
-  } catch (err) {
-    //logger.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
-    // err would happen if file doesn't exist, which means nothing to do.
-    return false;
-  }
-}
-
 export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   const data = dataPath(HOME);
   logger.debug(`setup "${data}"...`);
@@ -152,79 +135,6 @@ export async function writeSecretToken(
   }
 }
 
-async function logLaunchParams(params): Promise<void> {
-  const data = dataPath(params.env.HOME);
-  const path = join(data, "launch-params.json");
-  try {
-    await writeFile(path, JSON.stringify(params, undefined, 2));
-  } catch (err) {
-    logger.debug(
-      `WARNING: failed to write ${path}, which is ONLY used for debugging -- ${err}`,
-    );
-  }
-}
-
-const NSJAIL = true;
-
-export async function launchProjectDaemon(
-  env,
-  uid?: number,
-): Promise<ReturnType<typeof spawn>> {
-  logger.debug(`launching project daemon at "${env.HOME}"...`);
-  const cwd = join(root, "packages/project");
-  let cmd = "pnpm";
-  let args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
-  logger.debug(
-    `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
-  );
-  logLaunchParams({ cwd, env, cmd, args, uid });
-  const child = spawn(cmd, args, {
-    env,
-    cwd,
-    uid,
-    gid: uid,
-  });
-
-  await promisify((cb: Function) => {
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (data) => {
-      stdout += data.toString();
-      if (stdout.length > 10000) {
-        stdout = stdout.slice(-5000);
-      }
-    });
-    child.stderr.on("data", (data) => {
-      stderr += data.toString();
-      if (stderr.length > 10000) {
-        stderr = stderr.slice(-5000);
-      }
-    });
-    child.on("error", (err) => {
-      logger.debug(`project daemon error ${err} -- \n${stdout}\n${stderr}`);
-      cb(err);
-    });
-    child.on("exit", async (code) => {
-      logger.debug("project daemon exited", { code, stdout, stderr });
-      if (code != 0) {
-        try {
-          const s = (await readFile(env.LOGS)).toString();
-          logger.debug("project log file ended: ", s.slice(-2000), {
-            stdout,
-            stderr,
-          });
-        } catch (err) {
-          // there's a lot of reasons the log file might not even exist,
-          // e.g., debugging is not enabled
-          logger.debug("project log file ended - unable to read log ", err);
-        }
-      }
-      cb(code);
-    });
-  })();
-  return child;
-}
-
 async function exec(
   command: string,
   verbose?: boolean,
@@ -235,30 +145,6 @@ async function exec(
     logger.debug(`output: ${JSON.stringify(output)}`);
   }
   return output;
-}
-
-export async function createUser(project_id: string): Promise<void> {
-  const username = getUsername(project_id);
-  try {
-    await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
-  } catch (_) {
-    // See https://github.com/sagemathinc/cocalc/issues/6967 for why we try/catch everything and
-    // that is fine. The user may or may not already exist.
-  }
-  const uid = `${getUid(project_id)}`;
-  logger.debug("createUser: adding group");
-  try {
-    await exec(`/usr/sbin/groupadd -g ${uid} -o ${username}`, true);
-  } catch (_) {}
-  logger.debug("createUser: adding user");
-  try {
-    await exec(
-      `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -m -d ${homePath(
-        project_id,
-      )} -s /bin/bash`,
-      true,
-    );
-  } catch (_) {}
 }
 
 export async function stopProjectProcesses(project_id: string): Promise<void> {
@@ -362,29 +248,19 @@ export async function getEnvironment(
 }
 
 export async function getState(HOME: string): Promise<ProjectState> {
-  logger.debug(`getState("${HOME}")`);
-  try {
-    return {
-      ip: "127.0.0.1",
-      state: (await isProjectRunning(HOME)) ? "running" : "opened",
-      time: new Date(),
-    };
-  } catch (err) {
-    return {
-      error: `${err}`,
-      time: new Date(),
-      state: "opened",
-    };
-  }
+  // [ ] TODO: deprecate
+  logger.debug(`getState("${HOME}"): DEPRECATED`);
+  return {
+    ip: "127.0.0.1",
+    state: "running",
+    time: new Date(),
+  };
 }
 
 export async function getStatus(HOME: string): Promise<ProjectStatus> {
   logger.debug(`getStatus("${HOME}")`);
   const data = dataPath(HOME);
   const status: ProjectStatus = {};
-  if (!(await isProjectRunning(HOME))) {
-    return status;
-  }
   for (const path of [
     "project.pid",
     "hub-server.port",
@@ -473,13 +349,13 @@ export async function copyPath(
   }
 
   // determine canonical absolute path to source
-  const sourceHome = homePath(project_id);
+  const sourceHome = await homePath(project_id);
   const source_abspath = resolve(join(sourceHome, path));
   if (!source_abspath.startsWith(sourceHome)) {
     throw Error(`source path must be contained in project home dir`);
   }
   // determine canonical absolute path to target
-  const targetHome = homePath(target_project_id);
+  const targetHome = await homePath(target_project_id);
   const target_abspath = resolve(join(targetHome, target_path));
   if (!target_abspath.startsWith(targetHome)) {
     throw Error(`target path must be contained in target project home dir`);
@@ -551,24 +427,7 @@ export async function copyPath(
     }
   }
 
-  // For making the target directory when target_uid is specified,
-  // we need to use setuid and be the target user, since otherwise
-  // the permissions are wrong on the containing directory,
-  // as explained here: https://github.com/sagemathinc/cocalc-docker/issues/146
-  // However, this will fail if the user hasn't been created, hence
-  // this code is extra complicated.
-  try {
-    await make_target_path();
-  } catch (_err) {
-    // The above probably failed due to the uid/gid not existing.
-    // In that case, we create the user, then try again.
-    await createUser(target_project_id);
-    await make_target_path();
-    // Assuming the above did work, it's very likely the original
-    // failing was due to the user not existing, so now we delete
-    // it again.
-    await deleteUser(target_project_id);
-  }
+  await make_target_path();
 
   // do the copy!
   logger.info(`doing rsync ${args.join(" ")}`);
