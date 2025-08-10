@@ -46,7 +46,7 @@ async function getConfig({ project_id }) {
       memory: "8Gi",
       pids: 10000,
       swap: "5000Gi",
-      size: "100M",
+      size: "1000M",
     };
   }
 }

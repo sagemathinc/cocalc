@@ -24,6 +24,14 @@ describe("create basic mocked file server and test it out", () => {
         return { path: `/mnt/${project_id}` };
       },
 
+      // create project_id as an exact lightweight clone of src_project_id
+      clone: async (opts: {
+        project_id: string;
+        src_project_id: string;
+      }): Promise<void> => {
+        volumes.add(opts.project_id);
+      },
+
       getUsage: async (_opts: {
         project_id: string;
       }): Promise<{

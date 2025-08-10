@@ -233,7 +233,13 @@ export class SandboxedFilesystem {
         }
       }
     } else {
-      await cpExec(v, dest, capTimeout(options, MAX_TIMEOUT));
+      // /usr/bin/cp.  NOte that behavior depends on string versus string[],
+      // so we pass the absolute paths v in that way.
+      await cpExec(
+        typeof src == "string" ? v[0] : v,
+        dest,
+        capTimeout(options, MAX_TIMEOUT),
+      );
     }
   };
 

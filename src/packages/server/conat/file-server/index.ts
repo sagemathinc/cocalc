@@ -50,6 +50,21 @@ async function mount({
   return { path };
 }
 
+async function clone({
+  project_id,
+  src_project_id,
+}: {
+  project_id: string;
+  src_project_id: string;
+}): Promise<void> {
+  logger.debug("clone", { project_id });
+
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  await fs.subvolumes.clone(name(src_project_id), name(project_id));
+}
+
 async function getUsage({ project_id }: { project_id: string }): Promise<{
   size: number;
   used: number;
@@ -111,7 +126,11 @@ async function cp({
   srcPaths = srcPaths.map(toRelative);
   destPath = toRelative(destPath);
   // NOTE: we *always* make reflink true because the filesystem is btrfs!
-  await fs.subvolumes.fs.cp(srcPaths, destPath, { ...options, reflink: true });
+  await fs.subvolumes.fs.cp(
+    typeof src.path == "string" ? srcPaths[0] : srcPaths, // careful to preserve string versus string[]
+    destPath,
+    { ...options, reflink: true },
+  );
 }
 
 let fs: Filesystem | null = null;
@@ -141,6 +160,7 @@ export async function init() {
   server = await createFileServer({
     client: conat(),
     mount: reuseInFlight(mount),
+    clone,
     getUsage: reuseInFlight(getUsage),
     getQuota: reuseInFlight(getQuota),
     setQuota,

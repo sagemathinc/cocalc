@@ -2317,6 +2317,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
 
     await webapp_client.project_client.copyPathBetweenProjects(opts);
+    
     const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
     this.log({
       event: "file_action",

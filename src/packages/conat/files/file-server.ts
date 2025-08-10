@@ -31,6 +31,12 @@ const SUBJECT = "file-server";
 export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
 
+  // create project_id as an exact lightweight clone of src_project_id
+  clone: (opts: {
+    project_id: string;
+    src_project_id: string;
+  }) => Promise<void>;
+
   getUsage: (opts: { project_id: string }) => Promise<{
     size: number;
     used: number;
