@@ -10,7 +10,6 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { useActions } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, Markdown, Tip } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
-import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
 import { labels } from "@cocalc/frontend/i18n";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
@@ -95,7 +94,7 @@ export function StudentAssignmentInfo({
   nbgrader_run_info,
 }: StudentAssignmentInfoProps) {
   const intl = useIntl();
-  const clicked_nbgrader = useRef<Date|undefined>(undefined);
+  const clicked_nbgrader = useRef<Date | undefined>(undefined);
   const actions = useActions<CourseActions>({ name });
   const size = useButtonSize();
   const [recopy, set_recopy] = useRecopy();
@@ -512,7 +511,7 @@ export function StudentAssignmentInfo({
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
     const v: React.JSX.Element[] = [];
     if (enable_copy) {
-      if (webapp_client.server_time() - (data.start ?? 0) < COPY_TIMEOUT_MS) {
+      if (webapp_client.server_time() - (data.start ?? 0) < 15_000) {
         v.push(render_open_copying(step, do_open, do_stop));
       } else if (data.time) {
         v.push(

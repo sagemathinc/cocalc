@@ -39,7 +39,6 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
-import { COPY_TIMEOUT_MS } from "../consts";
 import { export_assignment } from "../export/export-assignment";
 import { export_student_file_use_times } from "../export/file-use-times";
 import { grading_state } from "../nbgrader/util";
@@ -457,14 +456,12 @@ export class AssignmentsActions {
     });
     try {
       await webapp_client.project_client.copyPathBetweenProjects({
-        src_project_id: student_project_id,
-        src_path: assignment.get("target_path"),
-        target_project_id: store.get("course_project_id"),
-        target_path,
-        overwrite_newer: true,
-        backup: true,
-        delete_missing: false,
-        timeout: COPY_TIMEOUT_MS,
+        src: {
+          project_id: student_project_id,
+          path: assignment.get("target_path"),
+        },
+        dest: { project_id: store.get("course_project_id"), path: target_path },
+        options: { recursive: true },
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -616,16 +613,23 @@ ${details}
         content,
       });
       await webapp_client.project_client.copyPathBetweenProjects({
-        src_project_id: store.get("course_project_id"),
-        src_path,
-        target_project_id: student_project_id,
-        target_path: assignment.get("graded_path"),
-        overwrite_newer: true,
-        backup: true,
-        delete_missing: false,
-        exclude: peer_graded ? ["*GRADER*.txt"] : undefined,
-        timeout: COPY_TIMEOUT_MS,
+        src: { project_id: store.get("course_project_id"), path: src_path },
+        dest: {
+          project_id: student_project_id,
+          path: assignment.get("graded_path"),
+        },
+        options: {
+          recursive: true,
+        },
       });
+      if (peer_graded) {
+        const fs = redux.getProjectActions(student_project_id).fs(0);
+        const v = await fs.readdir(assignment.get("graded_path"));
+        const paths = v
+          .filter((path) => path.includes("GRADER"))
+          .map((path) => join(assignment.get("graded_path"), path));
+        await fs.rm(paths, { force: true });
+      }
       finish("");
     } catch (err) {
       finish(err);
@@ -853,21 +857,19 @@ ${details}
         desc: `Copying files to ${student_name}'s project`,
       });
       const opts = {
-        src_project_id: store.get("course_project_id"),
-        src_path,
-        target_project_id: student_project_id,
-        target_path: assignment.get("target_path"),
-        overwrite_newer: !!overwrite, // default is "false"
-        delete_missing: !!overwrite, // default is "false"
-        backup: !!!overwrite, // default is "true"
-        timeout: COPY_TIMEOUT_MS,
+        src: { project_id: store.get("course_project_id"), path: src_path },
+        dest: {
+          project_id: student_project_id,
+          path: assignment.get("target_path"),
+        },
+        options: { recursive: true, force: !!overwrite },
       };
       await webapp_client.project_client.copyPathBetweenProjects(opts);
       await this.course_actions.compute.setComputeServerAssociations({
         student_id,
-        src_path: opts.src_path,
-        target_project_id: opts.target_project_id,
-        target_path: opts.target_path,
+        src_path,
+        target_project_id: student_project_id,
+        target_path: assignment.get("target_path"),
         unit_id: assignment_id,
       });
 
@@ -1371,15 +1373,19 @@ ${details}
       // due date to avoid confusion.
       // copy the files to be peer graded into place for this student
       await webapp_client.project_client.copyPathBetweenProjects({
-        src_project_id: store.get("course_project_id"),
-        src_path,
-        target_project_id: student_project_id,
-        target_path,
-        overwrite_newer: false,
-        delete_missing: false,
-        exclude: ["*STUDENT*.txt", "*" + DUE_DATE_FILENAME + "*"],
-        timeout: COPY_TIMEOUT_MS,
+        src: { project_id: store.get("course_project_id"), path: src_path },
+        dest: { project_id: student_project_id, path: target_path },
+        options: { recursive: true, force: false },
       });
+      const fs = redux.getProjectActions(student_project_id).fs(0);
+      const v = await fs.readdir(assignment.get("graded_path"));
+      const paths = v
+        .filter(
+          (path) =>
+            path.includes("STUDENT") || path.includes(DUE_DATE_FILENAME),
+        )
+        .map((path) => join(target_path, path));
+      await fs.rm(paths, { force: true });
     };
 
     try {
@@ -1455,13 +1461,9 @@ ${details}
 
       // copy the files over from the student who did the peer grading
       await webapp_client.project_client.copyPathBetweenProjects({
-        src_project_id,
-        src_path,
-        target_project_id: store.get("course_project_id"),
-        target_path,
-        overwrite_newer: false,
-        delete_missing: false,
-        timeout: COPY_TIMEOUT_MS,
+        src: { project_id: src_project_id, path: src_path },
+        dest: { project_id: store.get("course_project_id"), path: target_path },
+        options: { force: false, recursive: true },
       });
 
       // write local file identifying the grader
@@ -2007,14 +2009,9 @@ ${details}
             // data files that are sent as part of the assignment.  Also,
             // student's might have some code in text files next to the ipynb.
             await webapp_client.project_client.copyPathBetweenProjects({
-              src_project_id: course_project_id,
-              src_path: student_path,
-              target_project_id: grade_project_id,
-              target_path: student_path,
-              overwrite_newer: true,
-              delete_missing: true,
-              backup: false,
-              timeout: COPY_TIMEOUT_MS,
+              src: { project_id: course_project_id, path: student_path },
+              dest: { project_id: grade_project_id, path: student_path },
+              options: { recursive: true },
             });
           } else {
             ephemeralGradePath = false;

@@ -16,7 +16,6 @@ import { map } from "awaiting";
 import type { SyncDBRecordHandout } from "../types";
 import { exec } from "../../frame-editors/generic/client";
 import { export_student_file_use_times } from "../export/file-use-times";
-import { COPY_TIMEOUT_MS } from "../consts";
 
 export class HandoutsActions {
   private course_actions: CourseActions;
@@ -253,22 +252,20 @@ export class HandoutsActions {
       });
 
       const opts = {
-        src_project_id: course_project_id,
-        src_path,
-        target_project_id: student_project_id,
-        target_path: handout.get("target_path"),
-        overwrite_newer: !!overwrite, // default is "false"
-        delete_missing: !!overwrite, // default is "false"
-        backup: !!!overwrite, // default is "true"
-        timeout: COPY_TIMEOUT_MS,
+        src: { project_id: course_project_id, path: src_path },
+        dest: {
+          project_id: student_project_id,
+          path: handout.get("target_path"),
+        },
+        options: { force: !!overwrite },
       };
       await webapp_client.project_client.copyPathBetweenProjects(opts);
 
       await this.course_actions.compute.setComputeServerAssociations({
         student_id,
-        src_path: opts.src_path,
-        target_project_id: opts.target_project_id,
-        target_path: opts.target_path,
+        src_path,
+        target_project_id: student_project_id,
+        target_path: handout.get("target_path"),
         unit_id: handout_id,
       });
 

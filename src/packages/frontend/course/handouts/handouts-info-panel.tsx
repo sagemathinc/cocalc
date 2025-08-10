@@ -11,7 +11,6 @@ import { useIntl } from "react-intl";
 
 import { Icon, Tip } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
-import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CourseActions } from "../actions";
@@ -155,7 +154,7 @@ export function StudentHandoutInfo({
     }
     const v: any[] = [];
     if (enable_copy) {
-      if (webapp_client.server_time() - (obj.start ?? 0) < COPY_TIMEOUT_MS) {
+      if (webapp_client.server_time() - (obj.start ?? 0) < 15_000) {
         v.push(render_open_copying(do_open, do_stop));
       } else if (obj.time) {
         v.push(render_open_recopy(name, do_open, do_copy, copy_tip, open_tip));

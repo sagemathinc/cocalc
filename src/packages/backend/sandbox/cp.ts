@@ -10,11 +10,25 @@ export { type CopyOptions };
 import { exists } from "./install";
 
 export default async function cp(
-  src: string[],
+  src: string[] | string,
   dest: string,
   options: CopyOptions = {},
 ): Promise<void> {
-  const args = [...src, dest];
+  const args: string[] = [];
+  if (typeof src == "string") {
+    args.push("-T", src);
+    // Why the -T?  When the src is string instead of an array,
+    // we maintain the
+    // cp semantics of ndoejs, where always dest is exactly what gets
+    // created/written, **not a file in dest**.  E.g., if a is a directory,
+    // then doing
+    //    cp('a','b',{recursive:true})
+    // twice is idempotent, whereas with /usr/bin/cp without the -T option,
+    // then second call creates b/a.
+  } else {
+    args.push(...src);
+  }
+  args.push(dest);
   const opts: string[] = [];
   if (!options.dereference) {
     opts.push("-d");
