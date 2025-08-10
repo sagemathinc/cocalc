@@ -7,6 +7,7 @@ the full benefit of btrfs's copy-on-write functionality.
 import exec from "./exec";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 export { type CopyOptions };
+import { exists } from "./install";
 
 export default async function cp(
   src: string[],
@@ -19,11 +20,26 @@ export default async function cp(
     opts.push("-d");
   }
   if (!(options.force ?? true)) {
+    // according to node docs, when force=true:
+    //   "overwrite existing file or directory"
+    // The -n (or --no-clobber) docs to cp: "do not overwrite an existing file",
+    // so I think force=false is same as --update.
     if (options.errorOnExist) {
-      opts.push("--update=none-fail");
-    } else {
-      opts.push("--update=none");
+      // If moreover errorOnExist is set, then node's cp will also throw an error
+      // with code "ERR_FS_CP_EEXIST"
+      // SystemError [ERR_FS_CP_EEXIST]: Target already exists
+      // /usr/bin/cp doesn't really have such an option, so we use exist directly.
+      if (await exists(dest)) {
+        const e = Error(
+          "SystemError [ERR_FS_CP_EEXIST]: Target already exists",
+        );
+        // @ts-ignore
+        e.code = "ERR_FS_CP_EEXIST";
+        throw e;
+      }
     }
+    // silently does nothing if target exists
+    opts.push("-n");
   }
 
   if (options.preserveTimestamps) {

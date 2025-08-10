@@ -17,28 +17,20 @@ TODO/CRITICAL: I deleted this from target.ts, so be sure to make this.host be ac
 
 */
 
-import {
-  BaseProject,
-  CopyOptions,
-  ProjectStatus,
-  ProjectState,
-  getProject,
-} from "./base";
-
+import { BaseProject, ProjectStatus, ProjectState, getProject } from "./base";
 import getLogger from "@cocalc/backend/logger";
-const winston = getLogger("project-control-kubernetes");
+const logger = getLogger("project-control-kubernetes");
 
 class Project extends BaseProject {
   async state(): Promise<ProjectState> {
-    winston.debug("state ", this.project_id);
+    logger.debug("state ", this.project_id);
     throw Error("implement me");
   }
 
   async status(): Promise<ProjectStatus> {
-    winston.debug("status ", this.project_id);
+    logger.debug("status ", this.project_id);
     throw Error("implement me");
   }
-
 }
 
 export default function get(project_id: string): Project {

@@ -262,7 +262,7 @@ export class HandoutsActions {
         backup: !!!overwrite, // default is "true"
         timeout: COPY_TIMEOUT_MS,
       };
-      await webapp_client.project_client.copy_path_between_projects(opts);
+      await webapp_client.project_client.copyPathBetweenProjects(opts);
 
       await this.course_actions.compute.setComputeServerAssociations({
         student_id,

@@ -1,14 +1,12 @@
 import { promisify } from "util";
-import { dirname, join, resolve } from "path";
-import { exec as exec0, spawn } from "child_process";
-import spawnAsync from "await-spawn";
+import { join } from "path";
+import { exec as exec0 } from "child_process";
 import * as fs from "fs";
 import { writeFile } from "fs/promises";
 import { root } from "@cocalc/backend/data";
-import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
-import { CopyOptions, ProjectState, ProjectStatus } from "./base";
+import { ProjectState, ProjectStatus } from "./base";
 import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";

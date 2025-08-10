@@ -19,9 +19,8 @@ small modifications due to having to create and delete Linux users.
 import { getState, getStatus, homePath } from "./util";
 import { BaseProject, getProject, ProjectStatus, ProjectState } from "./base";
 import getLogger from "@cocalc/backend/logger";
-import { getUid } from "@cocalc/backend/misc";
 
-const winston = getLogger("project-control:multi-user");
+const logger = getLogger("project-control:multi-user");
 
 class Project extends BaseProject {
   private HOME?: string;
@@ -36,7 +35,7 @@ class Project extends BaseProject {
     }
     this.HOME ??= await homePath(this.project_id);
     const state = await getState(this.HOME);
-    winston.debug(`got state of ${this.project_id} = ${JSON.stringify(state)}`);
+    logger.debug(`got state of ${this.project_id} = ${JSON.stringify(state)}`);
     this.saveStateToDatabase(state);
     return state;
   }
@@ -45,7 +44,7 @@ class Project extends BaseProject {
     this.HOME ??= await homePath(this.project_id);
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
-    winston.debug(
+    logger.debug(
       `got status of ${this.project_id} = ${JSON.stringify(status)}`,
     );
     this.saveStatusToDatabase(status);

@@ -1,6 +1,5 @@
 import { authFirstRequireAccount } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
-import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 export const projects = {

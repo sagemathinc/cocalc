@@ -15,7 +15,7 @@ export const COCALC_MODES = [
   "kubernetes",
 ] as const;
 
-export type CocalcMode = typeof COCALC_MODES[number];
+export type CocalcMode = (typeof COCALC_MODES)[number];
 
 export type ProjectControlFunction = (project_id: string) => BaseProject;
 
@@ -23,10 +23,10 @@ export type ProjectControlFunction = (project_id: string) => BaseProject;
 let cached: ProjectControlFunction | undefined = undefined;
 
 export default function init(mode?: CocalcMode): ProjectControlFunction {
-  const winston = getLogger("project-control");
-  winston.debug("init", mode);
+  const logger = getLogger("project-control");
+  logger.debug("init", mode);
   if (cached !== undefined) {
-    winston.info("using cached project control client");
+    logger.info("using cached project control client");
     return cached;
   }
   if (!mode) {
@@ -34,10 +34,10 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
   }
   if (!mode) {
     throw Error(
-      "you can only call projects/control with no mode argument AFTER it has been initialized by the hub or if you set the COCALC_MODE env var"
+      "you can only call projects/control with no mode argument AFTER it has been initialized by the hub or if you set the COCALC_MODE env var",
     );
   }
-  winston.info("creating project control client");
+  logger.info("creating project control client");
 
   let getProject;
   switch (mode) {
@@ -56,7 +56,7 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
     default:
       throw Error(`invalid mode "${mode}"`);
   }
-  winston.info(`project controller created with mode ${mode}`);
+  logger.info(`project controller created with mode ${mode}`);
   const database = db();
   database.projectControl = getProject;
 
@@ -65,15 +65,15 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
   // the project can respond.
   database.ensure_connection_to_project = async (
     project_id: string,
-    cb?: Function
+    cb?: Function,
   ): Promise<void> => {
     const dbg = (...args) => {
-      winston.debug("ensure_connection_to_project: ", project_id, ...args);
+      logger.debug("ensure_connection_to_project: ", project_id, ...args);
     };
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT state->'state' AS state FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     const state = rows[0]?.state;
     if (state != "running") {
@@ -101,8 +101,8 @@ export const getProject: ProjectControlFunction = (project_id: string) => {
     }
     throw Error(
       `must call init first or set the environment variable COCALC_MODE to one of ${COCALC_MODES.join(
-        ", "
-      )}`
+        ", ",
+      )}`,
     );
   }
   return cached(project_id);

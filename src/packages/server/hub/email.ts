@@ -41,7 +41,7 @@ import {
 
 const fs_readFile_prom = promisify(fs.readFile);
 
-const winston = getLogger("server:hub:email");
+const logger = getLogger("server:hub:email");
 
 export function escape_email_body(body: string, allow_urls: boolean): string {
   // in particular, no img and no anchor a
@@ -392,7 +392,7 @@ export function is_banned(address): boolean {
 
 function make_dbg(opts) {
   if (opts.verbose) {
-    return (m) => winston.debug(`send_email(to:${opts.to}) -- ${m}`);
+    return (m) => logger.debug(`send_email(to:${opts.to}) -- ${m}`);
   } else {
     return function (_) {};
   }
@@ -612,7 +612,7 @@ export function mass_email(opts): void {
     cb: undefined,
   }); // cb(err, list of recipients that we succeeded in sending email to)
 
-  const dbg = (m) => winston.debug(`mass_email: ${m}`);
+  const dbg = (m) => logger.debug(`mass_email: ${m}`);
   dbg(opts.filename);
   dbg(opts.subject);
   dbg(opts.body);

@@ -42,6 +42,7 @@ import { throttle } from "lodash";
 import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
 import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 import { type ProjectApi } from "@cocalc/conat/project/api";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -122,8 +123,11 @@ export class ProjectClient {
     return url;
   };
 
-  copyPathBetweenProjects = async (opts:
-                                     ): Promise<void> => {
+  copyPathBetweenProjects = async (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
+  }): Promise<void> => {
     await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
   };
 

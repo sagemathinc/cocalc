@@ -110,8 +110,8 @@ async function cp({
   };
   srcPaths = srcPaths.map(toRelative);
   destPath = toRelative(destPath);
-  // default reflink true
-  await fs.subvolumes.fs.cp(srcPaths, destPath, { reflink: true, ...options });
+  // NOTE: we *always* make reflink true because the filesystem is btrfs!
+  await fs.subvolumes.fs.cp(srcPaths, destPath, { ...options, reflink: true });
 }
 
 let fs: Filesystem | null = null;

@@ -456,7 +456,7 @@ export class AssignmentsActions {
       desc: `Copying assignment from ${student_name}`,
     });
     try {
-      await webapp_client.project_client.copy_path_between_projects({
+      await webapp_client.project_client.copyPathBetweenProjects({
         src_project_id: student_project_id,
         src_path: assignment.get("target_path"),
         target_project_id: store.get("course_project_id"),
@@ -615,7 +615,7 @@ ${details}
         path: src_path + "/GRADE.md",
         content,
       });
-      await webapp_client.project_client.copy_path_between_projects({
+      await webapp_client.project_client.copyPathBetweenProjects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -862,7 +862,7 @@ ${details}
         backup: !!!overwrite, // default is "true"
         timeout: COPY_TIMEOUT_MS,
       };
-      await webapp_client.project_client.copy_path_between_projects(opts);
+      await webapp_client.project_client.copyPathBetweenProjects(opts);
       await this.course_actions.compute.setComputeServerAssociations({
         student_id,
         src_path: opts.src_path,
@@ -1370,7 +1370,7 @@ ${details}
       // peer grading is anonymous; also, remove original
       // due date to avoid confusion.
       // copy the files to be peer graded into place for this student
-      await webapp_client.project_client.copy_path_between_projects({
+      await webapp_client.project_client.copyPathBetweenProjects({
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -1454,7 +1454,7 @@ ${details}
       }
 
       // copy the files over from the student who did the peer grading
-      await webapp_client.project_client.copy_path_between_projects({
+      await webapp_client.project_client.copyPathBetweenProjects({
         src_project_id,
         src_path,
         target_project_id: store.get("course_project_id"),
@@ -2006,7 +2006,7 @@ ${details}
             // This is necessary because grading the assignment may depend on
             // data files that are sent as part of the assignment.  Also,
             // student's might have some code in text files next to the ipynb.
-            await webapp_client.project_client.copy_path_between_projects({
+            await webapp_client.project_client.copyPathBetweenProjects({
               src_project_id: course_project_id,
               src_path: student_path,
               target_project_id: grade_project_id,
