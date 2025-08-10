@@ -21,6 +21,7 @@ import { type JSX, type MouseEvent } from "react";
 const SHOW_SERVER_LAUNCHERS = false;
 
 import TourButton from "./tour/button";
+import ForkProject from "./fork";
 
 const OPEN_MSG = defineMessage({
   id: "project.explorer.misc-side-buttons.open_dir.tooltip",
@@ -185,6 +186,7 @@ export function MiscSideButtons() {
         <Space.Compact>
           {render_hidden_toggle()}
           {render_backup()}
+          <ForkProject project_id={project_id} />
           <TourButton project_id={project_id} />
         </Space.Compact>
       </div>

@@ -7,7 +7,6 @@ import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
-
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -36,6 +35,7 @@ import { ActiveFileSort } from "./files";
 import { FilesSelectedControls } from "./files-controls";
 import { FilesSelectButtons } from "./files-select-extra";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
+import ForkProject from "@cocalc/frontend/project/explorer/fork";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -479,6 +479,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
                 }
                 icon={<Icon name={"life-ring"} />}
               />
+              <ForkProject project_id={project_id} flyout />
             </Space.Compact>
           ) : undefined}
         </div>

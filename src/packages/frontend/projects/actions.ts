@@ -417,7 +417,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   // Open the given project
-  public async open_project(opts: {
+  open_project = async (opts: {
     project_id: string; //  id of the project to open
     target?: string; // The file path to open
     fragmentId?: FragmentId; //  if given, an uri fragment in the editor that is opened.
@@ -425,7 +425,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     ignore_kiosk?: boolean; // Ignore ?fullscreen=kiosk
     change_history?: boolean; // (default: true) Whether or not to alter browser history
     restore_session?: boolean; // (default: true)  Opens up previously closed editor tabs
-  }) {
+  }) => {
     opts = defaults(opts, {
       project_id: undefined,
       target: undefined,
@@ -486,7 +486,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     // initialize project
     project_actions.init();
-  }
+  };
 
   // tab at old_index taken out and then inserted into the resulting array's new index
   public move_project_tab({
