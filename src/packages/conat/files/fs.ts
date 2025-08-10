@@ -89,6 +89,14 @@ export interface Filesystem {
   link: (existingPath: string, newPath: string) => Promise<void>;
   lstat: (path: string) => Promise<IStats>;
   mkdir: (path: string, options?) => Promise<void>;
+
+  // move from fs-extra -- https://github.com/jprichardson/node-fs-extra/blob/HEAD/docs/move.md
+  move: (
+    src: string,
+    dest: string,
+    options?: { overwrite?: boolean },
+  ) => Promise<void>;
+
   readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
   readdir(path: string, options?): Promise<string[]>;
   readdir(path: string, options: { withFileTypes?: false }): Promise<string[]>;
@@ -344,6 +352,9 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     },
     async rename(oldPath: string, newPath: string) {
       await (await fs(this.subject)).rename(oldPath, newPath);
+    },
+    async move(src: string, dest: string, options?: { overwrite?: boolean }) {
+      return await (await fs(this.subject)).move(src, dest, options);
     },
     async ripgrep(path: string, pattern: string, options?: RipgrepOptions) {
       return await (await fs(this.subject)).ripgrep(path, pattern, options);

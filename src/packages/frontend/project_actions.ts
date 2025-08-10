@@ -10,7 +10,7 @@ import * as async from "async";
 import { callback } from "awaiting";
 import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
-import { join } from "path";
+import { basename, join } from "path";
 import { defineMessage } from "react-intl";
 import {
   computeServerManager,
@@ -2489,35 +2489,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return stats.isDirectory();
   };
 
-  public async move_files(opts: {
+  public async moveFiles({
+    src,
+    dest,
+    compute_server_id,
+  }: {
     src: string[];
     dest: string;
     compute_server_id?: number;
   }): Promise<void> {
-    if (
-      !(await ensure_project_running(
-        this.project_id,
-        "move " + opts.src.join(", "),
-      ))
-    ) {
-      return;
-    }
     const id = misc.uuid();
-    const status = `Moving ${opts.src.length} ${misc.plural(
-      opts.src.length,
+    const status = `Moving ${src.length} ${misc.plural(
+      src.length,
       "file",
-    )} to ${opts.dest}`;
+    )} to ${dest}`;
     this.set_activity({ id, status });
     let error: any = undefined;
     try {
-      const api = await this.api();
-      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
-      await api.move_files(opts.src, opts.dest, compute_server_id);
+      const fs = this.fs(compute_server_id);
+      await Promise.all(
+        src.map(async (path) =>
+          fs.move(path, join(dest, basename(path)), { overwrite: true }),
+        ),
+      );
       this.log({
         event: "file_action",
         action: "moved",
-        files: opts.src,
-        dest: opts.dest + "/" /* target is assumed to be a directory */,
+        files: src,
+        dest: dest + "/" /* target is assumed to be a directory */,
         compute_server_id,
       });
     } catch (err) {

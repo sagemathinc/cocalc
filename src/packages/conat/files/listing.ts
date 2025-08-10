@@ -90,7 +90,7 @@ export class Listing extends EventEmitter {
 
   private handleUpdates = async () => {
     for await (const { filename } of this.watch) {
-      if (this.files == null) {
+      if (this.files == null || !filename) {
         return;
       }
       this.update(filename);

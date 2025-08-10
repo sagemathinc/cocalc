@@ -63,6 +63,7 @@ import {
   unlink,
   utimes,
 } from "node:fs/promises";
+import { move } from "fs-extra";
 import { watch } from "node:fs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { join, resolve } from "path";
@@ -327,6 +328,19 @@ export class SandboxedFilesystem {
     await rename(
       await this.safeAbsPath(oldPath),
       await this.safeAbsPath(newPath),
+    );
+  };
+
+  move = async (
+    src: string,
+    dest: string,
+    options?: { overwrite?: boolean },
+  ) => {
+    this.assertWritable(dest);
+    await move(
+      await this.safeAbsPath(src),
+      await this.safeAbsPath(dest),
+      options,
     );
   };
 

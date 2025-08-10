@@ -197,7 +197,7 @@ export function ActionBox({
   }
 
   function move_click(): void {
-    actions.move_files({
+    actions.moveFiles({
       src: checked_files.toArray(),
       dest: move_destination,
     });
