@@ -72,7 +72,7 @@ export default function RenameFile({ duplicate, clear }: Props) {
         dest: path_to_file(renameDir, target),
       };
       if (duplicate) {
-        await actions.copy_paths({
+        await actions.copyPaths({
           src: [opts.src],
           dest: opts.dest,
           only_contents: true,

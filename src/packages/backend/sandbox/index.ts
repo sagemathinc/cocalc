@@ -78,6 +78,7 @@ import rustic from "./rustic";
 import { type ExecOutput } from "./exec";
 import { rusticRepo } from "@cocalc/backend/data";
 import ouch, { type OuchOptions } from "./ouch";
+import cpExec from "./cp";
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -96,6 +97,7 @@ interface Options {
 // be sure to exclude them here!
 const INTERNAL_METHODS = new Set([
   "safeAbsPath",
+  "safeAbsPaths",
   "constructor",
   "path",
   "unsafeMode",
@@ -146,6 +148,12 @@ export class SandboxedFilesystem {
         { errno: -13, code: "EACCES", syscall: "open", path },
       );
     }
+  };
+
+  safeAbsPaths = async (path: string[] | string): Promise<string[]> => {
+    return await Promise.all(
+      (typeof path == "string" ? [path] : path).map(this.safeAbsPath),
+    );
   };
 
   safeAbsPath = async (path: string): Promise<string> => {
@@ -199,13 +207,31 @@ export class SandboxedFilesystem {
     await copyFile(await this.safeAbsPath(src), await this.safeAbsPath(dest));
   };
 
-  cp = async (src: string, dest: string, options?) => {
+  cp = async (
+    src: string | string[],
+    dest: string,
+    options?: {
+      dereference?: boolean;
+      errorOnExist?: boolean;
+      force?: boolean;
+      preserveTimestamps?: boolean;
+      recursive?: boolean;
+      verbatimSymlinks?: boolean;
+      // if true, will try to use copy-on-write - this spawns the operating system 'cp' command.
+      reflink?: boolean;
+    },
+  ) => {
     this.assertWritable(dest);
-    await cp(
-      await this.safeAbsPath(src),
-      await this.safeAbsPath(dest),
-      options,
-    );
+    dest = await this.safeAbsPath(dest);
+    const v = await this.safeAbsPaths(src);
+    if (!options?.reflink) {
+      // can use node cp:
+      for (const path of v) {
+        await cp(path, dest, options);
+      }
+    } else {
+      await cpExec(v, dest, options);
+    }
   };
 
   exists = async (path: string) => {
@@ -344,9 +370,13 @@ export class SandboxedFilesystem {
     );
   };
 
-  rm = async (path: string, options?) => {
-    this.assertWritable(path);
-    await rm(await this.safeAbsPath(path), options);
+  rm = async (path: string | string[], options?) => {
+    const v = await this.safeAbsPaths(path);
+    const f = async (path) => {
+      this.assertWritable(path);
+      await rm(path, options);
+    };
+    await Promise.all(v.map(f));
   };
 
   rmdir = async (path: string, options?) => {

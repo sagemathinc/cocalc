@@ -329,14 +329,14 @@ export function ActionBox({
       });
     } else {
       if (compute_server_id) {
-        actions.copy_paths({
+        actions.copyPaths({
           src: paths,
           dest: destination_directory,
           src_compute_server_id: compute_server_id,
           dest_compute_server_id: getDestinationComputeServerId(),
         });
       } else {
-        actions.copy_paths({
+        actions.copyPaths({
           src: paths,
           dest: destination_directory,
           src_compute_server_id: 0,

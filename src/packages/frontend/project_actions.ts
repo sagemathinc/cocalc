@@ -78,7 +78,6 @@ import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
   NewFilenames,
   download_href,
-  in_snapshot_path,
   normalize,
   url_href,
 } from "@cocalc/frontend/project/utils";
@@ -2189,7 +2188,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ library_is_copying: status });
   }
 
-  copy_paths = async (opts: {
+  copyPaths = async ({
+    src,
+    dest,
+    id,
+    only_contents,
+    src_compute_server_id = this.get_store()?.get("compute_server_id") ?? 0,
+    dest_compute_server_id = this.get_store()?.get("compute_server_id") ?? 0,
+  }: {
     src: string[];
     dest: string;
     id?: string;
@@ -2200,40 +2206,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     dest_compute_server_id?: number;
     // NOTE: right now src_compute_server_id and dest_compute_server_id
     // must be the same or one of them must be 0.  We don't implement
-    // copying directly from one compute server to another *yet*.
+    // copying directly from one compute server to another.
   }) => {
-    opts = defaults(opts, {
-      src: required, // Should be an array of source paths
-      dest: required,
-      id: undefined,
-      only_contents: false,
-      src_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
-      dest_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
-    }); // true for duplicating files
-
     const withSlashes = await this.appendSlashToDirectoryPaths(
-      opts.src,
-      opts.src_compute_server_id,
+      src,
+      src_compute_server_id,
     );
 
     this.log({
       event: "file_action",
       action: "copied",
       files: withSlashes.slice(0, 3),
-      count: opts.src.length > 3 ? opts.src.length : undefined,
-      dest: opts.dest + (opts.only_contents ? "" : "/"),
-      ...(opts.src_compute_server_id != opts.dest_compute_server_id
+      count: src.length > 3 ? src.length : undefined,
+      dest: dest + (only_contents ? "" : "/"),
+      ...(src_compute_server_id != dest_compute_server_id
         ? {
-            src_compute_server_id: opts.src_compute_server_id,
-            dest_compute_server_id: opts.dest_compute_server_id,
+            src_compute_server_id: src_compute_server_id,
+            dest_compute_server_id: dest_compute_server_id,
           }
-        : opts.src_compute_server_id
-          ? { compute_server_id: opts.src_compute_server_id }
+        : src_compute_server_id
+          ? { compute_server_id: src_compute_server_id }
           : undefined),
     });
 
-    if (opts.only_contents) {
-      opts.src = withSlashes;
+    if (only_contents) {
+      src = withSlashes;
     }
 
     // If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
@@ -2243,18 +2240,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
 
     // Ensure that src files are not interpreted as an option to rsync
-    opts.src = opts.src.map(add_leading_dash);
+    src = src.map(add_leading_dash);
 
-    const id = opts.id != null ? opts.id : misc.uuid();
+    id ??= misc.uuid();
     this.set_activity({
       id,
-      status: `Copying ${opts.src.length} ${misc.plural(
-        opts.src.length,
+      status: `Copying ${src.length} ${misc.plural(
+        src.length,
         "file",
-      )} to ${opts.dest}`,
+      )} to ${dest}`,
     });
 
-    if (opts.src_compute_server_id != opts.dest_compute_server_id) {
+    if (src_compute_server_id != dest_compute_server_id) {
       // Copying from/to a compute server from/to a project.  This uses
       // an api, which behind the scenes uses lz4 compression and tar
       // proxied via a websocket, but no use of rsync or ssh.
@@ -2262,20 +2259,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // do it.
       try {
         const api = await this.api();
-        if (opts.src_compute_server_id) {
+        if (src_compute_server_id) {
           // from compute server to project
           await api.copyFromComputeServerToHomeBase({
-            compute_server_id: opts.src_compute_server_id,
-            paths: opts.src,
-            dest: opts.dest,
+            compute_server_id: src_compute_server_id,
+            paths: src,
+            dest: dest,
             timeout: 60 * 15 * 1000,
           });
-        } else if (opts.dest_compute_server_id) {
+        } else if (dest_compute_server_id) {
           // from project to compute server
           await api.copyFromHomeBaseToComputeServer({
-            compute_server_id: opts.dest_compute_server_id,
-            paths: opts.src,
-            dest: opts.dest,
+            compute_server_id: dest_compute_server_id,
+            paths: src,
+            dest: dest,
             timeout: 60 * 15 * 1000,
           });
         } else {
@@ -2292,33 +2289,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    // Copying directly on project or on compute server. This just uses local rsync (no network).
-
-    let args = ["-rltgoDxH"];
-
-    // We ensure the target copy is writable if *any* source path starts is inside of .snapshots.
-    // See https://github.com/sagemathinc/cocalc/issues/2497 and https://github.com/sagemathinc/cocalc/issues/4935
-    for (const x of opts.src) {
-      if (in_snapshot_path(x)) {
-        args = args.concat(["--perms", "--chmod", "u+w"]);
-        break;
-      }
+    // Copying directly on project or on compute server.
+    const fs = this.fs(src_compute_server_id);
+    try {
+      await fs.cp(src, dest, { recursive: true, reflink: true });
+      this._finish_exec(id)();
+    } catch (err) {
+      this._finish_exec(id)(`${err}`);
     }
-
-    args = args.concat(opts.src);
-    args = args.concat([add_leading_dash(opts.dest)]);
-
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
-      args,
-      timeout: 120, // how long rsync runs on client
-      err_on_exit: true,
-      path: ".",
-      compute_server_id: opts.src_compute_server_id,
-      filesystem: true,
-      cb: this._finish_exec(id),
-    });
   };
 
   copy_paths_between_projects = async (opts: {
@@ -2561,11 +2539,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     try {
       const fs = this.fs(compute_server_id);
-      await Promise.all(
-        paths.map(async (path) =>
-          fs.rm(path, { force: true, recursive: true }),
-        ),
-      );
+      await fs.rm(paths, { force: true, recursive: true });
       this.log({
         event: "file_action",
         action: "deleted",

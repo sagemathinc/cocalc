@@ -84,7 +84,21 @@ export interface Filesystem {
   chmod: (path: string, mode: string | number) => Promise<void>;
   constants: () => Promise<{ [key: string]: number }>;
   copyFile: (src: string, dest: string) => Promise<void>;
-  cp: (src: string, dest: string, options?) => Promise<void>;
+  cp: (
+    // we also support any array of src's unlike node's cp.
+    src: string | string[],
+    dest: string,
+    options?: {
+      dereference?: boolean;
+      errorOnExist?: boolean;
+      force?: boolean;
+      preserveTimestamps?: boolean;
+      recursive?: boolean;
+      verbatimSymlinks?: boolean;
+      // if true, will try to use copy-on-write - this spawns the operating system 'cp' command.
+      reflink?: boolean;
+    },
+  ) => Promise<void>;
   exists: (path: string) => Promise<boolean>;
   link: (existingPath: string, newPath: string) => Promise<void>;
   lstat: (path: string) => Promise<IStats>;
@@ -92,7 +106,7 @@ export interface Filesystem {
 
   // move from fs-extra -- https://github.com/jprichardson/node-fs-extra/blob/HEAD/docs/move.md
   move: (
-    src: string,
+    src: string | string[],
     dest: string,
     options?: { overwrite?: boolean },
   ) => Promise<void>;
@@ -104,7 +118,7 @@ export interface Filesystem {
   readlink: (path: string) => Promise<string>;
   realpath: (path: string) => Promise<string>;
   rename: (oldPath: string, newPath: string) => Promise<void>;
-  rm: (path: string, options?) => Promise<void>;
+  rm: (path: string | string[], options?) => Promise<void>;
   rmdir: (path: string, options?) => Promise<void>;
   stat: (path: string) => Promise<IStats>;
   symlink: (target: string, path: string) => Promise<void>;
@@ -303,7 +317,7 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     async copyFile(src: string, dest: string) {
       await (await fs(this.subject)).copyFile(src, dest);
     },
-    async cp(src: string, dest: string, options?) {
+    async cp(src: string | string[], dest: string, options?) {
       await (await fs(this.subject)).cp(src, dest, options);
     },
     async dust(path: string, options?: DustOptions) {
@@ -353,7 +367,11 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     async rename(oldPath: string, newPath: string) {
       await (await fs(this.subject)).rename(oldPath, newPath);
     },
-    async move(src: string, dest: string, options?: { overwrite?: boolean }) {
+    async move(
+      src: string | string[],
+      dest: string,
+      options?: { overwrite?: boolean },
+    ) {
       return await (await fs(this.subject)).move(src, dest, options);
     },
     async ripgrep(path: string, pattern: string, options?: RipgrepOptions) {
@@ -362,7 +380,7 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     async rustic(args: string[]) {
       return await (await fs(this.subject)).rustic(args);
     },
-    async rm(path: string, options?) {
+    async rm(path: string | string[], options?) {
       await (await fs(this.subject)).rm(path, options);
     },
     async rmdir(path: string, options?) {
