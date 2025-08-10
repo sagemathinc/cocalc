@@ -26,23 +26,34 @@ import { conat } from "@cocalc/conat/client";
 
 const SUBJECT = "file-server";
 
-export interface Options {
-  client?: Client;
-  mount: (opts: { project_id: string }) => Promise<{ path: string }>;
-}
-
 export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
+
+  getUsage: (opts: { project_id: string }) => Promise<{
+    size: number;
+    used: number;
+    free: number;
+  }>;
+
+  getQuota: (opts: { project_id: string }) => Promise<{
+    size: number;
+    used: number;
+  }>;
+
+  setQuota: (opts: {
+    project_id: string;
+    size: number | string;
+  }) => Promise<void>;
 }
 
-export async function server({ client, mount }: Options) {
+export interface Options extends Fileserver {
+  client?: Client;
+}
+
+export async function server({ client, ...impl }: Options) {
   client ??= conat();
 
-  const sub = await client.service<Fileserver>(SUBJECT, {
-    async mount(opts: { project_id: string }) {
-      return await mount(opts);
-    },
-  });
+  const sub = await client.service<Fileserver>(SUBJECT, impl);
 
   return {
     close: () => {

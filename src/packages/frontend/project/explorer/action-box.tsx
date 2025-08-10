@@ -127,7 +127,7 @@ export function ActionBox({
     for (const path of paths) {
       actions.close_tab(path);
     }
-    actions.delete_files({ paths });
+    actions.deleteFiles({ paths });
     clear();
   }
 

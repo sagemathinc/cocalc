@@ -117,14 +117,6 @@ export class API {
     return await api.system.version();
   };
 
-  delete_files = async (
-    paths: string[],
-    compute_server_id?: number,
-  ): Promise<void> => {
-    const api = this.getApi({ compute_server_id, timeout: 60000 });
-    return await api.system.deleteFiles({ paths });
-  };
-
   // Move the given paths to the dest.  The folder dest must exist
   // already and be a directory, or this is in an error.
   move_files = async (

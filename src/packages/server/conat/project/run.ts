@@ -47,6 +47,10 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { spawn } from "node:child_process";
 import { type Configuration } from "./types";
 import { limits } from "./limits";
+import {
+  client as fileserverClient,
+  type Fileserver,
+} from "@cocalc/server/conat/file-server";
 
 // for development it may be useful to just disabling using nsjail namespaces
 // entirely -- change this to true to do so.
@@ -104,6 +108,12 @@ async function initMounts() {
   }
 }
 
+let fsclient: Fileserver | null = null;
+async function setQuota(project_id: string, size: number | string) {
+  fsclient ??= fileserverClient();
+  await fsclient.setQuota({ project_id, size });
+}
+
 async function start({
   project_id,
   config,
@@ -141,6 +151,13 @@ async function start({
   );
   await setupDataPath(home, uid);
   await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
+
+  if (config?.size) {
+    // TODO: maybe this should be done in parallel with other things
+    // to make startup time slightly faster (?) -- could also be incorporated
+    // into mount.
+    await setQuota(project_id, config.size);
+  }
 
   let script: string,
     cmd: string,

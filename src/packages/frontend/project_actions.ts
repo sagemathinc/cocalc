@@ -48,7 +48,6 @@ import {
 } from "@cocalc/frontend/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import * as project_file from "@cocalc/frontend/project-file";
-import { delete_files } from "@cocalc/frontend/project/delete-files";
 import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
@@ -2543,52 +2542,36 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return false;
   }
 
-  public async delete_files(opts: {
+  deleteFiles = async ({
+    paths,
+    compute_server_id,
+  }: {
     paths: string[];
     compute_server_id?: number;
-  }): Promise<void> {
-    let mesg;
-    opts = defaults(opts, {
-      paths: required,
-      compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
-    });
-    if (opts.paths.length === 0) {
-      return;
-    }
-
-    if (
-      this.checkForSandboxError(
-        "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
-      )
-    ) {
-      return;
-    }
-
-    if (
-      !(await ensure_project_running(
-        this.project_id,
-        `delete ${opts.paths.join(", ")}`,
-      ))
-    ) {
-      return;
-    }
-
+  }): Promise<void> => {
     const id = misc.uuid();
-    if (isEqual(opts.paths, [".trash"])) {
+    let mesg;
+    if (isEqual(paths, [".trash"])) {
       mesg = "the trash";
-    } else if (opts.paths.length === 1) {
-      mesg = `${opts.paths[0]}`;
+    } else if (paths.length === 1) {
+      mesg = `${paths[0]}`;
     } else {
-      mesg = `${opts.paths.length} files`;
+      mesg = `${paths.length} files`;
     }
     this.set_activity({ id, status: `Deleting ${mesg}...` });
+
     try {
-      await delete_files(this.project_id, opts.paths, opts.compute_server_id);
+      const fs = this.fs(compute_server_id);
+      await Promise.all(
+        paths.map(async (path) =>
+          fs.rm(path, { force: true, recursive: true }),
+        ),
+      );
       this.log({
         event: "file_action",
         action: "deleted",
-        files: opts.paths,
-        compute_server_id: opts.compute_server_id,
+        files: paths,
+        compute_server_id,
       });
       this.set_activity({
         id,
@@ -2602,7 +2585,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         stop: "",
       });
     }
-  }
+  };
 
   download_file = async ({
     path,

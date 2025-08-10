@@ -38,9 +38,15 @@ async function getConfig({ project_id }) {
     throw Error(`no project with id ${project_id}`);
   }
   if (rows[0].settings?.admin) {
-    return { admin: true };
+    return { admin: true, size: "10G" };
   } else {
     // some defaults, mainly for testing
-    return { cpu: "1000m", memory: "8Gi", pids: 10000, swap: "5000Gi" };
+    return {
+      cpu: "1000m",
+      memory: "8Gi",
+      pids: 10000,
+      swap: "5000Gi",
+      size: "100M",
+    };
   }
 }

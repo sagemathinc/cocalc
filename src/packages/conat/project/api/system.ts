@@ -15,7 +15,6 @@ export const system = {
   version: true,
 
   listing: true,
-  deleteFiles: true,
   moveFiles: true,
   renameFile: true,
   realpath: true,
@@ -46,7 +45,6 @@ export interface System {
     path: string;
     hidden?: boolean;
   }) => Promise<DirectoryListingEntry[]>;
-  deleteFiles: (opts: { paths: string[] }) => Promise<void>;
   moveFiles: (opts: { paths: string[]; dest: string }) => Promise<void>;
   renameFile: (opts: { src: string; dest: string }) => Promise<void>;
   realpath: (path: string) => Promise<string>;

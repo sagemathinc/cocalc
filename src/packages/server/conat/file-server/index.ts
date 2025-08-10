@@ -9,7 +9,6 @@ import {
   type Fileserver,
 } from "@cocalc/conat/files/file-server";
 export type { Fileserver };
-import { isValidUUID } from "@cocalc/util/misc";
 import { loadConatConfiguration } from "../configuration";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
@@ -25,20 +24,52 @@ function name(project_id: string) {
   return `project-${project_id}`;
 }
 
+async function getVolume(project_id) {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  return await fs.subvolumes.get(name(project_id));
+}
+
 async function mount({
   project_id,
 }: {
   project_id: string;
 }): Promise<{ path: string }> {
-  if (!isValidUUID(project_id)) {
-    throw Error("create: project_id must be a valid UUID");
-  }
   logger.debug("mount", { project_id });
-  if (fs == null) {
-    throw Error("file server not initialized");
-  }
-  const vol = await fs.subvolumes.get(name(project_id));
-  return { path: vol.path };
+  const { path } = await getVolume(project_id);
+  return { path };
+}
+
+async function getUsage({ project_id }: { project_id: string }): Promise<{
+  size: number;
+  used: number;
+  free: number;
+}> {
+  logger.debug("getUsage", { project_id });
+  const vol = await getVolume(project_id);
+  return await vol.quota.usage();
+}
+
+async function getQuota({ project_id }: { project_id: string }): Promise<{
+  size: number;
+  used: number;
+}> {
+  logger.debug("getQuota", { project_id });
+  const vol = await getVolume(project_id);
+  return await vol.quota.get();
+}
+
+async function setQuota({
+  project_id,
+  size,
+}: {
+  project_id: string;
+  size: number | string;
+}): Promise<void> {
+  logger.debug("setQuota", { project_id });
+  const vol = await getVolume(project_id);
+  await vol.quota.set(size);
 }
 
 let fs: Filesystem | null = null;
@@ -68,6 +99,9 @@ export async function init() {
   server = await createFileServer({
     client: conat(),
     mount: reuseInFlight(mount),
+    getUsage: reuseInFlight(getUsage),
+    getQuota: reuseInFlight(getQuota),
+    setQuota,
   });
 }
 

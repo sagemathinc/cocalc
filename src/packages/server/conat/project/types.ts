@@ -8,4 +8,6 @@ export interface Configuration {
   swap?: number | string;
   // pid limit
   pids?: number | string;
+  // disk size
+  size?: number | string;
 }

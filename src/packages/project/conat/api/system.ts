@@ -19,12 +19,6 @@ export async function listing({ path, hidden }) {
   return await getListing(path, hidden);
 }
 
-import { delete_files } from "@cocalc/backend/files/delete-files";
-
-export async function deleteFiles({ paths }: { paths: string[] }) {
-  return await delete_files(paths);
-}
-
 import { getClient } from "@cocalc/project/client";
 async function setDeleted(path) {
   const client = getClient();
