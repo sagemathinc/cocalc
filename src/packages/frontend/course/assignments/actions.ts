@@ -8,7 +8,7 @@ Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
 
-import { delay, map } from "awaiting";
+import { map } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
 import { join } from "path";
@@ -623,12 +623,13 @@ ${details}
         },
       });
       if (peer_graded) {
-        const fs = redux.getProjectActions(student_project_id).fs(0);
-        const v = await fs.readdir(assignment.get("graded_path"));
-        const paths = v
-          .filter((path) => path.includes("GRADER"))
-          .map((path) => join(assignment.get("graded_path"), path));
-        await fs.rm(paths, { force: true });
+        const actions = redux.getProjectActions(student_project_id);
+        await actions.deleteMatchingFiles({
+          path: assignment.get("graded_path"),
+          recursive: true,
+          compute_server_id: 0,
+          filter: (p) => p.includes("GRADER"),
+        });
       }
       finish("");
     } catch (err) {
@@ -1009,28 +1010,6 @@ ${details}
     });
   };
 
-  private start_all_for_peer_grading = async (): Promise<void> => {
-    // On cocalc.com, if the student projects get started specifically
-    // for the purposes of copying files to/from them, then they stop
-    // around a minute later.  This is very bad for peer grading, since
-    // so much copying occurs, and we end up with conflicts between
-    // projects starting to peer grade, then stop, then needing to be
-    // started again all at once.  We thus request that they all start,
-    // wait a few seconds for that "reason" for them to be running to
-    // take effect, and then do the copy.  This way the projects aren't
-    // automatically stopped after the copies happen.
-    const id = this.course_actions.set_activity({
-      desc: "Warming up all student projects for peer grading...",
-    });
-    this.course_actions.student_projects.action_all_student_projects("start");
-    // We request to start all projects simultaneously, and the system
-    // will start doing that.  I think it's not so much important that
-    // the projects are actually running, but that they were started
-    // before the copy operations started.
-    await delay(5 * 1000);
-    this.course_actions.clear_activity(id);
-  };
-
   async peer_copy_to_all_students(
     assignment_id: string,
     new_only: boolean,
@@ -1051,7 +1030,6 @@ ${details}
       this.course_actions.set_error(`${short_desc} -- ${err}`);
       return;
     }
-    await this.start_all_for_peer_grading();
     // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students({
       assignment_id,
@@ -1072,7 +1050,6 @@ ${details}
       desc += " from whom we have not already copied it";
     }
     const short_desc = "copy peer grading from students";
-    await this.start_all_for_peer_grading();
     await this.assignment_action_all_students({
       assignment_id,
       new_only,
@@ -1377,15 +1354,15 @@ ${details}
         dest: { project_id: student_project_id, path: target_path },
         options: { recursive: true, force: false },
       });
-      const fs = redux.getProjectActions(student_project_id).fs(0);
-      const v = await fs.readdir(assignment.get("graded_path"));
-      const paths = v
-        .filter(
-          (path) =>
-            path.includes("STUDENT") || path.includes(DUE_DATE_FILENAME),
-        )
-        .map((path) => join(target_path, path));
-      await fs.rm(paths, { force: true });
+
+      const actions = redux.getProjectActions(student_project_id);
+      await actions.deleteMatchingFiles({
+        path: target_path,
+        recursive: true,
+        compute_server_id: 0,
+        filter: (path) =>
+          path.includes("STUDENT") || path.includes(DUE_DATE_FILENAME),
+      });
     };
 
     try {

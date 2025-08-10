@@ -2499,6 +2499,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     paths: string[];
     compute_server_id?: number;
   }): Promise<void> => {
+    if (paths.length == 0) {
+      // nothing to do
+      return;
+    }
     const id = misc.uuid();
     let mesg;
     if (isEqual(paths, [".trash"])) {
@@ -2531,6 +2535,40 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         stop: "",
       });
     }
+  };
+
+  // remove all files in the given path (or subtree of that path)
+  // for which filter(filename) returns true.
+  // - path should be relative to HOME
+  // - filname will also be relative to HOME and will end in a slash if it is a directory
+  // Returns the deleted paths.
+  deleteMatchingFiles = async ({
+    path,
+    filter,
+    recursive,
+    compute_server_id,
+  }: {
+    path: string;
+    filter: (path: string) => boolean;
+    recursive?: boolean;
+    compute_server_id?: number;
+  }): Promise<string[]> => {
+    const fs = this.fs(compute_server_id);
+    const options: string[] = ["-H", "-I"];
+    if (!recursive) {
+      options.push("-d", "1");
+    }
+    const { stdout } = await fs.fd(path, { options });
+    const paths = Buffer.from(stdout)
+      .toString()
+      .split("\n")
+      .slice(0, -1)
+      .map((p) => join(path, p))
+      .filter(filter);
+    if (paths.length > 0) {
+      await this.deleteFiles({ paths, compute_server_id });
+    }
+    return paths;
   };
 
   download_file = async ({

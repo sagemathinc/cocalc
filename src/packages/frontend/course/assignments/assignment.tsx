@@ -704,11 +704,8 @@ export function Assignment({
         return (
           <span>
             This will recopy all of the files to them. CAUTION: if you update a
-            file that a student has also worked on, their work will get copied
-            to a backup file ending in a tilde, or possibly only be available in
-            snapshots. Select "Replace student files!" in case you do <b>not</b>{" "}
-            want to create any backups and also <b>delete</b> all other files in
-            the assignment folder of their projects.{" "}
+            file that a student has also worked on, their work will get
+            overwritten. They can use TimeTravel to get it back.
             <a
               target="_blank"
               href="https://github.com/sagemathinc/cocalc/wiki/CourseCopy"
@@ -719,13 +716,13 @@ export function Assignment({
           </span>
         );
       case "collect":
-        return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.";
+        return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get overwritten. Use TimeTravel to get it back.";
       case "return_graded":
         return "This will rereturn all of the graded files to them.";
       case "peer_assignment":
-        return "This will recopy all of the files to them.  CAUTION: if there is a file a student has also worked on grading, their work will get copied to a backup file ending in a tilde, or possibly be only available in snapshots.";
+        return "This will recopy all of the files to them.  CAUTION: if there is a file a student has also worked on grading, their work will get overwritten. Use TimeTravel to get it back.";
       case "peer_collect":
-        return "This will recollect all of the peer-graded homework from the students.  CAUTION: if you have graded/edited a previously collected file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.";
+        return "This will recollect all of the peer-graded homework from the students.  CAUTION: if you have graded/edited a previously collected file that a student has updated, your work will get overwritten.  Use TimeTravel to get it back.";
     }
   }
 
@@ -743,18 +740,8 @@ export function Assignment({
             disabled={copy_assignment_confirm_overwrite}
             onClick={() => copy_assignment(step, false)}
           >
-            Yes, do it (with backup)
+            Yes. Replaces student files!
           </Button>
-          {step === "assignment" ? (
-            <Button
-              key={"all-overwrite"}
-              type={"dashed"}
-              onClick={() => set_copy_assignment_confirm_overwrite(true)}
-              disabled={copy_assignment_confirm_overwrite}
-            >
-              Replace student files!
-            </Button>
-          ) : undefined}
         </Space>
         {render_copy_assignment_confirm_overwrite(step)}
       </div>

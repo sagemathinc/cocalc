@@ -66,7 +66,7 @@ import {
 import { move } from "fs-extra";
 import { watch } from "node:fs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { basename, join, resolve } from "path";
+import { basename, dirname, join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions } from "@cocalc/conat/files/watch";
@@ -212,6 +212,15 @@ export class SandboxedFilesystem {
   cp = async (src: string | string[], dest: string, options?: CopyOptions) => {
     this.assertWritable(dest);
     dest = await this.safeAbsPath(dest);
+
+    // ensure containing directory of destination exists -- node cp doesn't
+    // do this but for cocalc this is very convenient and saves some network
+    // round trips.
+    const destDir = dirname(dest);
+    if (destDir != this.path && !(await exists(destDir))) {
+      await mkdir(destDir, { recursive: true });
+    }
+
     const v = await this.safeAbsPaths(src);
     if (!options?.reflink) {
       // can use node cp:
