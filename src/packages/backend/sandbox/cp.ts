@@ -16,6 +16,7 @@ export default async function cp(
     preserveTimestamps?: boolean;
     recursive?: boolean;
     verbatimSymlinks?: boolean;
+    reflink?: boolean;
   } = {},
 ): Promise<void> {
   const args = [...src, dest];
@@ -36,6 +37,9 @@ export default async function cp(
   }
   if (options.recursive) {
     opts.push("-r");
+  }
+  if (options.reflink) {
+    opts.push("--reflink=auto");
   }
 
   const { code, stderr } = await exec({
