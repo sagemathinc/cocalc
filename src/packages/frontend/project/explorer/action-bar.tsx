@@ -5,8 +5,7 @@
 
 import { Space } from "antd";
 import * as immutable from "immutable";
-import { throttle } from "lodash";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Gap, Icon } from "@cocalc/frontend/components";
@@ -22,8 +21,8 @@ import {
 } from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useProjectContext } from "../context";
 import { DirectoryListingEntry } from "@cocalc/util/types";
+import { VisibleMDLG } from "@cocalc/frontend/components";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -57,44 +56,13 @@ export function ActionBar({
   project_is_running,
 }: Props) {
   const intl = useIntl();
-  const [showLabels, setShowLabels] = useState<boolean>(true);
-  const { mainWidthPx } = useProjectContext();
   const buttonRef = useRef<HTMLDivElement>(null);
-  const tableHeaderWidth = useRef<number>(0);
   const student_project_functionality = useStudentProjectFunctionality(
     actions.project_id,
   );
   if (student_project_functionality.disableActions) {
     return <div></div>;
   }
-
-  useEffect(() => {
-    const buttonBar = buttonRef.current;
-    if (buttonBar == null) return;
-    const resizeObserver = new ResizeObserver(
-      throttle(
-        (entries) => {
-          if (entries.length > 0) {
-            const width = entries[0].contentRect.width;
-            // TODO: this "+100" is sloppy. This makes it much better than before
-            // (e.g. german buttons were cutoff all the time), but could need more tweaking
-            if (showLabels && width > mainWidthPx + 100) {
-              setShowLabels(false);
-              tableHeaderWidth.current = width;
-            } else if (!showLabels && width < tableHeaderWidth.current - 1) {
-              setShowLabels(true);
-            }
-          }
-        },
-        100,
-        { leading: false, trailing: true },
-      ),
-    );
-    resizeObserver.observe(buttonBar);
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [mainWidthPx, buttonRef.current]);
 
   function clear_selection(): void {
     actions.set_all_files_unchecked();
@@ -210,7 +178,7 @@ export function ActionBar({
     return (
       <Button onClick={handle_click} disabled={disabled} key={name}>
         <Icon name={obj.icon} />{" "}
-        {showLabels ? `${intl.formatMessage(obj.name)}...` : ""}
+        <VisibleMDLG>{`${intl.formatMessage(obj.name)}...`}</VisibleMDLG>
       </Button>
     );
   }
@@ -289,15 +257,11 @@ export function ActionBar({
     <div style={{ flex: "1 0 auto" }}>
       <div ref={buttonRef} style={{ flex: "1 0 auto" }}>
         <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
-          <Space.Compact>
-            {render_check_all_button()}
-          </Space.Compact>
+          <Space.Compact>{render_check_all_button()}</Space.Compact>
           {render_button_area()}
         </ButtonToolbar>
       </div>
-      <div style={{ flex: "1 0 auto" }}>
-        {render_currently_selected()}
-      </div>
+      <div style={{ flex: "1 0 auto" }}>{render_currently_selected()}</div>
     </div>
   );
 }
