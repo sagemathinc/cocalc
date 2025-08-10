@@ -730,4 +730,10 @@ export interface CreateProjectOptions {
 
   // admins can specify the project_id - nobody else can -- useful for debugging.
   project_id?: string;
+
+  // If given, files will be exact clone of those from src_project_id.
+  // account_id must be a collab on src_project_id.
+  // The implementation is highly efficient using "btrfs subvolume clone".
+  // Snapshots are not included in the clone.
+  src_project_id?: string;
 }

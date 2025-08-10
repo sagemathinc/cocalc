@@ -15,6 +15,8 @@ import { getProject } from "@cocalc/server/projects/control";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { delay } from "awaiting";
 import isAdmin from "@cocalc/server/accounts/is-admin";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { client as filesystemClient } from "@cocalc/conat/files/file-server";
 
 const log = getLogger("server:projects:create");
 
@@ -34,7 +36,9 @@ export default async function createProject(opts: CreateProjectOptions) {
     public_path_id,
     noPool,
     start,
+    src_project_id,
   } = opts;
+
   let license = opts.license;
   if (public_path_id) {
     const site_license_id = await associatedLicense(public_path_id);
@@ -53,10 +57,10 @@ export default async function createProject(opts: CreateProjectOptions) {
     }
     project_id = opts.project_id;
   } else {
-    // Try to get from pool if no license and no image specified (so the default),
+    // Try to get from pool if no license and no image specified (so the default) and not cloning,
     // and not "noPool".  NOTE: we may improve the pool to also provide some
     // basic licensed projects later, and better support for images.  Maybe.
-    if (!noPool && !license && account_id != null) {
+    if (!src_project_id && !noPool && !license && account_id != null) {
       project_id = await getFromPool({
         account_id,
         title,
@@ -70,7 +74,19 @@ export default async function createProject(opts: CreateProjectOptions) {
 
     project_id = v4();
   }
-  
+
+  if (src_project_id) {
+    if (
+      !account_id ||
+      !(await isCollaborator({ account_id, project_id: src_project_id }))
+    ) {
+      throw Error("user must be a collaborator on src_project_id");
+    }
+    // create filesystem for new project as a clone.
+    const client = filesystemClient();
+    await client.clone({ project_id, src_project_id });
+  }
+
   const pool = getPool();
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };

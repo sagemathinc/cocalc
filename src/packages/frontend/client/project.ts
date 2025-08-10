@@ -475,6 +475,8 @@ export class ProjectClient {
     license?: string;
     // never use pool
     noPool?: boolean;
+    // make exact clone of the files from this project:
+    src_project_id?: string;
   }): Promise<string> => {
     const project_id =
       await this.client.conat_client.hub.projects.createProject(opts);
