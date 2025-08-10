@@ -731,29 +731,3 @@ export interface CreateProjectOptions {
   // admins can specify the project_id - nobody else can -- useful for debugging.
   project_id?: string;
 }
-
-interface BaseCopyOptions {
-  target_project_id?: string;
-  target_path?: string; // path into project; if not given, defaults to source path above.
-  overwrite_newer?: boolean; // if true, newer files in target are copied over (otherwise, uses rsync's --update)
-  delete_missing?: boolean; // if true, delete files in dest path not in source, **including** newer files
-  backup?: boolean; // make backup files
-  timeout?: number; // in **seconds**, not milliseconds
-  bwlimit?: number;
-  wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
-  scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
-  public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
-  exclude?: string[]; // options passed to rsync via --exclude
-}
-export interface UserCopyOptions extends BaseCopyOptions {
-  account_id?: string;
-  src_project_id: string;
-  src_path: string;
-  // simulate copy taking at least this long -- useful for dev/debugging.
-  debug_delay_ms?: number;
-}
-
-// for copying files within and between projects
-export interface CopyOptions extends BaseCopyOptions {
-  path: string;
-}

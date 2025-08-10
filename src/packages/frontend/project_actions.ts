@@ -112,6 +112,7 @@ import {
 } from "@cocalc/frontend/project/listing/use-files";
 import { map as awaitMap } from "awaiting";
 import { search } from "@cocalc/frontend/project/search/run";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 const { defaults, required } = misc;
 
@@ -2299,22 +2300,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  copy_paths_between_projects = async (opts: {
-    public: boolean;
-    // id of source project
-    src_project_id: string;
-    // list of relative paths of directories or files in the source project
-    src: string[];
-    // id of target project
-    target_project_id: string;
-    // defaults to src_path
-    target_path?: string;
-    // overwrite newer versions of file at destination (destructive)
-    overwrite_newer?: boolean;
-    // delete files in dest that are missing from source (destructive)
-    delete_missing?: boolean;
-    // make ~ backup files instead of overwriting changed files
-    backup?: boolean;
+  copyPathBetweenProjects = async (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
+    account_id?: string;
   }) => {
     const id = misc.uuid();
     this.set_activity({
@@ -2324,36 +2314,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         "path",
       )} to a project`,
     });
-    const { src } = opts;
-    const withSlashes = await this.appendSlashToDirectoryPaths(src);
-    let dest: string | undefined = undefined;
-    if (opts.target_path != null) {
-      dest = opts.target_path;
-      if (!misc.endswith(dest, "/")) {
-        dest += "/";
-      }
-    }
+    const files = typeof src.path == "string" ? [src.path] : src.path;
     this.log({
       event: "file_action",
       action: "copied",
       dest,
-      files: withSlashes.slice(0, 3),
-      count: src.length > 3 ? src.length : undefined,
-      project: opts.target_project_id,
+      files,
+      count: files.length,
+      project: opts.dest.project_id,
     });
-    const f = async (src_path) => {
-      const opts0: any = misc.copy(opts);
-      delete opts0.src;
-      opts0.src_path = src_path;
-      // we do this for consistent semantics with file copy
-      opts0.target_path = misc.path_to_file(
-        opts0.target_path,
-        misc.path_split(src_path).tail,
-      );
-      opts0.timeout = 90 * 1000;
-      await webapp_client.project_client.copy_path_between_projects(opts0);
-    };
-    await awaitMap(withSlashes, 5, f);
+    await webapp_client.project_client.copyPathBetweenProjects(opts);
     this.set_activity({ id, stop: "" });
   };
 

@@ -16,14 +16,8 @@ This code is very similar to single-user.ts, except with some
 small modifications due to having to create and delete Linux users.
 */
 
-import { copyPath, getState, getStatus, homePath } from "./util";
-import {
-  BaseProject,
-  CopyOptions,
-  getProject,
-  ProjectStatus,
-  ProjectState,
-} from "./base";
+import { getState, getStatus, homePath } from "./util";
+import { BaseProject, getProject, ProjectStatus, ProjectState } from "./base";
 import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
 
@@ -56,16 +50,6 @@ class Project extends BaseProject {
     );
     this.saveStatusToDatabase(status);
     return status;
-  }
-
-  async copyPath(opts: CopyOptions): Promise<string> {
-    winston.debug("copyPath ", this.project_id, opts);
-    await copyPath(
-      opts,
-      this.project_id,
-      opts.target_project_id ? getUid(opts.target_project_id) : undefined,
-    );
-    return "";
   }
 }
 

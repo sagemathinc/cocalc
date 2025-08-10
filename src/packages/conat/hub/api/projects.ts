@@ -1,6 +1,7 @@
 import { authFirstRequireAccount } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 export const projects = {
   createProject: authFirstRequireAccount,
@@ -30,7 +31,11 @@ export interface Projects {
   // request to have conat permissions to project subjects.
   createProject: (opts: CreateProjectOptions) => Promise<string>;
 
-  copyPathBetweenProjects: (opts: UserCopyOptions) => Promise<void>;
+  copyPathBetweenProjects: (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
+  }) => Promise<void>;
 
   removeCollaborator: ({
     account_id,

@@ -28,14 +28,8 @@ Type ".help" for more information.
 */
 
 import getLogger from "@cocalc/backend/logger";
-import {
-  BaseProject,
-  CopyOptions,
-  ProjectState,
-  ProjectStatus,
-  getProject,
-} from "./base";
-import { copyPath, getState, getStatus, homePath } from "./util";
+import { BaseProject, ProjectState, ProjectStatus, getProject } from "./base";
+import { getState, getStatus, homePath } from "./util";
 
 const logger = getLogger("project-control:single-user");
 
@@ -65,12 +59,6 @@ class Project extends BaseProject {
     );
     await this.saveStatusToDatabase(status);
     return status;
-  }
-
-  async copyPath(opts: CopyOptions): Promise<string> {
-    logger.debug("copyPath ", this.project_id, opts);
-    await copyPath(opts, this.project_id);
-    return "";
   }
 }
 

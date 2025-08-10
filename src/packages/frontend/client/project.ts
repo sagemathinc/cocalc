@@ -122,17 +122,8 @@ export class ProjectClient {
     return url;
   };
 
-  copy_path_between_projects = async (opts: {
-    src_project_id: string; // id of source project
-    src_path: string; // relative path of director or file in the source project
-    target_project_id: string; // if of target project
-    target_path?: string; // defaults to src_path
-    overwrite_newer?: boolean; // overwrite newer versions of file at destination (destructive)
-    delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
-    backup?: boolean; // make ~ backup files instead of overwriting changed files
-    timeout?: number; // **timeout in milliseconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-    exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
-  }): Promise<void> => {
+  copyPathBetweenProjects = async (opts:
+                                     ): Promise<void> => {
     await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
   };
 

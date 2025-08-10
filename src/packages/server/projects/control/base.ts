@@ -25,11 +25,7 @@ import { callback2, until } from "@cocalc/util/async-utils";
 import { db } from "@cocalc/database";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-import {
-  type CopyOptions,
-  ProjectState,
-  ProjectStatus,
-} from "@cocalc/util/db-schema/projects";
+import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
 import { Quota, quota } from "@cocalc/util/upgrades/quota";
 import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
@@ -42,7 +38,6 @@ import { getProjectSecretToken } from "./secret-token";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import { conat } from "@cocalc/backend/conat";
 
-export type { CopyOptions };
 export type { ProjectState, ProjectStatus };
 
 const logger = getLogger("project-control");
@@ -212,12 +207,6 @@ export abstract class BaseProject extends EventEmitter {
       secret_token: await getProjectSecretToken(this.project_id),
     };
   }
-
-  // Copy files from one project and path to another.  This doesn't
-  // worry at all about permissions; it's assumed the caller has already
-  // figured out whether the copy is allowed.
-  // Returns a copy_id string if scheduled is true (otherwise return '').
-  abstract copyPath(opts: CopyOptions): Promise<string>;
 
   /*
     set_all_quotas ensures that if the project is running and the quotas

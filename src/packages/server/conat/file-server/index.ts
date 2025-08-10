@@ -15,7 +15,7 @@ import {
   server as createFileServer,
   client as createFileClient,
   type Fileserver,
-  CopyOptions,
+  type CopyOptions,
 } from "@cocalc/conat/files/file-server";
 export type { Fileserver };
 import { loadConatConfiguration } from "../configuration";
@@ -90,6 +90,8 @@ async function cp({
   src: { project_id: string; path: string | string[] };
   // the dest path is relative to the dest volume
   dest: { project_id: string; path: string };
+  // because our fs is btrfs, we default the options to reflink=true,
+  // which uses almost no disk and is super fast
   options?: CopyOptions;
 }): Promise<void> {
   if (fs == null) {
@@ -108,7 +110,8 @@ async function cp({
   };
   srcPaths = srcPaths.map(toRelative);
   destPath = toRelative(destPath);
-  await fs.subvolumes.fs.cp(srcPaths, destPath, options);
+  // default reflink true
+  await fs.subvolumes.fs.cp(srcPaths, destPath, { reflink: true, ...options });
 }
 
 let fs: Filesystem | null = null;

@@ -39,10 +39,6 @@ class Project extends BaseProject {
     throw Error("implement me");
   }
 
-  async copyPath(opts: CopyOptions): Promise<string> {
-    winston.debug("doCopyPath ", this.project_id, opts);
-    throw Error("implement me");
-  }
 }
 
 export default function get(project_id: string): Project {
