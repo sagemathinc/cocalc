@@ -17,50 +17,30 @@ import { join } from "path";
 import { Subvolumes } from "./subvolumes";
 import { mkdir } from "fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { executeCode } from "@cocalc/backend/execute-code";
 import rustic from "@cocalc/backend/sandbox/rustic";
-
-// default size of btrfs filesystem if creating an image file.
-const DEFAULT_FILESYSTEM_SIZE = "10G";
-
-// default for newly created subvolumes
-export const DEFAULT_SUBVOLUME_SIZE = "1G";
-
-const MOUNT_ERROR = "wrong fs type, bad option, bad superblock";
+import { RUSTIC } from "./subvolume-rustic";
 
 export interface Options {
   // the underlying block device.
   // If this is a file (or filename) ending in .img, then it's a sparse file mounted as a loopback device.
   // If this starts with "/dev" then it is a raw block device.
   device: string;
-  // formatIfNeeded -- DANGEROUS! if true, format the device or image,
-  // if it doesn't mount with an error containing "wrong fs type,
-  // bad option, bad superblock".  Never use this in production.  Useful
-  // for testing and dev.
-  formatIfNeeded?: boolean;
-  // where the btrfs filesystem is mounted
+  // where to mount the btrfs filesystem
   mount: string;
-
-  // default size of newly created subvolumes
-  defaultSize?: string | number;
-  defaultFilesystemSize?: string | number;
+  // size -- if true and 'device' is a path to a .img file that DOES NOT EXIST, create device
+  // as a sparse image file of the given size.  If img already exists, it will not be touched
+  // in any way, and it is up to you to mkfs.btrfs it, etc.
+  size?: string | number;
 }
 
 export class Filesystem {
   public readonly opts: Options;
-  public readonly bup: string;
   public readonly rustic: string;
   public readonly subvolumes: Subvolumes;
 
   constructor(opts: Options) {
-    opts = {
-      defaultSize: DEFAULT_SUBVOLUME_SIZE,
-      defaultFilesystemSize: DEFAULT_FILESYSTEM_SIZE,
-      ...opts,
-    };
     this.opts = opts;
-    this.bup = join(this.opts.mount, "bup");
-    this.rustic = join(this.opts.mount, "rustic");
+    this.rustic = join(this.opts.mount, RUSTIC);
     this.subvolumes = new Subvolumes(this);
   }
 
@@ -71,7 +51,6 @@ export class Filesystem {
     await btrfs({
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
-    await this.initBup();
     await this.initRustic();
     await this.sync();
   };
@@ -96,10 +75,17 @@ export class Filesystem {
       return;
     }
     if (!(await exists(this.opts.device))) {
+      if (!this.opts.size) {
+        throw Error(
+          "you must specify the size of the btrfs sparse image file, or explicitly create and format it",
+        );
+      }
+      // we create and format the sparse image
       await sudo({
         command: "truncate",
-        args: ["-s", `${this.opts.defaultFilesystemSize}`, this.opts.device],
+        args: ["-s", `${this.opts.size}`, this.opts.device],
       });
+      await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
     }
   };
 
@@ -124,23 +110,8 @@ export class Filesystem {
     } catch {}
     const { stderr, exit_code } = await this._mountFilesystem();
     if (exit_code) {
-      if (stderr.includes(MOUNT_ERROR)) {
-        if (this.opts.formatIfNeeded) {
-          await this.formatDevice();
-          const { stderr, exit_code } = await this._mountFilesystem();
-          if (exit_code) {
-            throw Error(stderr);
-          } else {
-            return;
-          }
-        }
-      }
       throw Error(stderr);
     }
-  };
-
-  private formatDevice = async () => {
-    await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
   };
 
   private _mountFilesystem = async () => {
@@ -178,17 +149,6 @@ export class Filesystem {
       err_on_exit: false,
     });
     return { stderr, exit_code };
-  };
-
-  private initBup = async () => {
-    if (!(await exists(this.bup))) {
-      await mkdir(this.bup);
-    }
-    await executeCode({
-      command: "bup",
-      args: ["init"],
-      env: { BUP_DIR: this.bup },
-    });
   };
 
   private initRustic = async () => {

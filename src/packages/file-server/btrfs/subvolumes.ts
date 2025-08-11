@@ -7,8 +7,9 @@ import { join } from "path";
 import { btrfs } from "./util";
 import { chmod, rename, rm } from "node:fs/promises";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
+import { RUSTIC } from "./subvolume-rustic";
 
-const RESERVED = new Set(["bup", SNAPSHOTS]);
+const RESERVED = new Set([RUSTIC, SNAPSHOTS]);
 
 const logger = getLogger("file-server:btrfs:subvolumes");
 

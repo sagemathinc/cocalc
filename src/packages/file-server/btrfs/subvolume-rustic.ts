@@ -22,6 +22,8 @@ import { type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
 import { parseOutput } from "@cocalc/backend/sandbox/exec";
 
+export const RUSTIC = "rustic";
+
 const RUSTIC_SNAPSHOT = "temp-rustic-snapshot";
 
 const logger = getLogger("file-server:btrfs:subvolume-rustic");

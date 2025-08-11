@@ -1,5 +1,6 @@
 import { before, after, fs } from "./setup";
 import { isValidUUID } from "@cocalc/util/misc";
+import { RUSTIC } from "@cocalc/file-server/btrfs/subvolume-rustic";
 
 beforeAll(before);
 
@@ -22,7 +23,7 @@ describe("some basic tests", () => {
 describe("operations with subvolumes", () => {
   it("can't use a reserved subvolume name", async () => {
     expect(async () => {
-      await fs.subvolumes.get("bup");
+      await fs.subvolumes.get(RUSTIC);
     }).rejects.toThrow("is reserved");
   });
 

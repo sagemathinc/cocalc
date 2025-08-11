@@ -63,7 +63,7 @@ describe("test rustic backups", () => {
     ).toEqual("hello2");
 
     // forget the second snapshot
-    const z = await vol.rustic.forget({ id });
+    await vol.rustic.forget({ id });
     const v2 = await vol.rustic.snapshots();
     expect(v2.length).toBe(1);
     expect(v2[0].id).not.toEqual(id);

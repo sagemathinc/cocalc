@@ -2,11 +2,10 @@
 A subvolume
 */
 
-import { type Filesystem, DEFAULT_SUBVOLUME_SIZE } from "./filesystem";
+import { type Filesystem } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
 import { sudo } from "./util";
 import { join } from "path";
-import { SubvolumeBup } from "./subvolume-bup";
 import { SubvolumeRustic } from "./subvolume-rustic";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
@@ -27,7 +26,6 @@ export class Subvolume {
   public readonly filesystem: Filesystem;
   public readonly path: string;
   public readonly fs: SandboxedFilesystem;
-  public readonly bup: SubvolumeBup;
   public readonly rustic: SubvolumeRustic;
   public readonly snapshots: SubvolumeSnapshots;
   public readonly quota: SubvolumeQuota;
@@ -40,7 +38,6 @@ export class Subvolume {
       rusticRepo: filesystem.rustic,
       host: this.name,
     });
-    this.bup = new SubvolumeBup(this);
     this.rustic = new SubvolumeRustic(this);
     this.snapshots = new SubvolumeSnapshots(this);
     this.quota = new SubvolumeQuota(this);
@@ -54,9 +51,6 @@ export class Subvolume {
         args: ["subvolume", "create", this.path],
       });
       await this.chown(this.path);
-      await this.quota.set(
-        this.filesystem.opts.defaultSize ?? DEFAULT_SUBVOLUME_SIZE,
-      );
     }
   };
 
@@ -69,7 +63,7 @@ export class Subvolume {
     delete this.path;
     // @ts-ignore
     delete this.snapshotsDir;
-    for (const sub of ["fs", "bup", "snapshots", "quota"]) {
+    for (const sub of ["fs", "rustic", "snapshots", "quota"]) {
       this[sub].close?.();
       delete this[sub];
     }

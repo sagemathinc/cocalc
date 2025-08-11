@@ -152,9 +152,8 @@ export async function init() {
 
   fs = await filesystem({
     device: btrfsDevice,
-    formatIfNeeded: true,
+    size: "25G",
     mount: mountPoint,
-    defaultFilesystemSize: "25G",
   });
 
   server = await createFileServer({

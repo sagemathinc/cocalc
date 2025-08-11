@@ -1,6 +1,4 @@
 import { before, after, fs, sudo } from "./setup";
-import { mkdir } from "fs/promises";
-import { join } from "path";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { randomBytes } from "crypto";
 import { type Subvolume } from "../subvolume";
@@ -224,73 +222,6 @@ describe("test snapshots", () => {
     await vol.snapshots.delete("snap1");
     expect(await vol.snapshots.exists("snap1")).toBe(false);
     expect(await vol.snapshots.readdir()).toEqual([]);
-  });
-});
-
-describe.skip("test bup backups", () => {
-  let vol: Subvolume;
-  it("creates a volume", async () => {
-    vol = await fs.subvolumes.get("bup-test");
-    await vol.fs.writeFile("a.txt", "hello");
-  });
-
-  it("create a bup backup", async () => {
-    await vol.bup.save();
-  });
-
-  it("list bup backups of this vol -- there are 2, one for the date and 'latest'", async () => {
-    const v = await vol.bup.ls();
-    expect(v.length).toBe(2);
-    const t = (v[0].mtime ?? 0) * 1000;
-    expect(Math.abs(t.valueOf() - Date.now())).toBeLessThan(10_000);
-  });
-
-  it("confirm a.txt is in our backup", async () => {
-    const x = await vol.bup.ls("latest");
-    expect(x).toEqual([
-      { name: "a.txt", size: 5, mtime: x[0].mtime, isDir: false },
-    ]);
-  });
-
-  it("restore a.txt from our backup", async () => {
-    await vol.fs.writeFile("a.txt", "hello2");
-    await vol.bup.restore("latest/a.txt");
-    expect(await vol.fs.readFile("a.txt", "utf8")).toEqual("hello");
-  });
-
-  it("prune bup backups does nothing since we have so few", async () => {
-    await vol.bup.prune();
-    expect((await vol.bup.ls()).length).toBe(2);
-  });
-
-  it("add a directory and back up", async () => {
-    await mkdir(join(vol.path, "mydir"));
-    await vol.fs.writeFile(join("mydir", "file.txt"), "hello3");
-    expect((await vol.fs.readdir("mydir"))[0]).toBe("file.txt");
-    await vol.bup.save();
-    const x = await vol.bup.ls("latest");
-    expect(x).toEqual([
-      { name: "a.txt", size: 5, mtime: x[0].mtime, isDir: false },
-      { name: "mydir", size: 0, mtime: x[1].mtime, isDir: true },
-    ]);
-    expect(Math.abs((x[0].mtime ?? 0) * 1000 - Date.now())).toBeLessThan(
-      5 * 60_000,
-    );
-  });
-
-  it("change file in the directory, then restore from backup whole dir", async () => {
-    await vol.fs.writeFile(join("mydir", "file.txt"), "changed");
-    await vol.bup.restore("latest/mydir");
-    expect(await vol.fs.readFile(join("mydir", "file.txt"), "utf8")).toEqual(
-      "hello3",
-    );
-  });
-
-  it("most recent snapshot has a backup before the restore", async () => {
-    const s = await vol.snapshots.readdir();
-    const recent = s.slice(-1)[0];
-    const p = vol.snapshots.path(recent, "mydir", "file.txt");
-    expect(await vol.fs.readFile(p, "utf8")).toEqual("changed");
   });
 });
 
