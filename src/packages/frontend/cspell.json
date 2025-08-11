@@ -44,7 +44,9 @@
     "undeleting",
     "revealjs",
     "conat",
-    "SocketIO"
+    "SocketIO",
+    "formatjs",
+    "simplelocalize"
   ],
   "ignoreWords": [
     "antd",
@@ -70,7 +72,8 @@
     "flyouts",
     "buttonbar",
     "noconf",
-    "flyoutdragbar"
+    "flyoutdragbar",
+    "descr"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
