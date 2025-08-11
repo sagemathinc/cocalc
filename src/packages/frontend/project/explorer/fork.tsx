@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Input, Popconfirm, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
@@ -59,11 +59,14 @@ export default function ForkProject({ project_id, flyout }: Props) {
 
 function Description({ project_id, titleRef }) {
   const [title, setTitle] = useState<string>(
-    `Clone of ${
+    `Fork of ${
       redux.getStore("projects").getIn(["project_map", project_id, "title"]) ??
       "project"
     }`,
   );
+  useEffect(() => {
+    titleRef.current = title;
+  }, []);
   return (
     <div style={{ maxWidth: "500px" }}>
       A fork is an exact copy of a project. Forking a project allows you to

@@ -26,7 +26,6 @@ export class Subvolumes {
     return await subvolume({ filesystem: this.filesystem, name });
   };
 
-  // create a subvolume by cloning an existing one.
   clone = async (source: string, dest: string) => {
     logger.debug("clone ", { source, dest });
     if (RESERVED.has(dest)) {

@@ -62,3 +62,17 @@ export async function setQuotas(opts: {
   // @ts-ignore
   await project?.setAllQuotas();
 }
+
+export async function getDiskQuota({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<{ used: number; size: number }> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be a collaborator on project to get quota");
+  }
+  const client = filesystemClient();
+  return await client.getQuota({ project_id });
+}

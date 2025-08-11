@@ -36,7 +36,7 @@ export async function localPathFileserver({
         const project_id = getProjectId(subject);
         const fsclient = createFileClient({ client });
         const { path } = await fsclient.mount({ project_id });
-        return new SandboxedFilesystem(path, { unsafeMode, project_id });
+        return new SandboxedFilesystem(path, { unsafeMode, host: project_id });
       }
     },
   });

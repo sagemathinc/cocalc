@@ -18,6 +18,7 @@ import { Subvolumes } from "./subvolumes";
 import { mkdir } from "fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { executeCode } from "@cocalc/backend/execute-code";
+import rustic from "@cocalc/backend/sandbox/rustic";
 
 // default size of btrfs filesystem if creating an image file.
 const DEFAULT_FILESYSTEM_SIZE = "10G";
@@ -48,6 +49,7 @@ export interface Options {
 export class Filesystem {
   public readonly opts: Options;
   public readonly bup: string;
+  public readonly rustic: string;
   public readonly subvolumes: Subvolumes;
 
   constructor(opts: Options) {
@@ -58,6 +60,7 @@ export class Filesystem {
     };
     this.opts = opts;
     this.bup = join(this.opts.mount, "bup");
+    this.rustic = join(this.opts.mount, "rustic");
     this.subvolumes = new Subvolumes(this);
   }
 
@@ -69,6 +72,7 @@ export class Filesystem {
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
     await this.initBup();
+    await this.initRustic();
     await this.sync();
   };
 
@@ -185,6 +189,14 @@ export class Filesystem {
       args: ["init"],
       env: { BUP_DIR: this.bup },
     });
+  };
+
+  private initRustic = async () => {
+    if (await exists(this.rustic)) {
+      return;
+    }
+    await mkdir(this.rustic);
+    await rustic(["init"], { repo: this.rustic });
   };
 }
 

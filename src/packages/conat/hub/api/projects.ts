@@ -10,6 +10,8 @@ export const projects = {
   inviteCollaborator: authFirstRequireAccount,
   inviteCollaboratorWithoutAccount: authFirstRequireAccount,
   setQuotas: authFirstRequireAccount,
+
+  getDiskQuota: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -89,6 +91,7 @@ export interface Projects {
     };
   }) => Promise<void>;
 
+  // for admins only!
   setQuotas: (opts: {
     account_id?: string;
     project_id: string;
@@ -102,4 +105,9 @@ export interface Projects {
     member_host?: number;
     always_running?: number;
   }) => Promise<void>;
+
+  getDiskQuota: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<{ used: number; size: number }>;
 }

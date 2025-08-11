@@ -173,6 +173,8 @@ export function close() {
   server = null;
 }
 
+let cachedClient: null | Fileserver = null;
 export function client(): Fileserver {
-  return createFileClient({ client: conat() });
+  cachedClient ??= createFileClient({ client: conat() });
+  return cachedClient!;
 }

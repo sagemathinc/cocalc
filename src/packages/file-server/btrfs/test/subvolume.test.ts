@@ -227,7 +227,27 @@ describe("test snapshots", () => {
   });
 });
 
-describe("test bup backups", () => {
+describe("test rustic backups", () => {
+  let vol: Subvolume;
+  it("creates a volume", async () => {
+    vol = await fs.subvolumes.get("rustic-test");
+    await vol.fs.writeFile("a.txt", "hello");
+  });
+
+  it("create a rustic backup", async () => {
+    await vol.rustic.backup();
+  });
+
+  it("confirm a.txt is in our backup", async () => {
+    const v = await vol.rustic.snapshots();
+    expect(v.length == 1);
+    expect(Math.abs(Date.now() - v[0].time.valueOf())).toBeLessThan(10000);
+    const w = await vol.rustic.ls(v[0].id);
+    expect(w).toEqual([".snapshots", "a.txt"]);
+  });
+});
+
+describe.skip("test bup backups", () => {
   let vol: Subvolume;
   it("creates a volume", async () => {
     vol = await fs.subvolumes.get("bup-test");

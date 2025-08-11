@@ -92,7 +92,8 @@ interface Options {
   unsafeMode?: boolean;
   // readonly -- only allow operations that don't change files
   readonly?: boolean;
-  project_id?: string;
+  host?: string;
+  rusticRepo?: string;
 }
 
 // If you add any methods below that are NOT for the public api
@@ -106,22 +107,28 @@ const INTERNAL_METHODS = new Set([
   "readonly",
   "assertWritable",
   "rusticRepo",
-  "project_id",
+  "host",
 ]);
 
 export class SandboxedFilesystem {
   public readonly unsafeMode: boolean;
   public readonly readonly: boolean;
-  private readonly rusticRepo: string = rusticRepo;
-  private project_id?: string;
+  public rusticRepo: string;
+  private host?: string;
   constructor(
     // path should be the path to a FOLDER on the filesystem (not a file)
     public readonly path: string,
-    { unsafeMode = false, readonly = false, project_id }: Options = {},
+    {
+      unsafeMode = false,
+      readonly = false,
+      host = "global",
+      rusticRepo: repo,
+    }: Options = {},
   ) {
     this.unsafeMode = !!unsafeMode;
     this.readonly = !!readonly;
-    this.project_id = project_id;
+    this.host = host;
+    this.rusticRepo = repo ?? rusticRepo;
     for (const f in this) {
       if (INTERNAL_METHODS.has(f)) {
         continue;
@@ -285,13 +292,21 @@ export class SandboxedFilesystem {
   };
 
   // backups
-  rustic = async (args: string[]): Promise<ExecOutput> => {
+  rustic = async (
+    args: string[],
+    {
+      timeout = 120_000,
+      maxSize = 10_000,
+      cwd,
+    }: { timeout?: number; maxSize?: number; cwd?: string } = {},
+  ): Promise<ExecOutput> => {
     return await rustic(args, {
       repo: this.rusticRepo,
       safeAbsPath: this.safeAbsPath,
-      timeout: 120_000,
-      maxSize: 10_000,
-      host: this.project_id ?? "global",
+      timeout,
+      maxSize,
+      host: this.host,
+      cwd,
     });
   };
 

@@ -7,6 +7,7 @@ import refCache from "@cocalc/util/refcache";
 import { sudo } from "./util";
 import { join } from "path";
 import { SubvolumeBup } from "./subvolume-bup";
+import { SubvolumeRustic } from "./subvolume-rustic";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
@@ -27,6 +28,7 @@ export class Subvolume {
   public readonly path: string;
   public readonly fs: SandboxedFilesystem;
   public readonly bup: SubvolumeBup;
+  public readonly rustic: SubvolumeRustic;
   public readonly snapshots: SubvolumeSnapshots;
   public readonly quota: SubvolumeQuota;
 
@@ -34,8 +36,12 @@ export class Subvolume {
     this.filesystem = filesystem;
     this.name = name;
     this.path = join(filesystem.opts.mount, name);
-    this.fs = new SandboxedFilesystem(this.path);
+    this.fs = new SandboxedFilesystem(this.path, {
+      rusticRepo: filesystem.rustic,
+      host: this.name,
+    });
     this.bup = new SubvolumeBup(this);
+    this.rustic = new SubvolumeRustic(this);
     this.snapshots = new SubvolumeSnapshots(this);
     this.quota = new SubvolumeQuota(this);
   }

@@ -67,25 +67,32 @@ export interface RusticOptions {
   repo?: string;
   timeout?: number;
   maxSize?: number;
-  safeAbsPath: (path: string) => Promise<string>;
-  host: string;
+  safeAbsPath?: (path: string) => Promise<string>;
+  host?: string;
+  cwd?: string;
 }
 
 export default async function rustic(
   args: string[],
   options: RusticOptions,
 ): Promise<ExecOutput> {
-  const { timeout, maxSize, repo = rusticRepo, safeAbsPath, host } = options;
+  const {
+    timeout,
+    maxSize,
+    repo = rusticRepo,
+    safeAbsPath,
+    host = "host",
+  } = options;
 
   await ensureInitialized(repo);
-  const base = await safeAbsPath("");
+  const cwd = await safeAbsPath?.(options.cwd ?? "");
 
   const common = ["--password", "", "-r", repo];
 
   const run = async (sanitizedArgs: string[]) => {
     return await exec({
       cmd: rusticPath,
-      cwd: base,
+      cwd,
       safety: [...common, args[0], ...sanitizedArgs],
       maxSize,
       timeout,
@@ -93,17 +100,33 @@ export default async function rustic(
   };
 
   switch (args[0]) {
+    case "init": {
+      if (safeAbsPath != null) {
+        throw Error("init not allowed");
+      }
+      return await run([]);
+    }
     case "backup": {
+      if (safeAbsPath == null || cwd == null) {
+        throw Error("safeAbsPath must be specified when making a backup");
+      }
       if (args.length == 1) {
         throw Error("missing backup source");
       }
-      const source = (await safeAbsPath(args.slice(-1)[0])).slice(base.length);
+      const source = (await safeAbsPath(args.slice(-1)[0])).slice(cwd.length);
       const options = parseAndValidateOptions(
         args.slice(1, -1),
         whitelist.backup,
       );
 
-      return await run([...options, "--no-scan", "--host", host, "--", source]);
+      return await run([
+        ...options,
+        "--no-scan",
+        "--host",
+        host,
+        "--",
+        source ? source : ".",
+      ]);
     }
     case "snapshots": {
       const options = parseAndValidateOptions(
@@ -124,6 +147,9 @@ export default async function rustic(
     case "restore": {
       if (args.length <= 2) {
         throw Error("missing <SNAPSHOT[:PATH]>");
+      }
+      if (safeAbsPath == null) {
+        throw Error("safeAbsPath must be specified when restoring");
       }
       const snapshot = args.slice(-2)[0]; // <SNAPSHOT[:PATH]>
       await assertValidSnapshot({ snapshot, host, repo });
