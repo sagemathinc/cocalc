@@ -233,3 +233,16 @@ async function getUserIds(
     }),
   ]).then(([uid, gid]) => ({ uid, gid }));
 }
+
+// take the output of exec and convert stdout, stderr to strings.  If code is nonzero,
+// instead throw an error with message stderr.
+export function parseOutput({ stdout, stderr, code, truncated }: ExecOutput) {
+  if (code) {
+    throw new Error(Buffer.from(stderr).toString());
+  }
+  return {
+    stdout: Buffer.from(stdout).toString(),
+    stderr: Buffer.from(stderr).toString(),
+    truncated,
+  };
+}

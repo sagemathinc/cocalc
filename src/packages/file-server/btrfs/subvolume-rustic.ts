@@ -20,6 +20,7 @@ Instead of using btrfs send/recv for backups, we use Rustic because:
 
 import { type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
+import { parseOutput } from "@cocalc/backend/sandbox/exec";
 
 const RUSTIC_SNAPSHOT = "temp-rustic-snapshot";
 
@@ -62,31 +63,49 @@ export class SubvolumeRustic {
     }
   };
 
-  snapshots = async (): Promise<Snapshot[]> => {
-    const { stdout, stderr, code } = await this.subvolume.fs.rustic([
-      "snapshots",
-      "--json",
-    ]);
-    if (code) {
-      throw Error(stderr.toString());
-    } else {
-      const x = JSON.parse(stdout.toString());
-      return x[0][1].map(({ time, id }) => {
-        return { time: new Date(time), id };
-      });
-    }
+  restore = async ({
+    id,
+    path = "",
+    dest,
+    timeout = 30 * 60 * 1000,
+  }: {
+    id: string;
+    path?: string;
+    dest?: string;
+    timeout?: number;
+  }) => {
+    dest ??= path;
+    const { stdout } = parseOutput(
+      await this.subvolume.fs.rustic(
+        ["restore", `${id}${path != null ? ":" + path : ""}`, dest],
+        { timeout },
+      ),
+    );
+    return stdout;
   };
 
-  ls = async (id: string) => {
-    const { stdout, stderr, code } = await this.subvolume.fs.rustic([
-      "ls",
-      "--json",
-      id,
-    ]);
-    if (code) {
-      throw Error(stderr.toString());
-    } else {
-      return JSON.parse(stdout.toString());
-    }
+  snapshots = async (): Promise<Snapshot[]> => {
+    const { stdout } = parseOutput(
+      await this.subvolume.fs.rustic(["snapshots", "--json"]),
+    );
+    const x = JSON.parse(stdout);
+    return x[0][1].map(({ time, id }) => {
+      return { time: new Date(time), id };
+    });
+  };
+
+  ls = async ({ id }: { id: string }) => {
+    const { stdout } = parseOutput(
+      await this.subvolume.fs.rustic(["ls", "--json", id]),
+    );
+    return JSON.parse(stdout);
+  };
+
+  // (this doesn't actually clean up disk space -- purge must be done separately)
+  forget = async ({ id }: { id: string }) => {
+    const { stdout } = parseOutput(
+      await this.subvolume.fs.rustic(["forget", id]),
+    );
+    return stdout;
   };
 }
