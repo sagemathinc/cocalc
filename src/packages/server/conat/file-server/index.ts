@@ -26,6 +26,7 @@ import { join } from "node:path";
 import { mkdir } from "fs/promises";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
+import * as rustic from "./rustic";
 
 const logger = getLogger("server:conat:file-server");
 
@@ -33,7 +34,7 @@ function name(project_id: string) {
   return `project-${project_id}`;
 }
 
-async function getVolume(project_id) {
+export async function getVolume(project_id) {
   if (fs == null) {
     throw Error("file server not initialized");
   }
@@ -164,6 +165,11 @@ export async function init() {
     getQuota: reuseInFlight(getQuota),
     setQuota,
     cp,
+    backup: reuseInFlight(rustic.backup),
+    restore: rustic.restore,
+    deleteBackup: rustic.deleteBackup,
+    getBackups: reuseInFlight(rustic.getBackups),
+    getBackupFiles: reuseInFlight(rustic.getBackupFiles),
   });
 }
 

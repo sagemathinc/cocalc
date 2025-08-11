@@ -37,7 +37,9 @@ export class SubvolumeRustic {
   constructor(private subvolume: Subvolume) {}
 
   // create a new rustic backup
-  backup = async ({ timeout = 30 * 60 * 1000 }: { timeout?: number } = {}) => {
+  backup = async ({
+    timeout = 30 * 60 * 1000,
+  }: { timeout?: number } = {}): Promise<Snapshot> => {
     if (await this.subvolume.snapshots.exists(RUSTIC_SNAPSHOT)) {
       logger.debug(`backup: deleting existing ${RUSTIC_SNAPSHOT}`);
       await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
@@ -49,16 +51,14 @@ export class SubvolumeRustic {
       );
       await this.subvolume.snapshots.create(RUSTIC_SNAPSHOT);
       logger.debug(`backup: backing up ${RUSTIC_SNAPSHOT} using rustic`);
-      const { stderr, code } = await this.subvolume.fs.rustic(
-        ["backup", "-x", "."],
-        {
+      const { stdout } = parseOutput(
+        await this.subvolume.fs.rustic(["backup", "-x", "--json", "."], {
           timeout,
           cwd: target,
-        },
+        }),
       );
-      if (code) {
-        throw Error(stderr.toString());
-      }
+      const { time, id } = JSON.parse(stdout);
+      return { time: new Date(time), id };
     } finally {
       logger.debug(`backup: deleting temporary ${RUSTIC_SNAPSHOT}`);
       await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);

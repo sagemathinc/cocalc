@@ -10,13 +10,15 @@ describe("test rustic backups", () => {
     await vol.fs.writeFile("a.txt", "hello");
   });
 
+  let x;
   it("create a rustic backup", async () => {
-    await vol.rustic.backup();
+    x = await vol.rustic.backup();
   });
 
   it("confirm a.txt is in our backup", async () => {
     const v = await vol.rustic.snapshots();
     expect(v.length == 1);
+    expect(v[0]).toEqual(x);
     expect(Math.abs(Date.now() - v[0].time.valueOf())).toBeLessThan(10000);
     const { id } = v[0];
     const w = await vol.rustic.ls({ id });

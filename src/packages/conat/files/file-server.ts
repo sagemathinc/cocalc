@@ -58,6 +58,38 @@ export interface Fileserver {
     dest: { project_id: string; path: string };
     options?: CopyOptions;
   }) => Promise<void>;
+
+  // create new complete backup of the project; this first snapshots the
+  // project, makes a backup of the snapshot, then deletes the snapshot, so the
+  // backup is guranteed to be consistent.
+  backup: (opts: { project_id: string }) => Promise<{ time: Date; id: string }>;
+
+  // restore the given path in the backup to the given dest.  The default
+  // path is '' (the whole project) and the default destination is the
+  // same as the path.
+  restore: (opts: {
+    project_id: string;
+    id: string;
+    path?: string;
+    dest?: string;
+  }) => Promise<void>;
+
+  // delete the given backup
+  deleteBackup: (opts: { project_id: string; id: string }) => Promise<void>;
+
+  // Return list of id's and timestamps of all backups of this project.
+  getBackups: (opts: { project_id: string }) => Promise<
+    {
+      id: string;
+      time: Date;
+    }[]
+  >;
+
+  // Return list of all files in the given backup.
+  getBackupFiles: (opts: {
+    project_id: string;
+    id: string;
+  }) => Promise<string[]>;
 }
 
 export interface Options extends Fileserver {
