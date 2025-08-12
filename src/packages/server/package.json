@@ -28,7 +28,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
@@ -44,8 +47,8 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/database": "workspace:*",
-    "@cocalc/gcloud-pricing-calculator": "^1.17.0",
     "@cocalc/file-server": "workspace:*",
+    "@cocalc/gcloud-pricing-calculator": "^1.17.0",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@google-cloud/bigquery": "^7.8.0",
@@ -71,7 +74,6 @@
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
     "async": "^1.5.2",
-    "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
     "axios": "^1.11.0",
     "base62": "^2.0.1",
