@@ -12,7 +12,7 @@ import getMinBalance from "@cocalc/server/purchases/get-min-balance";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 
 // turn VM off if you don't have at least this much left.
-const COST_THRESH_DOLLARS = 2;
+const COST_THRESH_DOLLARS = 1;
 
 // If can't buy -- even if you increase all quotas and balance by
 // this amount -- then delete.  This is to avoid bad situations, e.g.,
@@ -27,7 +27,7 @@ const COST_THRESH_DOLLARS = 2;
 // NOTE: we do not automatically delete for a user with a negative balance
 // until it's way below (DELETE_THRESH_MARGIN_NEGATIVE_BALANCE) their negative,
 // as that indicates some trust.
-const DELETE_THRESH_MARGIN_DEFAULT = 0;
+const DELETE_THRESH_MARGIN_DEFAULT = 2;
 const DELETE_THRESH_MARGIN_NEGATIVE_BALANCE = 200;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
