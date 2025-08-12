@@ -13,24 +13,31 @@ a = require('@cocalc/file-server/btrfs'); fs = await a.filesystem({device:'/tmp/
 
 import refCache from "@cocalc/util/refcache";
 import { mkdirp, btrfs, sudo } from "./util";
-import { join } from "path";
 import { Subvolumes } from "./subvolumes";
 import { mkdir } from "fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import rustic from "@cocalc/backend/sandbox/rustic";
-import { RUSTIC } from "./subvolume-rustic";
 
 export interface Options {
-  // the underlying block device.
-  // If this is a file (or filename) ending in .img, then it's a sparse file mounted as a loopback device.
-  // If this starts with "/dev" then it is a raw block device.
-  device: string;
-  // where to mount the btrfs filesystem
+  // mount = root mountpoint of the btrfs filesystem. If you specify the image
+  // path below, then a btrfs filesystem will get automatically created (via sudo
+  // and a loopback device).
   mount: string;
-  // size -- if true and 'device' is a path to a .img file that DOES NOT EXIST, create device
-  // as a sparse image file of the given size.  If img already exists, it will not be touched
-  // in any way, and it is up to you to mkfs.btrfs it, etc.
+
+  // image = optioanlly use a image file at this location for the btrfs filesystem.
+  // This is used for development and in Docker.  It will be created as a sparse image file
+  // with given size, and mounted at opts.mount if it does not exist.  If you create
+  // it be sure to use mkfs.btrfs to format it.
+  image?: string;
   size?: string | number;
+
+  // rustic = the rustic backups path.
+  // If this path ends in .toml, it is the configuration file for rustic, e.g., you can
+  // configure rustic however you want by pointing this at a toml cofig file.
+  // Otherwise, if this path does not exist, it will be created a new rustic repo
+  // initialized here.
+  // If not given, then backups will throw an error.
+  rustic?: string;
 }
 
 export class Filesystem {
@@ -40,7 +47,6 @@ export class Filesystem {
 
   constructor(opts: Options) {
     this.opts = opts;
-    this.rustic = join(this.opts.mount, RUSTIC);
     this.subvolumes = new Subvolumes(this);
   }
 
@@ -51,7 +57,9 @@ export class Filesystem {
     await btrfs({
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
-    await this.initRustic();
+    if (this.opts.rustic) {
+      await this.initRustic();
+    }
     await this.sync();
   };
 
@@ -70,22 +78,16 @@ export class Filesystem {
   close = () => {};
 
   private initDevice = async () => {
-    if (!isImageFile(this.opts.device)) {
-      // raw block device -- nothing to do
+    if (!this.opts.image) {
       return;
     }
-    if (!(await exists(this.opts.device))) {
-      if (!this.opts.size) {
-        throw Error(
-          "you must specify the size of the btrfs sparse image file, or explicitly create and format it",
-        );
-      }
+    if (!(await exists(this.opts.image))) {
       // we create and format the sparse image
       await sudo({
         command: "truncate",
-        args: ["-s", `${this.opts.size}`, this.opts.device],
+        args: ["-s", `${this.opts.size ?? "10G"}`, this.opts.image],
       });
-      await sudo({ command: "mkfs.btrfs", args: [this.opts.device] });
+      await sudo({ command: "mkfs.btrfs", args: [this.opts.image] });
     }
   };
 
@@ -115,7 +117,10 @@ export class Filesystem {
   };
 
   private _mountFilesystem = async () => {
-    const args: string[] = isImageFile(this.opts.device) ? ["-o", "loop"] : [];
+    if (!this.opts.image) {
+      throw Error(`there must be a btrfs filesystem at ${this.opts.mount}`);
+    }
+    const args: string[] = ["-o", "loop"];
     args.push(
       "-o",
       "compress=zstd",
@@ -125,7 +130,7 @@ export class Filesystem {
       "space_cache=v2",
       "-o",
       "autodefrag",
-      this.opts.device,
+      this.opts.image,
       "-t",
       "btrfs",
       this.opts.mount,
@@ -152,20 +157,15 @@ export class Filesystem {
   };
 
   private initRustic = async () => {
-    if (await exists(this.rustic)) {
+    if (!this.rustic || (await exists(this.rustic))) {
       return;
+    }
+    if (this.rustic.endsWith(".toml")) {
+      throw Error(`file not found: ${this.rustic}`);
     }
     await mkdir(this.rustic);
     await rustic(["init"], { repo: this.rustic });
   };
-}
-
-function isImageFile(name: string) {
-  if (name.startsWith("/dev")) {
-    return false;
-  }
-  // TODO: could probably check os for a device with given name?
-  return name.endsWith(".img");
 }
 
 const cache = refCache<Options & { noCache?: boolean }, Filesystem>({

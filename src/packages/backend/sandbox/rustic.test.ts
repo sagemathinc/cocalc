@@ -8,12 +8,13 @@ import rustic from "./rustic";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { parseOutput } from "./exec";
 
-let tempDir, options;
+let tempDir, options, home;
 beforeAll(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
   const repo = join(tempDir, "repo");
-  const home = join(tempDir, "home");
+  home = join(tempDir, "home");
   await mkdir(home);
   const safeAbsPath = (path: string) => join(home, resolve("/", path));
   options = {
@@ -46,6 +47,25 @@ describe("rustic does something", () => {
     const s = JSON.parse(Buffer.from(stdout).toString());
     expect(s.paths).toEqual(["a.txt"]);
     expect(truncated).toBe(false);
+  });
+
+  it("use a .toml file instead of explicitly passing in a repo", async () => {
+    await mkdir(join(home, "x"));
+    await writeFile(
+      join(home, "x/a.toml"),
+      `
+[repository]
+repository = "${options.repo}"
+password = ""
+`,
+    );
+    const options2 = { ...options, repo: join(home, "x/a.toml") };
+    const { stdout } = parseOutput(
+      await rustic(["snapshots", "--json"], options2),
+    );
+    const s = JSON.parse(stdout);
+    expect(s.length).toEqual(1);
+    expect(s[0][0].hostname).toEqual("my-host");
   });
 
   //   it("it appears in the snapshots list", async () => {

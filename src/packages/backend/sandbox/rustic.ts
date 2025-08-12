@@ -84,10 +84,15 @@ export default async function rustic(
     host = "host",
   } = options;
 
+  let common;
+  if (repo.endsWith(".toml")) {
+    common = ["-P", repo.slice(0, -".toml".length)];
+  } else {
+    common = ["--password", "", "-r", repo];
+  }
+
   await ensureInitialized(repo);
   const cwd = await safeAbsPath?.(options.cwd ?? "");
-
-  const common = ["--password", "", "-r", repo];
 
   const run = async (sanitizedArgs: string[]) => {
     return await exec({
@@ -306,6 +311,10 @@ const whitelist = {
 } as const;
 
 async function ensureInitialized(repo: string) {
+  if (repo.endsWith(".toml")) {
+    // nothing to do
+    return;
+  }
   const config = join(repo, "config");
   if (!(await exists(config))) {
     await exec({

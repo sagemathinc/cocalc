@@ -49,7 +49,7 @@ export async function before() {
   await mkdir(mount);
   await chmod(mount, 0o777);
   fs = await filesystem({
-    device: join(tempDir, "btrfs.img"),
+    image: join(tempDir, "btrfs.img"),
     size: "1G",
     mount: join(tempDir, "mnt"),
   });

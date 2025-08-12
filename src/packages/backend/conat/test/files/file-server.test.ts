@@ -68,6 +68,42 @@ describe("create basic mocked file server and test it out", () => {
         dest: { project_id: string; path: string };
         options?;
       }): Promise<void> => {},
+
+      backup: async (_opts: {
+        project_id: string;
+      }): Promise<{ time: Date; id: string }> => {
+        return { time: new Date(), id: "0" };
+      },
+
+      restore: async (_opts: {
+        project_id: string;
+        id: string;
+        path?: string;
+        dest?: string;
+      }): Promise<void> => {},
+
+      deleteBackup: async (_opts: {
+        project_id: string;
+        id: string;
+      }): Promise<void> => {},
+
+      getBackups: async (_opts: {
+        project_id: string;
+      }): Promise<
+        {
+          id: string;
+          time: Date;
+        }[]
+      > => {
+        return [];
+      },
+
+      getBackupFiles: async (_opts: {
+        project_id: string;
+        id: string;
+      }): Promise<string[]> => {
+        return [];
+      },
     });
   });
 

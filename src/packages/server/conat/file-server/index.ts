@@ -145,14 +145,13 @@ export async function init() {
   if (!(await exists(image))) {
     await mkdir(image, { recursive: true });
   }
-  const btrfsDevice = join(image, "btrfs.img");
   const mountPoint = join(data, "btrfs", "mnt");
   if (!(await exists(mountPoint))) {
     await mkdir(mountPoint, { recursive: true });
   }
 
   fs = await filesystem({
-    device: btrfsDevice,
+    image: join(image, "btrfs.img"),
     size: "25G",
     mount: mountPoint,
   });
