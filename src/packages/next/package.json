@@ -84,7 +84,7 @@
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "react": "^19.1.1",
-    "react-dom": "^19.1.0",
+    "react-dom": "^19.1.1",
     "react-google-recaptcha-v3": "^1.9.7",
     "react-intl": "^7.1.11",
     "serve-index": "^1.9.1",
