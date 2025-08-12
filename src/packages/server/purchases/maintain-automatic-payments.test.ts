@@ -5,7 +5,6 @@
 
 // test the automatic payments maintenance loop
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import maintainAutomaticPayments, {
   setMockCollectPayment,
 } from "./maintain-automatic-payments";
@@ -13,18 +12,18 @@ import { uuid } from "@cocalc/util/misc";
 import { createTestAccount } from "./test-data";
 import createCredit from "./create-credit";
 import { getServerSettings } from "@cocalc/database/settings";
+import { before, after, getPool } from "@cocalc/server/test";
 
-const collect: { account_id: string; amount: number }[] = [];
 beforeAll(async () => {
+  await before();
   setMockCollectPayment(async ({ account_id, amount }) => {
     collect.push({ account_id, amount });
   });
-  await initEphemeralDatabase({});
 }, 15000);
 
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
+
+const collect: { account_id: string; amount: number }[] = [];
 
 describe("testing automatic payments in several situations", () => {
   const account_id1 = uuid();

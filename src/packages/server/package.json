@@ -26,12 +26,11 @@
     "./projects/connection": "./dist/projects/connection/index.js",
     "./projects/*": "./dist/projects/*.js",
     "./settings": "./dist/settings/index.js",
-    "./settings/*": "./dist/settings/*.js"
+    "./settings/*": "./dist/settings/*.js",
+    "./test": "./dist/test/index.js",
+    "./test/*": "./dist/test/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",

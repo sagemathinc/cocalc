@@ -1,14 +1,9 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { createDatabaseCachedResource, createTTLCache } from "./database-cache";
 import { delay } from "awaiting";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 // keep short so that unit testing is fast... but long enough
 // that things don't break on github actions.

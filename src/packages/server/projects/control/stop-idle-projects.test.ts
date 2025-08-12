@@ -4,19 +4,15 @@
  */
 
 import createProject from "@cocalc/server/projects/create";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import { test } from "./stop-idle-projects";
 const { stopIdleProjects } = test;
 import { delay } from "awaiting";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("creates a project, set various parameters, and runs idle project function, it and confirm that things work as intended", () => {
   let project_id;

@@ -34,10 +34,7 @@ async function getConfig({ project_id }) {
     "SELECT settings FROM projects WHERE project_id=$1",
     [project_id],
   );
-  if (rows.length == 0) {
-    throw Error(`no project with id ${project_id}`);
-  }
-  if (rows[0].settings?.admin) {
+  if (rows[0]?.settings?.admin) {
     return { admin: true, disk: "25G" };
   } else {
     // some defaults, mainly for testing

@@ -1,19 +1,14 @@
 import { uuid } from "@cocalc/util/misc";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { createTestAccount } from "./test-data";
 import studentPay from "./student-pay";
 import createProject from "@cocalc/server/projects/create";
 import createCredit from "./create-credit";
 import dayjs from "dayjs";
 import { delay } from "awaiting";
+import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase({});
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("test studentPay behaves at it should in various scenarios", () => {
   const account_id = uuid();
@@ -90,7 +85,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     }
   });
 
-  let purchase_id_from_student_pay : undefined | number = 0;
+  let purchase_id_from_student_pay: undefined | number = 0;
   it("add a lot of money, so it finally works -- check that the license is applied to the project", async () => {
     await createCredit({ account_id, amount: 1000 });
     const { purchase_id } = await studentPay({ account_id, project_id });

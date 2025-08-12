@@ -5,7 +5,6 @@
 
 // test resuming a canceled subscription
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import { createTestAccount, createTestSubscription } from "./test-data";
 //import dayjs from "dayjs";
@@ -14,14 +13,10 @@ import cancelSubscription from "./cancel-subscription";
 import { getSubscription } from "./renew-subscription";
 import getLicense from "@cocalc/server/licenses/get-license";
 import getBalance from "./get-balance";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase({});
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("create a subscription, cancel it, then resume it", () => {
   const account_id = uuid();
@@ -70,45 +65,4 @@ describe("create a subscription, cancel it, then resume it", () => {
     expect(license.expires).toBe(license2.expires);
     expect(license2.expires).toBe(sub.current_period_end.valueOf());
   });
-
-  /*
-
-
-  it("cancels again but delete all of our money, but renew does NOT fail since it doesn't require a payment.", async () => {
-    await cancelSubscription({
-      account_id,
-      subscription_id,
-    });
-    const pool = getPool();
-    await pool.query("DELETE FROM purchases WHERE account_id=$1", [account_id]);
-    expect.assertions(1);
-    try {
-      await resumeSubscription({ account_id, subscription_id });
-    } catch (e) {
-      expect(e.message).toMatch("Please pay");
-    }
-  });
-
-  it("cancels again then change date so subscription is expired, so renew does fail due to lack of money", async () => {
-    await cancelSubscription({
-      account_id,
-      subscription_id,
-    });
-    const pool = getPool();
-    await pool.query(
-      "update subscriptions set current_period_end=NOW() - '1 month', current_period_start=NOW()-'2 months' WHERE id=$1",
-      [subscription_id],
-    );
-    await pool.query(
-      "update site_licenses set expire=NOW() - '1 month' where id=$1",
-      [license_id],
-    );
-    expect.assertions(1);
-    try {
-      await resumeSubscription({ account_id, subscription_id });
-    } catch (e) {
-      expect(e.message).toMatch("Please pay");
-    }
-  });
-  */
 });

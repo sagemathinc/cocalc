@@ -4,21 +4,16 @@
  */
 
 import emailStatement from "./email-statement";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { createTestAccount } from "@cocalc/server/purchases/test-data";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { createStatements } from "./create-statements";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import getStatements from "./get-statements";
+import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("creates an account, then creates statements and corresponding emails and test that everything matches up", () => {
   const account_id = uuid();

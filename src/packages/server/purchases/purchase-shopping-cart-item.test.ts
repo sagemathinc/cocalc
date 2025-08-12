@@ -6,10 +6,7 @@
 import createAccount from "@cocalc/server/accounts/create-account";
 import getLicense from "@cocalc/server/licenses/get-license";
 import { uuid } from "@cocalc/util/misc";
-import getPool, {
-  initEphemeralDatabase,
-  getPoolClient,
-} from "@cocalc/database/pool";
+import { getPoolClient } from "@cocalc/database/pool";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { getClosingDay, setClosingDay } from "./closing-date";
@@ -19,14 +16,10 @@ import dayjs from "dayjs";
 import cancelSubscription from "./cancel-subscription";
 import resumeSubscription from "./resume-subscription";
 import createPurchase from "./create-purchase";
+import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("create a subscription license and edit it and confirm the subscription cost changes", () => {
   // this is a shopping cart item, which I basically copied from the database...

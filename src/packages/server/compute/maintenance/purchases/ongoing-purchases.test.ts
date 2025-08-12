@@ -8,7 +8,6 @@ in the database, in order to run the test.
 */
 
 import ongoingPurchases from "./ongoing-purchases";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
@@ -20,14 +19,11 @@ import {
   MAX_PURCHASE_LENGTH_MS,
 } from "./manage-purchases";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
+import { getPool, before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
+beforeAll(before, 15000);
+afterAll(after);
 
-afterAll(async () => {
-  await getPool().end();
-});
 
 async function getUpdatePurchase(id: number) {
   const pool = getPool();

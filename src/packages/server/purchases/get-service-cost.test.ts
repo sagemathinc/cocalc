@@ -1,13 +1,8 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import getServiceCost from "./get-service-cost";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase({});
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("get some service costs", () => {
   it("get service cost of openai-gpt-3.5-turbo", async () => {
@@ -21,7 +16,7 @@ describe("get some service costs", () => {
     but it WILL changes over time as we change our rates and openai
     does as well, so we just test that the keys are there and the
     values are positive but relatively small.
-    
+
     NOTE: This is the cost to us, but we don't actually charge users now for this.
     */
     expect(cost.completion_tokens).toBeGreaterThan(0);
@@ -74,7 +69,7 @@ describe("get some service costs", () => {
 
   it("throws error on invalid service", async () => {
     await expect(
-      async () => await getServiceCost("nonsense" as any)
+      async () => await getServiceCost("nonsense" as any),
     ).rejects.toThrow();
   });
 });

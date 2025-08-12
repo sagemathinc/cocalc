@@ -2,7 +2,6 @@
 Test managing purchases
 */
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
 import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 import createServer from "@cocalc/server/compute/create-server";
@@ -21,18 +20,16 @@ import managePurchases, {
   outstandingPurchases,
 } from "./manage-purchases";
 import { getPurchase } from "./util";
+import { getPool, before, after, initEphemeralDatabase } from "@cocalc/server/test";
+
+beforeAll(before, 15000);
+afterAll(after);
+
 
 // we put a small delay in some cases due to using a database query pool.
 // This might need to be adjusted for CI infrastructure.
 const DELAY = 250;
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
 
 describe("confirm managing of purchases works", () => {
   const account_id = uuid();

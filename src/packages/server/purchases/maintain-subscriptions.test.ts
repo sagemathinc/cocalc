@@ -1,13 +1,9 @@
 import maintainSubscriptions from "./maintain-subscriptions";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase({});
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("test maintainSubscriptions", () => {
   it("run maintainSubscriptions once and it doesn't crash", async () => {

@@ -54,6 +54,7 @@ export async function before() {
     mount: join(tempDir, "mnt"),
     rustic: join(tempDir, "rustic"),
   });
+  return fs;
 }
 
 export async function after() {

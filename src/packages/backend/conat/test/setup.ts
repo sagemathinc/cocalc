@@ -21,6 +21,7 @@ import { once } from "@cocalc/util/async-utils";
 import { until } from "@cocalc/util/async-utils";
 import { randomId } from "@cocalc/conat/names";
 import { isEqual } from "lodash";
+import { setConatServer } from "@cocalc/backend/data";
 
 export { wait, delay, once };
 
@@ -150,6 +151,7 @@ export async function before(
   }
 
   server = await createServer();
+  setConatServer(server.address());
   client = connect();
   persistServer = createPersistServer({ client });
   setConatClient({

@@ -3,24 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import getPool, {
-  getPoolClient,
-  initEphemeralDatabase,
-} from "@cocalc/database/pool";
+import { getPoolClient } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import { createTestAccount, createTestSubscription } from "./test-data";
 import { getSubscription } from "./renew-subscription";
 import getLicense from "@cocalc/server/licenses/get-license";
 import { test } from "./shift-subscriptions";
 import { setClosingDay } from "./closing-date";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase({});
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("test shiftSubscriptionToEndOnDay -- involves actual subscriptions", () => {
   const account_id = uuid();
@@ -31,9 +24,8 @@ describe("test shiftSubscriptionToEndOnDay -- involves actual subscriptions", ()
     await createTestAccount(account_id);
     await setClosingDay(account_id, 3);
 
-    ({ subscription_id, license_id } = await createTestSubscription(
-      account_id
-    ));
+    ({ subscription_id, license_id } =
+      await createTestSubscription(account_id));
   });
 
   //   it("confirms that the newly created subscription has a current period end day of 3", async () => {

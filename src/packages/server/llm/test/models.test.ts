@@ -1,6 +1,5 @@
 // import { log } from "console";
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import {
   AnthropicModel,
   LanguageModelCore,
@@ -28,19 +27,18 @@ import { evaluateMistral } from "../mistral";
 import { evaluateOpenAILC } from "../openai-lc";
 import { evaluateUserDefinedLLM } from "../user-defined";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
+import { before, after, getPool } from "@cocalc/server/test";
 
 // sometimes (flaky case) they take more than 10s to even start a response
 const LLM_TIMEOUT = 15_000;
 
 beforeAll(async () => {
-  await initEphemeralDatabase();
+  await before();
   await setupAPIKeys();
   await enableModels();
 }, 15000);
 
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 const QUERY = {
   input: "What's 99 + 1?",

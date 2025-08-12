@@ -2,7 +2,6 @@
 Test functions for closing purchases in various ways.
 */
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
 import { setTestNetworkUsage } from "@cocalc/server/compute/control";
 import createServer from "@cocalc/server/compute/create-server";
@@ -17,14 +16,10 @@ import {
   closePurchase,
 } from "./close";
 import { getPurchase } from "./util";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("creates account, project, test compute server, and purchase, then close the purchase, and confirm it worked properly", () => {
   const account_id = uuid();

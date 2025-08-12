@@ -1,18 +1,13 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import getServers, { getServer } from "./get-servers";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 import createServer from "./create-server";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("calls get compute servers with various inputs with a new account with no data (everything should return [])", () => {
   it("throws 'account_id is not a valid uuid' if account_id not specified", async () => {

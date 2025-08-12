@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { uuid } from "@cocalc/util/misc";
@@ -14,14 +13,10 @@ import {
   isPurchaseAllowed,
 } from "./is-purchase-allowed";
 import { getPurchaseQuota, setPurchaseQuota } from "./purchase-quotas";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("test checking whether or not purchase is allowed under various conditions", () => {
   const account_id = uuid();

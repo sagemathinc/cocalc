@@ -136,7 +136,7 @@ async function cp({
 
 let fs: Filesystem | null = null;
 let server: any = null;
-export async function init() {
+export async function init(_fs?) {
   if (server != null) {
     return;
   }
@@ -150,12 +150,14 @@ export async function init() {
     await mkdir(mountPoint, { recursive: true });
   }
 
-  fs = await filesystem({
-    image: join(image, "btrfs.img"),
-    size: "25G",
-    mount: mountPoint,
-    rustic: rusticRepo,
-  });
+  fs =
+    _fs ??
+    (await filesystem({
+      image: join(image, "btrfs.img"),
+      size: "25G",
+      mount: mountPoint,
+      rustic: rusticRepo,
+    }));
 
   server = await createFileServer({
     client: conat(),

@@ -1,18 +1,13 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import getServers from "./get-servers";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
 import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
+import { before, after } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("creates account, project and then compute servers in various ways", () => {
   const account_id = uuid();

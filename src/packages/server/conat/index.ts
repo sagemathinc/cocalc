@@ -5,11 +5,7 @@ import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
 export { initConatPersist } from "./persist";
-import {
-  conatApiCount,
-  projects,
-  conatProjectRunnerCount,
-} from "@cocalc/backend/data";
+import { conatApiCount, conatProjectRunnerCount } from "@cocalc/backend/data";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initProjectRunner } from "./project/run";
 import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
@@ -45,12 +41,6 @@ export async function initConatApi() {
 
 export async function initConatFileserver() {
   await loadConatConfiguration();
-  const i = projects.indexOf("/[project_id]");
-  if (i == -1) {
-    throw Error(
-      `projects must be a template containing /[project_id] -- ${projects}`,
-    );
-  }
   logger.debug("initFileserver");
   localPathFileserver();
   initFileserver();

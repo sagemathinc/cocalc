@@ -5,10 +5,7 @@
 
 import dayjs from "dayjs";
 
-import getPool, {
-  getPoolClient,
-  initEphemeralDatabase,
-} from "@cocalc/database/pool";
+import { getPoolClient } from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
 import getLicense from "@cocalc/server/licenses/get-license";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
@@ -21,14 +18,10 @@ import editLicenseOwner from "./edit-license-owner";
 import getSubscriptions from "./get-subscriptions";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { license0 } from "./test-data";
+import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("create a license and then edit it in various ways", () => {
   const account_id = uuid();
