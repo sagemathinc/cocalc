@@ -27,7 +27,6 @@ afterAll(after);
 
 
 // we put a small delay in some cases due to using a database query pool.
-// This might need to be adjusted for CI infrastructure.
 const DELAY = 250;
 
 

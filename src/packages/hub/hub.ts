@@ -10,7 +10,7 @@
 import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
-import { program as commander, Option } from "commander";
+import { program as commander } from "commander";
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
@@ -25,9 +25,7 @@ import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
 import initMessageMaintenance from "@cocalc/server/messages/maintenance";
-import initProjectControl, {
-  COCALC_MODES,
-} from "@cocalc/server/projects/control";
+import initProjectControl from "@cocalc/server/projects/control";
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
 import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
@@ -163,7 +161,7 @@ async function startServer(): Promise<void> {
 
   // Project control
   logger.info("initializing project control...");
-  const projectControl = initProjectControl(program.mode);
+  const projectControl = initProjectControl();
   // used for nextjs hot module reloading dev server
   process.env["COCALC_MODE"] = program.mode;
 
@@ -309,13 +307,10 @@ async function main(): Promise<void> {
   commander
     .name("cocalc-hub-server")
     .usage("options")
-    .addOption(
-      new Option(
-        "--mode [string]",
-        `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(
-          ", ",
-        )}) - or set COCALC_MODE env var`,
-      ).choices(COCALC_MODES as any as string[]),
+    .option(
+      "--mode <string>",
+      `REQUIRED mode in which to run CoCalc or set COCALC_MODE env var`,
+      "",
     )
     .option(
       "--all",
@@ -430,9 +425,7 @@ async function main(): Promise<void> {
     program.mode = process.env.COCALC_MODE;
     if (!program.mode) {
       throw Error(
-        `the --mode option must be specified or the COCALC_MODE env var set to one of ${COCALC_MODES.join(
-          ", ",
-        )}`,
+        `the --mode option must be specified or the COCALC_MODE env var`,
       );
       process.exit(1);
     }

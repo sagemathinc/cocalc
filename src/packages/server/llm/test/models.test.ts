@@ -33,7 +33,7 @@ import { before, after, getPool } from "@cocalc/server/test";
 const LLM_TIMEOUT = 15_000;
 
 beforeAll(async () => {
-  await before();
+  await before({ noConat: true });
   await setupAPIKeys();
   await enableModels();
 }, 15000);

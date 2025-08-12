@@ -108,13 +108,6 @@ export default async function studentPay({
     // Add license to the project.
     await addLicenseToProject({ project_id, license_id, client });
 
-    try {
-      await restartProjectIfRunning(project_id);
-    } catch (err) {
-      // non-fatal, since it's just a convenience.
-      logger.debug("WARNING -- issue restarting project ", err);
-    }
-
     if (purchaseInfo.start == null || purchaseInfo.end == null) {
       throw Error("start and end must be set");
     }
@@ -156,6 +149,17 @@ export default async function studentPay({
   } finally {
     // end atomic transaction
     client.release();
+  }
+
+  // Do NOT try to restart the project until outside of the transaction!
+  // Otherwise it deadlocks the database, since this changes the state
+  // of the project but not as part of the transaction!!!!!  That's
+  // why this code is down here and not up there.
+  try {
+    await restartProjectIfRunning(project_id);
+  } catch (err) {
+    // non-fatal, since it's just a convenience.
+    logger.debug("WARNING -- issue restarting project ", err);
   }
 }
 

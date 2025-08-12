@@ -3,6 +3,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import { projectApiClient } from "@cocalc/conat/project/api";
 import { getProject } from "@cocalc/server/projects/control";
+import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import { before, after } from "@cocalc/server/test";
 
 beforeAll(before);
@@ -29,6 +30,10 @@ describe("create account, project, then start and stop project", () => {
       noPool: true,
       start: false,
     });
+  });
+
+  it("restart if running (it is not)", async () => {
+    await restartProjectIfRunning(project_id);
   });
 
   let project;
