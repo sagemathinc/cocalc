@@ -152,11 +152,11 @@ async function start({
   await setupDataPath(home, uid);
   await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
 
-  if (config?.size) {
+  if (config?.disk) {
     // TODO: maybe this should be done in parallel with other things
     // to make startup time slightly faster (?) -- could also be incorporated
     // into mount.
-    await setQuota(project_id, config.size);
+    await setQuota(project_id, config.disk);
   }
 
   let script: string,

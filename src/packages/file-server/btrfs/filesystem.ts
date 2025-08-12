@@ -7,7 +7,7 @@ Start node, then:
 
 DEBUG="cocalc:*file-server*" DEBUG_CONSOLE=yes node
 
-a = require('@cocalc/file-server/btrfs'); fs = await a.filesystem({device:'/tmp/btrfs.img', formatIfNeeded:true, mount:'/mnt/btrfs', uid:293597964})
+a = require('@cocalc/file-server/btrfs'); fs = await a.filesystem({image:'/tmp/btrfs.img', mount:'/mnt/btrfs', size:'2G'})
 
 */
 
