@@ -21,7 +21,7 @@ export type { Fileserver };
 import { loadConatConfiguration } from "../configuration";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
-import { data } from "@cocalc/backend/data";
+import { data, rusticRepo } from "@cocalc/backend/data";
 import { join } from "node:path";
 import { mkdir } from "fs/promises";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
@@ -154,6 +154,7 @@ export async function init() {
     image: join(image, "btrfs.img"),
     size: "25G",
     mount: mountPoint,
+    rustic: rusticRepo,
   });
 
   server = await createFileServer({

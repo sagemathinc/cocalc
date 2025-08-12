@@ -302,7 +302,7 @@ interface Options {
   fs: (subject?: string) => Promise<Filesystem>;
   // project-id: if given, ONLY serve files for this one project, and the
   // path must be the home of the project
-  // If not given,
+  // If not given, serves files for all projects.
   project_id?: string;
 }
 

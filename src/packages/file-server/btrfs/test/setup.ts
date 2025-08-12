@@ -52,6 +52,7 @@ export async function before() {
     image: join(tempDir, "btrfs.img"),
     size: "1G",
     mount: join(tempDir, "mnt"),
+    rustic: join(tempDir, "rustic"),
   });
 }
 

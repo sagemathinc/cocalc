@@ -35,7 +35,7 @@ export class Subvolume {
     this.name = name;
     this.path = join(filesystem.opts.mount, name);
     this.fs = new SandboxedFilesystem(this.path, {
-      rusticRepo: filesystem.rustic,
+      rusticRepo: filesystem.opts.rustic,
       host: this.name,
     });
     this.rustic = new SubvolumeRustic(this);

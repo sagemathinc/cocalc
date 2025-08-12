@@ -21,6 +21,7 @@ Instead of using btrfs send/recv for backups, we use Rustic because:
 import { type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
 import { parseOutput } from "@cocalc/backend/sandbox/exec";
+import { field_cmp } from "@cocalc/util/misc";
 
 export const RUSTIC = "rustic";
 
@@ -86,24 +87,32 @@ export class SubvolumeRustic {
     return stdout;
   };
 
+  // returns list of snapshots sorted from oldest to newest
   snapshots = async (): Promise<Snapshot[]> => {
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["snapshots", "--json"]),
     );
     const x = JSON.parse(stdout);
-    return x[0][1].map(({ time, id }) => {
+    const v = x[0][1].map(({ time, id }) => {
       return { time: new Date(time), id };
     });
+    v.sort(field_cmp("time"));
+    return v;
   };
 
+  // return list of paths of files in this backup, as paths relative
+  // to HOME, and sorted in alphabetical order.
   ls = async ({ id }: { id: string }) => {
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["ls", "--json", id]),
     );
-    return JSON.parse(stdout);
+    return JSON.parse(stdout).sort();
   };
 
-  // (this doesn't actually clean up disk space -- purge must be done separately)
+  // Delete this backup.  It's genuinely not accessible anymore, though
+  // this doesn't actually clean up disk space -- purge must be done separately
+  // later.  Rustic likes the purge to happen maybe a day later, so it
+  // can better support concurrent writes.
   forget = async ({ id }: { id: string }) => {
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["forget", id]),

@@ -296,7 +296,7 @@ export class SandboxedFilesystem {
     args: string[],
     {
       timeout = 120_000,
-      maxSize = 10_000,
+      maxSize = 10_000_000, // the json output can be quite large
       cwd,
     }: { timeout?: number; maxSize?: number; cwd?: string } = {},
   ): Promise<ExecOutput> => {

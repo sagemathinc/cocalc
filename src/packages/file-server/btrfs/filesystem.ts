@@ -36,13 +36,11 @@ export interface Options {
   // configure rustic however you want by pointing this at a toml cofig file.
   // Otherwise, if this path does not exist, it will be created a new rustic repo
   // initialized here.
-  // If not given, then backups will throw an error.
-  rustic?: string;
+  rustic: string;
 }
 
 export class Filesystem {
   public readonly opts: Options;
-  public readonly rustic: string;
   public readonly subvolumes: Subvolumes;
 
   constructor(opts: Options) {
@@ -57,9 +55,7 @@ export class Filesystem {
     await btrfs({
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
-    if (this.opts.rustic) {
-      await this.initRustic();
-    }
+    await this.initRustic();
     await this.sync();
   };
 
@@ -157,14 +153,17 @@ export class Filesystem {
   };
 
   private initRustic = async () => {
-    if (!this.rustic || (await exists(this.rustic))) {
+    if (!this.opts.rustic) {
+      throw Error("rustic repo path or toml must be specified");
+    }
+    if (!this.opts.rustic || (await exists(this.opts.rustic))) {
       return;
     }
-    if (this.rustic.endsWith(".toml")) {
-      throw Error(`file not found: ${this.rustic}`);
+    if (this.opts.rustic.endsWith(".toml")) {
+      throw Error(`file not found: ${this.opts.rustic}`);
     }
-    await mkdir(this.rustic);
-    await rustic(["init"], { repo: this.rustic });
+    await mkdir(this.opts.rustic);
+    await rustic(["init"], { repo: this.opts.rustic });
   };
 }
 
