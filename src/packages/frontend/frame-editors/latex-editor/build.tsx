@@ -143,7 +143,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     // const y: ExecOutput | undefined = job_infos.get(stage)?.toJS();
 
     if (!x) return;
-    const value = x.stdout ?? "" + x.stderr ?? "";
+    const value = (x.stdout ?? "") + (x.stderr ?? "");
     if (!value) return;
     // const time: number | undefined = x.get("time");
     // const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
@@ -235,7 +235,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
       if (!info || info.type !== "async" || info.status !== "running") return;
       const stats_str = getResourceUsage(info.stats, "last");
       const start = info.start;
-      logTail = tail(info.stdout ?? "" + info.stderr ?? "", 6);
+      logTail = tail((info.stdout ?? "") + (info.stderr ?? ""), 6);
       isLongRunning ||=
         typeof start === "number" &&
         webapp_client.server_time() - start > WARN_LONG_RUNNING_S * 1000;
