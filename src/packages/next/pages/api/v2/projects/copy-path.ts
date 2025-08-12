@@ -60,8 +60,10 @@ export default async function handle(req, res) {
         throw Error("must be a collaborator on source project");
       }
     }
+    throw Error("TODO: reimplement copyPath");
     const project = getProject(src_project_id);
-    await project.copyPath({
+    console.log({
+      project,
       path,
       target_project_id,
       target_path,
