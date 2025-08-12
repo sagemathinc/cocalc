@@ -30,6 +30,7 @@ const BODY_STYLE: CSS = {
   maxHeight: "max(300px, 75vh)",
   overflowY: "auto",
 } as const;
+
 interface TitleComponentProps {
   newsItem: NewsWithStatus;
   showHelpTicket?: boolean;
