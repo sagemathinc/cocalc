@@ -3,7 +3,6 @@ mkdir -p `pwd`/logs
 export LOGS=`pwd`/logs
 rm -f $LOGS/log
 unset INIT_CWD
-unset PGHOST
 export DEBUG="cocalc:*,-cocalc:silly:*"
 export DEBUG_CONSOLE="no"
 
