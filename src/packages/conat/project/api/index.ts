@@ -3,6 +3,7 @@ import { type Editor, editor } from "./editor";
 import { type Jupyter, jupyter } from "./jupyter";
 import { type Sync, sync } from "./sync";
 import { handleErrorMessage } from "@cocalc/conat/util";
+export { projectApiClient } from "./project-client";
 
 export interface ProjectApi {
   system: System;

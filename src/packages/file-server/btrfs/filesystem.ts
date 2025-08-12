@@ -12,7 +12,7 @@ a = require('@cocalc/file-server/btrfs'); fs = await a.filesystem({image:'/tmp/b
 */
 
 import refCache from "@cocalc/util/refcache";
-import { mkdirp, btrfs, sudo } from "./util";
+import { mkdirp, btrfs, sudo, ensureMoreLoopbackDevices } from "./util";
 import { Subvolumes } from "./subvolumes";
 import { mkdir } from "fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
@@ -132,13 +132,22 @@ export class Filesystem {
       this.opts.mount,
     );
     {
-      const { stderr, exit_code } = await sudo({
+      const { exit_code: failed } = await sudo({
         command: "mount",
         args,
         err_on_exit: false,
       });
-      if (exit_code) {
-        return { stderr, exit_code };
+      if (failed) {
+        // try again with more loopback devices
+        await ensureMoreLoopbackDevices();
+        const { stderr, exit_code } = await sudo({
+          command: "mount",
+          args,
+          err_on_exit: false,
+        });
+        if (exit_code) {
+          return { stderr, exit_code };
+        }
       }
     }
     const { stderr, exit_code } = await sudo({

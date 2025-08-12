@@ -246,6 +246,7 @@ export async function getEnvironment(
 }
 
 export async function getState(HOME: string): Promise<ProjectState> {
+  throw Error("getState: deprecated -- redo using conat!");
   // [ ] TODO: deprecate
   logger.debug(`getState("${HOME}"): DEPRECATED`);
   return {
@@ -326,9 +327,6 @@ export async function restartProjectIfRunning(project_id: string) {
   const project = getProject(project_id);
   const { state } = await project.state();
   if (state == "starting" || state == "running") {
-    // don't await this -- it could take a long time and isn't necessary to wait for.
-    (async () => {
-      await project.restart();
-    })();
+    await project.restart();
   }
 }

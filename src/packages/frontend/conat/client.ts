@@ -9,7 +9,7 @@ import { randomId, inboxPrefix } from "@cocalc/conat/names";
 import { projectSubject } from "@cocalc/conat/names";
 import { parseQueryWithOptions } from "@cocalc/sync/table/util";
 import { type HubApi, initHubApi } from "@cocalc/conat/hub/api";
-import { type ProjectApi, initProjectApi } from "@cocalc/conat/project/api";
+import { type ProjectApi, projectApiClient } from "@cocalc/conat/project/api";
 import { isValidUUID } from "@cocalc/util/misc";
 import { PubSub } from "@cocalc/conat/sync/pubsub";
 import type { ChatOptions } from "@cocalc/util/types/llm";
@@ -353,44 +353,7 @@ export class ConatClient extends EventEmitter {
         compute_server_id = actions.getComputeServerId();
       }
     }
-    const callProjectApi = async ({ name, args }) => {
-      return await this.callProject({
-        project_id,
-        compute_server_id,
-        timeout,
-        service: "api",
-        name,
-        args,
-      });
-    };
-    return initProjectApi(callProjectApi);
-  };
-
-  private callProject = async ({
-    service = "api",
-    project_id,
-    compute_server_id,
-    name,
-    args = [],
-    timeout = DEFAULT_TIMEOUT,
-  }: {
-    service?: string;
-    project_id: string;
-    compute_server_id?: number;
-    name: string;
-    args: any[];
-    timeout?: number;
-  }) => {
-    const cn = this.conat();
-    const subject = projectSubject({ project_id, compute_server_id, service });
-    const resp = await cn.request(
-      subject,
-      { name, args },
-      // we use waitForInterest because often the project hasn't
-      // quite fully started.
-      { timeout, waitForInterest: true },
-    );
-    return resp.data;
+    return projectApiClient({ project_id, compute_server_id, timeout });
   };
 
   synctable: ConatSyncTableFunction = async (

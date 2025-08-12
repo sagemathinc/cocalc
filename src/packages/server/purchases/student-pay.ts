@@ -108,16 +108,12 @@ export default async function studentPay({
     // Add license to the project.
     await addLicenseToProject({ project_id, license_id, client });
 
-    // nonblocking restart if running - not part of transaction, could take a while,
-    // and no need to block everything else on this.
-    (async () => {
-      try {
-        await restartProjectIfRunning(project_id);
-      } catch (err) {
-        // non-fatal, since it's just a convenience.
-        logger.debug("WARNING -- issue restarting project ", err);
-      }
-    })();
+    try {
+      await restartProjectIfRunning(project_id);
+    } catch (err) {
+      // non-fatal, since it's just a convenience.
+      logger.debug("WARNING -- issue restarting project ", err);
+    }
 
     if (purchaseInfo.start == null || purchaseInfo.end == null) {
       throw Error("start and end must be set");

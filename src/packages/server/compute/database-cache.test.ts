@@ -2,7 +2,9 @@ import { createDatabaseCachedResource, createTTLCache } from "./database-cache";
 import { delay } from "awaiting";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 // keep short so that unit testing is fast... but long enough

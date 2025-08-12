@@ -63,3 +63,22 @@ export function parseBupTime(s: string): Date {
     Number(seconds),
   );
 }
+
+export async function ensureMoreLoopbackDevices() {
+  // to run tests, this is helpful
+  //for i in $(seq 8 63); do sudo mknod -m660 /dev/loop$i b 7 $i; sudo chown root:disk /dev/loop$i; done
+  for (let i = 0; i < 64; i++) {
+    try {
+      await stat(`/dev/loop${i}`);
+      continue;
+    } catch {}
+    try {
+      // also try/catch this because ensureMoreLoops happens in parallel many times at once...
+      await sudo({
+        command: "mknod",
+        args: ["-m660", `/dev/loop${i}`, "b", "7", `${i}`],
+      });
+    } catch {}
+    await sudo({ command: "chown", args: ["root:disk", `/dev/loop${i}`] });
+  }
+}

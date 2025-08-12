@@ -4,7 +4,7 @@
  */
 
 /*
-Project control abstract base class.
+Project control class.
 
 The hub uses this to get information about a project and do some basic tasks.
 There are different implementations for different ways in which cocalc
@@ -52,11 +52,16 @@ export type Action = "open" | "start" | "stop" | "restart";
 // collected.  These objects don't use much memory, but blocking garbage collection
 // would be bad.
 const projectCache: { [project_id: string]: WeakRef<BaseProject> } = {};
-export function getProject(project_id: string): BaseProject | undefined {
-  return projectCache[project_id]?.deref();
+export function getProject(project_id: string): BaseProject {
+  let project = projectCache[project_id]?.deref();
+  if (project == null) {
+    project = new BaseProject(project_id);
+    projectCache[project_id] = new WeakRef(project);
+  }
+  return project!;
 }
 
-export abstract class BaseProject extends EventEmitter {
+export class BaseProject extends EventEmitter {
   public readonly project_id: string;
   public is_ready: boolean = false;
   public is_freed: boolean = false;
@@ -137,11 +142,17 @@ export abstract class BaseProject extends EventEmitter {
 
   // Get the state of the project -- state is just whether or not
   // it is runnig, stopping, starting.  It's not much info.
-  abstract state(): Promise<ProjectState>;
+  state = async (): Promise<ProjectState> => {
+    // rename everywhere to status?  state is a field, and status
+    // is the whole object
+    const runner = this.projectRunner();
+    return await runner.status({ project_id: this.project_id });
+  };
 
-  // Get the status of the project -- status is MUCH more information
-  // about the project, including ports of various services.
-  abstract status(): Promise<ProjectStatus>;
+  status = async (): Promise<ProjectStatus> => {
+    // deprecated?
+    return {} as ProjectStatus;
+  };
 
   start = async (): Promise<void> => {
     const runner = this.projectRunner();

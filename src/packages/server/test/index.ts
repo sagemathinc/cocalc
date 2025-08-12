@@ -18,6 +18,8 @@ import {
   before as fileserverTestInit,
   after as fileserverTestClose,
 } from "@cocalc/file-server/btrfs/test/setup";
+import { init as initProjectRunner } from "@cocalc/server/conat/project/run";
+import { init as initProjectRunnerLoadBalancer } from "@cocalc/server/conat/project/load-balancer";
 import { delay } from "awaiting";
 
 export { getPool, initEphemeralDatabase };
@@ -49,6 +51,9 @@ export async function before({
     const ephemeralFilesystem = await fileserverTestInit();
     // server that provides a btrfs managed filesystem
     await initFileserver(ephemeralFilesystem);
+
+    await initProjectRunner();
+    await initProjectRunnerLoadBalancer();
   }
 }
 

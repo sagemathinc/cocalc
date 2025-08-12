@@ -203,7 +203,8 @@ async function start({
   args.push(script, "--init", "project_init.sh");
 
   //logEnv(env);
-  console.log(`${cmd} ${args.join(" ")}`);
+  // console.log(`${cmd} ${args.join(" ")}`);
+  logger.debug(`${cmd} ${args.join(" ")}`);
   const child = spawn(cmd, args, {
     env,
     uid,

@@ -6,9 +6,10 @@ import { getServer } from "@cocalc/server/compute/get-servers";
 import { setPurchaseId } from "./util";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
-
 
 describe("creates compute server then sets the purchase id and confirms it", () => {
   const account_id = uuid();
