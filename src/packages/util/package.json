@@ -55,7 +55,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "prop-types": "^15.7.2",
-    "react": "^19.1.0",
+    "react": "^19.1.1",
     "react-intl": "^7.1.11",
     "redux": "^4.2.1",
     "reselect": "^4.1.8",
