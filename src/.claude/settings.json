@@ -27,7 +27,10 @@
       "WebFetch(domain:www.anthropic.com)",
       "WebFetch(domain:mistral.ai)",
       "Bash(pnpm i18n:*)",
-      "WebFetch(domain:simplelocalize.io)"
+      "WebFetch(domain:simplelocalize.io)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm why:*)",
+      "mcp__github__get_issue"
     ],
     "deny": []
   }
