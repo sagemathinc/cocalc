@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// DEPRECATED
 // Copy Operations Provider
 // Used in the "Client"
 
@@ -148,6 +149,8 @@ export class CopyPath {
       const project = projectControl(mesg.src_project_id);
 
       // do the copy
+      throw Error("DEPRECATED");
+      // @ts-ignore
       const copy_id = await project.copyPath({
         path: mesg.src_path,
         target_project_id: mesg.target_project_id,
