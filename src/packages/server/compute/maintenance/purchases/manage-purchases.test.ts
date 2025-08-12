@@ -267,7 +267,7 @@ describe("confirm managing of purchases works", () => {
   // rule 6
   it("make time long so that balance is exceeded (but not by too much), and see that server gets stopped due to too low balance, and an email is sent to the user", async () => {
     resetTestMessages();
-    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 10));
+    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 7));
     const pool = getPool();
     await pool.query(
       "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
