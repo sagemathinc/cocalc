@@ -124,6 +124,14 @@ export const MODELS_OPENAI = [
   "o1-mini",
   "o1-8k",
   "o1",
+  "o3-8k", // context limited
+  "o3",
+  "o4-mini-8k", // context limited
+  "o4-mini",
+  "gpt-5-8k", // context limited
+  "gpt-5",
+  "gpt-5-mini-8k", // context limited
+  "gpt-5-mini",
 ] as const;
 
 export type OpenAIModel = (typeof MODELS_OPENAI)[number];
@@ -134,10 +142,12 @@ export function isOpenAIModel(model: unknown): model is OpenAIModel {
 
 // ATTN: when you modify this list, also change frontend/.../llm/llm-selector.tsx!
 export const MISTRAL_MODELS = [
-  // yes, all 3 of them have an extra mistral-prefix, on top of the vendor prefix
+  // yes, all of them have an extra mistral-prefix, on top of the vendor prefix
   "mistral-small-latest",
-  "mistral-medium-latest", // Deprecated!
+  "mistral-medium-latest",
   "mistral-large-latest",
+  "devstral-medium-2507",
+  // "magistral-medium-latest", // throws error
 ] as const;
 
 export type MistralModel = (typeof MISTRAL_MODELS)[number];
@@ -246,14 +256,10 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-4o-mini-8k" ||
       m === "gpt-4.1" ||
       m === "gpt-4.1-mini" ||
-      m === "o1-mini-8k" ||
-      m === "o1-8k",
-
-    // ATTN: there is code for o1 and o1-mini, but it does not work yet.
-    // The API changed, there is no support for streaming, and it took
-    // too much of my time trying to get it to work already.
-    // m === "o1-mini-8k" ||
-    // m === "o1-8k",
+      m === "o3-8k" ||
+      m === "o4-mini-8k" ||
+      m === "gpt-5-8k" ||
+      m === "gpt-5-mini-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
@@ -264,7 +270,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gemini-2.5-flash-8k" ||
       m === "gemini-2.5-pro-8k",
   ),
-  mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
+  mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-small-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
@@ -759,6 +765,8 @@ export const LLM_USERNAMES: LLM2String = {
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
+  "devstral-medium-2507": "Devstral Medium",
+  //"magistral-medium-latest": "Magistral Medium",
   "claude-3-haiku": "Claude 3 Haiku",
   "claude-3-haiku-8k": "Claude 3 Haiku",
   "claude-3-5-haiku-8k": "Claude 3 Haiku",
@@ -770,6 +778,14 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-4-opus-8k": "Claude 4 Opus",
   "claude-3-opus": "Claude 3 Opus",
   "claude-3-opus-8k": "Claude 3 Opus",
+  "o3-8k": "OpenAI o3",
+  o3: "OpenAI o3 128k",
+  "o4-mini-8k": "OpenAI o4-mini",
+  "o4-mini": "OpenAI o4-mini 128k",
+  "gpt-5-8k": "GPT-5",
+  "gpt-5": "GPT-5 128k",
+  "gpt-5-mini-8k": "GPT-5 Mini",
+  "gpt-5-mini": "GPT-5 Mini 128k",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -826,11 +842,15 @@ export const LLM_DESCR: LLM2String = {
   "gemini-2.5-pro-8k":
     "Google's Gemini 2.5 Pro Generative AI model (8k token context)",
   "mistral-small-latest":
-    "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
+    "Small general purpose tasks, text classification, customer service. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
     "Intermediate tasks, summarizing, generating documents, etc. (Mistral AI, 4k token context)",
   "mistral-large-latest":
     "Most powerful, large reasoning capabilities, but slower. (Mistral AI, 4k token context)",
+  "devstral-medium-2507":
+    "Developer-focused model optimized for coding tasks. (Mistral AI, 8k token context)",
+  // "magistral-medium-latest":
+  //   "Enhanced medium model with improved reasoning capabilities. (Mistral AI, 8k token context)",
   "claude-3-haiku":
     "Fastest model, lightweight actions (Anthropic, 200k token context)",
   "claude-3-haiku-8k":
@@ -853,6 +873,20 @@ export const LLM_DESCR: LLM2String = {
     "Excels at writing and complex tasks (Anthropic, 200k token context)",
   "claude-3-opus-8k":
     "Excels at writing and complex tasks (Anthropic, 8k token context)",
+  "o3-8k":
+    "Advanced reasoning model with enhanced thinking capabilities (8k token context)",
+  o3: "Advanced reasoning model with enhanced thinking capabilities (128k token context)",
+  "o4-mini-8k":
+    "Cost-efficient reasoning model with strong performance (8k token context)",
+  "o4-mini":
+    "Cost-efficient reasoning model with strong performance (128k token context)",
+  "gpt-5-8k":
+    "OpenAI's most advanced model with built-in reasoning (8k token context)",
+  "gpt-5":
+    "OpenAI's most advanced model with built-in reasoning (128k token context)",
+  "gpt-5-mini-8k":
+    "Fast and cost-efficient version of GPT-5 (8k token context)",
+  "gpt-5-mini": "Fast and cost-efficient version of GPT-5 (128k token context)",
 } as const;
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
@@ -938,14 +972,14 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: false,
   },
   "gpt-3.5-turbo": {
-    prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(6),
+    prompt_tokens: usd1Mtokens(0.5),
+    completion_tokens: usd1Mtokens(1.5),
     max_tokens: 4096,
     free: true,
   },
   "gpt-3.5-turbo-16k": {
     prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(6),
+    completion_tokens: usd1Mtokens(4),
     max_tokens: 16384,
     free: false,
   },
@@ -1036,8 +1070,8 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   },
   // also OpenAI
   "text-embedding-ada-002": {
-    prompt_tokens: 0.0001 / 1000,
-    completion_tokens: 0.0001 / 1000, // NOTE: this isn't a thing with embeddings
+    prompt_tokens: usd1Mtokens(0.05),
+    completion_tokens: usd1Mtokens(0.05), // NOTE: this isn't a thing with embeddings
     max_tokens: 8191,
     free: false,
   },
@@ -1111,8 +1145,8 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: true,
   },
   "mistral-medium-latest": {
-    prompt_tokens: usd1Mtokens(2.7),
-    completion_tokens: usd1Mtokens(8.1),
+    prompt_tokens: usd1Mtokens(0.4),
+    completion_tokens: usd1Mtokens(2),
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: true,
   },
@@ -1122,6 +1156,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: false,
   },
+  "devstral-medium-2507": {
+    prompt_tokens: usd1Mtokens(0.4),
+    completion_tokens: usd1Mtokens(2),
+    max_tokens: 8_000, // TODO don't know the real value, see getMaxTokens
+    free: true,
+  },
+  // "magistral-medium-latest": {
+  //   prompt_tokens: usd1Mtokens(2),
+  //   completion_tokens: usd1Mtokens(5),
+  //   max_tokens: 8_000, // TODO don't know the real value, see getMaxTokens
+  //   free: false,
+  // },
   // Anthropic: pricing somewhere on that page: https://www.anthropic.com/api
   "claude-3-opus-8k": {
     prompt_tokens: usd1Mtokens(15),
@@ -1188,6 +1234,54 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     completion_tokens: usd1Mtokens(75),
     max_tokens: 8_000,
     free: false,
+  },
+  "o3-8k": {
+    prompt_tokens: usd1Mtokens(2),
+    completion_tokens: usd1Mtokens(8),
+    max_tokens: 8192,
+    free: false,
+  },
+  o3: {
+    prompt_tokens: usd1Mtokens(2),
+    completion_tokens: usd1Mtokens(8),
+    max_tokens: 128000,
+    free: false,
+  },
+  "o4-mini-8k": {
+    prompt_tokens: usd1Mtokens(1.1),
+    completion_tokens: usd1Mtokens(4.4),
+    max_tokens: 8192,
+    free: false,
+  },
+  "o4-mini": {
+    prompt_tokens: usd1Mtokens(1.1),
+    completion_tokens: usd1Mtokens(4.4),
+    max_tokens: 128000,
+    free: false,
+  },
+  "gpt-5-8k": {
+    prompt_tokens: usd1Mtokens(1.25),
+    completion_tokens: usd1Mtokens(10),
+    max_tokens: 8192,
+    free: false,
+  },
+  "gpt-5": {
+    prompt_tokens: usd1Mtokens(1.25),
+    completion_tokens: usd1Mtokens(10),
+    max_tokens: 128000,
+    free: false,
+  },
+  "gpt-5-mini-8k": {
+    prompt_tokens: usd1Mtokens(0.25),
+    completion_tokens: usd1Mtokens(2),
+    max_tokens: 8192,
+    free: true,
+  },
+  "gpt-5-mini": {
+    prompt_tokens: usd1Mtokens(0.25),
+    completion_tokens: usd1Mtokens(2),
+    max_tokens: 128000,
+    free: true,
   },
 } as const;
 
