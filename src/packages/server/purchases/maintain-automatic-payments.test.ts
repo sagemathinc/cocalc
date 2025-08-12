@@ -15,7 +15,7 @@ import { getServerSettings } from "@cocalc/database/settings";
 import { before, after, getPool } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await before();
+  await before({ noConat: true });
   setMockCollectPayment(async ({ account_id, amount }) => {
     collect.push({ account_id, amount });
   });

@@ -4,7 +4,9 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createPurchase from "./create-purchase";
 import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("get the spend rate of a user under various circumstances", () => {

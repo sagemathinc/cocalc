@@ -3,7 +3,9 @@ import { createTestAccount } from "./test-data";
 import getMinBalance from "./get-min-balance";
 import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("test that getMinBalance works", () => {

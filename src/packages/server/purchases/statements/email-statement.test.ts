@@ -12,7 +12,9 @@ import { delay } from "awaiting";
 import getStatements from "./get-statements";
 import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("creates an account, then creates statements and corresponding emails and test that everything matches up", () => {

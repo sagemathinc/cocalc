@@ -15,7 +15,9 @@ import getLicense from "@cocalc/server/licenses/get-license";
 import getBalance from "./get-balance";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("create a subscription, cancel it, then resume it", () => {

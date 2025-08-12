@@ -9,7 +9,9 @@ import { uuid } from "@cocalc/util/misc";
 import dayjs from "dayjs";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("test computing balance under various conditions", () => {

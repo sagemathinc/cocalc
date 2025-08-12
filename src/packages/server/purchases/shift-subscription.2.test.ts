@@ -12,7 +12,9 @@ import { test } from "./shift-subscriptions";
 import { setClosingDay } from "./closing-date";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("test shiftSubscriptionToEndOnDay -- involves actual subscriptions", () => {

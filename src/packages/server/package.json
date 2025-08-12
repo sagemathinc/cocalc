@@ -36,7 +36,7 @@
     "clean": "rm -rf node_modules dist",
     "build": "../node_modules/.bin/tsc --build",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
-    "test": "TZ=UTC jest --forceExit --runInBand",
+    "test": "TZ=UTC jest --forceExit --maxWorkers=1",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "test"
   },

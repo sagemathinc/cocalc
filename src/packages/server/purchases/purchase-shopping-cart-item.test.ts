@@ -18,7 +18,9 @@ import resumeSubscription from "./resume-subscription";
 import createPurchase from "./create-purchase";
 import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("create a subscription license and edit it and confirm the subscription cost changes", () => {

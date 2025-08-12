@@ -14,7 +14,9 @@ import dayjs from "dayjs";
 import { closeAndContinuePurchase } from "../project-quotas";
 import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("creates an account, then creates purchases and statements", () => {

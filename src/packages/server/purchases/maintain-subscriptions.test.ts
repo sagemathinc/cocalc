@@ -2,7 +2,9 @@ import maintainSubscriptions from "./maintain-subscriptions";
 import { initEphemeralDatabase } from "@cocalc/database/pool";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("test maintainSubscriptions", () => {

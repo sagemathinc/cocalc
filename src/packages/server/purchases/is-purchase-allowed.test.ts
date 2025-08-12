@@ -15,7 +15,9 @@ import {
 import { getPurchaseQuota, setPurchaseQuota } from "./purchase-quotas";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("test checking whether or not purchase is allowed under various conditions", () => {

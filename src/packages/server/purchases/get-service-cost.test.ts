@@ -1,7 +1,9 @@
 import getServiceCost from "./get-service-cost";
 import { before, after } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("get some service costs", () => {

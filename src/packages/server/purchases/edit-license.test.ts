@@ -20,7 +20,9 @@ import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { license0 } from "./test-data";
 import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(before, 15000);
+beforeAll(async () => {
+  await before({ noConat: true });
+}, 15000);
 afterAll(after);
 
 describe("create a license and then edit it in various ways", () => {
