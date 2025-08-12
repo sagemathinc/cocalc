@@ -33,7 +33,6 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import { CUTOFF } from "@cocalc/frontend/frame-editors/llm/consts";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToName,
@@ -41,7 +40,6 @@ import LLMSelector, {
 import { labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
-import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
@@ -62,6 +60,7 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import NBViewer from "../nbviewer/nbviewer";
+import { getPreviousNonemptyCellContents } from "../util/cell-content";
 import { Position } from "./types";
 import { insertCell } from "./util";
 
@@ -713,7 +712,7 @@ export function AIGenerateCodeCell({
       open={open}
       content={renderContent}
       trigger={[]}
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       {children}
     </Popover>
@@ -771,47 +770,4 @@ function getInput({
     history,
     system: `Create one or more code cells in a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nEach code cell must be wrapped in triple backticks. Do not say what the output will be. Be brief.`,
   };
-}
-
-function getPreviousNonemptyCellContents(
-  actions: NotebookFrameActions | undefined,
-  id: string,
-  position,
-  prevCells: PrevCells,
-  cellTypes: "all" | "code" | "markdown" = "code",
-  lang,
-): string {
-  if (actions == null) return "";
-  if (prevCells === "none") return "";
-  const jupyterActionsStore = actions?.jupyter_actions.store;
-  const start = position === "below" ? 0 : -1;
-  let delta: number = start;
-  const cells: string[] = [];
-  let length = 0;
-
-  while (true) {
-    const prevId = jupyterActionsStore.get_cell_id(delta, id);
-    if (!prevId) break;
-    const prevCell = actions.get_cell_by_id(prevId);
-    if (!prevCell) break;
-    const code = actions.get_cell_input(prevId)?.trim();
-    const cellType = prevCell.get("cell_type", "code");
-    if (code && (cellTypes === "all" || cellType === cellTypes)) {
-      // we found a cell of given type
-      length += code.length;
-      if (length > CUTOFF) break;
-      const delim = backtickSequence(code);
-      cells.unshift(
-        cellTypes === "all" && cellType === "code"
-          ? `${delim}${lang}\n${code}\n${delim}`
-          : code,
-      );
-      if (typeof prevCells === "number") {
-        prevCells -= 1;
-        if (prevCells <= 0) break;
-      }
-    }
-    delta -= 1;
-  }
-  return cells.join("\n\n");
 }

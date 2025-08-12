@@ -192,8 +192,8 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarLLMButtons() {
-      if (!isCodeCell || !llmTools || !haveLLMCellTools || is_readonly) return;
-      return <LLMCellTool id={id} actions={actions} llmTools={llmTools} />;
+      if (!llmTools || !haveLLMCellTools || is_readonly) return;
+      return <LLMCellTool id={id} actions={actions} llmTools={llmTools} cellType={isCodeCell ? "code" : "markdown"} />;
     }
 
     function renderCodeBarFormatButton() {
@@ -204,7 +204,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
       return (
         <Tooltip
           title={intl.formatMessage({
-            id: "jupyter.cell-buttonbr.format-button.tooltip",
+            id: "jupyter.cell-buttonbar.format-button.tooltip",
             defaultMessage: "Format this code to look nice",
             description: "Code cell in a Jupyter Notebook",
           })}
@@ -230,7 +230,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
           >
             <Icon name={formatting ? "spinner" : "sitemap"} spin={formatting} />{" "}
             <FormattedMessage
-              id="jupyter.cell-buttonbr.format-button.label"
+              id="jupyter.cell-buttonbar.format-button.label"
               defaultMessage={"Format"}
               description={"Code cell in a Jupyter Notebook"}
             />
