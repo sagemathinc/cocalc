@@ -96,7 +96,7 @@ export default async function exec({
     // console.log(`${cmd} ${args.join(" ")}`, { cwd });
     const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
-      env: {},
+      env: {} as any, // sometimes next complains about this
       cwd,
       ...userId,
     });
