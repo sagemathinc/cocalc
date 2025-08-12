@@ -90,5 +90,5 @@ export function client({
   subject: string;
 }): API {
   client ??= conat();
-  return client.call<API>(subject);
+  return client.call<API>(subject, { waitForInterest: true });
 }
