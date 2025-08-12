@@ -9,5 +9,5 @@ export interface Configuration {
   // pid limit
   pids?: number | string;
   // disk size
-  size?: number | string;
+  disk?: number | string;
 }
