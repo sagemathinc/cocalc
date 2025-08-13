@@ -13,7 +13,7 @@ describe("create account, project, then start and stop project", () => {
   const account_id = uuid();
   let project_id;
 
-  it("create an account and a license so we can edit it", async () => {
+  it("create an account and a project so we can control it", async () => {
     await createAccount({
       email: "",
       password: "xyz",

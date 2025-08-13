@@ -11,6 +11,9 @@ import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import {
   before as conatTestInit,
   after as conatTestClose,
+  connect,
+  client,
+  wait,
 } from "@cocalc/backend/conat/test/setup";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initFileserver } from "@cocalc/server/conat/file-server";
@@ -22,7 +25,7 @@ import { init as initProjectRunner } from "@cocalc/server/conat/project/run";
 import { init as initProjectRunnerLoadBalancer } from "@cocalc/server/conat/project/load-balancer";
 import { delay } from "awaiting";
 
-export { getPool, initEphemeralDatabase };
+export { client, connect, getPool, initEphemeralDatabase, wait };
 
 let opts: any = {};
 export async function before({

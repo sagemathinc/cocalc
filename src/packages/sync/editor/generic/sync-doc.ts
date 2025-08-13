@@ -34,10 +34,13 @@ const WATCH_RECREATE_WAIT = 3000;
 
 // all clients ignore file changes from when a save starts until this
 // amount of time later, so they avoid loading a file just because it was
-// saved by themself or another client.  This is very important for
-// large files.
-const IGNORE_ON_SAVE_INTERVAL = 10000;
+// saved by themself or another client.  This is especially important for
+// large files that can take a long time to save.
+const IGNORE_ON_SAVE_INTERVAL = 7500;
 
+// reading file when it changes on disk is deboucned this much, e.g.,
+// if the file keeps changing you won't see those changes until it
+// stops changing for this long.
 const WATCH_DEBOUNCE = 250;
 
 import {
@@ -136,10 +139,15 @@ export interface SyncOpts0 {
   // optional timeout for how long to wait from when a file is
   // deleted until emiting a 'deleted' event.
   deletedThreshold?: number;
+  deletedCheckInterval?: number;
   // how long to wait before trying to recreate a watch -- this mainly
   // matters in cases when the file is deleted and the client ignores
   // the 'deleted' event.
   watchRecreateWait?: number;
+
+  // instead of the default IGNORE_ON_SAVE_INTERVAL
+  ignoreOnSaveInterval?: number;
+  watchDebounce?: number;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -161,6 +169,7 @@ const logger = getLogger("sync-doc");
 logger.debug("init");
 
 export class SyncDoc extends EventEmitter {
+  public readonly opts: SyncOpts;
   public readonly project_id: string; // project_id that contains the doc
   public readonly path: string; // path of the file corresponding to the doc
   private string_id: string;
@@ -240,11 +249,12 @@ export class SyncDoc extends EventEmitter {
 
   private noAutosave?: boolean;
 
-  private deletedThreshold?: number;
-  private watchRecreateWait?: number;
+  private readFileDebounced: Function;
+  public isDeleted: boolean = false;
 
   constructor(opts: SyncOpts) {
     super();
+    this.opts = opts;
 
     if (opts.string_id === undefined) {
       this.string_id = schema.client_db.sha1(opts.project_id, opts.path);
@@ -252,6 +262,7 @@ export class SyncDoc extends EventEmitter {
       this.string_id = opts.string_id;
     }
 
+    // TODO: it might be better to just use this.opts.field everywhere...?
     for (const field of [
       "project_id",
       "path",
@@ -267,13 +278,26 @@ export class SyncDoc extends EventEmitter {
       "ephemeral",
       "fs",
       "noAutosave",
-      "deletedThreshold",
-      "watchRecreateWait",
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
       }
     }
+
+    this.readFileDebounced = asyncDebounce(
+      async () => {
+        try {
+          this.emit("handle-file-change");
+          await this.readFile();
+          await this.stat();
+        } catch {}
+      },
+      this.opts.watchDebounce ?? WATCH_DEBOUNCE,
+      {
+        leading: false,
+        trailing: true,
+      },
+    );
 
     this.client.once("closed", this.close);
 
@@ -327,7 +351,7 @@ export class SyncDoc extends EventEmitter {
   this SyncDoc.
   */
   private initialized = false;
-  private init = async () => {
+  init = reuseInFlight(async () => {
     if (this.initialized) {
       throw Error("init can only be called once");
     }
@@ -366,7 +390,7 @@ export class SyncDoc extends EventEmitter {
     // Success -- everything initialized with no issues.
     this.set_state("ready");
     this.emit_change(); // from nothing to something.
-  };
+  });
 
   // Return id of ACTIVE remote compute server, if one is connected and pinging, or 0
   // if none is connected.  This is used by Jupyter to determine who
@@ -1168,7 +1192,7 @@ export class SyncDoc extends EventEmitter {
       this.init_cursors(),
       this.init_evaluator(),
       this.init_ipywidgets(),
-      this.initFileWatcher(),
+      this.initFileWatcherFirstTime(),
     ]);
     this.assert_not_closed(
       "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
@@ -2250,15 +2274,22 @@ export class SyncDoc extends EventEmitter {
     let contents;
     try {
       contents = await this.fs.readFile(this.path, "utf8");
+      // console.log(this.client.client.id, "read from disk --isDeleted = false");
+      if (this.isDeleted) {
+        this.isDeleted = false;
+      }
       this.valueOnDisk = contents;
       dbg("file exists");
       size = contents.length;
       this.from_str(contents);
     } catch (err) {
       if (err.code == "ENOENT") {
+        // console.log(this.client.client.id, "reset doc and set isDeleted=true");
+        this.isDeleted = true;
         dbg("file no longer exists -- setting to blank");
         size = 0;
         this.from_str("");
+        this.commit();
       } else {
         throw err;
       }
@@ -2283,6 +2314,7 @@ export class SyncDoc extends EventEmitter {
     const prevStats = this.stats;
     this.stats = (await this.fs.stat(this.path)) as Stats;
     if (prevStats?.mode != this.stats.mode) {
+      // used by clients to track read-only state.
       this.emit("metadata-change");
     }
     return this.stats;
@@ -2336,7 +2368,7 @@ export class SyncDoc extends EventEmitter {
   // NOTE: this does not take into account saving by another client
   // anymore; it used to, but that made things much more complicated.
   hash_of_saved_version = (): number | undefined => {
-    if (!this.isReady() || this.valueOnDisk == null) {
+    if (!this.isReady() || this.valueOnDisk == null || this.isDeleted) {
       return;
     }
     return hash_string(this.valueOnDisk);
@@ -2411,7 +2443,7 @@ export class SyncDoc extends EventEmitter {
   private valueOnDisk: string | undefined = undefined;
 
   private hasUnsavedChanges = (): boolean => {
-    return this.valueOnDisk != this.to_str();
+    return this.valueOnDisk != this.to_str() || this.isDeleted;
   };
 
   writeFile = async () => {
@@ -2434,7 +2466,9 @@ export class SyncDoc extends EventEmitter {
     // so no clients waste resources loading in response to us saving
     // to disk.
     try {
-      await this.fileWatcher?.ignore(IGNORE_ON_SAVE_INTERVAL);
+      await this.fileWatcher?.ignore(
+        this.opts.ignoreOnSaveInterval ?? IGNORE_ON_SAVE_INTERVAL,
+      );
     } catch {
       // not a big problem if we can't ignore (e.g., this happens potentially
       // after deleting the file or if file doesn't exist)
@@ -2729,27 +2763,43 @@ export class SyncDoc extends EventEmitter {
     }
   }, 60000);
 
-  private readFileDebounced = asyncDebounce(
-    async () => {
-      try {
-        this.emit("handle-file-change");
-        await this.readFile();
-        await this.stat();
-      } catch {}
-    },
-    WATCH_DEBOUNCE,
-    {
-      leading: false,
-      trailing: true,
-    },
-  );
+  private initFileWatcherFirstTime = () => {
+    // set this going, but don't await it.
+    (async () => {
+      await until(
+        async () => {
+          if (this.isClosed()) return true;
+          try {
+            await this.initFileWatcher();
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { min: this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT },
+      );
+    })();
+  };
 
   private fileWatcher?: any;
   private initFileWatcher = async () => {
     // use this.fs interface to watch path for changes -- we try once:
     try {
       this.fileWatcher = await this.fs.watch(this.path, { unique: true });
-    } catch {}
+      if (this.isDeleted) {
+        await this.readFile();
+      }
+    } catch (err) {
+      // console.log("error creating watcher", err);
+      if (err.code == "ENOENT") {
+        // the file was deleted -- check if this stays deleted long enough to count
+        await this.signalIfFileDeleted();
+      }
+      // throwing this error just causes initFileWatcher to get
+      // initialized again soon (a few seconds), again attemping a watch,
+      // unless it is the first time initializing the document.
+      throw err;
+    }
     if (this.isClosed()) return;
 
     // not closed -- so if above succeeds we start watching.
@@ -2772,12 +2822,13 @@ export class SyncDoc extends EventEmitter {
           }
         }
         // check if file was deleted
-        this.closeIfFileDeleted();
+        this.signalIfFileDeleted();
         this.fileWatcher?.close();
         delete this.fileWatcher;
       }
+      if (this.isClosed()) return;
       // start a new watcher since file descriptor probably changed or maybe file deleted
-      await delay(this.watchRecreateWait ?? WATCH_RECREATE_WAIT);
+      await delay(this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT);
       await until(
         async () => {
           if (this.isClosed()) return true;
@@ -2788,7 +2839,7 @@ export class SyncDoc extends EventEmitter {
             return false;
           }
         },
-        { min: this.watchRecreateWait ?? WATCH_RECREATE_WAIT },
+        { min: this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT },
       );
     })();
   };
@@ -2814,14 +2865,14 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
-  private closeIfFileDeleted = async () => {
+  private signalIfFileDeleted = async (): Promise<void> => {
     if (this.isClosed()) return;
     const start = Date.now();
-    const threshold = this.deletedThreshold ?? DELETED_THRESHOLD;
-    while (true) {
+    const threshold = this.opts.deletedThreshold ?? DELETED_THRESHOLD;
+    while (!this.isClosed()) {
       try {
         if (await this.fileExists()) {
-          // file definitely exists right now.
+          // file definitely exists right now -- NOT deleted.
           return;
         }
         // file definitely does NOT exist right now.
@@ -2835,10 +2886,19 @@ export class SyncDoc extends EventEmitter {
         // it does not exist above
         // file still doesn't exist -- consider it deleted -- browsers
         // should close the tab and possibly notify user.
+        this.from_str("");
+        this.commit();
+        // console.log("emit deleted and set isDeleted=true");
+        this.isDeleted = true;
         this.emit("deleted");
         return;
       }
-      await delay(Math.min(DELETED_CHECK_INTERVAL, threshold - elapsed));
+      await delay(
+        Math.min(
+          this.opts.deletedCheckInterval ?? DELETED_CHECK_INTERVAL,
+          threshold - elapsed,
+        ),
+      );
     }
   };
 }
