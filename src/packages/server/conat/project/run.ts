@@ -248,7 +248,9 @@ async function status({ project_id }) {
     state = "running";
   }
   setProjectState({ project_id, state });
-  return { state };
+  // [ ] TODO: ip -- need to figure out the networking story for running projects
+  // The following will only work on a single machine with global network address space
+  return { state, ip: "127.0.0.1" };
 }
 
 export async function init(count: number = 1) {

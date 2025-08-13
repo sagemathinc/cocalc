@@ -2,7 +2,7 @@ import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import { getProject } from "@cocalc/server/projects/control";
-import { before, after, client, connect, wait } from "@cocalc/server/test";
+import { before, after, client, connect } from "@cocalc/server/test";
 import { addCollaborator } from "@cocalc/server/projects/collaborators";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";

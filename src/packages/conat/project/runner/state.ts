@@ -10,6 +10,7 @@ export type ProjectState = "running" | "opened" | "stopping" | "starting";
 export interface ProjectStatus {
   server?: string;
   state: ProjectState;
+  ip?: string; // the ip address when running
 }
 
 export default async function state({ client }) {
