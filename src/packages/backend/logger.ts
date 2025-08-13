@@ -71,8 +71,6 @@ function myFormat(...args): string {
 function defaultTransports(): { console?: boolean; file?: string } {
   if (process.env.SMC_TEST) {
     return {};
-  } else if (process.env.COCALC_DOCKER) {
-    return { file: "/var/log/hub/log" };
   } else if (process.env.NODE_ENV == "production") {
     return { console: true };
   } else {
