@@ -51,6 +51,7 @@ import {
   client as fileserverClient,
   type Fileserver,
 } from "@cocalc/server/conat/file-server";
+import { nsjail } from "@cocalc/backend/sandbox/install";
 
 // for development it may be useful to just disabling using nsjail namespaces
 // entirely -- change this to true to do so.
@@ -197,7 +198,7 @@ async function start({
     args.push(...limits(config));
     args.push("--");
     args.push(process.execPath);
-    cmd = "nsjail";
+    cmd = nsjail;
   }
 
   args.push(script, "--init", "project_init.sh");
