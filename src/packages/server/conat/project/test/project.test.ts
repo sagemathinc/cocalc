@@ -27,7 +27,6 @@ describe("create account, project, then start and stop project", () => {
     project_id = await createProject({
       account_id,
       title: "My First Project",
-      noPool: true,
       start: false,
     });
   });

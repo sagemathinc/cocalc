@@ -38,7 +38,6 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
       account_id: account_id1,
       title: "Collab Project",
       start: false,
-      noPool: true,
     });
     project = getProject(project_id);
 

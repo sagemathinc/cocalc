@@ -27,7 +27,6 @@ import initHandleMentions from "@cocalc/server/mentions/handle";
 import initMessageMaintenance from "@cocalc/server/messages/maintenance";
 import initProjectControl from "@cocalc/server/projects/control";
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
-import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
@@ -285,11 +284,6 @@ async function startServer(): Promise<void> {
   }
 
   if (program.all || program.mentions) {
-    // kucalc: for now we just have the hub-mentions servers
-    // do the new project pool maintenance, since there is only
-    // one hub-stats.
-    // On non-cocalc it'll get done by *the* hub because of program.all.
-    initNewProjectPoolMaintenanceLoop();
     // Starts periodic maintenance on pay-as-you-go purchases, e.g., quota
     // upgrades of projects.
     initPurchasesMaintenanceLoop();

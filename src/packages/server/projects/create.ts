@@ -9,7 +9,6 @@ import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { v4 } from "uuid";
 import { associatedLicense } from "@cocalc/server/licenses/public-path";
-import getFromPool from "@cocalc/server/projects/pool/get-project";
 import getLogger from "@cocalc/backend/logger";
 import { getProject } from "@cocalc/server/projects/control";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
@@ -34,7 +33,6 @@ export default async function createProject(opts: CreateProjectOptions) {
     description,
     image,
     public_path_id,
-    noPool,
     start,
     src_project_id,
   } = opts;
@@ -57,21 +55,6 @@ export default async function createProject(opts: CreateProjectOptions) {
     }
     project_id = opts.project_id;
   } else {
-    // Try to get from pool if no license and no image specified (so the default) and not cloning,
-    // and not "noPool".  NOTE: we may improve the pool to also provide some
-    // basic licensed projects later, and better support for images.  Maybe.
-    if (!src_project_id && !noPool && !license && account_id != null) {
-      project_id = await getFromPool({
-        account_id,
-        title,
-        description,
-        image,
-      });
-      if (project_id != null) {
-        return project_id;
-      }
-    }
-
     project_id = v4();
   }
 

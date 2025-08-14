@@ -73,7 +73,6 @@ export class StudentProjectsActions {
         title: store.get("settings").get("title"),
         description: store.get("settings").get("description"),
         image: store.get("settings").get("custom_image") ?? defaultImage,
-        noPool: true, // student is unlikely to use the project right *now*
       });
     } catch (err) {
       this.course_actions.set_error(
