@@ -69,7 +69,7 @@ export default function DirectorySelector({
   closable = true,
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
-  if (project_id == null) project_id = frameContext.project_id;
+  project_id ??= frameContext.project_id;
   const fallbackComputeServerId = useTypedRedux(
     { project_id },
     "compute_server_id",
@@ -377,10 +377,14 @@ function Subdirs(props) {
     toggleSelection,
   } = props;
   const fs = useFs({ project_id, computeServerId });
+  const cacheId = getCacheId({
+    project_id,
+    compute_server_id: computeServerId,
+  });
   const { files, error, refresh } = useFiles({
     fs,
     path,
-    cacheId: getCacheId({ project_id, compute_server_id: computeServerId }),
+    cacheId,
   });
   if (error) {
     return <ShowError error={error} setError={refresh} />;
