@@ -13,8 +13,6 @@ import {
   Input,
   Modal,
   Select,
-  Slider,
-  SliderSingleProps,
   Space,
   Switch,
   Tag,
@@ -49,7 +47,11 @@ import { capitalize, getRandomColor, unreachable } from "@cocalc/util/misc";
 import { JupyterActions } from "../browser-actions";
 import { CODE_BAR_BTN_STYLE } from "../consts";
 import { cellOutputToText } from "../output-messages/ansi";
-import { getNonemptyCellContents } from "../util/cell-content";
+import {
+  CellContextContent,
+  getNonemptyCellContents,
+} from "../util/cell-content";
+import { LLMCellContextSelector } from "./cell-context-selector";
 
 interface Props {
   actions?: JupyterActions;
@@ -484,8 +486,8 @@ export function LLMCellTool({
     return mode === "ask" || (mode === "document" && isMarkdownCell);
   };
 
-  const getContextContent = (): string => {
-    if (!shouldShowContext()) return "";
+  const getContextContent = (): CellContextContent => {
+    if (!shouldShowContext()) return {};
 
     // contextRange is like [-2, 2], so aboveCount should be 2, belowCount should be 2
     const aboveCount = Math.abs(contextRange[0]);
@@ -680,9 +682,19 @@ export function LLMCellTool({
     // Add context for ask and document modes (inside details)
     if (shouldShowContext()) {
       const contextContent = getContextContent();
-      if (contextContent) {
+      if (contextContent.before || contextContent.after) {
         chunks.push("Context from surrounding cells:");
-        chunks.push(`<context>\n${contextContent}\n</context>`);
+
+        if (contextContent.before) {
+          chunks.push("Cells BEFORE current cell:");
+          chunks.push(`<before>\n${contextContent.before}\n</before>`);
+        }
+
+        if (contextContent.after) {
+          chunks.push("Cells AFTER current cell:");
+          chunks.push(`<after>\n${contextContent.after}\n</after>`);
+        }
+
         chunks.push(""); // Add empty line for separation
       }
     }
@@ -691,7 +703,11 @@ export function LLMCellTool({
     const delimI = backtickSequence(input);
 
     // For ask and document modes with context, label the current cell content
-    if (shouldShowContext() && getContextContent()) {
+    const contextContent = getContextContent();
+    if (
+      shouldShowContext() &&
+      (contextContent.before || contextContent.after)
+    ) {
       chunks.push("Current cell content:");
     }
 
@@ -1118,94 +1134,16 @@ export function LLMCellTool({
   function renderContextSelection() {
     if (!shouldShowContext()) return null;
 
-    const jupyterActionsStore = frameActions.current?.jupyter_actions.store;
-    if (!jupyterActionsStore) return null;
-
-    // Count cells above
-    let cellsAbove = 0;
-    let delta = -1;
-    while (jupyterActionsStore.get_cell_id(delta, id)) {
-      cellsAbove++;
-      delta--;
-    }
-
-    // Count cells below
-    let cellsBelow = 0;
-    delta = 1;
-    while (jupyterActionsStore.get_cell_id(delta, id)) {
-      cellsBelow++;
-      delta++;
-    }
-
-    const minValue = -cellsAbove;
-    const maxValue = cellsBelow;
-
-    // Adjust initial range if current cell is at edges
-    const adjustedRange: [number, number] = [
-      Math.max(contextRange[0], minValue),
-      Math.min(contextRange[1], maxValue),
-    ];
-
-    // Create marks dynamically
-    const marks: SliderSingleProps["marks"] = {
-      0: "0",
-    };
-
-    // Only add boundary marks if they don't conflict with -2/+2
-    if (minValue < 0) {
-      marks[minValue] = minValue === -2 ? "-2" : "first";
-    }
-    if (maxValue > 0) {
-      marks[maxValue] = maxValue === 2 ? "+2" : "last";
-    }
-
-    // Add -2 and +2 marks only if they're not at the boundaries
-    if (minValue < -2) {
-      marks[-2] = "-2";
-    }
-    if (maxValue > 2) {
-      marks[2] = "+2";
-    }
-
     return (
-      <>
-        <Paragraph>
-          <Flex align="center" gap="10px">
-            <Text>Context:</Text>
-            <Slider
-              range
-              marks={marks}
-              min={minValue}
-              max={maxValue}
-              step={1}
-              value={adjustedRange}
-              onChange={(value) => setContextRange(value as [number, number])}
-              style={{ flex: 1, margin: "0 20px" }}
-            />
-          </Flex>
-        </Paragraph>
-        <Paragraph type="secondary">
-          Selected: {Math.abs(adjustedRange[0])} cells above + current cell +{" "}
-          {adjustedRange[1]} cells below
-        </Paragraph>
-        <Paragraph>
-          <Flex align="center" gap="10px">
-            <Flex flex={0}>
-              <Switch
-                checked={cellTypes === "all"}
-                onChange={(val) => setCellTypes(val ? "all" : "code")}
-                unCheckedChildren="Code cells"
-                checkedChildren="All Cells"
-              />
-            </Flex>
-            <Flex flex={1}>
-              <Text type="secondary">
-                Include only code cells, or all types of cells.
-              </Text>
-            </Flex>
-          </Flex>
-        </Paragraph>
-      </>
+      <LLMCellContextSelector
+        contextRange={contextRange}
+        onContextRangeChange={setContextRange}
+        cellTypes={cellTypes}
+        onCellTypesChange={setCellTypes}
+        currentCellId={id}
+        frameActions={frameActions.current}
+        mode="current-cell"
+      />
     );
   }
 
