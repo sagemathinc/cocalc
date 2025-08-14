@@ -5,8 +5,10 @@
 
 declare let DEBUG;
 
-import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
+import { useEffect, useRef, useState } from "react";
+
+import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
@@ -88,6 +90,58 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
     render_cocalc,
     onCellProps,
   } = props;
+
+  const problemsRef = useRef<HTMLDivElement>(null);
+  const cgroupRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const explanationRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [tableHeight, setTableHeight] = useState<number>(400);
+
+  useEffect(() => {
+    const calculateTableHeight = () => {
+      // Find the parent container with class "smc-vfill"
+      let parentContainer = headerRef.current?.closest(
+        ".smc-vfill",
+      ) as HTMLElement;
+      if (!parentContainer) return;
+
+      const parentHeight = parentContainer.getBoundingClientRect().height;
+      let usedHeight = 0;
+
+      // Add height of ProjectProblems component
+      if (problemsRef.current) {
+        usedHeight += problemsRef.current.offsetHeight;
+      }
+
+      // Add height of CGroup component
+      if (cgroupRef.current) {
+        usedHeight += cgroupRef.current.offsetHeight;
+      }
+
+      // Add height of header row
+      if (headerRef.current) {
+        usedHeight += headerRef.current.offsetHeight;
+      }
+
+      // Add height of explanation row if visible
+      if (explanationRef.current) {
+        usedHeight += explanationRef.current.offsetHeight;
+      }
+
+      // Add more buffer for table header, margins, and other spacing
+      usedHeight += 120;
+
+      const availableHeight = Math.max(300, parentHeight - usedHeight);
+      setTableHeight(availableHeight);
+    };
+
+    calculateTableHeight();
+
+    // Recalculate on window resize
+    window.addEventListener("resize", calculateTableHeight);
+    return () => window.removeEventListener("resize", calculateTableHeight);
+  }, [show_explanation, ptree]);
 
   function render_help() {
     return (
@@ -295,11 +349,16 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
       </Tip>
     );
 
-    const table_style: CSS = { marginBottom: "2rem" };
+    const table_style: CSS = {
+      marginBottom: "2rem",
+    };
 
     return (
       <>
-        <Row style={{ marginBottom: "10px", marginTop: "20px" }}>
+        <Row
+          ref={headerRef}
+          style={{ marginBottom: "10px", marginTop: "20px" }}
+        >
           <Col md={9}>
             <Form layout="inline">
               <Form.Item label="Table of Processes" />
@@ -314,13 +373,13 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
             </Form>
           </Col>
         </Row>
-        <Row>{render_explanation()}</Row>
+        <Row ref={explanationRef}>{render_explanation()}</Row>
         <Row>
           <Table<ProcessRow>
             dataSource={ptree}
             size={"small"}
             pagination={false}
-            scroll={{ y: "65vh" }}
+            scroll={{ y: tableHeight }}
             style={table_style}
             expandable={expandable}
             rowSelection={rowSelection}
@@ -472,15 +531,19 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
   function render_body() {
     return (
       <>
-        <ProjectProblems project_status={project_status} />
-        <CGroup
-          have_cgroup={info?.cgroup != null}
-          cg_info={cg_info}
-          disk_usage={disk_usage}
-          pt_stats={pt_stats}
-          start_ts={start_ts}
-          project_status={project_status}
-        />
+        <div ref={problemsRef}>
+          <ProjectProblems project_status={project_status} />
+        </div>
+        <div ref={cgroupRef}>
+          <CGroup
+            have_cgroup={info?.cgroup != null}
+            cg_info={cg_info}
+            disk_usage={disk_usage}
+            pt_stats={pt_stats}
+            start_ts={start_ts}
+            project_status={project_status}
+          />
+        </div>
         {render_top()}
         {render_modals()}
         {DEBUG && render_general_status()}
