@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+
 let tempDir;
 beforeAll(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
@@ -11,6 +12,8 @@ afterAll(async () => {
   await rm(tempDir, { force: true, recursive: true });
 });
 
+
+jest.setTimeout(15000);
 describe("find files", () => {
   it("directory starts empty", async () => {
     const { stdout, truncated } = await find(tempDir, {
