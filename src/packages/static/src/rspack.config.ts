@@ -36,7 +36,7 @@ webpack website.  Differences include:
 
 import { Configuration } from "@rspack/cli";
 import type { WebpackPluginInstance } from "@rspack/core";
-import { ProvidePlugin, SwcJsMinimizerRspackPlugin } from "@rspack/core";
+import { ProvidePlugin } from "@rspack/core";
 import { execSync } from "child_process";
 import { resolve as path_resolve } from "path";
 
@@ -237,26 +237,6 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
     plugins,
     devServer: {
       hot: true,
-    },
-
-    optimization: {
-      minimizer: [
-        // See https://github.com/web-infra-dev/rspack/issues/7034
-        new SwcJsMinimizerRspackPlugin({
-          minimizerOptions: {
-            mangle: {
-              // Needed to prevent Safari bug
-              // https://bugs.webkit.org/show_bug.cgi?id=220517
-              keep_fnames: true,
-            },
-            compress: {
-              // Needed to prevent Safari bug
-              // https://bugs.webkit.org/show_bug.cgi?id=220517
-              keep_fnames: true,
-            },
-          },
-        }),
-      ],
     },
   };
 
