@@ -8,7 +8,6 @@ import {
   Alert,
   Button,
   Collapse,
-  Divider,
   Dropdown,
   Flex,
   Input,
@@ -1149,41 +1148,45 @@ export function LLMCellTool({
 
     // Create marks dynamically
     const marks: SliderSingleProps["marks"] = {
-      0: "this cell",
+      0: "0",
     };
 
-    // Add marks for boundaries
+    // Only add boundary marks if they don't conflict with -2/+2
     if (minValue < 0) {
-      marks[minValue] = "first";
+      marks[minValue] = minValue === -2 ? "-2" : "first";
     }
     if (maxValue > 0) {
-      marks[maxValue] = "last";
+      marks[maxValue] = maxValue === 2 ? "+2" : "last";
     }
 
-    // Add -2 and +2 marks if they're within range
-    if (minValue <= -2) {
+    // Add -2 and +2 marks only if they're not at the boundaries
+    if (minValue < -2) {
       marks[-2] = "-2";
     }
-    if (maxValue >= 2) {
+    if (maxValue > 2) {
       marks[2] = "+2";
     }
 
     return (
       <>
-        <Divider orientation="left">
-          <Text>Context Selection</Text>
-        </Divider>
         <Paragraph>
-          <Slider
-            range
-            marks={marks}
-            min={minValue}
-            max={maxValue}
-            step={1}
-            value={adjustedRange}
-            onChange={(value) => setContextRange(value as [number, number])}
-            style={{ margin: "20px 10px" }}
-          />
+          <Flex align="center" gap="10px">
+            <Text>Context:</Text>
+            <Slider
+              range
+              marks={marks}
+              min={minValue}
+              max={maxValue}
+              step={1}
+              value={adjustedRange}
+              onChange={(value) => setContextRange(value as [number, number])}
+              style={{ flex: 1, margin: "0 20px" }}
+            />
+          </Flex>
+        </Paragraph>
+        <Paragraph type="secondary">
+          Selected: {Math.abs(adjustedRange[0])} cells above + current cell +{" "}
+          {adjustedRange[1]} cells below
         </Paragraph>
         <Paragraph>
           <Flex align="center" gap="10px">
@@ -1201,12 +1204,6 @@ export function LLMCellTool({
               </Text>
             </Flex>
           </Flex>
-        </Paragraph>
-        <Paragraph>
-          <Text type="secondary">
-            Selected: {Math.abs(adjustedRange[0])} cells above + current cell +{" "}
-            {adjustedRange[1]} cells below
-          </Text>
         </Paragraph>
       </>
     );
