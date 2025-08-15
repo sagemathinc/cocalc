@@ -285,7 +285,7 @@ def test(args) -> None:
     success = []
 
     def status():
-        print("Status: ", {"flaky": flaky, "fails": fails, "success": success})
+        print("Status: ", {"fails": fails, "flaky": flaky, "success": success})
 
     v = packages(args)
     v.sort()
@@ -295,6 +295,7 @@ def test(args) -> None:
         package_path = os.path.join(CUR, path)
         if package_path.endswith('packages/'):
             continue
+        package_json = open(os.path.join(package_path, 'package.json')).read()
 
         def f():
             print("\n" * 3)
@@ -304,13 +305,14 @@ def test(args) -> None:
             print(f"TESTING {n}/{len(v)}: {path}")
             print("*")
             print("*" * 40)
-            if args.test_github_ci and 'test-github-ci' in open(
-                    os.path.join(package_path, 'package.json')).read():
+            if args.test_github_ci and 'test-github-ci' in package_json:
                 test_cmd = "pnpm run test-github-ci"
             else:
                 test_cmd = "pnpm run --if-present test"
             if args.report:
                 test_cmd += " --reporters=default --reporters=jest-junit"
+            if args.max_workers:
+                test_cmd += f' --maxWorkers={args.max_workers} '
             cmd(test_cmd, package_path)
             success.append(path)
 
@@ -595,6 +597,13 @@ def main() -> None:
                            action="store_const",
                            const=True,
                            help='if given, generate test reports')
+    subparser.add_argument(
+        '--max-workers',
+        type=str,
+        default='',
+        help=
+        'optional maxWorkers argument to be passed to all all calls to pnpm test.  This can be helpful to prevent overly optimistic hyperthreading.'
+    )
     packages_arg(subparser)
     subparser.set_defaults(func=test)
 

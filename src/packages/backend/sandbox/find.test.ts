@@ -69,7 +69,7 @@ describe("find files", () => {
     const t = Date.now();
     const { stdout, truncated } = await find(tempDir, {
       options: ["-printf", "%f\n"],
-      timeout: 0.1,
+      timeout: 0.002,
     });
 
     expect(truncated).toBe(true);
