@@ -1762,13 +1762,6 @@ awaken_project = (db, project_id, cb) ->
                 cb()
             catch err
                 cb("error starting project = #{err}")
-        (cb) ->
-            if not db.ensure_connection_to_project?
-                cb()
-                return
-            dbg("also make sure there is a connection from hub to project")
-            # This is so the project can find out that the user wants to save a file (etc.)
-            db.ensure_connection_to_project(project_id, cb)
     ], (err) ->
         if err
             dbg("awaken project error -- #{err}")

@@ -8,15 +8,12 @@
 import initPidFile from "./pid-file";
 import initAPIServer from "@cocalc/project/http-api/server";
 import initBrowserServer from "./browser/http-server";
-import initHubServer from "./hub/tcp-server";
-
 import { getLogger } from "@cocalc/project/logger";
-const winston = getLogger("init-project-server");
+const logger = getLogger("init-project-server");
 
 export default async function init() {
-  winston.info("Write pid file to disk.");
+  logger.info("Write pid file to disk.");
   await initPidFile();
   await initAPIServer();
   await initBrowserServer();
-  await initHubServer();
 }

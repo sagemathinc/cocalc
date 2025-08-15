@@ -355,8 +355,6 @@ export interface PostgreSQL extends EventEmitter {
 
   projectControl?: (project_id: string) => Project;
 
-  ensure_connection_to_project?: (project_id: string, cb?: CB) => Promise<void>;
-
   get_blob(opts: {
     uuid: string;
     save_in_db?: boolean;
