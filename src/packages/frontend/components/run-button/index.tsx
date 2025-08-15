@@ -27,6 +27,7 @@ import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
 import SelectKernel from "./select-kernel";
 import LRU from "lru-cache";
+import nextApi from "./api";
 
 // ATTN[i18n]: it's tempting to translate this, but it is a dependency of next (vouchers/notes → slate/code-block → buttons)
 
@@ -187,20 +188,20 @@ export default function RunButton({
           setOutput({ error: "Select a Kernel" });
           return;
         }
-        let api;
-        if (project_id) {
-          api = projectApiClient({ project_id, timeout });
-        } else {
-          throw Error("not implemented");
-        }
-        messages = await api.jupyter.apiExecute({
+        const opts = {
           input,
           history,
           kernel,
           project_id,
           path,
           tag,
-        });
+        };
+        if (project_id) {
+          const api = projectApiClient({ project_id, timeout });
+          messages = await api.jupyter.apiExecute(opts);
+        } else {
+          ({ output: messages } = await nextApi("execute", opts));
+        }
         saveInCache({ input, history, info, messages });
       } catch (err) {
         setOutput({ error: `${err}` });

@@ -34,7 +34,7 @@ import PythonLogo from "public/features/python-logo.svg";
 const component = "Python";
 const title = `Run ${component} Online`;
 
-export default function Octave({ customize }) {
+export default function Python({ customize }) {
   return (
     <Customize value={customize}>
       <Head title={title} />

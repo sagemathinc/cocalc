@@ -483,7 +483,7 @@ export class Client extends EventEmitter {
     if (!options.address) {
       if (!process.env.CONAT_SERVER) {
         throw Error(
-          "Must specificy address or set CONAT_SERVER environment variable",
+          "Must specify address or set CONAT_SERVER environment variable",
         );
       }
       options = { ...options, address: process.env.CONAT_SERVER };

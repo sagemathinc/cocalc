@@ -97,8 +97,4 @@ export const openai_embeddings_save: any;
 export const openai_embeddings_save_response: any;
 export const openai_embeddings_remove: any;
 export const openai_embeddings_remove_response: any;
-export const jupyter_execute: any;
-export const jupyter_execute_response: any;
-export const jupyter_kernels: any;
-export const jupyter_start_pool: any;
 export const signal_sent: any;
