@@ -238,7 +238,6 @@ export async function open_file(
     is_public: false,
   }) as any;
 
-
   if (!alreadyOpened || file_info.is_public !== is_public) {
     const was_public = file_info.is_public;
 

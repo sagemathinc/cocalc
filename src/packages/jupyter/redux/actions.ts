@@ -1696,7 +1696,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       ipynb,
       existing_ids,
       new_id: this.new_id.bind(this),
-      output_handler:
+      cellOutputHandler:
         this.jupyter_kernel != null
           ? this._output_handler.bind(this)
           : undefined, // undefined in client; defined in project

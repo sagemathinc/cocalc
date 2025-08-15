@@ -2857,6 +2857,7 @@ export class SyncDoc extends EventEmitter {
       await this.stat();
       return true;
     } catch (err) {
+      console.log("sync fileExists err", err);
       if (err.code == "ENOENT") {
         // file not there now.
         return false;

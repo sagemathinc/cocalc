@@ -40,7 +40,7 @@ import { type Cell } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 
 export { type Cell };
 
-interface Message {
+export interface Message {
   execution_state?;
   execution_count?: number;
   exec_count?: number | null;
