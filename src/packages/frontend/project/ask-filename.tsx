@@ -52,7 +52,7 @@ export default function AskNewFilename({ project_id }: Props) {
   const create = (name, focus) => {
     actions.ask_filename(undefined);
     if (ext_selection == "/") {
-      actions.create_folder({
+      actions.createFolder({
         name: name,
         current_path: current_path,
         switch_over: focus,

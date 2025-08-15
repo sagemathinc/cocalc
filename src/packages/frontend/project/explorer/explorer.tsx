@@ -262,7 +262,7 @@ export function Explorer() {
   };
 
   const create_folder = (switch_over = true): void => {
-    actions.create_folder({
+    actions.createFolder({
       name: file_search ?? "",
       current_path: current_path,
       switch_over,

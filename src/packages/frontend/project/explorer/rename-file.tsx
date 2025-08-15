@@ -78,7 +78,7 @@ export default function RenameFile({ duplicate, clear }: Props) {
           only_contents: true,
         });
       } else {
-        await actions.rename_file(opts);
+        await actions.renameFile(opts);
       }
     } catch (err) {
       setLoading(false);

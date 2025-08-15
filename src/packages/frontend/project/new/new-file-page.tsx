@@ -178,7 +178,7 @@ export default function NewFilePage(props: Props) {
   }
 
   function createFolder() {
-    getActions().create_folder({
+    getActions().createFolder({
       name: filename,
       current_path,
       switch_over: true,

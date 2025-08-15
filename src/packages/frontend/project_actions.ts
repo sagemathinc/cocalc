@@ -2317,7 +2317,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
 
     await webapp_client.project_client.copyPathBetweenProjects(opts);
-    
+
     const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
     this.log({
       event: "file_action",
@@ -2331,32 +2331,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, stop: "" });
   };
 
-  public async rename_file(opts: {
+  renameFile = async ({
+    src,
+    dest,
+    compute_server_id,
+  }: {
     src: string;
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
-    const id = misc.uuid();
-    const status = `Renaming ${opts.src} to ${opts.dest}`;
+  }): Promise<void> => {
     let error: any = undefined;
-    const intl = await getIntl();
-    const what = intl.formatMessage(dialogs.project_actions_rename_file, {
-      src: opts.src,
-    });
-    if (!(await ensure_project_running(this.project_id, what))) {
-      return;
-    }
-
+    const id = misc.uuid();
+    const status = `Renaming ${src} to ${dest}`;
     this.set_activity({ id, status });
     try {
-      const api = await this.api();
-      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
-      await api.rename_file(opts.src, opts.dest, compute_server_id);
+      const fs = this.fs(compute_server_id);
+      await fs.rename(src, dest);
       this.log({
         event: "file_action",
         action: "renamed",
-        src: opts.src,
-        dest: opts.dest + ((await this.isDir(opts.dest)) ? "/" : ""),
+        src,
+        dest: dest + ((await this.isDir(dest)) ? "/" : ""),
         compute_server_id,
       });
     } catch (err) {
@@ -2364,7 +2359,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } finally {
       this.set_activity({ id, stop: "", error });
     }
-  }
+  };
 
   // note: there is no need to explicitly close or await what is returned by
   // fs(...) since it's just a lightweight wrapper object to format appropriate RPC calls.
@@ -2441,7 +2436,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return stats.isDirectory();
   };
 
-  public async moveFiles({
+  moveFiles = async ({
     src,
     dest,
     compute_server_id,
@@ -2449,7 +2444,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     src: string[];
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
+  }): Promise<void> => {
     const id = misc.uuid();
     const status = `Moving ${src.length} ${misc.plural(
       src.length,
@@ -2476,7 +2471,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } finally {
       this.set_activity({ id, stop: "", error });
     }
-  }
+  };
 
   private checkForSandboxError(message): boolean {
     const projectsStore = this.redux.getStore("projects");
@@ -2619,14 +2614,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  print_file(opts): void {
+  print_file = (opts): void => {
     opts.print = true;
     this.download_file(opts);
-  }
+  };
 
-  show_upload(show): void {
+  show_upload = (show): void => {
     this.setState({ show_upload: show });
-  }
+  };
 
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
@@ -2651,54 +2646,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return s;
   };
 
-  async create_folder(opts: {
+  createFolder = async ({
+    name,
+    current_path,
+    switch_over = true,
+    compute_server_id,
+  }: {
     name: string;
     current_path?: string;
+    // Whether or not to switch to the new folder (default: true)
     switch_over?: boolean;
     compute_server_id?: number;
-  }): Promise<void> {
-    let p;
-    opts = defaults(opts, {
-      name: required,
-      current_path: undefined,
-      switch_over: true, // Whether or not to switch to the new folder
-      compute_server_id: undefined,
-    });
-    if (
-      !(await ensure_project_running(
-        this.project_id,
-        `create the folder '${opts.name}'`,
-      ))
-    ) {
-      return;
-    }
-    let { compute_server_id, name } = opts;
-    const { current_path, switch_over } = opts;
-    compute_server_id = this.getComputeServerId(compute_server_id);
-    this.setState({ file_creation_error: undefined });
-    if (name[name.length - 1] === "/") {
-      name = name.slice(0, -1);
-    }
+  }): Promise<void> => {
+    const path = current_path ? join(current_path, name) : name;
+    const fs = this.fs(compute_server_id);
     try {
-      p = this.construct_absolute_path(name, current_path);
-    } catch (e) {
-      this.setState({ file_creation_error: e.message });
-      return;
-    }
-    try {
-      await this.ensure_directory_exists(p, compute_server_id);
+      await fs.mkdir(path, { recursive: true });
     } catch (err) {
-      this.setState({
-        file_creation_error: `Error creating directory '${p}' -- ${err}`,
-      });
-      return;
+      this.setState({ file_creation_error: `${err}` });
     }
     if (switch_over) {
-      this.open_directory(p);
+      this.open_directory(path);
     }
     // Log directory creation to the event log.  / at end of path says it is a directory.
-    this.log({ event: "file_action", action: "created", files: [p + "/"] });
-  }
+    this.log({ event: "file_action", action: "created", files: [path + "/"] });
+  };
 
   create_file = async (opts: {
     name: string;
@@ -2730,7 +2702,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (name[name.length - 1] === "/") {
       if (opts.ext == null) {
-        this.create_folder({
+        this.createFolder({
           name,
           current_path: opts.current_path,
           compute_server_id,

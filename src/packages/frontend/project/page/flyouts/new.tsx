@@ -169,7 +169,7 @@ export function NewFlyout({
           current_path,
         });
       } else {
-        await actions?.create_folder({
+        await actions?.createFolder({
           name: newFilename.trim(),
           current_path,
         });

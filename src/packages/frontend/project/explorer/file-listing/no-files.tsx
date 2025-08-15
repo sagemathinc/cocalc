@@ -110,7 +110,7 @@ export default function NoFiles({
           if (!file_search?.trim()) {
             actions.set_active_tab("new");
           } else if (file_search[file_search.length - 1] === "/") {
-            actions.create_folder({
+            actions.createFolder({
               name: join(current_path ?? "", file_search),
             });
           } else {
@@ -153,7 +153,7 @@ export default function NoFiles({
           }}
           create_folder={() => {
             const filename = default_filename(undefined, project_id);
-            actions.create_folder({
+            actions.createFolder({
               name: file_search.trim()
                 ? file_search
                 : join(current_path ?? "", filename),
