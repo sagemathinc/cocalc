@@ -13,7 +13,7 @@ const winston = getLogger("named-servers");
 
 async function getPort(name: NamedServerName): Promise<number> {
   winston.debug(`getPort("${name}")`);
-  return await start(name);
+  return (await start(name)).port;
 }
 
 async function handleMessage(socket, mesg): Promise<void> {
