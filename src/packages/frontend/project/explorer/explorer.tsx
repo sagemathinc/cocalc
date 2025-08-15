@@ -252,7 +252,7 @@ export function Explorer() {
       ext = default_ext(disabled_ext);
     }
 
-    actions.create_file({
+    actions.createFile({
       name: file_search ?? "",
       ext,
       current_path: current_path,

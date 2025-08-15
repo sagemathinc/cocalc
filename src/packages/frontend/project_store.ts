@@ -397,18 +397,22 @@ export class ProjectStore extends Store<ProjectStoreState> {
   };
 
   // returns false, if this project isn't capable of opening a file with the given extension
-  async can_open_file_ext(
+  can_open_file_ext = async (
     ext: string,
     actions: ProjectActions,
-  ): Promise<boolean> {
+  ): Promise<boolean> => {
     // to make sure we know about disabled file types
     const conf = await actions.init_configuration("main");
-    // if we don't know anything, we're optimistic and skip this check
-    if (conf == null) return true;
-    if (!isMainConfiguration(conf)) return true;
+    // if we don't know anything; we're optimistic and skip this check
+    if (conf == null) {
+      return true;
+    }
+    if (!isMainConfiguration(conf)) {
+      return true;
+    }
     const disabled_ext = conf.disabled_ext;
     return !disabled_ext.includes(ext);
-  }
+  };
 
   public has_file_been_viewed(path: string): boolean {
     // note that component is NOT an immutable.js object:

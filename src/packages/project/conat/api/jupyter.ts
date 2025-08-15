@@ -4,7 +4,6 @@ export { nbconvert } from "../../jupyter/convert";
 export { formatString } from "../../formatters";
 export { logo as kernelLogo } from "@cocalc/jupyter/kernel/logo";
 export { get_kernel_data as kernels } from "@cocalc/jupyter/kernel/kernel-data";
-export { newFile } from "@cocalc/backend/misc/new-file";
 import { getClient } from "@cocalc/project/client";
 import { project_id } from "@cocalc/project/data";
 import * as control from "@cocalc/jupyter/control";

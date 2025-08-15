@@ -38,8 +38,6 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { dialogs } from "@cocalc/frontend/i18n";
-import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
   open_new_tab,
@@ -112,12 +110,13 @@ import {
 } from "@cocalc/frontend/project/listing/use-files";
 import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
+import { getFileTemplate } from "./project/templates";
 
 const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
-const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
+const BANNED_FILE_TYPES = new Set(["doc", "docx", "pdf", "sws"]);
 
 const FROM_WEB_TIMEOUT_S = 45;
 
@@ -591,7 +590,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //            or a file_redux_name
   // Pushes to browser history
   // Updates the URL
-  public set_active_tab(
+  set_active_tab = (
     key: string,
     opts: {
       update_file_listing?: boolean;
@@ -602,7 +601,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       update_file_listing: true,
       change_history: true,
     },
-  ): void {
+  ): void => {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const prev_active_project_tab = store.get("active_project_tab");
@@ -766,7 +765,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
     }
     this.setState(change);
-  }
+  };
 
   public toggleFlyout(name: FixedTab): void {
     const store = this.get_store();
@@ -2672,39 +2671,36 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.log({ event: "file_action", action: "created", files: [path + "/"] });
   };
 
-  create_file = async (opts: {
+  createFile = async ({
+    name,
+    ext,
+    current_path,
+    switch_over = true,
+    compute_server_id,
+  }: {
     name: string;
     ext?: string;
     current_path?: string;
     switch_over?: boolean;
     compute_server_id?: number;
   }) => {
-    let p;
-    opts = defaults(opts, {
-      name: undefined,
-      ext: undefined,
-      current_path: undefined,
-      switch_over: true, // Whether or not to switch to the new file
-      compute_server_id: undefined,
-    });
-    const compute_server_id = this.getComputeServerId(opts.compute_server_id);
     this.setState({ file_creation_error: undefined }); // clear any create file display state
-    let { name } = opts;
-    if ((name === ".." || name === ".") && opts.ext == null) {
+    if ((name === ".." || name === ".") && ext == null) {
       this.setState({
         file_creation_error: "Cannot create a file named . or ..",
       });
       return;
     }
     if (misc.is_only_downloadable(name)) {
-      this.new_file_from_web(name, opts.current_path ?? "");
+      this.new_file_from_web(name, current_path ?? "");
       return;
     }
+
     if (name[name.length - 1] === "/") {
-      if (opts.ext == null) {
+      if (ext == null) {
         this.createFolder({
           name,
-          current_path: opts.current_path,
+          current_path,
           compute_server_id,
         });
         return;
@@ -2712,23 +2708,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         name = name.slice(0, name.length - 1);
       }
     }
-    try {
-      p = this.construct_absolute_path(name, opts.current_path, opts.ext);
-    } catch (e) {
-      console.warn("Absolute path creation error");
-      this.setState({ file_creation_error: e.message });
-      return;
-    }
 
-    const intl = await getIntl();
-    const what = intl.formatMessage(dialogs.project_actions_create_file_what, {
-      path: p,
-    });
-    if (!(await ensure_project_running(this.project_id, what))) {
-      return;
+    let path = current_path ? join(current_path, name) : name;
+    if (ext) {
+      path += "." + ext;
     }
-    const ext = misc.filename_extension(p);
-    if (BANNED_FILE_TYPES.indexOf(ext) != -1) {
+    ext = misc.filename_extension(path);
+
+    if (BANNED_FILE_TYPES.has(ext)) {
       this.setState({
         file_creation_error: `Cannot create a file with the ${ext} extension`,
       });
@@ -2737,7 +2724,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (ext === "tex") {
       const filename = misc.path_split(name).tail;
       for (const bad_char of BAD_LATEX_FILENAME_CHARACTERS) {
-        if (filename.indexOf(bad_char) !== -1) {
+        if (filename.includes(bad_char)) {
           this.setState({
             file_creation_error: `Cannot use '${bad_char}' in a LaTeX filename '${filename}'`,
           });
@@ -2745,24 +2732,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     }
+    const content = getFileTemplate(ext);
+    const fs = this.fs(compute_server_id);
     try {
-      await this.projectApi().editor.newFile(p);
+      await fs.writeFile(path, content);
     } catch (err) {
       this.setState({
         file_creation_error: `${err}`,
       });
       return;
     }
-    this.log({ event: "file_action", action: "created", files: [p] });
+    this.log({ event: "file_action", action: "created", files: [path] });
     if (ext) {
       redux.getActions("account")?.addTag(`create-${ext}`);
     }
-    if (opts.switch_over) {
+    if (switch_over) {
       this.open_file({
-        path: p,
+        path,
         // so opens on current compute server, and because switch_over is only something
         // we do when user is explicitly opening the file
         explicit: true,
+        foreground: true,
         compute_server_id,
       });
     }

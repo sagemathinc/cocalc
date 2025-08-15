@@ -1,8 +1,6 @@
 import type { Options as FormatterOptions } from "@cocalc/util/code-formatter";
 
 export const editor = {
-  newFile: true,
-
   formatString: true,
 
   printSageWS: true,
@@ -24,12 +22,6 @@ export interface CreateTerminalOptions {
 }
 
 export interface Editor {
-  // Create a new file with the given name, possibly aware of templates.
-  // This was cc-new-file in the old smc_pyutils python library.  This
-  // is in editor, since it's meant to be for creating a file aware of the
-  // context of our editors.
-  newFile: (path: string) => Promise<void>;
-
   // returns formatted version of str.
   formatString: (opts: {
     str: string;

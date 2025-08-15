@@ -1248,9 +1248,6 @@ export class Actions<
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
     if (explicit) {
-      if (!(await this.ensureProjectIsRunning(`save ${this.path} to disk`))) {
-        return;
-      }
       const account: any = this.redux.getStore("account");
       if (
         account &&

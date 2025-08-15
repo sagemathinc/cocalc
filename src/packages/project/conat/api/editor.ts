@@ -1,5 +1,4 @@
 export { formatString } from "../../formatters";
-export { newFile } from "@cocalc/backend/misc/new-file";
 
 import { printSageWS as printSageWS0 } from "@cocalc/project/print_to_pdf";
 export { sagewsStart, sagewsStop } from "@cocalc/project/sagews/control";

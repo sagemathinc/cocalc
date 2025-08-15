@@ -99,7 +99,7 @@ export class WelcomeFile {
 
   async open() {
     if (this.path == null) return;
-    await this.create_file();
+    await this.createFile();
     await this.extra_setup();
   }
 
@@ -153,14 +153,14 @@ export class WelcomeFile {
     });
   }
 
-  // Calling the "create file" action will properly initialize certain files,
+  // Calling the "createFile" action will properly initialize certain files,
   // in particular .tex
-  private async create_file(): Promise<void> {
+  private async createFile(): Promise<void> {
     if (this.path == null)
-      throw new Error("WelcomeFile::create_file – path is not defined");
+      throw new Error("WelcomeFile::createFile – path is not defined");
     const project_actions = redux.getProjectActions(this.project_id);
     const { name, ext } = separate_file_extension(this.path);
-    await project_actions.create_file({
+    await project_actions.createFile({
       name,
       ext,
       current_path: "",

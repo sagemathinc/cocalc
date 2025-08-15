@@ -121,7 +121,7 @@ export default function NewFilePage(props: Props) {
         : filename;
     try {
       setCreatingFile(name + (ext ? "." + ext : ""));
-      await getActions().create_file({
+      await getActions().createFile({
         name,
         ext,
         current_path,

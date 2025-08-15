@@ -114,7 +114,7 @@ export default function NoFiles({
               name: join(current_path ?? "", file_search),
             });
           } else {
-            actions.create_file({
+            actions.createFile({
               name: join(current_path ?? "", actualNewFilename),
             });
           }
@@ -147,7 +147,7 @@ export default function NoFiles({
             const filename = file_search.trim()
               ? file_search + "." + ext
               : default_filename(ext, project_id);
-            actions.create_file({
+            actions.createFile({
               name: join(current_path ?? "", filename),
             });
           }}

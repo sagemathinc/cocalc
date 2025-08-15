@@ -21,7 +21,6 @@ import {
   required,
   uuid,
 } from "@cocalc/util/misc";
-import { SITE_NAME } from "@cocalc/util/theme";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
@@ -154,15 +153,9 @@ export async function open_file(
   }
 
   try {
-    // Unfortunately (it adds a roundtrip to the server), we **have** to do this
-    // due to https://github.com/sagemathinc/cocalc/issues/4732 until we actually
-    // genuinely implement symlink support.  Otherwise bad things happen.  Much of
-    // cocalc was implemented basically assuming links don't exist; it's not easy
-    // to change that!
-    const realpath = await webapp_client.project_client.realpath({
-      project_id: actions.project_id,
-      path: opts.path,
-    });
+    const fs = actions.fs(opts.compute_server_id);
+    // cocalc assumes the path is not a symlink
+    const realpath = await fs.realpath(opts.path);
     if (!tabIsOpened()) {
       return;
     }
@@ -198,29 +191,7 @@ export async function open_file(
   }
 
   const is_public = group === "public";
-
   if (!is_public) {
-    // Check if have capability to open this file.  Important
-    // to only do this if not public, since again, if public we
-    // are not even using the project (it is all client side).
-    const can_open_file = await store.can_open_file_ext(ext, actions);
-    if (!tabIsOpened()) {
-      return;
-    }
-    if (!can_open_file) {
-      const site_name =
-        redux.getStore("customize").get("site_name") || SITE_NAME;
-      alert_message({
-        type: "error",
-        message: `This ${site_name} project cannot open ${ext} files!`,
-        timeout: 20,
-      });
-      // console.log(
-      //   `abort project_actions::open_file due to lack of support for "${ext}" files`
-      // );
-      return;
-    }
-
     // Wait for the project to start opening (only do this if not public -- public users don't
     // know anything about the state of the project).
     try {
@@ -266,6 +237,8 @@ export async function open_file(
   const file_info = open_files.getIn([opts.path, "component"], {
     is_public: false,
   }) as any;
+
+
   if (!alreadyOpened || file_info.is_public !== is_public) {
     const was_public = file_info.is_public;
 

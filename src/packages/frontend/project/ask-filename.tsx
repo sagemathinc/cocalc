@@ -58,7 +58,7 @@ export default function AskNewFilename({ project_id }: Props) {
         switch_over: focus,
       });
     } else {
-      actions.create_file({
+      actions.createFile({
         name: name,
         ext: ext_selection,
         current_path: current_path,

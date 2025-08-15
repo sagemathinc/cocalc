@@ -152,7 +152,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
 
   async function createFileOrFolder() {
     const fn = searchToFilename(file_search);
-    await actions?.create_file({
+    await actions?.createFile({
       name: fn,
       current_path,
     });
