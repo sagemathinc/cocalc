@@ -213,9 +213,9 @@ async function handleRequest({
   }
 }
 
-class JupyterClient {
+export class JupyterClient {
   private iter?: EventIterator<OutputMessage[]>;
-  private socket;
+  public readonly socket;
   constructor(
     private client: ConatClient,
     private subject: string,
@@ -299,7 +299,7 @@ export function jupyterClient(opts: {
     prompt: string;
     password?: boolean;
   }) => Promise<string>;
-}) {
+}): JupyterClient {
   const subject = getSubject(opts);
   return new JupyterClient(
     opts.client,

@@ -60,6 +60,7 @@ import { delay } from "awaiting";
 import { until } from "@cocalc/util/async-utils";
 import {
   jupyterClient,
+  type JupyterClient,
   type InputCell,
 } from "@cocalc/conat/project/jupyter/run-code";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
@@ -1473,7 +1474,7 @@ export class JupyterActions extends JupyterActions0 {
           await api.start(this.syncdbPath);
           return true;
         } catch (err) {
-          console.log("failed to initialize ", this.path, err);
+          console.warn("failed to initialize ", this.path, err);
           return false;
         }
       },
@@ -1516,7 +1517,19 @@ export class JupyterActions extends JupyterActions0 {
       pendingCells = pendingCells.add(id);
     }
     this.store.setState({ pendingCells });
+
+    // to avoid ugly flicker, we don't clear output until
+    // waiting a little while first (since often the output
+    // already appears in a fraction of a second):
+    setTimeout(() => {
+      if (this.isClosed()) {
+        return;
+      }
+      const p = this.store.get("pendingCells") ?? iSet();
+      this.clear_outputs(ids.filter((id) => p.has(id)));
+    }, 250);
   };
+
   private deletePendingCells = (ids: string[]) => {
     let pendingCells = this.store.get("pendingCells");
     if (pendingCells == null) {
@@ -1534,7 +1547,7 @@ export class JupyterActions extends JupyterActions0 {
     this.runQueue.length = 0;
   }
 
-  private jupyterClient?;
+  private jupyterClient?: JupyterClient;
   private runQueue: any[] = [];
   private runningNow = false;
   runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
@@ -1546,6 +1559,7 @@ export class JupyterActions extends JupyterActions0 {
       this.addPendingCells(ids);
       return;
     }
+    let client: null | JupyterClient = null;
     try {
       this.runningNow = true;
       if (
@@ -1581,7 +1595,7 @@ export class JupyterActions extends JupyterActions0 {
           this.runningNow = false;
         });
       }
-      const client = this.jupyterClient;
+      client = this.jupyterClient;
       if (client == null) {
         throw Error("bug");
       }
@@ -1658,9 +1672,12 @@ export class JupyterActions extends JupyterActions0 {
         }
       }, 1000);
     } catch (err) {
-      console.warn("runCells", err);
-      this.clearRunQueue();
-      this.set_error(err);
+      if (client?.socket?.state == "ready") {
+        // very strange err that wasn't just caused by the socket closing:
+        console.warn("runCells", err);
+        this.clearRunQueue();
+        this.set_error(err);
+      }
     } finally {
       if (this.isClosed()) return;
       this.runningNow = false;
