@@ -3,7 +3,6 @@
   "version": "1.40.0",
   "description": "CoCalc: project daemon",
   "exports": {
-    "./named-servers": "./dist/named-servers/index.js",
     "./conat": "./dist/conat/index.js",
     "./conat/terminal": "./dist/conat/terminal/index.js",
     "./*": "./dist/*.js",

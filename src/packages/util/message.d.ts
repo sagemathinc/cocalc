@@ -22,7 +22,6 @@ export const open_project: any;
 export const project_opened: any;
 export const project_exec: any;
 export const project_exec_output: any;
-export const named_server_port: any;
 export const read_file_from_project: any;
 export const file_read_from_project: any;
 export const read_text_file_from_project: any;

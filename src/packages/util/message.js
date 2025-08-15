@@ -659,19 +659,6 @@ message({
   stats: undefined,
 });
 
-//#####################################################################
-// Named Server
-//#####################################################################
-
-// starts a named server in a project, e.g, 'jupyterlab', and reports the
-// port it is running at
-// hub <--> project
-message({
-  event: "named_server_port",
-  name: required, // 'jupyter', 'jupyterlab', 'code', 'pluto' or whatever project supports...
-  port: undefined, // gets set in the response
-  id: undefined,
-});
 
 //############################################################################
 

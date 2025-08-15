@@ -18,7 +18,6 @@ import { exec_shell_code } from "@cocalc/project/exec_shell_code";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import jupyterExecute from "@cocalc/jupyter/stateless-api/execute";
 import { getLogger } from "@cocalc/project/logger";
-import handleNamedServer from "@cocalc/project/named-servers";
 import { print_to_pdf } from "@cocalc/project/print_to_pdf";
 import {
   read_file_from_project,
@@ -61,10 +60,6 @@ export default async function handleMessage(
     case "ping":
       // ping message is used only for debugging purposes.
       socket.write_mesg("json", message.pong({ id: mesg.id }));
-      return;
-
-    case "named_server_port":
-      handleNamedServer(socket, mesg);
       return;
 
     case "project_exec":
