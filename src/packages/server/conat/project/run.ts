@@ -34,7 +34,6 @@ import { root } from "@cocalc/backend/data";
 import { dirname, join } from "node:path";
 import { userInfo } from "node:os";
 import {
-  chown,
   ensureConfFilesExists,
   getEnvironment,
   homePath,
@@ -142,7 +141,6 @@ async function start({
 
   const home = await homePath(project_id);
   await mkdir(home, { recursive: true });
-  await chown(home, uid);
   await ensureConfFilesExists(home, uid);
   const env = await getEnvironment(
     project_id,
