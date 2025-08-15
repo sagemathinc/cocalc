@@ -32,6 +32,7 @@ import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { delay } from "awaiting";
 
 import type {
   CourseInfo,
@@ -992,7 +993,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
       const state = store.get_state(project_id);
       if (state == "running") {
-        await this.stop_project(project_id);
+        await this.stop_project(project_id); 
+        // [ ] TODO: this delay is a temporary workaround
+        await delay(1000);
       }
       await this.start_project(project_id, options);
     },
