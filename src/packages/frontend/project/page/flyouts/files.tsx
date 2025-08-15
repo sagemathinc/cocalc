@@ -475,7 +475,7 @@ export function FilesFlyout({
         return capitalize(file_options(item.name).name) || ext;
       case "name":
       case "size":
-        return human_readable_size(item.size, true);
+        return item.isDir ? "" : human_readable_size(item.size, true);
       default:
         return null;
     }
@@ -487,7 +487,7 @@ export function FilesFlyout({
     switch (col) {
       case "time":
       case "type":
-        return human_readable_size(item.size, true);
+        return item.isDir ? "" : human_readable_size(item.size, true);
       case "size":
       case "name":
         return renderTimeAgo(item);
