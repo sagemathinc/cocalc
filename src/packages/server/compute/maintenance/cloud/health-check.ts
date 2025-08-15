@@ -10,7 +10,6 @@ so gets reset when this service gets restarted.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import callProject from "@cocalc/server/projects/call";
 import {
   deprovision,
   suspend,
@@ -25,6 +24,7 @@ import {
   HEALTH_CHECK_DEFAULTS,
 } from "@cocalc/util/db-schema/compute-servers";
 import { map } from "awaiting";
+import exec from "@cocalc/server/compute/exec";
 
 const PARALLEL_LIMIT = 10;
 
@@ -93,22 +93,16 @@ async function updateComputeServer({
     let success;
     try {
       logger.debug("run check on ", { compute_server_id: id, project_id });
-      const resp = await callProject({
+      await exec({
         account_id,
-        project_id,
-        mesg: {
-          event: "project_exec",
-          project_id,
-          compute_server_id: id,
+        id,
+        execOpts: {
           command,
           timeout: timeoutSeconds,
           bash: true,
           err_on_exit: true,
         },
       });
-      if (resp.event == "error" || !!resp.exit_code) {
-        throw Error("fail");
-      }
       logger.debug("health check worked", { id });
       success = true;
     } catch (err) {
