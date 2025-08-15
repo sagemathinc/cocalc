@@ -182,7 +182,6 @@ class MulticellOutputHandler {
   };
 }
 
-
 export function outputHandler({ path, cells }: RunOptions) {
   if (jupyterActions[ipynbPath(path)] == null) {
     throw Error(`session '${ipynbPath(path)}' not available`);

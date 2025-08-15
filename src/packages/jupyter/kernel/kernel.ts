@@ -45,7 +45,10 @@ import {
 } from "@cocalc/jupyter/types/project-interface";
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
-import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
+import {
+  JUPYTER_MIMETYPES,
+  isJupyterBase64MimeType,
+} from "@cocalc/jupyter/util/misc";
 import { isSha1 } from "@cocalc/util/misc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success, until } from "@cocalc/util/async-utils";
@@ -786,9 +789,10 @@ export class JupyterKernel
     if (this._actions == null) {
       throw Error("blob store not available");
     }
-    const buf: Buffer = !type.startsWith("text/")
-      ? Buffer.from(data, "base64")
-      : Buffer.from(data);
+    const buf = Buffer.from(
+      data,
+      isJupyterBase64MimeType(type) ? "base64" : undefined,
+    );
 
     const sha1: string = misc_node_sha1(buf);
     await this._actions.asyncBlobStore.set(sha1, buf);
@@ -835,7 +839,6 @@ export class JupyterKernel
         type === "application/pdf" ||
         type === "text/html"
       ) {
-        dbg("removing ", type);
         // Store all images and PDF and text/html in a binary blob store, so we don't have
         // to involve it in realtime sync.  It tends to be large, etc.
         if (isSha1(content.data[type])) {
@@ -845,6 +848,7 @@ export class JupyterKernel
         }
         const sha1 = await saveBlob(content.data[type], type);
         if (sha1) {
+          dbg("put content in blob store: ", { type, sha1 });
           // only remove if the save actually worked -- we don't want to break output
           // for the user for a little optimization!
           if (type == "text/html") {

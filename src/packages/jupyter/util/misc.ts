@@ -38,6 +38,23 @@ export const JUPYTER_MIMETYPES = [
 
 export const JUPYTER_MIMETYPES_SET = new Set(JUPYTER_MIMETYPES);
 
+export function isJupyterBase64MimeType(type: string) {
+  type = type.toLowerCase();
+  if (type.startsWith("text")) {
+    // no text ones are base64 encoded
+    return false;
+  }
+  if (type == "application/json" || type == "application/javascript") {
+    return false;
+  }
+  if (type == "image/svg+xml") {
+    return false;
+  }
+  
+  // what remains should be application/pdf and the image types
+  return true;
+}
+
 // with metadata.cocalc.priority >= this the kernel will be "emphasized" or "suggested" in the UI
 export const KERNEL_POPULAR_THRESHOLD = 10;
 
