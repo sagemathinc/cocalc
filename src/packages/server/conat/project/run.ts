@@ -141,15 +141,15 @@ async function start({
 
   const home = await homePath(project_id);
   await mkdir(home, { recursive: true });
-  await ensureConfFilesExists(home, uid);
+  await ensureConfFilesExists(home);
   const env = await getEnvironment(
     project_id,
     // for admin HOME stays with original source, to avoid complexity of bind mounting /home/user
     // via the unshare system call...
     config?.admin ? { HOME: home } : undefined,
   );
-  await setupDataPath(home, uid);
-  await writeSecretToken(home, await getProjectSecretToken(project_id), uid);
+  await setupDataPath(home);
+  await writeSecretToken(home, await getProjectSecretToken(project_id));
 
   if (config?.disk) {
     // TODO: maybe this should be done in parallel with other things

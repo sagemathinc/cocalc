@@ -1,13 +1,9 @@
-import { promisify } from "util";
 import { join } from "path";
-import { exec as exec0 } from "child_process";
-import * as fs from "fs";
-import { writeFile } from "fs/promises";
+import { copyFile, mkdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { root } from "@cocalc/backend/data";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
 import { ProjectState, ProjectStatus } from "./base";
-import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
@@ -20,16 +16,6 @@ import {
   type Fileserver,
 } from "@cocalc/server/conat/file-server";
 const logger = getLogger("project-control:util");
-
-export const mkdir = promisify(fs.mkdir);
-const readFile = promisify(fs.readFile);
-const stat = promisify(fs.stat);
-const copyFile = promisify(fs.copyFile);
-const rm = promisify(fs.rm);
-
-export async function chown(path: string, uid: number): Promise<void> {
-  await promisify(fs.chown)(path, uid, uid);
-}
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
@@ -104,14 +90,11 @@ export async function getProjectPID(HOME: string): Promise<number> {
   return parseInt((await readFile(path)).toString());
 }
 
-export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
+export async function setupDataPath(HOME: string): Promise<void> {
   const data = dataPath(HOME);
   logger.debug(`setup "${data}"...`);
   await rm(data, { recursive: true, force: true });
   await mkdir(data);
-  if (uid != null) {
-    await chown(data, uid);
-  }
 }
 
 // see also packages/project/secret-token.ts
@@ -123,42 +106,10 @@ export function secretTokenPath(HOME: string) {
 export async function writeSecretToken(
   HOME: string,
   secretToken: string,
-  uid?: number,
 ): Promise<void> {
   const path = secretTokenPath(HOME);
   await ensureContainingDirectoryExists(path);
   await writeFile(path, secretToken);
-  if (uid) {
-    await chown(path, uid);
-  }
-}
-
-async function exec(
-  command: string,
-  verbose?: boolean,
-): Promise<{ stdout: string; stderr: string }> {
-  logger.debug(`exec '${command}'`);
-  const output = await promisify(exec0)(command);
-  if (verbose) {
-    logger.debug(`output: ${JSON.stringify(output)}`);
-  }
-  return output;
-}
-
-export async function stopProjectProcesses(project_id: string): Promise<void> {
-  const uid = `${getUid(project_id)}`;
-  const scmd = `pkill -9 -u ${uid} | true `; // | true since pkill exit 1 if nothing killed.
-  await exec(scmd);
-}
-
-export async function deleteUser(project_id: string): Promise<void> {
-  await stopProjectProcesses(project_id);
-  const username = getUsername(project_id);
-  try {
-    await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
-  } catch (_) {
-    // not error if not there...
-  }
 }
 
 const ENV_VARS_DELETE = [
@@ -294,7 +245,6 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
 
 export async function ensureConfFilesExists(
   HOME: string,
-  uid?: number,
 ): Promise<void> {
   for (const path of ["bashrc", "bash_profile"]) {
     const target = join(HOME, `.${path}`);
@@ -310,9 +260,6 @@ export async function ensureConfFilesExists(
       );
       try {
         await copyFile(source, target);
-        if (uid != null) {
-          await chown(target, uid);
-        }
       } catch (err) {
         logger.error(`ensureConfFilesExists -- ${err}`);
       }
