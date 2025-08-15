@@ -99,9 +99,6 @@ export async function signal({
   }
 }
 
-import jupyterExecute from "@cocalc/jupyter/stateless-api/execute";
-export { jupyterExecute };
-
 import {
   start as startNamedServer,
   status as statusOfNamedServer,

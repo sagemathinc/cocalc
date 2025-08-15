@@ -47,12 +47,12 @@ export default function KernelPanel0() {
     })();
   }, []);
 
-  if (actions == null) return null;
-  const state = actions.store.get("backend_state");
+  const state = actions?.store?.get("backend_state");
   if (
-    desc.get("selectedTool") == "code" ||
-    (state != null && state != "ready" && state != "init") ||
-    whiteboardActions.selectionContainsCellOfType(frameId, "code")
+    actions != null &&
+    (desc.get("selectedTool") == "code" ||
+      (state != null && state != "ready" && state != "init") ||
+      whiteboardActions.selectionContainsCellOfType(frameId, "code"))
   ) {
     return <KernelPanel actions={actions} />;
   }

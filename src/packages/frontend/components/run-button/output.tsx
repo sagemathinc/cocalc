@@ -31,7 +31,7 @@ export default function Output({
   }
   return (
     <div>
-      {running && <ProgressEstimate seconds={15} style={{ width: "100%" }} />}
+      {running && <ProgressEstimate seconds={10} style={{ width: "100%" }} />}
       {output != null && (
         <div
           style={{
@@ -39,7 +39,7 @@ export default function Output({
             maxHeight: "50vh",
             overflowY: "auto",
             ...style,
-            ...(old || running ? { opacity: 0.2 } : undefined),
+            ...(old || running ? { opacity: 0.4 } : undefined),
           }}
         >
           <NBViewerCellOutput cell={{ output }} hidePrompt />

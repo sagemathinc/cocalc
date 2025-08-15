@@ -4,10 +4,9 @@
  */
 
 import LRU from "lru-cache";
-
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import { capitalize } from "@cocalc/util/misc";
-import api from "./api";
+import { projectApiClient } from "@cocalc/conat/project/api";
 
 const kernelInfoCache = new LRU<string, KernelSpec[]>({
   ttl: 30000,
@@ -44,10 +43,14 @@ export async function getKernelInfo(
     throw new Error("No information, because project is not running");
   }
 
-  const { kernels } = await api(
-    "kernels",
-    project_id ? { project_id } : undefined,
-  );
+  // TODO: compute server support -- would select here
+  let api;
+  if (project_id) {
+    api = projectApiClient({ project_id });
+  } else {
+    throw Error("not implemented");
+  }
+  const kernels = await api.jupyter.kernels();
   if (kernels == null) {
     throw Error("bug");
   }

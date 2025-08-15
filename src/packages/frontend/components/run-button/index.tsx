@@ -13,25 +13,20 @@ import {
   useState,
 } from "react";
 import TimeAgo from "react-timeago";
-
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-//import { file_associations } from "@cocalc/frontend/file-associations";
-//import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { projectApiClient } from "@cocalc/conat/project/api";
 import { Icon } from "@cocalc/frontend/components/icon";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import Logo from "@cocalc/frontend/jupyter/logo";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
-import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import { path_split, plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import api from "./api";
-import { getFromCache, saveToCache } from "./cache";
 import getKernel from "./get-kernel";
 import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
 import SelectKernel from "./select-kernel";
+import LRU from "lru-cache";
 
 // ATTN[i18n]: it's tempting to translate this, but it is a dependency of next (vouchers/notes → slate/code-block → buttons)
 
@@ -48,11 +43,8 @@ export interface Props {
   runRef?: RunRef;
   tag?: string;
   size;
-  // automatically check for known output in database on initial load, e.g.,
-  // yes for markdown, but not for a jupyter notebook on the share server.
-  auto?: boolean;
-
   setInfo?: (info: string) => void;
+  timeout?: number;
 }
 
 // definitely never show run buttons for text formats that can't possibly be run.
@@ -81,8 +73,8 @@ export default function RunButton({
   runRef,
   tag,
   size,
-  auto,
   setInfo,
+  timeout = 30_000,
 }: Props) {
   const mode = infoToMode(info);
   const noRun = NO_RUN.has(mode);
@@ -92,7 +84,6 @@ export default function RunButton({
     project_id,
     path: filename,
     is_visible,
-    /*hasOpenAI, */
   } = useFileContext();
   const path = project_id && filename ? path_split(filename).head : undefined;
   const [running, setRunning] = useState<boolean>(false);
@@ -133,88 +124,44 @@ export default function RunButton({
   const [kernelName, setKernelName] = useState<string | undefined>(undefined);
   const [showPopover, setShowPopover] = useState<boolean>(false);
 
+  // determine the kernel
   useEffect(() => {
     if (
       noRun ||
-      !jupyterApiEnabled ||
+      (!project_id && !jupyterApiEnabled) ||
       setOutput == null ||
-      running ||
-      !info.trim()
-    )
+      running
+    ) {
       return;
-    const { output: messages, kernel: usedKernel } = getFromCache({
-      input,
-      history,
-      info,
-      project_id,
-      path,
-    });
-    if (!info) {
-      setKernelName(undefined);
     }
-    if (messages != null) {
-      setOutput({ messages });
-      setKernelName(usedKernel);
-    } else {
-      setOutput({ old: true });
-      // but we try to asynchronously get the output from the
-      // backend, if available
-      (async () => {
-        let kernel;
-        try {
-          kernel = await getKernel({ input, history, info, project_id });
-        } catch (err) {
-          // could fail, e.g., if user not signed in.  shouldn't be fatal.
-          console.warn(`WARNING: ${err}`);
-          return;
-        }
-        setKernelName(kernel);
-        if (!auto && outputMessagesRef.current == null) {
-          // we don't initially automatically check database since auto is false.
-          return;
-        }
-
-        const hash = computeHash({
-          input,
-          history,
-          kernel,
-          project_id,
-          path,
-        });
-        let x;
-        try {
-          x = await getFromDatabaseCache(hash);
-        } catch (err) {
-          console.warn(`WARNING: ${err}`);
-          return;
-        }
-        const { output: messages, created } = x;
-        if (messages != null) {
-          saveToCache({
-            input,
-            history,
-            info,
-            output: messages,
-            project_id,
-            path,
-            kernel,
-          });
-          setOutput({ messages });
-          setCreated(created);
-        }
-      })();
-    }
+    setOutput({ old: true });
+    (async () => {
+      let kernel;
+      try {
+        kernel = await getKernel({ input, history, info, project_id });
+      } catch (err) {
+        // could fail, e.g., if user not signed in.  shouldn't be fatal.
+        console.warn(`WARNING: ${err}`);
+        return;
+      }
+      setKernelName(kernel);
+    })();
   }, [input, history, info]);
 
+  // set output based on local cache (so unmount/mount doesn't clear output)
+  useEffect(() => {
+    const messages = getFromCache({ input, history, info });
+    if (messages != null) {
+      setOutput({ messages });
+    }
+  }, []);
+
   if (noRun || (!jupyterApiEnabled && !project_id)) {
-    // run button is not enabled when no project_id given, or not info at all.
+    // run button is not enabled when no project_id given, or no info at all.
     return null;
   }
 
-  const run = async ({
-    noCache,
-    forceKernel,
-  }: { noCache?: boolean; forceKernel?: string } = {}) => {
+  const run = async ({ forceKernel }: { forceKernel?: string } = {}) => {
     try {
       setRunning(true);
       setOutput({ running: true });
@@ -234,42 +181,33 @@ export default function RunButton({
         }
         setKernelName(kernel);
       }
-      let resp;
+      let messages;
       try {
         if (!kernel) {
           setOutput({ error: "Select a Kernel" });
           return;
         }
-        resp = await api("execute", {
+        let api;
+        if (project_id) {
+          api = projectApiClient({ project_id, timeout });
+        } else {
+          throw Error("not implemented");
+        }
+        messages = await api.jupyter.apiExecute({
           input,
           history,
           kernel,
-          noCache,
           project_id,
           path,
           tag,
         });
+        saveInCache({ input, history, info, messages });
       } catch (err) {
-        if (resp?.error != null) {
-          setOutput({ error: resp.error });
-        } else {
-          setOutput({ error: `Timeout or communication problem` });
-        }
+        setOutput({ error: `${err}` });
         return;
       }
-      if (resp.output != null) {
-        setOutput({ messages: resp.output });
-        setCreated(resp.created);
-        saveToCache({
-          input,
-          history,
-          info,
-          output: resp.output,
-          project_id,
-          path,
-          kernel,
-        });
-      }
+      setOutput({ messages });
+      setCreated(new Date());
     } catch (error) {
       setOutput({ error });
     } finally {
@@ -297,7 +235,7 @@ export default function RunButton({
           disabled={disabled || !kernelName}
           onClick={() => {
             setShowPopover(false);
-            run({ noCache: false });
+            run();
           }}
         >
           <Icon
@@ -404,7 +342,7 @@ export default function RunButton({
                   <Button
                     onClick={() => {
                       setShowPopover(false);
-                      run({ noCache: true });
+                      run();
                     }}
                   >
                     <Icon
@@ -479,25 +417,20 @@ export default function RunButton({
           </Button>
         </Tooltip>
       </Popover>
-      {/*hasOpenAI && (
-          <Button>
-            <OpenAIAvatar
-              size={16}
-              style={{ marginRight: "5px" }}
-              innerStyle={{ top: "3.5px" }}
-            />
-            Explain
-          </Button>
-        )*/}
     </div>
   );
 }
 
-type GetFromCache = (hash: string) => Promise<{
-  output?: object[];
-  created?: Date;
-}>;
+const outputCache = new LRU<string, object[]>({ max: 200 });
 
-const getFromDatabaseCache: GetFromCache = reuseInFlight(
-  async (hash) => await api("execute", { hash }),
-);
+function cacheKey({ input, history, info }) {
+  return JSON.stringify([input, history, info]);
+}
+
+function saveInCache({ input, history, info, messages }) {
+  outputCache.set(cacheKey({ input, history, info }), messages);
+}
+
+function getFromCache({ input, history, info }) {
+  return outputCache.get(cacheKey({ input, history, info }));
+}

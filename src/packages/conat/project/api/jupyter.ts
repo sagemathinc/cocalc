@@ -1,6 +1,7 @@
 import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { RunNotebookOptions } from "@cocalc/util/jupyter/nbgrader-types";
 import type { KernelSpec } from "@cocalc/util/jupyter/types";
+import { type ProjectJupyterApiOptions } from "@cocalc/util/jupyter/api-types";
 
 export const jupyter = {
   start: true,
@@ -14,6 +15,9 @@ export const jupyter = {
   complete: true,
   signal: true,
   getConnectionFile: true,
+
+  // jupyter stateless API
+  apiExecute: true,
 };
 
 // In the functions below path can be either the .ipynb or the .sage-jupyter2 path, and
@@ -52,4 +56,6 @@ export interface Jupyter {
   getConnectionFile: (opts: { path: string }) => Promise<string>;
 
   signal: (opts: { path: string; signal: string }) => Promise<void>;
+
+  apiExecute: (opts: ProjectJupyterApiOptions) => Promise<object[]>;
 }

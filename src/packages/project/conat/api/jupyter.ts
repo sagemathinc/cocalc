@@ -60,3 +60,6 @@ export async function signal(opts) {
   }
   await control.signal(opts);
 }
+
+import apiExecute from "@cocalc/jupyter/stateless-api/execute";
+export { apiExecute };

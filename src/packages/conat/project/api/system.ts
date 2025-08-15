@@ -7,7 +7,6 @@ import type {
   Configuration,
   ConfigurationAspect,
 } from "@cocalc/comm/project-configuration";
-import { type ProjectJupyterApiOptions } from "@cocalc/util/jupyter/api-types";
 import type { NamedServerName } from "@cocalc/util/types/servers";
 
 export const system = {
@@ -31,9 +30,6 @@ export const system = {
   exec: true,
 
   signal: true,
-
-  // jupyter stateless API
-  jupyterExecute: true,
 
   // named servers like jupyterlab, vscode, etc.
   startNamedServer: true,
@@ -75,8 +71,6 @@ export interface System {
     pids?: number[];
     pid?: number;
   }) => Promise<void>;
-
-  jupyterExecute: (opts: ProjectJupyterApiOptions) => Promise<object[]>;
 
   startNamedServer: (
     name: NamedServerName,

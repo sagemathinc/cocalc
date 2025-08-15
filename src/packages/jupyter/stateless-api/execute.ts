@@ -15,7 +15,7 @@ import { type ProjectJupyterApiOptions } from "@cocalc/util/jupyter/api-types";
 
 const log = getLogger("jupyter:stateless-api:execute");
 
-export default async function jupyterExecute(opts: ProjectJupyterApiOptions) {
+export default async function apiExecute(opts: ProjectJupyterApiOptions) {
   log.debug(opts);
   let kernel: undefined | Kernel = undefined;
   try {
