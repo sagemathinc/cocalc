@@ -36,7 +36,6 @@ import "./file-use";
 import "./groups";
 import "./hub-servers";
 import "./instances"; // probably deprecated
-import "./jupyter";
 import "./listings";
 import "./llm";
 import "./lti";
