@@ -37,7 +37,6 @@ async function createSupportAccount() {
     firstName: "CoCalc",
     lastName: "Support",
     account_id,
-    noFirstProject: true,
   });
   await callback2(db().set_server_setting, {
     name: "support_account_id",

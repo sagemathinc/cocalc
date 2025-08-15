@@ -23,10 +23,6 @@ interface Params {
   tags?: string[];
   signupReason?: string;
   owner_id?: string;
-  // if set, do not do any of the various heuristics to create or start user's first project.
-  // I added this to avoid leaks with unit testing, but it may be useful in other contexts, e.g.,
-  // avoiding confusion with self-hosted installs.
-  noFirstProject?: boolean;
 }
 
 export default async function createAccount({
@@ -38,7 +34,6 @@ export default async function createAccount({
   tags,
   signupReason,
   owner_id,
-  noFirstProject,
 }: Params): Promise<void> {
   try {
     log.debug(
@@ -77,7 +72,6 @@ export default async function createAccount({
       email_address: email,
       account_id,
       tags,
-      noFirstProject,
     });
     await creationActionsDone(account_id);
   } catch (error) {
