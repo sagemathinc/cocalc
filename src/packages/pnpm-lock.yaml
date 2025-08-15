@@ -55,9 +55,6 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
-      '@cocalc/util':
-        specifier: workspace:*
-        version: link:../util
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
