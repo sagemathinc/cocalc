@@ -18,7 +18,7 @@ import * as immutable from "immutable";
 import { cmp } from "@cocalc/util/misc";
 
 // This list is inspired by OutputArea.output_types in https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/outputarea.js
-// The order matters -- we only keep the left-most type (see import-from-ipynb.coffee)
+// The order matters -- we only keep the left-most type (see import-from-ipynb.ts)
 // See https://jupyterlab.readthedocs.io/en/stable/user/file_formats.html#file-and-output-formats
 
 export const JUPYTER_MIMETYPES = [
@@ -35,6 +35,8 @@ export const JUPYTER_MIMETYPES = [
   "application/pdf",
   "text/plain",
 ] as const;
+
+export const JUPYTER_MIMETYPES_SET = new Set(JUPYTER_MIMETYPES);
 
 // with metadata.cocalc.priority >= this the kernel will be "emphasized" or "suggested" in the UI
 export const KERNEL_POPULAR_THRESHOLD = 10;
