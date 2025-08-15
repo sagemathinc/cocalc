@@ -31,7 +31,9 @@ export default function Output({
   }
   return (
     <div>
-      {running && <ProgressEstimate seconds={10} style={{ width: "100%" }} />}
+      {running && (
+        <ProgressEstimate seconds={10} style={{ width: "100%" }} delay={1000} />
+      )}
       {output != null && (
         <div
           style={{

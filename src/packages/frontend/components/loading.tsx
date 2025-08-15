@@ -6,7 +6,8 @@
 import { CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
-import { TypedMap, useDelayedRender } from "@cocalc/frontend/app-framework";
+import { TypedMap } from "@cocalc/frontend/app-framework";
+import useDelayedRender from "@cocalc/frontend/app-framework/delayed-render-hook";
 import { labels } from "@cocalc/frontend/i18n";
 import { Icon } from "./icon";
 
@@ -45,9 +46,8 @@ export function Loading({
 }: Props) {
   const intl = useIntl();
 
-  const render = useDelayedRender(delay ?? 0);
-  if (!render) {
-    return <></>;
+  if (!useDelayedRender(delay ?? 0)) {
+    return null;
   }
 
   return (

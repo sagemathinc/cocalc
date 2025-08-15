@@ -5,13 +5,15 @@ take.
 import { CSSProperties, useEffect, useState } from "react";
 import { Progress } from "antd";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import useDelayedRender from "@cocalc/frontend/app-framework/delayed-render-hook";
 
 interface Props {
   seconds: number;
   style?: CSSProperties;
+  delay?: number;
 }
 
-export default function ProgressEstimate({ seconds, style }: Props) {
+export default function ProgressEstimate({ seconds, style, delay }: Props) {
   const isMountedRef = useIsMountedRef();
   const [progress, setProgress] = useState(0);
 
@@ -25,6 +27,10 @@ export default function ProgressEstimate({ seconds, style }: Props) {
     }, 50);
     return () => clearInterval(interval);
   }, [progress, seconds]);
+
+  if (!useDelayedRender(delay ?? 0)) {
+    return null;
+  }
 
   return (
     <Progress
