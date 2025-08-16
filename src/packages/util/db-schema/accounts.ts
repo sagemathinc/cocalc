@@ -477,7 +477,7 @@ Table({
             keyboard_variant: "",
             ask_jupyter_kernel: true,
             show_my_other_cursors: false,
-            disable_jupyter_virtualization: false,
+            disable_jupyter_virtualization: true,
           },
           other_settings: {
             katex: true,

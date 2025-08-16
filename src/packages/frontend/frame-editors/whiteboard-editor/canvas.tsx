@@ -119,7 +119,6 @@ import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { aspectRatioToNumber } from "./tools/frame";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { extendToIncludeEdges } from "./actions";
-import { StableHtmlContext } from "@cocalc/frontend/jupyter/cell-list";
 
 import Cursors from "./cursors";
 
@@ -1356,12 +1355,6 @@ export default function Canvas({
       frame.actions.deleteElements(getOverlappingElements(elements, rect));
     }
   };
-  const scrollOrResize = useMemo(() => {
-    return {};
-  }, []);
-  useEffect(() => {
-    Object.values(scrollOrResize).map((f: Function) => f());
-  }, [canvasScale, offsetRef.current.left, offsetRef.current.top]);
 
   if (isNavigator && !isBoard) {
     return null;
@@ -1379,223 +1372,221 @@ export default function Canvas({
   //   }
 
   return (
-    <StableHtmlContext.Provider value={{ scrollOrResize }}>
-      <div
-        className={"smc-vfill"}
-        ref={canvasRef}
-        style={{
-          ...style,
-          touchAction:
-            typeof selectedTool == "string" &&
-            ["hand", "select", "pen", "frame"].includes(selectedTool)
-              ? "none"
-              : undefined,
-          overflow: "hidden",
-          position: "relative",
-          ...(presentation && !isNavigator
-            ? {
-                left: `${
-                  ((getViewportWindow()?.w ?? 0) -
-                    scaleRef.current * transformsRef.current.width) /
-                  2
-                }px`,
-                top: `${
-                  ((getViewportWindow()?.h ?? 0) -
-                    scaleRef.current * transformsRef.current.height) /
-                  2
-                }px`,
-              }
-            : undefined),
-        }}
-        onClick={(evt) => {
-          mousePath.current = null;
-          if (isNavigator) {
-            if (ignoreNextClick.current) {
-              ignoreNextClick.current = false;
-              return;
+    <div
+      className={"smc-vfill"}
+      ref={canvasRef}
+      style={{
+        ...style,
+        touchAction:
+          typeof selectedTool == "string" &&
+          ["hand", "select", "pen", "frame"].includes(selectedTool)
+            ? "none"
+            : undefined,
+        overflow: "hidden",
+        position: "relative",
+        ...(presentation && !isNavigator
+          ? {
+              left: `${
+                ((getViewportWindow()?.w ?? 0) -
+                  scaleRef.current * transformsRef.current.width) /
+                2
+              }px`,
+              top: `${
+                ((getViewportWindow()?.h ?? 0) -
+                  scaleRef.current * transformsRef.current.height) /
+                2
+              }px`,
             }
-            frame.actions.setViewportCenter(frame.id, evtToData(evt));
+          : undefined),
+      }}
+      onClick={(evt) => {
+        mousePath.current = null;
+        if (isNavigator) {
+          if (ignoreNextClick.current) {
+            ignoreNextClick.current = false;
             return;
           }
-          if (!readOnly) {
-            handleClick(evt);
-          }
-        }}
-        onScroll={() => {
-          saveViewport();
-        }}
-        onMouseDown={!isNavigator ? onMouseDown : undefined}
-        onMouseMove={!isNavigator ? onMouseMove : undefined}
-        onMouseUp={!isNavigator ? onMouseUp : undefined}
-        onTouchStart={!isNavigator ? onTouchStart : undefined}
-        onTouchMove={!isNavigator ? onTouchMove : undefined}
-        onTouchEnd={!isNavigator ? onTouchEnd : undefined}
-        onTouchCancel={!isNavigator ? onTouchCancel : undefined}
-        onPointerMove={!isNavigator ? onPointerMove : undefined}
-        onCopy={
-          isNavigator
-            ? undefined
-            : (event: ClipboardEvent<HTMLDivElement>) => {
-                if (editFocus) return;
-                event.preventDefault();
-                const selectedElements = getSelectedElements({
-                  elements,
-                  selection,
-                });
-                extendToIncludeEdges(selectedElements, elements);
-                const encoded = encodeForCopy(selectedElements);
-                event.clipboardData.setData(
-                  "application/x-cocalc-whiteboard",
-                  encoded,
-                );
-              }
+          frame.actions.setViewportCenter(frame.id, evtToData(evt));
+          return;
         }
-        onCut={
-          isNavigator || readOnly
-            ? undefined
-            : (event: ClipboardEvent<HTMLDivElement>) => {
-                if (editFocus) return;
-                event.preventDefault();
-                const selectedElements = getSelectedElements({
-                  elements,
-                  selection,
-                });
-                extendToIncludeEdges(selectedElements, elements);
-                const encoded = encodeForCopy(selectedElements);
-                event.clipboardData.setData(
-                  "application/x-cocalc-whiteboard",
-                  encoded,
-                );
-                frame.actions.deleteElements(selectedElements);
-                frame.actions.clearSelection(frame.id);
-              }
+        if (!readOnly) {
+          handleClick(evt);
         }
-        onPaste={
-          isNavigator || readOnly
-            ? undefined
-            : (event: ClipboardEvent<HTMLDivElement>) => {
-                if (editFocus) return;
-                const encoded = event.clipboardData.getData(
-                  "application/x-cocalc-whiteboard",
-                );
-                if (encoded) {
-                  // copy/paste between whiteboards of their own structured data
-                  const pastedElements = decodeForPaste(encoded);
-                  /* TODO: should also get where mouse is? */
-                  let target: Point | undefined = undefined;
-                  const pos = getMousePos(mousePosRef.current);
-                  if (pos != null) {
-                    const { x, y } = pos;
-                    target = transformsRef.current.windowToDataNoScale(x, y);
-                  } else {
-                    const point = getCenterPositionWindow();
-                    if (point != null) {
-                      target = windowToData(point);
-                    }
-                  }
-
-                  const ids = frame.actions.insertElements(
-                    frame.id,
-                    pastedElements,
-                    target,
-                  );
-                  frame.actions.setSelectionMulti(frame.id, ids);
+      }}
+      onScroll={() => {
+        saveViewport();
+      }}
+      onMouseDown={!isNavigator ? onMouseDown : undefined}
+      onMouseMove={!isNavigator ? onMouseMove : undefined}
+      onMouseUp={!isNavigator ? onMouseUp : undefined}
+      onTouchStart={!isNavigator ? onTouchStart : undefined}
+      onTouchMove={!isNavigator ? onTouchMove : undefined}
+      onTouchEnd={!isNavigator ? onTouchEnd : undefined}
+      onTouchCancel={!isNavigator ? onTouchCancel : undefined}
+      onPointerMove={!isNavigator ? onPointerMove : undefined}
+      onCopy={
+        isNavigator
+          ? undefined
+          : (event: ClipboardEvent<HTMLDivElement>) => {
+              if (editFocus) return;
+              event.preventDefault();
+              const selectedElements = getSelectedElements({
+                elements,
+                selection,
+              });
+              extendToIncludeEdges(selectedElements, elements);
+              const encoded = encodeForCopy(selectedElements);
+              event.clipboardData.setData(
+                "application/x-cocalc-whiteboard",
+                encoded,
+              );
+            }
+      }
+      onCut={
+        isNavigator || readOnly
+          ? undefined
+          : (event: ClipboardEvent<HTMLDivElement>) => {
+              if (editFocus) return;
+              event.preventDefault();
+              const selectedElements = getSelectedElements({
+                elements,
+                selection,
+              });
+              extendToIncludeEdges(selectedElements, elements);
+              const encoded = encodeForCopy(selectedElements);
+              event.clipboardData.setData(
+                "application/x-cocalc-whiteboard",
+                encoded,
+              );
+              frame.actions.deleteElements(selectedElements);
+              frame.actions.clearSelection(frame.id);
+            }
+      }
+      onPaste={
+        isNavigator || readOnly
+          ? undefined
+          : (event: ClipboardEvent<HTMLDivElement>) => {
+              if (editFocus) return;
+              const encoded = event.clipboardData.getData(
+                "application/x-cocalc-whiteboard",
+              );
+              if (encoded) {
+                // copy/paste between whiteboards of their own structured data
+                const pastedElements = decodeForPaste(encoded);
+                /* TODO: should also get where mouse is? */
+                let target: Point | undefined = undefined;
+                const pos = getMousePos(mousePosRef.current);
+                if (pos != null) {
+                  const { x, y } = pos;
+                  target = transformsRef.current.windowToDataNoScale(x, y);
                 } else {
-                  // nothing else implemented yet!
+                  const point = getCenterPositionWindow();
+                  if (point != null) {
+                    target = windowToData(point);
+                  }
                 }
+
+                const ids = frame.actions.insertElements(
+                  frame.id,
+                  pastedElements,
+                  target,
+                );
+                frame.actions.setSelectionMulti(frame.id, ids);
+              } else {
+                // nothing else implemented yet!
               }
-        }
-      >
-        {!isNavigator && selectedTool == "pen" && (
-          <canvas
-            className="smc-vfill"
-            ref={penCanvasRef}
-            width={
-              penCanvasParamsRef.current.scale *
-              penDPIFactor *
-              penCanvasParamsRef.current.rect.width
             }
-            height={
-              penCanvasParamsRef.current.scale *
-              penDPIFactor *
-              penCanvasParamsRef.current.rect.height
-            }
-            style={{
-              cursor: TOOLS[selectedTool]?.cursor,
-              position: "absolute",
-              zIndex: MAX_ELEMENTS + 1,
-              top: 0,
-              left: 0,
-              visibility: "hidden",
-            }}
-          />
-        )}
-        <div
-          ref={scaleDivRef}
+      }
+    >
+      {!isNavigator && selectedTool == "pen" && (
+        <canvas
+          className="smc-vfill"
+          ref={penCanvasRef}
+          width={
+            penCanvasParamsRef.current.scale *
+            penDPIFactor *
+            penCanvasParamsRef.current.rect.width
+          }
+          height={
+            penCanvasParamsRef.current.scale *
+            penDPIFactor *
+            penCanvasParamsRef.current.rect.height
+          }
           style={{
+            cursor: TOOLS[selectedTool]?.cursor,
             position: "absolute",
-            left: `${offsetRef.current.left}px`,
-            top: `${offsetRef.current.top}px`,
-            transform: `scale(${canvasScale})`,
-            transformOrigin: "top left",
+            zIndex: MAX_ELEMENTS + 1,
+            top: 0,
+            left: 0,
+            visibility: "hidden",
           }}
-        >
-          {selectRect != null && (
-            <div
-              style={{
-                position: "absolute",
-                left: `${selectRect.x}px`,
-                top: `${selectRect.y}px`,
-                width: `${selectRect.w}px`,
-                height: `${selectRect.h}px`,
-                border: `${
-                  SELECTED_BORDER_WIDTH / canvasScale
-                }px solid ${SELECTED_BORDER_COLOR}`,
-                zIndex: MAX_ELEMENTS + 100,
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  background: "blue",
-                  opacity: 0.1,
-                }}
-              ></div>
-            </div>
-          )}
+        />
+      )}
+      <div
+        ref={scaleDivRef}
+        style={{
+          position: "absolute",
+          left: `${offsetRef.current.left}px`,
+          top: `${offsetRef.current.top}px`,
+          transform: `scale(${canvasScale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        {selectRect != null && (
           <div
-            ref={innerCanvasRef}
             style={{
-              cursor:
-                frame.isFocused && selectedTool
-                  ? selectedTool == "hand" && handRef.current
-                    ? "grabbing"
-                    : TOOLS[selectedTool]?.cursor
-                  : undefined,
-              position: "relative",
-              overflow: "hidden",
-              width: `${transformsRef.current.width}px`,
-              height: `${transformsRef.current.height}px`,
+              position: "absolute",
+              left: `${selectRect.x}px`,
+              top: `${selectRect.y}px`,
+              width: `${selectRect.w}px`,
+              height: `${selectRect.h}px`,
+              border: `${
+                SELECTED_BORDER_WIDTH / canvasScale
+              }px solid ${SELECTED_BORDER_COLOR}`,
+              zIndex: MAX_ELEMENTS + 100,
             }}
           >
-            {!isNavigator && mainFrameType == "whiteboard" && (
-              <Grid
-                transforms={transformsRef.current}
-                divRef={backgroundDivRef}
-              />
-            )}
-            {!isNavigator && mainFrameType == "slides" && (
-              <SlideBackground
-                transforms={transformsRef.current}
-                divRef={backgroundDivRef}
-              />
-            )}
-            {renderedElements}
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "blue",
+                opacity: 0.1,
+              }}
+            ></div>
           </div>
+        )}
+        <div
+          ref={innerCanvasRef}
+          style={{
+            cursor:
+              frame.isFocused && selectedTool
+                ? selectedTool == "hand" && handRef.current
+                  ? "grabbing"
+                  : TOOLS[selectedTool]?.cursor
+                : undefined,
+            position: "relative",
+            overflow: "hidden",
+            width: `${transformsRef.current.width}px`,
+            height: `${transformsRef.current.height}px`,
+          }}
+        >
+          {!isNavigator && mainFrameType == "whiteboard" && (
+            <Grid
+              transforms={transformsRef.current}
+              divRef={backgroundDivRef}
+            />
+          )}
+          {!isNavigator && mainFrameType == "slides" && (
+            <SlideBackground
+              transforms={transformsRef.current}
+              divRef={backgroundDivRef}
+            />
+          )}
+          {renderedElements}
         </div>
       </div>
-    </StableHtmlContext.Provider>
+    </div>
   );
 }
 

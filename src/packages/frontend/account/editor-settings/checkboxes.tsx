@@ -87,7 +87,7 @@ const EDITOR_SETTINGS_CHECKBOXES = {
   disable_jupyter_virtualization: defineMessage({
     id: "account.editor-setting.checkbox.disable_jupyter_virtualization",
     defaultMessage:
-      "render entire Jupyter Notebook instead of just visible part (slower and not recommended)",
+      "render entire Jupyter Notebook instead of just visible part (slower but more reliable)",
   }),
 } as const;
 
