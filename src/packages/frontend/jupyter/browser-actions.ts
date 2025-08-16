@@ -85,6 +85,7 @@ export class JupyterActions extends JupyterActions0 {
   public syncdbPath: string;
   private lastCursorMoveTime: number = 0;
   public jupyterEditorActions?;
+  private savedVersion: number = 0;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
@@ -97,18 +98,21 @@ export class JupyterActions extends JupyterActions0 {
 
     const do_set = () => {
       if (this.syncdb == null || this._state === "closed") return;
-      const has_unsaved_changes = this.syncdb.has_unsaved_changes();
       const has_uncommitted_changes = this.syncdb.has_uncommitted_changes();
+      const has_unsaved_changes =
+        has_uncommitted_changes ||
+        this.savedVersion != this.syncdb.last_changed();
       this.setState({ has_unsaved_changes, has_uncommitted_changes });
+      this.store.emit("has-unsaved-changes", has_unsaved_changes);
       if (has_uncommitted_changes) {
         this.syncdb.save(); // save them.
       }
     };
     const f = () => {
       do_set();
-      return setTimeout(do_set, 3000);
+      return setTimeout(do_set, 2000);
     };
-    this.set_save_status = debounce(f, 1500);
+    this.set_save_status = debounce(f, 1000, { leading: true, trailing: true });
     this.syncdb.on("metadata-change", this.set_save_status);
     this.syncdb.on("connected", this.set_save_status);
 
@@ -1337,13 +1341,26 @@ export class JupyterActions extends JupyterActions0 {
 
   private saveIpynb = async () => {
     if (this.isClosed()) return;
+    const before = this.syncdb.last_changed();
     const ipynb = await this.toIpynb();
     const serialize = JSON.stringify(ipynb, undefined, 2);
     this.syncdb.fs.writeFile(this.path, serialize);
+    const has_unsaved_changes = this.syncdb.last_changed() != before;
+    this.setState({ has_unsaved_changes });
+    this.store.emit("has-unsaved-changes", has_unsaved_changes);
+    const stats = await this.syncdb.fs.stat(this.path);
+    const stillNotChanged = this.syncdb.last_changed() == before;
+    this.syncdb.set({ type: "fs", mtime: stats.mtime.valueOf() });
+    this.syncdb.commit();
+    if (stillNotChanged) {
+      this.savedVersion = this.syncdb.last_changed();
+    } else {
+      this.savedVersion = 0;
+    }
   };
 
   save = async () => {
-    await Promise.all([this.saveIpynb(), this.syncdb.save_to_disk()]);
+    await this.saveIpynb();
   };
 
   private getBase64Blobs = async (cells) => {
@@ -1969,7 +1986,6 @@ export class JupyterActions extends JupyterActions0 {
     const api = await this.jupyterApi();
     return await api.getConnectionFile({ path: this.path });
   };
-
 }
 
 function getCompletionGroup(x: string): number {

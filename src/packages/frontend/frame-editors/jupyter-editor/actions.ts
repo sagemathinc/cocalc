@@ -91,7 +91,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     syncdb.on("has-uncommitted-changes", (has_uncommitted_changes) =>
       this.setState({ has_uncommitted_changes }),
     );
-    syncdb.on("has-unsaved-changes", (has_unsaved_changes) => {
+    this.jupyter_actions.store.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
     });
 
