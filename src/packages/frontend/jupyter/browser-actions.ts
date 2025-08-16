@@ -78,6 +78,7 @@ import {
 } from "@cocalc/sync/editor/generic/sync-doc";
 
 const OUTPUT_FPS = 29;
+const DEFAULT_OUTPUT_MESSAGE_LIMIT = 500;
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -1280,14 +1281,6 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     const cell_list = store.get("cell_list");
-    const more_output: { [id: string]: any } = {};
-    for (const id of cell_list.toJS()) {
-      const x = store.get_more_output(id);
-      if (x != null) {
-        more_output[id] = x;
-      }
-    }
-
     const blobsBase64 = new Set<string>();
     const blobsString = new Set<string>();
     const blob_store = {
@@ -1306,7 +1299,6 @@ export class JupyterActions extends JupyterActions0 {
       kernelspec: store.get_kernel_info(store.get("kernel")),
       language_info: store.get_language_info(),
       blob_store,
-      more_output: cloneDeep(more_output),
     };
 
     // clone deep because export_to_ipynb mutates its input!
@@ -1500,7 +1492,6 @@ export class JupyterActions extends JupyterActions0 {
     let first = true;
     const f = throttle(
       () => {
-        console.log(cell);
         // we ONLY set certain fields; e.g., setting the input would be
         // extremely annoying since the user can edit the input while the
         // cell is running.
@@ -1612,6 +1603,7 @@ export class JupyterActions extends JupyterActions0 {
       const cells: InputCell[] = [];
       const kernel = this.store.get("kernel");
 
+      this.clearMoreOutput(ids);
       for (const id of ids) {
         const cell = this.store.getIn(["cells", id])?.toJS() as InputCell;
         if ((cell?.cell_type ?? "code") != "code") {
@@ -1643,7 +1635,7 @@ export class JupyterActions extends JupyterActions0 {
       // ensures cells run in order:
       cells.sort(field_cmp("pos"));
 
-      const limit = opts.limit ?? 10;
+      const limit = opts.limit ?? this.getMessageLimit();
       const runner = await client.run(cells, { limit, ...opts });
       if (this.isClosed()) return;
       let handler: null | OutputHandler = null;
@@ -1699,32 +1691,55 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
+  getMessageLimit = () => {
+    return (
+      this.syncdb.get_one({ type: "limits" })?.get("limit") ??
+      DEFAULT_OUTPUT_MESSAGE_LIMIT
+    );
+  };
+
+  setMessageLimit = (limit: number) => {
+    this.syncdb.set({ type: "limits", limit });
+  };
+
+  private clearMoreOutput = (ids: string[]) => {
+    let more_output = this.store.get("more_output") ?? fromJS({});
+    let changed = false;
+    for (const id of ids) {
+      if ((more_output.get(id)?.size ?? 0) > 0) {
+        more_output = more_output.delete(id);
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.setState({ more_output });
+    }
+  };
+
   fetchMoreOutput = async (id: string) => {
-    console.log("fetch more output for ", id);
     if (this.jupyterClient == null) {
       throw Error("output no longer available");
     }
-    const { data } = await this.jupyterClient.moreOutput(id);
     let cells = this.store.get("cells");
     const cell = cells?.get(id)?.toJS();
     if (cell == null) {
       return;
     }
-    for (const n in cell.output) {
-      if (cell.output[n]?.more_output) {
-        delete cell.output[n];
-      }
-    }
-    const { end } = cell;
-    cell.end = null;
-    const handler = new OutputHandler({ cell, noReset: true });
+    const { data } = await this.jupyterClient.moreOutput(id);
+    let more_output = this.store.get("more_output") ?? fromJS({});
+
+    const handler = new OutputHandler({ cell });
     for (const mesg of data) {
       handler.process(mesg);
     }
-    cell.end = end;
-    const newCell = cells.get(id)!.set("output", fromJS(cell.output));
-    cells = cells.set(id, newCell);
-    this.setState({ cells });
+    const mesg_list: any[] = [];
+    let i = 0;
+    while (cell.output[i] != null) {
+      mesg_list.push(cell.output[i]);
+      i++;
+    }
+    more_output = more_output.set(id, fromJS({ mesg_list, time: Date.now() }));
+    this.setState({ more_output });
   };
 
   is_introspecting(): boolean {
@@ -2062,6 +2077,7 @@ export class JupyterActions extends JupyterActions0 {
   private loadFromDiskIfChanged = async () => {
     const mtime = this.syncdb.get_one({ type: "fs" })?.get("mtime");
     if (mtime == null) {
+      console.log("load from disk because mtime null");
       await this.loadFromDisk();
       return;
     }
@@ -2069,7 +2085,11 @@ export class JupyterActions extends JupyterActions0 {
     const stats = await fs.stat(this.path);
     this.isIpynbDeleted = false;
 
-    if (stats.mtime != mtime) {
+    if (stats.mtime.valueOf() != mtime) {
+      console.log("load from disk because", {
+        "stats.mtime": stats.mtime,
+        mtime,
+      });
       await this.loadFromDisk();
     }
   };

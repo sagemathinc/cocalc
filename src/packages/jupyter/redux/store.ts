@@ -27,7 +27,6 @@ import { Syntax } from "@cocalc/util/code-formatter";
 import { startswith } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import { cloneDeep } from "lodash";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -219,13 +218,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
 
     const cell_list = this.get("cell_list");
-    const more_output: { [id: string]: any } = {};
-    for (const id of cell_list.toJS()) {
-      const x = this.get_more_output(id);
-      if (x != null) {
-        more_output[id] = x;
-      }
-    }
 
     // export_to_ipynb mutates its input... mostly not a problem, since
     // we're toJS'ing most of it, but be careful with more_output.
@@ -236,7 +228,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
-      more_output: cloneDeep(more_output),
     });
   };
 
