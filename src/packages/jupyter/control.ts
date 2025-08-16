@@ -164,14 +164,7 @@ class MulticellOutputHandler {
         },
       );
       this.handler.on("change", f);
-
-      this.handler.on("process", async (mesg) => {
-        const kernel = this.actions.jupyter_kernel;
-        if ((kernel?.get_state() ?? "closed") == "closed") {
-          return;
-        }
-        await kernel.process_output(mesg);
-      });
+      this.handler.on("process", this.actions.processOutput);
     }
     this.handler!.process(mesg);
   };
