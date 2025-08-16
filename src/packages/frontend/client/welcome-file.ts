@@ -147,7 +147,7 @@ export class WelcomeFile {
       if (cell.type == "markdown") {
         jactions.set_cell_type(cell_id, "markdown");
       } else {
-        jactions.run_code_cell(cell_id);
+        jactions.runCells([cell_id]);
       }
       cell_id = jactions.insert_cell_adjacent(cell_id, +1);
     });

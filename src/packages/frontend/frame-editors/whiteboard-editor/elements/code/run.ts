@@ -13,8 +13,7 @@ interface Opts {
   set: (object) => void;
 }
 
-export default async function run(opts: Opts) {
-  const { project_id, path, input, id, set } = opts;
+export default async function run({ project_id, path, input, id, set }: Opts) {
   const jupyter_actions = await getJupyterActions({ project_id, path });
   const store = jupyter_actions.store;
   let cell = store.get("cells").get(id);
@@ -24,14 +23,12 @@ export default async function run(opts: Opts) {
     const pos = store.getIn(["cells", last_cell_id])?.get("pos", 0) + 1;
     jupyter_actions.insert_cell_at(pos, false, id);
   }
+  const previousEnd = cell?.get("end");
   jupyter_actions.clear_outputs([id], false);
   jupyter_actions.set_cell_input(id, input, false);
-  jupyter_actions.run_code_cell(id);
-  //console.log("starting running ", id);
-  //window.jupyter_actions = jupyter_actions;
+  jupyter_actions.runCells([id]);
   function onChange() {
     const cell = store.get("cells").get(id);
-    //console.log("onChange", cell?.toJS());
     if (cell == null) return;
 
     set({
@@ -42,7 +39,11 @@ export default async function run(opts: Opts) {
       start: cell.get("start"),
       end: cell.get("end"),
     });
-    if (cell.get("state") == "done") {
+    if (
+      cell.get("state") == "done" &&
+      cell.get("end") &&
+      cell.get("end") != previousEnd
+    ) {
       store.removeListener("change", onChange);
       // Useful for debugging since can then open the ipynb and see.
       // However, NOT needed normally.  We might even come up with

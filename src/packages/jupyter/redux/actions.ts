@@ -318,7 +318,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       const cell = cells.get(id);
       if (cell == null) continue;
       if (cell.get("output") != null || cell.get("exec_count")) {
-        this._set({ type: "cell", id, output: null, exec_count: null }, false);
+        this._set(
+          { type: "cell", id, output: null, exec_count: null, done: null },
+          false,
+        );
       }
     }
     if (save) {
@@ -877,10 +880,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.insert_cell_at(pos, save);
   }
 
-  delete_selected_cells = (sync = true): void => {
-    this.deprecated("delete_selected_cells", sync);
-  };
-
   delete_cells(cells: string[], sync: boolean = true): void {
     let not_deletable: number = 0;
     for (const id of cells) {
@@ -938,14 +937,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.syncdb?.in_undo_mode() ?? false;
   }
 
-  public run_code_cell(
-    _id: string,
-    _save: boolean = true,
-    _no_halt: boolean = false,
-  ): void {
-    console.log("run_code_cell: deprecated");
-  }
-
   clear_cell = (id: string, save = true) => {
     const cell = this.store.getIn(["cells", id]);
 
@@ -966,10 +957,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save,
     );
-  };
-
-  run_selected_cells = (): void => {
-    this.deprecated("run_selected_cells");
   };
 
   runCells(_ids: string[], _opts?: { noHalt?: boolean }): Promise<void> {
@@ -2315,7 +2302,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.ensure_backend_kernel_setup();
     this._state = "ready";
   };
-
 }
 
 function extractLabel(content: string): string {

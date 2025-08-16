@@ -259,7 +259,11 @@ export class NotebookFrameActions {
   }
 
   public enable_key_handler(force?): void {
-    if (!force && this.jupyter_actions.store.get("stdin")) {
+    const store = this.jupyter_actions?.store;
+    if (store == null) {
+      return;
+    }
+    if (!force && store.get("stdin")) {
       // do not enable when getting input from stdin, since user may be typing
       // and keyboard shortcuts would be very confusing.
       return;

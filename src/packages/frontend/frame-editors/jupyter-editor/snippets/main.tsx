@@ -222,7 +222,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       id = jupyter_actions.insert_cell_adjacent(id, +1);
       jupyter_actions.set_cell_input(id, c);
       notebook_frame_actions.set_cur_id(id);
-      jupyter_actions.run_code_cell(id);
+      jupyter_actions.runCells([id]);
     }
     notebook_frame_actions.scroll("cell visible");
   }
@@ -258,8 +258,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       doc[0] === ""
         ? undefined
         : typeof doc[0] === "string"
-        ? [doc[0]]
-        : doc[0];
+          ? [doc[0]]
+          : doc[0];
     if (code != null && insertSetup) {
       const setup = generateSetupCode({ code, data });
       if (setup != "") code.unshift(setup);
