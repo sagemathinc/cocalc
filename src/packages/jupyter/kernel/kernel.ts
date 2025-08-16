@@ -35,7 +35,6 @@ import type { MessageType } from "@cocalc/jupyter/zmq/types";
 import { jupyterSockets, type JupyterSockets } from "@cocalc/jupyter/zmq";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
-import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import {
   type BlobStoreInterface,
   CodeExecutionEmitterInterface,
@@ -45,11 +44,6 @@ import {
 } from "@cocalc/jupyter/types/project-interface";
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
-import {
-  JUPYTER_MIMETYPES,
-  isJupyterBase64MimeType,
-} from "@cocalc/jupyter/util/misc";
-import { isSha1 } from "@cocalc/util/misc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success, until } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
@@ -783,85 +777,6 @@ export class JupyterKernel
       throw Error(this.failedError);
     }
     return v;
-  };
-
-  private saveBlob = async (data: string, type: string) => {
-    if (this._actions == null) {
-      throw Error("blob store not available");
-    }
-    const buf = Buffer.from(
-      data,
-      isJupyterBase64MimeType(type) ? "base64" : undefined,
-    );
-
-    const sha1: string = misc_node_sha1(buf);
-    await this._actions.asyncBlobStore.set(sha1, buf);
-    return sha1;
-  };
-
-  process_output = async (content: any) => {
-    if (this._state === "closed") {
-      return;
-    }
-    const dbg = this.dbg("process_output");
-    dbg();
-    if (content.data == null) {
-      // No data -- https://github.com/sagemathinc/cocalc/issues/6665
-      // NO do not do this sort of thing.  This is exactly the sort of situation where
-      // content could be very large, and JSON.stringify could use huge amounts of memory.
-      // If you need to see this for debugging, uncomment it.
-      // dbg(trunc(JSON.stringify(content), 300));
-      // todo: FOR now -- later may remove large stdout, stderr, etc...
-      // dbg("no data, so nothing to do");
-      return;
-    }
-
-    remove_redundant_reps(content.data);
-
-    const saveBlob = async (data, type) => {
-      try {
-        return await this.saveBlob(data, type);
-      } catch (err) {
-        dbg("WARNING: Jupyter blob store not working -- skipping use", err);
-        // i think it'll just send the large data on in the usual way instead
-        // via the output, instead of using the blob store.  It's probably just
-        // less efficient.
-      }
-    };
-
-    let type: string;
-    for (type of JUPYTER_MIMETYPES) {
-      if (content.data[type] == null) {
-        continue;
-      }
-      if (
-        type.split("/")[0] === "image" ||
-        type === "application/pdf" ||
-        type === "text/html"
-      ) {
-        // Store all images and PDF and text/html in a binary blob store, so we don't have
-        // to involve it in realtime sync.  It tends to be large, etc.
-        if (isSha1(content.data[type])) {
-          // it was already processed, e.g., this happens when a browser that was
-          // processing output closes and we cutoff to the project processing output.
-          continue;
-        }
-        const sha1 = await saveBlob(content.data[type], type);
-        if (sha1) {
-          dbg("put content in blob store: ", { type, sha1 });
-          // only remove if the save actually worked -- we don't want to break output
-          // for the user for a little optimization!
-          if (type == "text/html") {
-            // NOTE: in general, this may or may not get rendered as an iframe --
-            // we use iframe for backward compatibility.
-            content.data["iframe"] = sha1;
-            delete content.data["text/html"];
-          } else {
-            content.data[type] = sha1;
-          }
-        }
-      }
-    }
   };
 
   call = async (msg_type: string, content?: any): Promise<any> => {

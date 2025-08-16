@@ -113,8 +113,8 @@ export async function run({ path, cells, noHalt, socket }: RunOptions) {
       for await (const mesg0 of output.iter()) {
         const content = mesg0?.content;
         if (content != null) {
-          // this mutates content, removing large messages
-          await kernel.process_output(content);
+          // this mutates content, removing large base64/svg, etc. images, pdf's, etc.
+          await actions.processOutput(content);
         }
         const mesg = { ...mesg0, id: cell.id };
         yield mesg;

@@ -45,6 +45,12 @@ import latexEnvs from "@cocalc/util/latex-envs";
 import { jupyterApiClient } from "@cocalc/conat/service/jupyter";
 import { type AKV, akv } from "@cocalc/conat/sync/akv";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import {
+  JUPYTER_MIMETYPES,
+  isJupyterBase64MimeType,
+} from "@cocalc/jupyter/util/misc";
+import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
+import { isSha1, sha1 } from "@cocalc/util/misc";
 
 const { close, required, defaults } = misc;
 
@@ -2226,6 +2232,82 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       });
       // We are obviously contributing content to this (empty!) notebook.
       return this.set_trust_notebook(true);
+    }
+  };
+
+  private saveBlob = async (data: string, type: string) => {
+    const buf = Buffer.from(
+      data,
+      isJupyterBase64MimeType(type) ? "base64" : undefined,
+    );
+
+    const s: string = sha1(buf);
+    await this.asyncBlobStore.set(s, buf);
+    return s;
+  };
+
+  processOutput = async (content: any) => {
+    if (this.isClosed()) {
+      return;
+    }
+    const dbg = this.dbg("process_output");
+    dbg();
+    if (content.data == null) {
+      // No data -- https://github.com/sagemathinc/cocalc/issues/6665
+      // NO do not do this sort of thing.  This is exactly the sort of situation where
+      // content could be very large, and JSON.stringify could use huge amounts of memory.
+      // If you need to see this for debugging, uncomment it.
+      // dbg(trunc(JSON.stringify(content), 300));
+      // todo: FOR now -- later may remove large stdout, stderr, etc...
+      // dbg("no data, so nothing to do");
+      return;
+    }
+
+    remove_redundant_reps(content.data);
+
+    const saveBlob = async (data, type) => {
+      try {
+        return await this.saveBlob(data, type);
+      } catch (err) {
+        dbg("WARNING: Jupyter blob store not working -- skipping use", err);
+        // i think it'll just send the large data on in the usual way instead
+        // via the output, instead of using the blob store.  It's probably just
+        // less efficient.
+      }
+    };
+
+    let type: string;
+    for (type of JUPYTER_MIMETYPES) {
+      if (content.data[type] == null) {
+        continue;
+      }
+      if (
+        type.split("/")[0] === "image" ||
+        type === "application/pdf" ||
+        type === "text/html"
+      ) {
+        // Store all images and PDF and text/html in a binary blob store, so we don't have
+        // to involve it in realtime sync.  It tends to be large, etc.
+        if (isSha1(content.data[type])) {
+          // it was already processed, e.g., this happens when a browser that was
+          // processing output closes and we cutoff to the project processing output.
+          continue;
+        }
+        const s = await saveBlob(content.data[type], type);
+        if (s) {
+          dbg("put content in blob store: ", { type, sha1:s });
+          // only remove if the save actually worked -- we don't want to break output
+          // for the user for a little optimization!
+          if (type == "text/html") {
+            // NOTE: in general, this may or may not get rendered as an iframe --
+            // we use iframe for backward compatibility.
+            content.data["iframe"] = s;
+            delete content.data["text/html"];
+          } else {
+            content.data[type] = s;
+          }
+        }
+      }
     }
   };
 }
