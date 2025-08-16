@@ -37,7 +37,7 @@ export class IPynbImporter {
   private _ipynb: any;
   private _new_id?: (is_available?: (string) => boolean) => string;
   private _cellOutputHandler?: (cell) => {
-    message: (content: Message) => void;
+    message: (content: Message, k?) => void;
     done?: () => void;
   };
   private _existing_ids: string[];
@@ -58,7 +58,7 @@ export class IPynbImporter {
     // re-use these on loading for efficiency purposes
     existing_ids?: string[];
     cellOutputHandler?: (cell) => {
-      message: (content: Message) => void;
+      message: (content: Message, k?) => void;
       done?: () => void;
     };
   }) => {
@@ -315,7 +315,7 @@ export class IPynbImporter {
       }
       this._import_cell_output_content(content);
       if (handler != null) {
-        handler.message(content);
+        handler.message(content, k);
       } else {
         cell.output[k] = content;
       }
@@ -339,7 +339,7 @@ export class IPynbImporter {
     }
   }
 
-  _import_cell(cell: any, n: any) {
+  _import_cell = (cell: any, n: any) => {
     const id = this._existing_ids[n] ?? this._get_new_id(cell);
     const obj: any = {
       type: "cell",
@@ -401,7 +401,7 @@ export class IPynbImporter {
       }
     }
     return obj;
-  }
+  };
 }
 
 // mutate data removing redundant reps

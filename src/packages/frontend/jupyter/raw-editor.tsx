@@ -99,7 +99,7 @@ export const RawEditor: React.FC<Props> = ({
         <JSONEditor
           value={raw_ipynb}
           font_size={font_size}
-          on_change={(obj) => actions.set_to_ipynb(obj)}
+          on_change={(obj) => actions.setToIpynb(obj)}
           cm_options={cm_options}
           undo={() => actions.undo()}
           redo={() => actions.redo()}

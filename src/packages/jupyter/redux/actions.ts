@@ -694,10 +694,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // nontrivial in the project, but not in client or here.
   }
 
-  protected _output_handler(_cell: any) {
-    throw Error("define in a derived class.");
-  }
-
   /*
   WARNING: Changes via set that are made when the actions
   are not 'ready' or the syncdb is not ready are ignored.
@@ -1629,114 +1625,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_to_ipynb = async (
-    ipynb: any,
-    data_only: boolean = false,
-  ): Promise<void> => {
-    /*
-     * set_to_ipynb - set from ipynb object.  This is
-     * mainly meant to be run on the backend in the project,
-     * but is also run on the frontend too, e.g.,
-     * for client-side nbviewer (in which case it won't remove images, etc.).
-     *
-     * See the documentation for load_ipynb_file in project-actions.ts for
-     * documentation about the data_only input variable.
-     */
-    if (typeof ipynb != "object") {
-      throw Error("ipynb must be an object");
-    }
-
-    this._state = "load";
-
-    //dbg(misc.to_json(ipynb))
-
-    // We try to parse out the kernel so we can use process_output below.
-    // (TODO: rewrite so process_output is not associated with a specific kernel)
-    let kernel: string | undefined;
-    const ipynb_metadata = ipynb.metadata;
-    if (ipynb_metadata != null) {
-      const kernelspec = ipynb_metadata.kernelspec;
-      if (kernelspec != null) {
-        kernel = kernelspec.name;
-      }
-    }
-    //dbg("kernel in ipynb: name='#{kernel}'")
-
-    const existing_ids = this.store.get_cell_list().toJS();
-
-    let set, trust;
-    if (data_only) {
-      trust = undefined;
-      set = function () {};
-    } else {
-      if (typeof this.reset_more_output === "function") {
-        this.reset_more_output();
-        // clear the more output handler (only on backend)
-      }
-      // We delete all of the cells.
-      // We do NOT delete everything, namely the last_loaded and
-      // the settings entry in the database, because that would
-      // throw away important information, e.g., the current kernel
-      // and its state.  NOTe: Some of that extra info *should* be
-      // moved to a different ephemeral table, but I haven't got
-      // around to doing so.
-      this.syncdb.delete({ type: "cell" });
-      // preserve trust state across file updates/loads
-      trust = this.store.get("trust");
-      set = (obj) => {
-        this.syncdb.set(obj);
-      };
-    }
-
-    // Change kernel to what is in the file if necessary:
-    set({ type: "settings", kernel });
-    this.ensure_backend_kernel_setup();
-
-    const importer = new IPynbImporter();
-
-    // NOTE: Below we re-use any existing ids to make the patch that defines changing
-    // to the contents of ipynb more efficient.   In case of a very slight change
-    // on disk, this can be massively more efficient.
-
-    importer.import({
-      ipynb,
-      existing_ids,
-      new_id: this.new_id.bind(this),
-      cellOutputHandler:
-        this.jupyter_kernel != null
-          ? this._output_handler.bind(this)
-          : undefined, // undefined in client; defined in project
-    });
-
-    if (data_only) {
-      importer.close();
-      return;
-    }
-
-    // Set all the cells
-    const object = importer.cells();
-    for (const _ in object) {
-      const cell = object[_];
-      set(cell);
-    }
-
-    // Set the settings
-    set({ type: "settings", kernel: importer.kernel(), trust });
-
-    // Set extra user-defined metadata
-    const metadata = importer.metadata();
-    if (metadata != null) {
-      set({ type: "settings", metadata });
-    }
-
-    importer.close();
-
-    this.syncdb.commit();
-    await this.syncdb.save();
-    this.ensure_backend_kernel_setup();
-    this._state = "ready";
-  };
-
   set_cell_slide = (id: string, value: any) => {
     if (!value) {
       value = null; // delete
@@ -2235,18 +2123,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  private saveBlob = async (data: string, type: string) => {
-    const buf = Buffer.from(
-      data,
-      isJupyterBase64MimeType(type) ? "base64" : undefined,
-    );
-
-    const s: string = sha1(buf);
-    await this.asyncBlobStore.set(s, buf);
-    return s;
-  };
-
-  processOutput = async (content: any) => {
+  processOutput = (content: any) => {
     if (this.isClosed()) {
       return;
     }
@@ -2265,15 +2142,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     remove_redundant_reps(content.data);
 
-    const saveBlob = async (data, type) => {
-      try {
-        return await this.saveBlob(data, type);
-      } catch (err) {
-        dbg("WARNING: Jupyter blob store not working -- skipping use", err);
-        // i think it'll just send the large data on in the usual way instead
-        // via the output, instead of using the blob store.  It's probably just
-        // less efficient.
-      }
+    // Here we compute sha1 and start saving the blob to the blob store
+    // over the network.  There is no guarantee that will work and this
+    // won't just be lost. It's unlikely but could happen.  This is
+    // always output images in notebooks, so not critical data.
+    // By doing this, the blobs gets saved in parallel and code that
+    // uses this for import etc. is non-async, so simpler.
+    const saveBlob = (data: string, type: string) => {
+      const buf = Buffer.from(
+        data,
+        isJupyterBase64MimeType(type) ? "base64" : undefined,
+      );
+      const s: string = sha1(buf);
+      (async () => {
+        try {
+          await this.asyncBlobStore.set(s, buf);
+        } catch (err) {
+          dbg("WARNING: Jupyter blob store not working -- skipping use", err);
+          // i think it'll just send the large data on in the usual way instead
+          // via the output, instead of using the blob store.  It's probably just
+          // less efficient.
+        }
+      })();
+      return s;
     };
 
     let type: string;
@@ -2293,9 +2184,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           // processing output closes and we cutoff to the project processing output.
           continue;
         }
-        const s = await saveBlob(content.data[type], type);
+        const s = saveBlob(content.data[type], type);
         if (s) {
-          dbg("put content in blob store: ", { type, sha1:s });
+          dbg("put content in blob store: ", { type, sha1: s });
           // only remove if the save actually worked -- we don't want to break output
           // for the user for a little optimization!
           if (type == "text/html") {
@@ -2309,6 +2200,120 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         }
       }
     }
+  };
+
+  private cellOutputHandler = (cell) => {
+    return {
+      message: (content, k) => {
+        this.processOutput(content);
+        cell.output[k] = content;
+      },
+    };
+  };
+
+  setToIpynb = async (
+    ipynb: any,
+    data_only: boolean = false,
+  ): Promise<void> => {
+    /*
+     * set_to_ipynb - set from ipynb object.  This is
+     * mainly meant to be run on the backend in the project,
+     * but is also run on the frontend too, e.g.,
+     * for client-side nbviewer (in which case it won't remove images, etc.).
+     *
+     * See the documentation for load_ipynb_file in project-actions.ts for
+     * documentation about the data_only input variable.
+     */
+    if (typeof ipynb != "object") {
+      throw Error("ipynb must be an object");
+    }
+
+    this._state = "load";
+
+    //dbg(misc.to_json(ipynb))
+
+    // We try to parse out the kernel so we can use process_output below.
+    // (TODO: rewrite so process_output is not associated with a specific kernel)
+    let kernel: string | undefined;
+    const ipynb_metadata = ipynb.metadata;
+    if (ipynb_metadata != null) {
+      const kernelspec = ipynb_metadata.kernelspec;
+      if (kernelspec != null) {
+        kernel = kernelspec.name;
+      }
+    }
+    //dbg("kernel in ipynb: name='#{kernel}'")
+
+    const existing_ids = this.store.get_cell_list().toJS();
+
+    let set, trust;
+    if (data_only) {
+      trust = undefined;
+      set = function () {};
+    } else {
+      if (typeof this.reset_more_output === "function") {
+        this.reset_more_output();
+        // clear the more output handler (only on backend)
+      }
+      // We delete all of the cells.
+      // We do NOT delete everything, namely the last_loaded and
+      // the settings entry in the database, because that would
+      // throw away important information, e.g., the current kernel
+      // and its state.  NOTe: Some of that extra info *should* be
+      // moved to a different ephemeral table, but I haven't got
+      // around to doing so.
+      this.syncdb.delete({ type: "cell" });
+      // preserve trust state across file updates/loads
+      trust = this.store.get("trust");
+      set = (obj) => {
+        this.syncdb.set(obj);
+      };
+    }
+
+    // Change kernel to what is in the file if necessary:
+    set({ type: "settings", kernel });
+    this.ensure_backend_kernel_setup();
+
+    const importer = new IPynbImporter();
+
+    // NOTE: Below we re-use any existing ids to make the patch that defines changing
+    // to the contents of ipynb more efficient.   In case of a very slight change
+    // on disk, this can be massively more efficient.
+
+    importer.import({
+      ipynb,
+      existing_ids,
+      new_id: this.new_id.bind(this),
+      cellOutputHandler: this.cellOutputHandler,
+    });
+
+    if (data_only) {
+      importer.close();
+      return;
+    }
+
+    // Set all the cells
+    const object = importer.cells();
+    for (const _ in object) {
+      const cell = object[_];
+      set(cell);
+    }
+
+    // Set the settings
+    set({ type: "settings", kernel: importer.kernel(), trust });
+
+    // Set extra user-defined metadata
+    const metadata = importer.metadata();
+    if (metadata != null) {
+      set({ type: "settings", metadata });
+    }
+
+    importer.close();
+
+    this.syncdb.commit();
+    await this.syncdb.save();
+    this.ensure_backend_kernel_setup();
+    this._state = "ready";
   };
 }
 
