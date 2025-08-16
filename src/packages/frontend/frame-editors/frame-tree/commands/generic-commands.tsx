@@ -7,7 +7,6 @@ import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
 import { defineMessage, IntlShape, useIntl } from "react-intl";
-
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -1467,7 +1466,7 @@ function fileAction(action) {
     alwaysShow: true,
     onClick: ({ props }) => {
       const actions = redux.getProjectActions(props.project_id);
-      actions.show_file_action_panel({
+      actions.showFileActionPanel({
         path: props.path,
         action,
       });

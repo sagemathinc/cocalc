@@ -16,7 +16,7 @@ export type NewFilenameTypes =
 
 // key for new filenames algorithm in account/other_settings and associated default value
 export const NEW_FILENAMES = "new_filenames";
-export const DEFAULT_NEW_FILENAMES: NewFilenameTypes = "ymd_semantic";
+export const DEFAULT_NEW_FILENAMES: NewFilenameTypes = "iso";
 
 // This is used on cocalc.com, and the storage server has images named "default", "ubuntu2004" and "ubuntu2204"
 // For on-prem, you have to configure the "software environment" configuration, which includes a default image name.

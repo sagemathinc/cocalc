@@ -34,10 +34,10 @@
       "axios@1.10.0": "^1.11.0"
     },
     "onlyBuiltDependencies": [
+      "@vscode/ripgrep",
+      "better-sqlite3",
       "websocket-sftp",
       "websocketfs",
-      "zeromq",
-      "better-sqlite3",
       "zstd-napi"
     ]
   }

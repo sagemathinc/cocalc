@@ -244,6 +244,17 @@ import {
 } from "@cocalc/conat/sync/dstream";
 import { akv, type AKV } from "@cocalc/conat/sync/akv";
 import { astream, type AStream } from "@cocalc/conat/sync/astream";
+import {
+  syncstring,
+  type SyncString,
+  type SyncStringOptions,
+} from "@cocalc/conat/sync-doc/syncstring";
+import {
+  syncdb,
+  type SyncDB,
+  type SyncDBOptions,
+} from "@cocalc/conat/sync-doc/syncdb";
+import { fsClient, fsSubject } from "@cocalc/conat/files/fs";
 import TTL from "@isaacs/ttlcache";
 import {
   ConatSocketServer,
@@ -262,6 +273,7 @@ export const MAX_INTEREST_TIMEOUT = 90_000;
 
 const DEFAULT_WAIT_FOR_INTEREST_TIMEOUT = 30_000;
 
+// WARNING: do NOT change MSGPACK_ENCODER_OPTIONS unless you know what you're doing!
 const MSGPACK_ENCODER_OPTIONS = {
   // ignoreUndefined is critical so database queries work properly, and
   // also we have a lot of api calls with tons of wasted undefined values.
@@ -471,7 +483,7 @@ export class Client extends EventEmitter {
     if (!options.address) {
       if (!process.env.CONAT_SERVER) {
         throw Error(
-          "Must specificy address or set CONAT_SERVER environment variable",
+          "Must specify address or set CONAT_SERVER environment variable",
         );
       }
       options = { ...options, address: process.env.CONAT_SERVER };
@@ -560,6 +572,14 @@ export class Client extends EventEmitter {
     // @ts-ignore
     setTimeout(() => this.conn.io.disconnect(), 1);
   };
+
+  connect = () => {
+    this.conn.io.connect();
+  };
+
+  isConnected = () => this.state == "connected";
+
+  isSignedIn = () => !!(this.info?.user && !this.info?.user?.error);
 
   // this has NO timeout by default
   waitUntilSignedIn = reuseInFlight(
@@ -1106,9 +1126,16 @@ export class Client extends EventEmitter {
         // good for services.
         await mesg.respond(result);
       } catch (err) {
+        let error = err.message;
+        if (!error) {
+          error = `${err}`.slice("Error: ".length);
+        }
         await mesg.respond(null, {
-          noThrow: true, // we're not catching this one
-          headers: { error: `${err}` },
+          noThrow: true, // we're not catching this respond
+          headers: {
+            error,
+            error_attrs: JSON.parse(JSON.stringify(err)),
+          },
         });
       }
     };
@@ -1127,7 +1154,7 @@ export class Client extends EventEmitter {
     const call = async (name: string, args: any[]) => {
       const resp = await this.request(subject, [name, args], opts);
       if (resp.headers?.error) {
-        throw Error(`${resp.headers.error}`);
+        throw headerToError(resp.headers);
       } else {
         return resp.data;
       }
@@ -1136,8 +1163,12 @@ export class Client extends EventEmitter {
     return new Proxy(
       {},
       {
-        get: (_, name) => {
-          if (typeof name !== "string") {
+        get: (target, name) => {
+          const s = target[String(name)];
+          if (s !== undefined) {
+            return s;
+          }
+          if (typeof name !== "string" || name == "then") {
             return undefined;
           }
           return async (...args) => await call(name, args);
@@ -1447,6 +1478,17 @@ export class Client extends EventEmitter {
     return sub;
   };
 
+  fs = (opts: {
+    project_id: string;
+    compute_server_id?: number;
+    service?: string;
+  }) => {
+    return fsClient({
+      subject: fsSubject(opts),
+      client: this,
+    });
+  };
+
   sync = {
     dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
       await dkv<T>({ ...opts, client: this }),
@@ -1460,6 +1502,10 @@ export class Client extends EventEmitter {
       await astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
+    string: (opts: Omit<Omit<SyncStringOptions, "client">, "fs">): SyncString =>
+      syncstring({ ...opts, client: this }),
+    db: (opts: Omit<Omit<SyncDBOptions, "client">, "fs">): SyncDB =>
+      syncdb({ ...opts, client: this }),
   };
 
   socket = {
@@ -1915,7 +1961,7 @@ export function messageData(
 export type Subscription = EventIterator<Message>;
 
 export class ConatError extends Error {
-  code: string | number;
+  code?: string | number;
   constructor(mesg: string, { code }) {
     super(mesg);
     this.code = code;
@@ -1939,4 +1985,17 @@ function toConatError(socketIoError) {
       code: 408,
     });
   }
+}
+
+export function headerToError(headers): ConatError {
+  const err = Error(headers.error);
+  if (headers.error_attrs) {
+    for (const field in headers.error_attrs) {
+      err[field] = headers.error_attrs[field];
+    }
+  }
+  if (err["code"] === undefined && headers.code) {
+    err["code"] = headers.code;
+  }
+  return err;
 }

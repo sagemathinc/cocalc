@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// cSpell:ignore descr disp dflt
+// cSpell:ignore descr disp
 
 import { Col, Form } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -43,11 +43,11 @@ export async function derive_project_img_name(
   custom_software: SoftwareEnvironmentState,
 ): Promise<string> {
   const { image_type, image_selected } = custom_software;
-  const dflt_software_img = await redux
+  const defaultSoftwareImage = await redux
     .getStore("customize")
     .getDefaultComputeImage();
   if (image_selected == null || image_type == null) {
-    return dflt_software_img;
+    return defaultSoftwareImage;
   }
   switch (image_type) {
     case "custom":
@@ -56,7 +56,7 @@ export async function derive_project_img_name(
       return image_selected;
     default:
       unreachable(image_type);
-      return dflt_software_img; // make TS happy
+      return defaultSoftwareImage; // make TS happy
   }
 }
 
@@ -77,7 +77,7 @@ export function SoftwareEnvironment(props: Props) {
   const onCoCalcCom = customize_kucalc === KUCALC_COCALC_COM;
   const customize_software = useTypedRedux("customize", "software");
   const organization_name = useTypedRedux("customize", "organization_name");
-  const dflt_software_img = customize_software.get("default");
+  const defaultSoftwareImage = customize_software.get("default");
   const software_images = customize_software.get("environments");
 
   const haveSoftwareImages: boolean = useMemo(
@@ -109,7 +109,7 @@ export function SoftwareEnvironment(props: Props) {
 
   // initialize selection, if there is a default image set
   React.useEffect(() => {
-    if (default_image == null || default_image === dflt_software_img) {
+    if (default_image == null || default_image === defaultSoftwareImage) {
       // do nothing, that's the initial state already!
     } else if (is_custom_image(default_image)) {
       if (images == null) return;
@@ -123,7 +123,7 @@ export function SoftwareEnvironment(props: Props) {
     } else {
       // must be standard image
       const img = software_images.get(default_image);
-      const display = img != null ? img.get("title") ?? "" : "";
+      const display = img != null ? (img.get("title") ?? "") : "";
       setState(default_image, display, "standard");
     }
   }, []);
@@ -170,7 +170,7 @@ export function SoftwareEnvironment(props: Props) {
   }
 
   function render_onprem() {
-    const selected = image_selected ?? dflt_software_img;
+    const selected = image_selected ?? defaultSoftwareImage;
     return (
       <>
         <Col sm={24}>
@@ -219,7 +219,7 @@ export function SoftwareEnvironment(props: Props) {
   }
 
   function render_standard_image_selector() {
-    const isCustom = is_custom_image(image_selected ?? dflt_software_img);
+    const isCustom = is_custom_image(image_selected ?? defaultSoftwareImage);
     return (
       <>
         <Col sm={12}>
@@ -230,7 +230,7 @@ export function SoftwareEnvironment(props: Props) {
             >
               <ComputeImageSelector
                 size="middle"
-                current_image={image_selected ?? dflt_software_img}
+                current_image={image_selected ?? defaultSoftwareImage}
                 layout={"dropdown"}
                 setSoftwareInfo={setSoftwareInfo}
                 onSelect={({ id, display, type }) => {

@@ -27,7 +27,7 @@ export default function parse(content: string): CoCalcJupyter {
   const importer = new IPynbImporter();
   importer.import({
     ipynb,
-    output_handler: (cell) => {
+    cellOutputHandler: (cell) => {
       let k: number = 0;
       return {
         message: (content) => {

@@ -482,7 +482,12 @@ Table({
           other_settings: {
             katex: true,
             confirm_close: false,
-            mask_files: true,
+            // mask_files -- note that there is a performance cost to this, e.g., 5ms if you have 10K files in
+            // a directory (basically it doubles the processing costs).
+            // It's also confusing and can be subtly wrong.  Finally, it's almost never necessary due to us changing the defaults
+            // for running latex to put all the temp files in /tmp -- in general we should always put temp files in tmp anyways
+            // with all build processes. So mask_files is off by default if not explicitly selected.
+            mask_files: false,
             page_size: 500,
             standby_timeout_m: 5,
             default_file_sort: "name",

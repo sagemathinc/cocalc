@@ -18,9 +18,10 @@ const MAX_FILENAME_LENGTH = 4095;
 
 interface Props {
   duplicate?: boolean;
+  clear: () => void;
 }
 
-export default function RenameFile({ duplicate }: Props) {
+export default function RenameFile({ duplicate, clear }: Props) {
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -71,23 +72,21 @@ export default function RenameFile({ duplicate }: Props) {
         dest: path_to_file(renameDir, target),
       };
       if (duplicate) {
-        await actions.copy_paths({
+        await actions.copyPaths({
           src: [opts.src],
           dest: opts.dest,
           only_contents: true,
         });
       } else {
-        await actions.rename_file(opts);
+        await actions.renameFile(opts);
       }
-      await actions.fetch_directory_listing({ path: renameDir });
     } catch (err) {
       setLoading(false);
       setError(err);
     } finally {
       setLoading(false);
     }
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
+    clear();
   };
 
   if (actions == null) {

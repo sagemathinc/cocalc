@@ -7,6 +7,8 @@
     "./llm/*": "./dist/llm/*.js",
     "./socket": "./dist/socket/index.js",
     "./socket/*": "./dist/socket/*.js",
+    "./sync-doc": "./dist/sync-doc/index.js",
+    "./sync-doc/*": "./dist/sync-doc/*.js",
     "./hub/changefeeds": "./dist/hub/changefeeds/index.js",
     "./hub/api": "./dist/hub/api/index.js",
     "./hub/api/*": "./dist/hub/api/*.js",
@@ -24,21 +26,14 @@
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "conat",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "conat", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/comm": "workspace:*",
     "@cocalc/conat": "workspace:*",
+    "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.4.1",
     "@msgpack/msgpack": "^3.1.1",
@@ -56,7 +51,6 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14"
   },

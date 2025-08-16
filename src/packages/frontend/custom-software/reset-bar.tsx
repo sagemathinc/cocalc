@@ -6,15 +6,15 @@
 import { Button as AntdButton, Card } from "antd";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { A, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { COLORS, SITE_NAME } from "@cocalc/util/theme";
-
 import { Available as AvailableFeatures } from "../project_configuration";
 import { ComputeImages } from "./init";
 import { props2img, RESET_ICON } from "./util";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { type ProjectActions } from "@cocalc/frontend/project_store";
 
 const doc_snap = "https://doc.cocalc.com/project-files.html#snapshots";
 const doc_tt = "https://doc.cocalc.com/time-travel.html";
@@ -36,13 +36,13 @@ interface Props {
   project_id: string;
   images: ComputeImages;
   project_map?: ProjectMap;
-  actions: any;
+  actions: ProjectActions;
   available_features?: AvailableFeatures;
-  site_name?: string;
 }
 
 export const CustomSoftwareReset: React.FC<Props> = (props: Props) => {
-  const { actions, site_name } = props;
+  const { actions } = props;
+  const site_name = useTypedRedux("customize", "site_name");
 
   const intl = useIntl();
 

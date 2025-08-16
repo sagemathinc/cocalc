@@ -7,7 +7,6 @@ import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
-
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -36,6 +35,7 @@ import { ActiveFileSort } from "./files";
 import { FilesSelectedControls } from "./files-controls";
 import { FilesSelectButtons } from "./files-select-extra";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
+import ForkProject from "@cocalc/frontend/project/explorer/fork";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -72,6 +72,7 @@ interface Props {
   modeState: ["open" | "select", (mode: "open" | "select") => void];
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
+  publicFiles: Set<string>;
 }
 
 export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
@@ -95,6 +96,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     modeState,
     selectAllFiles,
     clearAllSelections,
+    publicFiles,
   } = props;
 
   const intl = useIntl();
@@ -150,7 +152,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
 
   async function createFileOrFolder() {
     const fn = searchToFilename(file_search);
-    await actions?.create_file({
+    await actions?.createFile({
       name: fn,
       current_path,
     });
@@ -207,9 +209,6 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       <FileUploadWrapper
         project_id={project_id}
         dest_path={current_path}
-        event_handlers={{
-          complete: () => actions?.fetch_directory_listing(),
-        }}
         config={{ clickable: `.${uploadClassName}` }}
         className="smc-vfill"
       >
@@ -319,7 +318,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           <FormattedMessage
             id="page.flyouts.files.stale-directory.description"
             defaultMessage={"To update, <A>start this project</A>."}
-            description={"to update the outdated information in a file directory listing of a project"}
+            description={
+              "to update the outdated information in a file directory listing of a project"
+            }
             values={{
               A: (c) => (
                 <a
@@ -355,6 +356,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           getFile={getFile}
           mode="top"
           activeFile={activeFile}
+          publicFiles={publicFiles}
         />
         <FilesSelectButtons
           setMode={setMode}
@@ -477,6 +479,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
                 }
                 icon={<Icon name={"life-ring"} />}
               />
+              <ForkProject project_id={project_id} flyout />
             </Space.Compact>
           ) : undefined}
         </div>

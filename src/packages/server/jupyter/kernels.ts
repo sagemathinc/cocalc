@@ -5,10 +5,10 @@ Backend server side part of ChatGPT integration with CoCalc.
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getProject from "./global-project-pool";
-import callProject from "@cocalc/server/projects/call";
-import { jupyter_kernels } from "@cocalc/util/message";
 import LRU from "lru-cache";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { projectApiClient } from "@cocalc/conat/project/api";
+import { conat } from "@cocalc/backend/conat";
 
 const cache = new LRU<string, object[]>({
   ttl: 30000,
@@ -58,15 +58,8 @@ export default async function getKernels({
     project_id = await getProject();
     account_id = jupyter_account_id;
   }
-  const mesg = jupyter_kernels({});
-  const resp = await callProject({
-    account_id,
-    project_id,
-    mesg,
-  });
-  if (resp.error) {
-    throw Error(resp.error);
-  }
-  cache.set(key, resp.kernels);
-  return resp.kernels;
+  const api = projectApiClient({ project_id, client: conat() });
+  const kernels = await api.jupyter.kernels();
+  cache.set(key, kernels);
+  return kernels;
 }

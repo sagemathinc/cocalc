@@ -8,7 +8,12 @@ Importing from an ipynb object (in-memory version of .ipynb file)
 */
 
 import * as misc from "@cocalc/util/misc";
-import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
+import {
+  JUPYTER_MIMETYPES,
+  JUPYTER_MIMETYPES_SET,
+} from "@cocalc/jupyter/util/misc";
+import { type Message } from "@cocalc/jupyter/execute/output-handler";
+import { close } from "@cocalc/util/misc";
 
 const DEFAULT_IPYNB = {
   cells: [
@@ -30,28 +35,40 @@ const DEFAULT_IPYNB = {
 
 export class IPynbImporter {
   private _ipynb: any;
-  private _new_id: any;
-  private _output_handler: any;
-  private _existing_ids: any;
+  private _new_id?: (is_available?: (string) => boolean) => string;
+  private _cellOutputHandler?: (cell) => {
+    message: (content: Message, k?) => void;
+    done?: () => void;
+  };
+  private _existing_ids: string[];
   private _cells: any;
   private _kernel: any;
   private _metadata: any;
-  private _language_info: any;
-  import = (opts: any) => {
-    opts = misc.defaults(opts, {
-      ipynb: {},
-      new_id: undefined, // function that returns an unused id given
-      // an is_available function; new_id(is_available) = a new id.
-      existing_ids: [], // re-use these on loading for efficiency purposes
-      output_handler: undefined, // h = output_handler(cell); h.message(...) -- hard to explain
-    }); // process attachments:  attachment(base64, mime) --> sha1
 
-    this._ipynb = misc.deep_copy(opts.ipynb);
-    this._new_id = opts.new_id;
-    this._output_handler = opts.output_handler;
-    this._existing_ids = opts.existing_ids; // option to re-use existing ids
+  import = ({
+    ipynb,
+    new_id,
+    existing_ids = [],
+    cellOutputHandler,
+  }: {
+    ipynb: object;
+    // function that returns an unused id given
+    // an is_available function; new_id(is_available) = a new id.
+    new_id?: (is_available?: (string) => boolean) => string;
+    // re-use these on loading for efficiency purposes
+    existing_ids?: string[];
+    cellOutputHandler?: (cell) => {
+      message: (content: Message, k?) => void;
+      done?: () => void;
+    };
+  }) => {
+    this._ipynb = misc.deep_copy(ipynb);
+    this._new_id = new_id;
+    this._cellOutputHandler = cellOutputHandler;
+    this._existing_ids = existing_ids; // option to re-use existing ids
 
-    this._handle_old_versions(); // must come before sanity checks, as old versions are "insane". -- see https://github.com/sagemathinc/cocalc/issues/1937
+    // must come before sanity checks, as old versions are "insane". -- see https://github.com/sagemathinc/cocalc/issues/1937
+    this._handle_old_versions();
     this._sanity_improvements();
     this._import_settings();
     this._import_metadata();
@@ -70,14 +87,7 @@ export class IPynbImporter {
   };
 
   close = () => {
-    delete this._cells;
-    delete this._kernel;
-    delete this._metadata;
-    delete this._language_info;
-    delete this._ipynb;
-    delete this._existing_ids;
-    delete this._new_id;
-    delete this._output_handler;
+    close(this);
   };
 
   // Everything below is the internal private implementation.
@@ -295,11 +305,8 @@ export class IPynbImporter {
     if (outputs == null || outputs.length == 0) {
       return null;
     }
-    let handler: any;
     const cell: any = { id, output: {} };
-    if (this._output_handler != null) {
-      handler = this._output_handler(cell);
-    }
+    const handler = this._cellOutputHandler?.(cell);
     let k: string; // it's perfectly fine that k is a string here.
     for (k in outputs) {
       let content = outputs[k];
@@ -308,14 +315,12 @@ export class IPynbImporter {
       }
       this._import_cell_output_content(content);
       if (handler != null) {
-        handler.message(content);
+        handler.message(content, k);
       } else {
         cell.output[k] = content;
       }
     }
-    if (handler != null && typeof handler.done === "function") {
-      handler.done();
-    }
+    handler?.done?.();
     return cell.output;
   };
 
@@ -334,13 +339,8 @@ export class IPynbImporter {
     }
   }
 
-  _import_cell(cell: any, n: any) {
-    const id =
-      (this._existing_ids != null ? this._existing_ids[n] : undefined) != null
-        ? this._existing_ids != null
-          ? this._existing_ids[n]
-          : undefined
-        : this._get_new_id(cell);
+  _import_cell = (cell: any, n: any) => {
+    const id = this._existing_ids[n] ?? this._get_new_id(cell);
     const obj: any = {
       type: "cell",
       id,
@@ -401,10 +401,11 @@ export class IPynbImporter {
       }
     }
     return obj;
-  }
+  };
 }
 
-export function remove_redundant_reps(data?: any) {
+// mutate data removing redundant reps
+export function remove_redundant_reps(data?: object) {
   if (data == null) {
     return;
   }
@@ -414,23 +415,26 @@ export function remove_redundant_reps(data?: any) {
   // backend only) for the .ipynb export, but I'm not doing that right now!
   // This means opening and closing an ipynb file may lose information, which
   // no client currently cares about (?) -- maybe nbconvert does.
-  let keep;
+  let keep = "";
   for (const type of JUPYTER_MIMETYPES) {
     if (data[type] != null) {
       keep = type;
       break;
     }
   }
-  if (keep != null) {
-    for (const type in data) {
-      // NOTE: we only remove multiple reps that are both in JUPYTER_MIMETYPES;
-      // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
-      // not removed, e.g., application/vnd.jupyter.widget-view+json and
-      // text/plain both are types of representation of a widget.
-      if (JUPYTER_MIMETYPES[type] !== undefined && type !== keep) {
-        delete data[type];
-      }
+  if (!keep) {
+    return;
+  }
+  for (const type in data) {
+    // NOTE: we only remove multiple reps that are both in JUPYTER_MIMETYPES;
+    // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
+    // not removed, e.g., application/vnd.jupyter.widget-view+json and
+    // text/plain both are types of representation of a widget.
+    if (
+      type != keep &&
+      (JUPYTER_MIMETYPES_SET as Set<string>).has(type) != null
+    ) {
+      delete data[type];
     }
   }
-  return data;
 }

@@ -324,8 +324,7 @@ export function Handout({
       case "handout":
         return `\
   This will recopy all of the files to them.
-  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.
-  Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the handout directory of their projects.\
+  CAUTION: if you update a file that a student has also worked on, their work will get overwritten. They can recover it using TimeTravel.\
   `;
     }
   }

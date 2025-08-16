@@ -6,21 +6,18 @@
 // test renew-subscriptions
 
 import { test } from "./renew-subscription";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import renewSubscription, { getSubscription } from "./renew-subscription";
 import { createTestAccount, createTestSubscription } from "./test-data";
 import dayjs from "dayjs";
 import createCredit from "./create-credit";
 import getBalance from "./get-balance";
+import { before, after } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase({});
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("create a subscription, then renew it", () => {
   const account_id = uuid();

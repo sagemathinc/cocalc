@@ -722,38 +722,15 @@ export interface CreateProjectOptions {
   // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
   license?: string;
   public_path_id?: string; // may imply use of a license
-  // noPool = do not allow using the pool (e.g., need this when creating projects to put in the pool);
-  // not a real issue since when creating for pool account_id is null, and then we wouldn't use the pool...
-  noPool?: boolean;
   // start running the moment the project is created -- uses more resources, but possibly better user experience
   start?: boolean;
 
   // admins can specify the project_id - nobody else can -- useful for debugging.
   project_id?: string;
-}
 
-interface BaseCopyOptions {
-  target_project_id?: string;
-  target_path?: string; // path into project; if not given, defaults to source path above.
-  overwrite_newer?: boolean; // if true, newer files in target are copied over (otherwise, uses rsync's --update)
-  delete_missing?: boolean; // if true, delete files in dest path not in source, **including** newer files
-  backup?: boolean; // make backup files
-  timeout?: number; // in **seconds**, not milliseconds
-  bwlimit?: number;
-  wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
-  scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
-  public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
-  exclude?: string[]; // options passed to rsync via --exclude
-}
-export interface UserCopyOptions extends BaseCopyOptions {
-  account_id?: string;
-  src_project_id: string;
-  src_path: string;
-  // simulate copy taking at least this long -- useful for dev/debugging.
-  debug_delay_ms?: number;
-}
-
-// for copying files within and between projects
-export interface CopyOptions extends BaseCopyOptions {
-  path: string;
+  // If given, files will be exact clone of those from src_project_id.
+  // account_id must be a collab on src_project_id.
+  // The implementation is highly efficient using "btrfs subvolume clone".
+  // Snapshots are not included in the clone.
+  src_project_id?: string;
 }

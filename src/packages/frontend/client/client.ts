@@ -35,6 +35,7 @@ import type {
   CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import { randomId } from "@cocalc/conat/names";
+import api from "./api";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -114,6 +115,7 @@ export interface WebappClient extends EventEmitter {
   set_connected?: Function;
   version: Function;
   alert_message: Function;
+  nextjsApi?: typeof api;
 }
 
 export const WebappClient = null; // webpack + TS es2020 modules need this
@@ -194,6 +196,7 @@ class Client extends EventEmitter implements WebappClient {
   synctable_database: Function;
   async_query: Function;
   alert_message: Function;
+  nextjsApi = api;
 
   constructor() {
     super();
@@ -317,26 +320,6 @@ class Client extends EventEmitter implements WebappClient {
   public set_deleted(): void {
     throw Error("not implemented for frontend");
   }
-
-  touchOpenFile = async ({
-    project_id,
-    path,
-    setNotDeleted,
-    doctype,
-  }: {
-    project_id: string;
-    path: string;
-    id?: number;
-    doctype?;
-    // if file is deleted, this explicitly undeletes it.
-    setNotDeleted?: boolean;
-  }) => {
-    const x = await this.conat_client.openFiles(project_id);
-    if (setNotDeleted) {
-      x.setNotDeleted(path);
-    }
-    x.touch(path, doctype);
-  };
 }
 
 export const webapp_client = new Client();

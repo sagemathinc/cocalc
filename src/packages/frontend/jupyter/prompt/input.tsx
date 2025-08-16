@@ -13,7 +13,6 @@ src/packages/frontend/frame-editors/whiteboard-editor/elements/code/input-prompt
 */
 
 import React from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Tip } from "@cocalc/frontend/components/tip";

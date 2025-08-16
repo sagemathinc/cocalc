@@ -299,17 +299,15 @@ export class ProjectsStore extends Store<ProjectsState> {
     return this.get("open_projects").includes(project_id);
   }
 
-  public wait_until_project_is_open(
+  waitUntilProjectIsOpen = async (
     project_id: string,
     timeout: number, // timeout in seconds (NOT milliseconds!)
-    cb: (err?) => void,
-  ): void {
-    this.wait({
+  ) => {
+    await this.async_wait({
       until: () => this.is_project_open(project_id),
       timeout,
-      cb,
     });
-  }
+  };
 
   public wait_until_project_exists(
     project_id: string,
@@ -539,7 +537,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (quotas == null) {
       return undefined;
     }
-    const kind = quotas.member_host ?? true ? "member" : "free";
+    const kind = (quotas.member_host ?? true) ? "member" : "free";
     // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
     const upgraded =
       (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||
