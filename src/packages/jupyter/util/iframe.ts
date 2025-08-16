@@ -11,17 +11,9 @@ MOTIVATION: Sage 3d graphics.
 
 import { decode } from "he";
 
-// use iframe for anything at all large (reduce strain on )
-const MAX_HTML_SIZE = 10000;
+// use iframe for really large html (reduce strain on sync)
+const MAX_HTML_SIZE = 1_000_000;
 
-// We use iframes to render html in a number of cases:
-//  - if it starts with iframe
-//  - if it has a whole page doctype
-//  - if it has a <script> tag anywhere -- since those are ignored by safe HTML
-//    rendering; using an iframe is the only way.  This e.g., makes mpld3 work uses -- <script>!  https://github.com/sagemathinc/cocalc/issues/1934
-//    and altair -- https://github.com/sagemathinc/cocalc/issues/4468 -- uses <script type="text/javascript"/>
-//  - do NOT just render all html in an iframe, e.g., this would break bokeh, since one output creates the target elt,
-//    and a different output uses javascript to render it, and this doesn't work with an iframe, of course.
 export function shouldUseIframe(content: string): boolean {
   if (!content) {
     return false;
@@ -35,10 +27,7 @@ export function shouldUseIframe(content: string): boolean {
     // Hopefully the above heuristic is sufficiently robust to detect but not overdetect.
     return false;
   }
-  if (content.includes("<!doctype html>") || content.includes("<html>")) {
-    // plotly wraps its output in <html>, which strongly suggests it wants to
-    // be in an iframe.  It's not valid to put <html> as a child of a div, so really
-    // the only valid way to render an <html> string is as an iframe.
+  if (content.includes("plotlyenv")) {
     return true;
   }
   if (content.length >= MAX_HTML_SIZE) {

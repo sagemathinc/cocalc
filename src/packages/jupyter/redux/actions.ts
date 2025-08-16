@@ -51,6 +51,7 @@ import {
 } from "@cocalc/jupyter/util/misc";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import { isSha1, sha1 } from "@cocalc/util/misc";
+import { shouldUseIframe } from "@cocalc/jupyter/util/iframe";
 
 const { close, required, defaults } = misc;
 
@@ -2169,6 +2170,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         if (isSha1(content.data[type])) {
           // it was already processed, e.g., this happens when a browser that was
           // processing output closes and we cutoff to the project processing output.
+          continue;
+        }
+        if (type == "text/html" && !shouldUseIframe(content.data[type])) {
           continue;
         }
         const s = saveBlob(content.data[type], type);
