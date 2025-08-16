@@ -3,20 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// NOOP endpoint - bookmarks now handled by conat
+// Keeping endpoint for backwards compatibility with older clients
+
 import { Request } from "express";
 
-import { getLogger } from "@cocalc/backend/logger";
-import { saveStarredFilesBookmarks } from "@cocalc/server/bookmarks/starred";
 import { STARRED_FILES } from "@cocalc/util/consts/bookmarks";
-import { apiRoute, apiRouteOperation } from "lib/api";
-import { processSetRequest } from "lib/api/bookmarks";
-import {
-  BookmarkSetInputSchema,
-  BookmarkSetOutputSchema,
-  BookmarkSetOutputType,
-} from "lib/api/schema/bookmarks";
-
-const L = getLogger("api:v2:bookmark:set");
 
 async function handle(req, res) {
   try {
@@ -27,19 +19,19 @@ async function handle(req, res) {
   }
 }
 
-async function set(req: Request): Promise<BookmarkSetOutputType> {
-  const { project_id, account_id, type, stars } = await processSetRequest(req);
+async function set(
+  req: Request,
+): Promise<{
+  status: "success" | "error";
+  project_id?: string;
+  type?: string;
+  error?: string;
+}> {
+  const { project_id, type } = req.body;
 
+  // NOOP: Always return success since bookmarks are now handled by conat
   switch (type) {
     case STARRED_FILES: {
-      L.debug("set", { project_id, stars });
-      await saveStarredFilesBookmarks({
-        project_id,
-        account_id,
-        stars,
-        mode: "set",
-      });
-
       return { status: "success", project_id, type };
     }
 
@@ -48,23 +40,4 @@ async function set(req: Request): Promise<BookmarkSetOutputType> {
   }
 }
 
-export default apiRoute({
-  setBookmarks: apiRouteOperation({
-    method: "POST",
-    openApiOperation: {
-      tags: ["Projects"],
-    },
-  })
-    .input({
-      contentType: "application/json",
-      body: BookmarkSetInputSchema,
-    })
-    .outputs([
-      {
-        status: 200,
-        contentType: "application/json",
-        body: BookmarkSetOutputSchema,
-      },
-    ])
-    .handler(handle),
-});
+export default handle;

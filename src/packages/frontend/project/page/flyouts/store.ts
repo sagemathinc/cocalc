@@ -3,114 +3,104 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { merge, sortBy, throttle, uniq, xor } from "lodash";
+/**
+// To debug starred files in the browser console:
+c = cc.client.conat_client
+bm = await c.dkv({account_id: cc.client.account_id, name: 'bookmark-starred-files'})
+// Check all bookmark data
+console.log('All bookmarks:', bm.getAll())
+// Check specific project bookmarks
+console.log('Project bookmarks (get):', bm.get("[project_id]"))
+// Set starred files for a project
+bm.set(project_id, ['file1.txt', 'folder/file2.md'])
+// Listen to changes
+bm.on('change', (e) => console.log('Bookmark change:', e))
+ */
+
+import { sortBy, uniq } from "lodash";
 import { useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
-import api from "@cocalc/frontend/client/api";
-import { STARRED_FILES } from "@cocalc/util/consts/bookmarks";
-import {
-  GetStarredBookmarks,
-  GetStarredBookmarksPayload,
-  SetStarredBookmarks,
-} from "@cocalc/util/types/bookmarks";
-import {
-  FlyoutActiveStarred,
-  getFlyoutActiveStarred,
-  storeFlyoutState,
-} from "./state";
+import { redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { CONAT_BOOKMARKS_KEY } from "@cocalc/util/consts/bookmarks";
+import type { FlyoutActiveStarred } from "./state";
 
-// Additionally to local storage, we back the state of the starred files in the database.
-// Errors with the API are ignored, because we primarily rely on local storage.
-// The only really important situation to think of are when there is nothing in local storage but in the database,
-// or when there is
+// Starred files are now managed entirely through conat with in-memory state.
+// No local storage dependency - conat handles synchronization and persistence.
 export function useStarredFilesManager(project_id: string) {
-  const [starred, setStarred] = useState<FlyoutActiveStarred>(
-    getFlyoutActiveStarred(project_id),
-  );
+  const [starred, setStarred] = useState<FlyoutActiveStarred>([]);
+  const [bookmarks, setBookmarks] = useState<any>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // once after mounting this, we update the starred bookmarks (which merges with what we have) and then stores it
+  // Initialize conat bookmarks once on mount, waiting for authentication
   useAsyncEffect(async () => {
-    await updateStarred();
+    // Wait until account is authenticated
+    const store = redux.getStore("account");
+    await store.async_wait({
+      until: () => store.get_account_id() != null,
+      timeout: 0, // indefinite timeout
+    });
+
+    const account_id = store.get_account_id();
+    await initializeConatBookmarks(account_id);
   }, []);
 
-  function setStarredLS(starred: string[]) {
-    setStarred(starred);
-    storeFlyoutState(project_id, "active", { starred: starred });
-  }
-
-  // TODO: there are also add/remove API endpoints, but for now we stick with set. Hardly worth optimizing.
-  function setStarredPath(path: string, starState: boolean) {
-    const next = starState
-      ? [...starred, path]
-      : starred.filter((p) => p !== path);
-    setStarredLS(next);
-    storeStarred(next);
-  }
-
-  async function storeStarred(stars: string[]) {
+  async function initializeConatBookmarks(account_id: string) {
     try {
-      const payload: SetStarredBookmarks = {
-        type: STARRED_FILES,
-        project_id,
-        stars,
-      };
-      await api("bookmarks/set", payload);
+      const conatBookmarks = await webapp_client.conat_client.dkv<string[]>({
+        account_id,
+        name: CONAT_BOOKMARKS_KEY,
+      });
+
+      setBookmarks(conatBookmarks);
+
+      // Listen for changes from other clients
+      conatBookmarks.on(
+        "change",
+        (changeEvent: { key: string; value?: string[]; prev?: string[] }) => {
+          if (changeEvent.key === project_id) {
+            const remoteStars = changeEvent.value || [];
+            setStarred(sortBy(uniq(remoteStars)));
+          }
+        },
+      );
+
+      // Load initial data from conat
+      const initialStars = conatBookmarks.get(project_id) || [];
+      if (Array.isArray(initialStars)) {
+        setStarred(sortBy(uniq(initialStars)));
+      }
+
+      setIsInitialized(true);
     } catch (err) {
-      console.warn(`bookmark: warning -- ${err}`);
+      console.warn(`conat bookmark initialization warning -- ${err}`);
+      setIsInitialized(true); // Set initialized even on error to avoid infinite loading
     }
   }
 
-  // this is called once, when the flyout/tabs component is mounted
-  // throtteled, to usually take 1 sec from opening the panel to loading the stars
-  const updateStarred = throttle(
-    async () => {
-      try {
-        const payload: GetStarredBookmarksPayload = {
-          type: STARRED_FILES,
-          project_id,
-        };
-        const data: GetStarredBookmarks = await api("bookmarks/get", payload);
+  function setStarredPath(path: string, starState: boolean) {
+    if (!bookmarks || !isInitialized) {
+      console.warn("Conat bookmarks not yet initialized");
+      return;
+    }
 
-        const { type, status } = data;
+    const next = starState
+      ? sortBy(uniq([...starred, path]))
+      : starred.filter((p) => p !== path);
 
-        if (type !== STARRED_FILES) {
-          console.error(
-            `flyout/store/starred type must be ${STARRED_FILES} but we got`,
-            type,
-          );
-          return;
-        }
+    // Update local state immediately for responsive UI
+    setStarred(next);
 
-        if (status === "success") {
-          const { stars } = data;
-          if (
-            Array.isArray(stars) &&
-            stars.every((x) => typeof x === "string")
-          ) {
-            stars.sort(); // sorted for the xor check below
-            const next = sortBy(uniq(merge(starred, stars)));
-            setStarredLS(next);
-            if (xor(stars, next).length > 0) {
-              // if there is a change (e.g. nothing in the database stored yet), store the stars
-              await storeStarred(next);
-            }
-          } else {
-            console.error("flyout/store/starred invalid payload", stars);
-          }
-        } else if (status === "error") {
-          const { error } = data;
-          console.error("flyout/store/starred error", error);
-        } else {
-          console.error("flyout/store/starred error: unknown status", status);
-        }
-      } catch (err) {
-        console.warn(`bookmark: warning -- ${err}`);
-      }
-    },
-    1000,
-    { trailing: true, leading: false },
-  );
+    // Store to conat (this will also trigger the change event for other clients)
+    try {
+      bookmarks.set(project_id, next);
+    } catch (err) {
+      console.warn(`conat bookmark storage warning -- ${err}`);
+      // Revert local state on error
+      setStarred(starred);
+    }
+  }
 
   return {
     starred,
