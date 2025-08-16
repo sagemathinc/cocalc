@@ -23,11 +23,13 @@ export function clearCache(): void {
 const Q_FEED = `
 SELECT
   id, channel, title, text, url,
-  extract(epoch from date::timestamp)::integer as date
+  extract(epoch from date::timestamp)::integer as date,
+  extract(epoch from until::timestamp)::integer as until
 FROM news
 WHERE news.date <= NOW()
   AND hide IS NOT TRUE
   AND channel != '${EVENT_CHANNEL}'
+  AND (until IS NULL OR until > NOW())
 ORDER BY date DESC
 LIMIT 100`;
 
@@ -40,7 +42,8 @@ export async function getFeedData(): Promise<NewsItem[]> {
 const Q_BY_ID = `
 SELECT
   id, channel, title, text, url, hide, tags,
-  extract(epoch from date::timestamptz)::INTEGER as date
+  extract(epoch from date::timestamptz)::INTEGER as date,
+  extract(epoch from until::timestamptz)::INTEGER as until
 FROM news
 WHERE id = $1`;
 
@@ -56,7 +59,9 @@ const Q_BY_ID_USER = `
 SELECT
   id, channel, title, text, url, hide, tags, history,
   date >= NOW() as future,
-  extract(epoch from date::timestamptz)::INTEGER as date
+  until IS NOT NULL AND until <= NOW() as expired,
+  extract(epoch from date::timestamptz)::INTEGER as date,
+  extract(epoch from until::timestamptz)::INTEGER as until
 FROM news
 WHERE id = $1`;
 
@@ -68,6 +73,7 @@ WHERE date >= (SELECT date FROM news WHERE id = $1)
   AND hide IS NOT TRUE
   AND date < NOW()
   AND channel != '${EVENT_CHANNEL}'
+  AND (until IS NULL OR until > NOW())
 ORDER BY date ASC, id ASC
 LIMIT 1`;
 
@@ -79,6 +85,7 @@ WHERE date <= (SELECT date FROM news WHERE id = $1)
   AND hide IS NOT TRUE
   AND date < NOW()
   AND channel != '${EVENT_CHANNEL}'
+  AND (until IS NULL OR until > NOW())
 ORDER BY date DESC, id DESC
 LIMIT 1`;
 
@@ -104,7 +111,9 @@ const Q_INDEX = `
 SELECT
   id, channel, title, text, url, hide, tags,
   date >= NOW() as future,
-  extract(epoch from date::timestamptz)::INTEGER as date
+  until IS NOT NULL AND until <= NOW() as expired,
+  extract(epoch from date::timestamptz)::INTEGER as date,
+  extract(epoch from until::timestamptz)::INTEGER as until
 FROM news
     WHERE channel <> '${EVENT_CHANNEL}'
 ORDER BY date DESC
@@ -122,11 +131,13 @@ export async function getIndex(
 const Q_MOST_RECENT = `
 SELECT
   id, channel, title, tags,
-  extract(epoch from date::timestamptz)::INTEGER as date
+  extract(epoch from date::timestamptz)::INTEGER as date,
+  extract(epoch from until::timestamptz)::INTEGER as until
 FROM news
 WHERE date <= NOW()
   AND hide IS NOT TRUE
   AND channel != '${EVENT_CHANNEL}'
+  AND (until IS NULL OR until > NOW())
 ORDER BY date DESC
 LIMIT 1`;
 
@@ -137,11 +148,13 @@ export async function getMostRecentNews(): Promise<RecentHeadline | null> {
 const Q_RECENT = `
 SELECT
   id, channel, title, tags,
-  extract(epoch from date::timestamptz)::INTEGER as date
+  extract(epoch from date::timestamptz)::INTEGER as date,
+  extract(epoch from until::timestamptz)::INTEGER as until
 FROM news
 WHERE date <= NOW()
   AND channel != '${EVENT_CHANNEL}'
   AND hide IS NOT TRUE
+  AND (until IS NULL OR until > NOW())
 ORDER BY date DESC
 LIMIT $1`;
 
@@ -158,11 +171,13 @@ export async function getRecentHeadlines(
 const Q_UPCOMING_NEWS_CHANNEL_ITEMS = `
 SELECT
   id, channel, title, text, url, tags,
-  extract(epoch from date::timestamp)::integer as date
+  extract(epoch from date::timestamp)::integer as date,
+  extract(epoch from until::timestamp)::integer as until
 FROM news
 WHERE date >= NOW()
   AND channel = $1
   AND hide IS NOT TRUE
+  AND (until IS NULL OR until > NOW())
 ORDER BY date
 LIMIT 100`;
 
@@ -176,11 +191,13 @@ export async function getUpcomingNewsChannelItems(
 const Q_PAST_NEWS_CHANNEL_ITEMS = `
 SELECT
   id, channel, title, text, url, tags,
-  extract(epoch from date::timestamp)::integer as date
+  extract(epoch from date::timestamp)::integer as date,
+  extract(epoch from until::timestamp)::integer as until
 FROM news
 WHERE date <= NOW()
   AND channel = $1
   AND hide IS NOT TRUE
+  AND (until IS NULL OR until > NOW())
 ORDER BY date DESC
 LIMIT 100`;
 

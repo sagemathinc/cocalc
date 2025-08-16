@@ -5,6 +5,7 @@
 
 import { NewsItem } from "@cocalc/util/types/news";
 
-export interface NewsWithFuture extends NewsItem {
+export interface NewsWithStatus extends NewsItem {
   future: boolean;
+  expired?: boolean;
 }

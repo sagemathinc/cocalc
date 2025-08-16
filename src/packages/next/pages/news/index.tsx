@@ -31,7 +31,7 @@ import Header from "components/landing/header";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { News } from "components/news/news";
-import type { NewsWithFuture } from "components/news/types";
+import type { NewsWithStatus } from "components/news/types";
 import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
@@ -52,7 +52,7 @@ function isChannelAll(s?: string): s is ChannelAll {
 }
 interface Props {
   customize: CustomizeType;
-  news: NewsWithFuture[];
+  news: NewsWithStatus[];
   offset: number;
   tag?: string; // used for searching for a tag, used on /news/[id] standalone pages
   channel?: string; // a channel to filter by
@@ -130,17 +130,13 @@ export default function AllNews(props: Props) {
             onChange={(e) => setChannel(e.target.value)}
           >
             <Radio.Button value="all">Show All</Radio.Button>
-            {
-              CHANNELS
-                .filter((c) => c !== "event")
-                .map((c) => (
-                  <Tooltip key={c} title={CHANNELS_DESCRIPTIONS[c]}>
-                    <Radio.Button key={c} value={c}>
-                      <Icon name={CHANNELS_ICONS[c] as IconName}/> {capitalize(c)}
-                    </Radio.Button>
-                  </Tooltip>
-                ))
-            }
+            {CHANNELS.filter((c) => c !== "event").map((c) => (
+              <Tooltip key={c} title={CHANNELS_DESCRIPTIONS[c]}>
+                <Radio.Button key={c} value={c}>
+                  <Icon name={CHANNELS_ICONS[c] as IconName} /> {capitalize(c)}
+                </Radio.Button>
+              </Tooltip>
+            ))}
           </Radio.Group>
         </Col>
         <Col>
@@ -159,8 +155,8 @@ export default function AllNews(props: Props) {
 
   function renderNews() {
     const rendered = news
-      // only admins see future and hidden news
-      .filter((n) => isAdmin || (!n.future && !n.hide))
+      // only admins see future, hidden, and expired news
+      .filter((n) => isAdmin || (!n.future && !n.hide && !n.expired))
       .filter((n) => channel === "all" || n.channel == channel)
       .filter((n) => {
         if (search === "") return true;
@@ -341,7 +337,7 @@ export default function AllNews(props: Props) {
 
   return (
     <Customize value={customize}>
-      <Head title={`${siteName} News`}/>
+      <Head title={`${siteName} News`} />
       <Layout>
         <Header page="news" />
         <Layout.Content

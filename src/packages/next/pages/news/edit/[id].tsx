@@ -52,7 +52,7 @@ interface Props {
   news?: NewsItem;
 }
 
-type NewsTypeForm = Omit<NewsItem, "date"> & { date: dayjs.Dayjs };
+type NewsTypeForm = Omit<NewsItem, "date" | "until"> & { date: dayjs.Dayjs; until?: dayjs.Dayjs };
 
 export default function EditNews(props: Props) {
   const { customize, news } = props;
@@ -68,10 +68,12 @@ export default function EditNews(props: Props) {
 
   const date: dayjs.Dayjs =
     typeof news?.date === "number" ? dayjs.unix(news.date) : dayjs();
+  const until: dayjs.Dayjs | undefined =
+    typeof news?.until === "number" ? dayjs.unix(news.until) : undefined;
 
   const init: NewsTypeForm =
     news != null
-      ? { ...news, tags: news.tags ?? [], date }
+      ? { ...news, tags: news.tags ?? [], date, until }
       : {
           hide: false,
           title: "",
@@ -80,6 +82,7 @@ export default function EditNews(props: Props) {
           tags: [],
           channel: "feature",
           date: dayjs(),
+          until: undefined,
         };
 
   const [data, setData] = useState<NewsTypeForm>(init);
@@ -111,8 +114,13 @@ export default function EditNews(props: Props) {
   async function save() {
     setSaving(true);
     try {
-      // send data, but convert date field to epoch seconds
-      const next = { ...data, id, date: data.date.unix() };
+      // send data, but convert date and until fields to epoch seconds
+      const next = { 
+        ...data, 
+        id, 
+        date: data.date.unix(),
+        until: data.until?.unix()
+      };
       const { channel } = data;
       const ret = await apiPost("/news/edit", next);
       if (ret == null || ret.id == null) {
@@ -226,6 +234,14 @@ export default function EditNews(props: Props) {
             <DatePicker changeOnBlur showTime={true} allowClear={false} />
           </Form.Item>
           <Form.Item
+            label="Until"
+            name="until"
+            rules={[{ required: false }]}
+            extra="Optional expiration date - news item will not be shown after this date. Leave empty to never expire."
+          >
+            <DatePicker changeOnBlur showTime={true} allowClear={true} />
+          </Form.Item>
+          <Form.Item
             label="Channel"
             name="channel"
             rules={[{ required: true }]}
@@ -276,7 +292,7 @@ export default function EditNews(props: Props) {
         <Row gutter={30}>
           <Col span={16}>
             <Paragraph>
-              <News news={{ ...data, id, date: data.date.unix() }} />
+              <News news={{ ...data, id, date: data.date.unix(), until: data.until?.unix() }} />
             </Paragraph>
           </Col>
           <Col span={8}>

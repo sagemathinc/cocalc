@@ -12,6 +12,7 @@ interface NewsProto {
   text: string; // Markdown text
   title: string; // title of the news item, should be short
   url?: string; // URL link to an external page (not the news item itself)
+  until?: number | Date; // optional expiration date - news item will not be shown after this date
 }
 
 export interface NewsItem extends NewsProto {
