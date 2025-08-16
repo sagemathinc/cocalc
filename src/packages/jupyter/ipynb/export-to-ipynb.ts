@@ -279,38 +279,31 @@ function processOutputN(
   if (output_n.text != null) {
     output_n.text = diff_friendly(output_n.text);
   }
-  if (output_n.data != null) {
+  if (output_n.data != null && blob_store != null) {
     for (let k in output_n.data) {
+      const isShaType =
+        k.startsWith("image/") || k == "application/pdf" || k == "iframe";
       const v = output_n.data[k];
+
+      if (isShaType && isSha1(v)) {
+        // value was replaced by sha1 version of it so swap back the original
+        // content
+        const value = isJupyterBase64MimeType(k)
+          ? blob_store.getBase64(v)
+          : blob_store.getString(v);
+        if (value == null) {
+          delete output_n.data[k];
+          continue;
+        } else {
+          output_n[k] = value;
+          if (k == "iframe") {
+            output_n["text/html"] = value;
+            delete output_n["iframe"];
+          }
+        }
+      }
       if (k.slice(0, 5) === "text/") {
         output_n.data[k] = diff_friendly(output_n.data[k]);
-      }
-      if (
-        isSha1(v) &&
-        (k.startsWith("image/") || k === "application/pdf" || k === "iframe")
-      ) {
-        if (blob_store != null) {
-          let value;
-          if (isJupyterBase64MimeType(k)) {
-            value = blob_store.getBase64(v);
-          } else {
-            value = blob_store.getString(v);
-            value = value?.split("\n").map((x) => x + "\n");
-            if (k === "iframe") {
-              delete output_n.data[k];
-              k = "text/html";
-            }
-          }
-          if (value == null) {
-            // The image is no longer known; this could happen if the user reverts in the history
-            // browser and there is an image in the output that was not saved in the latest version.
-            // TODO: instead return an error.
-            return;
-          }
-          output_n.data[k] = value;
-        } else {
-          return; // impossible to include in the output without blob_store
-        }
       }
     }
     output_n.output_type = "execute_result";

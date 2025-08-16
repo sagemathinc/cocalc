@@ -471,7 +471,7 @@ Table({
             undo_depth: 300,
             jupyter_classic: false,
             jupyter_window: false,
-            disable_jupyter_windowing: true,
+            disable_jupyter_windowing: false,
             show_exec_warning: true,
             physical_keyboard: "default",
             keyboard_variant: "",

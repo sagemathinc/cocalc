@@ -1288,19 +1288,17 @@ export class JupyterActions extends JupyterActions0 {
       }
     }
 
-    const blobsBase64: { [sha1: string]: string | null } = {};
-    const blobsString: { [sha1: string]: string | null } = {};
+    const blobsBase64 = new Set<string>();
+    const blobsString = new Set<string>();
     const blob_store = {
       getBase64: (hash) => {
-        blobsBase64[hash] = null;
+        blobsBase64.add(hash);
       },
       getString: (hash) => {
-        blobsString[hash] = null;
+        blobsString.add(hash);
       },
     };
 
-    // export_to_ipynb mutates its input... mostly not a problem, since
-    // we're toJS'ing most of it, but be careful with more_output.
     const options = {
       cells: store.get("cells").toJS(),
       cell_list: cell_list.toJS(),
@@ -1311,11 +1309,12 @@ export class JupyterActions extends JupyterActions0 {
       more_output: cloneDeep(more_output),
     };
 
-    const pass1 = export_to_ipynb(options);
+    // clone deep because export_to_ipynb mutates its input!
+    const pass1 = export_to_ipynb(cloneDeep(options));
 
     let n = 0;
     const blobs: { [sha1: string]: string | null } = {};
-    for (const hash in blobsBase64) {
+    for (const hash of blobsBase64) {
       try {
         const ar = await this.asyncBlobStore.get(hash);
         if (ar) {
@@ -1327,7 +1326,7 @@ export class JupyterActions extends JupyterActions0 {
       }
     }
     const t = new TextDecoder();
-    for (const hash in blobsString) {
+    for (const hash of blobsString) {
       try {
         const ar = await this.asyncBlobStore.get(hash);
         if (ar) {

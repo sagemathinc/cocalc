@@ -40,7 +40,7 @@ export const JUPYTER_MIMETYPES_SET = new Set(JUPYTER_MIMETYPES);
 
 export function isJupyterBase64MimeType(type: string) {
   type = type.toLowerCase();
-  if (type.startsWith("text")) {
+  if (type.startsWith("text") || type == "iframe") {
     // no text ones are base64 encoded
     return false;
   }
@@ -50,7 +50,7 @@ export function isJupyterBase64MimeType(type: string) {
   if (type == "image/svg+xml") {
     return false;
   }
-  
+
   // what remains should be application/pdf and the image types
   return true;
 }
