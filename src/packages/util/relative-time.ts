@@ -3,6 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// ATTENTION/TODO: this is deprecated -- we no longer do any clock sync and server_time()
+// is just the time!!!  **This is still called in various places.**  The historical reason 
+// for tracking server time was for the sync algorithm. However, we replaced it by a better 
+// one and no longer worry about server time.  Just a heads up!
+
+
 declare var window;
 
 function getSkew(): number {

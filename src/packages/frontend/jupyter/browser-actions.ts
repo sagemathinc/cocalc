@@ -70,6 +70,12 @@ import {
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
 } from "@cocalc/jupyter/util/misc";
+import {
+  IGNORE_ON_SAVE_INTERVAL,
+  WATCH_RECREATE_WAIT,
+  DELETED_THRESHOLD,
+  DELETED_CHECK_INTERVAL,
+} from "@cocalc/sync/editor/generic/sync-doc";
 
 const OUTPUT_FPS = 29;
 
@@ -85,7 +91,6 @@ export class JupyterActions extends JupyterActions0 {
   public syncdbPath: string;
   private lastCursorMoveTime: number = 0;
   public jupyterEditorActions?;
-  private savedVersion: number = 0;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
@@ -165,6 +170,7 @@ export class JupyterActions extends JupyterActions0 {
         // cell notebook that has nothing to do with nbgrader).
         this.nbgrader_actions.update_metadata();
       }
+      this.watchIpynb();
     });
 
     this.initOpenLog();
@@ -1261,8 +1267,8 @@ export class JupyterActions extends JupyterActions0 {
   // mime types like images in base64. This makes a first pass
   // to find the sha1-indexed blobs, gets the blobs, then does
   // a second pass to fill them in.  There is a similar function
-  // in store that is sync, but doesn't fill in the blobs on the
-  // frontend like this does.
+  // in store that is sync, but doesn't fill in the blobs
+  // like this does.
   toIpynb = async () => {
     const store = this.store;
     if (store?.get("cells") == null || store?.get("cell_list") == null) {
@@ -1337,26 +1343,6 @@ export class JupyterActions extends JupyterActions0 {
     };
 
     return export_to_ipynb({ ...options, blob_store: blob_store2 });
-  };
-
-  private saveIpynb = async () => {
-    if (this.isClosed()) return;
-    const before = this.syncdb.last_changed();
-    const ipynb = await this.toIpynb();
-    const serialize = JSON.stringify(ipynb, undefined, 2);
-    this.syncdb.fs.writeFile(this.path, serialize);
-    const has_unsaved_changes = this.syncdb.last_changed() != before;
-    this.setState({ has_unsaved_changes });
-    this.store.emit("has-unsaved-changes", has_unsaved_changes);
-    const stats = await this.syncdb.fs.stat(this.path);
-    const stillNotChanged = this.syncdb.last_changed() == before;
-    this.syncdb.set({ type: "fs", mtime: stats.mtime.valueOf() });
-    this.syncdb.commit();
-    if (stillNotChanged) {
-      this.savedVersion = this.syncdb.last_changed();
-    } else {
-      this.savedVersion = 0;
-    }
   };
 
   save = async () => {
@@ -1985,6 +1971,154 @@ export class JupyterActions extends JupyterActions0 {
   getConnectionFile = async (): Promise<string> => {
     const api = await this.jupyterApi();
     return await api.getConnectionFile({ path: this.path });
+  };
+
+  // load the ipynb version of this notebook from disk
+  loadFromDisk = async (mtime?) => {
+    const fs = this.syncdb.fs;
+    const ipynb = JSON.parse(
+      Buffer.from(await fs.readFile(this.path)).toString(),
+    );
+    mtime ??= (await this.syncdb.fs.stat(this.path)).mtime.valueOf();
+    this.setIpynbMtime(mtime);
+    await this.setToIpynb(ipynb);
+  };
+
+  private setIpynbMtime = (mtime: number) => {
+    this.syncdb.set({ type: "fs", mtime });
+    this.syncdb.commit();
+  };
+
+  public savedVersion: number = 0;
+  saveIpynb = async () => {
+    if (this.isClosed()) return;
+
+    try {
+      await this.fileWatcher?.ignore(
+        this.syncdb.opts.ignoreOnSaveInterval ?? IGNORE_ON_SAVE_INTERVAL,
+      );
+    } catch (err) {
+      console.warn("issue ignoring file watcher", err);
+    }
+
+    const before = this.syncdb.last_changed();
+    const ipynb = await this.toIpynb();
+    const serialize = JSON.stringify(ipynb, undefined, 2);
+    this.syncdb.fs.writeFile(this.path, serialize);
+    const has_unsaved_changes = this.syncdb.last_changed() != before;
+    this.setState({ has_unsaved_changes });
+    this.store.emit("has-unsaved-changes", has_unsaved_changes);
+    const stats = await this.syncdb.fs.stat(this.path);
+    const stillNotChanged = this.syncdb.last_changed() == before;
+    this.setIpynbMtime(stats.mtime.valueOf());
+    if (stillNotChanged) {
+      this.savedVersion = this.syncdb.last_changed();
+    } else {
+      this.savedVersion = 0;
+    }
+  };
+
+  private isIpynbDeleted = false;
+  private loadFromDiskIfChanged = async () => {
+    const mtime = this.syncdb.get_one({ type: "fs" })?.get("mtime");
+    if (mtime == null) {
+      await this.loadFromDisk();
+      return;
+    }
+    const fs = this.syncdb.fs;
+    const stats = await fs.stat(this.path);
+    this.isIpynbDeleted = false;
+
+    if (stats.mtime != mtime) {
+      await this.loadFromDisk();
+    }
+  };
+
+  // TODO: The following code is very similar to code in
+  // @cocalc/sync/editor/generic/sync-doc
+  // and it seems to work very well.  After writing some more
+  // tests, I should refactor it into a separate module that both use.
+  private fileWatcher?;
+  watchIpynb = async () => {
+    // one initial load right when we open the document
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        try {
+          await this.loadFromDiskIfChanged();
+          return true;
+        } catch (err) {
+          console.warn(`Issue watching ipynb file`, err);
+          return false;
+        }
+      },
+      { min: 3000 },
+    );
+    if (this.isClosed()) return true;
+    const fs = this.syncdb.fs;
+
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        try {
+          this.fileWatcher = await fs.watch(this.path, { unique: true });
+          for await (const { eventType, ignore } of this.fileWatcher) {
+            if (this.isClosed()) return true;
+            if (!ignore) {
+              await this.loadFromDiskIfChanged();
+            }
+            if (eventType == "rename") {
+              break;
+            }
+          }
+        } catch {}
+        // check if file was deleted
+        this.signalIfFileDeleted();
+        this.fileWatcher?.close();
+        delete this.fileWatcher;
+        return false;
+      },
+      {
+        min: this.syncdb.opts.watchRecreateWait ?? WATCH_RECREATE_WAIT,
+        max: this.syncdb.opts.watchRecreateWait ?? WATCH_RECREATE_WAIT,
+      },
+    );
+  };
+
+  private signalIfFileDeleted = async (): Promise<void> => {
+    if (this.isClosed()) return;
+    const start = Date.now();
+    const threshold = this.syncdb.opts.deletedThreshold ?? DELETED_THRESHOLD;
+    while (!this.isClosed()) {
+      try {
+        if (await this.syncdb.fs.exists(this.path)) {
+          // file definitely exists right now -- NOT deleted.
+          return;
+        }
+        // file definitely does NOT exist right now.
+      } catch {
+        // network not working or project off -- no way to know.
+        return;
+      }
+      const elapsed = Date.now() - start;
+      if (elapsed > threshold) {
+        // out of time to appear again, and definitely concluded
+        // it does not exist above
+        // file still doesn't exist -- consider it deleted -- browsers
+        // should close the tab and possibly notify user.
+        if (!this.isIpynbDeleted) {
+          this.isIpynbDeleted = true;
+          this.syncdb.emit("deleted");
+        }
+        return;
+      }
+      await delay(
+        Math.min(
+          this.syncdb.opts.deletedCheckInterval ?? DELETED_CHECK_INTERVAL,
+          threshold - elapsed,
+        ),
+      );
+    }
   };
 }
 

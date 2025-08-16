@@ -28,15 +28,15 @@ const MAX_FILE_SIZE_MB = 32;
 const CURSOR_THROTTLE_MS = 150;
 
 // If file does not exist for this long, then syncdoc emits a 'deleted' event.
-const DELETED_THRESHOLD = 2000;
-const DELETED_CHECK_INTERVAL = 750;
-const WATCH_RECREATE_WAIT = 3000;
+export const DELETED_THRESHOLD = 2000;
+export const DELETED_CHECK_INTERVAL = 750;
+export const WATCH_RECREATE_WAIT = 3000;
 
 // all clients ignore file changes from when a save starts until this
 // amount of time later, so they avoid loading a file just because it was
 // saved by themself or another client.  This is especially important for
 // large files that can take a long time to save.
-const IGNORE_ON_SAVE_INTERVAL = 7500;
+export const IGNORE_ON_SAVE_INTERVAL = 5000;
 
 // reading file when it changes on disk is deboucned this much, e.g.,
 // if the file keeps changing you won't see those changes until it
