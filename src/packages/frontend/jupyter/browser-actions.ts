@@ -1969,6 +1969,7 @@ export class JupyterActions extends JupyterActions0 {
     const api = await this.jupyterApi();
     return await api.getConnectionFile({ path: this.path });
   };
+
 }
 
 function getCompletionGroup(x: string): number {

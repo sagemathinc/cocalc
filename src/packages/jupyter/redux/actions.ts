@@ -2315,6 +2315,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.ensure_backend_kernel_setup();
     this._state = "ready";
   };
+
+  // load the ipynb version of this notebook from disk
+  loadFromDisk = async () => {
+    const fs = this.syncdb.fs;
+    const ipynb = JSON.parse(
+      Buffer.from(await fs.readFile(this.path)).toString(),
+    );
+    await this.setToIpynb(ipynb);
+  };
 }
 
 function extractLabel(content: string): string {
