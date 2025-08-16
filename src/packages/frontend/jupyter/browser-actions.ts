@@ -2003,12 +2003,16 @@ export class JupyterActions extends JupyterActions0 {
 
     const before = this.syncdb.last_changed();
     const ipynb = await this.toIpynb();
+    if(this.isClosed()) return;
+    
     const serialize = JSON.stringify(ipynb, undefined, 2);
     this.syncdb.fs.writeFile(this.path, serialize);
     const has_unsaved_changes = this.syncdb.last_changed() != before;
     this.setState({ has_unsaved_changes });
     this.store.emit("has-unsaved-changes", has_unsaved_changes);
     const stats = await this.syncdb.fs.stat(this.path);
+    if(this.isClosed()) return;
+
     const stillNotChanged = this.syncdb.last_changed() == before;
     this.setIpynbMtime(stats.mtime.valueOf());
     if (stillNotChanged) {
