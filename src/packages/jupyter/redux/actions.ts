@@ -1511,20 +1511,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = async (id: string): Promise<void> => {
-    const time = this._client.server_time().valueOf();
-    try {
-      const more_output = await this.api({ timeout: 60000 }).more_output(id);
-      if (!this.store.getIn(["cells", id, "scrolled"])) {
-        // make output area scrolled, since there is going to be a lot of output
-        this.toggle_output(id, "scrolled");
-      }
-      this.set_more_output(id, { time, mesg_list: more_output });
-    } catch (err) {
-      this.set_error(err);
-    }
-  };
-
   // NOTE: set_more_output on project-actions is different
   set_more_output = (id: string, more_output: any, _?: any): void => {
     if (this.store.getIn(["cells", id]) == null) {

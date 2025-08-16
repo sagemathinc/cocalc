@@ -50,6 +50,7 @@ export interface OutputMessage {
   buffers?;
   msg_type?: string;
   done?: boolean;
+  more_output?: boolean;
 }
 
 export interface RunOptions {
@@ -110,31 +111,46 @@ export function jupyterServer({
       subject: socket.subject,
     });
 
+    const moreOutput: { [id: string]: any[] } = {};
+
     socket.on("request", async (mesg) => {
-      const { path, cells, noHalt } = mesg.data;
-      try {
-        mesg.respondSync(null);
-        await handleRequest({
-          socket,
-          run,
-          outputHandler,
-          path,
-          cells,
-          noHalt,
-        });
-      } catch (err) {
-        logger.debug("server: failed to handle execute request -- ", err);
-        if (socket.state != "closed") {
-          try {
-            logger.debug("sending to client: ", {
-              headers: { error: `${err}` },
-            });
-            socket.write(null, { headers: { foo: "bar", error: `${err}` } });
-          } catch (err) {
-            // an error trying to report an error shouldn't crash everything
-            logger.debug("WARNING: unable to send error to client", err);
+      const { data } = mesg;
+      const { cmd } = data;
+      if (cmd == "more") {
+        logger.debug("more output ", { id: data.id });
+        mesg.respondSync(moreOutput[data.id]);
+      } else if (cmd == "run") {
+        const { path, cells, noHalt, limit } = data;
+        try {
+          mesg.respondSync(null);
+          await handleRequest({
+            socket,
+            run,
+            outputHandler,
+            path,
+            cells,
+            noHalt,
+            limit,
+            moreOutput,
+          });
+        } catch (err) {
+          logger.debug("server: failed to handle execute request -- ", err);
+          if (socket.state != "closed") {
+            try {
+              logger.debug("sending to client: ", {
+                headers: { error: `${err}` },
+              });
+              socket.write(null, { headers: { foo: "bar", error: `${err}` } });
+            } catch (err) {
+              // an error trying to report an error shouldn't crash everything
+              logger.debug("WARNING: unable to send error to client", err);
+            }
           }
         }
+      } else {
+        const error = `Unknown command '${cmd}'`;
+        logger.debug(error);
+        mesg.respondSync(null, { headers: { error } });
       }
     });
 
@@ -153,9 +169,17 @@ async function handleRequest({
   path,
   cells,
   noHalt,
+  limit,
+  moreOutput,
 }) {
   const runner = await run({ path, cells, noHalt, socket });
   const output: OutputMessage[] = [];
+  for (const cell of cells) {
+    moreOutput[cell.id] = [];
+  }
+  logger.debug(
+    `handleRequest to evaluate ${cells.length} cells with limit=${limit} for path=${path}`,
+  );
 
   const throttle = new Throttle<OutputMessage>(MAX_MSGS_PER_SECOND);
   let unhandledClientWriteError: any = undefined;
@@ -178,6 +202,7 @@ async function handleRequest({
     for await (const mesg of runner) {
       if (socket.state == "closed") {
         // client socket has closed -- the backend server must take over!
+        let process;
         if (handler == null) {
           logger.debug("socket closed -- server must handle output");
           if (outputHandler == null) {
@@ -187,18 +212,43 @@ async function handleRequest({
           if (handler == null) {
             throw Error("bug -- outputHandler must return a handler");
           }
+          process = (mesg) => {
+            if (handler == null) return;
+            if (limit == null || output.length < limit) {
+              handler.process(mesg);
+            } else {
+              if (output.length == limit) {
+                handler.process({ id: mesg.id, more_output: true });
+                moreOutput[mesg.id] = [];
+              }
+              moreOutput[mesg.id].push(mesg);
+            }
+          };
+
           for (const prev of output) {
-            handler.process(prev);
+            process(prev);
           }
           output.length = 0;
         }
-        handler.process(mesg);
+        process(mesg);
       } else {
         if (unhandledClientWriteError) {
           throw unhandledClientWriteError;
         }
         output.push(mesg);
-        throttle.write(mesg);
+        if (limit == null || output.length < limit) {
+          throttle.write(mesg);
+        } else {
+          if (output.length == limit) {
+            throttle.write({
+              id: mesg.id,
+              more_output: true,
+            });
+            moreOutput[mesg.id] = [];
+          }
+          // save the more output
+          moreOutput[mesg.id].push(mesg);
+        }
       }
     }
     // no errors happened, so close up and flush and
@@ -253,7 +303,18 @@ export class JupyterClient {
     this.socket.close();
   };
 
-  run = async (cells: InputCell[], opts: { noHalt?: boolean } = {}) => {
+  moreOutput = async (id: string) => {
+    return await this.socket.request({
+      cmd: "more",
+      path: this.path,
+      id,
+    });
+  };
+
+  run = async (
+    cells: InputCell[],
+    opts: { noHalt?: boolean; limit?: number } = {},
+  ) => {
     if (this.iter) {
       // one evaluation at a time -- starting a new one ends the previous one.
       // Each client browser has a separate instance of JupyterClient, so
@@ -281,9 +342,10 @@ export class JupyterClient {
       return { id, input };
     });
     await this.socket.request({
+      cmd: "run",
+      ...opts,
       path: this.path,
       cells: cells1,
-      noHalt: opts.noHalt,
     });
     return this.iter;
   };

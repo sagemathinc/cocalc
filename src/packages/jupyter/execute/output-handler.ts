@@ -60,6 +60,7 @@ interface JupyterMessage {
   buffers?;
   msg_type?: string;
   done?: boolean;
+  more_output?: boolean;
 }
 
 interface Options {
@@ -72,6 +73,10 @@ interface Options {
   // If no messages for this many ms, then we update via set to indicate
   // that cell is being run.
   report_started_ms?: number;
+
+  // if set, do not reset cell to "just started running state";
+  // use this for grabbing more output
+  noReset?: boolean;
 }
 
 type State = "ready" | "closed";
@@ -97,22 +102,30 @@ export class OutputHandler extends EventEmitter {
     super();
     this._opts = opts;
     const { cell } = this._opts;
-    cell.output = null;
-    cell.exec_count = null;
-    // running a cell always de-collapses it:
-    cell.collapsed = false;
-    cell.state = "run";
-    cell.start = null;
-    cell.end = null;
-    // Internal state
-    this._n = 0;
     this._clear_before_next_output = false;
-    this._output_length = 0;
     this._in_more_output_mode = false;
     this._state = "ready";
-    // Report that computation started if there is no output soon.
     if (this._opts.report_started_ms != null) {
       setTimeout(this._report_started, this._opts.report_started_ms);
+    }
+    if (!opts.noReset) {
+      cell.output = null;
+      cell.exec_count = null;
+      // running a cell always de-collapses it:
+      cell.collapsed = false;
+      cell.state = "run";
+      cell.start = null;
+      cell.end = null;
+      // Internal state
+      this._n = 0;
+      this._output_length = 0;
+      // Report that computation started if there is no output soon.
+    } else {
+      const v = Object.keys(cell.output ?? {}).map((x) => parseInt(x));
+      this._output_length = v.length;
+      this._n = v.length == 0 ? 0 : Math.max(...v) + 1;
+      this._clear_before_next_output = false;
+      this._in_more_output_mode = false;
     }
 
     this.stdin = this.stdin.bind(this);
@@ -127,6 +140,10 @@ export class OutputHandler extends EventEmitter {
     if (mesg.done) {
       // done is a special internal cocalc message.
       this.done();
+      return;
+    }
+    if (mesg.more_output) {
+      this.activeMoreOutputMode(mesg, JSON.stringify(mesg).length);
       return;
     }
     if (mesg.content?.transient?.display_id != null) {
@@ -177,8 +194,10 @@ export class OutputHandler extends EventEmitter {
     close(this, new Set(["_state", "close"]));
   };
 
+  isClosed = () => this._state === "closed";
+
   _clear_output = (save?: any): void => {
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
     this._clear_before_next_output = false;
@@ -203,7 +222,7 @@ export class OutputHandler extends EventEmitter {
 
   // Call when computation starts
   start = () => {
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
     this._opts.cell.start = (new Date() as any) - 0;
@@ -233,7 +252,7 @@ export class OutputHandler extends EventEmitter {
 
   // Call done exactly once when done
   done = (): void => {
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
     this._opts.cell.state = "done";
@@ -269,7 +288,7 @@ export class OutputHandler extends EventEmitter {
   };
 
   private _push_mesg = (mesg: Message, save?: boolean): void => {
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
 
@@ -296,7 +315,7 @@ export class OutputHandler extends EventEmitter {
   };
 
   set_input = (input: string, save = true): void => {
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
     this._opts.cell.input = input;
@@ -307,7 +326,7 @@ export class OutputHandler extends EventEmitter {
   // definitely mutates this.cell.
   message = (mesg: Message): void => {
     let has_exec_count: boolean;
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
 
@@ -346,8 +365,11 @@ export class OutputHandler extends EventEmitter {
       this._clear_output(false);
     }
 
-    const s = JSON.stringify(mesg);
-    const mesg_length = s.length;
+    let mesg_length = 0;
+    if (this._opts.max_output_length != null) {
+      const s = JSON.stringify(mesg);
+      mesg_length = s.length;
+    }
 
     if (this._in_more_output_mode) {
       this.emit("more_output", mesg, mesg_length);
@@ -371,6 +393,10 @@ export class OutputHandler extends EventEmitter {
       return;
     }
 
+    this.activeMoreOutputMode(mesg, mesg_length);
+  };
+
+  private activeMoreOutputMode = (mesg, mesg_length) => {
     // Switch to too much output mode:
     this._push_mesg({ more_output: true });
     this._in_more_output_mode = true;
@@ -390,7 +416,7 @@ export class OutputHandler extends EventEmitter {
 
   // Call this when the cell changes; only used for stdin right now.
   cell_changed = (cell: TypedMap<Cell>, get_password: () => string): void => {
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
     if (this._stdin_cb == null) {
@@ -426,7 +452,7 @@ export class OutputHandler extends EventEmitter {
   };
 
   payload = (payload: { source?; text: string }): void => {
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       return;
     }
     if (payload.source === "set_next_input") {

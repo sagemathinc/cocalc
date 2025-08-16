@@ -3,12 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Button, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import React from "react";
+import React, { useState } from "react";
 import { Map } from "immutable";
-import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
+import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { all_fields_equal } from "@cocalc/util/misc";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface MoreOutputProps {
   message: Map<string, any>;
@@ -22,7 +23,13 @@ function should_memoize(prev, next) {
 
 export const MoreOutput: React.FC<MoreOutputProps> = React.memo(
   (props: MoreOutputProps) => {
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>("");
     const { id, message, actions } = props;
+
+    if (error) {
+      return <ShowError error={error} setError={setError} />;
+    }
 
     if (actions == null || message.get("expired")) {
       return (
@@ -30,7 +37,7 @@ export const MoreOutput: React.FC<MoreOutputProps> = React.memo(
           <Icon name="eye-slash" /> Additional output not available
         </Button>
       );
-    } else if (actions.fetch_more_output == null) {
+    } else if (actions.fetchMoreOutput == null) {
       // e.g., on the share server, at least until we implement fetching additional output
       // there, which does make sense to do.
       return (
@@ -41,12 +48,21 @@ export const MoreOutput: React.FC<MoreOutputProps> = React.memo(
     } else {
       return (
         <Button
-          onClick={() => {
-            actions?.fetch_more_output(id);
+          disabled={loading}
+          onClick={async () => {
+            try {
+              setLoading(true);
+              await actions.fetchMoreOutput(id);
+            } catch (err) {
+              console.log("not available", err);
+              setError(`${err}`);
+            } finally {
+              setLoading(false);
+            }
           }}
           style={{ marginTop: "5px" }}
         >
-          <Icon name="eye" /> Fetch additional output...
+          <Icon name="eye" /> Fetch additional output... {loading && <Spin />}
         </Button>
       );
     }

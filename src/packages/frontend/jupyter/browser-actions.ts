@@ -1493,13 +1493,14 @@ export class JupyterActions extends JupyterActions0 {
     await api.stop(this.syncdbPath);
   };
 
-  getOutputHandler = (cell) => {
+  private getOutputHandler = (cell) => {
     const handler = new OutputHandler({ cell });
 
     // save first time, so that other clients know this cell is running.
     let first = true;
     const f = throttle(
       () => {
+        console.log(cell);
         // we ONLY set certain fields; e.g., setting the input would be
         // extremely annoying since the user can edit the input while the
         // cell is running.
@@ -1556,7 +1557,10 @@ export class JupyterActions extends JupyterActions0 {
   private jupyterClient?: JupyterClient;
   private runQueue: any[] = [];
   private runningNow = false;
-  runCells = async (ids: string[], opts: { noHalt?: boolean } = {}) => {
+  runCells = async (
+    ids: string[],
+    opts: { noHalt?: boolean; limit?: number } = {},
+  ) => {
     if (this.store?.get("read_only")) {
       return;
     }
@@ -1639,7 +1643,8 @@ export class JupyterActions extends JupyterActions0 {
       // ensures cells run in order:
       cells.sort(field_cmp("pos"));
 
-      const runner = await client.run(cells, opts);
+      const limit = opts.limit ?? 10;
+      const runner = await client.run(cells, { limit, ...opts });
       if (this.isClosed()) return;
       let handler: null | OutputHandler = null;
       let id: null | string = null;
@@ -1692,6 +1697,34 @@ export class JupyterActions extends JupyterActions0 {
         this.runCells(ids, opts);
       }
     }
+  };
+
+  fetchMoreOutput = async (id: string) => {
+    console.log("fetch more output for ", id);
+    if (this.jupyterClient == null) {
+      throw Error("output no longer available");
+    }
+    const { data } = await this.jupyterClient.moreOutput(id);
+    let cells = this.store.get("cells");
+    const cell = cells?.get(id)?.toJS();
+    if (cell == null) {
+      return;
+    }
+    for (const n in cell.output) {
+      if (cell.output[n]?.more_output) {
+        delete cell.output[n];
+      }
+    }
+    const { end } = cell;
+    cell.end = null;
+    const handler = new OutputHandler({ cell, noReset: true });
+    for (const mesg of data) {
+      handler.process(mesg);
+    }
+    cell.end = end;
+    const newCell = cells.get(id)!.set("output", fromJS(cell.output));
+    cells = cells.set(id, newCell);
+    this.setState({ cells });
   };
 
   is_introspecting(): boolean {
@@ -1994,7 +2027,7 @@ export class JupyterActions extends JupyterActions0 {
 
   public savedVersion: number = 0;
   saveIpynb = async () => {
-    if (this.isClosed()) return;
+    if (this.isClosed() || this.syncdb?.get_state() != "ready") return;
 
     try {
       await this.fileWatcher?.ignore(
