@@ -1546,6 +1546,45 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   private jupyterClient?: JupyterClient;
+  private getJupyterClient = async (): Promise<JupyterClient> => {
+    if (
+      this.jupyterClient == null ||
+      this.jupyterClient.socket.state == "closed"
+    ) {
+      // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
+      // and
+      const compute_server_id = await this.getComputeServerId();
+      if (this.isClosed()) {
+        throw Error("closed");
+      }
+      this.jupyterClient = jupyterClient({
+        path: this.syncdbPath,
+        client: webapp_client.conat_client.conat(),
+        project_id: this.project_id,
+        compute_server_id,
+        stdin: async ({ id, prompt, password }) => {
+          // set the redux store so that it is known we would like some stdin,
+          // wait for the user to respond, and return the result.
+          this.setState({ stdin: { id, prompt, password } });
+          try {
+            const [input] = await once(this.store, "stdin");
+            this.setState({ stdin: undefined });
+            return input;
+          } catch (err) {
+            return `${err}`;
+          }
+        },
+      });
+      this.jupyterClient.socket.on("closed", () => {
+        delete this.jupyterClient;
+        // TODO: doing this is not ideal, but it's probably less confusing.
+        this.clearRunQueue();
+        this.runningNow = false;
+      });
+    }
+    return this.jupyterClient!;
+  };
+
   private runQueue: any[] = [];
   private runningNow = false;
   runCells = async (
@@ -1563,43 +1602,7 @@ export class JupyterActions extends JupyterActions0 {
     let client: null | JupyterClient = null;
     try {
       this.runningNow = true;
-      if (
-        this.jupyterClient == null ||
-        this.jupyterClient.socket.state == "closed"
-      ) {
-        // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
-        // and
-        const compute_server_id = await this.getComputeServerId();
-        if (this.isClosed()) return;
-        this.jupyterClient = jupyterClient({
-          path: this.syncdbPath,
-          client: webapp_client.conat_client.conat(),
-          project_id: this.project_id,
-          compute_server_id,
-          stdin: async ({ id, prompt, password }) => {
-            // set the redux store so that it is known we would like some stdin,
-            // wait for the user to respond, and return the result.
-            this.setState({ stdin: { id, prompt, password } });
-            try {
-              const [input] = await once(this.store, "stdin");
-              this.setState({ stdin: undefined });
-              return input;
-            } catch (err) {
-              return `${err}`;
-            }
-          },
-        });
-        this.jupyterClient.socket.on("closed", () => {
-          delete this.jupyterClient;
-          // TODO: doing this is not ideal, but it's probably less confusing.
-          this.clearRunQueue();
-          this.runningNow = false;
-        });
-      }
-      client = this.jupyterClient;
-      if (client == null) {
-        throw Error("bug");
-      }
+      client = await this.getJupyterClient();
       const cells: InputCell[] = [];
       const kernel = this.store.get("kernel");
 
@@ -1717,15 +1720,16 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   fetchMoreOutput = async (id: string) => {
-    if (this.jupyterClient == null) {
-      throw Error("output no longer available");
-    }
+    const client = await this.getJupyterClient();
     let cells = this.store.get("cells");
     const cell = cells?.get(id)?.toJS();
     if (cell == null) {
       return;
     }
-    const { data } = await this.jupyterClient.moreOutput(id);
+    const { data } = await client.moreOutput(id);
+    if (data == null) {
+      throw Error("Additional output no longer available");
+    }
     let more_output = this.store.get("more_output") ?? fromJS({});
 
     const handler = new OutputHandler({ cell });
@@ -1734,7 +1738,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     const mesg_list: any[] = [];
     let i = 0;
-    while (cell.output[i] != null) {
+    while (cell.output?.[i] != null) {
       mesg_list.push(cell.output[i]);
       i++;
     }

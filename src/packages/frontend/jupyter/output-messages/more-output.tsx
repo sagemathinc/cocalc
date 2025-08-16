@@ -28,7 +28,13 @@ export const MoreOutput: React.FC<MoreOutputProps> = React.memo(
     const { id, message, actions } = props;
 
     if (error) {
-      return <ShowError error={error} setError={setError} />;
+      return (
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "15px" }}
+        />
+      );
     }
 
     if (actions == null || message.get("expired")) {

@@ -104,6 +104,7 @@ export function jupyterServer({
     keepAliveTimeout: 5000,
   });
   logger.debug("server: listening on ", { subject });
+  const moreOutput: { [path: string]: { [id: string]: any[] } } = {};
 
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
@@ -111,18 +112,19 @@ export function jupyterServer({
       subject: socket.subject,
     });
 
-    const moreOutput: { [id: string]: any[] } = {};
-
     socket.on("request", async (mesg) => {
       const { data } = mesg;
-      const { cmd } = data;
+      const { cmd, path } = data;
       if (cmd == "more") {
         logger.debug("more output ", { id: data.id });
-        mesg.respondSync(moreOutput[data.id]);
+        mesg.respondSync(moreOutput[path]?.[data.id]);
       } else if (cmd == "run") {
-        const { path, cells, noHalt, limit } = data;
+        const { cells, noHalt, limit } = data;
         try {
           mesg.respondSync(null);
+          if (moreOutput[path] == null) {
+            moreOutput[path] = {};
+          }
           await handleRequest({
             socket,
             run,
@@ -131,7 +133,7 @@ export function jupyterServer({
             cells,
             noHalt,
             limit,
-            moreOutput,
+            moreOutput: moreOutput[path],
           });
         } catch (err) {
           logger.debug("server: failed to handle execute request -- ", err);
