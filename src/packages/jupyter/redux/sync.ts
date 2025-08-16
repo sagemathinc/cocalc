@@ -5,4 +5,5 @@ export const SYNCDB_OPTIONS = {
   string_cols: ["input"],
   cursors: true,
   persistent: true,
+  noSaveToDisk: true,
 };

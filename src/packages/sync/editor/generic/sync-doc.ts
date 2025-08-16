@@ -129,14 +129,16 @@ export interface SyncOpts0 {
   // which data/changefeed server to use
   data_server?: DataServer;
 
-  // filesystem interface -- if not set then never saves
-  // to disk or load from disk.  This is NOT ephemeral -- the
-  // state is all tracked and sync'd via conat (and sqlite).
-  fs?: Filesystem;
+  // filesystem interface
+  fs: Filesystem;
 
   // if true, do not implicitly save on commit.  This is very
   // useful for unit testing to easily simulate offline state.
   noAutosave?: boolean;
+
+  // if true, never saves to disk or loads from disk -- this is NOT
+  // ephemeral -- the history is tracked in the conat database!
+  noSaveToDisk?: boolean;
 
   // optional timeout for how long to wait from when a file is
   // deleted until emiting a 'deleted' event.
@@ -2271,7 +2273,7 @@ export class SyncDoc extends EventEmitter {
 
   private lastReadFile: number = 0;
   readFile = reuseInFlight(async (): Promise<number> => {
-    if (this.fs == null) {
+    if (this.opts.noSaveToDisk) {
       return 0;
     }
     const dbg = this.dbg("readFile");
@@ -2319,8 +2321,8 @@ export class SyncDoc extends EventEmitter {
 
   private stats?: Stats;
   stat = async (): Promise<Stats> => {
-    if (this.fs == null) {
-      throw Error("fs disabled");
+    if (this.opts.noSaveToDisk) {
+      throw Error("the noSaveToDisk options is set");
     }
     const prevStats = this.stats;
     this.stats = (await this.fs.stat(this.path)) as Stats;
@@ -2460,7 +2462,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   writeFile = async () => {
-    if (this.fs == null) {
+    if (this.opts.noSaveToDisk) {
       return;
     }
     const dbg = this.dbg("writeFile");
@@ -2800,7 +2802,7 @@ export class SyncDoc extends EventEmitter {
 
   private fileWatcher?: any;
   private initFileWatcher = async () => {
-    if (this.fs == null) {
+    if (this.opts.noSaveToDisk) {
       return;
     }
     // use this.fs interface to watch path for changes -- we try once:

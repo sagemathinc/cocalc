@@ -19,7 +19,7 @@ describe("loading/saving syncstring to disk and setting values", () => {
       project_id,
       path: "new.txt",
       service: server.service,
-      noFs: true,
+      noSaveToDisk: true,
     });
     await once(s, "ready");
     expect(s.to_str()).toBe("");
