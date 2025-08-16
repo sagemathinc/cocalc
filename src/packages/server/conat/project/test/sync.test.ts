@@ -81,6 +81,15 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
     expect(syncstring2.versions().length).toEqual(1);
   });
 
+  it("the clients loaded the file at the same time but this does NOT result in two copies (via a merge conflict)", async () => {
+    const change = once(syncstring, "change");
+    const change2 = once(syncstring2, "change");
+    await Promise.all([syncstring.save(), syncstring2.save()]);
+    await Promise.all([change, change2]);
+    expect(syncstring.to_str()).toEqual("hello");
+    expect(syncstring2.to_str()).toEqual("hello");
+  });
+
   it("change the file and save to disk, then read from filesystem", async () => {
     syncstring.from_str("hello world");
     await syncstring.save_to_disk();
@@ -93,6 +102,8 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
     await delay(syncstring.opts.ignoreOnSaveInterval + 50);
     await fs.writeFile("a.txt", "Hello World!");
     await change;
+    console.log(syncstring.to_str());
+    console.log(syncstring.show_history());
     expect(syncstring.to_str()).toEqual("Hello World!");
   });
 
@@ -134,7 +145,7 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
     await fs.cp("old.txt", "a.txt", { preserveTimestamps: true });
     await change;
     expect(syncstring.to_str()).toEqual("i am old");
-    // [ ] TODO: it's very disconceting that isDeleted stays true for
+    // [ ] TODO: it's very disconcerting that isDeleted stays true for
     // one of these!
     //     await wait({
     //       until: () => {

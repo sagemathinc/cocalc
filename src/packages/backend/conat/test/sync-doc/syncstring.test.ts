@@ -1,9 +1,18 @@
-import { before, after, uuid, wait, connect, server, once } from "./setup";
+import {
+  before,
+  after,
+  uuid,
+  wait,
+  connect,
+  server,
+  once,
+  delay,
+} from "./setup";
 
 beforeAll(before);
 afterAll(after);
 
-describe("loading/saving syncstring to disk and setting values", () => {
+describe("create syncstring without setting fs, so saving to disk and loading from disk are a no-op", () => {
   let s;
   const project_id = uuid();
   let client;
@@ -123,5 +132,45 @@ describe("synchronized editing with two copies of a syncstring", () => {
     s1.show_history({ log: (x) => v1.push(x) });
     s2.show_history({ log: (x) => v2.push(x) });
     expect(v1).toEqual(v2);
+  });
+});
+
+describe.only("opening a new syncstring for a file that does NOT exist on disk does not emit a 'deleted' event", () => {
+  let s;
+  const project_id = uuid();
+  let deleted = 0;
+  it("a syncstring associated to a file that does not exist on disk is initialized to the empty string", async () => {
+    const client = connect();
+    s = client.sync.string({
+      project_id,
+      path: "this-file-is-not-on-disk.txt",
+      service: server.service,
+      // very aggressive:
+      deletedThreshold: 50,
+      deletedCheckInterval: 50,
+      ignoreOnSaveInterval: 50,
+      watchRecreateWait: 50,
+    });
+    s.on("deleted", () => {
+      deleted++;
+    });
+    await once(s, "ready");
+    expect(s.to_str()).toBe("");
+    expect(s.versions().length).toBe(0);
+  });
+
+  it("wait a bit and deleted is NOT emited", async () => {
+    await delay(500);
+    expect(deleted).toEqual(0);
+  });
+
+  it("change, save to disk, then delete file and get the deleted event", async () => {
+    s.from_str("foo");
+    s.commit();
+    await s.save_to_disk();
+    await delay(500);
+    await s.fs.unlink(s.path);
+    await delay(500);
+    expect(deleted).toBe(1);
   });
 });

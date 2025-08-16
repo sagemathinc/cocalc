@@ -536,6 +536,14 @@ export function fsClient({
 
   const ensureWatchServerExists = call.watch.bind(call);
   call.watch = async (path: string, options?) => {
+    if (!(await call.exists(path))) {
+      const err = new Error(
+        `ENOENT: no such file or directory, watch '${path}'`,
+      );
+      // @ts-ignore
+      err.code = "ENOENT";
+      throw err;
+    }
     await ensureWatchServerExists(path, options);
     return await watchClient({ client, subject, path, options });
   };

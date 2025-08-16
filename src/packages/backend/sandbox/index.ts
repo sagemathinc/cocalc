@@ -443,7 +443,8 @@ export class SandboxedFilesystem {
     // NOTE: in node v24 they fixed the fs/promises watch to have a queue, but previous
     // versions were clearly badly implemented so we reimplement it from scratch
     // using the non-promise watch.
-    const watcher = watch(await this.safeAbsPath(filename), options as any);
+    const path = await this.safeAbsPath(filename);
+    const watcher = watch(path, options as any);
     const iter = new EventIterator(watcher, "change", {
       maxQueue: options?.maxQueue ?? 2048,
       overflow: options?.overflow,

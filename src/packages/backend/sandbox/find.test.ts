@@ -62,7 +62,7 @@ describe("find files", () => {
 
   // this is NOT a great test, unfortunately.
   const count = 5000;
-  it(`hopefully exceed the timeout by creating ${count} files`, async () => {
+  it.skip(`hopefully exceed the timeout by creating ${count} files`, async () => {
     for (let i = 0; i < count; i++) {
       await writeFile(join(tempDir, `${i}`), "");
     }

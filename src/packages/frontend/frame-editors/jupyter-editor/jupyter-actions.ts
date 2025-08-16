@@ -31,7 +31,6 @@ export function create_jupyter_actions(
     initial_jupyter_store_state,
   );
   const syncdb_path = syncdbPath(path);
-
   // Ensure meta_file isn't marked as deleted, which would block
   // opening the syncdb, which is clearly not the user's intention
   // at this point (since we're opening the ipynb file).

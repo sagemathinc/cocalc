@@ -129,8 +129,10 @@ export interface SyncOpts0 {
   // which data/changefeed server to use
   data_server?: DataServer;
 
-  // filesystem interface.
-  fs: Filesystem;
+  // filesystem interface -- if not set then never saves
+  // to disk or load from disk.  This is NOT ephemeral -- the
+  // state is all tracked and sync'd via conat (and sqlite).
+  fs?: Filesystem;
 
   // if true, do not implicitly save on commit.  This is very
   // useful for unit testing to easily simulate offline state.
@@ -2267,17 +2269,20 @@ export class SyncDoc extends EventEmitter {
     this.emit("metadata-change");
   };
 
+  private lastReadFile: number = 0;
   readFile = reuseInFlight(async (): Promise<number> => {
+    if (this.fs == null) {
+      return 0;
+    }
     const dbg = this.dbg("readFile");
 
     let size: number;
     let contents;
     try {
       contents = await this.fs.readFile(this.path, "utf8");
+      this.lastReadFile = Date.now();
       // console.log(this.client.client.id, "read from disk --isDeleted = false");
-      if (this.isDeleted) {
-        this.isDeleted = false;
-      }
+      this.isDeleted = false;
       this.valueOnDisk = contents;
       dbg("file exists");
       size = contents.length;
@@ -2285,7 +2290,10 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       if (err.code == "ENOENT") {
         // console.log(this.client.client.id, "reset doc and set isDeleted=true");
-        this.isDeleted = true;
+        if (!this.isDeleted) {
+          this.isDeleted = true;
+          this.emit("deleted");
+        }
         dbg("file no longer exists -- setting to blank");
         size = 0;
         this.from_str("");
@@ -2311,8 +2319,13 @@ export class SyncDoc extends EventEmitter {
 
   private stats?: Stats;
   stat = async (): Promise<Stats> => {
+    if (this.fs == null) {
+      throw Error("fs disabled");
+    }
     const prevStats = this.stats;
     this.stats = (await this.fs.stat(this.path)) as Stats;
+    this.isDeleted = false; // definitely not deleted since we just stat' it
+    this.lastReadFile = Date.now();
     if (prevStats?.mode != this.stats.mode) {
       // used by clients to track read-only state.
       this.emit("metadata-change");
@@ -2447,6 +2460,9 @@ export class SyncDoc extends EventEmitter {
   };
 
   writeFile = async () => {
+    if (this.fs == null) {
+      return;
+    }
     const dbg = this.dbg("writeFile");
     if (this.client.is_deleted(this.path, this.project_id)) {
       dbg("not saving to disk because deleted");
@@ -2477,6 +2493,7 @@ export class SyncDoc extends EventEmitter {
     this.last_save_to_disk_time = new Date();
     try {
       await this.fs.writeFile(this.path, value);
+      this.lastReadFile = Date.now();
     } catch (err) {
       if (err.code == "EACCES") {
         try {
@@ -2783,6 +2800,9 @@ export class SyncDoc extends EventEmitter {
 
   private fileWatcher?: any;
   private initFileWatcher = async () => {
+    if (this.fs == null) {
+      return;
+    }
     // use this.fs interface to watch path for changes -- we try once:
     try {
       this.fileWatcher = await this.fs.watch(this.path, { unique: true });
@@ -2857,7 +2877,7 @@ export class SyncDoc extends EventEmitter {
       await this.stat();
       return true;
     } catch (err) {
-      console.log("sync fileExists err", err);
+      // console.log("sync fileExists err", err);
       if (err.code == "ENOENT") {
         // file not there now.
         return false;
@@ -2868,6 +2888,10 @@ export class SyncDoc extends EventEmitter {
 
   private signalIfFileDeleted = async (): Promise<void> => {
     if (this.isClosed()) return;
+    if (!this.lastReadFile) {
+      // can't be a 'deleted' because it doesn't even exist yet.
+      return;
+    }
     const start = Date.now();
     const threshold = this.opts.deletedThreshold ?? DELETED_THRESHOLD;
     while (!this.isClosed()) {
@@ -2890,8 +2914,10 @@ export class SyncDoc extends EventEmitter {
         this.from_str("");
         this.commit();
         // console.log("emit deleted and set isDeleted=true");
-        this.isDeleted = true;
-        this.emit("deleted");
+        if (!this.isDeleted) {
+          this.isDeleted = true;
+          this.emit("deleted");
+        }
         return;
       }
       await delay(
