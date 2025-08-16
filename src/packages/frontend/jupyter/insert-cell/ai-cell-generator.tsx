@@ -7,7 +7,6 @@ import {
   Dropdown,
   Flex,
   Input,
-  InputNumber,
   Popover,
   Space,
   Switch,
@@ -33,15 +32,14 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import { CUTOFF } from "@cocalc/frontend/frame-editors/llm/consts";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { LLMCellContextSelector } from "@cocalc/frontend/jupyter/llm/cell-context-selector";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
-import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
@@ -62,10 +60,12 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import NBViewer from "../nbviewer/nbviewer";
+import {
+  CellContextContent,
+  getNonemptyCellContents,
+} from "../util/cell-content";
 import { Position } from "./types";
 import { insertCell } from "./util";
-
-type PrevCells = "none" | number | "all above";
 
 type Cell = { cell_type: "markdown" | "code"; source: string[] };
 type Cells = Cell[];
@@ -128,8 +128,8 @@ export function AIGenerateCodeCell({
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [prompt, setPrompt] = useState<string>("");
   const [cellTypes, setCellTypes] = useState<"code" | "all">("code");
-  const [includePreviousCells, setIncludePreviousCells] =
-    useState<PrevCells>(2);
+  // Context for the new selector component - default to 2 previous cells, 0 after
+  const [contextRange, setContextRange] = useState<[number, number]>([-2, 0]);
   const [error, setError] = useState<string>();
   const [preview, setPreview] = useState<Cells | null>(null);
   const [attribute, setAttribute] = useState<boolean>(false);
@@ -142,7 +142,7 @@ export function AIGenerateCodeCell({
 
   const open = showAICellGen != null;
 
-  const prevCodeContents = getPrevCodeContents();
+  const contextContent = getContextContents();
 
   const inputPrompt = getInput({
     frameActions,
@@ -151,7 +151,8 @@ export function AIGenerateCodeCell({
     kernel_name,
     position: showAICellGen,
     model,
-    prevCodeContents,
+    contextContent,
+    contextRange,
   });
 
   const { input } = inputPrompt;
@@ -194,16 +195,22 @@ export function AIGenerateCodeCell({
     }
   }, [preview, open]);
 
-  function getPrevCodeContents(): string {
-    if (includePreviousCells === 0 || showAICellGen == null) return "";
-    return getPreviousNonemptyCellContents(
-      frameActions.current,
+  function getContextContents(): CellContextContent {
+    const prevCount = -contextRange[0]; // contextRange[0] is negative, so -(-2) = 2
+    const nextCount = contextRange[1]; // contextRange[1] is positive for cells after
+
+    if (prevCount === 0 && nextCount === 0) return {};
+
+    return getNonemptyCellContents({
+      actions: frameActions.current,
       id,
-      showAICellGen,
-      includePreviousCells,
+      direction: "around",
+      cellCount: "all", // Use "all" for around direction
       cellTypes,
       lang,
-    );
+      aboveCount: prevCount,
+      belowCount: nextCount,
+    });
   }
 
   function insertCells() {
@@ -274,8 +281,9 @@ export function AIGenerateCodeCell({
   }
 
   async function queryLanguageModel({
-    prevCodeContents,
-    includePreviousCells,
+    contextContent,
+  }: {
+    contextContent: CellContextContent;
   }) {
     if (!prompt.trim()) return;
 
@@ -286,7 +294,8 @@ export function AIGenerateCodeCell({
       model,
       position: showAICellGen,
       prompt,
-      prevCodeContents,
+      contextContent,
+      contextRange,
     });
 
     if (!input) {
@@ -301,7 +310,7 @@ export function AIGenerateCodeCell({
         tag,
         type: "generate",
         model,
-        prev: includePreviousCells,
+        contextRange,
       });
 
       const stream = await webapp_client.openai_client.queryStream({
@@ -365,7 +374,7 @@ export function AIGenerateCodeCell({
     }
   }
 
-  function doQuery(prevCodeContents: string) {
+  function doQuery(contextContent: CellContextContent) {
     cancel.current = false;
     setError("");
     setQuerying(true);
@@ -373,8 +382,7 @@ export function AIGenerateCodeCell({
     if (showAICellGen == null) return;
 
     queryLanguageModel({
-      prevCodeContents,
-      includePreviousCells,
+      contextContent,
     });
 
     // we also log this
@@ -428,74 +436,20 @@ export function AIGenerateCodeCell({
   }
 
   function renderContext() {
-    const cellStr = `${cellTypes === "code" ? "code " : ""} cell`;
     return (
       <>
         <Divider orientation="left">
           <Text>Context</Text>
         </Divider>
-        <Paragraph>
-          <Flex dir="horizontal" gap="10px" align="center" justify="center">
-            <Flex flex={1}>
-              <div>
-                Include{" "}
-                {typeof includePreviousCells === "number" ? (
-                  <>
-                    previous{" "}
-                    <InputNumber
-                      min={0}
-                      max={10}
-                      size={"small"}
-                      value={includePreviousCells}
-                      onChange={(value) => setIncludePreviousCells(value ?? 1)}
-                    />{" "}
-                    {plural(
-                      includePreviousCells,
-                      `${cellStr}.`,
-                      `${cellStr}s.`,
-                    )}
-                  </>
-                ) : includePreviousCells === "all above" ? (
-                  `all previous ${cellStr}s`
-                ) : (
-                  `no ${cellStr}s`
-                )}
-              </div>
-            </Flex>
-            <Flex flex={0}>
-              {["none", 1, 2, 3, 5, 10, "all above"].map((i: PrevCells) => {
-                const c = getRandomColor(`${i}`);
-                return (
-                  <Tag
-                    key={i}
-                    color={c}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setIncludePreviousCells(i)}
-                  >
-                    {i}
-                  </Tag>
-                );
-              })}
-            </Flex>
-          </Flex>
-        </Paragraph>
-        <Paragraph>
-          <Flex align="center" gap="10px">
-            <Flex flex={0}>
-              <Switch
-                defaultChecked={cellTypes === "all"}
-                onChange={(val) => setCellTypes(val ? "all" : "code")}
-                unCheckedChildren={"Code cells"}
-                checkedChildren={"All Cells"}
-              />
-            </Flex>
-            <Flex flex={1}>
-              <Text type="secondary">
-                Include only code cells, or all types of cells.
-              </Text>
-            </Flex>
-          </Flex>
-        </Paragraph>
+        <LLMCellContextSelector
+          contextRange={contextRange}
+          onContextRangeChange={setContextRange}
+          cellTypes={cellTypes}
+          onCellTypesChange={setCellTypes}
+          currentCellId={id}
+          frameActions={frameActions.current}
+          mode="insert-position"
+        />
       </>
     );
   }
@@ -644,7 +598,7 @@ export function AIGenerateCodeCell({
               if (!e.shiftKey) return;
               e.preventDefault(); // prevent the default action
               e.stopPropagation(); // stop event propagation
-              doQuery(prevCodeContents);
+              doQuery(contextContent);
             }}
             autoSize={{ minRows: 2, maxRows: 6 }}
           />
@@ -658,7 +612,7 @@ export function AIGenerateCodeCell({
             <LLMQueryDropdownButton
               disabled={!prompt.trim()}
               loading={querying}
-              onClick={() => doQuery(prevCodeContents)}
+              onClick={() => doQuery(contextContent)}
               llmTools={llmTools}
               task="Generate using"
             />
@@ -713,7 +667,7 @@ export function AIGenerateCodeCell({
       open={open}
       content={renderContent}
       trigger={[]}
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       {children}
     </Popover>
@@ -725,9 +679,10 @@ interface GetInputProps {
   model: LanguageModel;
   position: Position;
   prompt: string;
-  prevCodeContents: string;
+  contextContent: CellContextContent;
   lang: string;
   kernel_name: string;
+  contextRange: [number, number];
 }
 
 function getInputPrompt(prompt: string): string {
@@ -737,9 +692,10 @@ function getInputPrompt(prompt: string): string {
 function getInput({
   frameActions,
   prompt,
-  prevCodeContents,
+  contextContent,
   lang,
   kernel_name,
+  contextRange,
 }: GetInputProps): {
   input: string;
   system: string;
@@ -754,9 +710,30 @@ function getInput({
     );
     return { input: "", system: "", history: [] };
   }
-  const prevCode = prevCodeContents
-    ? `The context after which to insert the cells is:\n\n<context>\n${prevCodeContents}\n\</context>\n\n`
-    : "";
+
+  const prevCount = -contextRange[0]; // cells before insertion point
+  const afterCount = contextRange[1]; // cells after insertion point
+
+  let contextInfo = "";
+
+  if (contextContent.before || contextContent.after) {
+    const beforeCells =
+      prevCount > 0 ? `${prevCount} cells before` : "no cells before";
+    const afterCells =
+      afterCount > 0 ? `${afterCount} cells after` : "no cells after";
+    contextInfo = `Context: The new cell will be inserted with ${beforeCells} and ${afterCells} the insertion point.\n\n`;
+
+    if (contextContent.before) {
+      contextInfo += `Cells BEFORE insertion point:\n<before>\n${contextContent.before}\n</before>\n\n`;
+    }
+
+    if (contextContent.after) {
+      contextInfo += `Cells AFTER insertion point:\n<after>\n${contextContent.after}\n</after>\n\n`;
+    }
+  } else {
+    contextInfo =
+      "Context: The new cell will be inserted at the beginning or end of the notebook.\n\n";
+  }
 
   const history: Message[] = [
     { role: "user", content: getInputPrompt("Show the value of foo.") },
@@ -767,51 +744,8 @@ function getInput({
   ];
 
   return {
-    input: `${prevCode}${getInputPrompt(prompt)}`,
+    input: `${contextInfo}${getInputPrompt(prompt)}`,
     history,
-    system: `Create one or more code cells in a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nEach code cell must be wrapped in triple backticks. Do not say what the output will be. Be brief.`,
+    system: `Create one or more code cells in a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nThe new cell(s) will be inserted at a specific position in the notebook. Pay attention to the context provided - cells marked as BEFORE come before the insertion point, cells marked as AFTER come after the insertion point.\n\nEach code cell must be wrapped in triple backticks. Do not say what the output will be. Be brief.`,
   };
-}
-
-function getPreviousNonemptyCellContents(
-  actions: NotebookFrameActions | undefined,
-  id: string,
-  position,
-  prevCells: PrevCells,
-  cellTypes: "all" | "code" | "markdown" = "code",
-  lang,
-): string {
-  if (actions == null) return "";
-  if (prevCells === "none") return "";
-  const jupyterActionsStore = actions?.jupyter_actions.store;
-  const start = position === "below" ? 0 : -1;
-  let delta: number = start;
-  const cells: string[] = [];
-  let length = 0;
-
-  while (true) {
-    const prevId = jupyterActionsStore.get_cell_id(delta, id);
-    if (!prevId) break;
-    const prevCell = actions.get_cell_by_id(prevId);
-    if (!prevCell) break;
-    const code = actions.get_cell_input(prevId)?.trim();
-    const cellType = prevCell.get("cell_type", "code");
-    if (code && (cellTypes === "all" || cellType === cellTypes)) {
-      // we found a cell of given type
-      length += code.length;
-      if (length > CUTOFF) break;
-      const delim = backtickSequence(code);
-      cells.unshift(
-        cellTypes === "all" && cellType === "code"
-          ? `${delim}${lang}\n${code}\n${delim}`
-          : code,
-      );
-      if (typeof prevCells === "number") {
-        prevCells -= 1;
-        if (prevCells <= 0) break;
-      }
-    }
-    delta -= 1;
-  }
-  return cells.join("\n\n");
 }
