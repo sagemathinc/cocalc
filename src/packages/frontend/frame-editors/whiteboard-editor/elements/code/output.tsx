@@ -5,7 +5,6 @@
 
 import { fromJS } from "immutable";
 import { useEffect, useRef, useState } from "react";
-
 import { useIsMountedRef, useRedux } from "@cocalc/frontend/app-framework";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { CellOutput } from "@cocalc/frontend/jupyter/cell-output";

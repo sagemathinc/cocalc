@@ -1,6 +1,7 @@
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useEffect, useState } from "react";
 import LRU from "lru-cache";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // max number of recent blob url's to save - older ones will
 // silently be removed and data has to be re-downloaded from server.
@@ -16,31 +17,34 @@ const cache = new LRU<string, string>({
   },
 });
 
-async function blobToUrl({ actions, sha1, type, leaveAsString }) {
-  if (cache.has(sha1)) {
-    return cache.get(sha1)!;
-  }
-  const buf = await actions.asyncBlobStore.get(sha1, {
-    timeout: BLOB_WAIT_TIMEOUT,
-  });
-  if (buf == null) {
-    throw Error("Not available");
-  }
-  let src;
-  if (leaveAsString != null) {
-    const t = new TextDecoder("utf8");
-    const str = t.decode(buf);
-    if (leaveAsString(str)) {
-      src = str;
-      cache.set(sha1, src);
-      return src;
+const blobToUrl = reuseInFlight(
+  async ({ actions, sha1, type, leaveAsString }) => {
+    if (cache.has(sha1)) {
+      return cache.get(sha1)!;
     }
-  }
-  const blob = new Blob([buf], { type });
-  src = URL.createObjectURL(blob);
-  cache.set(sha1, src);
-  return src;
-}
+    const buf = await actions.asyncBlobStore.get(sha1, {
+      timeout: BLOB_WAIT_TIMEOUT,
+    });
+    if (buf == null) {
+      throw Error("Not available");
+    }
+    let src;
+    if (leaveAsString != null) {
+      const t = new TextDecoder("utf8");
+      const str = t.decode(buf);
+      if (leaveAsString(str)) {
+        src = str;
+        cache.set(sha1, src);
+        return src;
+      }
+    }
+    const blob = new Blob([buf], { type });
+    src = URL.createObjectURL(blob);
+    cache.set(sha1, src);
+    return src;
+  },
+  { createKey: (args: any[]) => args[0].sha1 },
+);
 
 export default function useBlob({
   sha1,

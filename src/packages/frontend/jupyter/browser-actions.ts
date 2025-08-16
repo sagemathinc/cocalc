@@ -92,6 +92,10 @@ export class JupyterActions extends JupyterActions0 {
   private lastCursorMoveTime: number = 0;
   public jupyterEditorActions?;
 
+  // if true, never saves to disk or loads from disk -- this is NOT
+  // ephemeral -- the history is tracked in the conat database!
+  public noSaveToDisk?: boolean;
+
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
     this.setState({
@@ -2003,15 +2007,15 @@ export class JupyterActions extends JupyterActions0 {
 
     const before = this.syncdb.last_changed();
     const ipynb = await this.toIpynb();
-    if(this.isClosed()) return;
-    
+    if (this.isClosed()) return;
+
     const serialize = JSON.stringify(ipynb, undefined, 2);
     this.syncdb.fs.writeFile(this.path, serialize);
     const has_unsaved_changes = this.syncdb.last_changed() != before;
     this.setState({ has_unsaved_changes });
     this.store.emit("has-unsaved-changes", has_unsaved_changes);
     const stats = await this.syncdb.fs.stat(this.path);
-    if(this.isClosed()) return;
+    if (this.isClosed()) return;
 
     const stillNotChanged = this.syncdb.last_changed() == before;
     this.setIpynbMtime(stats.mtime.valueOf());
@@ -2044,10 +2048,12 @@ export class JupyterActions extends JupyterActions0 {
   // tests, I should refactor it into a separate module that both use.
   private fileWatcher?;
   watchIpynb = async () => {
+    const done = () => this.isClosed() || this.noSaveToDisk;
+    if (done()) return;
     // one initial load right when we open the document
     await until(
       async () => {
-        if (this.isClosed()) return true;
+        if (this.isClosed() || this.noSaveToDisk) return true;
         try {
           await this.loadFromDiskIfChanged();
           return true;
@@ -2058,16 +2064,16 @@ export class JupyterActions extends JupyterActions0 {
       },
       { min: 3000 },
     );
-    if (this.isClosed()) return true;
+    if (done()) return;
     const fs = this.syncdb.fs;
 
     await until(
       async () => {
-        if (this.isClosed()) return true;
+        if (done()) return true;
         try {
           this.fileWatcher = await fs.watch(this.path, { unique: true });
           for await (const { eventType, ignore } of this.fileWatcher) {
-            if (this.isClosed()) return true;
+            if (done()) return true;
             if (!ignore) {
               await this.loadFromDiskIfChanged();
             }
