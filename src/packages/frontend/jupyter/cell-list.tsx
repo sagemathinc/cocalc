@@ -40,7 +40,7 @@ interface StableHtmlContextType {
   cellListDivRef?: MutableRefObject<any>;
   scrollOrResize?: { [key: string]: () => void };
 }
-const StableHtmlContext = createContext<StableHtmlContextType>({});
+export const StableHtmlContext = createContext<StableHtmlContextType>({});
 export const useStableHtmlContext: () => StableHtmlContextType = () => {
   return useContext(StableHtmlContext);
 };
