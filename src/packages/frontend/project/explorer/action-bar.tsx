@@ -165,19 +165,17 @@ export function ActionBar({
     }
   }
 
-  function render_action_button(name: FileAction): React.JSX.Element {
-    const disabled =
-      isDisabledSnapshots(name) &&
-      (current_path != null
-        ? current_path.startsWith(SNAPSHOTS)
-        : undefined);
+  function render_action_button(name: FileAction) {
+    if (isSnapshotPath(current_path) && isDisabledSnapshots(name)) {
+      return null;
+    }
     const obj = file_actions[name];
     const handle_click = (_e: React.MouseEvent) => {
       actions.set_file_action(name);
     };
 
     return (
-      <Button onClick={handle_click} disabled={disabled} key={name}>
+      <Button onClick={handle_click} key={name}>
         <Icon name={obj.icon} />{" "}
         <VisibleMDLG>{`${intl.formatMessage(obj.name)}...`}</VisibleMDLG>
       </Button>
@@ -297,13 +295,18 @@ export const ACTION_BUTTONS_MULTI = [
   "copy",
 ] as const;
 
+const DISABLED_SNAPSHOT_ACTIONS = new Set([
+  "move",
+  "compress",
+  "rename",
+  "share",
+  "duplicate",
+]);
+
 export function isDisabledSnapshots(name: string) {
-  return [
-    "move",
-    "compress",
-    "rename",
-    "delete",
-    "share",
-    "duplicate",
-  ].includes(name);
+  return DISABLED_SNAPSHOT_ACTIONS.has(name);
+}
+
+export function isSnapshotPath(path?: string) {
+  return path == SNAPSHOTS || path?.startsWith(SNAPSHOTS + "/");
 }

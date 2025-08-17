@@ -171,7 +171,7 @@ export function ActionBox({
                     actions.open_directory(SNAPSHOTS);
                   }}
                 >
-                  ~/.snapshots
+                  {SNAPSHOTS}
                 </a>{" "}
                 directory.
               </div>
