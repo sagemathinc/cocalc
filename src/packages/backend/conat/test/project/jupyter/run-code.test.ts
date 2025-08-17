@@ -24,6 +24,10 @@ const MIN_EVALS_PER_SECOND = 10;
 
 beforeAll(before);
 
+async function getKernelStatus(_opts: { path: string }) {
+  return { backend_state: "off" as "off", kernel_state: "idle" as "idle" };
+}
+
 describe("create very simple mocked jupyter runner and test evaluating code", () => {
   let client1, client2;
   it("create two clients", async () => {
@@ -43,7 +47,12 @@ describe("create very simple mocked jupyter runner and test evaluating code", ()
       return runner();
     }
 
-    server = jupyterServer({ client: client1, project_id, run });
+    server = jupyterServer({
+      client: client1,
+      project_id,
+      run,
+      getKernelStatus,
+    });
   });
 
   let client;
@@ -134,6 +143,7 @@ describe("create simple mocked jupyter runner that does actually eval an express
       project_id,
       run,
       compute_server_id,
+      getKernelStatus,
     });
   });
 
@@ -234,6 +244,7 @@ describe("create mocked jupyter runner that does failover to backend output mana
       project_id,
       run,
       outputHandler,
+      getKernelStatus,
     });
   });
 
