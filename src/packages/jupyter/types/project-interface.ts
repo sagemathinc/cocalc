@@ -15,6 +15,7 @@ import type { JupyterSockets } from "@cocalc/jupyter/zmq";
 import type { KernelInfo } from "@cocalc/util/jupyter/types";
 export type { KernelInfo };
 import type { EventIterator } from "@cocalc/util/event-iterator";
+import { type BackendState, type KernelState } from "@cocalc/jupyter/types";
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
@@ -98,7 +99,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   store: any;
   readonly identity: string;
   failedError: string;
-
+  getStatus(): { kernel_state: KernelState; backend_state: BackendState };
   isClosed(): boolean;
   get_state(): string;
   signal(signal: string): void;

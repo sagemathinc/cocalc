@@ -9,7 +9,12 @@ import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
+import type {
+  AlertLevel,
+  BackendState,
+  KernelState,
+  Usage,
+} from "@cocalc/jupyter/types";
 import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -110,7 +115,10 @@ export function Kernel({
     name,
     "backend_state",
   ]);
-  const kernel_state: undefined | string = useRedux([name, "kernel_state"]);
+  const kernel_state: undefined | KernelState = useRedux([
+    name,
+    "kernel_state",
+  ]);
 
   const backendIsStarting =
     backend_state === "starting" || backend_state === "spawning";
@@ -194,11 +202,12 @@ export function Kernel({
     let name: IconName | undefined;
     let color: string | undefined;
     switch (backend_state) {
-      case "init":
-        name = "unlink";
+      case "failed":
+        name = "bug";
         break;
-      case "ready": // ready to start but NOT running
-        name = "stop";
+      case "off":
+      case "closed":
+        name = "unlink";
         break;
       case "spawning":
       case "starting":
@@ -300,7 +309,7 @@ export function Kernel({
         case "busy":
           return (
             <>
-              Kernel is busy{" "}
+              Busy{" "}
               <Tooltip
                 title={intl.formatMessage({
                   id: "jupyter.status.interrupt_tooltip",
@@ -328,7 +337,7 @@ export function Kernel({
           });
           return (
             <>
-              Kernel is idle{" "}
+              Idle{" "}
               <Popconfirm
                 title={tooltip}
                 onConfirm={() => {
@@ -347,19 +356,17 @@ export function Kernel({
     } else if (backendIsStarting) {
       return intl.formatMessage({
         id: "jupyter.status.backend_starting",
-        defaultMessage: "Kernel is starting",
+        defaultMessage: "Starting",
         description: "The kernel of a Jupyter Notebook is starting",
       });
     }
     return (
       <>
-        Kernel will start in{" "}
         {computeServerId ? (
           <ComputeServer id={computeServerId} noColor />
         ) : (
-          " the project "
-        )}{" "}
-        when you run code
+          "Home Base"
+        )}
       </>
     );
   }

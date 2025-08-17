@@ -75,6 +75,7 @@ import launchJupyterKernelNoPool from "@cocalc/jupyter/kernel/launch-kernel";
 import { kernels } from "./kernels";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";
+import { type BackendState, type KernelState } from "@cocalc/jupyter/types";
 import { redux_name } from "@cocalc/util/redux/name";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
@@ -87,8 +88,6 @@ import { join } from "path";
 import { readFile } from "fs/promises";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
-
-type State = "failed" | "off" | "spawning" | "starting" | "running" | "closed";
 
 const logger = getLogger("jupyter:kernel");
 
@@ -240,7 +239,7 @@ export class JupyterKernel
   private ulimit?: string;
   private _path: string;
   private _actions?: JupyterActions;
-  private _state: State;
+  private _state: BackendState;
   private _directory: string;
   private _filename: string;
   public _kernel?: SpawnedKernel;
@@ -249,6 +248,7 @@ export class JupyterKernel
   public sockets?: JupyterSockets;
   private has_ensured_running: boolean = false;
   public failedError: string = "";
+  private kernel_state: KernelState;
 
   constructor(
     name: string | undefined,
@@ -289,13 +289,14 @@ export class JupyterKernel
   };
 
   // no-op if calling it doesn't change the state.
-  private setState = (state: State): void => {
+  private setState = (state: BackendState): void => {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     //             'failed'
     if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
     this.emit(this._state); // we *SHOULD* use this everywhere, not above.
+    this._actions?.syncdb?.set({ type: "settings", backend_state: state });
   };
 
   private setFailed = (error: string): void => {
@@ -306,6 +307,16 @@ export class JupyterKernel
 
   get_state = (): string => {
     return this._state;
+  };
+
+  getStatus = (): {
+    backend_state: BackendState;
+    kernel_state: KernelState;
+  } => {
+    return {
+      backend_state: this._state ?? "init",
+      kernel_state: this.kernel_state ?? "idle",
+    };
   };
 
   private spawnedAlready = false;
@@ -509,7 +520,12 @@ export class JupyterKernel
     sockets.on("iopub", (mesg) => {
       this.setState("running");
       if (mesg.content != null && mesg.content.execution_state != null) {
+        this.kernel_state = mesg.content.execution_state;
         this.emit("execution_state", mesg.content.execution_state);
+        this._actions?.syncdb?.set({
+          type: "settings",
+          kernel_state: mesg.content.execution_state,
+        });
       }
 
       if (mesg.content?.comm_id != null) {

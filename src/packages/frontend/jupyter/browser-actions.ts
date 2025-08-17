@@ -176,6 +176,7 @@ export class JupyterActions extends JupyterActions0 {
         this.nbgrader_actions.update_metadata();
       }
       this.watchIpynb();
+      this.refreshKernelStatus();
     });
 
     this.initOpenLog();
@@ -1694,6 +1695,12 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
+  refreshKernelStatus = async () => {
+    const client = await this.getJupyterClient();
+    const status = await client.getKernelStatus();
+    this.syncdb.set({ type: "settings", ...status });
+  };
+
   getMessageLimit = () => {
     return (
       this.syncdb.get_one({ type: "limits" })?.get("limit") ??
@@ -1726,7 +1733,7 @@ export class JupyterActions extends JupyterActions0 {
     if (cell == null) {
       return;
     }
-    const { data } = await client.moreOutput(id);
+    const data = await client.moreOutput(id);
     if (data == null) {
       throw Error("Additional output no longer available");
     }
@@ -2031,16 +2038,21 @@ export class JupyterActions extends JupyterActions0 {
   // load the ipynb version of this notebook from disk
   loadFromDisk = async (mtime?) => {
     const fs = this.syncdb.fs;
-    const ipynb = JSON.parse(
-      Buffer.from(await fs.readFile(this.path)).toString(),
-    );
+    const content = Buffer.from(await fs.readFile(this.path));
+    if (content.length == 0) {
+      // support empty file to make creating new easy
+      return;
+    }
+    const ipynb = JSON.parse(content.toString());
     mtime ??= (await this.syncdb.fs.stat(this.path)).mtime.valueOf();
     this.setIpynbMtime(mtime);
     await this.setToIpynb(ipynb);
+    // good time to refresh status
+    await this.refreshKernelStatus();
   };
 
   private setIpynbMtime = (mtime: number) => {
-    this.syncdb.set({ type: "fs", mtime });
+    this.syncdb.set({ type: "fs", id: "", mtime });
     this.syncdb.commit();
   };
 
@@ -2055,6 +2067,7 @@ export class JupyterActions extends JupyterActions0 {
     } catch (err) {
       console.warn("issue ignoring file watcher", err);
     }
+    if (this.isClosed()) return;
 
     const before = this.syncdb.last_changed();
     const ipynb = await this.toIpynb();
@@ -2079,9 +2092,9 @@ export class JupyterActions extends JupyterActions0 {
 
   private isIpynbDeleted = false;
   private loadFromDiskIfChanged = async () => {
-    const mtime = this.syncdb.get_one({ type: "fs" })?.get("mtime");
+    const mtime = this.syncdb.get_one({ type: "fs", id: "" })?.get("mtime");
     if (mtime == null) {
-      console.log("load from disk because mtime null");
+      // console.log("load from disk because mtime null");
       await this.loadFromDisk();
       return;
     }
@@ -2090,10 +2103,10 @@ export class JupyterActions extends JupyterActions0 {
     this.isIpynbDeleted = false;
 
     if (stats.mtime.valueOf() != mtime) {
-      console.log("load from disk because", {
-        "stats.mtime": stats.mtime,
-        mtime,
-      });
+      //       console.log("load from disk because", {
+      //         "stats.mtime": stats.mtime,
+      //         mtime,
+      //       });
       await this.loadFromDisk();
     }
   };

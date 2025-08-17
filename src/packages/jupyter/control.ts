@@ -68,6 +68,15 @@ export function stop({ path }: { path: string }) {
   }
 }
 
+export async function getKernelStatus({ path }) {
+  const actions = jupyterActions[ipynbPath(path)];
+  const kernel = actions?.jupyter_kernel;
+  if (kernel == null) {
+    return { backend_state: "off" as "off", kernel_state: "idle" as "idle" };
+  }
+  return kernel.getStatus();
+}
+
 // Returns async iterator over outputs
 export async function run({ path, cells, noHalt, socket }: RunOptions) {
   logger.debug("run:", { path, noHalt });

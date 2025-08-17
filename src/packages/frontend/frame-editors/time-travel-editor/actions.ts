@@ -346,6 +346,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         // make sure nothing is running or appears to be (due to it being running in history)
         a.clear_all_cell_run_state();
         a.signal("SIGINT");
+        a.refreshKernelStatus();
       }
     }
 

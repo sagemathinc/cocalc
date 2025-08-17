@@ -109,7 +109,6 @@ function RenderBlobImage({
 }) {
   const [error, setError] = useState<string>("");
   const src = useBlob({ sha1, actions, type, setError });
-  console.log({ src });
 
   if (error) {
     return (

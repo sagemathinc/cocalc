@@ -17,7 +17,7 @@ Then run this code in nodejs:
 */
 
 import { run } from "@cocalc/project/conat/api/jupyter";
-import { outputHandler } from "@cocalc/jupyter/control";
+import { outputHandler, getKernelStatus } from "@cocalc/jupyter/control";
 import { jupyterServer } from "@cocalc/conat/project/jupyter/run-code";
 import { connectToConat } from "@cocalc/project/conat/connection";
 import { compute_server_id, project_id } from "@cocalc/project/data";
@@ -35,6 +35,7 @@ export function init() {
     compute_server_id,
     run,
     outputHandler,
+    getKernelStatus,
   });
 }
 

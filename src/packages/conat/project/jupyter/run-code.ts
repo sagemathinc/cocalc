@@ -91,12 +91,23 @@ export function jupyterServer({
   // as a fallback in case the client that initiated running cells is
   // disconnected, so output won't be lost.
   outputHandler,
+  getKernelStatus,
 }: {
   client: ConatClient;
   project_id: string;
   compute_server_id?: number;
   run: JupyterCodeRunner;
   outputHandler?: CreateOutputHandler;
+  getKernelStatus: (opts: { path: string }) => Promise<{
+    backend_state:
+      | "failed"
+      | "off"
+      | "spawning"
+      | "starting"
+      | "running"
+      | "closed";
+    kernel_state: "idle" | "busy" | "running";
+  }>;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
@@ -118,6 +129,8 @@ export function jupyterServer({
       if (cmd == "more") {
         logger.debug("more output ", { id: data.id });
         mesg.respondSync(moreOutput[path]?.[data.id]);
+      } else if (cmd == "get-kernel-status") {
+        mesg.respondSync(await getKernelStatus({ path }));
       } else if (cmd == "run") {
         const { cells, noHalt, limit } = data;
         try {
@@ -306,11 +319,20 @@ export class JupyterClient {
   };
 
   moreOutput = async (id: string) => {
-    return await this.socket.request({
+    const { data } = await this.socket.request({
       cmd: "more",
       path: this.path,
       id,
     });
+    return data;
+  };
+
+  getKernelStatus = async () => {
+    const { data } = await this.socket.request({
+      cmd: "get-kernel-status",
+      path: this.path,
+    });
+    return data;
   };
 
   run = async (

@@ -113,16 +113,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store.syncdb = syncdb;
     this.syncdb = syncdb;
     this.is_project = client.is_project();
-    this.syncdb.on("first-load", () => {
-      dbg("handling first load of syncdb");
-      // Clear settings the first time the syncdb is ever
-      // loaded, since it has settings like "ipynb last save"
-      // and trust, which shouldn't be initialized to
-      // what they were before. Not doing this caused
-      // https://github.com/sagemathinc/cocalc/issues/7074
-      this.syncdb.delete({ type: "settings" });
-      this.syncdb.commit();
-    });
     this.is_compute_server = client.is_compute_server();
 
     let directory: any;
