@@ -475,7 +475,7 @@ Table({
             show_exec_warning: true,
             physical_keyboard: "default",
             keyboard_variant: "",
-            ask_jupyter_kernel: true,
+            ask_jupyter_kernel: false,
             show_my_other_cursors: false,
             disable_jupyter_virtualization: true,
           },
