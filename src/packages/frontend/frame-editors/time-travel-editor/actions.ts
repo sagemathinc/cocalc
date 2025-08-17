@@ -33,6 +33,7 @@ import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { until } from "@cocalc/util/async-utils";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const EXTENSION = ".time-travel";
 
@@ -362,7 +363,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   open_snapshots = (): void => {
     // log("open_snapshots");
-    this.redux.getProjectActions(this.project_id).open_directory(".snapshots");
+    this.redux.getProjectActions(this.project_id).open_directory(SNAPSHOTS);
   };
 
   exportEditHistory = async (): Promise<string> => {

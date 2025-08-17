@@ -2,6 +2,7 @@ import { before, after, fs, sudo } from "./setup";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { randomBytes } from "crypto";
 import { type Subvolume } from "../subvolume";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 beforeAll(before);
 
@@ -95,7 +96,7 @@ describe("the filesystem operations", () => {
 
   it("unlink (delete) our file", async () => {
     await vol.fs.unlink("a.txt");
-    expect(await vol.fs.readdir("")).toEqual([".snapshots"]);
+    expect(await vol.fs.readdir("")).toEqual([SNAPSHOTS]);
   });
 
   it("snapshot still exists", async () => {

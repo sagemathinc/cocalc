@@ -4,8 +4,8 @@ import getLogger from "@cocalc/backend/logger";
 import { join } from "path";
 import { SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { ConatError } from "@cocalc/conat/core/client";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
-export const SNAPSHOTS = ".snapshots";
 const logger = getLogger("file-server:btrfs:subvolume-snapshots");
 
 export class SubvolumeSnapshots {

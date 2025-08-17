@@ -122,6 +122,10 @@ export function Explorer() {
     "show_custom_software_reset",
   );
   const show_library = useTypedRedux({ project_id }, "show_library");
+  const disableExplorerKeyhandler = useTypedRedux(
+    { project_id },
+    "disableExplorerKeyhandler",
+  );
 
   const [shiftIsDown, setShiftIsDown] = useState<boolean>(false);
 
@@ -169,7 +173,7 @@ export function Explorer() {
 
   const { val: clicked, inc: clickedOnExplorer } = useCounter();
   useEffect(() => {
-    if (listing == null || file_action) {
+    if (listing == null || file_action || disableExplorerKeyhandler) {
       return;
     }
     const handleKeyDown = (e): void => {
@@ -232,7 +236,15 @@ export function Explorer() {
       $(window).off("keydown", handleKeyDown);
       $(window).off("keyup", handleKeyUp);
     };
-  }, [project_id, current_path, listing, file_action, flyout, clicked]);
+  }, [
+    project_id,
+    current_path,
+    listing,
+    file_action,
+    flyout,
+    clicked,
+    disableExplorerKeyhandler,
+  ]);
 
   if (actions == null || project_map == null) {
     return <Loading />;

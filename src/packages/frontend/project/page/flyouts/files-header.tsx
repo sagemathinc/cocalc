@@ -36,6 +36,7 @@ import { FilesSelectedControls } from "./files-controls";
 import { FilesSelectButtons } from "./files-select-extra";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
 import ForkProject from "@cocalc/frontend/project/explorer/fork";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -468,7 +469,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             <Space.Compact direction="horizontal" size="small">
               <Button
                 onClick={() => {
-                  actions?.open_directory(".snapshots");
+                  actions?.open_directory(SNAPSHOTS);
                   track("snapshots", {
                     action: "open",
                     where: "flyout-files",

@@ -35,6 +35,7 @@ import { in_snapshot_path } from "../utils";
 import CreateArchive from "./create-archive";
 import Download from "./download";
 import RenameFile from "./rename-file";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 export const PRE_STYLE = {
   marginBottom: "15px",
@@ -167,7 +168,7 @@ export function ActionBox({
                   href=""
                   onClick={(e) => {
                     e.preventDefault();
-                    actions.open_directory(".snapshots");
+                    actions.open_directory(SNAPSHOTS);
                   }}
                 >
                   ~/.snapshots

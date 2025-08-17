@@ -179,6 +179,9 @@ export interface ProjectStoreState {
   compute_server_id: number;
   // Map from path to the id of the compute server that the file is supposed to opened on right now.
   compute_server_ids?: TypedMap<{ [path: string]: number }>;
+
+  // while true, explorer keyhandler will not be enabled
+  disableExplorerKeyhandler?: boolean;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {

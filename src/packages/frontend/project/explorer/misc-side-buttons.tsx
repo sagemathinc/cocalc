@@ -6,7 +6,7 @@
 import { Space } from "antd";
 import { join } from "path";
 import { defineMessage, useIntl } from "react-intl";
-import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -17,6 +17,8 @@ import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { type JSX, type MouseEvent } from "react";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import Snapshots from "@cocalc/frontend/project/snapshots";
 
 const SHOW_SERVER_LAUNCHERS = false;
 
@@ -51,7 +53,7 @@ export function MiscSideButtons() {
 
   const handle_backup = (e: MouseEvent): void => {
     e.preventDefault();
-    actions?.open_directory(".snapshots");
+    actions?.open_directory(SNAPSHOTS);
     track("snapshots", { action: "open", where: "explorer" });
   };
 
@@ -79,7 +81,7 @@ export function MiscSideButtons() {
     }
     return (
       <Button bsSize="small" onClick={handle_backup}>
-        <Icon name="life-saver" />{" "}
+        <Icon name="disk-round" />{" "}
         <VisibleLG>
           <span style={{ fontSize: 12 }}>Backups</span>
         </VisibleLG>
@@ -168,10 +170,9 @@ export function MiscSideButtons() {
   }
 
   return (
-    <ButtonToolbar
-      style={{ whiteSpace: "nowrap", padding: "0" }}
-      className="pull-right"
-    >
+    <Space className="pull-right">
+      {(current_path == SNAPSHOTS ||
+        current_path.startsWith(SNAPSHOTS + "/")) && <Snapshots />}
       {SHOW_SERVER_LAUNCHERS && (
         <Space.Compact>
           {render_jupyterlab_button()}
@@ -190,6 +191,6 @@ export function MiscSideButtons() {
           <TourButton project_id={project_id} />
         </Space.Compact>
       </div>
-    </ButtonToolbar>
+    </Space>
   );
 }

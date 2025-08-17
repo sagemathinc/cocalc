@@ -37,6 +37,7 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
   backgroundColor: COLORS.BLUE_LLL, // bit darker than .cc-project-flyout-file-item:hover
@@ -415,7 +416,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       if (key === "download" && !item.isDir) continue;
       const disabled =
         isDisabledSnapshots(key) &&
-        (current_path?.startsWith(".snapshots") ?? false);
+        (current_path?.startsWith(SNAPSHOTS) ?? false);
 
       const { name, icon, hideFlyout } = FILE_ACTIONS[key];
       if (hideFlyout) return;

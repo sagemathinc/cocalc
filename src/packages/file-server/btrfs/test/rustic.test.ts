@@ -1,5 +1,6 @@
 import { before, after, fs } from "./setup";
 import { type Subvolume } from "../subvolume";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 beforeAll(before);
 
@@ -22,7 +23,7 @@ describe("test rustic backups", () => {
     expect(Math.abs(Date.now() - v[0].time.valueOf())).toBeLessThan(10000);
     const { id } = v[0];
     const w = await vol.rustic.ls({ id });
-    expect(w).toEqual([".snapshots", "a.txt"]);
+    expect(w).toEqual([SNAPSHOTS, "a.txt"]);
   });
 
   it("delete a.txt, then restore it from the backup", async () => {
@@ -42,7 +43,7 @@ describe("test rustic backups", () => {
     const { id } = v[1];
     const w = await vol.rustic.ls({ id });
     expect(w).toEqual([
-      ".snapshots",
+      SNAPSHOTS,
       "a.txt",
       "my-dir",
       "my-dir/file.txt",

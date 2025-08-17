@@ -23,6 +23,7 @@ import { human_readable_size, path_split, plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PANEL_STYLE_BOTTOM, PANEL_STYLE_TOP } from "./consts";
 import { useSingleFile } from "./utils";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 interface FilesSelectedControlsProps {
   checked_files: immutable.Set<string>;
@@ -205,7 +206,7 @@ export function FilesSelectedControls({
           {names.map((name) => {
             const disabled =
               isDisabledSnapshots(name) &&
-              (current_path?.startsWith(".snapshots") ?? false);
+              (current_path?.startsWith(SNAPSHOTS) ?? false);
 
             const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
             const title = intl.formatMessage(actionName);

@@ -23,6 +23,7 @@ import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { VisibleMDLG } from "@cocalc/frontend/components";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -168,7 +169,7 @@ export function ActionBar({
     const disabled =
       isDisabledSnapshots(name) &&
       (current_path != null
-        ? current_path.startsWith(".snapshots")
+        ? current_path.startsWith(SNAPSHOTS)
         : undefined);
     const obj = file_actions[name];
     const handle_click = (_e: React.MouseEvent) => {
