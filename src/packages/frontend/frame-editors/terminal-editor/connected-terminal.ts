@@ -323,7 +323,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       conn.on("close", this.connect);
       conn.on("kick", this.close_request);
       conn.on("data", this.handleDataFromProject);
-      conn.on("init", this.render);
+      conn.on("init", (data) => {
+        this.terminal.clear();
+        this.render(data);
+      });
       conn.once("ready", () => {
         delete this.last_geom;
         this.ignore_terminal_data = false;
