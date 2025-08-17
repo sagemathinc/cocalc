@@ -201,23 +201,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   is_closed = () => (this._state ?? "closed") == "closed";
 
   close() {
-    if (this.is_closed()) {
-      return;
-    }
-    this.syncdb?.close();
-    this._file_watcher?.close();
-    if (this.is_project || this.is_compute_server) {
-      this.close_project_only();
-    } else {
-      this.close_client_only();
-    }
-    // We *must* destroy the action before calling close,
-    // since otherwise this.redux and this.name are gone,
-    // which makes destroying the actions properly impossible.
-    this.destroy();
-    this.store?.destroy();
-    close(this);
-    this._state = "closed";
+    try {
+      if (this.is_closed()) {
+        return;
+      }
+      this.syncdb?.close();
+      this._file_watcher?.close();
+      if (this.is_project || this.is_compute_server) {
+        this.close_project_only();
+      } else {
+        this.close_client_only();
+      }
+      // We *must* destroy the action before calling close,
+      // since otherwise this.redux and this.name are gone,
+      // which makes destroying the actions properly impossible.
+      this.destroy();
+      this.store?.destroy();
+      close(this);
+      this._state = "closed";
+    } catch {}
   }
 
   public close_project_only() {

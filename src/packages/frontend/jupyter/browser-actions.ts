@@ -328,9 +328,11 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public async close(): Promise<void> {
-    if (this.isClosed()) return;
-    this.jupyterClient?.close();
-    await super.close();
+    try {
+      if (this.isClosed()) return;
+      this.jupyterClient?.close();
+      super.close();
+    } catch {}
   }
 
   private activity(): void {
