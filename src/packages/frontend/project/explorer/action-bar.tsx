@@ -303,9 +303,7 @@ export const ACTION_BUTTONS_MULTI = [
 const DISABLED_SNAPSHOT_ACTIONS = new Set([
   "move",
   "compress",
-  "rename",
   "share",
-  "duplicate",
 ]);
 
 export function isDisabledSnapshots(name: string) {
