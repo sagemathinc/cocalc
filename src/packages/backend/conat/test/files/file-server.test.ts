@@ -104,6 +104,17 @@ describe("create basic mocked file server and test it out", () => {
       }): Promise<string[]> => {
         return [];
       },
+
+      createSnapshot: async (_opts: {
+        project_id: string;
+        name?: string;
+        limit?: number;
+      }): Promise<void> => {},
+
+      deleteSnapshot: async (_opts: {
+        project_id: string;
+        name: string;
+      }): Promise<void> => {},
     });
   });
 
