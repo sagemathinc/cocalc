@@ -27,6 +27,7 @@ import { mkdir } from "fs/promises";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import * as rustic from "./rustic";
+import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 
 const logger = getLogger("server:conat:file-server");
 
@@ -167,12 +168,7 @@ async function updateSnapshots({
   limit,
 }: {
   project_id: string;
-  counts?: {
-    frequent?: number;
-    daily?: number;
-    weekly?: number;
-    monthly?: number;
-  };
+  counts?: Partial<SnapshotCounts>;
   limit?: number;
 }): Promise<void> {
   const vol = await getVolume(project_id);

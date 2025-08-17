@@ -4,6 +4,7 @@ import {
   client as createFileClient,
 } from "@cocalc/conat/files/file-server";
 import { uuid } from "@cocalc/util/misc";
+import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 
 beforeAll(before);
 
@@ -118,12 +119,7 @@ describe("create basic mocked file server and test it out", () => {
 
       updateSnapshots: async (_opts: {
         project_id: string;
-        counts?: {
-          frequent?: number;
-          daily?: number;
-          weekly?: number;
-          monthly?: number;
-        };
+        counts?: Partial<SnapshotCounts>;
         limit?: number;
       }): Promise<void> => {},
     });

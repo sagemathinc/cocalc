@@ -5,6 +5,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 export * from "@cocalc/server/projects/collaborators";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { client as filesystemClient } from "@cocalc/conat/files/file-server";
+import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 
 export async function copyPathBetweenProjects({
   src,
@@ -135,12 +136,7 @@ export async function updateSnapshots({
 }: {
   account_id?: string;
   project_id: string;
-  counts?: {
-    frequent?: number;
-    daily?: number;
-    weekly?: number;
-    monthly?: number;
-  };
+  counts?: Partial<SnapshotCounts>;
 }) {
   if (!account_id) {
     throw Error("must be signed in");

@@ -1,5 +1,8 @@
 import { authFirstRequireAccount } from "./util";
-import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
+import {
+  type CreateProjectOptions,
+  type SnapshotCounts,
+} from "@cocalc/util/db-schema/projects";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 export const projects = {
@@ -132,12 +135,7 @@ export interface Projects {
   updateSnapshots: (opts: {
     account_id?: string;
     project_id: string;
-    counts?: {
-      frequent?: number;
-      daily?: number;
-      weekly?: number;
-      monthly?: number;
-    };
+    counts?: Partial<SnapshotCounts>;
   }) => Promise<void>;
 
   getSnapshotQuota: (opts: {

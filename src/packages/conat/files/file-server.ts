@@ -23,6 +23,7 @@ Additional functionality:
 
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
+import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 import { type CopyOptions } from "./fs";
 export { type CopyOptions };
 
@@ -102,12 +103,7 @@ export interface Fileserver {
   deleteSnapshot: (opts: { project_id: string; name: string }) => Promise<void>;
   updateSnapshots: (opts: {
     project_id: string;
-    counts?: {
-      frequent?: number;
-      daily?: number;
-      weekly?: number;
-      monthly?: number;
-    };
+    counts?: Partial<SnapshotCounts>;
     // global limit, same as with createSnapshot above; can prevent new snapshots from being
     // made if counts are too large!
     limit?: number;
