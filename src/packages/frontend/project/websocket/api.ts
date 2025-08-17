@@ -105,7 +105,7 @@ export class API {
   getComputeServerId = (path: string) => {
     return redux
       .getProjectActions(this.project_id)
-      .getComputeServerIdForFile({ path });
+      .getComputeServerIdForFile(path);
   };
 
   version = async (compute_server_id?: number): Promise<number> => {

@@ -3204,6 +3204,6 @@ export class Actions<
 
   fs = () => {
     const a = this.redux.getProjectActions(this.project_id);
-    return a.fs(a.getComputeServerIdForFile({ path: this.path }));
+    return a.fs(a.getComputeServerIdForFile(this.path));
   };
 }

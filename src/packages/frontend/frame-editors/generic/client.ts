@@ -35,8 +35,7 @@ export function getComputeServerId({
   path: string;
 }) {
   let compute_server_id =
-    redux.getProjectActions(project_id).getComputeServerIdForFile({ path }) ??
-    0;
+    redux.getProjectActions(project_id).getComputeServerIdForFile(path) ?? 0;
   if (compute_server_id && excludeFromComputeServer(path)) {
     compute_server_id = 0;
   }

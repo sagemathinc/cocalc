@@ -347,7 +347,7 @@ export class ConatClient extends EventEmitter {
       const actions = redux.getProjectActions(project_id);
       if (path != null) {
         compute_server_id =
-          actions.getComputeServerIdForFile({ path }) ??
+          actions.getComputeServerIdForFile(path) ??
           actions.getComputeServerId();
       } else {
         compute_server_id = actions.getComputeServerId();

@@ -10,7 +10,7 @@ import * as async from "async";
 import { callback } from "awaiting";
 import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
-import { basename, join } from "path";
+import { basename, dirname, join } from "path";
 import { defineMessage } from "react-intl";
 import {
   computeServerManager,
@@ -2400,7 +2400,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   ): Files | null => {
     return getFiles({
       cacheId: this.getCacheId(compute_server_id),
-      path,
+      path: path == "." ? "" : path,
     });
   };
 
@@ -2733,6 +2733,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     }
     const content = getFileTemplate(ext);
+    await this.ensureContainingDirectoryExists(path, compute_server_id);
     const fs = this.fs(compute_server_id);
     try {
       await fs.writeFile(path, content);
@@ -3166,31 +3167,35 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.hide_file(misc.tab_to_path(a));
   }
 
-  async ensure_directory_exists(
+  ensureContainingDirectoryExists = async (
     path: string,
     compute_server_id?: number,
-  ): Promise<void> {
+  ) => {
+    await this.ensureDirectoryExists(dirname(path), compute_server_id);
+  };
+
+  ensureDirectoryExists = async (
+    path: string,
+    compute_server_id?: number,
+  ): Promise<void> => {
     compute_server_id = this.getComputeServerId(compute_server_id);
-    await webapp_client.exec({
-      project_id: this.project_id,
-      command: "mkdir",
-      args: ["-p", path],
-      compute_server_id,
-      filesystem: true,
-    });
-    // WARNING: If we don't do this sync, the
-    // create_folder/open_directory code gets messed up
-    // (with the backend watcher stuff) and the directory
-    // gets stuck "Loading...".  Anyway, this is a good idea
-    // to ensure the directory is fully created and usable.
-    // And no, I don't like having to do this.
-    await webapp_client.exec({
-      project_id: this.project_id,
-      command: "sync",
-      compute_server_id,
-      filesystem: true,
-    });
-  }
+    const v = this.getFilesCache(dirname(path), compute_server_id);
+    if (v?.[basename(path)]) {
+      // already exists
+      return;
+    }
+    // create it -- just make it and if it already exists, not an error
+    // (this avoids race conditions and is the right way)
+    const fs = this.fs(compute_server_id);
+    try {
+      await fs.mkdir(path, { recursive: true });
+    } catch (err) {
+      if (err.code == "EEXISTS") {
+        return;
+      }
+      throw err;
+    }
+  };
 
   /* NOTE!  Below we store the modal state *both* in a private
   variabel *and* in the store.  The reason is because we need
@@ -3198,18 +3203,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   wait_until_no_modals to work robustless, and setState can
   wait before changing the state.
   */
-  public clear_modal(): void {
+  clear_modal = (): void => {
     delete this.modal;
     this.setState({ modal: undefined });
-  }
+  };
 
-  public async show_modal({
+  show_modal = async ({
     title,
     content,
   }: {
     title: string;
     content: string;
-  }): Promise<"ok" | "cancel"> {
+  }): Promise<"ok" | "cancel"> => {
     await this.wait_until_no_modals();
     let response: "ok" | "cancel" = "cancel";
     const modal = fromJS({
@@ -3222,9 +3227,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ modal });
     await this.wait_until_no_modals();
     return response;
-  }
+  };
 
-  public async wait_until_no_modals(): Promise<void> {
+  wait_until_no_modals = async (): Promise<void> => {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -3240,7 +3245,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       until: noModal,
       timeout: 99999,
     });
-  }
+  };
 
   public show_public_config(path: string): void {
     this.set_current_path(misc.path_split(path).head);
@@ -3380,11 +3385,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   // undefined if not specified or not known
-  getComputeServerIdForFile = ({
-    path,
-  }: {
-    path: string;
-  }): number | undefined => {
+  getComputeServerIdForFile = (path: string): number | undefined => {
     if (this.computeServerManager?.state != "connected") {
       // don't know anything yet.
       // TODO: maybe we should change this to be async and guarantee answer known -- not sure.

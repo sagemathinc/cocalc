@@ -4,7 +4,6 @@
  */
 import { delay } from "awaiting";
 import * as immutable from "immutable";
-
 import { STUDENT_SUBDIR } from "@cocalc/frontend/course/assignments/consts";
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
@@ -25,13 +24,13 @@ export class NBGraderActions {
     this.redux = redux;
   }
 
-  public close(): void {
+  close = (): void => {
     close(this);
-  }
+  };
 
   // Ensure all nbgrader metadata is updated to the latest version we support.
   // The update is done as a single commit to the syncdb.
-  public update_metadata(): void {
+  update_metadata = (): void => {
     const cells = this.jupyter_actions.store.get("cells");
     let changed: boolean = false; // did something change.
     cells.forEach((cell, id: string): void => {
@@ -47,21 +46,21 @@ export class NBGraderActions {
     if (changed) {
       this.jupyter_actions._sync();
     }
-  }
+  };
 
-  private get_metadata(id: string): ImmutableMetadata {
+  private get_metadata = (id: string): ImmutableMetadata => {
     return this.jupyter_actions.store.getIn(
       ["cells", id, "metadata", "nbgrader"],
       immutable.Map(),
     );
-  }
+  };
 
   // Sets the metadata and also ensures the schema is properly updated.
-  public set_metadata(
+  set_metadata = (
     id: string,
     metadata: Metadata | undefined = undefined, // if undefined, deletes the nbgrader metadata entirely
     save: boolean = true,
-  ): void {
+  ): void => {
     let nbgrader: Metadata | undefined = undefined;
     if (metadata != null) {
       nbgrader = this.get_metadata(id).toJS();
@@ -103,9 +102,9 @@ export class NBGraderActions {
       merge: true,
       save,
     });
-  }
+  };
 
-  public async validate(frame_actions): Promise<void> {
+  validate = async (frame_actions): Promise<void> => {
     // Without confirmation: (1) restart, (2) run all -- without stopping for errors.
     // Validate button should be disabled while this happens.
     // As running happens number of failing tests and total score
@@ -113,9 +112,9 @@ export class NBGraderActions {
     frame_actions?.set_all_md_cells_not_editing();
     await this.jupyter_actions.restart();
     this.jupyter_actions.run_all_cells(true);
-  }
+  };
 
-  public async confirm_validate(frame_actions): Promise<void> {
+  confirm_validate = async (frame_actions): Promise<void> => {
     const intl = await getIntl();
     const validate = intl.formatMessage(labels.validate);
     const choice = await this.jupyter_actions.confirm_dialog({
@@ -129,9 +128,9 @@ export class NBGraderActions {
     if (choice === validate) {
       await this.validate(frame_actions);
     }
-  }
+  };
 
-  public async confirm_assign(): Promise<void> {
+  confirm_assign = async (): Promise<void> => {
     const intl = await getIntl();
     const path = this.jupyter_actions.store.get("path");
     let { head, tail } = path_split(path);
@@ -181,17 +180,22 @@ export class NBGraderActions {
     this.set_global_metadata({ cocalc_minimal_stubs: minimal_stubs });
     this.ensure_grade_ids_are_unique(); // non-unique ids lead to pain later
     await this.assign(target, minimal_stubs);
-  }
+  };
 
-  public async assign(
+  assign = async (
     filename: string,
     minimal_stubs: boolean = false,
-  ): Promise<void> {
+  ): Promise<void> => {
     // Create a copy of the current notebook at the location specified by
     // filename, and modify by applying the assign transformations.
-    const project_id = this.jupyter_actions.store.get("project_id");
+    const { path, project_id } = this.jupyter_actions;
     const project_actions = this.redux.getProjectActions(project_id);
-    await project_actions.open_file({ path: filename, foreground: true });
+    const compute_server_id = project_actions.getComputeServerIdForFile(path);
+    await project_actions.createFile({
+      name: filename,
+      foreground: true,
+      compute_server_id,
+    });
     let actions = this.redux.getEditorActions(project_id, filename);
     while (actions == null) {
       await delay(200);
@@ -214,12 +218,10 @@ export class NBGraderActions {
     );
     // now save to disk
     await actions.jupyter_actions.save();
-  }
+  };
 
   // public because above we call this... on a different object!
-  public apply_assign_transformations = (
-    minimal_stubs: boolean = false,
-  ): void => {
+  apply_assign_transformations = (minimal_stubs: boolean = false): void => {
     /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
     Of which, we do:
 
@@ -260,7 +262,7 @@ export class NBGraderActions {
   // merge in metadata to the global (not local to a cell) nbgrader
   // metadata for this notebook.  This is something I invented for
   // cocalc, and it is surely totally ignored by upstream nbgrader.
-  set_global_metadata(metadata: object): void {
+  set_global_metadata = (metadata: object): void => {
     const cur = this.jupyter_actions.store.getIn(["metadata", "nbgrader"]);
     if (cur) {
       metadata = {
@@ -269,9 +271,9 @@ export class NBGraderActions {
       };
     }
     this.jupyter_actions.set_global_metadata({ nbgrader: metadata });
-  }
+  };
 
-  private assign_clear_solutions(minimal_stubs: boolean = false): void {
+  private assign_clear_solutions = (minimal_stubs: boolean = false): void => {
     const store = this.jupyter_actions.store;
     const kernel_language = store.get_kernel_language();
 
@@ -291,9 +293,9 @@ export class NBGraderActions {
         );
       }
     });
-  }
+  };
 
-  private assign_clear_hidden_tests(): void {
+  private assign_clear_hidden_tests = (): void => {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       // only care about test cells, which have: grade=true and solution=false.
       if (!cell.getIn(["metadata", "nbgrader", "grade"])) return;
@@ -308,9 +310,9 @@ export class NBGraderActions {
         );
       }
     });
-  }
+  };
 
-  private assign_clear_mark_regions(): void {
+  private assign_clear_mark_regions = (): void => {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "grade"])) {
         // We clear mark regions for any cell that is graded.
@@ -332,9 +334,9 @@ export class NBGraderActions {
         );
       }
     });
-  }
+  };
 
-  private assign_delete_remove_cells(): void {
+  private assign_delete_remove_cells = (): void => {
     const cells: string[] = [];
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "remove"])) {
@@ -346,9 +348,9 @@ export class NBGraderActions {
     });
     if (cells.length == 0) return;
     this.jupyter_actions.delete_cells(cells, false);
-  }
+  };
 
-  private assign_save_checksums(): void {
+  private assign_save_checksums = (): void => {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = set_checksum(cell);
@@ -362,9 +364,9 @@ export class NBGraderActions {
         });
       }
     });
-  }
+  };
 
-  private assign_unlock_all_cells(): void {
+  private assign_unlock_all_cells = (): void => {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
         return;
@@ -377,7 +379,7 @@ export class NBGraderActions {
         });
       }
     });
-  }
+  };
 
   private assign_lock_readonly_cells(): void {
     // For every cell for which the nbgrader metadata says it should be locked, set
@@ -409,7 +411,7 @@ export class NBGraderActions {
     });
   }
 
-  public ensure_grade_ids_are_unique(): void {
+  ensure_grade_ids_are_unique = (): void => {
     const grade_ids = new Set<string>();
     const cells = this.jupyter_actions.store.get("cells");
     let changed: boolean = false; // did something change.
@@ -432,5 +434,5 @@ export class NBGraderActions {
     if (changed) {
       this.jupyter_actions._sync();
     }
-  }
+  };
 }

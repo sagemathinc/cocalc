@@ -261,10 +261,7 @@ export async function open_file(
 
   const noComputeServer = excludeFromComputeServer(opts.path);
 
-  if (
-    noComputeServer &&
-    actions.getComputeServerIdForFile({ path: opts.path })
-  ) {
+  if (noComputeServer && actions.getComputeServerIdForFile(opts.path)) {
     // this won't work so if such a file is somehow on a compute server, move it back:
     opts.compute_server_id = 0;
     await actions.setComputeServerIdForFile({
