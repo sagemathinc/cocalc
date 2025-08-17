@@ -652,7 +652,7 @@ export class Client extends EventEmitter {
         .emitWithAck("wait-for-interest", { subject, timeout });
       return response;
     } catch (err) {
-      throw toConatError(err);
+      throw toConatError(err, { subject });
     }
   };
 
@@ -997,7 +997,7 @@ export class Client extends EventEmitter {
             });
           }
         } catch (err) {
-          throw toConatError(err);
+          throw toConatError(err, { subject });
         }
         if (response?.error) {
           throw new ConatError(response.error, { code: response.code });
@@ -1137,7 +1137,13 @@ export class Client extends EventEmitter {
           noThrow: true, // we're not catching this respond
           headers: {
             error,
-            error_attrs: { code: err.code },
+            error_attrs: {
+              code: err.code,
+              errno: err.errno,
+              path: err.path,
+              syscall: err.syscall,
+              subject: err.subject,
+            },
           },
         });
       }
@@ -1187,7 +1193,7 @@ export class Client extends EventEmitter {
       for await (const resp of sub) {
         if (resp.headers?.error) {
           yield new ConatError(`${resp.headers.error}`, {
-            code: resp.headers.code,
+            code: resp.headers.code as string | number,
           });
         } else {
           yield resp.data;
@@ -1350,7 +1356,7 @@ export class Client extends EventEmitter {
                 return response;
               }
             } catch (err) {
-              throw toConatError(err);
+              throw toConatError(err, { subject });
             }
           } else {
             return await this.conn.emitWithAck("publish", v);
@@ -1973,14 +1979,18 @@ function isEmpty(obj: object): boolean {
   return true;
 }
 
-function toConatError(socketIoError) {
+function toConatError(socketIoError, { subject }: { subject?: string } = {}) {
   // only errors are "disconnected" and a timeout
   const e = `${socketIoError}`;
   if (e.includes("disconnected")) {
     return e;
   } else {
-    return new ConatError(`timeout - ${e}`, {
-      code: 408,
-    });
+    return new ConatError(
+      `timeout - ${e}${subject ? " subject:" + subject : ""}`,
+      {
+        code: 408,
+        subject,
+      },
+    );
   }
 }

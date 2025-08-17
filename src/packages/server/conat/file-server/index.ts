@@ -161,6 +161,24 @@ async function deleteSnapshot({
   await vol.snapshots.delete(name);
 }
 
+async function updateSnapshots({
+  project_id,
+  counts,
+  limit,
+}: {
+  project_id: string;
+  counts?: {
+    frequent?: number;
+    daily?: number;
+    weekly?: number;
+    monthly?: number;
+  };
+  limit?: number;
+}): Promise<void> {
+  const vol = await getVolume(project_id);
+  await vol.snapshots.update(counts, { limit });
+}
+
 let server: any = null;
 export async function init(_fs?) {
   if (server != null) {
@@ -203,6 +221,8 @@ export async function init(_fs?) {
     // snapshots
     createSnapshot,
     deleteSnapshot,
+    updateSnapshots,
+    
   });
 }
 

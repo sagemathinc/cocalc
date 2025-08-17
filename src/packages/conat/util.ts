@@ -5,9 +5,14 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export class ConatError extends Error {
   code?: string | number;
-  constructor(mesg: string, { code }) {
+  subject?: string;
+  constructor(
+    mesg: string,
+    { code, subject }: { code?: string | number; subject?: string } = {},
+  ) {
     super(mesg);
     this.code = code;
+    this.subject = subject;
   }
 }
 

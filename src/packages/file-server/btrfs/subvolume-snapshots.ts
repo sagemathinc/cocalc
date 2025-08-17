@@ -89,8 +89,8 @@ export class SubvolumeSnapshots {
   };
 
   // update the rolling snapshots schedule
-  update = async (counts?: Partial<SnapshotCounts>) => {
-    return await updateRollingSnapshots({ snapshots: this, counts });
+  update = async (counts?: Partial<SnapshotCounts>, opts?) => {
+    return await updateRollingSnapshots({ snapshots: this, counts, opts });
   };
 
   // has newly written changes since last snapshot

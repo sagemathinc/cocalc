@@ -127,3 +127,46 @@ export async function deleteSnapshot({
   }
   await fileServerClient().deleteSnapshot({ project_id, name });
 }
+
+export async function updateSnapshots({
+  account_id,
+  project_id,
+  counts,
+}: {
+  account_id?: string;
+  project_id: string;
+  counts?: {
+    frequent?: number;
+    daily?: number;
+    weekly?: number;
+    monthly?: number;
+  };
+}) {
+  if (!account_id) {
+    throw Error("must be signed in");
+  }
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be a collaborator on project");
+  }
+  await fileServerClient().updateSnapshots({
+    project_id,
+    counts,
+    limit: MAX_SNAPSHOTS_PER_PROJECT,
+  });
+}
+
+export async function getSnapshotQuota({
+  account_id,
+  project_id,
+}: {
+  account_id?: string;
+  project_id: string;
+}) {
+  if (!account_id) {
+    throw Error("must be signed in");
+  }
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be a collaborator on project");
+  }
+  return { limit: MAX_SNAPSHOTS_PER_PROJECT };
+}

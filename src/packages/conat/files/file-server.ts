@@ -100,6 +100,18 @@ export interface Fileserver {
     limit?: number;
   }) => Promise<void>;
   deleteSnapshot: (opts: { project_id: string; name: string }) => Promise<void>;
+  updateSnapshots: (opts: {
+    project_id: string;
+    counts?: {
+      frequent?: number;
+      daily?: number;
+      weekly?: number;
+      monthly?: number;
+    };
+    // global limit, same as with createSnapshot above; can prevent new snapshots from being
+    // made if counts are too large!
+    limit?: number;
+  }) => Promise<void>;
 }
 
 export interface Options extends Fileserver {

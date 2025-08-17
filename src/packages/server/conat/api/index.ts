@@ -161,7 +161,7 @@ async function handleApiRequest({ request, mesg }) {
     resp = null;
     headers = {
       error: err.message ? err.message : `${err}`,
-      error_attrs: { code: err.code },
+      error_attrs: { code: err.code, subject: err.subject },
     };
   }
   try {

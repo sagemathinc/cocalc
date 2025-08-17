@@ -115,6 +115,17 @@ describe("create basic mocked file server and test it out", () => {
         project_id: string;
         name: string;
       }): Promise<void> => {},
+
+      updateSnapshots: async (_opts: {
+        project_id: string;
+        counts?: {
+          frequent?: number;
+          daily?: number;
+          weekly?: number;
+          monthly?: number;
+        };
+        limit?: number;
+      }): Promise<void> => {},
     });
   });
 

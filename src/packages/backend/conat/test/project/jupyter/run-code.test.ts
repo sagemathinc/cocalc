@@ -266,7 +266,11 @@ describe("create mocked jupyter runner that does failover to backend output mana
   it("starts code running then closes the client, which causes output to have to be placed in the handler instead.", async () => {
     await client.run(cells);
     client.close();
-    await wait({ until: () => handler.messages.length >= 3 });
+    await wait({
+      until: () => {
+        return handler.messages.length >= 3;
+      },
+    });
     expect(handler.messages).toEqual([
       { id: "a", output: 50 },
       { id: "b", output: 100 },
