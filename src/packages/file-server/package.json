@@ -17,20 +17,13 @@
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "btrfs",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "btrfs", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "awaiting": "^3.0.0"

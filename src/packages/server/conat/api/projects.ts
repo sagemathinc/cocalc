@@ -76,3 +76,54 @@ export async function getDiskQuota({
   const client = filesystemClient();
   return await client.getQuota({ project_id });
 }
+
+import { client as fileServerClient } from "@cocalc/conat/files/file-server";
+
+// NOTES about snapshots:
+
+// TODO: in some cases we *might* only allow the project owner to delete snapshots
+// create a new snapshot of a project
+
+// just *some* limit to avoid bugs/abuse
+
+const MAX_SNAPSHOTS_PER_PROJECT = 100;
+
+export async function createSnapshot({
+  account_id,
+  project_id,
+  name,
+}: {
+  account_id?: string;
+  project_id: string;
+  name?: string;
+}) {
+  if (!account_id) {
+    throw Error("must be signed in");
+  }
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be a collaborator on project");
+  }
+  await fileServerClient().createSnapshot({
+    project_id,
+    name,
+    limit: MAX_SNAPSHOTS_PER_PROJECT,
+  });
+}
+
+export async function deleteSnapshot({
+  account_id,
+  project_id,
+  name,
+}: {
+  account_id?: string;
+  project_id: string;
+  name: string;
+}) {
+  if (!account_id) {
+    throw Error("must be signed in");
+  }
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be a collaborator on project");
+  }
+  await fileServerClient().deleteSnapshot({ project_id, name });
+}

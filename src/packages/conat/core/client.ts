@@ -228,7 +228,10 @@ import { EventEmitter } from "events";
 import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
+  ConatError,
+  headerToError,
 } from "@cocalc/conat/util";
+export { ConatError, headerToError };
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once, until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
@@ -1153,11 +1156,7 @@ export class Client extends EventEmitter {
   call<T = any>(subject: string, opts?: PublishOptions): T {
     const call = async (name: string, args: any[]) => {
       const resp = await this.request(subject, [name, args], opts);
-      if (resp.headers?.error) {
-        throw headerToError(resp.headers);
-      } else {
-        return resp.data;
-      }
+      return resp.data;
     };
 
     return new Proxy(
@@ -1388,7 +1387,11 @@ export class Client extends EventEmitter {
   request = async (
     subject: string,
     mesg: any,
-    { timeout = DEFAULT_REQUEST_TIMEOUT, ...options }: PublishOptions = {},
+    {
+      timeout = DEFAULT_REQUEST_TIMEOUT,
+      ignoreErrorHeader,
+      ...options
+    }: PublishOptions & { ignoreErrorHeader?: boolean } = {},
   ): Promise<Message> => {
     if (timeout <= 0) {
       throw Error("timeout must be positive");
@@ -1416,6 +1419,9 @@ export class Client extends EventEmitter {
     }
     for await (const resp of sub) {
       sub.stop();
+      if (!ignoreErrorHeader && resp.headers?.error) {
+        throw headerToError(resp.headers);
+      }
       return resp;
     }
     sub.stop();
@@ -1960,14 +1966,6 @@ export function messageData(
 
 export type Subscription = EventIterator<Message>;
 
-export class ConatError extends Error {
-  code?: string | number;
-  constructor(mesg: string, { code }) {
-    super(mesg);
-    this.code = code;
-  }
-}
-
 function isEmpty(obj: object): boolean {
   for (const _x in obj) {
     return false;
@@ -1985,17 +1983,4 @@ function toConatError(socketIoError) {
       code: 408,
     });
   }
-}
-
-export function headerToError(headers): ConatError {
-  const err = Error(headers.error);
-  if (headers.error_attrs) {
-    for (const field in headers.error_attrs) {
-      err[field] = headers.error_attrs[field];
-    }
-  }
-  if (err["code"] === undefined && headers.code) {
-    err["code"] = headers.code;
-  }
-  return err;
 }

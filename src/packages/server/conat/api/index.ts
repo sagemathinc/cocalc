@@ -146,7 +146,7 @@ async function handleMessage({ api, subject, mesg }) {
 }
 
 async function handleApiRequest({ request, mesg }) {
-  let resp;
+  let resp, headers;
   try {
     const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = request as any;
@@ -156,11 +156,16 @@ async function handleApiRequest({ request, mesg }) {
       name,
     });
     resp = (await getResponse({ name, args, account_id, project_id })) ?? null;
+    headers = undefined;
   } catch (err) {
-    resp = { error: `${err}` };
+    resp = null;
+    headers = {
+      error: err.message ? err.message : `${err}`,
+      error_attrs: { code: err.code },
+    };
   }
   try {
-    await mesg.respond(resp);
+    await mesg.respond(resp, { headers });
   } catch (err) {
     // there's nothing we can do here, e.g., maybe NATS just died.
     logger.debug(

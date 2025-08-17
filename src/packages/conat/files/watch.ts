@@ -2,10 +2,7 @@
 Remotely proxying a fs.watch AsyncIterator over a Conat Socket.
 */
 
-import {
-  type Client as ConatClient,
-  headerToError,
-} from "@cocalc/conat/core/client";
+import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import {
   type ConatSocketServer,
   type ServerSocket,
@@ -179,14 +176,10 @@ export async function watchClient({
     delete iter2.ignore;
   });
   // tell it what to watch
-  const resp = await socket.request({
+  await socket.request({
     path,
     options,
   });
-  if (resp.headers?.error) {
-    throw headerToError(resp.headers);
-  }
-
   const iter2 = iter as WatchIterator;
 
   // ignore events for ignore ms.

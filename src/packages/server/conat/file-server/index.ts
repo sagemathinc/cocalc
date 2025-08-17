@@ -140,12 +140,14 @@ async function cp({
 async function createSnapshot({
   project_id,
   name,
+  limit,
 }: {
   project_id: string;
   name?: string;
+  limit?: number;
 }) {
   const vol = await getVolume(project_id);
-  await vol.snapshots.create(name);
+  await vol.snapshots.create(name, { limit });
 }
 
 async function deleteSnapshot({

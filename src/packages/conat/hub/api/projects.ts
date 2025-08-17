@@ -12,6 +12,9 @@ export const projects = {
   setQuotas: authFirstRequireAccount,
 
   getDiskQuota: authFirstRequireAccount,
+
+  createSnapshot: authFirstRequireAccount,
+  deleteSnapshot: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -110,6 +113,17 @@ export interface Projects {
     account_id?: string;
     project_id: string;
   }) => Promise<{ used: number; size: number }>;
-  
-  
+
+  createSnapshot: (opts: {
+    account_id?: string;
+    project_id: string;
+    name?: string;
+  }) => Promise<void>;
+
+  // delete a snapshot
+  deleteSnapshot: (opts: {
+    account_id?: string;
+    project_id: string;
+    name: string;
+  }) => Promise<void>;
 }

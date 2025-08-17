@@ -3,6 +3,7 @@ import { btrfs } from "./util";
 import getLogger from "@cocalc/backend/logger";
 import { join } from "path";
 import { SnapshotCounts, updateRollingSnapshots } from "./snapshots";
+import { ConatError } from "@cocalc/conat/core/client";
 
 export const SNAPSHOTS = ".snapshots";
 const logger = getLogger("file-server:btrfs:subvolume-snapshots");
@@ -29,13 +30,23 @@ export class SubvolumeSnapshots {
     await this.subvolume.fs.chmod(SNAPSHOTS, "0700");
   };
 
-  create = async (name?: string) => {
+  create = async (name?: string, { limit }: { limit?: number } = {}) => {
     if (name?.startsWith(".")) {
       throw Error("snapshot name must not start with '.'");
     }
     name ??= new Date().toISOString();
     logger.debug("create", { name, subvolume: this.subvolume.name });
     await this.makeSnapshotsDir();
+
+    if (limit != null) {
+      if ((await this.readdir()).length >= limit) {
+        // 507 = "insufficient storage" for http
+        throw new ConatError(`there is a limit of ${limit} snapshots`, {
+          code: 507,
+        });
+      }
+    }
+
     await btrfs({
       args: [
         "subvolume",

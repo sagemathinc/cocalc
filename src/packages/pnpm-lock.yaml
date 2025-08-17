@@ -292,6 +292,9 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
+      '@cocalc/conat':
+        specifier: workspace:*
+        version: link:../conat
       '@cocalc/file-server':
         specifier: workspace:*
         version: 'link:'
