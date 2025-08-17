@@ -1,7 +1,7 @@
 import { type Filesystem } from "./filesystem";
 import { subvolume, type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
-import { SNAPSHOTS } from "./subvolume-snapshots";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { join } from "path";
 import { btrfs } from "./util";
