@@ -313,9 +313,11 @@ export class JupyterClient {
   }
 
   close = () => {
-    this.iter?.end();
-    delete this.iter;
-    this.socket.close();
+    try {
+      this.iter?.end();
+      delete this.iter;
+      this.socket.close();
+    } catch {}
   };
 
   moreOutput = async (id: string) => {
