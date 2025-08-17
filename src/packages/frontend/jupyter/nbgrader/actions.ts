@@ -263,7 +263,9 @@ export class NBGraderActions {
   // metadata for this notebook.  This is something I invented for
   // cocalc, and it is surely totally ignored by upstream nbgrader.
   set_global_metadata = (metadata: object): void => {
-    const cur = this.jupyter_actions.store.getIn(["metadata", "nbgrader"]);
+    const cur = this.jupyter_actions.store
+      .getIn(["metadata", "nbgrader"])
+      ?.toJS();
     if (cur) {
       metadata = {
         ...cur,
