@@ -267,6 +267,7 @@ export function Kernel({
             })}
           >
             <Button
+              style={{ marginTop: "-2.5px" }}
               danger
               onClick={() => actions.trust_notebook()}
               size="small"

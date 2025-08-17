@@ -675,7 +675,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.set_cell_list();
     }
 
-    this.ensureThereIsACell();
     this.__syncdb_change_post_hook(doInit);
   };
 
@@ -1532,7 +1531,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         trust: !!trust,
       },
       save,
-    ); // case to bool
+    );
   };
 
   scroll(pos): any {
@@ -2082,8 +2081,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         pos: 0,
         input: "",
       });
-      // We are obviously contributing content to this (empty!) notebook.
-      return this.set_trust_notebook(true);
+      // It is safe to trust an empty notebook.
+      this.set_trust_notebook(true);
     }
   };
 

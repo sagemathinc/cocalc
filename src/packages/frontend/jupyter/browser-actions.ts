@@ -1641,6 +1641,9 @@ export class JupyterActions extends JupyterActions0 {
 
       const limit = opts.limit ?? this.getMessageLimit();
       const runner = await client.run(cells, { limit, ...opts });
+      if (!this.store.get("trust")) {
+        this.set_trust_notebook(true);
+      }
       if (this.isClosed()) return;
       let handler: null | OutputHandler = null;
       let id: null | string = null;
@@ -2134,6 +2137,12 @@ export class JupyterActions extends JupyterActions0 {
       { min: 3000 },
     );
     if (done()) return;
+    // now that we've loaded from disk if necessary we can
+    // ensure there is a cell.  This causes trust if it happens.
+    this.syncdb.on("change", () => {
+      this.ensureThereIsACell();
+    });
+
     const fs = this.syncdb.fs;
 
     await until(
