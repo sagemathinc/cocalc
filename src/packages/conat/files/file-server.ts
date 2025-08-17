@@ -90,6 +90,13 @@ export interface Fileserver {
     project_id: string;
     id: string;
   }) => Promise<string[]>;
+
+  // Snapshots
+  createSnapshot: (opts: {
+    project_id: string;
+    name?: string;
+  }) => Promise<void>;
+  deleteSnapshot: (opts: { project_id: string; name: string }) => Promise<void>;
 }
 
 export interface Options extends Fileserver {

@@ -83,7 +83,7 @@ export const CustomSoftwareReset: React.FC<Props> = (props: Props) => {
               Note, that this will overwrite any changes you did to these
               accompanying files, but does not modify or delete any other files.
               However, nothing is lost: you can still access the previous version
-              via <A1>Snapshot Backups</A1> or <A2>TimeTravel</A2>.
+              via <A1>Snapshots</A1> or <A2>TimeTravel</A2>.
             </p>
             <p>This action will also restart your project!</p>`}
           values={{

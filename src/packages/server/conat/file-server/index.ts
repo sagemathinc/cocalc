@@ -34,6 +34,9 @@ function name(project_id: string) {
   return `project-${project_id}`;
 }
 
+// this gets set once when init is called.  There can only be one.
+let fs: Filesystem | null = null;
+
 export async function getVolume(project_id) {
   if (fs == null) {
     throw Error("file server not initialized");
@@ -134,7 +137,28 @@ async function cp({
   );
 }
 
-let fs: Filesystem | null = null;
+async function createSnapshot({
+  project_id,
+  name,
+}: {
+  project_id: string;
+  name?: string;
+}) {
+  const vol = await getVolume(project_id);
+  await vol.snapshots.create(name);
+}
+
+async function deleteSnapshot({
+  project_id,
+  name,
+}: {
+  project_id: string;
+  name: string;
+}) {
+  const vol = await getVolume(project_id);
+  await vol.snapshots.delete(name);
+}
+
 let server: any = null;
 export async function init(_fs?) {
   if (server != null) {
@@ -167,11 +191,16 @@ export async function init(_fs?) {
     getQuota: reuseInFlight(getQuota),
     setQuota,
     cp,
+    // backups
     backup: reuseInFlight(rustic.backup),
     restore: rustic.restore,
     deleteBackup: rustic.deleteBackup,
     getBackups: reuseInFlight(rustic.getBackups),
     getBackupFiles: reuseInFlight(rustic.getBackupFiles),
+
+    // snapshots
+    createSnapshot,
+    deleteSnapshot,
   });
 }
 

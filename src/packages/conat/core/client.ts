@@ -1134,7 +1134,7 @@ export class Client extends EventEmitter {
           noThrow: true, // we're not catching this respond
           headers: {
             error,
-            error_attrs: JSON.parse(JSON.stringify(err)),
+            error_attrs: { code: err.code },
           },
         });
       }
