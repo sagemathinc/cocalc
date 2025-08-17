@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Set } from "immutable";
+import { Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
@@ -32,7 +32,6 @@ import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { delay } from "awaiting";
 
 import type {
   CourseInfo,
@@ -967,6 +966,25 @@ export class ProjectsActions extends Actions<ProjectsState> {
     },
   );
 
+  private optimisticProjectStateUpdate = (
+    project_id: string,
+    state: string,
+  ) => {
+    // do optimistic update of local state, since several things like project
+    // restart are so fas we won't see anything otherwise, which is very disturbing.
+    const project_map = store.get("project_map");
+    if (project_map != null) {
+      const project = project_map
+        .get(project_id)
+        ?.set("state", fromJS({ state, time: new Date() }));
+      if (project != null) {
+        this.setState({
+          project_map: project_map.set(project_id, project),
+        });
+      }
+    }
+  };
+
   // returns true, if it actually stopped the project
   stop_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
     const t0 = webapp_client.server_time().getTime();
@@ -975,6 +993,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
     const runner = webapp_client.conat_client.projectRunner(project_id);
     await runner.stop({ project_id });
+    this.optimisticProjectStateUpdate(project_id, "opened");
     this.project_log(project_id, {
       event: "project_stopped",
       duration_ms: webapp_client.server_time().getTime() - t0,
@@ -993,9 +1012,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
       const state = store.get_state(project_id);
       if (state == "running") {
-        await this.stop_project(project_id); 
-        // [ ] TODO: this delay is a temporary workaround
-        await delay(1000);
+        await this.stop_project(project_id);
       }
       await this.start_project(project_id, options);
     },

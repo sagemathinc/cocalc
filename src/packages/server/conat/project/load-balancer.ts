@@ -41,7 +41,7 @@ async function getConfig({ project_id }) {
     return {
       cpu: "1000m",
       memory: "8Gi",
-      pids: 10000,
+      pids: 2500,
       swap: "5000Gi",
       disk: "1G",
     };

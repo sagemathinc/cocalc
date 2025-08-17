@@ -51,12 +51,16 @@ import {
   type Fileserver,
 } from "@cocalc/server/conat/file-server";
 import { nsjail } from "@cocalc/backend/sandbox/install";
+import { once } from "@cocalc/util/async-utils";
 
 // for development it may be useful to just disabling using nsjail namespaces
 // entirely -- change this to true to do so.
 const DISABLE_NSJAIL = false;
 
 const DEFAULT_UID = 2001;
+
+// how long from SIGTERM until SIGKILL
+const GRACE_PERIOD = 3000;
 
 const logger = getLogger("server:conat:project:run");
 
@@ -227,9 +231,18 @@ async function stop({ project_id }) {
     throw Error("stop: project_id must be valid");
   }
   logger.debug("stop", { project_id });
-  if (children[project_id] != null && children[project_id].exitCode == null) {
+  const child = children[project_id];
+  if (child != null && child.exitCode == null) {
     setProjectState({ project_id, state: "stopping" });
-    children[project_id]?.kill("SIGKILL");
+    const exit = once(child, "exit", GRACE_PERIOD);
+    child.kill("SIGTERM");
+    try {
+      await exit;
+    } catch {
+      const exit2 = once(child, "exit");
+      child.kill("SIGKILL");
+      await exit2;
+    }
     delete children[project_id];
   }
   setProjectState({ project_id, state: "opened" });
