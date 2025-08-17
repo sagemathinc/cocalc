@@ -10,7 +10,6 @@ The kernel's logo display
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { filename_extension, getRandomColor } from "@cocalc/util/misc";
 import { CSSProperties, useEffect, useState } from "react";
-import { Spin } from "antd";
 import useClientContext from "@cocalc/frontend/client/context";
 
 const DEFAULT_HEIGHT = 24; // this matches the rest of the status bar.
@@ -84,11 +83,8 @@ function FallbackLogo({
 function KernelLogo({ kernel, size, project_id, style, client }) {
   const { src, error } = useLogo({ kernel, project_id, client });
 
-  if (error || src == "") {
+  if (error || !src) {
     return <FallbackLogo kernel={kernel} size={size} title={error} />;
-  }
-  if (src == null) {
-    return <Spin delay={1000} />;
   }
   return <img src={src} style={{ width: size, height: size, ...style }} />;
 }

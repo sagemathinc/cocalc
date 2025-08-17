@@ -227,6 +227,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   set_error = (err: any): void => {
+    // console.trace("set_error", err);
     if (this._state === "closed") return;
     if (err == null) {
       this.setState({ error: undefined }); // delete from store

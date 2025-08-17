@@ -54,7 +54,7 @@ export async function getJupyterFrameEditorActions({
     throw Error("bug -- actions must be defined");
   }
   // do not waste effort on saving the aux ipynb to disk...
-  actions.jupyter_actions.noSaveToDisk = true;
+  //  actions.jupyter_actions.noSaveToDisk = true;
   return actions;
 }
 

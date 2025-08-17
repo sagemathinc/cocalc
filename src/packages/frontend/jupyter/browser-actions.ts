@@ -44,7 +44,6 @@ import { CursorManager } from "./cursor-manager";
 import { NBGraderActions } from "./nbgrader/actions";
 import * as parsing from "./parsing";
 import { WidgetManager } from "./widgets/manager";
-import { retry_until_success } from "@cocalc/util/async-utils";
 import type { Kernels, Kernel } from "@cocalc/jupyter/util/misc";
 import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
 import { show_kernel_selector_reasons } from "@cocalc/jupyter/redux/store";
@@ -92,10 +91,6 @@ export class JupyterActions extends JupyterActions0 {
   public syncdbPath: string;
   private lastCursorMoveTime: number = 0;
   public jupyterEditorActions?;
-
-  // if true, never saves to disk or loads from disk -- this is NOT
-  // ephemeral -- the history is tracked in the conat database!
-  public noSaveToDisk?: boolean;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
@@ -152,7 +147,6 @@ export class JupyterActions extends JupyterActions0 {
     this.nbgrader_actions = new NBGraderActions(this, this.redux);
 
     this.syncdb.once("ready", () => {
-      this._syncdb_init_kernel();
       const ipywidgets_state = this.syncdb.ipywidgets_state;
       if (ipywidgets_state == null) {
         throw Error("bug -- ipywidgets_state must be defined");
@@ -1028,35 +1022,45 @@ export class JupyterActions extends JupyterActions0 {
     );
   };
 
+  waitUntilProjectIsRunning = reuseInFlight(async () => {
+    const store = this.redux.getStore("projects");
+    await until(
+      async () => {
+        if (store.get_state(this.project_id) == "running" || this.isClosed()) {
+          return true;
+        }
+        await once(store, "change");
+        return false;
+      },
+      { min: 500, max: 500 },
+    );
+  });
+
   fetch_jupyter_kernels = async ({
     noCache,
   }: { noCache?: boolean } = {}): Promise<void> => {
+    await this.waitUntilProjectIsRunning();
+    if (this.isClosed()) return;
+
     let data;
-    const f = async () => {
-      if (this._state === "closed") {
-        return;
-      }
-      data = await getKernelSpec({
-        project_id: this.project_id,
-        compute_server_id: this.getComputeServerIdSync(),
-        noCache,
-      });
-    };
-    try {
-      await retry_until_success({
-        max_time: 1000 * 15, // up to 15 seconds
-        start_delay: 3000,
-        max_delay: 10000,
-        f,
-        desc: "jupyter:fetch_jupyter_kernels",
-      });
-    } catch (err) {
-      this.set_error(err);
-      return;
-    }
-    if (this._state === "closed") {
-      return;
-    }
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        try {
+          data = await getKernelSpec({
+            project_id: this.project_id,
+            compute_server_id: this.getComputeServerIdSync(),
+            noCache,
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { min: 3000, max: 10000 },
+    );
+    if (this.isClosed()) return;
+
     // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
     const kernels = fromJS(data ?? []).filter(
       (k) => !k.getIn(["metadata", "cocalc", "disabled"], false),
@@ -1150,25 +1154,7 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  //   private set_kernel_after_load = async (): Promise<void> => {
-  //     // Browser Client: Wait until the .ipynb file has actually been parsed into
-  //     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
-  //     // then set the kernel, if necessary.
-  //     try {
-  //       await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
-  //     } catch (err) {
-  //       if (this._state != "ready") {
-  //         // Probably user just closed the notebook before it finished
-  //         // loading, so we don't need to set the kernel.
-  //         return;
-  //       }
-  //       throw Error("error waiting for ipynb file to load");
-  //     }
-  //     this._syncdb_init_kernel();
-  //   };
-
-  private _syncdb_init_kernel = (): void => {
-    // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
+  private initKernel = (): void => {
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
       // we either let the user select a kernel, or use a stored one
@@ -1549,7 +1535,8 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   private jupyterClient?: JupyterClient;
-  private getJupyterClient = async (): Promise<JupyterClient> => {
+  private getJupyterClient = async (): Promise<JupyterClient | null> => {
+    await this.waitUntilProjectIsRunning();
     if (
       this.jupyterClient == null ||
       this.jupyterClient.socket.state == "closed"
@@ -1558,7 +1545,7 @@ export class JupyterActions extends JupyterActions0 {
       // and
       const compute_server_id = await this.getComputeServerId();
       if (this.isClosed()) {
-        throw Error("closed");
+        return null;
       }
       this.jupyterClient = jupyterClient({
         path: this.syncdbPath,
@@ -1605,7 +1592,6 @@ export class JupyterActions extends JupyterActions0 {
     let client: null | JupyterClient = null;
     try {
       this.runningNow = true;
-      client = await this.getJupyterClient();
       const cells: InputCell[] = [];
       const kernel = this.store.get("kernel");
 
@@ -1642,6 +1628,8 @@ export class JupyterActions extends JupyterActions0 {
       cells.sort(field_cmp("pos"));
 
       const limit = opts.limit ?? this.getMessageLimit();
+      client = await this.getJupyterClient();
+      if (client == null || this.isClosed()) return;
       const runner = await client.run(cells, { limit, ...opts });
       if (!this.store.get("trust")) {
         this.set_trust_notebook(true);
@@ -1701,7 +1689,10 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   refreshKernelStatus = async () => {
+    await this.waitUntilProjectIsRunning();
+    if (this.isClosed()) return;
     const client = await this.getJupyterClient();
+    if (client == null || this.isClosed()) return;
     const status = await client.getKernelStatus();
     this.syncdb.set({ type: "settings", ...status });
   };
@@ -1733,6 +1724,7 @@ export class JupyterActions extends JupyterActions0 {
 
   fetchMoreOutput = async (id: string) => {
     const client = await this.getJupyterClient();
+    if (client == null || this.isClosed()) return;
     let cells = this.store.get("cells");
     const cell = cells?.get(id)?.toJS();
     if (cell == null) {
@@ -2122,12 +2114,12 @@ export class JupyterActions extends JupyterActions0 {
   // tests, I should refactor it into a separate module that both use.
   private fileWatcher?;
   watchIpynb = async () => {
-    const done = () => this.isClosed() || this.noSaveToDisk;
+    const done = () => this.isClosed();
     if (done()) return;
     // one initial load right when we open the document
     await until(
       async () => {
-        if (this.isClosed() || this.noSaveToDisk) return true;
+        if (this.isClosed()) return true;
         try {
           await this.loadFromDiskIfChanged();
           return true;
@@ -2139,6 +2131,8 @@ export class JupyterActions extends JupyterActions0 {
       { min: 3000 },
     );
     if (done()) return;
+    // if no kernel, let use select one:
+    this.initKernel();
     // now that we've loaded from disk if necessary we can
     // ensure there is a cell.  This causes trust if it happens.
     this.syncdb.on("change", () => {
