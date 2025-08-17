@@ -122,10 +122,11 @@ export default function EditSchedule() {
           {showHelp && (
             <p>
               Projects have rolling instant lightweight automatic snapshots of
-              the exact state of your files. The parameters listed below
-              determine how many of each timestamped snapshot is retained.
-              Explicitly named snapshots that you manually create are not
-              automatically deleted.
+              the exact state of your files, which are created when you are
+              actively using your project. The parameters listed below determine
+              how many of each timestamped snapshot is retained. Explicitly
+              named snapshots that you manually create are not automatically
+              deleted.
             </p>
           )}
 

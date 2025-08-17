@@ -95,7 +95,7 @@ import {
 } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { once, retry_until_success } from "@cocalc/util/async-utils";
+import { once, retry_until_success, until } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
@@ -112,6 +112,7 @@ import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { getFileTemplate } from "./project/templates";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { DEFAULT_SNAPSHOT_COUNTS } from "@cocalc/util/db-schema/projects";
 
 const { defaults, required } = misc;
 
@@ -366,6 +367,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initComputeServerManager();
     this.initComputeServersTable();
     this.initProjectStatus();
+    this.initSnapshots();
     const store = this.get_store();
     store?.init_table("public_paths");
   };
@@ -392,6 +394,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public async api(): Promise<API> {
     return await webapp_client.project_client.api(this.project_id);
   }
+
+  isClosed = () => this.state == "closed";
 
   destroy = (): void => {
     // console.log("destroy project actions", this.project_id);
@@ -3517,4 +3521,40 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       setState({ search_error: `${err}` });
     }
   };
+
+  initSnapshots = reuseInFlight(async () => {
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        const store = redux.getStore("projects");
+        if (store == null) {
+          return false;
+        }
+        const project = store.getIn(["project_map", this.project_id]);
+        if (project == null) {
+          return false;
+        }
+        const counts =
+          project.get("snapshots")?.toJS() ?? DEFAULT_SNAPSHOT_COUNTS;
+        if (counts.disabled) {
+          return false;
+        }
+        try {
+          await webapp_client.conat_client.hub.projects.updateSnapshots({
+            project_id: this.project_id,
+            counts,
+          });
+        } catch (err) {
+          console.warn(
+            `WARNING: Issue updating snapshots of ${this.project_id}`,
+            err,
+            { counts },
+          );
+        }
+        return false;
+      },
+      // every 15 minutes
+      { min: 60 * 1000 * 15, max: 60 * 1000 * 15 },
+    );
+  });
 }
