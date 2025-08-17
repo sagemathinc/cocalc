@@ -105,6 +105,7 @@ function CreateSnapshot() {
         }}
         footer={[
           <Button
+            key="cancel"
             onClick={() => {
               setOpen(false);
               setName("");
@@ -113,6 +114,7 @@ function CreateSnapshot() {
             Cancel
           </Button>,
           <Button
+            key="create"
             type="primary"
             onClick={createSnapshot}
             disabled={!name.trim()}
@@ -229,6 +231,7 @@ function EditSchedule() {
         }}
         footer={[
           <Button
+            key="cancel"
             onClick={() => {
               setOpen(false);
               setName("");
@@ -237,6 +240,7 @@ function EditSchedule() {
             Cancel
           </Button>,
           <Button
+            key="create"
             type="primary"
             onClick={createSnapshot}
             disabled={!name.trim()}

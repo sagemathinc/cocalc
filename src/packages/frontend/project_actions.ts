@@ -111,6 +111,7 @@ import {
 import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { getFileTemplate } from "./project/templates";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const { defaults, required } = misc;
 
@@ -2510,8 +2511,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status: `Deleting ${mesg}...` });
 
     try {
-      const fs = this.fs(compute_server_id);
-      await fs.rm(paths, { force: true, recursive: true });
+      // delete any snapshots:
+      const snapshots: string[] = [];
+      const nonSnapshotPaths: string[] = [];
+      for (const path of paths) {
+        if (dirname(path) == SNAPSHOTS) {
+          snapshots.push(basename(path));
+        } else {
+          nonSnapshotPaths.push(path);
+        }
+      }
+      if (snapshots.length > 0) {
+        for (const name of snapshots) {
+          await webapp_client.conat_client.hub.projects.deleteSnapshot({
+            project_id: this.project_id,
+            name,
+          });
+        }
+      }
+      if (nonSnapshotPaths.length > 0) {
+        const fs = this.fs(compute_server_id);
+        await fs.rm(nonSnapshotPaths, { force: true, recursive: true });
+      }
+
       this.log({
         event: "file_action",
         action: "deleted",

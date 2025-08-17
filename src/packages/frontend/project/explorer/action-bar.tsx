@@ -166,8 +166,13 @@ export function ActionBar({
   }
 
   function render_action_button(name: FileAction) {
-    if (isSnapshotPath(current_path) && isDisabledSnapshots(name)) {
-      return null;
+    if (isSnapshotPath(current_path)) {
+      if (isDisabledSnapshots(name)) {
+        return null;
+      }
+      if (current_path != SNAPSHOTS && name == "delete") {
+        return null;
+      }
     }
     const obj = file_actions[name];
     const handle_click = (_e: React.MouseEvent) => {
