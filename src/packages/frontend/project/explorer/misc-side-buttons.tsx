@@ -13,7 +13,6 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { labels } from "@cocalc/frontend/i18n";
 import { serverURL, SPEC } from "@cocalc/frontend/project/named-server-panel";
 import track from "@cocalc/frontend/user-tracking";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { type JSX, type MouseEvent } from "react";
@@ -74,11 +73,6 @@ export function MiscSideButtons() {
   }
 
   function render_backup(): JSX.Element | undefined {
-    // NOTE -- snapshots aren't available except in "kucalc" version
-    // -- they are complicated nontrivial thing that isn't usually setup...
-    if (kucalc !== KUCALC_COCALC_COM) {
-      return;
-    }
     return (
       <Button bsSize="small" onClick={handle_backup}>
         <Icon name="disk-round" />{" "}

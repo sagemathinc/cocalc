@@ -91,6 +91,7 @@ Table({
           // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
           // instead it gets its own virtual table.
           pay_as_you_go_quotas: null,
+          snapshots: null,
         },
       },
       set: {
@@ -113,6 +114,7 @@ Table({
           sandbox: true,
           avatar_image_tiny: true,
           avatar_image_full: true,
+          snapshots: true,
         },
         required_fields: {
           project_id: true,
@@ -343,6 +345,11 @@ Table({
       type: "string",
       pg_type: "VARCHAR(256)",
       desc: "Random ephemeral secret token used temporarily by project to authenticate with hub.",
+    },
+    snapshots: {
+      type: "map",
+      desc: "See the SnapshotSchedule interface.",
+      render: { type: "json", editable: false },
     },
   },
 });
@@ -767,4 +774,3 @@ export interface SnapshotCounts {
 export interface SnapshotSchedule extends SnapshotCounts {
   disabled?: boolean;
 }
-

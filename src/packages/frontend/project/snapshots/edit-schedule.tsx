@@ -1,15 +1,25 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, Flex, Input, Modal, Space, Spin } from "antd";
+import { useEffect, useState } from "react";
+import { Button, Flex, InputNumber, Modal, Spin, Switch } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { useProjectContext } from "@cocalc/frontend/project/context";
+import {
+  DEFAULT_SNAPSHOT_COUNTS,
+  type SnapshotSchedule,
+} from "@cocalc/util/db-schema/projects";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
-export default  function EditSchedule() {
+const MAX = 50;
+
+export default function EditSchedule() {
   const { actions, project_id } = useProjectContext();
   const [loading, setLoading] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
+  const [showHelp, setShowHelp] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const project = useTypedRedux("projects", "project_map")?.get(project_id);
+  const [schedule0, setSchedule] = useState<SnapshotSchedule | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -21,19 +31,20 @@ export default  function EditSchedule() {
     };
   }, [open]);
 
-  if (!project_id) {
+  if (project == null) {
     return null;
   }
 
-  async function setSchedule() {
+  const schedule = schedule0!;
+  async function saveSchedule() {
     try {
       setLoading(true);
       setError("");
-      await webapp_client.conat_client.hub.projects.createSnapshot({
-        project_id,
-        name,
+      await webapp_client.query_client.query({
+        query: {
+          projects: { project_id, snapshots: schedule },
+        },
       });
-      setName("");
       setOpen(false);
     } catch (err) {
       setError(err);
@@ -41,76 +52,177 @@ export default  function EditSchedule() {
       setLoading(false);
     }
   }
-
   return (
     <>
       <Button
         disabled={open}
         onClick={() => {
           setOpen(!open);
+          if (!open) {
+            // opening
+            setSchedule({
+              ...DEFAULT_SNAPSHOT_COUNTS,
+              ...project.get("snapshots")?.toJS(),
+            });
+          }
         }}
       >
         <Icon name="clock" /> Schedule
       </Button>
-      <Modal
-        afterOpenChange={(open) => {
-          if (!open) return;
-          setName(new Date().toISOString());
-          inputRef.current?.focus({
-            cursor: "all",
-          });
-        }}
-        title={
-          <>
-            <Icon name="clock" /> Edit Schedule{" "}
-            {loading && <Spin style={{ float: "right" }} />}
-          </>
-        }
-        open={open}
-        onOk={() => {
-          setName("");
-          setOpen(false);
-        }}
-        onCancel={() => {
-          setName("");
-          setOpen(false);
-        }}
-        footer={[
-          <Button
-            key="cancel"
-            onClick={() => {
-              setOpen(false);
-              setName("");
-            }}
-          >
-            Cancel
-          </Button>,
-          <Button
-            key="create"
-            type="primary"
-            onClick={createSnapshot}
-            disabled={!name.trim()}
-          >
-            Create Snapshot
-          </Button>,
-        ]}
-      >
-        <Flex style={{ width: "100%" }}>
-          <Input
-            ref={inputRef}
-            style={{ flex: 1 }}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Name of snapshot..."
-            onPressEnter={createSnapshot}
+      {open && (
+        <Modal
+          title={
+            <div style={{ marginBottom: "30px" }}>
+              <Icon name="clock" /> Rolling Automatic Snapshots:{" "}
+              <Switch
+                style={{ marginRight: "15px" }}
+                checkedChildren="Enabled"
+                unCheckedChildren="Disabled"
+                checked={!schedule?.disabled}
+                onChange={(enabled) =>
+                  setSchedule({ ...schedule, disabled: !enabled })
+                }
+              />
+              <Button
+                size="small"
+                type="text"
+                style={{ float: "right", marginRight: "15px" }}
+                onClick={() => setShowHelp(!showHelp)}
+              >
+                Help
+              </Button>
+              {loading && (
+                <Spin style={{ float: "right", marginRight: "15px" }} />
+              )}
+            </div>
+          }
+          open={open}
+          onCancel={() => {
+            setOpen(false);
+          }}
+          footer={[
+            <Button
+              key="cancel"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
+              Cancel
+            </Button>,
+            <Button
+              disabled={loading}
+              key="create"
+              type="primary"
+              onClick={saveSchedule}
+            >
+              Save
+            </Button>,
+          ]}
+        >
+          {showHelp && (
+            <p>
+              Projects have rolling instant lightweight automatic snapshots of
+              the exact state of your files. The parameters listed below
+              determine how many of each timestamped snapshot is retained.
+              Explicitly named snapshots that you manually create are not
+              automatically deleted.
+            </p>
+          )}
+
+          {!schedule?.disabled && (
+            <div style={{ marginBottom: "15px" }}>
+              <Flex style={{ marginBottom: "5px" }}>
+                <div style={{ flex: 0.5 }}>Every 15 minutes</div>
+                <InputNumber
+                  addonAfter="snapshots"
+                  precision={0}
+                  style={{ flex: 0.5 }}
+                  step={1}
+                  min={1}
+                  max={MAX}
+                  defaultValue={
+                    schedule.frequent ?? DEFAULT_SNAPSHOT_COUNTS.frequent
+                  }
+                  onChange={(frequent) => {
+                    if (frequent != null) {
+                      setSchedule({
+                        ...schedule,
+                        frequent,
+                      });
+                    }
+                  }}
+                />
+              </Flex>
+              <Flex style={{ marginBottom: "5px" }}>
+                <div style={{ flex: 0.5 }}>Daily</div>
+                <InputNumber
+                  addonAfter="snapshots"
+                  style={{ flex: 0.5 }}
+                  step={1}
+                  min={1}
+                  max={MAX}
+                  defaultValue={schedule.daily ?? DEFAULT_SNAPSHOT_COUNTS.daily}
+                  onChange={(daily) => {
+                    if (daily != null) {
+                      setSchedule({
+                        ...schedule,
+                        daily,
+                      });
+                    }
+                  }}
+                />
+              </Flex>
+              <Flex style={{ marginBottom: "5px" }}>
+                <div style={{ flex: 0.5 }}>Weekly</div>
+                <InputNumber
+                  addonAfter="snapshots"
+                  style={{ flex: 0.5 }}
+                  step={1}
+                  min={1}
+                  max={MAX}
+                  defaultValue={
+                    schedule.weekly ?? DEFAULT_SNAPSHOT_COUNTS.weekly
+                  }
+                  onChange={(weekly) => {
+                    if (weekly != null) {
+                      setSchedule({
+                        ...schedule,
+                        weekly,
+                      });
+                    }
+                  }}
+                />
+              </Flex>
+              <Flex>
+                <div style={{ flex: 0.5 }}>Monthly</div>
+                <InputNumber
+                  addonAfter="snapshots"
+                  style={{ flex: 0.5 }}
+                  step={1}
+                  min={1}
+                  max={MAX}
+                  defaultValue={
+                    schedule.monthly ?? DEFAULT_SNAPSHOT_COUNTS.monthly
+                  }
+                  onChange={(monthly) => {
+                    if (monthly != null) {
+                      setSchedule({
+                        ...schedule,
+                        monthly,
+                      });
+                    }
+                  }}
+                />
+              </Flex>
+            </div>
+          )}
+          <ShowError
+            style={{ marginTop: "10px" }}
+            error={error}
+            setError={setError}
           />
-        </Flex>
-        <ShowError
-          style={{ marginTop: "10px" }}
-          error={error}
-          setError={setError}
-        />
-      </Modal>
+        </Modal>
+      )}
     </>
   );
 }

@@ -8,8 +8,7 @@ The Snapshots button pops up a model that:
 
 import { useEffect, useRef, useState } from "react";
 import type { InputRef } from "antd";
-//import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
-import { Button, Flex, Input, Modal, Space, Spin } from "antd";
+import { Button, Input, Modal, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -63,69 +62,71 @@ export default function CreateSnapshot() {
       <Button disabled={open} onClick={() => setOpen(!open)}>
         <Icon name="disk-snapshot" /> New Snapshot
       </Button>
-      <Modal
-        afterOpenChange={async (open) => {
-          if (!open) return;
-          setName(new Date().toISOString());
-          inputRef.current?.focus({
-            cursor: "all",
-          });
-        }}
-        title={
-          <>
-            <Icon name="disk-snapshot" /> Create Snapshot{" "}
+      {open && (
+        <Modal
+          afterOpenChange={async (open) => {
+            if (!open) return;
+            setName(new Date().toISOString());
+            inputRef.current?.focus({
+              cursor: "all",
+            });
+          }}
+          title={
+            <>
+              <Icon name="disk-snapshot" /> Create Snapshot{" "}
+              <Button
+                size="small"
+                type="text"
+                style={{ float: "right", marginRight: "15px" }}
+                onClick={() => setShowHelp(!showHelp)}
+              >
+                Help
+              </Button>
+              {loading && (
+                <Spin style={{ float: "right", marginRight: "15px" }} />
+              )}
+            </>
+          }
+          open={open}
+          onOk={() => {
+            setOpen(false);
+          }}
+          onCancel={() => {
+            setOpen(false);
+          }}
+          footer={[
             <Button
-              size="small"
-              type="text"
-              style={{ float: "right", marginRight: "15px" }}
-              onClick={() => setShowHelp(!showHelp)}
+              key="cancel"
+              onClick={() => {
+                setOpen(false);
+                setName("");
+              }}
             >
-              Help
-            </Button>
-            {loading && <Spin style={{ float: "right" }} />}
-          </>
-        }
-        open={open}
-        onOk={() => {
-          setOpen(false);
-        }}
-        onCancel={() => {
-          setOpen(false);
-        }}
-        footer={[
-          <Button
-            key="cancel"
-            onClick={() => {
-              setOpen(false);
-              setName("");
-            }}
-          >
-            Cancel
-          </Button>,
-          <Button
-            key="create"
-            type="primary"
-            onClick={createSnapshot}
-            disabled={!name.trim()}
-          >
-            Create Snapshot
-          </Button>,
-        ]}
-      >
-        {showHelp && (
-          <p>
-            Create instant lightwight snapshots of the exact state of all files
-            in your project. Named snapshots remain until you delete them,
-            whereas the default timestamp snapshots are created and deleted
-            automatically according to a schedule. Only unique data in snapshots
-            count against your quota.
-          </p>
-        )}
-        <Flex style={{ width: "100%", marginTop: "5px" }}>
+              Cancel
+            </Button>,
+            <Button
+              key="create"
+              type="primary"
+              onClick={createSnapshot}
+              disabled={!name.trim()}
+            >
+              Create Snapshot
+            </Button>,
+          ]}
+        >
+          {showHelp && (
+            <p>
+              Create instant lightwight snapshots of the exact state of all
+              files in your project. Named snapshots remain until you delete
+              them, whereas the default timestamp snapshots are created and
+              deleted automatically according to a schedule. Only unique data in
+              snapshots count against your quota.
+            </p>
+          )}
           <Input
             allowClear
             ref={inputRef}
-            style={{ flex: 1 }}
+            style={{ flex: 1, width: "100%", marginTop: "5px" }}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name of snapshot to create..."
@@ -135,13 +136,13 @@ export default function CreateSnapshot() {
               }
             }}
           />
-        </Flex>
-        <ShowError
-          style={{ marginTop: "10px" }}
-          error={error}
-          setError={setError}
-        />
-      </Modal>
+          <ShowError
+            style={{ marginTop: "10px" }}
+            error={error}
+            setError={setError}
+          />
+        </Modal>
+      )}
     </>
   );
 }
