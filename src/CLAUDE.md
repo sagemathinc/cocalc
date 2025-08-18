@@ -73,6 +73,8 @@ CoCalc is organized as a monorepo with key packages:
 - **TypeScript React Components**: All frontend code is TypeScript with proper typing
 - **Modular Store System**: Each feature has its own store/actions (AccountStore, BillingStore, etc.)
 - **WebSocket Communication**: Real-time communication with backend via WebSocket messages
+- **Authentication Waiting**: When frontend code needs to wait for user authentication, use `redux.getStore("account").async_wait({ until: () => store.get_account_id() != null, timeout: 0 })` to wait indefinitely until authentication completes
+- **Conat DKV Usage**: For key-value storage with real-time sync, use `webapp_client.conat_client.dkv({ account_id, name: "store-name" })` to get a distributed key-value store that syncs across sessions
 
 #### Backend Architecture
 
@@ -81,6 +83,8 @@ CoCalc is organized as a monorepo with key packages:
 - **Conat System**: Container orchestration for compute servers
 - **Event-Driven Architecture**: Extensive use of EventEmitter patterns
 - **Microservice-like Packages**: Each package handles specific functionality
+- **Database Access**: Use `getPool()` from `@cocalc/database/pool` for direct database queries in hub/backend code. Example: `const pool = getPool(); const { rows } = await pool.query('SELECT * FROM table WHERE id = $1', [id]);`
+- **Hub Migration Functions**: Migration functions in hub should be designed to run once at startup, use batch processing with delays between batches to avoid database saturation
 
 #### Communication Patterns
 
