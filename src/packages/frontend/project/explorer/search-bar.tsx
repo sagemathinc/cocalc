@@ -30,7 +30,7 @@ const HelpStyle = {
 export const outputMinitermStyle: React.CSSProperties = {
   background: "white",
   position: "absolute",
-  zIndex: 2,
+  zIndex: 10,
   boxShadow: "-4px 4px 7px #aaa",
   maxHeight: "450px",
   overflow: "auto",
