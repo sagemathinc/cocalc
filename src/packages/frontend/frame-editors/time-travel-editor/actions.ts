@@ -118,12 +118,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   private init_syncdoc = async (): Promise<void> => {
-    let mainFileActions: any = null;
     await until(async () => {
       if (this.isClosed()) {
         return true;
       }
-      mainFileActions = this.redux.getEditorActions(
+      const mainFileActions = this.redux.getEditorActions(
         this.project_id,
         this.docpath,
       );
@@ -138,29 +137,28 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         // will try again above in the next loop
         return false;
       } else {
-        const doc = mainFileActions._syncstring;
+        const doc = getSyncDocFromEditorActions(mainFileActions);
         if (doc == null || doc.get_state() == "closed") {
-          // file is closing
+          // file maybe closing
           return false;
         }
         // got it!
+        this.syncdoc = doc;
         return true;
       }
     });
-    if (this.isClosed() || mainFileActions == null) {
+    if (this.isClosed() || !this.syncdoc) {
       return;
     }
-    this.syncdoc = mainFileActions._syncstring;
 
     if (
-      this.syncdoc == null ||
       this.syncdoc.get_state() == "closed" ||
       // @ts-ignore
       this.syncdoc.is_fake
     ) {
       return;
     }
-    if (this.syncdoc.get_state() != "ready") {
+    if (this.syncdoc.get_state() == "init") {
       try {
         await once(this.syncdoc, "ready");
       } catch {
@@ -515,4 +513,11 @@ function isProjectOldEnoughToHaveLegacyHistory({
     .getProjectsStore()
     .getIn(["project_map", project_id, "created"]);
   return created == null || created <= LEGACY_CUTOFF;
+}
+
+function getSyncDocFromEditorActions(actions) {
+  if (actions.path.endsWith(".course")) {
+    return actions.course_actions.syncdb;
+  }
+  return actions._syncstring;
 }
