@@ -3,7 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore chldsum
+
 import { Alert } from "antd";
+
+import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 import {
   React,
   Rendered,
@@ -13,20 +17,19 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import ShowError from "@cocalc/frontend/components/error";
 import { useProjectContext } from "@cocalc/frontend/project/context";
+import { unreachable } from "@cocalc/util/misc";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
 } from "@cocalc/util/types/project-info/types";
-import { cgroup_stats } from "@cocalc/comm/project-status/utils";
-import { unreachable } from "@cocalc/util/misc";
 import { CoCalcFile, render_cocalc_btn } from "./components";
 import { Flyout } from "./flyout";
 import { Full } from "./full";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
-import { grid_warning, linearList, process_tree, sum_children } from "./utils";
 import useProjectInfo from "./use-project-info";
-import ShowError from "@cocalc/frontend/components/error";
+import { grid_warning, linearList, process_tree, sum_children } from "./utils";
 
 interface Props {
   project_id: string;
@@ -82,7 +85,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [ptree, set_ptree] = useState<ProcessRow[] | undefined>(undefined);
     const [pt_stats, set_pt_stats] = useState<PTStats>(pt_stats_init);
     const [selected, set_selected] = useState<number[]>([]);
-    const [expanded, set_expanded] = useState<(string|number)[]>([]);
+    const [expanded, set_expanded] = useState<(string | number)[]>([]);
     const [have_children, set_have_children] = useState<string[]>([]);
     const [cg_info, set_cg_info] = useState<CGroupInfo>(gc_info_init);
     const [disk_usage, set_disk_usage] = useState<DUState>(du_init);
@@ -116,7 +119,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
 
     function update_top(info: ProjectInfoType) {
       // this shouldn't be the case, but somehow I saw this happening once
-      // the ProjectInfoType type is updated to refrect this edge case and here we bail out
+      // the ProjectInfoType type is updated to reflect this edge case and here we bail out
       // and wait for the next update of "info" to get all processes…
       if (info.processes == null) return;
       switch (mode) {
@@ -131,7 +134,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           set_have_children(pchildren);
           break;
         case "flyout":
-          // flyout does not nest children, not enogh space
+          // flyout does not nest children, not enough space
           set_ptree(linearList(info.processes));
           break;
         default:
@@ -216,7 +219,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       to_str?: (val) => Rendered,
     ) {
       const cell_val = (val, proc): number => {
-        // we have to check for length==0, because initally rows are all expanded but
+        // we have to check for length==0, because initially rows are all expanded but
         // onExpandedRowsChange isn't triggered
         if (
           expanded.length == 0 ||
@@ -296,7 +299,11 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     }
 
     const showError = (
-      <ShowError style={{ margin: "15px 0" }} error={error} setError={setError} />
+      <ShowError
+        style={{ margin: "15px 0" }}
+        error={error}
+        setError={setError}
+      />
     );
 
     switch (mode) {

@@ -3,17 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// NOOP endpoint - bookmarks now handled by conat
+// Keeping endpoint for backwards compatibility with older clients
+
 import { Request } from "express";
 
-import { loadStarredFilesBookmarks } from "@cocalc/server/bookmarks/starred";
 import { STARRED_FILES } from "@cocalc/util/consts/bookmarks";
-import { apiRoute, apiRouteOperation } from "lib/api";
-import { processGetRequest } from "lib/api/bookmarks";
-import {
-  BookmarkGetInputSchema,
-  BookmarkGetOutputSchema,
-  BookmarkGetOutputType,
-} from "lib/api/schema/bookmarks";
 
 async function handle(req, res) {
   try {
@@ -24,21 +19,24 @@ async function handle(req, res) {
   }
 }
 
-async function get(req: Request): Promise<BookmarkGetOutputType> {
-  const { project_id, account_id, type } = await processGetRequest(req);
+async function get(
+  req: Request,
+): Promise<{
+  status: "success" | "error";
+  stars?: string[];
+  type?: string;
+  project_id?: string;
+  error?: string;
+}> {
+  const { type, project_id } = req.body;
 
+  // NOOP: Always return empty bookmarks since they're now handled by conat
   switch (type) {
     case STARRED_FILES: {
-      const { stars, last_edited } = await loadStarredFilesBookmarks({
-        project_id,
-        account_id,
-      });
-
       return {
         type,
         project_id,
-        stars,
-        last_edited,
+        stars: [],
         status: "success",
       };
     }
@@ -53,23 +51,4 @@ async function get(req: Request): Promise<BookmarkGetOutputType> {
   }
 }
 
-export default apiRoute({
-  getBookmarks: apiRouteOperation({
-    method: "POST",
-    openApiOperation: {
-      tags: ["Projects"],
-    },
-  })
-    .input({
-      contentType: "application/json",
-      body: BookmarkGetInputSchema,
-    })
-    .outputs([
-      {
-        status: 200,
-        contentType: "application/json",
-        body: BookmarkGetOutputSchema,
-      },
-    ])
-    .handler(handle),
-});
+export default handle;

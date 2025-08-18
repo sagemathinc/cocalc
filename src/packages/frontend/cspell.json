@@ -70,7 +70,11 @@
     "flyouts",
     "buttonbar",
     "noconf",
-    "flyoutdragbar"
+    "flyoutdragbar",
+    "ptree",
+    "pchildren",
+    "nprocs",
+    "pids"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
