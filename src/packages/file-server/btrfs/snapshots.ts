@@ -5,12 +5,11 @@ import {
   type SnapshotCounts,
 } from "@cocalc/util/db-schema/projects";
 import getLogger from "@cocalc/backend/logger";
+import { isISODate } from "@cocalc/util/misc";
 
 export { type SnapshotCounts };
 
 const logger = getLogger("file-server:btrfs:snapshots");
-
-const DATE_REGEXP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 export async function updateRollingSnapshots({
   snapshots,
@@ -32,9 +31,7 @@ export async function updateRollingSnapshots({
   });
 
   // get exactly the iso timestamp snapshot names:
-  const snapshotNames = (await snapshots.readdir()).filter((name) =>
-    DATE_REGEXP.test(name),
-  );
+  const snapshotNames = (await snapshots.readdir()).filter(isISODate);
   snapshotNames.sort();
   let needNewSnapshot = false;
   if (changed) {

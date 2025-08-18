@@ -27,6 +27,7 @@ import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
 import { type DirectoryListing } from "@cocalc/frontend/project/explorer/types";
 import { FILE_ITEM_OPENED_STYLE } from "@cocalc/frontend/project/page/flyouts/file-list-item";
+import { isISODate } from "@cocalc/util/misc";
 
 export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "md",
@@ -133,6 +134,11 @@ export function FileRow({
             <Icon name="arrow-right" style={{ margin: "0 10px" }} />{" "}
             {linkTarget}{" "}
           </>
+        )}
+        {isISODate(name) && (
+          <span style={{ marginLeft: "30px", color: "#666" }}>
+            (<TimeAgo date={name} />)
+          </span>
         )}
       </a>
     );

@@ -340,7 +340,6 @@ export function isSha1(s: string): boolean {
   return s.length === 40 && !!s.match(SHA1_REGEXP);
 }
 
-
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 export function len(obj: object | undefined | null): number {
   if (obj == null) {
@@ -2779,4 +2778,10 @@ export function k8sMemoryParser(input: string | number): number {
   }
 
   return parseInt(input, 10);
+}
+
+export const DATE_REGEXP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+export function isISODate(s: string): boolean {
+  return DATE_REGEXP.test(s);
 }
