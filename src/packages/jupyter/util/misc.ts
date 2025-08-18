@@ -24,9 +24,9 @@ import { cmp } from "@cocalc/util/misc";
 export const JUPYTER_MIMETYPES = [
   "application/javascript",
   "application/json",
-  "text/latex",
   "text/html",
   "text/markdown",
+  "text/latex",
   "image/svg+xml",
   "image/png",
   "image/jpeg",

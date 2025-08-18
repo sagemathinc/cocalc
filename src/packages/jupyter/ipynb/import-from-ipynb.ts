@@ -8,10 +8,7 @@ Importing from an ipynb object (in-memory version of .ipynb file)
 */
 
 import * as misc from "@cocalc/util/misc";
-import {
-  JUPYTER_MIMETYPES,
-  JUPYTER_MIMETYPES_SET,
-} from "@cocalc/jupyter/util/misc";
+import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { type Message } from "@cocalc/jupyter/execute/output-handler";
 import { close } from "@cocalc/util/misc";
 
@@ -257,7 +254,6 @@ export class IPynbImporter {
     if (misc.is_array(content.text)) {
       content.text = content.text.join("");
     }
-    remove_redundant_reps(content.data); // multiple output formats
     delete content.prompt_number; // redundant; in some files
   };
 
@@ -402,39 +398,4 @@ export class IPynbImporter {
     }
     return obj;
   };
-}
-
-// mutate data removing redundant reps
-export function remove_redundant_reps(data?: object) {
-  if (data == null) {
-    return;
-  }
-  // We only keep the first representation in types, since it provides the richest
-  // representation in the client; there is no need for the others.
-  // TODO: probably we should still store all of these types somewhere (in the
-  // backend only) for the .ipynb export, but I'm not doing that right now!
-  // This means opening and closing an ipynb file may lose information, which
-  // no client currently cares about (?) -- maybe nbconvert does.
-  let keep = "";
-  for (const type of JUPYTER_MIMETYPES) {
-    if (data[type] != null) {
-      keep = type;
-      break;
-    }
-  }
-  if (!keep) {
-    return;
-  }
-  for (const type in data) {
-    // NOTE: we only remove multiple reps that are both in JUPYTER_MIMETYPES;
-    // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
-    // not removed, e.g., application/vnd.jupyter.widget-view+json and
-    // text/plain both are types of representation of a widget.
-    if (
-      type != keep &&
-      (JUPYTER_MIMETYPES_SET as Set<string>).has(type) != null
-    ) {
-      delete data[type];
-    }
-  }
 }

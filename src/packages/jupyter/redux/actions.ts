@@ -49,7 +49,6 @@ import {
   JUPYTER_MIMETYPES,
   isJupyterBase64MimeType,
 } from "@cocalc/jupyter/util/misc";
-import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import { isSha1, sha1 } from "@cocalc/util/misc";
 import { shouldUseIframe } from "@cocalc/jupyter/util/iframe";
 
@@ -2105,8 +2104,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // dbg("no data, so nothing to do");
       return;
     }
-
-    remove_redundant_reps(content.data);
 
     // Here we compute sha1 and start saving the blob to the blob store
     // over the network.  There is no guarantee that will work and this
