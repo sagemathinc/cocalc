@@ -70,6 +70,7 @@ export function getNonemptyCellContents({
         lang,
         direction: "below",
         count: belowCount,
+        includeCurrentCell: false,
       });
       if (belowContent) result.after = belowContent;
     }
@@ -82,10 +83,10 @@ export function getNonemptyCellContents({
     typeof cellCount === "number"
       ? cellCount
       : cellCount === "all above" ||
-          cellCount === "all below" ||
-          cellCount === "all"
-        ? 100
-        : 0;
+        cellCount === "all below" ||
+        cellCount === "all"
+      ? 100
+      : 0;
 
   const content = getDirectionalContent({
     actions,

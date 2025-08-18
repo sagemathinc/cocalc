@@ -42,24 +42,48 @@ export function LLMCellContextSelector({
       return { minValue: 0, maxValue: 0, marks: { 0: "0" } };
     }
 
-    // Count cells above
-    let cellsAbove = 0;
-    let delta = -1;
-    while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
-      cellsAbove++;
-      delta--;
-    }
+    let minVal: number, maxVal: number;
 
-    // Count cells below
-    let cellsBelow = 0;
-    delta = 1;
-    while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
-      cellsBelow++;
-      delta++;
-    }
+    if (mode === "insert-position") {
+      // For insert position, we need to count cells differently
+      // Count all cells before the insertion point (include current cell and all above it)
+      let cellsBefore = 0;
+      let delta = 0; // Start from current cell (which will be "before" after insertion)
+      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
+        cellsBefore++;
+        delta--;
+      }
 
-    const minVal = -cellsAbove;
-    const maxVal = cellsBelow;
+      // Count cells after
+      let cellsAfter = 0;
+      delta = 1;
+      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
+        cellsAfter++;
+        delta++;
+      }
+
+      minVal = -cellsBefore;
+      maxVal = cellsAfter;
+    } else {
+      // For current-cell mode, count cells above and below as before
+      let cellsAbove = 0;
+      let delta = -1;
+      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
+        cellsAbove++;
+        delta--;
+      }
+
+      // Count cells below
+      let cellsBelow = 0;
+      delta = 1;
+      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
+        cellsBelow++;
+        delta++;
+      }
+
+      minVal = -cellsAbove;
+      maxVal = cellsBelow;
+    }
 
     // Create marks dynamically
     const marks: SliderSingleProps["marks"] = {

@@ -196,20 +196,26 @@ export function AIGenerateCodeCell({
   }, [preview, open]);
 
   function getContextContents(): CellContextContent {
-    const prevCount = -contextRange[0]; // contextRange[0] is negative, so -(-2) = 2
-    const nextCount = contextRange[1]; // contextRange[1] is positive for cells after
+    const [rangeStart, rangeEnd] = contextRange;
 
-    if (prevCount === 0 && nextCount === 0) return {};
+    // For insertion mode:
+    // - rangeStart to rangeEnd defines which cells relative to insertion point to include
+    // - Current cell id represents position 0 (insertion point)
+    // - [-2, 0] means include cells from id-1 to id (2 cells before insertion)
+    // - [0, 2] means include cells from id+1 to id+2 (2 cells after insertion)
+
+    const aboveCount = rangeStart < 0 ? Math.abs(rangeStart) : 0;
+    const belowCount = rangeEnd > 0 ? rangeEnd : 0;
 
     return getNonemptyCellContents({
       actions: frameActions.current,
       id,
       direction: "around",
-      cellCount: "all", // Use "all" for around direction
+      cellCount: "all",
       cellTypes,
       lang,
-      aboveCount: prevCount,
-      belowCount: nextCount,
+      aboveCount,
+      belowCount,
     });
   }
 
