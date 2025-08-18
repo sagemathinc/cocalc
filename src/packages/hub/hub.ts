@@ -11,6 +11,7 @@ import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
 import { program as commander, Option } from "commander";
+
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
@@ -21,10 +22,18 @@ import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
 import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
 import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
+import {
+  initConatApi,
+  initConatChangefeedServer,
+  initConatPersist,
+  loadConatConfiguration,
+} from "@cocalc/server/conat";
+import { initConatServer } from "@cocalc/server/conat/socketio";
 import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
 import initMessageMaintenance from "@cocalc/server/messages/maintenance";
+import { start as startHubRegister } from "@cocalc/server/metrics/hub_register";
 import initProjectControl, {
   COCALC_MODES,
 } from "@cocalc/server/projects/control";
@@ -35,22 +44,15 @@ import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { set_agent_endpoint } from "./health-checks";
-import { start as startHubRegister } from "@cocalc/server/metrics/hub_register";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
-import {
-  loadConatConfiguration,
-  initConatChangefeedServer,
-  initConatApi,
-  initConatPersist,
-} from "@cocalc/server/conat";
-import { initConatServer } from "@cocalc/server/conat/socketio";
 
 import initHttpRedirect from "./servers/http-redirect";
 
-import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
+import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
+import { migrateBookmarksToConat } from "./migrate-bookmarks";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -291,6 +293,10 @@ async function startServer(): Promise<void> {
     // upgrades of projects.
     initPurchasesMaintenanceLoop();
     initSalesloftMaintenance();
+    // Migrate bookmarks from database to conat (runs once at startup)
+    migrateBookmarksToConat().catch((err) => {
+      logger.error("Failed to migrate bookmarks to conat:", err);
+    });
     setInterval(trimLogFileSize, 1000 * 60 * 3);
   }
 

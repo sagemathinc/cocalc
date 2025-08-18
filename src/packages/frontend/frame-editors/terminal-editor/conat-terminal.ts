@@ -12,6 +12,8 @@ import {
 } from "@cocalc/conat/service/terminal";
 import { until } from "@cocalc/util/async-utils";
 
+const DEFAULT_HEARTBEAT_INTERVAL = 15_000;
+
 type State = "disconnected" | "init" | "running" | "closed";
 
 export class ConatTerminal extends EventEmitter {
@@ -29,6 +31,7 @@ export class ConatTerminal extends EventEmitter {
   private writeQueue: string = "";
   private ephemeral?: boolean;
   private computeServers?;
+  private heartbeatInterval: number;
 
   constructor({
     project_id,
@@ -40,6 +43,7 @@ export class ConatTerminal extends EventEmitter {
     options,
     measureSize,
     ephemeral,
+    heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
   }: {
     project_id: string;
     path: string;
@@ -50,6 +54,7 @@ export class ConatTerminal extends EventEmitter {
     options?;
     measureSize?;
     ephemeral?: boolean;
+    heartbeatInterval?: number;
   }) {
     super();
     this.ephemeral = ephemeral;
@@ -63,12 +68,34 @@ export class ConatTerminal extends EventEmitter {
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
+    this.heartbeatInterval = heartbeatInterval;
     webapp_client.conat_client.on("connected", this.clearWriteQueue);
     this.computeServers = webapp_client.project_client.computeServers(
       this.project_id,
     );
     this.computeServers?.on("change", this.handleComputeServersChange);
   }
+
+  // ping server periodically -- if failure, closes conenction immediately
+  // so it can be fixed when user comes back, instead of having to react to
+  // a write failing (which also handles the same issue)
+  private heartbeat = reuseInFlight(async () => {
+    await until(
+      async () => {
+        if (this.isClosed()) {
+          return true;
+        }
+        try {
+          await this.api.conat.ping({ maxWait: 5000 });
+          return false;
+        } catch {
+          this.close();
+          return true;
+        }
+      },
+      { min: this.heartbeatInterval, max: this.heartbeatInterval },
+    );
+  });
 
   clearWriteQueue = () => {
     if (this.writeQueue) {
@@ -146,6 +173,8 @@ export class ConatTerminal extends EventEmitter {
       await delay(SIZE_TIMEOUT_MS / 1.3);
     }
   };
+
+  isClosed = () => this.state == "closed";
 
   close = () => {
     webapp_client.conat_client.removeListener(
@@ -239,6 +268,7 @@ export class ConatTerminal extends EventEmitter {
   init = reuseInFlight(async () => {
     await Promise.all([this.start(), this.getStream()]);
     await this.setReady();
+    this.heartbeat();
   });
 
   private handleStreamData = (data) => {
