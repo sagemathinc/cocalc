@@ -475,7 +475,7 @@ function CreateDirectory({
       const actions = redux.getProjectActions(project_id);
       const fs = actions.fs(computeServerId);
       await fs.mkdir(join(path, value));
-      toggleSelection(value);
+      toggleSelection(join(path, value));
     } catch (err) {
       setError(`${err}`);
     } finally {
