@@ -106,7 +106,8 @@ export function LLMCellContextSelector({
 
   return (
     <>
-      <Paragraph>
+      {/* Prevent clicks from bubbling to modal mask - fixes slider interactions closing modal */}
+      <Paragraph onClick={(e) => e.stopPropagation()}>
         <Flex align="center" gap="10px">
           <Text>Context:</Text>
           <Slider
