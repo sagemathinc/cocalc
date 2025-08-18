@@ -323,7 +323,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       conn.once("close", this.connect);
       conn.on("kick", this.close_request);
       conn.on("data", this.handleDataFromProject);
-      conn.once("init", (data) => {
+      conn.once("initialize", (data) => {
         this.terminal.clear();
         this.render(data);
       });

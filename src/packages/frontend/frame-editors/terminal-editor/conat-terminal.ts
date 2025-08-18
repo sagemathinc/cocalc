@@ -249,7 +249,7 @@ export class ConatTerminal extends EventEmitter {
       return;
     }
     const initData = this.stream.getAll().join("");
-    this.emit("init", initData);
+    this.emit("initialize", initData);
     this.stream.on("change", this.handleStreamData);
   };
 
