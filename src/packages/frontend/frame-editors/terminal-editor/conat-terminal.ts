@@ -10,7 +10,6 @@ import {
   SIZE_TIMEOUT_MS,
   createBrowserClient,
 } from "@cocalc/conat/service/terminal";
-import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import { until } from "@cocalc/util/async-utils";
 
 type State = "disconnected" | "init" | "running" | "closed";
@@ -24,7 +23,7 @@ export class ConatTerminal extends EventEmitter {
   private terminalResize;
   private openPaths;
   private closePaths;
-  private api: TerminalServiceApi;
+  public readonly api: TerminalServiceApi;
   private service?;
   private options?;
   private writeQueue: string = "";
@@ -58,7 +57,6 @@ export class ConatTerminal extends EventEmitter {
     this.path = path;
     this.termPath = termPath;
     this.options = options;
-    this.touchLoop({ project_id, path: termPath });
     this.sizeLoop(measureSize);
     this.api = createTerminalClient({ project_id, termPath });
     this.createBrowserService();
@@ -94,6 +92,7 @@ export class ConatTerminal extends EventEmitter {
       await this.init();
       return;
     }
+
     if (typeof data != "string") {
       if (data.cmd == "size") {
         const { rows, cols, kick } = data;
@@ -136,29 +135,8 @@ export class ConatTerminal extends EventEmitter {
         await this.api.write(this.writeQueue + data);
         this.writeQueue = "";
       } catch {
-        if (data) {
-          this.writeQueue += data;
-        }
+        this.close();
       }
-    }
-  };
-
-  touchLoop = async ({ project_id, path }) => {
-    while (this.state != ("closed" as State)) {
-      try {
-        // this marks the path as being of interest for editing and starts
-        // the service; it doesn't actually create a file on disk.
-        await webapp_client.touchOpenFile({
-          project_id,
-          path,
-        });
-      } catch (err) {
-        console.warn(err);
-      }
-      if (this.state == ("closed" as State)) {
-        break;
-      }
-      await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
     }
   };
 
@@ -169,7 +147,7 @@ export class ConatTerminal extends EventEmitter {
     }
   };
 
-  close = async () => {
+  close = () => {
     webapp_client.conat_client.removeListener(
       "connected",
       this.clearWriteQueue,
@@ -183,12 +161,14 @@ export class ConatTerminal extends EventEmitter {
     this.service?.close();
     delete this.service;
     this.setState("closed");
-    try {
-      await this.api.close(webapp_client.browser_id);
-    } catch {
-      // we did our best to quickly tell that we're closed, but if it times out or fails,
-      // it is the responsibility of the project to stop worrying about this browser.
-    }
+    (async () => {
+      try {
+        await this.api.close(webapp_client.browser_id);
+      } catch {
+        // we did our best to quickly tell that we're closed, but if it times out or fails,
+        // it is the responsibility of the project to stop worrying about this browser.
+      }
+    })();
   };
 
   end = () => {
@@ -270,7 +250,7 @@ export class ConatTerminal extends EventEmitter {
       return;
     }
     const initData = this.stream.getAll().join("");
-    this.emit("init", initData);
+    this.emit("initialize", initData);
     this.stream.on("change", this.handleStreamData);
   };
 

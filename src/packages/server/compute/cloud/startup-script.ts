@@ -284,17 +284,29 @@ cat /cocalc/conf/authorized_keys > /root/.ssh/authorized_keys
 // This approach is more robust to configure than running ssh directly on the compute docker
 // container on a different port, but slightly more limited, e.g., X11 port forwarding doesn't
 // seem to work, but is also something that we wouldn't want to do this way anyways.
+// NOTE the Quoted heredoc to get the escaping right; there was a bug for a while.
 function userSsh() {
   return `
 # Make it so doing 'ssh user@host' ends up in the *compute* docker container.
+# Also rsync and 'ssh user@host command' should work too.
 # To get into the true root of the VM, the user has to do 'ssh root@host'.
-if ! grep -q "Match User user" /etc/ssh/sshd_config; then
-   {
-      echo "Match User user"
-      echo '   ForceCommand [[ -z "\\\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \\\${SSH_ORIGINAL_COMMAND}'
-   } >> /etc/ssh/sshd_config
-   service ssh restart
-fi
+
+cat > /etc/ssh/sshd_config <<'EOF'
+Include /etc/ssh/sshd_config.d/*.conf
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+Match User user
+   ForceCommand [[ -z "\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \${SSH_ORIGINAL_COMMAND}
+EOF
+
+systemctl daemon-reload
+service ssh restart
 `;
 }
 
