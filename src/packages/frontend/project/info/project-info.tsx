@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore chldsum
+
 import { Alert } from "antd";
 
 import { cgroup_stats } from "@cocalc/comm/project-status/utils";
@@ -132,7 +134,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           set_have_children(pchildren);
           break;
         case "flyout":
-          // flyout does not nest children, not enogh space
+          // flyout does not nest children, not enough space
           set_ptree(linearList(info.processes));
           break;
         default:
