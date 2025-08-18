@@ -5,9 +5,13 @@ It may be necessary to do this to enable the user running this
 code to use nsjail:
 
     sudo sysctl -w kernel.apparmor_restrict_unprivileged_unconfined=0 && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+  
 
 See https://github.com/google/nsjail/issues/236#issuecomment-2267096267
 
+To make permanent:
+
+echo -e "kernel.apparmor_restrict_unprivileged_unconfined=0\nkernel.apparmor_restrict_unprivileged_userns=0" | sudo tee /etc/sysctl.d/99-custom.conf && sudo sysctl --system
 
 
 ---
