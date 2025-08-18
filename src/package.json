@@ -19,7 +19,7 @@
     "test-parallel": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r --parallel test",
     "test": "unset DEBUG && pnpm run depcheck && pnpm run version-check && ./workspaces.py test",
     "test-github-ci": "unset DEBUG && pnpm run depcheck && pnpm run version-check && ./workspaces.py test --test-github-ci --exclude=jupyter --retries=1",
-    "depcheck": "cd packages && pnpm run -r --parallel depcheck",
+    "depcheck": "cd packages && pnpm run -r --workspace-concurrency=4 depcheck",
     "prettier-all": "cd packages/",
     "local-ci": "./scripts/ci.sh",
     "conat-connections": "cd packages/backend && pnpm conat-connections",
