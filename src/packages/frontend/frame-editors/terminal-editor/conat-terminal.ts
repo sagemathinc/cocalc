@@ -92,6 +92,7 @@ export class ConatTerminal extends EventEmitter {
       await this.init();
       return;
     }
+
     if (typeof data != "string") {
       if (data.cmd == "size") {
         const { rows, cols, kick } = data;
@@ -134,9 +135,7 @@ export class ConatTerminal extends EventEmitter {
         await this.api.write(this.writeQueue + data);
         this.writeQueue = "";
       } catch {
-        if (data) {
-          this.writeQueue += data;
-        }
+        this.close();
       }
     }
   };
@@ -148,7 +147,7 @@ export class ConatTerminal extends EventEmitter {
     }
   };
 
-  close = async () => {
+  close = () => {
     webapp_client.conat_client.removeListener(
       "connected",
       this.clearWriteQueue,
@@ -162,12 +161,14 @@ export class ConatTerminal extends EventEmitter {
     this.service?.close();
     delete this.service;
     this.setState("closed");
-    try {
-      await this.api.close(webapp_client.browser_id);
-    } catch {
-      // we did our best to quickly tell that we're closed, but if it times out or fails,
-      // it is the responsibility of the project to stop worrying about this browser.
-    }
+    (async () => {
+      try {
+        await this.api.close(webapp_client.browser_id);
+      } catch {
+        // we did our best to quickly tell that we're closed, but if it times out or fails,
+        // it is the responsibility of the project to stop worrying about this browser.
+      }
+    })();
   };
 
   end = () => {

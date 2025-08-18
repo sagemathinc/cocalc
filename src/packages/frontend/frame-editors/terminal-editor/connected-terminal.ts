@@ -46,9 +46,7 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-// const MAX_DELAY = 15000;
-
-const ENABLE_WEBGL = false;
+const ENABLE_WEBGL = true;
 
 // ephemeral = faster, less load on servers, but if project and browser all
 // close, the history is gone... which may be good and less confusing.
@@ -124,7 +122,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     workingDir?: string,
   ) {
     this.actions = actions;
-
     this.account_store = redux.getStore("account");
     this.project_actions = redux.getProjectActions(actions.project_id);
     if (this.account_store == null) {
@@ -287,7 +284,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   connect = async () => {
     try {
       if (this.conn != null) {
-        this.conn.removeListener("close", this.connect); // avoid infinite loop
+        this.conn.removeListener("closed", this.connect); // avoid infinite loop
         this.conn.close();
         delete this.conn;
       }
@@ -320,7 +317,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         ephemeral: EPHEMERAL,
       });
       this.conn = conn as any;
-      conn.once("close", this.connect);
+      conn.once("closed", this.connect);
       conn.on("kick", this.close_request);
       conn.on("data", this.handleDataFromProject);
       conn.once("initialize", (data) => {
