@@ -81,6 +81,7 @@ import ouch, { type OuchOptions } from "./ouch";
 import cpExec from "./cp";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 export { type CopyOptions };
+import { ConatError } from "@cocalc/conat/core/client";
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -108,6 +109,7 @@ const INTERNAL_METHODS = new Set([
   "assertWritable",
   "rusticRepo",
   "host",
+  "readFileLock",
 ]);
 
 export class SandboxedFilesystem {
@@ -340,8 +342,24 @@ export class SandboxedFilesystem {
     await mkdir(await this.safeAbsPath(path), options);
   };
 
-  readFile = async (path: string, encoding?: any): Promise<string | Buffer> => {
-    return await readFile(await this.safeAbsPath(path), encoding);
+  private readFileLock = new Set<string>();
+  readFile = async (
+    path: string,
+    encoding?: any,
+    lock?: number,
+  ): Promise<string | Buffer> => {
+    const p = await this.safeAbsPath(path);
+    if (this.readFileLock.has(p)) {
+      throw new ConatError(`path is locked - ${p}`, { code: "LOCK" });
+    }
+    if (lock) {
+      this.readFileLock.add(p);
+      setTimeout(() => {
+        this.readFileLock.delete(p);
+      }, lock);
+    }
+
+    return await readFile(p, encoding);
   };
 
   readdir = async (path: string, options?) => {

@@ -2,7 +2,7 @@ import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import { getProject } from "@cocalc/server/projects/control";
-import { before, after, client, connect } from "@cocalc/server/test";
+import { before, after, client, connect, wait } from "@cocalc/server/test";
 import { addCollaborator } from "@cocalc/server/projects/collaborators";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
@@ -11,6 +11,7 @@ beforeAll(before);
 afterAll(after);
 
 describe("basic collab editing of a file *on disk* in a project -- verifying interaction between filesystem and editor", () => {
+  // NOTE: there is a similar example with a paramter for how many at once in sync-2.test.ts.
   const account_id1 = uuid(),
     account_id2 = uuid();
   let project_id;
@@ -56,6 +57,7 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
   });
 
   let syncstring, syncstring2;
+  let safeDelay = 250;
   it("open 'a.txt' for sync editing", async () => {
     const opts = {
       project_id,
@@ -66,26 +68,20 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
       deletedThreshold: 100,
       watchRecreateWait: 100,
       deletedCheckInterval: 50,
+      readLockTimeout: 200, // must be short so we can test additional reads immediately
     };
     syncstring = client.sync.string(opts);
     // a second completely separate client:
     syncstring2 = connect().sync.string(opts);
     await Promise.all([syncstring.init(), syncstring2.init()]);
     expect(syncstring).not.toBe(syncstring2);
-
-    expect(syncstring.to_str()).toEqual("hello");
-    // the first version of the document should NOT be blank
-    expect(syncstring.versions().length).toEqual(1);
-
-    expect(syncstring2.to_str()).toEqual("hello");
-    expect(syncstring2.versions().length).toEqual(1);
   });
 
   it("the clients loaded the file at the same time but this does NOT result in two copies (via a merge conflict)", async () => {
-    const change = once(syncstring, "change");
-    const change2 = once(syncstring2, "change");
     await Promise.all([syncstring.save(), syncstring2.save()]);
-    await Promise.all([change, change2]);
+    await delay(safeDelay); // needs to be longer than readLockTimeout above.
+    expect(syncstring.versions().length).toEqual(1);
+    expect(syncstring2.versions().length).toEqual(1);
     expect(syncstring.to_str()).toEqual("hello");
     expect(syncstring2.to_str()).toEqual("hello");
   });
@@ -97,18 +93,16 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
   });
 
   it("change the file on disk and observe s updates", async () => {
+    await delay(safeDelay);
     const change = once(syncstring, "change");
     // wait so changes to the file on disk won't be ignored:
-    await delay(syncstring.opts.ignoreOnSaveInterval + 50);
     await fs.writeFile("a.txt", "Hello World!");
     await change;
-    console.log(syncstring.to_str());
-    console.log(syncstring.show_history());
     expect(syncstring.to_str()).toEqual("Hello World!");
   });
 
   it("overwrite a.txt with the older b.txt and see that this update also triggers a change even though b.txt is older -- the point is that the time is *different*", async () => {
-    await delay(syncstring.opts.ignoreOnSaveInterval + 50);
+    await delay(safeDelay);
     const change = once(syncstring, "change");
     await fs.cp("b.txt", "a.txt", { preserveTimestamps: true });
     await change;
@@ -120,7 +114,7 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
   });
 
   it("delete 'a.txt' from disk and observe a 'deleted' event is emitted", async () => {
-    await delay(250); // TODO: not good!
+    await delay(safeDelay);
     const deleted = once(syncstring, "deleted");
     const deleted2 = once(syncstring2, "deleted");
     await fs.unlink("a.txt");
@@ -133,8 +127,8 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
     expect(syncstring2.isDeleted).toEqual(true);
   });
 
-  // this fails!
   it("put a really old file at a.txt and it comes back from being deleted", async () => {
+    await delay(safeDelay);
     const change = once(syncstring, "change");
     await fs.writeFile("old.txt", "i am old");
     await fs.utimes(
@@ -145,15 +139,13 @@ describe("basic collab editing of a file *on disk* in a project -- verifying int
     await fs.cp("old.txt", "a.txt", { preserveTimestamps: true });
     await change;
     expect(syncstring.to_str()).toEqual("i am old");
-    // [ ] TODO: it's very disconcerting that isDeleted stays true for
-    // one of these!
-    //     await wait({
-    //       until: () => {
-    //         console.log([syncstring.isDeleted, syncstring2.isDeleted]);
-    //         return !syncstring.isDeleted && !syncstring2.isDeleted;
-    //       },
-    //     });
-    //     expect(syncstring.isDeleted).toEqual(false);
-    //     expect(syncstring2.isDeleted).toEqual(false);
+    await wait({
+      until: () => {
+        // console.log([syncstring.isDeleted, syncstring2.isDeleted]);
+        return !syncstring.isDeleted && !syncstring2.isDeleted;
+      },
+    });
+    expect(syncstring.isDeleted).toEqual(false);
+    expect(syncstring2.isDeleted).toEqual(false);
   });
 });

@@ -32,6 +32,10 @@ export const DELETED_THRESHOLD = 2000;
 export const DELETED_CHECK_INTERVAL = 750;
 export const WATCH_RECREATE_WAIT = 3000;
 
+// Length of time file is locked for reading (so that only
+// one client reads it at a time).
+const READ_LOCK_TIMEOUT = 3000;
+
 // all clients ignore file changes from when a save starts until this
 // amount of time later, so they avoid loading a file just because it was
 // saved by themself or another client.  This is especially important for
@@ -152,6 +156,7 @@ export interface SyncOpts0 {
   // instead of the default IGNORE_ON_SAVE_INTERVAL
   ignoreOnSaveInterval?: number;
   watchDebounce?: number;
+  readLockTimeout?: number;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -1324,7 +1329,13 @@ export class SyncDoc extends EventEmitter {
       dbg(
         `disk file changed more recently than edits, so loading ${stats.ctime} > ${lastChanged}; firstLoad=${firstLoad}`,
       );
-      await this.readFile();
+      try {
+        await this.readFile();
+      } catch (err) {
+        if (err.code != "LOCK") {
+          throw err;
+        }
+      }
       if (firstLoad) {
         dbg("emitting first-load event");
         // this event is emited the first time the document is ever
@@ -2272,22 +2283,25 @@ export class SyncDoc extends EventEmitter {
   };
 
   private lastReadFile: number = 0;
-  readFile = reuseInFlight(async (): Promise<number> => {
+  readFile = reuseInFlight(async (): Promise<void> => {
     if (this.opts.noSaveToDisk) {
-      return 0;
+      return;
     }
     const dbg = this.dbg("readFile");
 
-    let size: number;
     let contents;
     try {
-      contents = await this.fs.readFile(this.path, "utf8");
+      // This lock is *extremely* important when opening the document
+      // since it prevents having two identical patches, e.g,. when 
+      // two clients initialize the doc at the same time, which would
+      // result in "doubled content" (when the merge conflict happens).
+      const lock = this.opts.readLockTimeout ?? READ_LOCK_TIMEOUT;
+      contents = await this.fs.readFile(this.path, "utf8", lock);
       this.lastReadFile = Date.now();
       // console.log(this.client.client.id, "read from disk --isDeleted = false");
       this.isDeleted = false;
       this.valueOnDisk = contents;
       dbg("file exists");
-      size = contents.length;
       this.from_str(contents);
     } catch (err) {
       if (err.code == "ENOENT") {
@@ -2297,7 +2311,6 @@ export class SyncDoc extends EventEmitter {
           this.emit("deleted");
         }
         dbg("file no longer exists -- setting to blank");
-        size = 0;
         this.from_str("");
         this.commit();
       } else {
@@ -2308,7 +2321,6 @@ export class SyncDoc extends EventEmitter {
     this.commit(true);
     await this.save();
     this.emit("after-change");
-    return size;
   });
 
   is_read_only = (): boolean => {

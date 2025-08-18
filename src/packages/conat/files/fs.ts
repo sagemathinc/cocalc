@@ -14,6 +14,8 @@ import {
 } from "@cocalc/conat/files/watch";
 import listing, { type Listing, type FileTypeLabel } from "./listing";
 import { isValidUUID } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import TTL from "@isaacs/ttlcache";
 
 export const DEFAULT_FILE_SERVICE = "fs";
 
@@ -119,7 +121,16 @@ export interface Filesystem {
     options?: { overwrite?: boolean },
   ) => Promise<void>;
 
-  readFile: (path: string, encoding?: any) => Promise<string | Buffer>;
+  readFile: (
+    path: string,
+    encoding?: string,
+
+    // If lock is given then any other client that tries to read from this
+    // for lock ms after the lock is created will get an exception with code='LOCK'.
+    // This is an extension to node's fs.readFile that is very useful when
+    // initializing realtime sync clients.
+    lock?: number,
+  ) => Promise<string | Buffer>;
   readdir(path: string, options?): Promise<string[]>;
   readdir(path: string, options: { withFileTypes?: false }): Promise<string[]>;
   readdir(path: string, options: { withFileTypes: true }): Promise<IDirent[]>;
@@ -306,12 +317,32 @@ interface Options {
   project_id?: string;
 }
 
-export async function fsServer({ service, fs, client, project_id }: Options) {
+export async function fsServer({
+  service,
+  fs: fs0,
+  client,
+  project_id,
+}: Options) {
   client ??= conat();
   const subject = project_id
     ? `${service}.project-${project_id}`
     : `${service}.*`;
   const watches: { [subject: string]: any } = {};
+
+  // It is extremely important to only have one copy of each
+  // Filesystem for each subject, since ths Filesystem does
+  // locking and coordination with clients.  Hence this cache,
+  // given that fs(...) is called separately in all functions
+  // below.  Any ttl cache is natural because this cache is used
+  // for locks, which are short lived.
+  const cache = new TTL<string, Filesystem>({ ttl: 60 * 1000 * 60 });
+  const fs = reuseInFlight(async (subject) => {
+    if (!cache.has(subject)) {
+      cache.set(subject, await fs0(subject));
+    }
+    return cache.get(subject)!;
+  });
+
   const sub = await client.service<Filesystem & { subject?: string }>(subject, {
     async appendFile(path: string, data: string | Buffer, encoding?) {
       await (await fs(this.subject)).appendFile(path, data, encoding);
@@ -352,8 +383,8 @@ export async function fsServer({ service, fs, client, project_id }: Options) {
     async ouch(args: string[], options?: OuchOptions) {
       return await (await fs(this.subject)).ouch(args, options);
     },
-    async readFile(path: string, encoding?) {
-      return await (await fs(this.subject)).readFile(path, encoding);
+    async readFile(path: string, encoding?, lock?) {
+      return await (await fs(this.subject)).readFile(path, encoding, lock);
     },
     async readdir(path: string, options?) {
       const files = await (await fs(this.subject)).readdir(path, options);
