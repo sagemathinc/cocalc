@@ -45,7 +45,7 @@ export async function until(
   }: RetryOptions = {},
 ) {
   const end = timeout ? Date.now() + timeout : undefined;
-  let d = start;
+  let d = Math.max(min, start);
   while (end === undefined || Date.now() < end) {
     const x = await f();
     if (x) {
