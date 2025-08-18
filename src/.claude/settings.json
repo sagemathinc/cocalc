@@ -28,9 +28,12 @@
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:mistral.ai)",
+      "WebFetch(domain:simplelocalize.io)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm why:*)",
+      "mcp__github__get_issue",
       "WebFetch(domain:www.anthropic.com)",
-      "mcp__cclsp__find_definition",
-      "WebFetch(domain:simplelocalize.io)"
+      "mcp__cclsp__find_definition"
     ],
     "deny": []
   }
