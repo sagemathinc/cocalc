@@ -17,7 +17,17 @@
       "WebFetch(domain:cocalc.com)",
       "WebFetch(domain:doc.cocalc.com)",
       "WebFetch(domain:docs.anthropic.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git checkout:*)",
+      "Bash(git push:*)",
+      "Bash(NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc --noEmit)",
+      "Bash(docker run:*)",
+      "Bash(../node_modules/.bin/tsc:*)",
+      "Bash(npm view:*)",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:mistral.ai)",
+      "Bash(pnpm i18n:*)",
+      "WebFetch(domain:simplelocalize.io)"
     ],
     "deny": []
   }

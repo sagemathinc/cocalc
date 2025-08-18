@@ -946,7 +946,7 @@
   "labels.linux_terminal": "리눅스 터미널",
   "labels.loading": "불러오는 중...",
   "labels.log": "로그",
-  "labels.masked_files": "{masked, select, true {마스크된 파일 숨기기} other {마스크된 파일 보기}}. 마스크된 파일은 자동 생성되거나 임시 파일로, 편집할 의도가 없습니다. 이 파일들은 회색으로 표시됩니다.",
+  "labels.masked_files": "{masked, select, true {마스크된 파일 숨기기} other {마스크된 파일 표시}}. 마스크된 파일은 자동 생성되거나 임시 파일로, 편집을 위한 것이 아닙니다. 이들은 회색으로 표시됩니다.",
   "labels.message.plural": "{num, plural, one {메시지} other {메시지들}}",
   "labels.messages": "메시지",
   "labels.messages.all_messages": "모든 메시지",

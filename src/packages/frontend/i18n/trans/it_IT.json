@@ -946,7 +946,7 @@
   "labels.linux_terminal": "Terminale Linux",
   "labels.loading": "Caricamento...",
   "labels.log": "Log",
-  "labels.masked_files": "{masked, select, true {Nascondi file mascherati} other {Mostra file mascherati}}. I file mascherati sono file autogenerati o temporanei, che non devono essere modificati. Saranno grigiati.",
+  "labels.masked_files": "{masked, select, true {Nascondi file mascherati} other {Mostra file mascherati}}. I file mascherati sono file autogenerati o temporanei, che non devono essere modificati. Sono visualizzati in grigio.",
   "labels.message.plural": "{num, plural, one {messaggio} other {messaggi}}",
   "labels.messages": "Messaggi",
   "labels.messages.all_messages": "Tutti i messaggi",

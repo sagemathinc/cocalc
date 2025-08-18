@@ -9,7 +9,7 @@ import type { Options, ServiceCall } from "./service";
 export type { ConatService };
 
 export interface Extra {
-  ping: typeof pingConatService;
+  ping: (opts?: { maxWait?: number }) => Promise<void>;
   waitFor: (opts?: { maxWait?: number }) => Promise<void>;
 }
 

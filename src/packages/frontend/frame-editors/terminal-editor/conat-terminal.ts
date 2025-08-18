@@ -10,8 +10,9 @@ import {
   SIZE_TIMEOUT_MS,
   createBrowserClient,
 } from "@cocalc/conat/service/terminal";
-import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import { until } from "@cocalc/util/async-utils";
+
+const DEFAULT_HEARTBEAT_INTERVAL = 15_000;
 
 type State = "disconnected" | "init" | "running" | "closed";
 
@@ -24,12 +25,13 @@ export class ConatTerminal extends EventEmitter {
   private terminalResize;
   private openPaths;
   private closePaths;
-  private api: TerminalServiceApi;
+  public readonly api: TerminalServiceApi;
   private service?;
   private options?;
   private writeQueue: string = "";
   private ephemeral?: boolean;
   private computeServers?;
+  private heartbeatInterval: number;
 
   constructor({
     project_id,
@@ -41,6 +43,7 @@ export class ConatTerminal extends EventEmitter {
     options,
     measureSize,
     ephemeral,
+    heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL,
   }: {
     project_id: string;
     path: string;
@@ -51,6 +54,7 @@ export class ConatTerminal extends EventEmitter {
     options?;
     measureSize?;
     ephemeral?: boolean;
+    heartbeatInterval?: number;
   }) {
     super();
     this.ephemeral = ephemeral;
@@ -58,19 +62,40 @@ export class ConatTerminal extends EventEmitter {
     this.path = path;
     this.termPath = termPath;
     this.options = options;
-    this.touchLoop({ project_id, path: termPath });
     this.sizeLoop(measureSize);
     this.api = createTerminalClient({ project_id, termPath });
     this.createBrowserService();
     this.terminalResize = terminalResize;
     this.openPaths = openPaths;
     this.closePaths = closePaths;
+    this.heartbeatInterval = heartbeatInterval;
     webapp_client.conat_client.on("connected", this.clearWriteQueue);
     this.computeServers = webapp_client.project_client.computeServers(
       this.project_id,
     );
     this.computeServers?.on("change", this.handleComputeServersChange);
   }
+
+  // ping server periodically -- if failure, closes conenction immediately
+  // so it can be fixed when user comes back, instead of having to react to
+  // a write failing (which also handles the same issue)
+  private heartbeat = reuseInFlight(async () => {
+    await until(
+      async () => {
+        if (this.isClosed()) {
+          return true;
+        }
+        try {
+          await this.api.conat.ping({ maxWait: 5000 });
+          return false;
+        } catch {
+          this.close();
+          return true;
+        }
+      },
+      { min: this.heartbeatInterval, max: this.heartbeatInterval },
+    );
+  });
 
   clearWriteQueue = () => {
     if (this.writeQueue) {
@@ -94,6 +119,7 @@ export class ConatTerminal extends EventEmitter {
       await this.init();
       return;
     }
+
     if (typeof data != "string") {
       if (data.cmd == "size") {
         const { rows, cols, kick } = data;
@@ -136,29 +162,8 @@ export class ConatTerminal extends EventEmitter {
         await this.api.write(this.writeQueue + data);
         this.writeQueue = "";
       } catch {
-        if (data) {
-          this.writeQueue += data;
-        }
+        this.close();
       }
-    }
-  };
-
-  touchLoop = async ({ project_id, path }) => {
-    while (this.state != ("closed" as State)) {
-      try {
-        // this marks the path as being of interest for editing and starts
-        // the service; it doesn't actually create a file on disk.
-        await webapp_client.touchOpenFile({
-          project_id,
-          path,
-        });
-      } catch (err) {
-        console.warn(err);
-      }
-      if (this.state == ("closed" as State)) {
-        break;
-      }
-      await delay(CONAT_OPEN_FILE_TOUCH_INTERVAL);
     }
   };
 
@@ -169,7 +174,9 @@ export class ConatTerminal extends EventEmitter {
     }
   };
 
-  close = async () => {
+  isClosed = () => this.state == "closed";
+
+  close = () => {
     webapp_client.conat_client.removeListener(
       "connected",
       this.clearWriteQueue,
@@ -183,12 +190,14 @@ export class ConatTerminal extends EventEmitter {
     this.service?.close();
     delete this.service;
     this.setState("closed");
-    try {
-      await this.api.close(webapp_client.browser_id);
-    } catch {
-      // we did our best to quickly tell that we're closed, but if it times out or fails,
-      // it is the responsibility of the project to stop worrying about this browser.
-    }
+    (async () => {
+      try {
+        await this.api.close(webapp_client.browser_id);
+      } catch {
+        // we did our best to quickly tell that we're closed, but if it times out or fails,
+        // it is the responsibility of the project to stop worrying about this browser.
+      }
+    })();
   };
 
   end = () => {
@@ -259,6 +268,7 @@ export class ConatTerminal extends EventEmitter {
   init = reuseInFlight(async () => {
     await Promise.all([this.start(), this.getStream()]);
     await this.setReady();
+    this.heartbeat();
   });
 
   private handleStreamData = (data) => {
@@ -270,7 +280,7 @@ export class ConatTerminal extends EventEmitter {
       return;
     }
     const initData = this.stream.getAll().join("");
-    this.emit("init", initData);
+    this.emit("initialize", initData);
     this.stream.on("change", this.handleStreamData);
   };
 
