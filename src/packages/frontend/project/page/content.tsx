@@ -15,14 +15,17 @@ or Loading... if the file is still being loaded.
 */
 
 import { Map } from "immutable";
-import { useEffect, useMemo, useRef } from "react";
+import { debounce } from "lodash";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import Draggable from "react-draggable";
+
 import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
 import KaTeX from "@cocalc/frontend/components/math/katex";
+import getMermaid from "@cocalc/frontend/editors/slate/elements/code-block/get-mermaid";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import {
@@ -38,6 +41,7 @@ import { ProjectSearch } from "@cocalc/frontend/project/search/search";
 import { ProjectServers } from "@cocalc/frontend/project/servers";
 import { ProjectSettings } from "@cocalc/frontend/project/settings";
 import { editor_id } from "@cocalc/frontend/project/utils";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { hidden_meta_file } from "@cocalc/util/misc";
 import { useProjectContext } from "../context";
 import getAnchorTagComponent from "./anchor-tag-component";
@@ -45,8 +49,6 @@ import HomePage from "./home-page";
 import { ProjectCollaboratorsPage } from "./project-collaborators";
 import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import getMermaid from "@cocalc/frontend/editors/slate/elements/code-block/get-mermaid";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -66,12 +68,38 @@ interface Props {
 
 export const Content: React.FC<Props> = (props: Props) => {
   const { tab_name, is_visible } = props;
+  const { setContentSize } = useProjectContext();
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const debouncedMeasure = useCallback(
+    debounce((entries: ResizeObserverEntry[]) => {
+      if (entries.length > 0) {
+        const { width, height } = entries[0].contentRect;
+        setContentSize({ width, height });
+      }
+    }, 10),
+    [setContentSize],
+  );
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const resizeObserver = new ResizeObserver(debouncedMeasure);
+    resizeObserver.observe(contentRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      debouncedMeasure.cancel();
+    };
+  }, [debouncedMeasure]);
+
   // The className below is so we always make this div the remaining height.
   // The overflowY is hidden for editors (which don't scroll), but auto
   // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
   // https://github.com/sagemathinc/cocalc/pull/4708.
   return (
     <div
+      ref={contentRef}
       style={{
         ...MAIN_STYLE,
         ...(!is_visible ? { display: "none" } : undefined),

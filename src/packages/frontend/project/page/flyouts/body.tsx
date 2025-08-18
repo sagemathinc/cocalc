@@ -13,10 +13,10 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
-import { useProjectContext } from "../../context";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
 
@@ -55,7 +55,7 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
     { leading: false, trailing: true },
   );
 
-  // use this *once* around a vertically scollable content div in the component, e.g. results in a search.
+  // use this *once* around a vertically scrollable content div in the component, e.g. results in a search.
   // note: this won't work if the initial content is something else, e.g. a loading indicator.
   function wrap(content: React.ReactNode, style: CSS = {}) {
     return (
