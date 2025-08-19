@@ -214,11 +214,12 @@ async function handleRequest({
 
   try {
     let handler: OutputHandler | null = null;
+    let process: ((mesg: any) => void) | null = null;
+
     for await (const mesg of runner) {
       if (socket.state == "closed") {
         // client socket has closed -- the backend server must take over!
-        let process;
-        if (handler == null) {
+        if (handler == null || process == null) {
           logger.debug("socket closed -- server must handle output");
           if (outputHandler == null) {
             throw Error("no output handler available");
