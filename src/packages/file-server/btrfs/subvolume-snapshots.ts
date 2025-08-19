@@ -2,7 +2,7 @@ import { type Subvolume } from "./subvolume";
 import { btrfs } from "./util";
 import getLogger from "@cocalc/backend/logger";
 import { join } from "path";
-import { SnapshotCounts, updateRollingSnapshots } from "./snapshots";
+import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { ConatError } from "@cocalc/conat/core/client";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
@@ -11,7 +11,7 @@ const logger = getLogger("file-server:btrfs:subvolume-snapshots");
 export class SubvolumeSnapshots {
   public readonly snapshotsDir: string;
 
-  constructor(public subvolume: Subvolume) {
+  constructor(public readonly subvolume: Subvolume) {
     this.snapshotsDir = join(this.subvolume.path, SNAPSHOTS);
   }
 

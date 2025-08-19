@@ -60,25 +60,36 @@ export interface Fileserver {
     options?: CopyOptions;
   }) => Promise<void>;
 
+  /////////////
+  // BACKUPS
+  /////////////
+
   // create new complete backup of the project; this first snapshots the
   // project, makes a backup of the snapshot, then deletes the snapshot, so the
   // backup is guranteed to be consistent.
-  backup: (opts: { project_id: string }) => Promise<{ time: Date; id: string }>;
-
+  createBackup: (opts: {
+    project_id: string;
+    limit?: number;
+  }) => Promise<{ time: Date; id: string }>;
   // restore the given path in the backup to the given dest.  The default
   // path is '' (the whole project) and the default destination is the
   // same as the path.
-  restore: (opts: {
+  restoreBackup: (opts: {
     project_id: string;
     id: string;
     path?: string;
     dest?: string;
   }) => Promise<void>;
-
   // delete the given backup
   deleteBackup: (opts: { project_id: string; id: string }) => Promise<void>;
-
   // Return list of id's and timestamps of all backups of this project.
+  updateBackups: (opts: {
+    project_id: string;
+    counts?: Partial<SnapshotCounts>;
+    // global limit, same as with createBackup above; can prevent new backups from being
+    // made if counts are too large!
+    limit?: number;
+  }) => Promise<void>;
   getBackups: (opts: { project_id: string }) => Promise<
     {
       id: string;
@@ -87,12 +98,15 @@ export interface Fileserver {
   >;
 
   // Return list of all files in the given backup.
+  // TODO: would be nice to filter path, since there could be millions of files (?).
   getBackupFiles: (opts: {
     project_id: string;
     id: string;
   }) => Promise<string[]>;
 
-  // Snapshots
+  /////////////
+  // SNAPSHOTS
+  /////////////
   createSnapshot: (opts: {
     project_id: string;
     name?: string;

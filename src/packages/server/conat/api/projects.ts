@@ -5,7 +5,8 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 export * from "@cocalc/server/projects/collaborators";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { client as filesystemClient } from "@cocalc/conat/files/file-server";
-import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
+export * from "@cocalc/server/conat/api/project-snapshots";
+export * from "@cocalc/server/conat/api/project-backups";
 
 export async function copyPathBetweenProjects({
   src,
@@ -76,93 +77,4 @@ export async function getDiskQuota({
   }
   const client = filesystemClient();
   return await client.getQuota({ project_id });
-}
-
-import { client as fileServerClient } from "@cocalc/conat/files/file-server";
-
-// NOTES about snapshots:
-
-// TODO: in some cases we *might* only allow the project owner to delete snapshots
-// create a new snapshot of a project
-
-// just *some* limit to avoid bugs/abuse
-
-const MAX_SNAPSHOTS_PER_PROJECT = 100;
-
-export async function createSnapshot({
-  account_id,
-  project_id,
-  name,
-}: {
-  account_id?: string;
-  project_id: string;
-  name?: string;
-}) {
-  if (!account_id) {
-    throw Error("must be signed in");
-  }
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be a collaborator on project");
-  }
-  await fileServerClient().createSnapshot({
-    project_id,
-    name,
-    limit: MAX_SNAPSHOTS_PER_PROJECT,
-  });
-}
-
-export async function deleteSnapshot({
-  account_id,
-  project_id,
-  name,
-}: {
-  account_id?: string;
-  project_id: string;
-  name: string;
-}) {
-  if (!account_id) {
-    throw Error("must be signed in");
-  }
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be a collaborator on project");
-  }
-  await fileServerClient().deleteSnapshot({ project_id, name });
-}
-
-export async function updateSnapshots({
-  account_id,
-  project_id,
-  counts,
-}: {
-  account_id?: string;
-  project_id: string;
-  counts?: Partial<SnapshotCounts>;
-}) {
-  if (!account_id) {
-    throw Error("must be signed in");
-  }
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be a collaborator on project");
-  }
-  await fileServerClient().updateSnapshots({
-    project_id,
-    counts,
-    limit: MAX_SNAPSHOTS_PER_PROJECT,
-  });
-}
-
-export async function getSnapshotQuota({
-  account_id,
-  project_id,
-}: {
-  account_id?: string;
-  project_id: string;
-}) {
-  if (!account_id) {
-    throw Error("must be signed in");
-  }
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be a collaborator on project");
-  }
-  return { limit: MAX_SNAPSHOTS_PER_PROJECT };
 }

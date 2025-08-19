@@ -16,6 +16,14 @@ export const projects = {
 
   getDiskQuota: authFirstRequireAccount,
 
+  createBackup: authFirstRequireAccount,
+  deleteBackup: authFirstRequireAccount,
+  restoreBackup: authFirstRequireAccount,
+  updateBackups: authFirstRequireAccount,
+  getBackups: authFirstRequireAccount,
+  getBackupFiles: authFirstRequireAccount,
+  getBackupQuota: authFirstRequireAccount,
+
   createSnapshot: authFirstRequireAccount,
   deleteSnapshot: authFirstRequireAccount,
   updateSnapshots: authFirstRequireAccount,
@@ -119,13 +127,60 @@ export interface Projects {
     project_id: string;
   }) => Promise<{ used: number; size: number }>;
 
+  /////////////
+  // BACKUPS
+  /////////////
+  createBackup: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<{ time: Date; id: string }>;
+
+  deleteBackup: (opts: {
+    account_id?: string;
+    project_id: string;
+    id: string;
+  }) => Promise<void>;
+
+  restoreBackup: (opts: {
+    account_id?: string;
+    project_id: string;
+    path?: string;
+    id: string;
+  }) => Promise<void>;
+
+  updateBackups: (opts: {
+    account_id?: string;
+    project_id: string;
+    counts?: Partial<SnapshotCounts>;
+  }) => Promise<void>;
+
+  getBackups: (opts: { account_id?: string; project_id: string }) => Promise<
+    {
+      id: string;
+      time: Date;
+    }[]
+  >;
+
+  getBackupFiles: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<string[]>;
+
+  getBackupQuota: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<{ limit: number }>;
+
+  /////////////
+  // SNAPSHOTS
+  /////////////
+
   createSnapshot: (opts: {
     account_id?: string;
     project_id: string;
     name?: string;
   }) => Promise<void>;
 
-  // delete a snapshot
   deleteSnapshot: (opts: {
     account_id?: string;
     project_id: string;

@@ -22,6 +22,9 @@ import { type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
 import { parseOutput } from "@cocalc/backend/sandbox/exec";
 import { field_cmp } from "@cocalc/util/misc";
+import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { ConatError } from "@cocalc/conat/core/client";
 
 export const RUSTIC = "rustic";
 
@@ -35,12 +38,20 @@ interface Snapshot {
 }
 
 export class SubvolumeRustic {
-  constructor(private subvolume: Subvolume) {}
+  constructor(public readonly subvolume: Subvolume) {}
 
   // create a new rustic backup
   backup = async ({
+    limit,
     timeout = 30 * 60 * 1000,
-  }: { timeout?: number } = {}): Promise<Snapshot> => {
+  }: { timeout?: number; limit?: number } = {}): Promise<Snapshot> => {
+    this.snapshotsCache = null;
+    if (limit != null && (await this.snapshots()).length >= limit) {
+      // 507 = "insufficient storage" for http
+      throw new ConatError(`there is a limit of ${limit} backups`, {
+        code: 507,
+      });
+    }
     if (await this.subvolume.snapshots.exists(RUSTIC_SNAPSHOT)) {
       logger.debug(`backup: deleting existing ${RUSTIC_SNAPSHOT}`);
       await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
@@ -88,7 +99,12 @@ export class SubvolumeRustic {
   };
 
   // returns list of snapshots sorted from oldest to newest
-  snapshots = async (): Promise<Snapshot[]> => {
+  private snapshotsCache: Snapshot[] | null = null;
+  snapshots = reuseInFlight(async (): Promise<Snapshot[]> => {
+    if (this.snapshotsCache) {
+      // potentially very expensive to get list -- we clear this on delete or create
+      return this.snapshotsCache;
+    }
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["snapshots", "--json"]),
     );
@@ -97,8 +113,9 @@ export class SubvolumeRustic {
       return { time: new Date(time), id };
     });
     v.sort(field_cmp("time"));
+    this.snapshotsCache = v;
     return v;
-  };
+  });
 
   // return list of paths of files in this backup, as paths relative
   // to HOME, and sorted in alphabetical order.
@@ -114,9 +131,40 @@ export class SubvolumeRustic {
   // later.  Rustic likes the purge to happen maybe a day later, so it
   // can better support concurrent writes.
   forget = async ({ id }: { id: string }) => {
+    this.snapshotsCache = null;
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["forget", id]),
     );
     return stdout;
+  };
+
+  update = async (counts?: Partial<SnapshotCounts>, opts?) => {
+    return await updateRollingSnapshots({ snapshots: this, counts, opts });
+  };
+
+  // Snapshot compat api, which is useful for rolling backups.
+
+  create = async (_name?: string, { limit }: { limit?: number } = {}) => {
+    await this.backup({ limit });
+  };
+
+  readdir = async (): Promise<string[]> => {
+    return (await this.snapshots()).map(({ time }) => time.toISOString());
+  };
+
+  // [ ] TODO
+  hasUnsavedChanges = async () => {
+    return true;
+  };
+
+  delete = async (name) => {
+    const v = await this.snapshots();
+    for (const { id, time } of v) {
+      if (time.toISOString() == name) {
+        await this.forget({ id });
+        return;
+      }
+    }
+    throw Error(`backup ${name} not found`);
   };
 }

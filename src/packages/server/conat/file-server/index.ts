@@ -208,9 +208,10 @@ export async function init(_fs?) {
     setQuota,
     cp,
     // backups
-    backup: reuseInFlight(rustic.backup),
-    restore: rustic.restore,
-    deleteBackup: rustic.deleteBackup,
+    createBackup: reuseInFlight(rustic.createBackup),
+    restoreBackup: reuseInFlight(rustic.restoreBackup),
+    deleteBackup: reuseInFlight(rustic.deleteBackup),
+    updateBackups: reuseInFlight(rustic.updateBackups),
     getBackups: reuseInFlight(rustic.getBackups),
     getBackupFiles: reuseInFlight(rustic.getBackupFiles),
 
@@ -218,7 +219,6 @@ export async function init(_fs?) {
     createSnapshot,
     deleteSnapshot,
     updateSnapshots,
-    
   });
 }
 

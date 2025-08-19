@@ -1,4 +1,5 @@
 import { type SubvolumeSnapshots } from "./subvolume-snapshots";
+import { type SubvolumeRustic } from "./subvolume-rustic";
 import {
   SNAPSHOT_INTERVALS_MS,
   DEFAULT_SNAPSHOT_COUNTS,
@@ -16,7 +17,7 @@ export async function updateRollingSnapshots({
   counts,
   opts,
 }: {
-  snapshots: SubvolumeSnapshots;
+  snapshots: SubvolumeSnapshots | SubvolumeRustic;
   counts?: Partial<SnapshotCounts>;
   // options to create
   opts?;

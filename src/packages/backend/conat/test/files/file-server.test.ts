@@ -70,13 +70,13 @@ describe("create basic mocked file server and test it out", () => {
         options?;
       }): Promise<void> => {},
 
-      backup: async (_opts: {
+      createBackup: async (_opts: {
         project_id: string;
       }): Promise<{ time: Date; id: string }> => {
         return { time: new Date(), id: "0" };
       },
 
-      restore: async (_opts: {
+      restoreBackup: async (_opts: {
         project_id: string;
         id: string;
         path?: string;
@@ -86,6 +86,12 @@ describe("create basic mocked file server and test it out", () => {
       deleteBackup: async (_opts: {
         project_id: string;
         id: string;
+      }): Promise<void> => {},
+
+      updateBackups: async (_opts: {
+        project_id: string;
+        counts?: Partial<SnapshotCounts>;
+        limit?: number;
       }): Promise<void> => {},
 
       getBackups: async (_opts: {
