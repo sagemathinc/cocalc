@@ -81,7 +81,9 @@ export function SoftwareEnvironment(props: Props) {
   const software_images = customize_software.get("environments");
 
   const haveSoftwareImages: boolean = useMemo(
-    () => (customize_software.get("environments")?.size ?? 0) > 0,
+    // num images > 1 to not show the standard default
+    // https://github.com/sagemathinc/cocalc/issues/8510
+    () => (customize_software.get("environments")?.size ?? 0) > 1,
     [customize_software],
   );
 
