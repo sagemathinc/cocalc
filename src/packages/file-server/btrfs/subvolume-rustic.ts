@@ -25,6 +25,7 @@ import { field_cmp } from "@cocalc/util/misc";
 import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConatError } from "@cocalc/conat/core/client";
+import { DEFAULT_BACKUP_COUNTS } from "@cocalc/util/db-schema/projects";
 
 export const RUSTIC = "rustic";
 
@@ -143,7 +144,11 @@ export class SubvolumeRustic {
   };
 
   update = async (counts?: Partial<SnapshotCounts>, opts?) => {
-    return await updateRollingSnapshots({ snapshots: this, counts, opts });
+    return await updateRollingSnapshots({
+      snapshots: this,
+      counts: { ...DEFAULT_BACKUP_COUNTS, ...counts },
+      opts,
+    });
   };
 
   // Snapshot compat api, which is useful for rolling backups.

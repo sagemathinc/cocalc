@@ -112,7 +112,10 @@ import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { getFileTemplate } from "./project/templates";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
-import { DEFAULT_SNAPSHOT_COUNTS } from "@cocalc/util/db-schema/projects";
+import {
+  DEFAULT_SNAPSHOT_COUNTS,
+  DEFAULT_BACKUP_COUNTS,
+} from "@cocalc/util/db-schema/projects";
 
 const { defaults, required } = misc;
 
@@ -368,6 +371,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initComputeServersTable();
     this.initProjectStatus();
     this.initSnapshots();
+    this.initBackups();
     const store = this.get_store();
     store?.init_table("public_paths");
   };
@@ -3555,6 +3559,41 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       },
       // every 15 minutes
       { min: 60 * 1000 * 15, max: 60 * 1000 * 15 },
+    );
+  });
+
+  initBackups = reuseInFlight(async () => {
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        const store = redux.getStore("projects");
+        if (store == null) {
+          return false;
+        }
+        const project = store.getIn(["project_map", this.project_id]);
+        if (project == null) {
+          return false;
+        }
+        const counts = project.get("backups")?.toJS() ?? DEFAULT_BACKUP_COUNTS;
+        if (counts.disabled) {
+          return false;
+        }
+        try {
+          await webapp_client.conat_client.hub.projects.updateBackups({
+            project_id: this.project_id,
+            counts,
+          });
+        } catch (err) {
+          console.warn(
+            `WARNING: Issue updating backups of ${this.project_id}`,
+            err,
+            { counts },
+          );
+        }
+        return false;
+      },
+      // every hour - though usually make only one backup per day
+      { min: 60 * 1000 * 60, max: 60 * 1000 * 60 },
     );
   });
 }

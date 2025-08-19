@@ -92,6 +92,7 @@ Table({
           // instead it gets its own virtual table.
           pay_as_you_go_quotas: null,
           snapshots: null,
+          backups: null,
         },
       },
       set: {
@@ -115,6 +116,7 @@ Table({
           avatar_image_tiny: true,
           avatar_image_full: true,
           snapshots: true,
+          backups: true,
         },
         required_fields: {
           project_id: true,
@@ -349,6 +351,11 @@ Table({
     snapshots: {
       type: "map",
       desc: "See the SnapshotSchedule interface.",
+      render: { type: "json", editable: false },
+    },
+    backups: {
+      type: "map",
+      desc: "See the SnapshotSchedule interface; same as for snapshots, but for backups.",
       render: { type: "json", editable: false },
     },
   },
@@ -759,6 +766,13 @@ export const DEFAULT_SNAPSHOT_COUNTS = {
   daily: 14,
   weekly: 7,
   monthly: 4,
+} as SnapshotCounts;
+
+export const DEFAULT_BACKUP_COUNTS = {
+  frequent: 0,
+  daily: 3,
+  weekly: 4,
+  monthly: 6,
 } as SnapshotCounts;
 
 // We have at least one snapshot for each interval, assuming
