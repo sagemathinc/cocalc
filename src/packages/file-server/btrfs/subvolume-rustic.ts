@@ -45,7 +45,6 @@ export class SubvolumeRustic {
     limit,
     timeout = 30 * 60 * 1000,
   }: { timeout?: number; limit?: number } = {}): Promise<Snapshot> => {
-    this.snapshotsCache = null;
     if (limit != null && (await this.snapshots()).length >= limit) {
       // 507 = "insufficient storage" for http
       throw new ConatError(`there is a limit of ${limit} backups`, {
@@ -72,8 +71,11 @@ export class SubvolumeRustic {
       const { time, id } = JSON.parse(stdout);
       return { time: new Date(time), id };
     } finally {
+      this.snapshotsCache = null;
       logger.debug(`backup: deleting temporary ${RUSTIC_SNAPSHOT}`);
-      await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
+      try {
+        await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
+      } catch {}
     }
   };
 
@@ -98,7 +100,7 @@ export class SubvolumeRustic {
     return stdout;
   };
 
-  // returns list of snapshots sorted from oldest to newest
+  // returns list of backups, sorted from oldest to newest
   private snapshotsCache: Snapshot[] | null = null;
   snapshots = reuseInFlight(async (): Promise<Snapshot[]> => {
     if (this.snapshotsCache) {
@@ -109,9 +111,11 @@ export class SubvolumeRustic {
       await this.subvolume.fs.rustic(["snapshots", "--json"]),
     );
     const x = JSON.parse(stdout);
-    const v = x[0][1].map(({ time, id }) => {
-      return { time: new Date(time), id };
-    });
+    const v = !x[0]
+      ? []
+      : x[0][1].map(({ time, id }) => {
+          return { time: new Date(time), id };
+        });
     v.sort(field_cmp("time"));
     this.snapshotsCache = v;
     return v;
@@ -131,10 +135,10 @@ export class SubvolumeRustic {
   // later.  Rustic likes the purge to happen maybe a day later, so it
   // can better support concurrent writes.
   forget = async ({ id }: { id: string }) => {
-    this.snapshotsCache = null;
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["forget", id]),
     );
+    this.snapshotsCache = null;
     return stdout;
   };
 
@@ -152,7 +156,7 @@ export class SubvolumeRustic {
     return (await this.snapshots()).map(({ time }) => time.toISOString());
   };
 
-  // [ ] TODO
+  // TODO -- for now just always assume we do...
   hasUnsavedChanges = async () => {
     return true;
   };
