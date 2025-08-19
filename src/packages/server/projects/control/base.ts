@@ -164,16 +164,16 @@ export class BaseProject extends EventEmitter {
     await runner.stop({ project_id: this.project_id });
   };
 
-  async restart(): Promise<void> {
+  restart = async (): Promise<void> => {
     this.dbg("restart")();
     await this.stop();
     await this.start();
-  }
+  };
 
-  protected async wait(opts: {
+  wait = async (opts: {
     until: () => Promise<boolean>;
     maxTime: number;
-  }): Promise<void> {
+  }): Promise<void> => {
     await until(
       async () => {
         if (await opts.until()) {
@@ -189,16 +189,16 @@ export class BaseProject extends EventEmitter {
         log: (...args) => logger.debug("wait", this.project_id, ...args),
       },
     );
-  }
+  };
 
   // Everything the hub needs to know to connect to the project
   // via the TCP connection.  Raises error if anything can't be
   // determined.
-  async address(): Promise<{
+  address = async (): Promise<{
     host: string;
     port: number;
     secret_token: string;
-  }> {
+  }> => {
     const dbg = this.dbg("address");
     dbg("first ensure is running");
     await this.start();
@@ -217,13 +217,13 @@ export class BaseProject extends EventEmitter {
       port: status["hub-server.port"],
       secret_token: await getProjectSecretToken(this.project_id),
     };
-  }
+  };
 
   /*
     set_all_quotas ensures that if the project is running and the quotas
     (except idle_timeout) have changed, then the project is restarted.
     */
-  async setAllQuotas(): Promise<void> {
+  setAllQuotas = async (): Promise<void> => {
     const dbg = this.dbg("set_all_quotas");
     dbg();
     // 1. Get data about project from the database, namely:
@@ -261,27 +261,27 @@ export class BaseProject extends EventEmitter {
         }
       })();
     }
-  }
+  };
 
-  protected async computeQuota() {
+  computeQuota = async () => {
     const paygoQuota = await this.getPayAsYouGoQuota();
     await this.siteLicenseHook(paygoQuota != null);
     await this.setRunQuota(paygoQuota);
-  }
+  };
 
-  protected async getPayAsYouGoQuota() {
+  getPayAsYouGoQuota = async () => {
     try {
       return await handlePayAsYouGoQuotas(this.project_id);
     } catch (err) {
       logger.debug("issue handling pay as you go quota", err);
       return null;
     }
-  }
+  };
 
   // The run_quota is now explicitly used in singule-user and multi-user
   // to control at least idle timeout of projects; also it is very useful
   // for development since it is shown in the UI (in project settings).
-  async setRunQuota(run_quota: Quota | null): Promise<void> {
+  setRunQuota = async (run_quota: Quota | null): Promise<void> => {
     // if null, there is no paygo quota, so we have to compute it based on the licenses
     if (run_quota == null) {
       const { settings, users, site_license } = await query({
@@ -304,5 +304,5 @@ export class BaseProject extends EventEmitter {
     });
 
     logger.debug("updated run_quota=", run_quota);
-  }
+  };
 }

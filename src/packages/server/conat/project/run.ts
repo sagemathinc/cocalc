@@ -87,7 +87,7 @@ async function touch(project_id) {
 }
 
 const MOUNTS = {
-  "-R": ["/etc", "/var", "/bin", "/lib", "/usr", "/lib64"],
+  "-R": ["/etc", "/var", "/bin", "/lib", "/usr", "/lib64", "/run"],
   "-B": ["/dev"],
 };
 

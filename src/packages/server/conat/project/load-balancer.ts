@@ -8,8 +8,12 @@ import { loadConatConfiguration } from "../configuration";
 import getLogger from "@cocalc/backend/logger";
 import { setProjectState } from "./run";
 import getPool from "@cocalc/database/pool";
+import { getProject } from "@cocalc/server/projects/control";
+import { type Configuration } from "./types";
 
 const logger = getLogger("server:conat:project:load-balancer");
+
+const DEFAULT_PID_LIMIT = 4096;
 
 let server;
 export async function init() {
@@ -28,22 +32,29 @@ export function close() {
   server?.close();
 }
 
-async function getConfig({ project_id }) {
-  const pool = getPool("medium");
+async function getConfig({ project_id }): Promise<Configuration> {
+  const project = getProject(project_id);
+  await project.computeQuota();
+  const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT settings FROM projects WHERE project_id=$1",
+    "SELECT settings, run_quota FROM projects WHERE project_id=$1",
     [project_id],
   );
-  if (rows[0]?.settings?.admin) {
-    return { admin: true, disk: "25G" };
-  } else {
-    // some defaults, mainly for testing
-    return {
-      cpu: "1000m",
-      memory: "8Gi",
-      pids: 2500,
-      swap: "5000Gi",
-      disk: "1G",
-    };
+  if (rows.length == 0) {
+    throw Error(`no project ${project_id}`);
   }
+  const { settings, run_quota } = rows[0];
+  const config = {} as Configuration;
+  if (settings?.admin || run_quota?.privileged) {
+    config.admin = true;
+  }
+  config.cpu = `${(run_quota?.cpu_limit ?? 1) * 1000}m`;
+  config.memory = `${run_quota?.memory ?? 1000}M`;
+  config.pids = DEFAULT_PID_LIMIT;
+  config.swap = "16Gi"; // no clue
+  config.disk = `${run_quota?.disk_quota ?? 1000}M`;
+
+  logger.debug("config", { project_id, run_quota, config });
+
+  return config;
 }
