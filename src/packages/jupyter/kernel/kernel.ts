@@ -34,9 +34,7 @@ import { callback } from "awaiting";
 import type { MessageType } from "@cocalc/jupyter/zmq/types";
 import { jupyterSockets, type JupyterSockets } from "@cocalc/jupyter/zmq";
 import { EventEmitter } from "node:events";
-import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import {
-  type BlobStoreInterface,
   CodeExecutionEmitterInterface,
   ExecOpts,
   JupyterKernelInterface,
@@ -45,7 +43,7 @@ import {
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
-import { retry_until_success, until } from "@cocalc/util/async-utils";
+import { until } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import { key_value_store } from "@cocalc/util/key-value-store";
 import {
@@ -57,7 +55,6 @@ import {
   original_path,
   path_split,
   uuid,
-  uint8ArrayToBase64,
 } from "@cocalc/util/misc";
 import { CodeExecutionEmitter } from "@cocalc/jupyter/execute/execute-code";
 import {
@@ -83,9 +80,6 @@ import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 import { base64ToBuffer } from "@cocalc/util/base64";
-import { sha1 as misc_node_sha1 } from "@cocalc/backend/misc_node";
-import { join } from "path";
-import { readFile } from "fs/promises";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
@@ -918,80 +912,8 @@ export class JupyterKernel
     },
   );
 
-  load_attachment = async (path: string): Promise<string> => {
-    const dbg = this.dbg("load_attachment");
-    dbg(`path='${path}'`);
-    if (path[0] !== "/") {
-      path = join(process.env.HOME ?? "", path);
-    }
-    const f = async (): Promise<string> => {
-      const bs = this.get_blob_store();
-      if (bs == null) {
-        throw new Error("BlobStore not available");
-      }
-      return await bs.readFile(path);
-    };
-    try {
-      return await retry_until_success({
-        f,
-        max_time: 30000,
-      });
-    } catch (err) {
-      unlink(path); // TODO: think through again if this is the right thing to do.
-      throw err;
-    }
-  };
-
-  // This is called by project-actions when exporting the notebook
-  // to an ipynb file:
-  get_blob_store = (): BlobStoreInterface | undefined => {
-    const blobs = this._actions?.blobs;
-    if (blobs == null) {
-      return;
-    }
-    const t = new TextDecoder();
-    return {
-      getBase64: (sha1: string): string | undefined => {
-        const buf = blobs.get(sha1);
-        if (buf === undefined) {
-          return buf;
-        }
-        return uint8ArrayToBase64(buf);
-      },
-
-      getString: (sha1: string): string | undefined => {
-        const buf = blobs.get(sha1);
-        if (buf === undefined) {
-          return buf;
-        }
-        return t.decode(buf);
-      },
-
-      readFile: async (path: string): Promise<string> => {
-        const buf = await readFile(path);
-        const sha1: string = misc_node_sha1(buf);
-        blobs.set(sha1, buf);
-        return sha1;
-      },
-
-      saveBase64: (data: string) => {
-        const buf = Buffer.from(data, "base64");
-        const sha1: string = misc_node_sha1(buf);
-        blobs.set(sha1, buf);
-        return sha1;
-      },
-    };
-  };
-
   process_comm_message_from_kernel = (mesg): void => {
-    if (this._actions == null) {
-      return;
-    }
-    const dbg = this.dbg("process_comm_message_from_kernel");
-    // This can be HUGE so don't print out the entire message; e.g., it could contain
-    // massive binary data!
-    dbg(mesg.header);
-    this._actions.process_comm_message_from_kernel(mesg);
+    this._actions?.process_comm_message_from_kernel(mesg);
   };
 
   ipywidgetsGetBuffer = (
@@ -1008,7 +930,7 @@ export class JupyterKernel
     );
   };
 
-  send_comm_message_to_kernel = ({
+  sendCommMessageToKernel = ({
     msg_id,
     comm_id,
     target_name,
@@ -1026,7 +948,7 @@ export class JupyterKernel
     if (this.sockets == null) {
       throw Error("sockets not initialized");
     }
-    const dbg = this.dbg("send_comm_message_to_kernel");
+    const dbg = this.dbg("sendCommMessageToKernel");
     // this is HUGE
     // dbg({ msg_id, comm_id, target_name, data, buffers64 });
     if (buffers64 != null && buffers64.length > 0) {

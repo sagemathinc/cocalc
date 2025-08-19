@@ -60,5 +60,15 @@ export async function signal(opts) {
   await control.signal(opts);
 }
 
+export async function sendCommMessageToKernel(opts) {
+  await start(opts.path);
+  await control.sendCommMessageToKernel(opts);
+}
+
+export async function ipywidgetsGetBuffer(opts) {
+  await start(opts.path);
+  return await control.ipywidgetsGetBuffer(opts);
+}
+
 import apiExecute from "@cocalc/jupyter/stateless-api/execute";
 export { apiExecute };

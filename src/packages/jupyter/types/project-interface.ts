@@ -108,7 +108,6 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   execute_code(opts: ExecOpts): CodeExecutionEmitterInterface;
   cancel_execute(id: string): void;
   execute_code_now(opts: ExecOpts): Promise<object[]>;
-  get_blob_store(): BlobStoreInterface | undefined;
   complete(opts: { code: any; cursor_pos: any });
   introspect(opts: {
     code: any;
@@ -118,8 +117,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   kernel_info(): Promise<KernelInfo>;
   more_output(id: string): any[];
   nbconvert(args: string[], timeout?: number): Promise<void>;
-  load_attachment(path: string): Promise<string>;
-  send_comm_message_to_kernel(msg: {
+  sendCommMessageToKernel(msg: {
     msg_id: string;
     comm_id: string;
     target_name: string;
@@ -135,4 +133,9 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
 
   chdir(path: string): Promise<void>;
   ensure_running(): Promise<void>;
+
+  ipywidgetsGetBuffer(
+    model_id: string,
+    buffer_path: string | string[],
+  ): Buffer | undefined;
 }

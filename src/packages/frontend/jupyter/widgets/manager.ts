@@ -541,7 +541,7 @@ VBox([s1, s2])
     buffers?: ArrayBuffer[];
   }): Promise<IClassicComm> => {
     log("openCommChannel", { comm_id, target_name, data, buffers, _metadata });
-    const { send_comm_message_to_kernel } = this.actions;
+    const { sendCommMessageToKernel } = this.actions;
 
     // TODO: we do not currently have anything at all that
     // routes messages to this.
@@ -572,7 +572,7 @@ VBox([s1, s2])
       ): string {
         log("comm.send", { data, buffers, metadata, callbacks });
         const msg_id = uuid();
-        send_comm_message_to_kernel({
+        sendCommMessageToKernel({
           msg_id,
           comm_id,
           target_name,

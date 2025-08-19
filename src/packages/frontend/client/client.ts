@@ -92,12 +92,6 @@ export interface WebappClient extends EventEmitter {
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
-  ipywidgetsGetBuffer: (
-    project_id: string,
-    path: string,
-    model_id: string,
-    buffer_path: string,
-  ) => Promise<ArrayBuffer>;
   log_error: (any) => void;
   user_tracking: Function;
   send: Function;
@@ -173,12 +167,6 @@ class Client extends EventEmitter implements WebappClient {
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
-  ipywidgetsGetBuffer: (
-    project_id: string,
-    path: string,
-    model_id: string,
-    buffer_path: string,
-  ) => Promise<ArrayBuffer>;
 
   log_error: (any) => void;
   user_tracking: Function;
@@ -236,9 +224,6 @@ class Client extends EventEmitter implements WebappClient {
 
     this.exec = this.project_client.exec.bind(this.project_client);
     this.touch_project = this.project_client.touch_project.bind(
-      this.project_client,
-    );
-    this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
       this.project_client,
     );
 

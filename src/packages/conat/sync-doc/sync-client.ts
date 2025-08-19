@@ -9,6 +9,8 @@ import { parseQueryWithOptions } from "@cocalc/sync/table/util";
 import { PubSub } from "@cocalc/conat/sync/pubsub";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { type ConatSyncTable } from "@cocalc/conat/sync/synctable";
+import { projectApiClient } from "@cocalc/conat/project/api";
+import { base64ToBuffer } from "@cocalc/util/base64";
 
 export class SyncClient extends EventEmitter implements Client0 {
   private client: ConatClient;
@@ -73,6 +75,28 @@ export class SyncClient extends EventEmitter implements Client0 {
 
   server_time = (): Date => {
     return new Date();
+  };
+
+  ipywidgetsGetBuffer = async ({
+    project_id,
+    compute_server_id = 0,
+    path,
+    model_id,
+    buffer_path,
+  }: {
+    project_id: string;
+    compute_server_id?: number;
+    path: string;
+    model_id: string;
+    buffer_path: string;
+  }): Promise<ArrayBuffer> => {
+    const api = projectApiClient({ project_id, compute_server_id });
+    const { buffer64 } = await api.jupyter.ipywidgetsGetBuffer({
+      path,
+      model_id,
+      buffer_path,
+    });
+    return base64ToBuffer(buffer64);
   };
 
   /////////////////////////////////

@@ -16,6 +16,9 @@ export const jupyter = {
   signal: true,
   getConnectionFile: true,
 
+  sendCommMessageToKernel: true,
+  ipywidgetsGetBuffer: true,
+
   // jupyter stateless API
   apiExecute: true,
 };
@@ -58,4 +61,22 @@ export interface Jupyter {
   signal: (opts: { path: string; signal: string }) => Promise<void>;
 
   apiExecute: (opts: ProjectJupyterApiOptions) => Promise<object[]>;
+
+  sendCommMessageToKernel: (opts: {
+    path: string;
+    msg: {
+      msg_id: string;
+      comm_id: string;
+      target_name: string;
+      data: any;
+      buffers64?: string[];
+      buffers?: Buffer[];
+    };
+  }) => Promise<void>;
+
+  ipywidgetsGetBuffer: (opts: {
+    path: string;
+    model_id: string;
+    buffer_path: string | string[];
+  }) => Promise<{ buffer64: string }>;
 }

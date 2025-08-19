@@ -508,21 +508,6 @@ export class ProjectClient {
     return !exit_code && stdout.trim() == "directory";
   };
 
-  ipywidgetsGetBuffer = reuseInFlight(
-    async (
-      project_id: string,
-      path: string,
-      model_id: string,
-      buffer_path: string,
-    ): Promise<ArrayBuffer> => {
-      const actions = redux.getEditorActions(project_id, path);
-      return await actions.jupyter_actions.ipywidgetsGetBuffer(
-        model_id,
-        buffer_path,
-      );
-    },
-  );
-
   // getting, setting, editing, deleting, etc., the  api keys for a project
   api_keys = async (opts: {
     project_id: string;

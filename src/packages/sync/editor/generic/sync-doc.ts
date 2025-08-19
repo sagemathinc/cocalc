@@ -109,6 +109,7 @@ export type DataServer = "project" | "database";
 export interface SyncOpts0 {
   project_id: string;
   path: string;
+  compute_server_id?: number;
   client: Client;
   patch_interval?: number;
 
@@ -179,6 +180,7 @@ logger.debug("init");
 
 export class SyncDoc extends EventEmitter {
   public readonly opts: SyncOpts;
+  public readonly compute_server_id: number;
   public readonly project_id: string; // project_id that contains the doc
   public readonly path: string; // path of the file corresponding to the doc
   private string_id: string;
@@ -264,6 +266,8 @@ export class SyncDoc extends EventEmitter {
   constructor(opts: SyncOpts) {
     super();
     this.opts = opts;
+    // TODO
+    this.compute_server_id = opts.compute_server_id ?? 0;
 
     if (opts.string_id === undefined) {
       this.string_id = schema.client_db.sha1(opts.project_id, opts.path);
@@ -2292,7 +2296,7 @@ export class SyncDoc extends EventEmitter {
     let contents;
     try {
       // This lock is *extremely* important when opening the document
-      // since it prevents having two identical patches, e.g,. when 
+      // since it prevents having two identical patches, e.g,. when
       // two clients initialize the doc at the same time, which would
       // result in "doubled content" (when the merge conflict happens).
       const lock = this.opts.readLockTimeout ?? READ_LOCK_TIMEOUT;

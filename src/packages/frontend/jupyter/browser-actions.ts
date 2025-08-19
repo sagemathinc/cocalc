@@ -22,7 +22,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
 import { CellToolbarName } from "@cocalc/jupyter/types";
 import { callback2, once } from "@cocalc/util/async-utils";
-import { base64ToBuffer, bufferToBase64 } from "@cocalc/util/base64";
+import { bufferToBase64 } from "@cocalc/util/base64";
 import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
 import {
   closest_kernel_match,
@@ -481,7 +481,7 @@ export class JupyterActions extends JupyterActions0 {
     this.deprecated("command", name);
   };
 
-  send_comm_message_to_kernel = async ({
+  sendCommMessageToKernel = async ({
     msg_id,
     comm_id,
     target_name,
@@ -503,21 +503,17 @@ export class JupyterActions extends JupyterActions0 {
     } else {
       buffers64 = [];
     }
-    const msg = { msg_id, target_name, comm_id, data, buffers64 };
-    await this.api().comm(msg);
-    // console.log("send_comm_message_to_kernel", "sent", msg);
+    const msg = {
+      msg_id,
+      target_name,
+      comm_id,
+      data,
+      buffers64,
+    };
+    const api = await this.jupyterApi();
+    await api.sendCommMessageToKernel({ path: this.path, msg });
     return msg_id;
   };
-
-  ipywidgetsGetBuffer = reuseInFlight(
-    async (model_id: string, buffer_path: string): Promise<ArrayBuffer> => {
-      const { buffer64 } = await this.api().ipywidgetsGetBuffer({
-        model_id,
-        buffer_path,
-      });
-      return base64ToBuffer(buffer64);
-    },
-  );
 
   // NOTE: someday move this to the frame-tree actions, since it would
   // be generically useful!

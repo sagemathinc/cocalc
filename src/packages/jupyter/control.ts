@@ -8,6 +8,7 @@ import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { throttle } from "lodash";
 import { type RunOptions } from "@cocalc/conat/project/jupyter/run-code";
 import { type JupyterActions } from "@cocalc/jupyter/redux/project-actions";
+import { bufferToBase64 } from "@cocalc/util/base64";
 import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("jupyter:control");
@@ -233,4 +234,22 @@ export async function getConnectionFile(opts: { path }) {
 export async function signal(opts: { path: string; signal: string }) {
   const kernel = getKernel(opts.path);
   await kernel.signal(opts.signal);
+}
+
+export async function sendCommMessageToKernel({ path, msg }) {
+  const kernel = getKernel(path);
+  await kernel.sendCommMessageToKernel(msg);
+}
+
+export async function ipywidgetsGetBuffer({ path, model_id, buffer_path }) {
+  const kernel = getKernel(path);
+  const buffer = kernel.ipywidgetsGetBuffer(model_id, buffer_path);
+  if (buffer == null) {
+    throw Error(
+      `no buffer for model=${model_id}, buffer_path=${JSON.stringify(
+        buffer_path,
+      )}`,
+    );
+  }
+  return { buffer64: bufferToBase64(buffer) };
 }

@@ -17,7 +17,7 @@ This is running on a backend somewhere:
 
 ```
 
-The communication between the node.js process above and any number of browser clients is accomplished entirely via CoCalc's own implementation of RTC.  As a side effect, this makes it so multiple people can use ipywidgets in collaboration.  Also, it provides a clear conceptual separation between widgets an RTC, which should be two completely separate things, but which are tangled up in ipywidgets itself.   \(Necessarily, due to multiple kernels in different languages, it might be harder to separate this in ipywidgets itself; or maybe I'm totally wrong, since it's not like I understand the internal architecture of ipywidgets super well.\)
+The communication between the node.js process above and any number of browser clients is accomplished entirely via CoCalc's own implementation of RTC.  As a side effect, this makes it so multiple people can use ipywidgets in collaboration.  Also, it provides a clear conceptual separation between widgets and RTC, which should be two completely separate things, but which are tangled up in ipywidgets itself.   \(Necessarily, due to multiple kernels in different languages, it might be harder to separate this in ipywidgets itself; or maybe I'm totally wrong, since it's not like I understand the internal architecture of ipywidgets super well.\)
 
 The most important files in CoCalc, relevant to implementation of ipywidgets:
 
@@ -25,6 +25,3 @@ The most important files in CoCalc, relevant to implementation of ipywidgets:
 - `packages/frontend/jupyter/widgets/manager.ts` \- keeps track of incoming widget information.
 - `packages/frontend/jupyter/output-messages/widget.tsx` \- renders widgets using React \+ Lumino
 
-## Custom Widgets
-
-We do not \(yet?\) directly support custom widgets.  We might never do that, instead just doing our integration of those very same widgets, on a case\-by\-case basis.  We will see...

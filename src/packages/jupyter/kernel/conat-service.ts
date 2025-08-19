@@ -106,7 +106,7 @@ export async function initConatService({
       }
     },
     comm: async (opts) => {
-      (await getExistingKernel()).send_comm_message_to_kernel(opts);
+      (await getExistingKernel()).sendCommMessageToKernel(opts);
     },
 
     ipywidgetsGetBuffer: async ({ model_id, buffer_path }) => {
