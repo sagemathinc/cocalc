@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - Some older code is JavaScript or CoffeeScript, which will be translated to TypeScript
 - Use ES modules (import/export) syntax, not CommonJS (require)
 - Organize the list of imports in such a way: installed npm packages are on top, newline, then are imports from @cocalc's code base. Sorted alphabetically.
+- **Colors**: Always use the `COLORS` dictionary from `@cocalc/util/theme` for all color values. Never hardcode colors like `#f0f0f0` or `rgb(...)`. Import with `import { COLORS } from "@cocalc/util/theme";` and use predefined constants like `COLORS.GRAY_M`, `COLORS.GRAY_L`, `COLORS.GRAY_LL`, etc.
 - **Backend Logging**: Use `getLogger` from `@cocalc/project/logger` for logging in backend code. Do NOT use `console.log`. Example: `const L = getLogger("module:name").debug;`
 
 ## Development Commands
@@ -40,6 +41,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm tsc:watch` - TypeScript compilation in watch mode for a specific package
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - `cd packages/[package] && pnpm build` - Build a specific package
+- To typecheck the frontend, it is best to run `cd packages/static && pnpm build` - this implicitly compiles the frontend and reports typescript errors
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
 ### Development
@@ -165,18 +167,34 @@ CoCalc is organized as a monorepo with key packages:
 
 CoCalc uses react-intl for internationalization with SimpleLocalize as the translation platform.
 
+### Architecture Overview
+
+- **Library**: Uses `react-intl` library with `defineMessages()` and `defineMessage()`
+- **Default Language**: English uses `defaultMessage` directly - no separate English translation files
+- **Supported Languages**: 19+ languages including German, Chinese, Spanish, French, Italian, Dutch, Russian, Japanese, Portuguese, Korean, Polish, Turkish, Hebrew, Hindi, Hungarian, Arabic, and Basque
+- **Translation Platform**: SimpleLocalize with OpenAI GPT-4o for automatic translations
+
 ### Translation ID Naming Convention
 
 Translation IDs follow a hierarchical pattern: `[directory].[subdir].[filename].[aspect].[label|title|tooltip|...]`
 
 Examples:
+
 - `labels.masked_files` - for common UI labels
 - `account.sign-out.button.title` - for account sign-out dialog
 - `command.generic.force_build.label` - for command labels
 
+### Usage Patterns
+
+- **TSX Components**: `<FormattedMessage id="..." defaultMessage="..." />`
+- **Data Structures**: `defineMessage({id: "...", defaultMessage: "..."})`
+- **Programmatic Use**: `useIntl()` hook + `intl.formatMessage()`
+- **Non-React Contexts**: `getIntl()` function
+
 ### Translation Workflow
 
 **For new translation keys:**
+
 1. Add the translation to source code (e.g., `packages/frontend/i18n/common.ts`)
 2. Run `pnpm i18n:extract` - updates `extracted.json` from source code
 3. Run `pnpm i18n:upload` - sends new strings to SimpleLocalize
@@ -189,14 +207,22 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 
 ### Translation File Structure
 
-- `packages/frontend/i18n/README.md` - more information
-- `packages/frontend/i18n/common.ts` - shared translation definitions
-- `packages/frontend/i18n/extracted.json` - auto-generated, do not edit manually
-- `packages/frontend/i18n/[locale].json` - downloaded translations per language
-- `packages/frontend/i18n/[locale].compiled.json` - compiled for runtime use
+- `packages/frontend/i18n/README.md` - detailed documentation
+- `packages/frontend/i18n/common.ts` - shared translation definitions (labels, menus, editor, jupyter, etc.)
+- `packages/frontend/i18n/extracted.json` - auto-extracted messages from source code
+- `packages/frontend/i18n/trans/[locale].json` - downloaded translations from SimpleLocalize
+- `packages/frontend/i18n/trans/[locale].compiled.json` - compiled translation files for runtime
+- `packages/frontend/i18n/index.ts` - exports and locale loading logic
 
 # Ignore
 
 - Ignore files covered by `.gitignore`
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
+
+# important-instruction-reminders
+
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.

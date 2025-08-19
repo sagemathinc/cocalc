@@ -74,7 +74,8 @@
     "ptree",
     "pchildren",
     "nprocs",
-    "pids"
+    "pids",
+    "descr"
   ],
   "flagWords": [],
   "ignorePaths": ["node_modules/**", "dist/**", "dist-ts/**", "build/**"],
