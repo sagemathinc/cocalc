@@ -6,7 +6,7 @@
 import { Map } from "immutable";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
-import { CELLTYPE_INFO_MAP, state_to_value } from "./cell-types";
+import { CELL_TYPE_INFO_MAP, state_to_value } from "./cell-types";
 import { Icon, Tip } from "@cocalc/frontend/components";
 
 interface Props {
@@ -47,7 +47,7 @@ export const NBGraderMetadata: React.FC<Props> = React.memo((props: Props) => {
 
   const value: string | undefined = state_to_value(nbgrader.toJS());
   if (value == null) return null;
-  const info = CELLTYPE_INFO_MAP[value];
+  const info = CELL_TYPE_INFO_MAP[value];
   if (info.show_only_with_toolbar && !props.toolbarIsVisible) return null;
   return (
     <Tip

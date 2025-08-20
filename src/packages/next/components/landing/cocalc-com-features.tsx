@@ -117,7 +117,7 @@ export function CoCalcComFeatures() {
           },
           {
             icon: "graduation-cap",
-            title: "NBGrader",
+            title: "nbgrader",
             link: "https://doc.cocalc.com/teaching-nbgrader.html",
           },
           { icon: "slides", title: "Slides", link: "/features/whiteboard" },
@@ -134,7 +134,7 @@ export function CoCalcComFeatures() {
           to deal with multiple versions of the same file. There is even support
           for{" "}
           <A href={"https://doc.cocalc.com/teaching-nbgrader.html"}>
-            automated grading via NBGrader
+            automated grading via nbgrader
           </A>
           .
         </Paragraph>
