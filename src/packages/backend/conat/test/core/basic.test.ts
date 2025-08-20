@@ -101,7 +101,7 @@ describe("basic test of publish and subscribe", () => {
     const sub1 = await cn.subscribe(subject);
     await expect(async () => {
       await cn.subscribe(subject, { queue: "xxx" });
-    }).rejects.toThrowError("one queue group");
+    }).rejects.toThrow("one queue group");
 
     sub1.stop();
     // now this works
@@ -259,7 +259,7 @@ describe("basic tests of request/respond", () => {
   it("call the iter server -- test that throws an error", async () => {
     await expect(async () => {
       await callIter(c1, null);
-    }).rejects.toThrowError("is not iterable");
+    }).rejects.toThrow("is not iterable");
   });
 });
 

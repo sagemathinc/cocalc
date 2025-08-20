@@ -38,7 +38,7 @@ describe("create a service and test it out", () => {
     s.close();
     await expect(async () => {
       await callConatService({ service: "echo", mesg: "hi", timeout: 250 });
-    }).rejects.toThrowError("time");
+    }).rejects.toThrow("time");
   });
 });
 
@@ -275,7 +275,7 @@ describe("create a slow service and check that the timeout parameter works", () 
         mesg: 5000,
         timeout: 75,
       });
-    }).rejects.toThrowError("imeout");
+    }).rejects.toThrow("imeout");
   });
 
   it("clean up", async () => {
