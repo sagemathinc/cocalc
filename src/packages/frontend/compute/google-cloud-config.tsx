@@ -1,16 +1,3 @@
-import type {
-  Images,
-  State,
-  GoogleCloudConfiguration as GoogleCloudConfigurationType,
-  ComputeServerTemplate,
-  GoogleCloudAcceleratorType,
-} from "@cocalc/util/db-schema/compute-servers";
-import { reloadImages, useImages, useGoogleImages } from "./images-hook";
-import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
-import {
-  getMinDiskSizeGb,
-  getArchitecture,
-} from "@cocalc/util/db-schema/compute-servers";
 import {
   Alert,
   Button,
@@ -25,44 +12,60 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { currency, cmp, plural } from "@cocalc/util/misc";
+import { isEqual } from "lodash";
+import { useEffect, useState } from "react";
+
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { A } from "@cocalc/frontend/components/A";
+import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import Disk from "@cocalc/frontend/compute/cloud/common/disk";
+import DNS from "@cocalc/frontend/compute/cloud/common/dns";
+import Template from "@cocalc/frontend/compute/cloud/common/template";
+import { displayAcceleratorType } from "@cocalc/frontend/compute/cloud/google-cloud/accelerator";
+import Specs, {
+  RamAndCpu,
+} from "@cocalc/frontend/compute/cloud/google-cloud/specs";
+import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
+import { filterOption } from "@cocalc/frontend/compute/util";
 import computeCost, {
-  GoogleCloudData,
-  EXTERNAL_IP_COST,
-  DATA_TRANSFER_OUT_COST_PER_GiB,
-  markup,
   computeAcceleratorCost,
-  computeInstanceCost,
   computeDiskCost,
+  computeInstanceCost,
+  DATA_TRANSFER_OUT_COST_PER_GiB,
+  EXTERNAL_IP_COST,
+  GoogleCloudData,
+  markup,
 } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import type {
+  Architecture,
+  ComputeServerTemplate,
+  GoogleCloudAcceleratorType,
+  GoogleCloudConfiguration as GoogleCloudConfigurationType,
+  Images,
+  State,
+} from "@cocalc/util/db-schema/compute-servers";
+import {
+  getArchitecture,
+  getMachineTypeArchitecture,
+  getMinDiskSizeGb,
+  GOOGLE_CLOUD_DEFAULTS,
+} from "@cocalc/util/db-schema/compute-servers";
+import { cmp, currency, plural } from "@cocalc/util/misc";
+import AllowCollaboratorControl from "./allow-collaborator-control";
 import {
   getGoogleCloudPriceData,
   setImageTested,
   setServerConfiguration,
 } from "./api";
-import { useEffect, useState } from "react";
-import { A } from "@cocalc/frontend/components/A";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { isEqual } from "lodash";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
-import Ephemeral from "./ephemeral";
 import AutoRestart from "./auto-restart";
-import AllowCollaboratorControl from "./allow-collaborator-control";
-import NestedVirtualization from "./nested-virtualization";
-import ShowError from "@cocalc/frontend/components/error";
-import Proxy from "./proxy";
-import CostOverview from "./cost-overview";
-import Disk from "@cocalc/frontend/compute/cloud/common/disk";
-import DNS from "@cocalc/frontend/compute/cloud/common/dns";
-import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { availableClouds } from "./config";
-import Template from "@cocalc/frontend/compute/cloud/common/template";
-import Specs, {
-  RamAndCpu,
-} from "@cocalc/frontend/compute/cloud/google-cloud/specs";
-import { displayAcceleratorType } from "@cocalc/frontend/compute/cloud/google-cloud/accelerator";
-import { filterOption } from "@cocalc/frontend/compute/util";
+import CostOverview from "./cost-overview";
+import Ephemeral from "./ephemeral";
+import { reloadImages, useGoogleImages, useImages } from "./images-hook";
+import NestedVirtualization from "./nested-virtualization";
+import Proxy from "./proxy";
+import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -794,9 +797,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
         <Radio.Button value="standard">
           Standard{" "}
-          {prices != null
-            ? `${currency(prices.standard)}/hour`
-            : undefined}{" "}
+          {prices != null ? `${currency(prices.standard)}/hour` : undefined}{" "}
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
@@ -939,17 +940,19 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
 }
 
 function MachineType({ priceData, setConfig, configuration, disabled, state }) {
-  const [archType, setArchType] = useState<"x86_64" | "arm64">(
+  const [archType, setArchType] = useState<Architecture>(
     getArchitecture(configuration),
   );
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newMachineType, setNewMachineType] = useState<string>(
     configuration.machineType ?? "",
   );
+
   useEffect(() => {
     setNewMachineType(configuration.machineType);
     setArchType(getArchitecture(configuration));
   }, [configuration.machineType]);
+
   useEffect(() => {
     if (archType == "arm64" && getArchitecture(configuration) != "arm64") {
       setNewMachineType("t2a-standard-4");
@@ -964,17 +967,19 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   }, [archType, configuration.machineType]);
 
   const machineTypes = Object.keys(priceData.machineTypes);
-  let allOptions = machineTypes
+  const allOptions = machineTypes
     .filter((machineType) => {
       const { acceleratorType } = configuration;
       if (!acceleratorType) {
         if (machineType.startsWith("g") || machineType.startsWith("a")) {
           return false;
         }
-        if (archType == "arm64" && getArchitecture(configuration) != "arm64") {
+        // Check if the machine type's architecture matches the selected architecture
+        const machineArch = getMachineTypeArchitecture(machineType);
+        if (archType == "arm64" && machineArch != "arm64") {
           return false;
         }
-        if (archType == "x86_64" && getArchitecture(configuration) == "arm64") {
+        if (archType == "x86_64" && machineArch != "x86_64") {
           return false;
         }
       } else {
@@ -1049,8 +1054,8 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
             (state ?? "deprovisioned") != "deprovisioned"
               ? "Can only be changed when machine is deprovisioned"
               : archType == "x86_64"
-                ? "Intel or AMD X86_64 architecture machines"
-                : "ARM64 architecture machines"
+              ? "Intel or AMD X86_64 architecture machines"
+              : "ARM64 architecture machines"
           }
         >
           <Radio.Group
