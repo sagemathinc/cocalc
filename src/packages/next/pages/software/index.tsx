@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Layout, Space } from "antd";
+import { Layout, Radio } from "antd";
 
 import {
   LanguageName,
@@ -19,6 +19,8 @@ import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+
+// Images
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";
 import executablesScreenshot from "public/software/executables.png";
@@ -56,24 +58,26 @@ const LINKS: { [lang in LanguageName | "executables"]: string } = {
 function renderSoftwareEnvLinks(lang: LanguageName | "executables") {
   return (
     <Paragraph>
-      <Space>
+      <Radio.Group
+        optionType="button"
+        size="small"
+        value={SOFTWARE_ENV_DEFAULT}
+        buttonStyle="solid"
+      >
         {SOFTWARE_ENV_NAMES.map((name) => {
-          const type = SOFTWARE_ENV_DEFAULT === name ? "primary" : undefined;
-          const style = type === "primary" ? { fontWeight: "bold" } : {};
           // toLowerCase is necessary for R → r
           const href = `/software/${lang.toLowerCase()}/${name}`;
           return (
-            <Button
-              size="small"
-              type={type}
-              href={href}
-              style={{ ...style, padding: "5px" }}
+            <Radio.Button
+              key={name}
+              value={name}
+              onClick={() => (window.location.href = href)}
             >
               {name}
-            </Button>
+            </Radio.Button>
           );
         })}
-      </Space>
+      </Radio.Group>
     </Paragraph>
   );
 }

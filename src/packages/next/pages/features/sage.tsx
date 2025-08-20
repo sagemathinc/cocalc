@@ -251,7 +251,7 @@ export default function Sage({ customize }) {
           </Info>
 
           <Info
-            title={"Teach using SageMath and Nbgrader"}
+            title={"Teach using SageMath and nbgrader"}
             image={sageNbgrader}
             alt={"A screenshot using nbgrader with SageMath."}
             anchor="nbgrader"

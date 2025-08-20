@@ -9,6 +9,7 @@ import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -19,6 +20,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import CopyButton from "@cocalc/frontend/components/copy-button";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
@@ -501,13 +503,121 @@ export default function Message({
     );
   }
 
-  function renderMessageBody({ lighten, message_class }) {
-    const value = newest_content(message);
+  function renderCopyMessageButton() {
+    return (
+      <Tip
+        placement={"top"}
+        title={intl.formatMessage({
+          id: "chat.message.copy_markdown.tooltip",
+          defaultMessage: "Copy message as markdown",
+          description:
+            "Tooltip for button to copy chat message as markdown text",
+        })}
+      >
+        <CopyButton
+          value={message_to_markdown(message)}
+          size="small"
+          noText={true}
+          style={{
+            color: is_viewers_message ? "white" : "#888",
+            fontSize: "12px",
+            marginTop: "-4px",
+          }}
+        />
+      </Tip>
+    );
+  }
+
+  function renderLinkMessageButton() {
+    return (
+      <Tip
+        placement={"top"}
+        title={intl.formatMessage({
+          id: "chat.message.copy_link.tooltip",
+          defaultMessage: "Select message. Copy URL to link to this message.",
+          description:
+            "Tooltip for button to copy URL link to specific chat message",
+        })}
+      >
+        <Button
+          onClick={() => {
+            actions?.setFragment(message.get("date"));
+          }}
+          size="small"
+          type={"text"}
+          style={{
+            color: is_viewers_message ? "white" : "#888",
+            fontSize: "12px",
+            marginTop: "-4px",
+          }}
+        >
+          <Icon name="link" />
+        </Button>
+      </Tip>
+    );
+  }
+
+  function renderLLMFeedbackButtons() {
+    if (isLLMThread) return;
 
     const feedback = message.getIn(["feedback", account_id]);
     const otherFeedback =
       isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
     const showOtherFeedback = otherFeedback > 0;
+
+    return (
+      <Tip
+        placement={"top"}
+        title={
+          !showOtherFeedback
+            ? "Like this"
+            : () => {
+                return (
+                  <div>
+                    {Object.keys(message.get("feedback")?.toJS() ?? {}).map(
+                      (account_id) => (
+                        <div key={account_id} style={{ marginBottom: "2px" }}>
+                          <Avatar size={24} account_id={account_id} />{" "}
+                          <User account_id={account_id} />
+                        </div>
+                      ),
+                    )}
+                  </div>
+                );
+              }
+        }
+      >
+        <Button
+          style={{
+            color: !feedback && is_viewers_message ? "white" : "#888",
+            fontSize: "12px",
+            marginTop: "-4px",
+            ...(feedback ? {} : { position: "relative", top: "-5px" }),
+          }}
+          size="small"
+          type={feedback ? "dashed" : "text"}
+          onClick={() => {
+            actions?.feedback(message, feedback ? null : "positive");
+          }}
+        >
+          {showOtherFeedback ? (
+            <Badge count={otherFeedback} color="darkblue" size="small" />
+          ) : (
+            ""
+          )}
+          <Icon
+            name="thumbs-up"
+            style={{
+              color: showOtherFeedback ? "darkblue" : undefined,
+            }}
+          />
+        </Button>
+      </Tip>
+    );
+  }
+
+  function renderMessageBody({ lighten, message_class }) {
+    const value = newest_content(message);
 
     return (
       <>
@@ -518,81 +628,9 @@ export default function Message({
             align="baseline"
             style={{ float: "right", marginRight: "10px" }}
           >
-            {!isLLMThread && (
-              <Tip
-                placement={"top"}
-                title={
-                  !showOtherFeedback
-                    ? "Like this"
-                    : () => {
-                        return (
-                          <div>
-                            {Object.keys(
-                              message.get("feedback")?.toJS() ?? {},
-                            ).map((account_id) => (
-                              <div
-                                key={account_id}
-                                style={{ marginBottom: "2px" }}
-                              >
-                                <Avatar size={24} account_id={account_id} />{" "}
-                                <User account_id={account_id} />
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      }
-                }
-              >
-                <Button
-                  style={{
-                    color: !feedback && is_viewers_message ? "white" : "#888",
-                    fontSize: "12px",
-                    marginTop: "-4px",
-                    ...(feedback ? {} : { position: "relative", top: "-5px" }),
-                  }}
-                  size="small"
-                  type={feedback ? "dashed" : "text"}
-                  onClick={() => {
-                    actions?.feedback(message, feedback ? null : "positive");
-                  }}
-                >
-                  {showOtherFeedback ? (
-                    <Badge
-                      count={otherFeedback}
-                      color="darkblue"
-                      size="small"
-                    />
-                  ) : (
-                    ""
-                  )}
-                  <Icon
-                    name="thumbs-up"
-                    style={{
-                      color: showOtherFeedback ? "darkblue" : undefined,
-                    }}
-                  />
-                </Button>
-              </Tip>
-            )}
-            <Tip
-              placement={"top"}
-              title="Select message. Copy URL to link to this message."
-            >
-              <Button
-                onClick={() => {
-                  actions?.setFragment(message.get("date"));
-                }}
-                size="small"
-                type={"text"}
-                style={{
-                  color: is_viewers_message ? "white" : "#888",
-                  fontSize: "12px",
-                  marginTop: "-4px",
-                }}
-              >
-                <Icon name="link" />
-              </Button>
-            </Tip>
+            {renderLLMFeedbackButtons()}
+            {renderCopyMessageButton()}
+            {renderLinkMessageButton()}
           </Space>
         </span>
         <MostlyStaticMarkdown

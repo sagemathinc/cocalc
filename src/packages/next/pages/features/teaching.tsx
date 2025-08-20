@@ -268,17 +268,17 @@ export default function Teaching({ customize }) {
           <Info.Heading>Feature Overview</Info.Heading>
 
           <Info
-            title="NBGrader support"
+            title="nbgrader support"
             icon="graduation-cap"
             image={nbgrader}
-            alt="Editing an NBgrader Jupyter notebook"
+            alt="Editing an nbgrader Jupyter notebook"
             anchor="a-nbgrader"
           >
             <Paragraph>
               CoCalc's Jupyter Notebooks fully support{" "}
               <strong>automatic</strong> and <strong>manual grading</strong>{" "}
               <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-                using our version of NBGrader
+                using our version of nbgrader
               </A>{" "}
               with no configuration!
             </Paragraph>
