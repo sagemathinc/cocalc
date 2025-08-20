@@ -55,15 +55,43 @@ import {
 import { getUser, isAllowed } from "./auth";
 import { dnsScan, localAddress, SCAN_INTERVAL } from "./dns-scan";
 import { handleHealth } from "./health";
-import { initMetrics, handleMetrics } from "./metrics";
+import { handleMetrics, initMetrics } from "./metrics";
 
 const logger = getLogger("conat-server");
+
+async function checkPortAvailable(port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { createServer } = require("http");
+    const server = createServer();
+
+    server.listen(port, () => {
+      server.close(() => resolve());
+    });
+
+    server.on("error", (err: any) => {
+      if (err.code === "EADDRINUSE") {
+        reject(
+          new Error(
+            `Port ${port} is already in use. Another CoCalc server may already be running. Please stop the existing server or use a different port.`,
+          ),
+        );
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
 
 export async function init(
   options0: Partial<Options> & { kucalc?: boolean } = {},
 ) {
   logger.debug("init");
   const { kucalc, ...options } = options0;
+
+  // In development mode, check if port is available to prevent multiple servers
+  if (process.env.NODE_ENV !== "production" && !kucalc) {
+    await checkPortAvailable(port);
+  }
 
   if (kucalc) {
   }
