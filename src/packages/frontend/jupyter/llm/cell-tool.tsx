@@ -576,42 +576,44 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             style={{ width: "100%" }}
           />
           {historyPrompts.length > 0 && (
-            <Dropdown
-              menu={{
-                items: historyPrompts
-                  .slice(0, MAX_PROMPTS)
-                  .map((histPrompt, idx) => ({
-                    key: idx.toString(),
-                    label: (
-                      <Tooltip title={histPrompt} placement="left">
-                        <div
-                          style={{
-                            maxWidth: "300px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {histPrompt}
-                        </div>
-                      </Tooltip>
-                    ),
-                    onClick: () => setExtra(histPrompt),
-                  })) as MenuProps["items"],
-                style: { maxHeight: "50vh", overflow: "auto" },
+            <Select
+              style={{
+                width: 200,
+                alignSelf: "stretch",
               }}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Button
-                icon={<Icon name="history" />}
-                disabled={isQuerying}
-                style={{
-                  alignSelf: "stretch",
-                  height: "auto"
-                }}
-              />
-            </Dropdown>
+              placeholder="Search history..."
+              showSearch
+              allowClear
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toString()
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              onSelect={(value) => setExtra(value)}
+              disabled={isQuerying}
+              dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
+              suffixIcon={<Icon name="history" />}
+              options={historyPrompts.slice(0, MAX_PROMPTS).map((histPrompt, idx) => ({
+                key: idx.toString(),
+                value: histPrompt,
+                label: (
+                  <Tooltip title={histPrompt} placement="left">
+                    <div
+                      style={{
+                        maxWidth: "300px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {histPrompt}
+                    </div>
+                  </Tooltip>
+                ),
+              }))}
+            />
           )}
         </Space.Compact>
       </Flex>

@@ -11,6 +11,7 @@ import {
   Dropdown,
   Input,
   Modal,
+  Select,
   Space,
   Tooltip,
 } from "antd";
@@ -367,34 +368,41 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
             addonBefore={<Icon name="fx" />}
           />
           {historyPrompts.length > 0 && (
-            <Dropdown
-              menu={{
-                items: historyPrompts
-                  .slice(0, MAX_PROMPTS)
-                  .map((prompt, idx) => ({
-                    key: idx.toString(),
-                    label: (
-                      <Tooltip title={prompt} placement="left">
-                        <div
-                          style={{
-                            maxWidth: "300px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {prompt}
-                        </div>
-                      </Tooltip>
-                    ),
-                    onClick: () => setInput(prompt),
-                  })) as MenuProps["items"],
-                style: { maxHeight: "50vh", overflow: "auto" },
-              }}
-              trigger={["click"]}
-            >
-              <Button disabled={generating} icon={<Icon name="history" />} />
-            </Dropdown>
+            <Select
+              style={{ width: 200 }}
+              placeholder="Search history..."
+              showSearch
+              allowClear
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? "")
+                  .toString()
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              onSelect={(value) => setInput(value)}
+              disabled={generating}
+              dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
+              suffixIcon={<Icon name="history" />}
+              options={historyPrompts.slice(0, MAX_PROMPTS).map((prompt, idx) => ({
+                key: idx.toString(),
+                value: prompt,
+                label: (
+                  <Tooltip title={prompt} placement="left">
+                    <div
+                      style={{
+                        maxWidth: "300px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {prompt}
+                    </div>
+                  </Tooltip>
+                ),
+              }))}
+            />
           )}
           <Button
             disabled={!input.trim() || generating}

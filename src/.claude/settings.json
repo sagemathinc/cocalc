@@ -37,6 +37,10 @@
       "WebSearch",
       "mcp__cclsp__find_definition",
       "mcp__github__get_issue",
+      "mcp__github__get_pull_request_comments",
+      "mcp__github__get_pull_request",
+      "mcp__github__get_issue_comments",
+      "mcp__github__get_pull_request_comments",
       "mcp__cclsp__find_definition"
     ],
     "deny": []

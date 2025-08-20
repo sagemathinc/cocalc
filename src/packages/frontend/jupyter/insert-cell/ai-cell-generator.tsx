@@ -14,6 +14,7 @@ import {
   Input,
   InputNumber,
   Popover,
+  Select,
   Space,
   Switch,
   Tag,
@@ -665,39 +666,44 @@ export function AIGenerateCodeCell({
               style={{ flex: 1 }}
             />
             {historyPrompts.length > 0 && (
-              <Dropdown
-                menu={{
-                  items: historyPrompts
-                    .slice(0, MAX_PROMPTS)
-                    .map((histPrompt, idx) => ({
-                      key: idx.toString(),
-                      label: (
-                        <Tooltip title={histPrompt} placement="left">
-                          <div
-                            style={{
-                              maxWidth: "300px",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {histPrompt}
-                          </div>
-                        </Tooltip>
-                      ),
-                      onClick: () => setPrompt(histPrompt),
-                    })) as MenuProps["items"],
-                  style: { maxHeight: "50vh", overflow: "auto" },
+              <Select
+                style={{
+                  width: 200,
+                  alignSelf: "flex-start",
                 }}
-                trigger={["click"]}
-                placement="bottomRight"
-              >
-                <Button
-                  icon={<Icon name="history" />}
-                  style={{ alignSelf: "flex-start" }}
-                  disabled={querying}
-                />
-              </Dropdown>
+                placeholder="Search history..."
+                showSearch
+                allowClear
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                onSelect={(value) => setPrompt(value)}
+                disabled={querying}
+                dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
+                suffixIcon={<Icon name="history" />}
+                options={historyPrompts.slice(0, MAX_PROMPTS).map((histPrompt, idx) => ({
+                  key: idx.toString(),
+                  value: histPrompt,
+                  label: (
+                    <Tooltip title={histPrompt} placement="left">
+                      <div
+                        style={{
+                          maxWidth: "300px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {histPrompt}
+                      </div>
+                    </Tooltip>
+                  ),
+                }))}
+              />
             )}
           </Space.Compact>
         </Paragraph>

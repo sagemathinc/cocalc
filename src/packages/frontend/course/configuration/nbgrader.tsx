@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Card, InputNumber, Radio } from "antd";
+
 import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -11,9 +13,8 @@ import {
   useRedux,
 } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
-import { InputNumber } from "antd";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
-import { Card, Radio } from "antd";
+
 import { CourseActions } from "../actions";
 import {
   NBGRADER_CELL_TIMEOUT_MS,
@@ -26,7 +27,7 @@ const radioStyle: CSS = {
   display: "block",
   whiteSpace: "normal",
   fontWeight: "inherit",
-};
+} as const;
 
 interface Props {
   name: string;
@@ -106,7 +107,7 @@ export function Nbgrader({ name }: Props) {
         You can create a new project dedicated to running nbgrader, upgrade or
         license it appropriately, and copy any files to it that student work
         depends on. This new project will be shared will all collaborators of
-        this instructorproject.
+        this instructor project.
         <br />
         You can also grade all student work in the student's own project, which
         is good because the code runs in the same environment as the student
@@ -126,7 +127,7 @@ export function Nbgrader({ name }: Props) {
         }}
       >
         <h6>
-          Nbgrader hidden tests:{" "}
+          nbgrader hidden tests:{" "}
           {settings?.get("nbgrader_include_hidden_tests")
             ? "Included"
             : "NOT included"}
@@ -163,7 +164,7 @@ export function Nbgrader({ name }: Props) {
           borderRadius: "5px",
         }}
       >
-        <h6>Nbgrader timeouts: {timeout} seconds</h6>
+        <h6>nbgrader timeouts: {timeout} seconds</h6>
         <i>Grading timeout in seconds:</i> if grading a student notebook takes
         longer than <i>{timeout} seconds</i>, then it is terminated with a
         timeout error.
@@ -213,7 +214,7 @@ export function Nbgrader({ name }: Props) {
           borderRadius: "5px",
         }}
       >
-        <h6>Nbgrader output limits: {Math.round(max_output / 1000)} KB</h6>
+        <h6>nbgrader output limits: {Math.round(max_output / 1000)} KB</h6>
         <i>Max output:</i> if total output from all cells exceeds{" "}
         {Math.round(max_output / 1000)} KB, then further output is truncated.
         <InputNumber
@@ -258,7 +259,7 @@ export function Nbgrader({ name }: Props) {
         }}
       >
         <h6>
-          Nbgrader parallel limit:{" "}
+          nbgrader parallel limit:{" "}
           {parallel > 1
             ? `grade ${parallel} students at once`
             : "one student a time"}
@@ -282,9 +283,10 @@ export function Nbgrader({ name }: Props) {
   return (
     <Card
       title={
-        <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-          <Icon name="graduation-cap" /> Nbgrader
-        </A>
+        <>
+          <Icon name="graduation-cap" /> nbgrader (
+          <A href="https://doc.cocalc.com/teaching-nbgrader.html">Docs</A>)
+        </>
       }
     >
       {render_grade_project()}

@@ -6,69 +6,43 @@
 /**
 // To debug LLM history in the browser console:
 c = cc.client.conat_client
-// Get the shared LLM history store (using CONAT_LLM_HISTORY_KEY)
-llm = await c.dkv({account_id: cc.client.account_id, name: 'llm-history'})
+// Get the shared LLM history streams
+generalStream = await c.dstream({account_id: cc.client.account_id, name: 'llm-history-general'})
+formulaStream = await c.dstream({account_id: cc.client.account_id, name: 'llm-history-formula'})
 // View general prompts
-console.log('General LLM prompts:', llm.get('general'))
+console.log('General LLM prompts:', generalStream.getAll())
 // View formula prompts
-console.log('Formula prompts:', llm.get('formula'))
+console.log('Formula prompts:', formulaStream.getAll())
 // Add a prompt to general
-llm.set('general', [...(llm.get('general') || []), "New prompt"])
+generalStream.push("New prompt")
 // Listen to changes
-llm.on('change', (e) => console.log('LLM history change:', e))
+generalStream.on('change', (prompt) => console.log('New general prompt:', prompt))
 */
 
 import { useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
-import type { DKV } from "@cocalc/conat/sync/dkv";
+import type { DStream } from "@cocalc/conat/sync/dstream";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CONAT_LLM_HISTORY_KEY } from "@cocalc/util/consts";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-// Maximum number of prompts to keep in history per key
+// Maximum number of prompts to keep in history per type
 export const MAX_PROMPTS = 100;
 
 export type LLMHistoryType = "general" | "formula";
 
-// Shared conat store instance for all LLM history types
-let globalConatStore: DKV<string[]> | null = null;
+// Cache for dstream instances per type
+const streamCache = new Map<LLMHistoryType, DStream<string>>();
 
-// Simple event emitter for cross-hook communication
-class LLMHistoryEventEmitter {
-  private listeners: Map<LLMHistoryType, Set<(prompts: string[]) => void>> =
-    new Map();
-
-  on(type: LLMHistoryType, callback: (prompts: string[]) => void) {
-    if (!this.listeners.has(type)) {
-      this.listeners.set(type, new Set());
-    }
-    this.listeners.get(type)!.add(callback);
+// Get or create dstream for a specific history type
+const getDStream = reuseInFlight(async (type: LLMHistoryType) => {
+  const cachedStream = streamCache.get(type);
+  if (cachedStream) {
+    return cachedStream;
   }
 
-  off(type: LLMHistoryType, callback: (prompts: string[]) => void) {
-    const typeListeners = this.listeners.get(type);
-    if (typeListeners) {
-      typeListeners.delete(callback);
-      if (typeListeners.size === 0) {
-        this.listeners.delete(type);
-      }
-    }
-  }
-
-  emit(type: LLMHistoryType, prompts: string[]) {
-    const typeListeners = this.listeners.get(type);
-    if (typeListeners) {
-      typeListeners.forEach((callback) => callback(prompts));
-    }
-  }
-}
-
-const eventEmitter = new LLMHistoryEventEmitter();
-
-// Reusable conat store initialization
-const getConatStore = reuseInFlight(async () => {
   try {
     // Wait until account is authenticated
     const store = redux.getStore("account");
@@ -78,122 +52,108 @@ const getConatStore = reuseInFlight(async () => {
     });
 
     const account_id = store.get_account_id();
-    const conatStore = await webapp_client.conat_client.dkv<string[]>({
+    const stream = await webapp_client.conat_client.dstream<string>({
       account_id,
-      name: CONAT_LLM_HISTORY_KEY,
+      name: `${CONAT_LLM_HISTORY_KEY}-${type}`,
+      config: {
+        discard_policy: "old",
+        max_msgs: MAX_PROMPTS,
+        max_bytes: 1024 * 1024,
+      },
     });
 
-    globalConatStore = conatStore;
-
-    // Single global change listener - emit events to hooks
-    conatStore.on(
-      "change",
-      (changeEvent: { key: string; value?: string[]; prev?: string[] }) => {
-        const changedType = changeEvent.key as LLMHistoryType;
-        const remotePrompts = changeEvent.value || [];
-
-        // Normalize and emit to hooks listening for this type
-        const normalizedPrompts = remotePrompts
-          .filter((prompt) => typeof prompt === "string" && prompt.trim())
-          .slice(0, MAX_PROMPTS);
-
-        eventEmitter.emit(changedType, normalizedPrompts);
-      },
-    );
-
-    return conatStore;
+    streamCache.set(type, stream);
+    return stream;
   } catch (err) {
-    console.warn(`conat LLM history initialization warning -- ${err}`);
+    console.warn(`dstream LLM history initialization error -- ${err}`);
     throw err;
   }
 });
 
-// Hook for managing LLM prompt history using conat
+// Hook for managing LLM prompt history using dstream
 export function useLLMHistory(type: LLMHistoryType = "general") {
   const [prompts, setPrompts] = useState<string[]>([]);
 
-  // Normalize prompt list: filter valid strings and limit size
-  function normalizePrompts(promptList: string[]): string[] {
-    return promptList
-      .filter((prompt) => typeof prompt === "string" && prompt.trim())
-      .slice(0, MAX_PROMPTS);
-  }
-
-  // Initialize shared conat store once, waiting for authentication
+  // Initialize dstream and set up listeners
   useAsyncEffect(async () => {
     try {
-      await getConatStore();
-      return loadPromptsForType();
+      const stream = await getDStream(type);
+
+      // Load existing prompts from stream (newest first)
+      const allPrompts = stream.getAll().reverse();
+      setPrompts(allPrompts);
+
+      // Listen for new prompts being added
+      const handleChange = (newPrompt: string) => {
+        setPrompts((prev) => {
+          // Remove duplicate if exists, then add to front
+          const filtered = prev.filter((p) => p !== newPrompt);
+          return [newPrompt, ...filtered];
+        });
+      };
+
+      stream.on("change", handleChange);
+
+      // Cleanup listener on unmount/type change
+      return () => {
+        stream.off("change", handleChange);
+      };
     } catch (err) {
       console.warn(`LLM history hook initialization error -- ${err}`);
     }
   }, [type]);
 
-  function loadPromptsForType() {
-    if (!globalConatStore) {
+  async function addPrompt(prompt: string) {
+    if (!prompt.trim()) {
+      console.warn("Empty prompt provided");
       return;
     }
 
     try {
-      // Load initial data for this specific type
-      const initialPrompts = globalConatStore.get(type) || [];
-      if (Array.isArray(initialPrompts)) {
-        setPrompts(normalizePrompts(initialPrompts));
+      const stream = await getDStream(type);
+      const trimmedPrompt = prompt.trim();
+
+      // Add prompt to stream - this will trigger change event
+      stream.push(trimmedPrompt);
+
+      // Clean up old prompts if we exceed MAX_PROMPTS
+      const currentLength = stream.length;
+      if (currentLength > MAX_PROMPTS) {
+        // Note: dstream doesn't have a built-in way to remove old entries
+        // but we limit the display to MAX_PROMPTS in the UI
+        console.warn(
+          `LLM history has ${currentLength} entries, exceeding MAX_PROMPTS=${MAX_PROMPTS}`,
+        );
       }
-
-      // Register this hook instance to receive updates via event emitter
-      eventEmitter.on(type, setPrompts);
-
-      // Return cleanup function
-      return () => {
-        eventEmitter.off(type, setPrompts);
-      };
     } catch (err) {
-      console.warn(`conat LLM history load warning -- ${err}`);
+      console.warn(`Error adding prompt to LLM history -- ${err}`);
     }
   }
 
-  function addPrompt(prompt: string) {
-    if (!globalConatStore || !prompt.trim()) {
-      console.warn("Conat LLM history not yet initialized or empty prompt");
-      return;
-    }
-
-    const trimmedPrompt = prompt.trim();
-
-    // Remove existing instance if present, then add to front (newest first)
-    const filtered = prompts.filter((p) => p !== trimmedPrompt);
-    const updated = normalizePrompts([trimmedPrompt, ...filtered]);
-
-    // Update local state immediately for responsive UI
-    setPrompts(updated);
-
-    // Store to conat using type as key (this will also trigger the change event for other clients)
+  async function clearHistory() {
     try {
-      globalConatStore.set(type, updated);
+      const stream = await getDStream(type);
+
+      // Clear local state immediately
+      setPrompts([]);
+
+      // Delete the stream to clear all history
+      await stream.delete();
+
+      // Remove from cache so a new stream will be created
+      streamCache.delete(type);
     } catch (err) {
-      console.warn(`conat LLM history storage warning -- ${err}`);
-      // Revert local state on error
-      setPrompts(prompts);
-    }
-  }
-
-  function clearHistory() {
-    if (!globalConatStore) {
-      console.warn("Conat LLM history not yet initialized");
-      return;
-    }
-
-    // Update local state immediately
-    setPrompts([]);
-
-    // Clear from conat using type as key
-    try {
-      globalConatStore.set(type, []);
-    } catch (err) {
-      console.warn(`conat LLM history clear warning -- ${err}`);
-      // Revert local state on error
-      setPrompts(prompts);
+      console.warn(`Error clearing LLM history -- ${err}`);
+      // Reload prompts on error
+      try {
+        const stream = await getDStream(type);
+        const allPrompts = stream.getAll().slice(-MAX_PROMPTS).reverse();
+        setPrompts(allPrompts);
+      } catch (reloadErr) {
+        console.warn(
+          `Error reloading prompts after clear failure -- ${reloadErr}`,
+        );
+      }
     }
   }
 
