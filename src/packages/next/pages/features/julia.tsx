@@ -178,7 +178,7 @@ export default function Julia({ customize }) {
           </Info>
 
           <Info
-            title={"Teach using Julia and Nbgrader"}
+            title={"Teach using Julia and nbgrader"}
             image={nbgraderScreenshot}
             alt={"A screenshot using nbgrader with Julia."}
             anchor="nbgrader"

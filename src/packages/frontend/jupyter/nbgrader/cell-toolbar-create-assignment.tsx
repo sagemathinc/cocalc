@@ -15,8 +15,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { popup } from "@cocalc/frontend/frame-editors/frame-tree/print";
 import { JupyterActions } from "../browser-actions";
 import {
-  CELLTYPE_INFO_LIST,
-  CELLTYPE_INFO_MAP,
+  CELL_TYPE_INFO_LIST,
+  CELL_TYPE_INFO_MAP,
   set_cell_type,
   state_to_value,
   value_to_state,
@@ -24,7 +24,7 @@ import {
 } from "./cell-types";
 import type { Metadata } from "./types";
 
-const OPTIONS_CODE = CELLTYPE_INFO_LIST.filter((x) => !x.markdown_only).map(
+const OPTIONS_CODE = CELL_TYPE_INFO_LIST.filter((x) => !x.markdown_only).map(
   (x) => {
     return {
       ...x,
@@ -39,7 +39,7 @@ const OPTIONS_CODE = CELLTYPE_INFO_LIST.filter((x) => !x.markdown_only).map(
     };
   },
 );
-const OPTIONS_NOTCODE = CELLTYPE_INFO_LIST.filter((x) => !x.code_only).map(
+const OPTIONS_NOTCODE = CELL_TYPE_INFO_LIST.filter((x) => !x.code_only).map(
   (x) => {
     return {
       ...x,
@@ -120,7 +120,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
   }
 
   function render_icon(value: string): Rendered {
-    const name = CELLTYPE_INFO_MAP[value]?.icon;
+    const name = CELL_TYPE_INFO_MAP[value]?.icon;
     if (name == null) return;
     return <Icon name={name} style={{ float: "left", padding: "5px" }} />;
   }
@@ -211,14 +211,14 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
 
   function click_help(): void {
     const value = get_value();
-    const info = CELLTYPE_INFO_MAP[value];
+    const info = CELL_TYPE_INFO_MAP[value];
     if (info == null || info.link == null) return;
     popup(info.link, 750);
   }
 
   function render_help(): Rendered {
     const value = get_value();
-    const info = CELLTYPE_INFO_MAP[value];
+    const info = CELL_TYPE_INFO_MAP[value];
     if (info == null) return;
     return (
       <Button

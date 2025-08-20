@@ -251,6 +251,18 @@ for (const state of ORDERED_STATES) {
   n += 1;
 }
 
+// Helper function to determine the architecture of a machine type
+export function getMachineTypeArchitecture(machineType: string): Architecture {
+  const v = machineType.split("-");
+  if (v[0].endsWith("a")) {
+    // The known machines with ARM are: t2a-, c4a-
+    // Everything else ends with a number or d.
+    // Hopefully this pattern persists.
+    return "arm64";
+  }
+  return "x86_64";
+}
+
 export function getArchitecture(configuration: Configuration): Architecture {
   if (configuration.cloud == "onprem") {
     return configuration.arch ?? "x86_64";
@@ -260,14 +272,7 @@ export function getArchitecture(configuration: Configuration): Architecture {
     return "x86_64";
   }
   const { machineType } = configuration;
-  const v = machineType.split("-");
-  if (v[0].endsWith("a")) {
-    // The known machines with are are: t2a-, c4a-
-    // Everything else ends with a number or d.
-    // Hopefully this pattern persists.
-    return "arm64";
-  }
-  return "x86_64";
+  return getMachineTypeArchitecture(machineType);
 }
 
 function supportsSuspend(configuration: Configuration) {
