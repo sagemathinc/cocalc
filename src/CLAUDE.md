@@ -30,6 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `pnpm clean` - Clean all node_modules and dist directories
 - `pnpm test` - Run full test suite
 - `pnpm depcheck` - Check for dependency issues
+- `python3 ./scripts/check_npm_packages.py` - Check npm package consistency across packages
 - `prettier -w [filename]` to format the style of a file after editing it
 - after creating a file, run `git add [filename]` to start tracking it
 

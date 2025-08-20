@@ -44,7 +44,7 @@
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.12",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^11.10.0",
     "chokidar": "^3.6.0",
