@@ -9,7 +9,6 @@
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
 import { useIntl } from "react-intl";
-
 import {
   Actions,
   rclass,
@@ -188,6 +187,8 @@ export interface CustomizeState {
   i18n?: List<Locale>;
 
   user_tracking?: string;
+  
+  lite?: boolean;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

@@ -19,11 +19,13 @@ export async function init() {
   });
 
   app.get("/", (_, res) => res.redirect("/static/app.html"));
+  app.get("/settings", (_, res) => res.redirect("/static/app.html"));
+  app.get("/projects", (_, res) => res.redirect("/static/app.html"));
 
   app.use("/static", express.static(STATIC_PATH));
 
   app.get("/customize", async (_, res) => {
-    res.json({ configuration: {} });
+    res.json({ configuration: { lite: true } });
   });
 
   const port = port0 ?? (await getPort());
@@ -32,4 +34,5 @@ export async function init() {
   console.log(
     "*".repeat(60) + `\n\nhttp://localhost:${port}\n\n` + "*".repeat(60),
   );
+  return { httpServer, port };
 }

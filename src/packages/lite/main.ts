@@ -1,5 +1,4 @@
 import startProjectServices from "@cocalc/project/conat";
-import getPort from "@cocalc/backend/get-port";
 import {
   init as createConatServer,
   type ConatServer,
@@ -26,9 +25,17 @@ function conat(opts?): Client {
 }
 
 export async function main() {
-  const options = { port: await getPort(), path: "/" };
+  logger.debug("main: start http server");
+  const { httpServer, port } = await initHttpServer();
 
   logger.debug("main: create server");
+  const options = {
+    httpServer,
+    port,
+    getUser: async () => {
+      return { account_id: "00000000-0000-4000-8000-000000000000" };
+    },
+  };
   conatServer = createConatServer(options);
   if (conatServer.state != "ready") {
     await once(conatServer, "ready");
@@ -46,6 +53,15 @@ export async function main() {
   logger.debug("main: start project services");
   await startProjectServices();
 
-  logger.debug("main: start http server");
-  await initHttpServer();
+  process.once("exit", () => {
+    conatServer?.close();
+    conatServer = null;
+    httpServer?.close();
+  });
+
+  ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+    process.once(sig, () => {
+      process.exit();
+    });
+  });
 }
