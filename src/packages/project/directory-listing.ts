@@ -24,7 +24,7 @@ export default function init(): Router {
   const base = "/.smc/directory_listing/";
   const router = Router();
 
-  router.get(base + "*", async (req, res) => {
+  router.get(base + "*splat", async (req, res) => {
     // decodeURIComponent because decodeURI(misc.encode_path('asdf/te #1/')) != 'asdf/te #1/'
     // https://github.com/sagemathinc/cocalc/issues/2400
     const path = decodeURIComponent(req.path.slice(base.length).trim());

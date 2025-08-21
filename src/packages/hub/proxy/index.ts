@@ -23,8 +23,16 @@ interface Options {
 export default function initProxy(opts: Options) {
   const proxy_regexp = `^${
     base_path.length <= 1 ? "" : base_path
-  }\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/*`;
-  logger.info("creating proxy server with proxy_regexp", proxy_regexp);
+  }/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/`;
+  const proxy_pattern = `${
+    base_path.length <= 1 ? "" : base_path
+  }/:project_id/*splat`;
+  logger.info(
+    "creating proxy server with proxy_regexp",
+    proxy_regexp,
+    "proxy_pattern",
+    proxy_pattern,
+  );
 
   // tcp connections:
   const handleProxy = initRequest(opts);
@@ -32,7 +40,7 @@ export default function initProxy(opts: Options) {
   // websocket upgrades:
   const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
-  opts.app.all(proxy_regexp, handleProxy);
+  opts.app.all(proxy_pattern, handleProxy);
 
   opts.httpServer.on("upgrade", handleUpgrade);
 }

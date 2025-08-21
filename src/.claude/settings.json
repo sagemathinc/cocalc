@@ -19,8 +19,11 @@
       "Bash(npx tsc:*)",
       "Bash(pnpm build:*)",
       "Bash(pnpm i18n:*)",
+      "Bash(pnpm list:*)",
       "Bash(pnpm ts-build:*)",
       "Bash(pnpm tsc:*)",
+      "Bash(pnpm view:*)",
+      "Bash(pnpm why:*)",
       "Bash(prettier -w:*)",
       "Bash(psql:*)",
       "WebFetch(domain:cocalc.com)",
@@ -29,11 +32,15 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:mistral.ai)",
       "WebFetch(domain:simplelocalize.io)",
-      "Bash(pnpm list:*)",
-      "Bash(pnpm why:*)",
-      "mcp__github__get_issue",
       "WebFetch(domain:www.anthropic.com)",
-      "mcp__cclsp__find_definition"
+      "mcp__cclsp__find_definition",
+      "mcp__github__get_issue",
+      "mcp__github__get_issue_comments",
+      "mcp__github__get_pull_request",
+      "mcp__github__get_pull_request_comments",
+      "mcp__github__get_pull_request_status",
+      "mcp__github__list_workflow_runs",
+      "mcp__github__list_workflows"
     ],
     "deny": []
   }

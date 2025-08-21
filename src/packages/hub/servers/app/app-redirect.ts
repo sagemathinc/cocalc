@@ -14,7 +14,7 @@ export default function init(router: Router) {
   const winston = getLogger("app-redirect");
   const v: string[] = [];
   for (const path of APP_ROUTES) {
-    v.push(`/${path}*`);
+    v.push(`/${path}/*splat`);
   }
   router.get(v, (req, res) => {
     winston.debug(req.url);
