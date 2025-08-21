@@ -7,16 +7,13 @@
 // To debug LLM history in the browser console:
 c = cc.client.conat_client
 // Get the shared LLM history streams
-generalStream = await c.dstream({account_id: cc.client.account_id, name: 'llm-history-general'})
-formulaStream = await c.dstream({account_id: cc.client.account_id, name: 'llm-history-formula'})
-// View general prompts
-console.log('General LLM prompts:', generalStream.getAll())
-// View formula prompts
-console.log('Formula prompts:', formulaStream.getAll())
+stream = await c.dstream({account_id: cc.client.account_id, name: 'llm-history'})
+// View prompts
+console.log('LLM prompts:', stream.getAll())
 // Add a prompt to general
-generalStream.push("New prompt")
+stream.push("New prompt")
 // Listen to changes
-generalStream.on('change', (prompt) => console.log('New general prompt:', prompt))
+stream.on('change', (prompt) => console.log('New prompt:', prompt))
 */
 
 import { useState } from "react";
@@ -32,16 +29,20 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 const MAX_PROMPTS_NUM = 1000;
 const MAX_PROMPTS_BYTES = 1024 * 1024;
 
-export type LLMHistoryType = "general" | "formula";
+export type LLMHistoryType = "general" | "formula" | "generate";
 
-// Cache for dstream instances per type
-const streamCache = new Map<LLMHistoryType, DStream<string>>();
+interface LLMHistoryEntry {
+  type: LLMHistoryType;
+  prompt: string;
+}
 
-// Get or create dstream for a specific history type
-const getDStream = reuseInFlight(async (type: LLMHistoryType) => {
-  const cachedStream = streamCache.get(type);
-  if (cachedStream) {
-    return cachedStream;
+// Single cache for the shared dstream
+let streamCache: DStream<LLMHistoryEntry> | null = null;
+
+// Get or create the single shared dstream
+const getDStream = reuseInFlight(async () => {
+  if (streamCache) {
+    return streamCache;
   }
 
   try {
@@ -53,9 +54,9 @@ const getDStream = reuseInFlight(async (type: LLMHistoryType) => {
     });
 
     const account_id = store.get_account_id();
-    const stream = await webapp_client.conat_client.dstream<string>({
+    const stream = await webapp_client.conat_client.dstream<LLMHistoryEntry>({
       account_id,
-      name: `${CONAT_LLM_HISTORY_KEY}-${type}`,
+      name: CONAT_LLM_HISTORY_KEY,
       config: {
         discard_policy: "old",
         max_msgs: MAX_PROMPTS_NUM,
@@ -63,7 +64,7 @@ const getDStream = reuseInFlight(async (type: LLMHistoryType) => {
       },
     });
 
-    streamCache.set(type, stream);
+    streamCache = stream;
     return stream;
   } catch (err) {
     console.warn(`dstream LLM history initialization error -- ${err}`);
@@ -75,22 +76,31 @@ const getDStream = reuseInFlight(async (type: LLMHistoryType) => {
 export function useLLMHistory(type: LLMHistoryType = "general") {
   const [prompts, setPrompts] = useState<string[]>([]);
 
+  // Filter prompts by type and extract just the prompt strings (newest first)
+  function filterPromptsByType(entries: LLMHistoryEntry[]): string[] {
+    return entries
+      .filter((entry) => entry.type === type)
+      .map((entry) => entry.prompt)
+      .reverse();
+  }
+
   // Initialize dstream and set up listeners
   useAsyncEffect(async () => {
     try {
-      const stream = await getDStream(type);
-
-      // Load existing prompts from stream (newest first)
-      const allPrompts = stream.getAll().reverse();
-      setPrompts(allPrompts);
+      const stream = await getDStream();
+      const allEntries = stream.getAll();
+      setPrompts(filterPromptsByType(allEntries));
 
       // Listen for new prompts being added
-      const handleChange = (newPrompt: string) => {
-        setPrompts((prev) => {
-          // Remove duplicate if exists, then add to front
-          const filtered = prev.filter((p) => p !== newPrompt);
-          return [newPrompt, ...filtered];
-        });
+      const handleChange = (newEntry: LLMHistoryEntry) => {
+        // Only update if the new entry matches our type
+        if (newEntry.type === type) {
+          setPrompts((prev) => {
+            // Remove duplicate if exists, then add to front
+            const filtered = prev.filter((p) => p !== newEntry.prompt);
+            return [newEntry.prompt, ...filtered];
+          });
+        }
       };
 
       stream.on("change", handleChange);
@@ -105,27 +115,24 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
   }, [type]);
 
   async function addPrompt(prompt: string) {
-    if (!prompt.trim()) {
-      console.warn("Empty prompt provided");
+    const trimmedPrompt = prompt.trim();
+
+    if (!trimmedPrompt) {
+      console.warn("use-llm-history: ignoring empty prompt");
       return;
     }
 
     try {
-      const stream = await getDStream(type);
-      const trimmedPrompt = prompt.trim();
+      const stream = await getDStream();
 
-      // Add prompt to stream - this will trigger change event
-      stream.push(trimmedPrompt);
+      // Create entry object with type and prompt
+      const entry: LLMHistoryEntry = {
+        type,
+        prompt: trimmedPrompt,
+      };
 
-      // Clean up old prompts if we exceed MAX_PROMPTS
-      const currentLength = stream.length;
-      if (currentLength > MAX_PROMPTS_NUM) {
-        // Note: dstream doesn't have a built-in way to remove old entries
-        // but we limit the display to MAX_PROMPTS in the UI
-        console.warn(
-          `LLM history has ${currentLength} entries, exceeding MAX_PROMPTS=${MAX_PROMPTS_NUM}`,
-        );
-      }
+      // Add entry to stream - this will trigger a change event
+      stream.push(entry);
     } catch (err) {
       console.warn(`Error adding prompt to LLM history -- ${err}`);
     }
@@ -133,7 +140,7 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
 
   async function clearHistory() {
     try {
-      const stream = await getDStream(type);
+      const stream = await getDStream();
 
       // Clear local state immediately
       setPrompts([]);
@@ -142,14 +149,14 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
       await stream.delete();
 
       // Remove from cache so a new stream will be created
-      streamCache.delete(type);
+      streamCache = null;
     } catch (err) {
       console.warn(`Error clearing LLM history -- ${err}`);
       // Reload prompts on error
       try {
-        const stream = await getDStream(type);
-        const allPrompts = stream.getAll().slice(-MAX_PROMPTS_NUM).reverse();
-        setPrompts(allPrompts);
+        const stream = await getDStream();
+        const allEntries = stream.getAll();
+        setPrompts(filterPromptsByType(allEntries));
       } catch (reloadErr) {
         console.warn(
           `Error reloading prompts after clear failure -- ${reloadErr}`,
