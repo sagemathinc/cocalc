@@ -60,7 +60,7 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
   it("publishing undefined is not allowed", async () => {
     await expect(
       async () => await stream.publish(undefined),
-    ).rejects.toThrowError("must not be 'undefined'");
+    ).rejects.toThrow("must not be 'undefined'");
   });
 
   it("a second client has the same messages", async () => {
@@ -307,7 +307,7 @@ describe("test previousSeq when setting keys, which can be used to ensure consis
   it("tries to change the value using the wrong previousSeq", async () => {
     await expect(async () => {
       await stream.setKv("my", "newval", { previousSeq: 0 });
-    }).rejects.toThrowError("wrong last sequence");
+    }).rejects.toThrow("wrong last sequence");
   });
 
   it("changes the value using the correct previousSeq", async () => {
@@ -398,7 +398,7 @@ describe("test permissions", () => {
     // they give the project_id, not their id.
     await expect(async () => {
       await stream.init();
-    }).rejects.toThrowError("permission denied");
+    }).rejects.toThrow("permission denied");
 
     stream.close();
   });
@@ -415,7 +415,7 @@ describe("test permissions", () => {
     stream.storage.path = "hub/conat2.ipynb";
     await expect(async () => {
       await stream.init();
-    }).rejects.toThrowError("permission denied");
+    }).rejects.toThrow("permission denied");
     stream.close();
 
     stream = new CoreStream({
@@ -429,7 +429,7 @@ describe("test permissions", () => {
     stream.user = { project_id: "00000000-0000-4000-8000-000000000004" };
     await expect(async () => {
       await stream.init();
-    }).rejects.toThrowError("permission denied");
+    }).rejects.toThrow("permission denied");
     stream.close();
 
     stream = new CoreStream({
@@ -442,7 +442,7 @@ describe("test permissions", () => {
     stream.user = { account_id: "00000000-0000-4000-8000-000000000000" };
     await expect(async () => {
       await stream.init();
-    }).rejects.toThrowError("permission denied");
+    }).rejects.toThrow("permission denied");
 
     stream.close();
   });

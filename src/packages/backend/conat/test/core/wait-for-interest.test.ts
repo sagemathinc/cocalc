@@ -35,7 +35,7 @@ describe("test waitForInterest with request", () => {
   it("request throws an error by default if there is no listener", async () => {
     expect(async () => {
       await client.request("eval.server.com", "2+3");
-    }).rejects.toThrowError("no subscribers");
+    }).rejects.toThrow("no subscribers");
   });
 
   it("requests with waitForInterest set and sees it work", async () => {
@@ -54,7 +54,7 @@ describe("test waitForInterest with requestMany", () => {
   it("request throws an error by default if there is no listener", async () => {
     expect(async () => {
       await client.requestMany("arith.server.com", [2, 3]);
-    }).rejects.toThrowError("no subscribers");
+    }).rejects.toThrow("no subscribers");
   });
 
   it("requestMany with waitForInterest set and sees it work", async () => {
