@@ -63,6 +63,8 @@ const SPEC = {
     BASE: "https://github.com/bootandy/dust/releases/download",
     binary: "dust",
     path: join(binPath, "dust"),
+    // github binaries exists for x86 mac only, which is dead - in homebrew.
+    platforms: ["linux"],
   },
   ouch: {
     // See https://github.com/ouch-org/ouch/releases

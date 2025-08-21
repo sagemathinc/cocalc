@@ -5,7 +5,10 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["lite", "cocalc"],
+  "keywords": [
+    "lite",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
@@ -25,7 +28,9 @@
     "@cocalc/lite": "workspace:*",
     "@cocalc/project": "workspace:*",
     "@cocalc/static": "workspace:*",
-    "@cocalc/util": "workspace:*"
+    "@cocalc/util": "workspace:*",
+    "@types/express": "^4.17.23",
+    "express": "^4.21.2"
   },
   "repository": {
     "type": "git",
