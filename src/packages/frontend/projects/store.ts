@@ -6,7 +6,6 @@
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
-
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 import { is_custom_image } from "@cocalc/frontend/custom-software/util";
@@ -33,6 +32,7 @@ import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
+import { lite } from "@cocalc/frontend/lite";
 
 export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 
@@ -127,6 +127,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   public get_state(project_id: string): string | undefined {
+    if (lite) return "running";
     return this.getIn(["project_map", project_id, "state", "state"]);
   }
 
