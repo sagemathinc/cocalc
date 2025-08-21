@@ -25,8 +25,8 @@ export default async function handle(req: Request, res: Response) {
 }
 
 async function doIt(req: Request) {
-  // date is unix timestamp in seconds
-  const { id, title, text, date, channel, url, tags, hide } = getParams(req);
+  // date and until are unix timestamps in seconds
+  const { id, title, text, date, channel, url, tags, hide, until } = getParams(req);
 
   const account_id = await getAccountId(req);
 
@@ -55,5 +55,6 @@ async function doIt(req: Request) {
     date: date ? new Date(1000 * date) : new Date(),
     channel,
     hide: !!hide,
+    until: until ? new Date(1000 * until) : undefined,
   });
 }

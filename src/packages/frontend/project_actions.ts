@@ -3447,7 +3447,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /* NOTE!  Below we store the modal state *both* in a private
-  variabel *and* in the store.  The reason is because we need
+  variable *and* in the store.  The reason is because we need
   to know it immediately after it is set in order for
   wait_until_no_modals to work robustless, and setState can
   wait before changing the state.

@@ -301,7 +301,7 @@ function Features() {
               { icon: "jupyter", link: "/features/jupyter-notebook" },
               {
                 icon: "pencil",
-                title: "NBGrader",
+                title: "nbgrader",
                 link: "https://doc.cocalc.com/teaching-nbgrader.html",
               },
               {
@@ -412,7 +412,7 @@ function Features() {
               },
               {
                 icon: "pencil",
-                title: "NBGrader",
+                title: "nbgrader",
                 link: "https://doc.cocalc.com/teaching-nbgrader.html",
               },
             ]}

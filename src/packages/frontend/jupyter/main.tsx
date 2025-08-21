@@ -7,7 +7,10 @@
 Top-level react component, which ties everything together
 */
 
+import { Button, Tooltip } from "antd";
 import * as immutable from "immutable";
+import { useEffect } from "react";
+
 import {
   CSS,
   React,
@@ -17,17 +20,19 @@ import {
   useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+
 // Support for all the MIME types
-import { Button, Tooltip } from "antd";
 import "./output-messages/mime-types/init-frontend";
+
 // React components that implement parts of the Jupyter notebook.
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { ErrorDisplay } from "@cocalc/frontend/components";
+import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
@@ -37,6 +42,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
 import { FindAndReplace } from "./find-and-replace";
+import JupyterClassic from "./jupyter-classic";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
 import KernelWarning from "./kernel-warning";
@@ -45,9 +51,6 @@ import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-import JupyterClassic from "./jupyter-classic";
-import { useEffect } from "react";
-import { syncdbPath } from "@cocalc/util/jupyter/names";
 
 export const ERROR_STYLE: CSS = {
   maxHeight: "30vh",
@@ -451,7 +454,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           overflowY: "hidden",
         }}
       >
-        <ComputeServerDocStatus id={computeServerId ?? 0} project_id={project_id} />
+        <ComputeServerDocStatus
+          id={computeServerId ?? 0}
+          project_id={project_id}
+        />
         {!read_only && <KernelWarning name={name} actions={actions} />}
         {render_error()}
         {render_modals()}
@@ -464,7 +470,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
             computeServerId={computeServerId}
           />
         )}
-        {cell_toolbar == "create_assignment" && (
+        {cell_toolbar === "create_assignment" && (
           <div
             style={{
               paddingLeft: "30px",
@@ -472,9 +478,9 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
               borderBottom: "1px solid #ddd",
             }}
           >
-            Toolbar:{" "}
+            <Text strong>nbgrader:</Text>{" "}
             <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-              Create Assignment Using NBGrader
+              <Icon name="book" /> Docs
             </A>
             <Tooltip title="Generate the student version of this document, which strips out the extra instructor tests and cells.">
               <Button
@@ -483,7 +489,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
                   props.actions.nbgrader_actions.confirm_assign();
                 }}
               >
-                NBGrader: Export Student Version...
+                Create Student Version...
               </Button>
             </Tooltip>
             <Button

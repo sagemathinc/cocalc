@@ -689,7 +689,7 @@ export const labels = defineMessages({
   },
   nbgrader: {
     id: "labels.nbgrader",
-    defaultMessage: "NBgrader",
+    defaultMessage: "nbgrader",
   },
   name: { id: "labels.name", defaultMessage: "Name" },
   description: { id: "labels.description", defaultMessage: "Description" },
