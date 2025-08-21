@@ -28,8 +28,9 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CONAT_LLM_HISTORY_KEY } from "@cocalc/util/consts";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-// Maximum number of prompts to keep in history per type
-export const MAX_PROMPTS = 100;
+// limit max prompts to keep in history per type
+const MAX_PROMPTS_NUM = 1000;
+const MAX_PROMPTS_BYTES = 1024 * 1024;
 
 export type LLMHistoryType = "general" | "formula";
 
@@ -57,8 +58,8 @@ const getDStream = reuseInFlight(async (type: LLMHistoryType) => {
       name: `${CONAT_LLM_HISTORY_KEY}-${type}`,
       config: {
         discard_policy: "old",
-        max_msgs: MAX_PROMPTS,
-        max_bytes: 1024 * 1024,
+        max_msgs: MAX_PROMPTS_NUM,
+        max_bytes: MAX_PROMPTS_BYTES,
       },
     });
 
@@ -118,11 +119,11 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
 
       // Clean up old prompts if we exceed MAX_PROMPTS
       const currentLength = stream.length;
-      if (currentLength > MAX_PROMPTS) {
+      if (currentLength > MAX_PROMPTS_NUM) {
         // Note: dstream doesn't have a built-in way to remove old entries
         // but we limit the display to MAX_PROMPTS in the UI
         console.warn(
-          `LLM history has ${currentLength} entries, exceeding MAX_PROMPTS=${MAX_PROMPTS}`,
+          `LLM history has ${currentLength} entries, exceeding MAX_PROMPTS=${MAX_PROMPTS_NUM}`,
         );
       }
     } catch (err) {
@@ -147,7 +148,7 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
       // Reload prompts on error
       try {
         const stream = await getDStream(type);
-        const allPrompts = stream.getAll().slice(-MAX_PROMPTS).reverse();
+        const allPrompts = stream.getAll().slice(-MAX_PROMPTS_NUM).reverse();
         setPrompts(allPrompts);
       } catch (reloadErr) {
         console.warn(

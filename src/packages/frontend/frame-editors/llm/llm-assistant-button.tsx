@@ -19,7 +19,6 @@ import {
   Input,
   Popover,
   Radio,
-  Select,
   Space,
   Tooltip,
 } from "antd";
@@ -57,7 +56,8 @@ import { Actions } from "../code-editor/actions";
 import { AI_ASSIST_TAG } from "./consts";
 import Context from "./context";
 import { Options, createChatMessage } from "./create-chat";
-import { MAX_PROMPTS, useLLMHistory } from "./use-llm-history";
+import { useLLMHistory } from "./use-llm-history";
+import { LLMHistorySelector } from "./llm-history-selector";
 import LLMSelector, { modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./llm-assistant-tour";
 
@@ -670,48 +670,12 @@ export default function LanguageModelTitleBarButton({
               }}
               autoSize={{ minRows: 2, maxRows: 10 }}
             />
-            {historyPrompts.length > 0 && (
-              <Select
-                style={{
-                  width: 200,
-                  alignSelf: "stretch",
-                }}
-                placeholder="Search history..."
-                showSearch
-                allowClear
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toString()
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                onSelect={(value) => setCommand(value)}
-                disabled={querying}
-                dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
-                suffixIcon={<Icon name="history" />}
-                options={historyPrompts
-                  .slice(0, MAX_PROMPTS)
-                  .map((histPrompt, idx) => ({
-                    key: idx.toString(),
-                    value: histPrompt,
-                    label: (
-                      <Tooltip title={histPrompt} placement="left">
-                        <div
-                          style={{
-                            maxWidth: "300px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {histPrompt}
-                        </div>
-                      </Tooltip>
-                    ),
-                  }))}
-              />
-            )}
+            <LLMHistorySelector
+              prompts={historyPrompts}
+              onSelect={setCommand}
+              disabled={querying}
+              alignSelf="stretch"
+            />
           </Space.Compact>
         </Paragraph>
         {renderOptions()}

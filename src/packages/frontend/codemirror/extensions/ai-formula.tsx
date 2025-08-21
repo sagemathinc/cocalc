@@ -3,18 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type { MenuProps } from "antd";
-import {
-  Button,
-  Descriptions,
-  Divider,
-  Dropdown,
-  Input,
-  Modal,
-  Select,
-  Space,
-  Tooltip,
-} from "antd";
+import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 import { debounce } from "lodash";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -38,10 +27,8 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
-import {
-  MAX_PROMPTS,
-  useLLMHistory,
-} from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { dialogs, labels } from "@cocalc/frontend/i18n";
 import { show_react_modal } from "@cocalc/frontend/misc";
@@ -367,43 +354,11 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
             onPressEnter={doGenerate}
             addonBefore={<Icon name="fx" />}
           />
-          {historyPrompts.length > 0 && (
-            <Select
-              style={{ width: 200 }}
-              placeholder="Search history..."
-              showSearch
-              allowClear
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toString()
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              onSelect={(value) => setInput(value)}
-              disabled={generating}
-              dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
-              suffixIcon={<Icon name="history" />}
-              options={historyPrompts.slice(0, MAX_PROMPTS).map((prompt, idx) => ({
-                key: idx.toString(),
-                value: prompt,
-                label: (
-                  <Tooltip title={prompt} placement="left">
-                    <div
-                      style={{
-                        maxWidth: "300px",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {prompt}
-                    </div>
-                  </Tooltip>
-                ),
-              }))}
-            />
-          )}
+          <LLMHistorySelector
+            prompts={historyPrompts}
+            onSelect={setInput}
+            disabled={generating}
+          />
           <Button
             disabled={!input.trim() || generating}
             loading={generating}
@@ -513,7 +468,6 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
       open
       footer={renderButtons()}
       onCancel={onCancel}
-      centered
       width={{ xs: "90vw", sm: "90vw", md: "80vw", lg: "70vw", xl: "60vw" }}
     >
       {renderBody()}

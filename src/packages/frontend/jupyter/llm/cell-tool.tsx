@@ -2,7 +2,6 @@
 Use a language model to explain what the code in a cell does.
 */
 
-import type { MenuProps } from "antd";
 import {
   Alert,
   Button,
@@ -32,10 +31,8 @@ import LLMSelector, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import {
-  MAX_PROMPTS,
-  useLLMHistory,
-} from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { IntlMessage, labels } from "@cocalc/frontend/i18n";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
@@ -567,7 +564,9 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     return (
       <Flex gap="10px" align="center" style={{ width: "100%" }}>
         {label}:
-        <Space.Compact style={{ width: "100%", display: "flex", alignItems: "stretch" }}>
+        <Space.Compact
+          style={{ width: "100%", display: "flex", alignItems: "stretch" }}
+        >
           <Input
             value={extra}
             placeholder={placeholder}
@@ -575,46 +574,12 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             onKeyDown={handleKeyDown}
             style={{ width: "100%" }}
           />
-          {historyPrompts.length > 0 && (
-            <Select
-              style={{
-                width: 200,
-                alignSelf: "stretch",
-              }}
-              placeholder="Search history..."
-              showSearch
-              allowClear
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toString()
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-              onSelect={(value) => setExtra(value)}
-              disabled={isQuerying}
-              dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
-              suffixIcon={<Icon name="history" />}
-              options={historyPrompts.slice(0, MAX_PROMPTS).map((histPrompt, idx) => ({
-                key: idx.toString(),
-                value: histPrompt,
-                label: (
-                  <Tooltip title={histPrompt} placement="left">
-                    <div
-                      style={{
-                        maxWidth: "300px",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {histPrompt}
-                    </div>
-                  </Tooltip>
-                ),
-              }))}
-            />
-          )}
+          <LLMHistorySelector
+            prompts={historyPrompts}
+            onSelect={setExtra}
+            disabled={isQuerying}
+            alignSelf="stretch"
+          />
         </Space.Compact>
       </Flex>
     );

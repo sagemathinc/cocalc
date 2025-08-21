@@ -14,11 +14,9 @@ import {
   Input,
   InputNumber,
   Popover,
-  Select,
   Space,
   Switch,
   Tag,
-  Tooltip,
 } from "antd";
 import { debounce, throttle } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
@@ -45,10 +43,8 @@ import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-q
 import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import {
-  MAX_PROMPTS,
-  useLLMHistory,
-} from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
@@ -665,46 +661,11 @@ export function AIGenerateCodeCell({
               autoSize={{ minRows: 2, maxRows: 6 }}
               style={{ flex: 1 }}
             />
-            {historyPrompts.length > 0 && (
-              <Select
-                style={{
-                  width: 200,
-                  alignSelf: "flex-start",
-                }}
-                placeholder="Search history..."
-                showSearch
-                allowClear
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toString()
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                onSelect={(value) => setPrompt(value)}
-                disabled={querying}
-                dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
-                suffixIcon={<Icon name="history" />}
-                options={historyPrompts.slice(0, MAX_PROMPTS).map((histPrompt, idx) => ({
-                  key: idx.toString(),
-                  value: histPrompt,
-                  label: (
-                    <Tooltip title={histPrompt} placement="left">
-                      <div
-                        style={{
-                          maxWidth: "300px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {histPrompt}
-                      </div>
-                    </Tooltip>
-                  ),
-                }))}
-              />
-            )}
+            <LLMHistorySelector
+              prompts={historyPrompts}
+              onSelect={setPrompt}
+              disabled={querying}
+            />
           </Space.Compact>
         </Paragraph>
         {renderExamples()}

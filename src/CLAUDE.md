@@ -16,7 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - Run `pretter -w [filename]` after modifying a file (ts, tsx, md, json, ...) to format it correctly.
 - All .js and .ts files are formatted by the tool prettier
 - Add suitable types when you write code
-- Variable name styles are "camelCase" for local and "FOO_BAR" for global variables. If you edit older code not following these guidlines, adjust this rule to fit the files style.
+- Follow DRY principles!
+- Variable name styles are `camelCase` for local and `FOO_BAR` for global variables. React Components and Classes are `FooBar`. If you edit older code not following these guidlines, adjust this rule to fit the files style.
 - Some older code is JavaScript or CoffeeScript, which will be translated to TypeScript
 - Use ES modules (import/export) syntax, not CommonJS (require)
 - Organize the list of imports in such a way: installed npm packages are on top, newline, then are imports from @cocalc's code base. Sorted alphabetically.
@@ -28,7 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 ### Essential Commands
 
 - `pnpm build-dev` - Build all packages for development
-- `pnpm clean` - Clean all node_modules and dist directories
+- `pnpm clean` - Clean all `node_modules` and `dist` directories
 - `pnpm test` - Run full test suite
 - `pnpm depcheck` - Check for dependency issues
 - `prettier -w [filename]` to format the style of a file after editing it
@@ -38,7 +39,6 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 
 - `cd packages/[package] && pnpm build` - Build and compile a specific package
   - for packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
-- `cd packages/[package] && pnpm tsc:watch` - TypeScript compilation in watch mode for a specific package
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - `cd packages/[package] && pnpm build` - Build a specific package
 - To typecheck the frontend, it is best to run `cd packages/static && pnpm build` - this implicitly compiles the frontend and reports typescript errors
@@ -48,6 +48,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
 - After TypeScript or `*.tsx` changes, run `pnpm build` in the relevant package directory
+  - When editing the frontend, run `pnpm build-dev` in `packages/static`. This implicitly builds the frontend!
 
 ## Architecture Overview
 
