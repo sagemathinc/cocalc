@@ -12,7 +12,6 @@ declare var DEBUG: boolean;
 
 import { Spin } from "antd";
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -122,6 +121,7 @@ export const Page: React.FC = () => {
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
+  const lite = useTypedRedux("customize", "lite");
 
   function account_tab_icon(): IconName | React.JSX.Element {
     if (is_anonymous) {
@@ -213,7 +213,7 @@ export const Page: React.FC = () => {
   }
 
   function render_sign_in_tab(): React.JSX.Element | null {
-    if (is_logged_in || !showSignInTab) return null;
+    if (lite || is_logged_in || !showSignInTab) return null;
 
     return (
       <Next
@@ -375,7 +375,7 @@ export const Page: React.FC = () => {
       {local_storage_warning && <LocalStorageWarning />}
       {show_i18n && <I18NBanner />}
       <VerifyEmail />
-      {!fullscreen && (
+      {!lite && !fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
@@ -389,7 +389,7 @@ export const Page: React.FC = () => {
         </nav>
       )}
       {fullscreen && render_fullscreen()}
-      {isNarrow && (
+      {!lite && isNarrow && (
         <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
       )}
       <ActiveContent />

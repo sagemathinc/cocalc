@@ -38,6 +38,7 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const intl = useIntl();
   const { project_id } = useProjectContext();
   const project_map = useTypedRedux("projects", "project_map");
+  const lite = useTypedRedux("customize", "lite");
   const lastNotRunningRef = useRef<null | number>(null);
   const allowed = useAllowedFreeProjectToRun(project_id);
 
@@ -81,7 +82,9 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
     return true;
   }, [project_map]);
 
-  if (state?.get("state") === "running") {
+  // in lite mode cocalc *is* being served directly from the project so it makes no sense
+  // to start or stop the project.
+  if (lite || state?.get("state") === "running") {
     return null;
   }
 

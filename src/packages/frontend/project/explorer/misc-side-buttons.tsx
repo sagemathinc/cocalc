@@ -30,6 +30,7 @@ const OPEN_MSG = defineMessage({
 });
 
 export function MiscSideButtons() {
+  const lite = useTypedRedux("customize", "lite");
   const { actions, project_id } = useProjectContext();
   const show_hidden = useTypedRedux({ project_id }, "show_hidden");
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -175,14 +176,14 @@ export function MiscSideButtons() {
       )}
       <Space.Compact>
         {render_upload_button()}
-        {render_library_button()}
+        {!lite && render_library_button()}
       </Space.Compact>
       <div className="pull-right">
         <Space.Compact>
           {render_hidden_toggle()}
-          {render_backup()}
-          <ForkProject project_id={project_id} />
-          <TourButton project_id={project_id} />
+          {!lite && render_backup()}
+          {!lite && <ForkProject project_id={project_id} />}
+          {!lite && <TourButton project_id={project_id} />}
         </Space.Compact>
       </div>
     </Space>

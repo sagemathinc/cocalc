@@ -8,7 +8,10 @@ import { type Client } from "@cocalc/conat/core/client";
 import { setConatClient } from "@cocalc/conat/client";
 import { once } from "@cocalc/util/async-utils";
 import { setConatServer } from "@cocalc/backend/data";
+import { project_id } from "@cocalc/project/data";
 import { init as initHttpServer } from "./http";
+import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
+import { init as initBugCounter } from "@cocalc/project/bug-counter";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -25,6 +28,10 @@ function conat(opts?): Client {
 }
 
 export async function main() {
+  logger.debug("main");
+
+  initBugCounter();
+
   logger.debug("main: start http server");
   const { httpServer, port } = await initHttpServer();
 
@@ -51,7 +58,15 @@ export async function main() {
   persistServer = createPersistServer({ client: conatClient });
 
   logger.debug("main: start project services");
-  await startProjectServices();
+  startProjectServices();
+
+  logger.debug("main: start fs service");
+  localPathFileserver({
+    path: process.cwd(),
+    client: conatClient,
+    project_id,
+    unsafeMode: true,
+  });
 
   process.once("exit", () => {
     conatServer?.close();

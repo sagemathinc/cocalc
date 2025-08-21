@@ -51,14 +51,17 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
   };
+  const lite = useTypedRedux("customize", "lite");
 
   return (
     <div style={style}>
-      <UsersViewing
-        project_id={project_id}
-        path={path}
-        style={USERS_VIEWING_STYLE}
-      />
+      {!lite && (
+        <UsersViewing
+          project_id={project_id}
+          path={path}
+          style={USERS_VIEWING_STYLE}
+        />
+      )}
       <ChatButton project_id={project_id} path={path} chatState={chatState} />
     </div>
   );

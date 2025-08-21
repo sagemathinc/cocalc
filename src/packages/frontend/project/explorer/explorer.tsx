@@ -246,7 +246,7 @@ export function Explorer() {
     disableExplorerKeyhandler,
   ]);
 
-  if (actions == null || project_map == null) {
+  if (actions == null) {
     return <Loading />;
   }
 

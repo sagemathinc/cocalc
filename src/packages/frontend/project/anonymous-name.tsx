@@ -38,9 +38,10 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
   const project = useRedux(["project_map", project_id], "projects");
   const first_name = useTypedRedux("account", "first_name");
   const last_name = useTypedRedux("account", "last_name");
+  const lite = useTypedRedux("customize", "lite");
   const [editingName, setEditingName] = useState<boolean>(false);
   const actions = useActions("account");
-  if (first_name == null || last_name == null) {
+  if (first_name == null || last_name == null || lite) {
     // loading?
     return <></>;
   }

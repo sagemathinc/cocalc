@@ -245,6 +245,9 @@ export class ProjectsStore extends Store<ProjectsState> {
   'admin' - user is not owner/collaborator but is an admin, hence has rights.
   */
   public get_my_group(project_id: string): UserGroup | undefined {
+    if (redux.getStore("customize").get("lite")) {
+      return "owner";
+    }
     const account_store = redux.getStore("account");
     if (account_store == null) {
       return;

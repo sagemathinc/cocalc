@@ -18,15 +18,13 @@ export async function init() {
     );
   });
 
-  app.get("/", (_, res) => res.redirect("/static/app.html"));
-  app.get("/settings", (_, res) => res.redirect("/static/app.html"));
-  app.get("/projects", (_, res) => res.redirect("/static/app.html"));
-
   app.use("/static", express.static(STATIC_PATH));
 
   app.get("/customize", async (_, res) => {
     res.json({ configuration: { lite: true } });
   });
+
+  app.get("*", (_, res) => res.redirect("/static/app.html"));
 
   const port = port0 ?? (await getPort());
   await httpServer.listen(port);

@@ -1019,6 +1019,9 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   waitUntilProjectIsRunning = reuseInFlight(async () => {
+    if (this.redux.getStore("customize").get("lite")) {
+      return;
+    }
     const store = this.redux.getStore("projects");
     await until(
       async () => {

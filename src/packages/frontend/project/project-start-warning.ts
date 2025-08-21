@@ -24,6 +24,9 @@ NOTE:
 const explicitly_started: { [project_id: string]: number } = {};
 
 export function is_running_or_starting(project_id: string): boolean {
+  if (redux.getStore("customize").get("lite")) {
+    return true;
+  }
   const t = explicitly_started[project_id];
   if (t != null && Date.now() - t <= 15000) {
     return true;

@@ -6,7 +6,6 @@
 import { DndContext, useDraggable } from "@dnd-kit/core";
 import { Button, Modal, Tooltip } from "antd";
 import { useIntl } from "react-intl";
-
 import {
   React,
   redux,

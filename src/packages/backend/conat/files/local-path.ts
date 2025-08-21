@@ -18,7 +18,9 @@ export async function localPathFileserver({
   client?: Client;
   // if project_id is specified, only serve this one project_id
   project_id?: string;
-  // - if path is given, serve projects from `${path}/${project_id}`
+
+  // - if path is given, serve projects from `${path}/${project_id}`, except in 1-project mode (when project_id is given above),
+  //   in which case we just server the project from path directly.
   // - if path not given, connect to the file-server service on the conat network.
   path?: string;
   unsafeMode?: boolean;
@@ -30,6 +32,10 @@ export async function localPathFileserver({
       throw Error(`only serves ${project_id}`);
     }
     if (path != null) {
+      if (project_id != null) {
+        // in 1-project mode just server directly from path
+        return path;
+      }
       const p = join(path, project_id2);
       try {
         await mkdir(p);
