@@ -926,6 +926,12 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@types/express':
+        specifier: ^4.17.23
+        version: 4.17.23
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
     devDependencies:
       '@types/node':
         specifier: ^18.16.14

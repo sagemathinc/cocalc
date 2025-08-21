@@ -7,7 +7,7 @@ import { exec as cp_exec } from "node:child_process";
 import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-
+import { uptime } from "node:os";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Cpu,
@@ -144,10 +144,10 @@ export class ProcessStats {
   // measured in "ticks" since the machine started
   private async uptime(): Promise<[number, Date]> {
     // return uptime in secs
-    const out = await readFile("/proc/uptime", "utf8");
-    const uptime = parseFloat(out.split(" ")[0]);
-    const boottime = new Date(new Date().getTime() - 1000 * uptime);
-    return [uptime, boottime];
+    // macOS, Windows, etc.: seconds (integer)
+    const u = uptime();
+    const boottime = new Date(Date.now() - u * 1000);
+    return [u, boottime];
   }
 
   // this is where we gather information about all running processes
