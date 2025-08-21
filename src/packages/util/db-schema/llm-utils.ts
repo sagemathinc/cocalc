@@ -913,7 +913,7 @@ export function isLanguageModelService(
   if (!service) return false;
   if (isUserDefinedModel(service)) return true;
   for (const v of LANGUAGE_MODEL_SERVICES) {
-    if (service.startsWith(`${v}-`)) {
+    if (service?.startsWith(`${v}-`)) {
       return true;
     }
   }
