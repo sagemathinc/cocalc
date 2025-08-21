@@ -14,10 +14,18 @@
     "test": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node"
   },
+  "bin": {
+    "cocalc-lite": "./bin/start.js"
+  },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/project": "workspace:*"
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
+    "@cocalc/lite": "workspace:*",
+    "@cocalc/project": "workspace:*",
+    "@cocalc/static": "workspace:*",
+    "@cocalc/util": "workspace:*"
   },
   "repository": {
     "type": "git",

@@ -908,12 +908,27 @@ importers:
 
   lite:
     dependencies:
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@cocalc/conat':
+        specifier: workspace:*
+        version: link:../conat
+      '@cocalc/lite':
+        specifier: workspace:*
+        version: 'link:'
       '@cocalc/project':
         specifier: workspace:*
         version: link:../project
+      '@cocalc/static':
+        specifier: workspace:*
+        version: link:../static
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
     devDependencies:
       '@types/node':
-        specifier: ^18.16.14
+        specifier: ^18.19.122
         version: 18.19.122
 
   next:
