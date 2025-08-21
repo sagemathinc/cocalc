@@ -34,7 +34,7 @@
       "axios@1.10.0": "^1.11.0"
     },
     "onlyBuiltDependencies": [
-      "@vscode/ripgrep",
+      "@cocalc/widgets",
       "better-sqlite3",
       "websocket-sftp",
       "websocketfs",

@@ -1,0 +1,30 @@
+{
+  "name": "@cocalc/lite",
+  "version": "1.0.0",
+  "description": "CoCalc Lite Standalone Server that Optional Syncs with an existing CoCalc instance",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "keywords": ["lite", "cocalc"],
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf dist node_modules",
+    "build": "pnpm exec tsc --build",
+    "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
+    "test": "pnpm exec jest --forceExit",
+    "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/project": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/test",
+  "devDependencies": {
+    "@types/node": "^18.16.14"
+  }
+}

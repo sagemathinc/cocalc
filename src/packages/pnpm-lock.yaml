@@ -403,7 +403,7 @@ importers:
         version: 4.1.12
       '@uiw/react-textarea-code-editor':
         specifier: ^3.1.1
-        version: 3.1.1(@babel/runtime@7.28.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 3.1.1(@babel/runtime@7.28.3)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@use-gesture/react':
         specifier: ^10.2.24
         version: 10.3.1(react@19.1.1)
@@ -906,6 +906,16 @@ importers:
         specifier: ^2.1.2
         version: 2.1.5
 
+  lite:
+    dependencies:
+      '@cocalc/project':
+        specifier: workspace:*
+        version: link:../project
+    devDependencies:
+      '@types/node':
+        specifier: ^18.16.14
+        version: 18.19.122
+
   next:
     dependencies:
       '@ant-design/cssinjs':
@@ -1040,7 +1050,7 @@ importers:
         version: 19.1.10
       '@uiw/react-textarea-code-editor':
         specifier: ^3.1.1
-        version: 3.1.1(@babel/runtime@7.28.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 3.1.1(@babel/runtime@7.28.3)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       next-rspack:
         specifier: ^15.4.6
         version: 15.4.6(@swc/helpers@0.5.15)(webpack-hot-middleware@2.26.1)
@@ -4482,9 +4492,6 @@ packages:
 
   '@types/node@24.2.1':
     resolution: {integrity: sha512-DRh5K+ka5eJic8CjH7td8QpYEV6Zo10gfRkjHCO3weqZHWDtAaSTFtl4+VMqOJ4N5jcuhZ9/l+yy8rVgw7BQeQ==}
-
-  '@types/node@24.3.0':
-    resolution: {integrity: sha512-aPTXCrfwnDLj4VvXrm+UUCQjNEvJgNA8s5F1cvwQU+3KNltTOkBm1j30uNLyqqPNe7gE3KFzImYoZEfLhp4Yow==}
 
   '@types/nodemailer@6.4.17':
     resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
@@ -12215,8 +12222,7 @@ snapshots:
 
   '@babel/runtime@7.28.2': {}
 
-  '@babel/runtime@7.28.3':
-    optional: true
+  '@babel/runtime@7.28.3': {}
 
   '@babel/template@7.27.2':
     dependencies:
@@ -14477,7 +14483,7 @@ snapshots:
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.28.2
+      '@babel/runtime': 7.28.3
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       chalk: 4.1.2
@@ -14920,10 +14926,6 @@ snapshots:
     dependencies:
       undici-types: 7.10.0
 
-  '@types/node@24.3.0':
-    dependencies:
-      undici-types: 7.10.0
-
   '@types/nodemailer@6.4.17':
     dependencies:
       '@types/node': 18.19.122
@@ -15167,9 +15169,9 @@ snapshots:
       '@typescript-eslint/types': 6.21.0
       eslint-visitor-keys: 3.4.3
 
-  '@uiw/react-textarea-code-editor@3.1.1(@babel/runtime@7.28.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@uiw/react-textarea-code-editor@3.1.1(@babel/runtime@7.28.3)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@babel/runtime': 7.28.2
+      '@babel/runtime': 7.28.3
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
       rehype: 13.0.2
@@ -19389,7 +19391,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.3.0
+      '@types/node': 18.19.122
       merge-stream: 2.0.0
       supports-color: 8.1.1
 

@@ -1,0 +1,22 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "incremental": true,
+    "rootDir": "./",
+    "outDir": "dist",
+    "sourceMap": true,
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "declaration": true
+  },
+  "exclude": ["dist", "node_modules"],
+  "types": ["jest", "@testing-library/jest-dom"],
+  "references": [
+    {
+      "path": "../util",
+      "path": "../conat",
+      "path": "../backend",
+      "path": "../frontend"
+    }
+  ]
+}
