@@ -327,6 +327,9 @@ function AIGenerateDocument({
 
     const { input, history, system } = fullPrompt;
 
+    // Add prompt to history
+    addPrompt(prompt);
+
     try {
       cancel.current = false;
       setQuerying(true);
@@ -365,9 +368,6 @@ function AIGenerateDocument({
       path,
     };
     projectActions?.log(event);
-
-    // Add prompt to history
-    addPrompt(prompt);
 
     const what = intl.formatMessage(
       {
