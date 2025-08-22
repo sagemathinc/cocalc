@@ -11,14 +11,15 @@ import { join } from "path";
 
 // @ts-ignore -- TODO: typescript doesn't like @cocalc/next/init (it is a js file).
 import initNextServer from "@cocalc/next/init";
+
 import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/hub/logger";
 import handleRaw from "@cocalc/next/lib/share/handle-raw";
 import { callback2 } from "@cocalc/util/async-utils";
+import { separate_file_extension } from "@cocalc/util/misc";
 import { database } from "../database";
 import createLandingRedirect from "./landing-redirect";
 import shareRedirect from "./share-redirect";
-import { separate_file_extension } from "@cocalc/util/misc";
 
 export default async function init(app: Application) {
   const winston = getLogger("nextjs");
@@ -95,15 +96,16 @@ export default async function init(app: Application) {
     // 3: Redirects for backward compat; unfortunately there's slight
     // overhead for doing this on every request.
 
-    app.all(join(shareBasePath, "*splat"), shareRedirect(shareBasePath));
+    app.all(join(shareBasePath), shareRedirect(shareBasePath));
+    app.all(join(shareBasePath, "{*splat}"), shareRedirect(shareBasePath));
   }
 
   const landingRedirect = createLandingRedirect();
   app.all(join(basePath, "index.html"), landingRedirect);
   app.all(join(basePath, "doc"), landingRedirect);
-  app.all(join(basePath, "doc/*splat"), landingRedirect);
+  app.all(join(basePath, "doc", "{*splat}"), landingRedirect);
   app.all(join(basePath, "policies"), landingRedirect);
-  app.all(join(basePath, "policies/*splat"), landingRedirect);
+  app.all(join(basePath, "policies", "{*splat}"), landingRedirect);
 
   // The next.js server that serves everything else.
   winston.info(
@@ -111,7 +113,7 @@ export default async function init(app: Application) {
   );
 
   // nextjs listens on everything else
-  app.all("*splat", handler);
+  app.all("{*splat}", handler);
 }
 
 function parseURL(req: Request, base): { id: string; path: string } {

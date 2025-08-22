@@ -4,8 +4,9 @@
    This redirect is *undone* in @cocalc/frontend/client/handle-hash-url.ts
 */
 
-import { join } from "path";
+import { join } from "node:path";
 import { Router } from "express";
+
 import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/hub/logger";
 import { APP_ROUTES } from "@cocalc/util/routing/app";
@@ -14,7 +15,8 @@ export default function init(router: Router) {
   const winston = getLogger("app-redirect");
   const v: string[] = [];
   for (const path of APP_ROUTES) {
-    v.push(`/${path}/*splat`);
+    v.push(`/${path}`);
+    v.push(`/${path}/{*splat}`);
   }
   router.get(v, (req, res) => {
     winston.debug(req.url);

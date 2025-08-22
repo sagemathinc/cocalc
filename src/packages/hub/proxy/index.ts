@@ -4,11 +4,12 @@
  */
 
 import { Application } from "express";
+
+import base_path from "@cocalc/backend/base-path";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import getLogger from "../logger";
 import initRequest from "./handle-request";
 import initUpgrade from "./handle-upgrade";
-import base_path from "@cocalc/backend/base-path";
-import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
 const logger = getLogger("proxy");
 
@@ -20,27 +21,29 @@ interface Options {
   proxyConat: boolean;
 }
 
-export default function initProxy(opts: Options) {
-  const proxy_regexp = `^${
-    base_path.length <= 1 ? "" : base_path
-  }/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/`;
-  const proxy_pattern = `${
-    base_path.length <= 1 ? "" : base_path
-  }/:project_id/*splat`;
-  logger.info(
-    "creating proxy server with proxy_regexp",
-    proxy_regexp,
-    "proxy_pattern",
-    proxy_pattern,
-  );
+const uuidRegex =
+  /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/;
 
-  // tcp connections:
+function uuidMiddleware(req, _res, next) {
+  if (uuidRegex.test(req.params.project_id)) {
+    return next();
+  }
+  // Not a valid project ID UUID: skip to next matching route
+  return next("route");
+}
+
+export default function initProxy(opts: Options) {
+  const prefix = base_path.length <= 1 ? "" : base_path;
+  const routePath = `${prefix}/:project_id/*splat`;
+  logger.info("creating proxy server for UUIDs only", routePath);
+
   const handleProxy = initRequest(opts);
 
-  // websocket upgrades:
+  const proxy_regexp = `^${prefix}\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$\/(.*)$`;
   const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
-  opts.app.all(proxy_pattern, handleProxy);
+  // Only handles proxy if the project_id is a valid UUID:
+  opts.app.all(routePath, uuidMiddleware, handleProxy);
 
   opts.httpServer.on("upgrade", handleUpgrade);
 }
