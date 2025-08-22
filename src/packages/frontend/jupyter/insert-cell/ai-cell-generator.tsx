@@ -40,6 +40,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { LLMCellContextSelector } from "@cocalc/frontend/jupyter/llm/cell-context-selector";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
@@ -207,16 +208,17 @@ export function AIGenerateCodeCell({
     const aboveCount = rangeStart < 0 ? Math.abs(rangeStart) : 0;
     const belowCount = rangeEnd > 0 ? rangeEnd : 0;
 
-    return getNonemptyCellContents({
+    const result = getNonemptyCellContents({
       actions: frameActions.current,
       id,
-      direction: "around",
-      cellCount: "all",
       cellTypes,
       lang,
       aboveCount,
       belowCount,
+      includeCurrentCellInAbove: true,
     });
+
+    return result;
   }
 
   function insertCells() {
@@ -454,6 +456,7 @@ export function AIGenerateCodeCell({
           onCellTypesChange={setCellTypes}
           currentCellId={id}
           frameActions={frameActions.current}
+          mode="insertion"
         />
       </>
     );
@@ -574,6 +577,7 @@ export function AIGenerateCodeCell({
               children: (
                 <RawPrompt
                   input={raw}
+                  rawText
                   style={{ border: "none", padding: "0", margin: "0" }}
                 />
               ),
@@ -729,11 +733,13 @@ function getInput({
     contextInfo = `Context: The new cell will be inserted with ${beforeCells} and ${afterCells} the insertion point.\n\n`;
 
     if (contextContent.before) {
-      contextInfo += `Cells BEFORE insertion point:\n<before>\n${contextContent.before}\n</before>\n\n`;
+      const beforeDelim = backtickSequence(contextContent.before);
+      contextInfo += `Cells BEFORE insertion point:\n\n${beforeDelim}\n${contextContent.before}\n${beforeDelim}\n\n`;
     }
 
     if (contextContent.after) {
-      contextInfo += `Cells AFTER insertion point:\n<after>\n${contextContent.after}\n</after>\n\n`;
+      const afterDelim = backtickSequence(contextContent.after);
+      contextInfo += `Cells AFTER insertion point:\n\n${afterDelim}\n${contextContent.after}\n${afterDelim}\n\n`;
     }
   } else {
     contextInfo =

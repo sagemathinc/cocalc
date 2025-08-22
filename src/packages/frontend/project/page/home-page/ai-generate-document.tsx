@@ -25,6 +25,7 @@ import { delay } from "awaiting";
 import { debounce, isEmpty, throttle } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   CSS,
@@ -82,7 +83,7 @@ import {
   Example,
   Ext,
   JUPYTER,
-  PAPERSIZE,
+  PAPER_SIZE,
 } from "./ai-generate-examples";
 import {
   DEFAULT_LANG_EXTRA,
@@ -248,7 +249,7 @@ function AIGenerateDocument({
   const [ipynb, setIpynb] = useState<null | Ipynb>(null);
 
   useEffect(() => {
-    const sizes = PAPERSIZE[ext];
+    const sizes = PAPER_SIZE[ext];
     if (paperSize == null && sizes != null) {
       setPaperSize(sizes[0]);
     }
@@ -645,7 +646,7 @@ function AIGenerateDocument({
         case "ipynb":
         case "ipynb-sagemath":
           return spec != null
-            ? (JUPYTER[spec.language?.toLowerCase()] ?? [])
+            ? JUPYTER[spec.language?.toLowerCase()] ?? []
             : [];
         default:
           return DOCUMENT[ext];
@@ -697,7 +698,7 @@ function AIGenerateDocument({
   }
 
   function renderPaperSize() {
-    const sizes = PAPERSIZE[ext];
+    const sizes = PAPER_SIZE[ext];
     if (!sizes) return;
 
     return (

@@ -31,7 +31,7 @@ import {
   RUN_ALL_CELLS_ABOVE_ICON,
   RUN_ALL_CELLS_BELOW_ICON,
 } from "./consts";
-import { LLMCellTool } from "./llm";
+import { LLMCellTool } from "./llm/cell-tool";
 
 interface Props {
   id: string;
@@ -193,7 +193,14 @@ export const CellButtonBar: React.FC<Props> = React.memo(
 
     function renderCodeBarLLMButtons() {
       if (!llmTools || !haveLLMCellTools || is_readonly) return;
-      return <LLMCellTool id={id} actions={actions} llmTools={llmTools} cellType={isCodeCell ? "code" : "markdown"} />;
+      return (
+        <LLMCellTool
+          id={id}
+          actions={actions}
+          llmTools={llmTools}
+          cellType={isCodeCell ? "code" : "markdown"}
+        />
+      );
     }
 
     function renderCodeBarFormatButton() {

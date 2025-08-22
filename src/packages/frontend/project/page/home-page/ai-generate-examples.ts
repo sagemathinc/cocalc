@@ -1,3 +1,5 @@
+// cSpell:ignore  fmincon xaringan tsfeatures Koma scrartcl scrbook scrletter scrreprt
+
 export type Example = readonly [
   display: string,
   prompt: string,
@@ -47,7 +49,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "DNA Sequence Analysis",
-      "Generate DNA sequence data of length 10000. It should contain random coding regions with realistic codon usage bias, promoter regions with over-represented transcription factor binding sites, repetitive elements like transposons and tandem repeats, and regions with different GC content to simulate genomic islands. Then, create a function that analyzes the k-mer distributions in that sequence, highlighting over-represented motifs. Then plot this!",
+      "Generate DNA sequence data of length 10000. It should contain random coding regions with realistic codon usage bias, promoter regions with over-represented transcription factor binding sites, repetitive elements like transposes and tandem repeats, and regions with different GC content to simulate genomic islands. Then, create a function that analyzes the k-mer distributions in that sequence, highlighting over-represented motifs. Then plot this!",
       ["bioinformatics", "genetics"],
     ],
   ],
@@ -148,7 +150,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "10x10 Multiplication Table",
-      "Generate a 10x10 multiplication table using `[1:10]' .* [1:10]` and exaplain what happend.",
+      "Generate a 10x10 multiplication table using `[1:10]' .* [1:10]` and explain what happened.",
       ["matrix operations"],
     ],
   ],
@@ -183,7 +185,7 @@ export function isSupportedExtension(ext?: string): ext is Ext {
   return typeof ext === "string" && EXTS.includes(ext as any);
 }
 
-export const PAPERSIZE: { [ext in Ext]?: string[] } = {
+export const PAPER_SIZE: { [ext in Ext]?: string[] } = {
   tex: ["Letter (US)", "Legal (US)", "A4 (Europe)", "A5 (Europe)"],
 };
 

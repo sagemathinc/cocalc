@@ -58,7 +58,7 @@ interface Props {
   id: string;
   style?: CSSProperties;
   llmTools?: LLMTools;
-  cellType?: "code" | "markdown";
+  cellType: "code" | "markdown";
 }
 
 const CONTENT_WIDTH = 600;
@@ -426,13 +426,7 @@ const ACTIONS_MD: { [mode in MarkdownMode]: LLMTool } = {
   },
 } as const;
 
-export function LLMCellTool({
-  actions,
-  id,
-  style,
-  llmTools,
-  cellType = "code",
-}: Props) {
+export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   const { actions: project_actions, onCoCalcCom } = useProjectContext();
   const intl = useIntl();
   const { project_id, path } = useFrameContext();
@@ -481,9 +475,14 @@ export function LLMCellTool({
 
   const shouldShowContext = (): boolean => {
     // Show context selection for:
-    // - ask mode (any cell type)
+    // - ask, bugfix and explain
     // - document mode (markdown cells only)
-    return mode === "ask" || (mode === "document" && isMarkdownCell);
+    return (
+      mode === "ask" ||
+      mode === "explain" ||
+      mode === "bugfix" ||
+      mode === "document"
+    );
   };
 
   const getContextContent = (): CellContextContent => {
@@ -496,8 +495,6 @@ export function LLMCellTool({
     return getNonemptyCellContents({
       actions: frameActions.current,
       id,
-      direction: "around",
-      cellCount: "all", // Use "all" for around direction
       cellTypes,
       lang: kernelLanguage,
       aboveCount,
@@ -680,8 +677,9 @@ export function LLMCellTool({
     if (!preview) chunks.push(`<details${preview ? " open" : ""}>`);
 
     // Add context for ask and document modes (inside details)
+    let contextContent: CellContextContent | null = null;
     if (shouldShowContext()) {
-      const contextContent = getContextContent();
+      contextContent = getContextContent();
       if (contextContent.before || contextContent.after) {
         chunks.push("Context from surrounding cells:");
 
@@ -699,17 +697,16 @@ export function LLMCellTool({
       }
     }
 
-    const input = cell.get("input");
-    const delimI = backtickSequence(input);
-
-    // For ask and document modes with context, label the current cell content
-    const contextContent = getContextContent();
+    // For modes with context, label the current cell content
     if (
-      shouldShowContext() &&
+      contextContent != null &&
       (contextContent.before || contextContent.after)
     ) {
       chunks.push("Current cell content:");
     }
+
+    const input = cell.get("input");
+    const delimI = backtickSequence(input);
 
     chunks.push(
       `${delimI}${isMarkdownCell ? "markdown" : language}\n${input}\n${delimI}`,
@@ -912,7 +909,9 @@ export function LLMCellTool({
         });
         const placeholder = intl.formatMessage({
           id: "jupyter.llm.cell-tool.ask.placeholder",
-          defaultMessage: "What would you like to know about this code?",
+          defaultMessage: `What would you like to know about this ${
+            cellType === "code" ? "code" : "text"
+          }?`,
         });
         return (
           <LLMInput
@@ -1126,7 +1125,11 @@ export function LLMCellTool({
 
       case "proofread":
       case "formulize":
+      case null:
         return null; // These modes don't need additional controls
+
+      default:
+        unreachable(mode);
     }
     return null;
   }
@@ -1142,6 +1145,7 @@ export function LLMCellTool({
         onCellTypesChange={setCellTypes}
         currentCellId={id}
         frameActions={frameActions.current}
+        mode="analysis"
       />
     );
   }
@@ -1220,6 +1224,7 @@ export function LLMCellTool({
             children: (
               <RawPrompt
                 input={message}
+                rawText
                 style={{ border: "none", padding: "0", margin: "0" }}
               />
             ),

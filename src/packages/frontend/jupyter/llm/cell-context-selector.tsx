@@ -8,6 +8,7 @@ import { useMemo } from "react";
 
 import { Paragraph, Text } from "@cocalc/frontend/components";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { plural } from "@cocalc/util/misc";
 
 export interface LLMCellContextSelectorProps {
   // Context range as [above, below] where negative values mean "above" and positive mean "below"
@@ -21,6 +22,9 @@ export interface LLMCellContextSelectorProps {
   // Current cell ID and frame actions for enumerating available cells
   currentCellId: string;
   frameActions: NotebookFrameActions | undefined;
+
+  // Mode "insertion" includes current cell (e.g. ai-cell-generator) in above count, "analysis" excludes it
+  mode: "insertion" | "analysis";
 }
 
 export function LLMCellContextSelector({
@@ -30,6 +34,7 @@ export function LLMCellContextSelector({
   onCellTypesChange,
   currentCellId,
   frameActions,
+  mode,
 }: LLMCellContextSelectorProps) {
   const { minValue, maxValue, marks } = useMemo(() => {
     const jupyterActionsStore = frameActions?.jupyter_actions.store;
@@ -37,20 +42,25 @@ export function LLMCellContextSelector({
       return { minValue: 0, maxValue: 0, marks: { 0: "0" } };
     }
 
-    // Count all cells before the insertion point (include current cell and all above it)
-    let cellsBefore = 0;
-    while (jupyterActionsStore.get_cell_id(cellsBefore, currentCellId)) {
-      cellsBefore++;
+    // Count cells above the current cell
+    // For insertion mode: include the insertion point cell in the "above" count
+    // For analysis mode: skip the current cell
+    let cellsAbove = 0;
+    const offset = mode === "analysis" ? 1 : 0;
+    while (
+      jupyterActionsStore.get_cell_id(-(cellsAbove + offset), currentCellId)
+    ) {
+      cellsAbove++;
     }
 
-    // start with the first cell after the current cell (+1 offset)
-    let cellsAfter = 0;
-    while (jupyterActionsStore.get_cell_id(cellsAfter + 1, currentCellId)) {
-      cellsAfter++;
+    // Count cells below the current cell (positive offsets)
+    let cellsBelow = 0;
+    while (jupyterActionsStore.get_cell_id(cellsBelow + 1, currentCellId)) {
+      cellsBelow++;
     }
 
-    const minVal = -cellsBefore;
-    const maxVal = cellsAfter;
+    const minVal = -cellsAbove;
+    const maxVal = cellsBelow;
 
     // Create marks dynamically
     const marks: SliderSingleProps["marks"] = { 0: "0" };
@@ -64,10 +74,10 @@ export function LLMCellContextSelector({
     }
 
     // Add -2 and +2 marks only if they're not at the boundaries
-    if (minVal < -2) {
+    if (minVal <= -2) {
       marks[-2] = "-2";
     }
-    if (maxVal > 2) {
+    if (maxVal >= 2) {
       marks[2] = "+2";
     }
 
@@ -81,9 +91,30 @@ export function LLMCellContextSelector({
   ];
 
   function getDescription() {
-    return `Selected: ${Math.abs(
-      adjustedRange[0],
-    )} cells above including current cell + ${adjustedRange[1]} cells below`;
+    const aboveCount = Math.abs(adjustedRange[0]);
+    const belowCount = adjustedRange[1];
+
+    if (aboveCount === 0 && belowCount === 0) {
+      return "Selected: Current cell only";
+    } else if (aboveCount === 0) {
+      return `Selected: Current cell + ${belowCount} ${plural(
+        belowCount,
+        "cell",
+      )} below`;
+    } else if (belowCount === 0) {
+      return `Selected: ${aboveCount} ${plural(
+        aboveCount,
+        "cell",
+      )} above + current cell`;
+    } else {
+      return `Selected: ${aboveCount} ${plural(
+        aboveCount,
+        "cell",
+      )} above + current cell + ${belowCount} ${plural(
+        belowCount,
+        "cell",
+      )} below`;
+    }
   }
 
   return (

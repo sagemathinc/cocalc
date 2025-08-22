@@ -7,18 +7,14 @@ import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import { CUTOFF } from "@cocalc/frontend/frame-editors/llm/consts";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 
-export type CellDirection = "above" | "below" | "around";
-export type CellCount = "none" | number | "all above" | "all below" | "all";
-
 export interface CellContentOptions {
   actions: NotebookFrameActions | undefined;
   id: string;
-  direction: CellDirection;
-  cellCount: CellCount;
   cellTypes?: "all" | "code" | "markdown";
   lang?: string;
   aboveCount?: number; // For "around" direction
   belowCount?: number; // For "around" direction
+  includeCurrentCellInAbove?: boolean; // if true, the "above" includes the current cell
 }
 
 export interface CellContextContent {
@@ -32,75 +28,47 @@ export interface CellContextContent {
 export function getNonemptyCellContents({
   actions,
   id,
-  direction,
-  cellCount,
   cellTypes = "code",
   lang,
   aboveCount = 2,
   belowCount = 2,
+  includeCurrentCellInAbove = false,
 }: CellContentOptions): CellContextContent {
   if (actions == null) return {};
-  if (cellCount === "none" && direction !== "around") return {};
 
   const jupyterActionsStore = actions?.jupyter_actions.store;
 
-  if (direction === "around") {
-    const result: CellContextContent = {};
+  const result: CellContextContent = {};
 
-    if (aboveCount > 0) {
-      const aboveContent = getDirectionalContent({
-        actions,
-        id,
-        jupyterActionsStore,
-        cellTypes,
-        lang,
-        direction: "above",
-        count: aboveCount,
-        includeCurrentCell: true,
-      });
-      if (aboveContent) result.before = aboveContent;
-    }
-
-    if (belowCount > 0) {
-      const belowContent = getDirectionalContent({
-        actions,
-        id,
-        jupyterActionsStore,
-        cellTypes,
-        lang,
-        direction: "below",
-        count: belowCount,
-        includeCurrentCell: false,
-      });
-      if (belowContent) result.after = belowContent;
-    }
-
-    return result;
+  if (aboveCount > 0) {
+    const aboveContent = getDirectionalContent({
+      actions,
+      id,
+      jupyterActionsStore,
+      cellTypes,
+      lang,
+      direction: "above",
+      count: aboveCount,
+      includeCurrentCell: includeCurrentCellInAbove,
+    });
+    if (aboveContent) result.before = aboveContent;
   }
 
-  // Handle single direction - return in appropriate property
-  const count =
-    typeof cellCount === "number"
-      ? cellCount
-      : cellCount === "all above" ||
-        cellCount === "all below" ||
-        cellCount === "all"
-      ? 100
-      : 0;
+  if (belowCount > 0) {
+    const belowContent = getDirectionalContent({
+      actions,
+      id,
+      jupyterActionsStore,
+      cellTypes,
+      lang,
+      direction: "below",
+      count: belowCount,
+      includeCurrentCell: false,
+    });
+    if (belowContent) result.after = belowContent;
+  }
 
-  const content = getDirectionalContent({
-    actions,
-    id,
-    jupyterActionsStore,
-    cellTypes,
-    lang,
-    direction,
-    count,
-  });
-
-  if (!content) return {};
-
-  return direction === "above" ? { before: content } : { after: content };
+  return result;
 }
 
 function getDirectionalContent({
