@@ -1,2 +1,3 @@
 import LLMError from "./error";
-export { LLMError };
+import { LLMCellTool } from "./cell-tool";
+export { LLMError, LLMCellTool };

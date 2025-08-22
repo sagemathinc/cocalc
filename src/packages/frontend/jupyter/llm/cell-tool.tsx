@@ -30,11 +30,13 @@ import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
 import { IntlMessage, labels, LOCALIZATIONS } from "@cocalc/frontend/i18n";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
@@ -171,8 +173,10 @@ interface LLMInputProps {
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
-  onKeyDown?: (e: any) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
   multiline?: boolean;
+  historyPrompts: string[];
+  isQuerying: boolean;
 }
 
 function LLMInput({
@@ -182,6 +186,8 @@ function LLMInput({
   onChange,
   onKeyDown,
   multiline,
+  historyPrompts,
+  isQuerying,
 }: LLMInputProps) {
   const inputRef = useRef<any>(null);
 
@@ -198,29 +204,41 @@ function LLMInput({
     }
   }, []);
 
+  const inputComponent = multiline ? (
+    <Input.TextArea
+      ref={inputRef}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      rows={3}
+      style={{ width: "100%" }}
+    />
+  ) : (
+    <Input
+      ref={inputRef}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      style={{ width: "100%" }}
+    />
+  );
+
   return (
     <Flex gap="10px" align="center" style={{ width: "100%" }}>
       {label}:
-      {multiline ? (
-        <Input.TextArea
-          ref={inputRef}
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          rows={3}
-          style={{ width: "100%" }}
+      <Space.Compact
+        style={{ width: "100%", display: "flex", alignItems: "stretch" }}
+      >
+        {inputComponent}
+        <LLMHistorySelector
+          prompts={historyPrompts}
+          onSelect={onChange}
+          disabled={isQuerying}
+          alignSelf="stretch"
         />
-      ) : (
-        <Input
-          ref={inputRef}
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          style={{ width: "100%" }}
-        />
-      )}
+      </Space.Compact>
     </Flex>
   );
 }
@@ -448,6 +466,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   const [stepByStep, setStepByStep] = useState<boolean>(true);
   const [message, setMessage] = useState<string>("");
   const [tokens, setTokens] = useState<number>(0);
+  const { prompts: historyPrompts, addPrompt } = useLLMHistory("general");
 
   // Context selection for document mode
   const [contextRange, setContextRange] = useState<[number, number]>([-2, 2]);
@@ -473,20 +492,17 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     return LOCALIZATIONS[code as keyof typeof LOCALIZATIONS]?.name ?? code;
   };
 
-  const shouldShowContext = (): boolean => {
-    // Show context selection for:
-    // - ask, bugfix and explain
-    // - document mode (markdown cells only)
-    return (
-      mode === "ask" ||
-      mode === "explain" ||
-      mode === "bugfix" ||
-      mode === "document"
-    );
-  };
+  // Show context selection for:
+  // - ask, bugfix and explain
+  // - document mode (markdown cells only)
+  const showContext: boolean =
+    mode === "ask" ||
+    mode === "explain" ||
+    mode === "bugfix" ||
+    mode === "document";
 
   const getContextContent = (): CellContextContent => {
-    if (!shouldShowContext()) return {};
+    if (!showContext) return {};
 
     // contextRange is like [-2, 2], so aboveCount should be 2, belowCount should be 2
     const aboveCount = Math.abs(contextRange[0]);
@@ -502,7 +518,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     });
   };
 
-  const extra = useMemo(() => {
+  const extra = (() => {
     switch (mode) {
       case "ask":
         return extraAsk;
@@ -517,9 +533,9 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
       default:
         return "";
     }
-  }, [mode, extraAsk, extraBug, extraImprove, extraModify]);
+  })();
 
-  const isSubmitDisabled = useMemo(() => {
+  const isSubmitDisabled: boolean = (() => {
     if (mode == null) return true;
     switch (mode) {
       case "ask":
@@ -545,17 +561,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
         unreachable(mode);
         return false;
     }
-  }, [
-    mode,
-    extraAsk,
-    extraBug,
-    extraImprove,
-    extraModify,
-    targetLanguage,
-    otherLanguage,
-    targetTextLanguage,
-    isMarkdownCell,
-  ]);
+  })();
 
   useEffect(() => {
     if (mode !== "translate") return;
@@ -678,7 +684,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
 
     // Add context for ask and document modes (inside details)
     let contextContent: CellContextContent | null = null;
-    if (shouldShowContext()) {
+    if (showContext) {
       contextContent = getContextContent();
       if (contextContent.before || contextContent.after) {
         chunks.push("Context from surrounding cells:");
@@ -920,6 +926,8 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
             value={extraAsk}
             onChange={setExtraAsk}
             onKeyDown={handleKeyDown}
+            historyPrompts={historyPrompts}
+            isQuerying={isQuerying}
           />
         );
       }
@@ -940,6 +948,8 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
             value={extraBug}
             onChange={setExtraBug}
             onKeyDown={handleKeyDown}
+            historyPrompts={historyPrompts}
+            isQuerying={isQuerying}
           />
         );
       }
@@ -961,6 +971,8 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
               value={extraImprove}
               onChange={setExtraImprove}
               onKeyDown={handleKeyDown}
+              historyPrompts={historyPrompts}
+              isQuerying={isQuerying}
             />
             <Paragraph
               style={{ display: "flex", alignItems: "center", gap: "10px" }}
@@ -1000,6 +1012,8 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
               value={extraModify}
               onChange={setExtraModify}
               onKeyDown={handleKeyDown}
+              historyPrompts={historyPrompts}
+              isQuerying={isQuerying}
             />
             <Paragraph>
               {MODIFICATIONS.map(({ label, value }) => (
@@ -1118,6 +1132,8 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
               value={extraAsk}
               onChange={setExtraAsk}
               onKeyDown={handleKeyDown}
+              historyPrompts={historyPrompts}
+              isQuerying={isQuerying}
             />
           );
         }
@@ -1135,7 +1151,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   }
 
   function renderContextSelection() {
-    if (!shouldShowContext()) return null;
+    if (!showContext) return null;
 
     return (
       <LLMCellContextSelector
@@ -1207,7 +1223,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     );
   }
 
-  function renderPreviewLLM(model) {
+  function renderPreviewLLM(model: LanguageModel) {
     if (llmTools == null) return;
     return (
       <Collapse
@@ -1234,7 +1250,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     );
   }
 
-  function renderFooter(model) {
+  function renderFooter(model: LanguageModel) {
     return (
       <>
         <Paragraph type="secondary">
@@ -1265,6 +1281,11 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   async function onConfirm() {
     setIsQuerying(true);
     try {
+      // Add prompt to history based on mode
+      if (mode && extra.trim()) {
+        addPrompt(extra);
+      }
+
       await getExplanation(false);
       track(TRACKING_KEY, {
         action: "submitted",
@@ -1329,9 +1350,10 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     );
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: React.KeyboardEvent) {
     // Only handle key events from input elements, not from other components like Slider
-    if (e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") {
+    const target = e.target as HTMLElement;
+    if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
       return;
     }
 

@@ -1,4 +1,4 @@
-// cSpell:ignore  fmincon xaringan tsfeatures Koma scrartcl scrbook scrletter scrreprt
+// cSpell:ignore  fmincon xaringan tsfeatures Koma scrartcl scrbook scrletter scrreprt transposons
 
 export type Example = readonly [
   display: string,
@@ -49,7 +49,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "DNA Sequence Analysis",
-      "Generate DNA sequence data of length 10000. It should contain random coding regions with realistic codon usage bias, promoter regions with over-represented transcription factor binding sites, repetitive elements like transposes and tandem repeats, and regions with different GC content to simulate genomic islands. Then, create a function that analyzes the k-mer distributions in that sequence, highlighting over-represented motifs. Then plot this!",
+      "Generate DNA sequence data of length 10000. It should contain random coding regions with realistic codon usage bias, promoter regions with over-represented transcription factor binding sites, repetitive elements like transposons and tandem repeats, and regions with different GC content to simulate genomic islands. Then, create a function that analyzes the k-mer distributions in that sequence, highlighting over-represented motifs. Then plot this!",
       ["bioinformatics", "genetics"],
     ],
   ],
