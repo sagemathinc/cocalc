@@ -33,7 +33,7 @@
     "@cocalc/sync-fs": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@lydell/node-pty": "^1.1.0",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "awaiting": "^3.0.0",
     "body-parser": "^1.20.3",
     "commander": "^7.2.0",
