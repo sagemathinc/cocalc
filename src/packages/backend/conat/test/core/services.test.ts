@@ -100,7 +100,7 @@ describe("more service tests", () => {
     });
     await expect(async () => {
       await arith.mul(2, 3);
-    }).rejects.toThrowError("no subscribers");
+    }).rejects.toThrow("no subscribers");
   });
 
   it("cleans up", () => {

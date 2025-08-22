@@ -65,7 +65,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
 
     await expect(async () => {
       await stream.publish("y", { timeout: 100 });
-    }).rejects.toThrowError();
+    }).rejects.toThrow();
 
     try {
       await stream.publish("y", { timeout: 100 });

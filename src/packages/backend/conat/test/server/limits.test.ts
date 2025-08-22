@@ -27,7 +27,7 @@ describe("test the per user subscription limit", () => {
   it("creates another subscription and gets an error", async () => {
     await expect(async () => {
       await client.sub("sub3");
-    }).rejects.toThrowError("limit");
+    }).rejects.toThrow("limit");
   });
 
   it("cleans up", () => {
