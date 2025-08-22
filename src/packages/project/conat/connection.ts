@@ -31,8 +31,10 @@ export function connectToConat(options?): Client {
   let Cookie;
   if (apiKey) {
     Cookie = `${API_COOKIE_NAME}=${apiKey}`;
-  } else {
+  } else if (secretToken)  {
     Cookie = `${PROJECT_SECRET_COOKIE_NAME}=${secretToken}; ${PROJECT_ID_COOKIE_NAME}=${project_id}`;
+  } else {
+    Cookie = '';
   }
   cache = connect({
     address: conatServer,
