@@ -21,6 +21,8 @@ import { envToInt } from "./misc/env-to-number";
 
 const exec = promisify(cp_exec);
 
+export const MIN_WARN_INTERVAL = 30_000;
+
 /**
  * Return information about all processes (up to a limit or filter) in the environment, where this node.js process runs.
  * This has been refactored out of project/project-info/server.ts.
@@ -151,6 +153,7 @@ export class ProcessStats {
   }
 
   // this is where we gather information about all running processes
+  private lastWarn : number = 0;
   public async processes(
     timestamp?: number,
   ): Promise<{ procs: Processes; uptime: number; boottime: Date }> {
@@ -169,8 +172,11 @@ export class ProcessStats {
           this.dbg(`process ${pid} likely vanished – could happen – ${err}`);
       }
       // we avoid processing and sending too much data
-      if (n > this.procLimit) {
-        this.dbg(`too many processes – limit of ${this.procLimit} reached!`);
+      if (n > this.procLimit) { // only log this once in while, otherwise it totally spams the logs
+        if(this.lastWarn <= Date.now() - MIN_WARN_INTERVAL) {
+          this.lastWarn = Date.now();
+          this.dbg(`too many processes – limit of ${this.procLimit} reached!`);
+        }
         break;
       } else {
         n += 1;

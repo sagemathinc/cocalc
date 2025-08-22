@@ -56,12 +56,16 @@ async function isTmpMemoryBased(): Promise<boolean> {
  * Safely read a file, returning null if the file doesn't exist.
  * Throws for other errors.
  */
+const warned = new Set<string>();
 async function safeReadFile(path: string): Promise<string | null> {
   try {
     return await readFile(path, "utf8");
   } catch (error: any) {
     if (error.code === "ENOENT") {
-      console.warn(`safeReadFile: ${path} not found, skipping`);
+      if(!warned.has(path)) {
+        warned.add(path);
+        console.warn(`safeReadFile: ${path} not found, skipping`);
+      }
       return null;
     }
     throw error;
