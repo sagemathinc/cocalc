@@ -62,8 +62,8 @@ export async function main() {
 
   logger.debug("main: start fs service");
   localPathFileserver({
-    path: process.cwd(),
     client: conatClient,
+    path: process.cwd(),
     project_id,
     unsafeMode: true,
   });

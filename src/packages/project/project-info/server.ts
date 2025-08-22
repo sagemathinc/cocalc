@@ -64,7 +64,7 @@ async function safeReadFile(path: string): Promise<string | null> {
     if (error.code === "ENOENT") {
       if(!warned.has(path)) {
         warned.add(path);
-        console.warn(`safeReadFile: ${path} not found, skipping`);
+        L(`safeReadFile: ${path} not found, skipping`);
       }
       return null;
     }

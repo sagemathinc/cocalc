@@ -6,6 +6,9 @@ import { join } from "path";
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/backend/conat/conat";
 import { client as createFileClient } from "@cocalc/conat/files/file-server";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger('conat:files:local-path');
 
 export async function localPathFileserver({
   path,
@@ -25,7 +28,9 @@ export async function localPathFileserver({
   path?: string;
   unsafeMode?: boolean;
 } = {}) {
+  logger.debug("localPathFileserver", {service,project_id,unsafeMode,path});
   client ??= conat();
+  logger.debug("localPathFileserver: got client");
 
   const getPath = async (project_id2: string) => {
     if (project_id != null && project_id != project_id2) {
@@ -47,6 +52,7 @@ export async function localPathFileserver({
     }
   };
 
+  logger.debug('creating fsServer...', {service});
   const server = await fsServer({
     service,
     client,
@@ -59,6 +65,7 @@ export async function localPathFileserver({
       });
     },
   });
+  logger.debug('created fsServer...', {service});
   return { server, client, path, service, close: () => server.close() };
 }
 

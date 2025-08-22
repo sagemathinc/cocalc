@@ -638,6 +638,9 @@ export class ConatServer extends EventEmitter {
     // a subscriber before the socket is actually getting messages.
     await socket.join(room);
     await this.updateInterest({ op: "add", subject, room, queue });
+    if (DEBUG) {
+      this.log("subscribe - succeeded ", { id: socket.id, subject, queue, room });
+    }
   };
 
   // get all interest in this subject across the cluster (NOT supercluster)

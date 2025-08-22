@@ -16,6 +16,9 @@ import listing, { type Listing, type FileTypeLabel } from "./listing";
 import { isValidUUID } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import TTL from "@isaacs/ttlcache";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("files:fs");
 
 export const DEFAULT_FILE_SERVICE = "fs";
 
@@ -327,6 +330,9 @@ export async function fsServer({
   const subject = project_id
     ? `${service}.project-${project_id}`
     : `${service}.*`;
+  
+  logger.debug('fsServer: ', {subject, service})
+  
   const watches: { [subject: string]: any } = {};
 
   // It is extremely important to only have one copy of each
@@ -343,6 +349,7 @@ export async function fsServer({
     return cache.get(subject)!;
   });
 
+  logger.debug('fsServer: starting subscription to ', subject);
   const sub = await client.service<Filesystem & { subject?: string }>(subject, {
     async appendFile(path: string, data: string | Buffer, encoding?) {
       await (await fs(this.subject)).appendFile(path, data, encoding);
@@ -465,11 +472,13 @@ export async function fsServer({
       const f = await fs(subject);
       watches[subject] = watchServer({
         client,
-        subject: subject!,
+        subject: subject! + '-watch',
         watch: f.watch,
       });
     },
   });
+  logger.debug('fsServer: created subscription to ', subject);
+  
   return {
     close: () => {
       for (const subject in watches) {
@@ -576,7 +585,7 @@ export function fsClient({
       throw err;
     }
     await ensureWatchServerExists(path, options);
-    return await watchClient({ client, subject, path, options });
+    return await watchClient({ client, subject:subject+'-watch', path, options });
   };
   call.listing = async (path: string) => {
     return await listing({ fs: call, path });

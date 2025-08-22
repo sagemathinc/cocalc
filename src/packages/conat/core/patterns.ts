@@ -155,6 +155,7 @@ function setIndex(index: Index, segments: string[], pattern) {
 }
 
 function deleteIndex(index: Index, segments: string[]) {
+  console.log("deleteIndex", index, segments);
   const ind = index[segments[0]];
   if (ind === undefined) {
     return;
