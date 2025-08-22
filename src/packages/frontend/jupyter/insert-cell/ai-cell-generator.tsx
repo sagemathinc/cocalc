@@ -454,7 +454,6 @@ export function AIGenerateCodeCell({
           onCellTypesChange={setCellTypes}
           currentCellId={id}
           frameActions={frameActions.current}
-          mode="insert-position"
         />
       </>
     );

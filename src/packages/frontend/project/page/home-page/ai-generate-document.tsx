@@ -578,7 +578,7 @@ function AIGenerateDocument({
       if (cancel.current) {
         // we abort this
         llmStream.removeAllListeners();
-        // singal "finalization"
+        // signal "finalization"
         processTokens(answer, true);
         return;
       }

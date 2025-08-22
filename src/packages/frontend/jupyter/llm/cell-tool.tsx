@@ -1142,7 +1142,6 @@ export function LLMCellTool({
         onCellTypesChange={setCellTypes}
         currentCellId={id}
         frameActions={frameActions.current}
-        mode="current-cell"
       />
     );
   }

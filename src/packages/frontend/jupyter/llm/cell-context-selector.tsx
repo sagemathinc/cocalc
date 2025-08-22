@@ -18,13 +18,9 @@ export interface LLMCellContextSelectorProps {
   cellTypes: "all" | "code";
   onCellTypesChange: (types: "all" | "code") => void;
 
-  // Current cell ID and frame actions for counting available cells
+  // Current cell ID and frame actions for enumerating available cells
   currentCellId: string;
   frameActions: NotebookFrameActions | undefined;
-
-  // For ai-cell-generator, the context is relative to where the new cell will be inserted
-  // For cell-tool, the context is relative to the current cell
-  mode: "current-cell" | "insert-position";
 }
 
 export function LLMCellContextSelector({
@@ -34,7 +30,6 @@ export function LLMCellContextSelector({
   onCellTypesChange,
   currentCellId,
   frameActions,
-  mode,
 }: LLMCellContextSelectorProps) {
   const { minValue, maxValue, marks } = useMemo(() => {
     const jupyterActionsStore = frameActions?.jupyter_actions.store;
@@ -42,60 +37,30 @@ export function LLMCellContextSelector({
       return { minValue: 0, maxValue: 0, marks: { 0: "0" } };
     }
 
-    let minVal: number, maxVal: number;
-
-    if (mode === "insert-position") {
-      // For insert position, we need to count cells differently
-      // Count all cells before the insertion point (include current cell and all above it)
-      let cellsBefore = 0;
-      let delta = 0; // Start from current cell (which will be "before" after insertion)
-      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
-        cellsBefore++;
-        delta--;
-      }
-
-      // Count cells after
-      let cellsAfter = 0;
-      delta = 1;
-      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
-        cellsAfter++;
-        delta++;
-      }
-
-      minVal = -cellsBefore;
-      maxVal = cellsAfter;
-    } else {
-      // For current-cell mode, count cells above and below as before
-      let cellsAbove = 0;
-      let delta = -1;
-      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
-        cellsAbove++;
-        delta--;
-      }
-
-      // Count cells below
-      let cellsBelow = 0;
-      delta = 1;
-      while (jupyterActionsStore.get_cell_id(delta, currentCellId)) {
-        cellsBelow++;
-        delta++;
-      }
-
-      minVal = -cellsAbove;
-      maxVal = cellsBelow;
+    // Count all cells before the insertion point (include current cell and all above it)
+    let cellsBefore = 0;
+    while (jupyterActionsStore.get_cell_id(cellsBefore, currentCellId)) {
+      cellsBefore++;
     }
+
+    // start with the first cell after the current cell (+1 offset)
+    let cellsAfter = 0;
+    while (jupyterActionsStore.get_cell_id(cellsAfter + 1, currentCellId)) {
+      cellsAfter++;
+    }
+
+    const minVal = -cellsBefore;
+    const maxVal = cellsAfter;
 
     // Create marks dynamically
-    const marks: SliderSingleProps["marks"] = {
-      0: mode === "current-cell" ? "0" : "insert",
-    };
+    const marks: SliderSingleProps["marks"] = { 0: "0" };
 
     // Only add boundary marks if they don't conflict with -2/+2
-    if (minVal < 0) {
-      marks[minVal] = minVal === -2 ? "-2" : "first";
+    if (minVal < -3) {
+      marks[minVal] = "first";
     }
-    if (maxVal > 0) {
-      marks[maxVal] = maxVal === 2 ? "+2" : "last";
+    if (maxVal > 3) {
+      marks[maxVal] = "last";
     }
 
     // Add -2 and +2 marks only if they're not at the boundaries
@@ -107,26 +72,19 @@ export function LLMCellContextSelector({
     }
 
     return { minValue: minVal, maxValue: maxVal, marks };
-  }, [currentCellId, frameActions, mode]);
+  }, [currentCellId, frameActions]);
 
-  // Adjust range to be within bounds
+  // clip range to be within bounds, just to be safe
   const adjustedRange: [number, number] = [
     Math.max(contextRange[0], minValue),
     Math.min(contextRange[1], maxValue),
   ];
 
-  const getDescription = () => {
-    if (mode === "current-cell") {
-      return `Selected: ${Math.abs(
-        adjustedRange[0],
-      )} cells above + current cell + ${adjustedRange[1]} cells below`;
-    } else {
-      // For insert position mode
-      const beforeCount = Math.abs(adjustedRange[0]);
-      const afterCount = adjustedRange[1];
-      return `Selected: ${beforeCount} cells before insertion + ${afterCount} cells after insertion`;
-    }
-  };
+  function getDescription() {
+    return `Selected: ${Math.abs(
+      adjustedRange[0],
+    )} cells above including current cell + ${adjustedRange[1]} cells below`;
+  }
 
   return (
     <>
