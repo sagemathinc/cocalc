@@ -112,6 +112,7 @@ import { log_opened_time } from "@cocalc/frontend/project/open-file";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { lite } from "@cocalc/frontend/lite";
 
 interface gutterMarkerParams {
   line: number;
@@ -2235,11 +2236,11 @@ export class Actions<
     return this.format_support_for_syntax(available_features, syntax);
   }
 
-  // Not an action, but works to make code clean
-  has_format_support(
+  private hasFormatSupport = (
     id: string,
     available_features?: AvailableFeatures, // is in project store
-  ): false | string {
+  ): boolean => {
+    if (lite) return true;
     if (available_features == null) return false;
     const leaf = this._get_frame_node(id);
     if (leaf != null) {
@@ -2252,12 +2253,12 @@ export class Actions<
     const ext = filename_extension(this.path).toLowerCase();
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return false;
-    return `Format the entire document using '${tool}'.`;
+    return true;
   }
 
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
-  // and the action has_format_support.
+  // and the action hasFormatSupport.
   // Also, format is reuseInFlight, so if you call this multiple times while
   // it is being called, it really only does the formatting once, which avoids
   // corrupting your code:  https://github.com/sagemathinc/cocalc/issues/4343
@@ -2278,7 +2279,7 @@ export class Actions<
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
     const syntax: FormatterSyntax = ext2syntax[ext];
     const parser = syntax2tool[syntax];
-    if (!parser || !this.has_format_support(id, s.get("available_features"))) {
+    if (!parser || !this.hasFormatSupport(id, s.get("available_features"))) {
       return;
     }
     const options: FormatterOptions = {

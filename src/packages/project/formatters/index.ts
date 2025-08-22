@@ -85,7 +85,7 @@ export async function formatString({
       formatted = await rust_format(input, options, logger);
       break;
     default:
-      const prettier = await import("prettier");
+      const prettier = await import("prettier"  );
       formatted = await prettier.format(input, options as any);
   }
 
