@@ -74,8 +74,8 @@ function configure(server: express.Application, dbg: Function): void {
     }
   };
 
-  server.get("/api/v1/*", handler);
-  server.post("/api/v1/*", handler);
+  server.get("/api/v1/{*splat}", handler);
+  server.post("/api/v1/{*splat}", handler);
 }
 
 function rateLimit(server: express.Application): void {
