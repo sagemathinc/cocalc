@@ -5,7 +5,10 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["lite", "cocalc"],
+  "keywords": [
+    "lite",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
@@ -14,7 +17,8 @@
     "test": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
     "build-lite": "./bin/build-lite.sh",
-    "start": "electron ."
+    "serve": "pnpm exec cocalc-lite",
+    "app": "electron ."
   },
   "bin": {
     "cocalc-lite": "./bin/start.js"
@@ -37,6 +41,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/test",
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@types/node": "^18.16.14",
     "electron": "^37.3.1"
   }
