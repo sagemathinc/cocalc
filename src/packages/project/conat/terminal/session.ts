@@ -34,7 +34,7 @@ const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${HARD_RESET}; history -d $(hist
 
 const PROJECT_INIT = `${HARD_RESET}; history -d $(history 1);\n`;
 
-const DEFAULT_COMMAND = "/usr/bin/bash";
+const DEFAULT_COMMAND = "bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
