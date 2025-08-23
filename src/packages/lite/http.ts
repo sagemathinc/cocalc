@@ -4,6 +4,7 @@ import getPort from "@cocalc/backend/get-port";
 import { createServer as httpCreateServer } from "http";
 import getLogger from "@cocalc/backend/logger";
 import port0 from "@cocalc/backend/port";
+import { once } from "node:events";
 
 const logger = getLogger("lite:static");
 
@@ -16,6 +17,12 @@ export async function init() {
         `\nWARNING -- hub http server error: ${err.stack || err}\n` +
         "*".repeat(60),
     );
+    // @ts-ignore
+    if (err.code === "EADDRINUSE" || err.code == "EACCES") {
+      // this means we never got the server going, so better just terminate
+      console.log(err);
+      process.exit(1);
+    }
   });
 
   app.use("/static", express.static(STATIC_PATH));
@@ -27,7 +34,8 @@ export async function init() {
   app.get("*", (_, res) => res.redirect("/static/app.html"));
 
   const port = port0 ?? (await getPort());
-  await httpServer.listen(port);
+  httpServer.listen(port);
+  await once(httpServer, "listening");
 
   console.log(
     "*".repeat(60) + `\n\nhttp://localhost:${port}\n\n` + "*".repeat(60),
