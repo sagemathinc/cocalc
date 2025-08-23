@@ -1,4 +1,5 @@
 import startProjectServices from "@cocalc/project/conat";
+import { cleanup } from "@cocalc/project/project-setup";
 import {
   init as createConatServer,
   type ConatServer,
@@ -58,6 +59,7 @@ export async function main() {
   persistServer = createPersistServer({ client: conatClient });
 
   logger.debug("main: start project services");
+  cleanup();
   startProjectServices();
 
   logger.debug("main: start fs service");
