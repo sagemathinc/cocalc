@@ -1,16 +1,11 @@
 /*
-
 DEVELOPMENT:
-
-Turn off conat-server handling for the hub for changefeeds by sending this message from a browser as an admin:
-
-   await cc.client.conat_client.hub.system.terminate({service:'changefeeds'})
 
 In a node session:
 
 DEBUG=cocalc*changefeed* DEBUG_CONSOLE=yes node
 
-    require('@cocalc/backend/conat'); require('@cocalc/database/conat/changefeed-api').init()
+    require('@cocalc/lite/hub/changefeed').init()
 
 In another session:
 
@@ -29,20 +24,45 @@ import {
   changefeedServer,
   type ConatSocketServer,
 } from "@cocalc/conat/hub/changefeeds";
-import { db } from "@cocalc/database";
 import { conat } from "@cocalc/backend/conat";
 
 let server: ConatSocketServer | null = null;
 export function init() {
-  const D = db();
   server = changefeedServer({
     client: conat(),
-    userQuery: D.user_query.bind(D),
-    cancelQuery: (id: string) => D.user_query_cancel_changefeed({ id }),
+    userQuery,
+    cancelQuery: (id: string) => {
+      console.log("todo: cancelQuery", id);
+    },
   });
 }
 
 export function close() {
   server?.close();
   server = null;
+}
+
+function userQuery({
+  query,
+  cb,
+}: {
+  query: object;
+  options?: object[];
+  account_id: string;
+  changes: string;
+  cb: Function;
+}): void {
+  const table = Object.keys(query)[0];
+  if (table == "accounts") {
+    cb(undefined, {
+      accounts: [
+        {
+          account_id: "00000000-0000-4000-8000-000000000000",
+          email_address: "user@cocalc.com",
+        },
+      ],
+    });
+    return;
+  }
+  cb(undefined, { [table]: [] });
 }

@@ -13,6 +13,7 @@ import { project_id } from "@cocalc/project/data";
 import { init as initHttpServer } from "./http";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initBugCounter } from "@cocalc/project/bug-counter";
+import { init as initChangefeeds} from "./hub/changefeeds"
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -34,10 +35,10 @@ export async function main() : Promise<number> {
   process.chdir(process.env.HOME ?? "")
   initBugCounter();
 
-  logger.debug("main: start http server");
+  logger.debug("start http server");
   const { httpServer, port } = await initHttpServer();
 
-  logger.debug("main: create server");
+  logger.debug("create server");
   const options = {
     httpServer,
     port,
@@ -52,18 +53,21 @@ export async function main() : Promise<number> {
   logger.debug(conatServer.address());
   setConatServer(conatServer.address());
 
-  logger.debug("main: create client");
+  logger.debug("create client");
   const conatClient = conat();
   setConatClient({ conat, getLogger });
 
-  logger.debug("main: create persist server");
+  logger.debug("create persist server");
   persistServer = createPersistServer({ client: conatClient });
 
-  logger.debug("main: start project services");
+  logger.debug("start project services");
   cleanup();
   startProjectServices();
 
-  logger.debug("main: start fs service");
+  logger.debug("start changefeed server");
+  initChangefeeds();
+  
+  logger.debug("start fs service");
   localPathFileserver({
     client: conatClient,
     path: process.cwd(),

@@ -463,3 +463,4 @@ async function waitForOnline(): Promise<void> {
     window.addEventListener("online", handler);
   });
 }
+
