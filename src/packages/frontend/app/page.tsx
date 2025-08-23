@@ -51,6 +51,7 @@ import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { VerifyEmail } from "./verify-email-banner";
 import VersionWarning from "./version-warning";
 import { CookieWarning, LocalStorageWarning } from "./warnings";
+import { lite } from "@cocalc/frontend/lite";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -121,7 +122,6 @@ export const Page: React.FC = () => {
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
-  const lite = useTypedRedux("customize", "lite");
 
   function account_tab_icon(): IconName | React.JSX.Element {
     if (is_anonymous) {

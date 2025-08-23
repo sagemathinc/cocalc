@@ -75,6 +75,7 @@ import {
   DELETED_THRESHOLD,
   DELETED_CHECK_INTERVAL,
 } from "@cocalc/sync/editor/generic/sync-doc";
+import { lite } from "@cocalc/frontend/lite";
 
 const OUTPUT_FPS = 29;
 const DEFAULT_OUTPUT_MESSAGE_LIMIT = 500;
@@ -1019,7 +1020,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   waitUntilProjectIsRunning = reuseInFlight(async () => {
-    if (this.redux.getStore("customize").get("lite")) {
+    if (lite) {
       return;
     }
     const store = this.redux.getStore("projects");

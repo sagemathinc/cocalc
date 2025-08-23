@@ -18,6 +18,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { type JSX, type MouseEvent } from "react";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import Snapshots from "@cocalc/frontend/project/snapshots";
+import { lite } from "@cocalc/frontend/lite";
 
 const SHOW_SERVER_LAUNCHERS = false;
 
@@ -30,7 +31,6 @@ const OPEN_MSG = defineMessage({
 });
 
 export function MiscSideButtons() {
-  const lite = useTypedRedux("customize", "lite");
   const { actions, project_id } = useProjectContext();
   const show_hidden = useTypedRedux({ project_id }, "show_hidden");
   const current_path = useTypedRedux({ project_id }, "current_path");

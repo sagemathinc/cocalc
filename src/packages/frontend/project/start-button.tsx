@@ -27,6 +27,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { DOC_TRIAL } from "./project-banner";
+import { lite } from "@cocalc/frontend/lite";
 
 const STYLE: CSSProperties = {
   fontSize: "40px",
@@ -38,7 +39,6 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const intl = useIntl();
   const { project_id } = useProjectContext();
   const project_map = useTypedRedux("projects", "project_map");
-  const lite = useTypedRedux("customize", "lite");
   const lastNotRunningRef = useRef<null | number>(null);
   const allowed = useAllowedFreeProjectToRun(project_id);
 

@@ -6,6 +6,7 @@
 import { redux } from "@cocalc/frontend/app-framework";
 import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
+import { lite } from "@cocalc/frontend/lite";
 
 /* Various actions depend on the project running, so this function currently does the following:
     - Checks whether or not the project is starting or running (assuming project state known -- admins don't know).
@@ -24,7 +25,7 @@ NOTE:
 const explicitly_started: { [project_id: string]: number } = {};
 
 export function is_running_or_starting(project_id: string): boolean {
-  if (redux.getStore("customize").get("lite")) {
+  if (lite) {
     return true;
   }
   const t = explicitly_started[project_id];
