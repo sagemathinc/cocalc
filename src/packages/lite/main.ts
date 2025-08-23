@@ -28,9 +28,10 @@ function conat(opts?): Client {
   return conatServer.client({ path: "/", ...opts });
 }
 
-export async function main() {
+export async function main() : Promise<number> {
   logger.debug("main");
 
+  process.chdir(process.env.HOME ?? "")
   initBugCounter();
 
   logger.debug("main: start http server");
@@ -81,4 +82,6 @@ export async function main() {
       process.exit();
     });
   });
+  
+  return port;
 }

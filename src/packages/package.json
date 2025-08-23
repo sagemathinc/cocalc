@@ -34,8 +34,8 @@
       "axios@1.10.0": "^1.11.0"
     },
     "onlyBuiltDependencies": [
-      "@cocalc/widgets",
       "better-sqlite3",
+      "electron",
       "websocket-sftp",
       "websocketfs",
       "zstd-napi"
