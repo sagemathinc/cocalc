@@ -12,7 +12,11 @@ import {
   watchClient,
   type WatchIterator,
 } from "@cocalc/conat/files/watch";
-import listing, { type Listing, type FileTypeLabel } from "./listing";
+import listing, {
+  type Listing,
+  type FileTypeLabel,
+  type Files,
+} from "./listing";
 import { isValidUUID } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import TTL from "@isaacs/ttlcache";
@@ -166,6 +170,7 @@ export interface Filesystem {
   // For security reasons, this does not support all find arguments,
   // and can only use limited resources.
   find: (path: string, options?: FindOptions) => Promise<ExecOutput>;
+  getListing: (path: string) => Promise<{ files: Files; truncated?: boolean }>;
 
   // Convenience function that uses the find and stat support to
   // provide all files in a directory by using tricky options to find,
@@ -330,9 +335,9 @@ export async function fsServer({
   const subject = project_id
     ? `${service}.project-${project_id}`
     : `${service}.*`;
-  
-  logger.debug('fsServer: ', {subject, service})
-  
+
+  logger.debug("fsServer: ", { subject, service });
+
   const watches: { [subject: string]: any } = {};
 
   // It is extremely important to only have one copy of each
@@ -349,7 +354,7 @@ export async function fsServer({
     return cache.get(subject)!;
   });
 
-  logger.debug('fsServer: starting subscription to ', subject);
+  logger.debug("fsServer: starting subscription to ", subject);
   const sub = await client.service<Filesystem & { subject?: string }>(subject, {
     async appendFile(path: string, data: string | Buffer, encoding?) {
       await (await fs(this.subject)).appendFile(path, data, encoding);
@@ -377,6 +382,9 @@ export async function fsServer({
     },
     async find(path: string, options?: FindOptions) {
       return await (await fs(this.subject)).find(path, options);
+    },
+    async getListing(path: string) {
+      return await (await fs(this.subject)).getListing(path);
     },
     async link(existingPath: string, newPath: string) {
       await (await fs(this.subject)).link(existingPath, newPath);
@@ -472,13 +480,13 @@ export async function fsServer({
       const f = await fs(subject);
       watches[subject] = watchServer({
         client,
-        subject: subject! + '-watch',
+        subject: subject! + "-watch",
         watch: f.watch,
       });
     },
   });
-  logger.debug('fsServer: created subscription to ', subject);
-  
+  logger.debug("fsServer: created subscription to ", subject);
+
   return {
     close: () => {
       for (const subject in watches) {
@@ -585,7 +593,12 @@ export function fsClient({
       throw err;
     }
     await ensureWatchServerExists(path, options);
-    return await watchClient({ client, subject:subject+'-watch', path, options });
+    return await watchClient({
+      client,
+      subject: subject + "-watch",
+      path,
+      options,
+    });
   };
   call.listing = async (path: string) => {
     return await listing({ fs: call, path });

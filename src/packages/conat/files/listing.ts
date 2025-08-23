@@ -23,7 +23,7 @@ export const typeDescription = {
   p: "fifo",
 };
 
-interface FileData {
+export interface FileData {
   // last modification time as time since epoch in **milliseconds** (as is usual for javascript)
   mtime: number;
   size: number;
@@ -81,7 +81,7 @@ export class Listing extends EventEmitter {
   init = async () => {
     const { fs, path } = this.opts;
     this.watch = await fs.watch(path);
-    const { files, truncated } = await getListing(fs, path);
+    const { files, truncated } = await fs.getListing(path);
     this.files = files;
     this.truncated = truncated;
     this.emit("ready");
@@ -141,47 +141,4 @@ export class Listing extends EventEmitter {
     }
     this.emit("change", filename, this.files[filename]);
   };
-}
-
-async function getListing(
-  fs: FilesystemClient,
-  path: string,
-): Promise<{ files: Files; truncated?: boolean }> {
-  const { stdout, truncated } = await fs.find(path, {
-    options: [
-      "-maxdepth",
-      "1",
-      "-mindepth",
-      "1",
-      "-printf",
-      "%f\\0%T@\\0%s\\0%y\\0%l\n",
-    ],
-  });
-  const buf = Buffer.from(stdout);
-  const files: Files = {};
-  // todo -- what about non-utf8...?
-
-  const s = buf.toString().trim();
-  if (!s) {
-    return { files, truncated };
-  }
-  for (const line of s.split("\n")) {
-    try {
-      const v = line.split("\0");
-      const name = v[0];
-      const mtime = parseFloat(v[1]) * 1000;
-      const size = parseInt(v[2]);
-      files[name] = { mtime, size, type: v[3] as FileTypeLabel };
-      if (v[3] == "l") {
-        files[name].isSymLink = true;
-      }
-      if (v[3] == "d") {
-        files[name].isDir = true;
-      }
-      if (v[4]) {
-        files[name].linkTarget = v[4];
-      }
-    } catch {}
-  }
-  return { files, truncated };
 }

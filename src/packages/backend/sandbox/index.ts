@@ -82,6 +82,7 @@ import cpExec from "./cp";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
+import getListing, { type Files } from "./get-listing";
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -261,6 +262,12 @@ export class SandboxedFilesystem {
       await this.safeAbsPath(path),
       capTimeout(options, MAX_TIMEOUT),
     );
+  };
+
+  getListing = async (
+    path: string,
+  ): Promise<{ files: Files; truncated?: boolean }> => {
+    return await getListing(await this.safeAbsPath(path));
   };
 
   // find files
