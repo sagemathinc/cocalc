@@ -117,6 +117,15 @@ export async function init(client) {
       },
     ]);
   }
+  if (kv.get("projects") == null) {
+    kv.set("projects", [
+      {
+        project_id: PROJECT_ID,
+        title: "CoCalc Lite",
+        state: { state: "running" },
+      },
+    ]);
+  }
 }
 
 function userGetQuery(

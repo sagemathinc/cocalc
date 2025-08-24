@@ -28,7 +28,7 @@ export async function init() {
   app.use("/static", express.static(STATIC_PATH));
 
   app.get("/customize", async (_, res) => {
-    res.json({ configuration: { lite: true } });
+    res.json({ configuration: { lite: true, site_name: "" } });
   });
 
   app.get("*", (_, res) => res.redirect("/static/app.html"));
