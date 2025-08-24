@@ -35,9 +35,9 @@ import { v4 } from "uuid";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import createAccount from "@cocalc/server/accounts/create-account";
 import isAccountAvailable from "@cocalc/server/auth/is-account-available";
-import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
 import passwordStrength from "@cocalc/server/auth/password-strength";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
+import { isExclusiveSSOEmail } from "@cocalc/server/auth/throttle";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
@@ -45,7 +45,6 @@ import {
   is_valid_email_address as isValidEmailAddress,
   len,
 } from "@cocalc/util/misc";
-
 import getAccountId from "lib/account/get-account";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import assertTrusted from "lib/api/assert-trusted";
@@ -172,11 +171,12 @@ export async function signUp(req, res) {
       });
       return;
     }
-    const exclusive = await isDomainExclusiveSSO(email);
+    const exclusive = await isExclusiveSSOEmail(email);
     if (exclusive) {
+      const name = exclusive.display ?? exclusive.name;
       res.json({
         issues: {
-          email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
+          email: `To sign up with "@${name}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
         },
       });
       return;
