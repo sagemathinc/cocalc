@@ -18,20 +18,22 @@ function buildMenu() {
   const template = [
     // App menu (macOS)
     ...(isMac
-      ? [{
-          label: app.name,
-          submenu: [
-            { role: "about" },
-            { type: "separator" },
-            { role: "services" },
-            { type: "separator" },
-            { role: "hide" },
-            { role: "hideOthers" },
-            { role: "unhide" },
-            { type: "separator" },
-            { role: "quit" },
-          ],
-        }]
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { role: "about" },
+              { type: "separator" },
+              { role: "services" },
+              { type: "separator" },
+              { role: "hide" },
+              { role: "hideOthers" },
+              { role: "unhide" },
+              { type: "separator" },
+              { role: "quit" },
+            ],
+          },
+        ]
       : []),
     {
       label: "File",
@@ -91,7 +93,7 @@ async function main() {
   process.env.PORT ??= await require("@cocalc/backend/get-port").default();
   process.env.COCALC_PROJECT_ID = "00000000-0000-4000-8000-000000000000";
   process.env.COMPUTE_SERVER_ID = "0";
-  process.env.DATA = join(process.cwd(), ".cocalc");
+  process.env.DATA = join(process.env.HOME ?? process.cwd(), ".cocalc", "lite");
 
   const startCoCalcLite = require("@cocalc/lite/main").main;
 
