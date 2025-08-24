@@ -150,7 +150,7 @@ export function MiscSideButtons() {
 
   function render_upload_button(): JSX.Element | undefined {
     if (student_project_functionality.disableUploads) {
-      return;
+      return <span />;
     }
     return (
       <Button

@@ -174,6 +174,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
       id: "project.page.flyout.settings.title",
       defaultMessage: "Status and Settings",
     }),
+    noLite: true,
   },
 } as const;
 
