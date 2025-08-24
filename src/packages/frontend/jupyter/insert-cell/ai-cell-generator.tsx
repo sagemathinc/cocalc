@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import type { MenuProps } from "antd";
 import {
   Alert,
@@ -38,6 +43,8 @@ import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-q
 import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
@@ -135,6 +142,7 @@ export function AIGenerateCodeCell({
   const [attribute, setAttribute] = useState<boolean>(false);
   const promptRef = useRef<HTMLElement>(null);
   const [tokens, setTokens] = useState<number>(0);
+  const { prompts: historyPrompts, addPrompt } = useLLMHistory("general");
 
   const kernel_info = actions.store.get("kernel_info");
   const lang = kernel_info?.get("language") ?? "python";
@@ -371,6 +379,9 @@ export function AIGenerateCodeCell({
     setQuerying(true);
 
     if (showAICellGen == null) return;
+
+    // Add prompt to history
+    addPrompt(prompt);
 
     queryLanguageModel({
       prevCodeContents,
@@ -631,23 +642,31 @@ export function AIGenerateCodeCell({
       <>
         <Paragraph>What do you want the new cell to do?</Paragraph>
         <Paragraph>
-          <Input.TextArea
-            ref={promptRef}
-            allowClear
-            autoFocus
-            value={prompt}
-            onChange={(e) => {
-              setPrompt(e.target.value);
-            }}
-            placeholder="Describe the new cell..."
-            onPressEnter={(e) => {
-              if (!e.shiftKey) return;
-              e.preventDefault(); // prevent the default action
-              e.stopPropagation(); // stop event propagation
-              doQuery(prevCodeContents);
-            }}
-            autoSize={{ minRows: 2, maxRows: 6 }}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input.TextArea
+              ref={promptRef}
+              allowClear
+              autoFocus
+              value={prompt}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+              }}
+              placeholder="Describe the new cell..."
+              onPressEnter={(e) => {
+                if (!e.shiftKey) return;
+                e.preventDefault(); // prevent the default action
+                e.stopPropagation(); // stop event propagation
+                doQuery(prevCodeContents);
+              }}
+              autoSize={{ minRows: 2, maxRows: 6 }}
+              style={{ flex: 1 }}
+            />
+            <LLMHistorySelector
+              prompts={historyPrompts}
+              onSelect={setPrompt}
+              disabled={querying}
+            />
+          </Space.Compact>
         </Paragraph>
         {renderExamples()}
         {empty ? undefined : renderContext()}
@@ -713,7 +732,7 @@ export function AIGenerateCodeCell({
       open={open}
       content={renderContent}
       trigger={[]}
-      destroyTooltipOnHide
+      destroyOnHidden
     >
       {children}
     </Popover>

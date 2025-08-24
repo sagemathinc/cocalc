@@ -1,5 +1,5 @@
 import type { TourProps } from "antd";
-import { Button, Checkbox, Tour } from "antd";
+import { Button, Checkbox, Space, Tour } from "antd";
 import { useState } from "react";
 
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
@@ -133,7 +133,7 @@ export default function TitleBarButtonTour({
   ];
   return (
     <div>
-      <Button.Group>
+      <Space.Compact>
         <Button
           type="primary"
           onClick={() => {
@@ -143,7 +143,7 @@ export default function TitleBarButtonTour({
         >
           <Icon name="map" /> Tour
         </Button>
-      </Button.Group>
+      </Space.Compact>
       <Tour
         zIndex={10001}
         open={open}

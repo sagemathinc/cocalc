@@ -21,7 +21,7 @@ import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { defaults, is_array, merge } from "@cocalc/util/misc";
 
 // very large upload limit -- should be plenty?
-// there is no cost for ingress, and as cocalc is a data plaform
+// there is no cost for ingress, and as cocalc is a data platform
 // people like to upload large data sets.
 const MAX_FILE_SIZE_MB = 50 * 1000;
 
