@@ -12,7 +12,6 @@ import { Button, Dropdown, Modal, Tooltip } from "antd";
 import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import useAppContext from "@cocalc/frontend/app/use-context";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
@@ -34,6 +33,7 @@ import {
 import { FileTab, FIXED_PROJECT_TABS, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
+import { lite } from "@cocalc/frontend/lite";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -183,6 +183,9 @@ export function VerticalFixedTabs({
     const name: FixedTab = nameStr as FixedTab; // helping TS a little bit
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {
+      continue;
+    }
+    if (lite && v.noLite) {
       continue;
     }
     const color =

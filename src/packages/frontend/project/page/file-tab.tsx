@@ -81,6 +81,7 @@ type FixedTabs = {
     }) => React.JSX.Element;
     flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
+    noLite?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
   };
 };
@@ -143,6 +144,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     icon: ICON_USERS,
     flyout: CollabsFlyout,
     noAnonymous: false,
+    noLite: true,
   },
   upgrades: {
     label: labels.upgrades,
@@ -153,6 +155,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
       defaultMessage: `Project Upgrades`,
     }),
     noAnonymous: false,
+    noLite: true,
   },
   info: {
     label: labels.project_info_title,
@@ -215,10 +218,10 @@ export function FileTab(props: Readonly<Props>) {
   // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
     !onCoCalcDocker && name === "info"
-      ? project_status
+      ? (project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
-          .toJS() ?? []
+          .toJS() ?? [])
       : [];
 
   const other_settings = useTypedRedux("account", "other_settings");
@@ -303,8 +306,8 @@ export function FileTab(props: Readonly<Props>) {
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
         : active_flyout == null
-        ? COLORS.GRAY_L
-        : COLORS.GRAY_L0;
+          ? COLORS.GRAY_L
+          : COLORS.GRAY_L0;
     const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
 
     return (
@@ -368,7 +371,7 @@ export function FileTab(props: Readonly<Props>) {
 
   const icon =
     path != null
-      ? file_options(path)?.icon ?? "code-o"
+      ? (file_options(path)?.icon ?? "code-o")
       : FIXED_PROJECT_TABS[name!].icon;
 
   const tags =
