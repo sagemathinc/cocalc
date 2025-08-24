@@ -1,12 +1,14 @@
 // This is the new endpoint for querying any LLM
 // Previously, this has been in openai/chatgpt
 
+import type { Request, Response } from "express";
+
 import { evaluate } from "@cocalc/server/llm/index";
-import { analytics_cookie_name } from "@cocalc/util/misc";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
+import { getAnonymousID } from "lib/user-id";
 
-export default async function handle(req, res) {
+export default async function handle(req: Request, res: Response) {
   try {
     const result = await doIt(req);
     res.json({ ...result, success: true });
@@ -16,14 +18,14 @@ export default async function handle(req, res) {
   }
 }
 
-async function doIt(req) {
+async function doIt(req: Request) {
   const { input, system, history, model, tag } = getParams(req);
   const account_id = await getAccountId(req);
-  const analytics_cookie = req.cookies[analytics_cookie_name];
+  const anonymous_id = await getAnonymousID(req);
   return {
     output: await evaluate({
       account_id,
-      analytics_cookie,
+      anonymous_id,
       input,
       system,
       history,
