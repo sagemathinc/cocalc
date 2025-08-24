@@ -33,7 +33,6 @@
     "http-proxy-3": "^1.20.8",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
-    "mime-types": "^2.1.35",
     "ms": "2.1.2",
     "parse-domain": "^5.0.0",
     "random-key": "^0.3.2",

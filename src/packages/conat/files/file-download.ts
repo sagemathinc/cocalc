@@ -1,28 +1,49 @@
-import { readFile as readProjectFile } from "@cocalc/conat/files/read";
+import { readFile } from "./read";
 import { once } from "events";
 import { path_split } from "@cocalc/util/misc";
+import { getLogger } from "@cocalc/conat/client";
+import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import mime from "mime-types";
-import getLogger from "../logger";
 
 const DANGEROUS_CONTENT_TYPE = new Set(["image/svg+xml" /*, "text/html"*/]);
 
-const logger = getLogger("hub:proxy:file-download");
+const logger = getLogger("conat:file-download");
 
 // assumes request has already been authenticated!
 
-export async function handleFileDownload(req, res, url, project_id) {
+export async function handleFileDownload({
+  req,
+  res,
+  url,
+  allowUnsafe,
+  client,
+  // allow a long download time (1 hour), since files can be large and
+  // networks can be slow.
+  maxWait = 1000 * 60 * 60,
+}: {
+  req;
+  res;
+  url: string;
+  allowUnsafe?: boolean;
+  client?: ConatClient;
+  maxWait?: number;
+}) {
   logger.debug("handling the request via conat file streaming", url);
   const i = url.indexOf("files/");
-  const compute_server_id = req.query.id ?? 0;
+  const compute_server_id = parseInt(req.query.id ?? '0');
   let j = url.lastIndexOf("?");
   if (j == -1) {
     j = url.length;
   }
   const path = decodeURIComponent(url.slice(i + "files/".length, j));
+  const project_id = url.split("/").slice(1)[0];
   logger.debug("conat: get file", { project_id, path, compute_server_id, url });
   const fileName = path_split(path).tail;
   const contentType = mime.lookup(fileName);
-  if (req.query.download != null || DANGEROUS_CONTENT_TYPE.has(contentType)) {
+  if (
+    req.query.download != null ||
+    (!allowUnsafe && DANGEROUS_CONTENT_TYPE.has(contentType))
+  ) {
     const fileNameEncoded = encodeURIComponent(fileName)
       .replace(/['()]/g, escape)
       .replace(/\*/g, "%2A");
@@ -38,13 +59,12 @@ export async function handleFileDownload(req, res, url, project_id) {
     headersSent = true;
   });
   try {
-    for await (const chunk of await readProjectFile({
+    for await (const chunk of await readFile({
+      client,
       project_id,
       compute_server_id,
       path,
-      // allow a long download time (1 hour), since files can be large and
-      // networks can be slow.
-      maxWait: 1000 * 60 * 60,
+      maxWait,
     })) {
       if (res.writableEnded || res.destroyed) {
         break;

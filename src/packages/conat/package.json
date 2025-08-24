@@ -5,6 +5,7 @@
   "exports": {
     "./sync/*": "./dist/sync/*.js",
     "./llm/*": "./dist/llm/*.js",
+    "./files/*": "./dist/files/*.js",
     "./socket": "./dist/socket/index.js",
     "./socket/*": "./dist/socket/*.js",
     "./sync-doc": "./dist/sync-doc/index.js",
@@ -46,6 +47,7 @@
     "js-base64": "^3.7.7",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
+    "mime-types": "^3.0.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
   },

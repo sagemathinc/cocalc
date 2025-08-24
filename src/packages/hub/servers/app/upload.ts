@@ -2,7 +2,7 @@
 Support user uploading files directly to CoCalc from their browsers.
 
 - uploading to projects and compute servers, with full support for potentially
-  very LARGE file uploads that stream via NATS.  This checks users is authenticated
+  very LARGE file uploads that stream via Conat.  This checks users is authenticated
   with write access.
 
 - uploading blobs to our database.
@@ -11,7 +11,6 @@ Which of the above happens depends on query params.
 
 NOTE:  Code for downloading files from projects/compute servers
 is in the middle of packages/hub/proxy/handle-request.ts
-
 
 I'm sorry the code below is so insane.  It was extremely hard to write
 and involves tricky state in subtle ways all over the place, due to
@@ -148,7 +147,7 @@ async function handleUploadToProject({
     // @ts-ignore
     (async () => {
       try {
-        // console.log("NATS: started writing ", filename);
+        // console.log("conat: started writing ", filename);
         await writeFileToProject({
           stream,
           project_id,
@@ -156,12 +155,12 @@ async function handleUploadToProject({
           path: join(path, fields.fullPath?.[0] ?? filename),
           maxWait: MAX_UPLOAD_TIME_MS,
         });
-        // console.log("NATS: finished writing ", filename);
+        // console.log("conat: finished writing ", filename);
       } catch (err) {
-        // console.log("NATS: error ", err);
+        // console.log("conat: error ", err);
         errors[key].push(`${err}`);
       } finally {
-        // console.log("NATS: freeing write stream");
+        // console.log("conat: freeing write stream");
         freeWriteStream({
           project_id,
           compute_server_id,
