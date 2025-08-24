@@ -33,7 +33,9 @@
     "@cocalc/static": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/express": "^4.17.23",
-    "express": "^4.21.2"
+    "@types/lodash": "^4.17.20",
+    "express": "^4.21.2",
+    "lodash": "^4.17.21"
   },
   "repository": {
     "type": "git",

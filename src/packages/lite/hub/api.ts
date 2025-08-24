@@ -5,7 +5,7 @@ This is a very lightweight small subset of the hub's API for browser clients.
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, transformArgs } from "@cocalc/conat/hub/api";
 import { conat } from "@cocalc/backend/conat";
-import userQuery from "./user-query";
+import userQuery, { init as initUserQuery } from "./user-query";
 import { ACCOUNT_ID } from "../const";
 
 const logger = getLogger("lite:hub:api");
@@ -16,6 +16,7 @@ export async function init() {
     queue: "0",
   });
   const cn = await conat({ noCache: true });
+  await initUserQuery(cn);
   const api = await cn.subscribe(subject, { queue: "0" });
   for await (const mesg of api) {
     (async () => {
@@ -33,7 +34,7 @@ async function handleMessage(mesg) {
   let resp, headers;
   try {
     const { account_id, project_id } = {
-      account_id:ACCOUNT_ID,
+      account_id: ACCOUNT_ID,
       project_id: undefined,
     };
     const { name, args } = request as any;

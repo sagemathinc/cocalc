@@ -929,9 +929,15 @@ importers:
       '@types/express':
         specifier: ^4.17.23
         version: 4.17.23
+      '@types/lodash':
+        specifier: ^4.17.20
+        version: 4.17.20
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
     devDependencies:
       '@electron/rebuild':
         specifier: ^4.0.1
