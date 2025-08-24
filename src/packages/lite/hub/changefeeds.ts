@@ -25,6 +25,7 @@ import {
   type ConatSocketServer,
 } from "@cocalc/conat/hub/changefeeds";
 import { conat } from "@cocalc/backend/conat";
+import userQuery from "./user-query";
 
 let server: ConatSocketServer | null = null;
 export function init() {
@@ -40,29 +41,4 @@ export function init() {
 export function close() {
   server?.close();
   server = null;
-}
-
-function userQuery({
-  query,
-  cb,
-}: {
-  query: object;
-  options?: object[];
-  account_id: string;
-  changes: string;
-  cb: Function;
-}): void {
-  const table = Object.keys(query)[0];
-  if (table == "accounts") {
-    cb(undefined, {
-      accounts: [
-        {
-          account_id: "00000000-0000-4000-8000-000000000000",
-          email_address: "user@cocalc.com",
-        },
-      ],
-    });
-    return;
-  }
-  cb(undefined, { [table]: [] });
 }

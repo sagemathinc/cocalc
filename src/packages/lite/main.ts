@@ -13,7 +13,9 @@ import { project_id } from "@cocalc/project/data";
 import { init as initHttpServer } from "./http";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initBugCounter } from "@cocalc/project/bug-counter";
-import { init as initChangefeeds} from "./hub/changefeeds"
+import { init as initChangefeeds } from "./hub/changefeeds";
+import { init as initHubApi } from "./hub/api";
+import { ACCOUNT_ID } from "./const";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -29,10 +31,10 @@ function conat(opts?): Client {
   return conatServer.client({ path: "/", ...opts });
 }
 
-export async function main() : Promise<number> {
+export async function main(): Promise<number> {
   logger.debug("main");
 
-  process.chdir(process.env.HOME ?? "")
+  process.chdir(process.env.HOME ?? "");
   initBugCounter();
 
   logger.debug("start http server");
@@ -43,7 +45,7 @@ export async function main() : Promise<number> {
     httpServer,
     port,
     getUser: async () => {
-      return { account_id: "00000000-0000-4000-8000-000000000000" };
+      return { account_id: ACCOUNT_ID };
     },
   };
   conatServer = createConatServer(options);
@@ -67,6 +69,9 @@ export async function main() : Promise<number> {
   logger.debug("start changefeed server");
   initChangefeeds();
   
+  logger.debug("start hub api");
+  initHubApi();
+
   logger.debug("start fs service");
   localPathFileserver({
     client: conatClient,
@@ -86,6 +91,6 @@ export async function main() : Promise<number> {
       process.exit();
     });
   });
-  
+
   return port;
 }

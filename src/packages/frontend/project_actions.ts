@@ -373,7 +373,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initSnapshots();
     this.initBackups();
     const store = this.get_store();
-    store?.init_table("public_paths");
+    store?.init_table?.("public_paths");
   };
 
   private closeExpensive = () => {
