@@ -114,6 +114,15 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     flyout: NewFlyout,
     noAnonymous: false,
   },
+  search: {
+    label: defineMessage({
+      id: "project.page.file-tab.search_file.label",
+      defaultMessage: "Find",
+    }),
+    icon: "search",
+    flyout: SearchFlyout,
+    noAnonymous: false,
+  },
   log: {
     label: labels.log,
     icon: "history",
@@ -124,20 +133,12 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     }),
     noAnonymous: false,
   },
-  search: {
-    label: defineMessage({
-      id: "project.page.file-tab.search_file.label",
-      defaultMessage: "Find",
-    }),
-    icon: "search",
-    flyout: SearchFlyout,
-    noAnonymous: false,
-  },
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
     flyout: ServersFlyout,
     noAnonymous: false,
+    noLite: true,
   },
   users: {
     label: labels.users,
@@ -162,6 +163,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     icon: "microchip",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
+    noLite: true,
   },
   settings: {
     label: labels.settings,

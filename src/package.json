@@ -25,9 +25,7 @@
     "local-ci": "./scripts/ci.sh",
     "conat-connections": "cd packages/backend && pnpm conat-connections",
     "conat-watch": "cd packages/backend && pnpm conat-watch",
-    "conat-inventory": "cd packages/backend && pnpm conat-inventory",
-    "lite": "cd packages/lite && pnpm serve",
-    "electron": "cd packages/lite && pnpm app"
+    "conat-inventory": "cd packages/backend && pnpm conat-inventory"
   },
   "repository": {
     "type": "git",
