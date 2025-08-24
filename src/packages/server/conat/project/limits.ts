@@ -42,13 +42,9 @@ export function limits(config?: Configuration): string[] {
       throw Error(`invalid memory limit: '${memory}'`);
     }
     if (USE_CGROUPS) {
+      // cgroups is the only reliable way to cap memory...
       args.push("--cgroup_mem_max", `${memory}`);
-      args.push("--rlimit_as", "hard");
-    } else {
-      args.push("--rlimit_as", `${Math.ceil(memory / 1000000)}`);
     }
-  } else {
-    args.push("--rlimit_as", "hard");
   }
 
   if (config.swap != null) {
