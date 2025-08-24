@@ -52,11 +52,6 @@ export default function userQuery({
   // if cb is given uses cb interface -- if not given, uses async interface
   cb?: Function;
 }) {
-  console.log(
-    "userQuery",
-    require("util").inspect({ query, changes }, { depth: undefined }),
-  );
-
   if (changes && cb == null) {
     throw Error("if changes is set then cb must also be set.");
   }
@@ -130,7 +125,6 @@ function userGetQuery(
   _changes: string | undefined,
   _cb?: Function, // only used when changes set, and then only used for updates
 ) {
-  console.log("userGetQuery");
   const table = Object.keys(query)[0];
   const isMulti = misc.is_array(query[table]);
   const rows = kv.get(table) ?? [];
@@ -158,7 +152,6 @@ function userGetQuery(
 }
 
 function userSetQuery(query: object, options: object[]) {
-  // console.log("userSetQuery", query, options);
   if (misc.is_array(query)) {
     for (const q of query) {
       userSetQuery(q, options);
@@ -177,7 +170,6 @@ function userSetQuery(query: object, options: object[]) {
       row[key] =
         typeof row[key] == "object" ? { ...row[key], ...obj[key] } : obj[key];
     }
-    // console.log("mutated to ", row, rows);
     kv.set(table, rows);
     return;
   }
@@ -197,12 +189,7 @@ function search(
   obj: object,
   one: boolean = false,
 ): object[] {
-  const v = primaryKeys(table);
-  for (const key of v) {
-    if (obj[key] == null) {
-      throw Error("every primary key must be specified");
-    }
-  }
+  const v = primaryKeys(table).filter((key) => obj[key] != null);
   const matches: any[] = [];
   for (const row of rows) {
     let found = true;
@@ -260,3 +247,5 @@ function setDefaults(table, obj: object[], fields: string[]) {
     }
   }
 }
+
+export function cancelQuery(_id: string) {}
