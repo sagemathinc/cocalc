@@ -6,22 +6,22 @@
     "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
     "./conat": "./dist/conat/index.js",
+    "./files/*": "./dist/files/*.js",
+    "./sandbox": "./dist/sandbox/index.js",
+    "./conat/sync/*": "./dist/conat/sync/*.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "build": "pnpm exec tsc --build",
+    "install-sandbox-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install()' | node",
+    "build": "pnpm exec tsc --build && pnpm install-sandbox-tools",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",
-    "testp": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test",
     "conat-watch": "node ./bin/conat-watch.cjs",
@@ -31,25 +31,18 @@
     "conat-persist": "DEBUG=cocalc:*  node ./bin/conat-persist.cjs",
     "conat-test-server": "node ./bin/conat-test-server.cjs"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/debug": "^4.1.12",
-    "@types/jest": "^30.0.0",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^12.2.0",
     "chokidar": "^3.6.0",
     "debug": "^4.4.0",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "^11.3.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "password-hash": "^1.2.2",
@@ -65,6 +58,8 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/jest": "^30.0.0",
     "@types/node": "^18.16.14"
   }
 }

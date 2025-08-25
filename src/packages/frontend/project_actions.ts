@@ -10,9 +10,8 @@ import * as async from "async";
 import { callback } from "awaiting";
 import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
-import { join } from "path";
+import { basename, dirname, join } from "path";
 import { defineMessage } from "react-intl";
-
 import {
   computeServerManager,
   type ComputeServerManager,
@@ -39,8 +38,6 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { IntlMessage, dialogs } from "@cocalc/frontend/i18n";
-import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
   open_new_tab,
@@ -49,8 +46,6 @@ import {
 } from "@cocalc/frontend/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import * as project_file from "@cocalc/frontend/project-file";
-import { delete_files } from "@cocalc/frontend/project/delete-files";
-import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
 import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
@@ -81,7 +76,6 @@ import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
   NewFilenames,
   download_href,
-  in_snapshot_path,
   normalize,
   url_href,
 } from "@cocalc/frontend/project/utils";
@@ -101,20 +95,33 @@ import {
 } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { once, retry_until_success } from "@cocalc/util/async-utils";
+import { once, retry_until_success, until } from "@cocalc/util/async-utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
+import { type FilesystemClient } from "@cocalc/conat/files/fs";
+import {
+  getCacheId,
+  getFiles,
+  type Files,
+} from "@cocalc/frontend/project/listing/use-files";
+import { search } from "@cocalc/frontend/project/search/run";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
+import { getFileTemplate } from "./project/templates";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import {
+  DEFAULT_SNAPSHOT_COUNTS,
+  DEFAULT_BACKUP_COUNTS,
+} from "@cocalc/util/db-schema/projects";
 
 const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
-const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
+const BANNED_FILE_TYPES = new Set(["doc", "docx", "pdf", "sws"]);
 
 const FROM_WEB_TIMEOUT_S = 45;
 
@@ -181,14 +188,7 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-interface FileAction {
-  name: IntlMessage;
-  icon: IconName;
-  allows_multiple_files?: boolean;
-  hideFlyout?: boolean;
-}
-
-export const FILE_ACTIONS: { [key: string]: FileAction } = {
+export const FILE_ACTIONS = {
   compress: {
     name: defineMessage({
       id: "file_actions.compress.name",
@@ -197,6 +197,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "compress" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   delete: {
     name: defineMessage({
@@ -206,6 +207,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "trash" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   rename: {
     name: defineMessage({
@@ -215,6 +217,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "swap" as IconName,
     allows_multiple_files: false,
+    hideFlyout: false,
   },
   duplicate: {
     name: defineMessage({
@@ -224,6 +227,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "clone" as IconName,
     allows_multiple_files: false,
+    hideFlyout: false,
   },
   move: {
     name: defineMessage({
@@ -233,6 +237,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "move" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   copy: {
     name: defineMessage({
@@ -242,6 +247,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "files" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   share: {
     name: defineMessage({
@@ -251,6 +257,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "share-square" as IconName,
     allows_multiple_files: false,
+    hideFlyout: false,
   },
   download: {
     name: defineMessage({
@@ -260,6 +267,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     }),
     icon: "cloud-download" as IconName,
     allows_multiple_files: true,
+    hideFlyout: false,
   },
   upload: {
     name: defineMessage({
@@ -268,6 +276,7 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
       description: "Upload a file",
     }),
     icon: "upload" as IconName,
+    allows_multiple_files: false,
     hideFlyout: true,
   },
   create: {
@@ -277,9 +286,12 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
       description: "Create a file",
     }),
     icon: "plus-circle" as IconName,
+    allows_multiple_files: false,
     hideFlyout: true,
   },
 } as const;
+
+export type FileAction = keyof typeof FILE_ACTIONS;
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
@@ -358,8 +370,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initComputeServerManager();
     this.initComputeServersTable();
     this.initProjectStatus();
+    this.initSnapshots();
+    this.initBackups();
     const store = this.get_store();
-    store?.init_table("public_paths");
+    store?.init_table?.("public_paths");
   };
 
   private closeExpensive = () => {
@@ -377,8 +391,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.remove_table(table);
     }
 
-    webapp_client.conat_client.closeOpenFiles(this.project_id);
-
     const store = this.get_store();
     store?.close_all_tables();
   };
@@ -386,6 +398,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public async api(): Promise<API> {
     return await webapp_client.project_client.api(this.project_id);
   }
+
+  isClosed = () => this.state == "closed";
 
   destroy = (): void => {
     // console.log("destroy project actions", this.project_id);
@@ -396,6 +410,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.open_files?.close();
     delete this.open_files;
     this.state = "closed";
+    this._filesystem = {};
   };
 
   private save_session(): void {
@@ -422,18 +437,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  public _ensure_project_is_open(cb): void {
-    const s: any = this.redux.getStore("projects");
+  ensureProjectIsOpen = async () => {
+    const s = this.redux.getStore("projects");
     if (!s.is_project_open(this.project_id)) {
-      (this.redux.getActions("projects") as any).open_project({
+      this.redux.getActions("projects").open_project({
         project_id: this.project_id,
         switch_to: true,
       });
-      s.wait_until_project_is_open(this.project_id, 30, cb);
-    } else {
-      cb();
+      await s.waitUntilProjectIsOpen(this.project_id, 30);
     }
-  }
+  };
 
   public get_store(): ProjectStore | undefined {
     if (this.redux.hasStore(this.name)) {
@@ -586,7 +599,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //            or a file_redux_name
   // Pushes to browser history
   // Updates the URL
-  public set_active_tab(
+  set_active_tab = (
     key: string,
     opts: {
       update_file_listing?: boolean;
@@ -597,7 +610,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       update_file_listing: true,
       change_history: true,
     },
-  ): void {
+  ): void => {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const prev_active_project_tab = store.get("active_project_tab");
@@ -620,9 +633,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "files":
         if (opts.change_history) {
           this.set_url_to_path(store.get("current_path") ?? "", "");
-        }
-        if (opts.update_file_listing) {
-          this.fetch_directory_listing();
         }
         break;
 
@@ -764,7 +774,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
     }
     this.setState(change);
-  }
+  };
 
   public toggleFlyout(name: FixedTab): void {
     const store = this.get_store();
@@ -1061,28 +1071,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   /* Initialize the redux store and react component for editing
-     a particular file.
+     a particular file, if necessary.
   */
-  initFileRedux = async (
-    path: string,
-    is_public: boolean = false,
-    ext?: string, // use this extension even instead of path's extension.
-  ): Promise<string | undefined> => {
-    // LAZY IMPORT, so that editors are only available
-    // when you are going to use them.  Helps with code splitting.
-    await import("./editors/register-all");
+  initFileRedux = reuseInFlight(
+    async (
+      path: string,
+      is_public: boolean = false,
+      ext?: string, // use this extension even instead of path's extension.
+    ): Promise<string | undefined> => {
+      const cur = redux.getEditorActions(this.project_id, path);
+      if (cur != null) {
+        return cur.name;
+      }
+      // LAZY IMPORT, so that editors are only available
+      // when you are going to use them.  Helps with code splitting.
+      await import("./editors/register-all");
 
-    // Initialize the file's store and actions
-    const name = await project_file.initializeAsync(
-      path,
-      this.redux,
-      this.project_id,
-      is_public,
-      undefined,
-      ext,
-    );
-    return name;
-  };
+      // Initialize the file's store and actions
+      const name = await project_file.initializeAsync(
+        path,
+        this.redux,
+        this.project_id,
+        is_public,
+        undefined,
+        ext,
+      );
+      return name;
+    },
+  );
 
   private init_file_react_redux = async (
     path: string,
@@ -1408,59 +1424,56 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   // Makes this project the active project tab
-  foreground_project = (change_history = true): void => {
-    this._ensure_project_is_open((err) => {
-      if (err) {
-        // TODO!
-        console.warn(
-          "error putting project in the foreground: ",
-          err,
-          this.project_id,
-        );
-      } else {
-        (this.redux.getActions("projects") as any).foreground_project(
-          this.project_id,
-          change_history,
-        );
-      }
-    });
+  foreground_project = async (change_history = true) => {
+    try {
+      await this.ensureProjectIsOpen();
+    } catch (err) {
+      console.warn(
+        "error putting project in the foreground: ",
+        err,
+        this.project_id,
+      );
+      return;
+    }
+    this.redux
+      .getActions("projects")
+      .foreground_project(this.project_id, change_history);
   };
 
-  open_directory(path, change_history = true, show_files = true): void {
+  open_directory = async (path, change_history = true, show_files = true) => {
     path = normalize(path);
-    this._ensure_project_is_open(async (err) => {
-      if (err) {
-        // TODO!
-        console.log(
-          "error opening directory in project: ",
-          err,
-          this.project_id,
-          path,
-        );
-      } else {
-        if (path[path.length - 1] === "/") {
-          path = path.slice(0, -1);
-        }
-        this.foreground_project(change_history);
-        this.set_current_path(path);
-        const store = this.get_store();
-        if (store == undefined) {
-          return;
-        }
-        if (show_files) {
-          this.set_active_tab("files", {
-            update_file_listing: false,
-            change_history: false, // see "if" below
-          });
-        }
-        if (change_history) {
-          // i.e. regardless of show_files is true or false, we might want to record this in the history
-          this.set_url_to_path(store.get("current_path") ?? "", "");
-        }
-        this.set_all_files_unchecked();
-      }
-    });
-  }
+    try {
+      await this.ensureProjectIsOpen();
+    } catch (err) {
+      console.warn(
+        "error opening directory in project: ",
+        err,
+        this.project_id,
+        path,
+      );
+      return;
+    }
+    if (path[path.length - 1] === "/") {
+      path = path.slice(0, -1);
+    }
+    this.foreground_project(change_history);
+    this.set_current_path(path);
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+    if (show_files) {
+      this.set_active_tab("files", {
+        update_file_listing: false,
+        change_history: false, // see "if" below
+      });
+    }
+    if (change_history) {
+      // i.e. regardless of show_files is true or false, we might want to record this in the history
+      this.set_url_to_path(store.get("current_path") ?? "", "");
+    }
+    this.set_all_files_unchecked();
+  };
 
   // ONLY updates current path
   // Does not push to URL, browser history, or add to analytics
@@ -1493,11 +1506,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({
       current_path: path,
       history_path,
-      page_number: 0,
       most_recent_file_click: undefined,
     });
-
-    store.get_listings().watch(path, true);
   };
 
   setComputeServerId = (compute_server_id: number) => {
@@ -1514,7 +1524,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       compute_server_id,
       checked_files: store.get("checked_files").clear(), // always clear on compute_server_id change
     });
-    this.fetch_directory_listing({ compute_server_id });
     set_local_storage(
       store.computeServerIdLocalStorageKey,
       `${compute_server_id}`,
@@ -1548,42 +1557,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   set_file_search(search): void {
     this.setState({
       file_search: search,
-      page_number: 0,
       file_action: undefined,
       most_recent_file_click: undefined,
       create_file_alert: false,
     });
-  }
-
-  // Update the directory listing cache for the given path.
-  // Uses current path if path not provided.
-  fetch_directory_listing = async (opts?): Promise<void> => {
-    await fetchDirectoryListing(this, opts);
-  };
-
-  public async fetch_directory_listing_directly(
-    path: string,
-    trigger_start_project?: boolean,
-    compute_server_id?: number,
-  ): Promise<void> {
-    const store = this.get_store();
-    if (store == null) return;
-    compute_server_id = this.getComputeServerId(compute_server_id);
-    const listings = store.get_listings(compute_server_id);
-    try {
-      const files = await listings.getListingDirectly(
-        path,
-        trigger_start_project,
-      );
-      const directory_listings = store.get("directory_listings");
-      let listing = directory_listings.get(compute_server_id) ?? Map();
-      listing = listing.set(path, files);
-      this.setState({
-        directory_listings: directory_listings.set(compute_server_id, listing),
-      });
-    } catch (err) {
-      console.warn(`Unable to fetch directory listing -- "${err}"`);
-    }
   }
 
   // Sets the active file_sort to next_column_name
@@ -1612,9 +1589,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    const selected_index = store.get("selected_file_index");
-    const current_index = selected_index != null ? selected_index : -1;
-    this.setState({ selected_file_index: current_index + 1 });
+    const selected_index = store.get("selected_file_index") ?? 0;
+    const numDisplayedFiles = store.get("numDisplayedFiles") ?? 0;
+    if (selected_index + 1 < numDisplayedFiles) {
+      this.setState({ selected_file_index: selected_index + 1 });
+    }
   }
 
   // Decreases the selected file index by 1.
@@ -1625,9 +1604,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    const current_index = store.get("selected_file_index");
-    if (current_index != null && current_index > 0) {
-      this.setState({ selected_file_index: current_index - 1 });
+    const selected_index = store.get("selected_file_index") ?? 0;
+    if (selected_index > 0) {
+      this.setState({ selected_file_index: selected_index - 1 });
     }
   }
 
@@ -1645,7 +1624,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Set the selected state of all files between the most_recent_file_click and the given file
-  set_selected_file_range(file: string, checked: boolean): void {
+  set_selected_file_range(file: string, checked: boolean, listing): void {
     let range;
     const store = this.get_store();
     if (store == undefined) {
@@ -1658,9 +1637,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       // get the range of files
       const current_path = store.get("current_path");
-      const names = store
-        .get("displayed_listing")
-        .listing.map((a) => misc.path_to_file(current_path, a.name));
+      const names = listing.map(({ name }) =>
+        misc.path_to_file(current_path, name),
+      );
       range = misc.get_array_range(names, most_recent, file);
     }
 
@@ -1679,7 +1658,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files?: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction | undefined;
     } = {};
     if (checked) {
       changes.checked_files = store.get("checked_files").add(file);
@@ -1709,7 +1688,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction | undefined;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
     if (
@@ -1731,7 +1710,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction | undefined;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
     if (changes.checked_files.size === 0) {
@@ -1749,42 +1728,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     this.setState({
       checked_files: store.get("checked_files").clear(),
-      file_action: undefined,
     });
-  }
-
-  // this isn't really an action, but very helpful!
-  public get_filenames_in_current_dir():
-    | { [name: string]: boolean }
-    | undefined {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-
-    const files_in_dir = {};
-    // This will set files_in_dir to our current view of the files in the current
-    // directory (at least the visible ones) or do nothing in case we don't know
-    // anything about files (highly unlikely).  Unfortunately (for this), our
-    // directory listings are stored as (immutable) lists, so we have to make
-    // a map out of them.
-    const compute_server_id = store.get("compute_server_id");
-    const listing = store.getIn([
-      "directory_listings",
-      compute_server_id,
-      store.get("current_path"),
-    ]);
-
-    if (typeof listing === "string") {
-      // must be an error
-      return undefined; // simple fallback
-    }
-    if (listing != null) {
-      listing.map(function (x) {
-        files_in_dir[x.get("name")] = true;
-      });
-    }
-    return files_in_dir;
   }
 
   suggestDuplicateFilenameInCurrentDirectory = (
@@ -1807,21 +1751,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  set_file_action(action?: string): void {
+  set_file_action = (action?: FileAction): void => {
     const store = this.get_store();
     if (store == null) {
       return;
     }
     this.setState({ file_action: action });
-  }
+  };
 
-  show_file_action_panel(opts): void {
-    opts = defaults(opts, {
-      path: required,
-      action: required,
-    });
+  showFileActionPanel = async ({
+    path,
+    action,
+  }: {
+    path: string;
+    action:
+      | FileAction
+      | "open"
+      | "open_recent"
+      | "quit"
+      | "close"
+      | "new"
+      | "create"
+      | "upload";
+  }) => {
     this.set_all_files_unchecked();
-    if (opts.action == "new" || opts.action == "create") {
+    if (action == "new" || action == "create") {
       // special case because it isn't a normal "file action panel",
       // but it is convenient to still support this.
       if (this.get_store()?.get("flyout") != "new") {
@@ -1829,13 +1783,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       this.setState({
         default_filename: default_filename(
-          misc.filename_extension(opts.path),
+          misc.filename_extension(path),
           this.project_id,
         ),
       });
       return;
     }
-    if (opts.action == "upload") {
+    if (action == "upload") {
       this.set_active_tab("files");
       setTimeout(() => {
         // NOTE: I'm not proud of this, but right now our upload functionality
@@ -1844,34 +1798,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }, 100);
       return;
     }
-    if (opts.action == "open") {
+    if (action == "open") {
       if (this.get_store()?.get("flyout") != "files") {
         this.toggleFlyout("files");
       }
       return;
     }
-    if (opts.action == "open_recent") {
+    if (action == "open_recent") {
       if (this.get_store()?.get("flyout") != "log") {
         this.toggleFlyout("log");
       }
       return;
     }
 
-    const path_splitted = misc.path_split(opts.path);
-    this.open_directory(path_splitted.head);
+    const path_splitted = misc.path_split(path);
+    await this.open_directory(path_splitted.head);
 
-    if (opts.action == "quit") {
+    if (action == "quit") {
       // TODO: for jupyter and terminal at least, should also do more!
-      this.close_tab(opts.path);
+      this.close_tab(path);
       return;
     }
-    if (opts.action == "close") {
-      this.close_tab(opts.path);
+    if (action == "close") {
+      this.close_tab(path);
       return;
     }
-    this.set_file_checked(opts.path, true);
-    this.set_file_action(opts.action);
-  }
+    this.set_file_checked(path, true);
+    this.set_file_action(action);
+  };
 
   private async get_from_web(opts: {
     url: string;
@@ -1906,7 +1860,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // returns a function that takes the err and output and
     // does the right activity logging stuff.
     return (err?, output?) => {
-      this.fetch_directory_listing();
       if (err) {
         this.set_activity({ id, error: err });
       } else if (
@@ -1922,61 +1875,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
   }
 
-  zip_files = async ({
-    src,
-    dest,
-    path,
-  }: {
-    src: string[];
-    dest: string;
-    path?: string;
-  }) => {
-    const args = ["-rq", dest, ...src];
-    const id = misc.uuid();
-    this.set_activity({
-      id,
-      status: `Creating ${dest} from ${src.length} ${misc.plural(
-        src.length,
-        "file",
-      )}`,
-    });
-    try {
-      this.log({ event: "file_action", action: "created", files: [dest] });
-      await webapp_client.exec({
-        project_id: this.project_id,
-        command: "zip",
-        args,
-        timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
-        err_on_exit: true, // this should fail if exit_code != 0
-        compute_server_id: this.get_store()?.get("compute_server_id"),
-        filesystem: true,
-        path,
-      });
-    } catch (err) {
-      this.set_activity({ id, error: `${err}` });
-      throw err;
-    } finally {
-      this.set_activity({ id, stop: "" });
-      this.fetch_directory_listing();
-    }
-  };
-
-  // DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
-  private _convert_to_displayed_path(path): string {
-    if (path.slice(-1) === "/") {
-      return path;
-    } else {
-      const store = this.get_store();
-      const file_name = misc.path_split(path).tail;
-      if (store !== undefined && store.get("displayed_listing")) {
-        const file_data = store.get("displayed_listing").file_map[file_name];
-        if (file_data !== undefined && file_data.isdir) {
-          return path + "/";
-        }
+  private appendSlashToDirectoryPaths = async (
+    paths: string[],
+    compute_server_id?: number,
+  ): Promise<string[]> => {
+    const f = async (path: string) => {
+      if (path.endsWith("/")) {
+        return path;
       }
-      return path;
-    }
-  }
+      const isDir = this.isDirViaCache(path, compute_server_id);
+      if (isDir === false) {
+        return path;
+      }
+      if (isDir === true) {
+        return path + "/";
+      }
+      if (await this.isDir(path, compute_server_id)) {
+        return path + "/";
+      } else {
+        return path;
+      }
+    };
+    return await Promise.all(paths.map(f));
+  };
 
   // this is called in "projects.cjsx" (more then once)
   // in turn, it is calling init methods just once, though
@@ -2275,7 +2196,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ library_is_copying: status });
   }
 
-  copy_paths = async (opts: {
+  copyPaths = async ({
+    src,
+    dest,
+    id,
+    only_contents,
+    src_compute_server_id = this.get_store()?.get("compute_server_id") ?? 0,
+    dest_compute_server_id = this.get_store()?.get("compute_server_id") ?? 0,
+  }: {
     src: string[];
     dest: string;
     id?: string;
@@ -2286,37 +2214,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     dest_compute_server_id?: number;
     // NOTE: right now src_compute_server_id and dest_compute_server_id
     // must be the same or one of them must be 0.  We don't implement
-    // copying directly from one compute server to another *yet*.
+    // copying directly from one compute server to another.
   }) => {
-    opts = defaults(opts, {
-      src: required, // Should be an array of source paths
-      dest: required,
-      id: undefined,
-      only_contents: false,
-      src_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
-      dest_compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
-    }); // true for duplicating files
-
-    const with_slashes = opts.src.map(this._convert_to_displayed_path);
+    const withSlashes = await this.appendSlashToDirectoryPaths(
+      src,
+      src_compute_server_id,
+    );
 
     this.log({
       event: "file_action",
       action: "copied",
-      files: with_slashes.slice(0, 3),
-      count: opts.src.length > 3 ? opts.src.length : undefined,
-      dest: opts.dest + (opts.only_contents ? "" : "/"),
-      ...(opts.src_compute_server_id != opts.dest_compute_server_id
+      files: withSlashes,
+      count: src.length,
+      dest: dest + (only_contents ? "" : "/"),
+      ...(src_compute_server_id != dest_compute_server_id
         ? {
-            src_compute_server_id: opts.src_compute_server_id,
-            dest_compute_server_id: opts.dest_compute_server_id,
+            src_compute_server_id: src_compute_server_id,
+            dest_compute_server_id: dest_compute_server_id,
           }
-        : opts.src_compute_server_id
-          ? { compute_server_id: opts.src_compute_server_id }
+        : src_compute_server_id
+          ? { compute_server_id: src_compute_server_id }
           : undefined),
     });
 
-    if (opts.only_contents) {
-      opts.src = with_slashes;
+    if (only_contents) {
+      src = withSlashes;
     }
 
     // If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
@@ -2326,18 +2248,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
 
     // Ensure that src files are not interpreted as an option to rsync
-    opts.src = opts.src.map(add_leading_dash);
+    src = src.map(add_leading_dash);
 
-    const id = opts.id != null ? opts.id : misc.uuid();
+    id ??= misc.uuid();
     this.set_activity({
       id,
-      status: `Copying ${opts.src.length} ${misc.plural(
-        opts.src.length,
+      status: `Copying ${src.length} ${misc.plural(
+        src.length,
         "file",
-      )} to ${opts.dest}`,
+      )} to ${dest}`,
     });
 
-    if (opts.src_compute_server_id != opts.dest_compute_server_id) {
+    if (src_compute_server_id != dest_compute_server_id) {
       // Copying from/to a compute server from/to a project.  This uses
       // an api, which behind the scenes uses lz4 compression and tar
       // proxied via a websocket, but no use of rsync or ssh.
@@ -2345,20 +2267,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // do it.
       try {
         const api = await this.api();
-        if (opts.src_compute_server_id) {
+        if (src_compute_server_id) {
           // from compute server to project
           await api.copyFromComputeServerToHomeBase({
-            compute_server_id: opts.src_compute_server_id,
-            paths: opts.src,
-            dest: opts.dest,
+            compute_server_id: src_compute_server_id,
+            paths: src,
+            dest: dest,
             timeout: 60 * 15 * 1000,
           });
-        } else if (opts.dest_compute_server_id) {
+        } else if (dest_compute_server_id) {
           // from project to compute server
           await api.copyFromHomeBaseToComputeServer({
-            compute_server_id: opts.dest_compute_server_id,
-            paths: opts.src,
-            dest: opts.dest,
+            compute_server_id: dest_compute_server_id,
+            paths: src,
+            dest: dest,
             timeout: 60 * 15 * 1000,
           });
         } else {
@@ -2375,118 +2297,69 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    // Copying directly on project or on compute server. This just uses local rsync (no network).
-
-    let args = ["-rltgoDxH"];
-
-    // We ensure the target copy is writable if *any* source path starts is inside of .snapshots.
-    // See https://github.com/sagemathinc/cocalc/issues/2497 and https://github.com/sagemathinc/cocalc/issues/4935
-    for (const x of opts.src) {
-      if (in_snapshot_path(x)) {
-        args = args.concat(["--perms", "--chmod", "u+w"]);
-        break;
-      }
+    // Copying directly on project or on compute server.
+    const fs = this.fs(src_compute_server_id);
+    try {
+      await fs.cp(src, dest, { recursive: true, reflink: true });
+      this._finish_exec(id)();
+    } catch (err) {
+      this._finish_exec(id)(`${err}`);
     }
-
-    args = args.concat(opts.src);
-    args = args.concat([add_leading_dash(opts.dest)]);
-
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
-      args,
-      timeout: 120, // how long rsync runs on client
-      err_on_exit: true,
-      path: ".",
-      compute_server_id: opts.src_compute_server_id,
-      filesystem: true,
-      cb: this._finish_exec(id),
-    });
   };
 
-  copy_paths_between_projects(opts) {
-    opts = defaults(opts, {
-      public: false,
-      src_project_id: required, // id of source project
-      src: required, // list of relative paths of directories or files in the source project
-      target_project_id: required, // id of target project
-      target_path: undefined, // defaults to src_path
-      overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
-      delete_missing: false, // delete files in dest that are missing from source (destructive)
-      backup: false, // make ~ backup files instead of overwriting changed files
-    });
+  // Copy 1 or more paths from one project to another (possibly the same) project.
+  copyPathBetweenProjects = async (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
+  }) => {
     const id = misc.uuid();
+    const files =
+      typeof opts.src.path == "string" ? [opts.src.path] : opts.src.path;
     this.set_activity({
       id,
-      status: `Copying ${opts.src.length} ${misc.plural(
-        opts.src.length,
+      status: `Copying ${files.length} ${misc.plural(
+        files.length,
         "path",
       )} to a project`,
     });
-    const { src } = opts;
-    delete opts.src;
-    const with_slashes = src.map(this._convert_to_displayed_path);
-    let dest: string | undefined = undefined;
-    if (opts.target_path != null) {
-      dest = opts.target_path;
-      if (!misc.endswith(dest, "/")) {
-        dest += "/";
-      }
-    }
+
+    await webapp_client.project_client.copyPathBetweenProjects(opts);
+
+    const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
     this.log({
       event: "file_action",
       action: "copied",
-      dest,
-      files: with_slashes.slice(0, 3),
-      count: src.length > 3 ? src.length : undefined,
-      project: opts.target_project_id,
+      dest: opts.dest.path,
+      files: withSlashes,
+      count: files.length,
+      project: opts.dest.project_id,
     });
-    const f = async (src_path, cb) => {
-      const opts0 = misc.copy(opts);
-      delete opts0.cb;
-      opts0.src_path = src_path;
-      // we do this for consistent semantics with file copy
-      opts0.target_path = misc.path_to_file(
-        opts0.target_path,
-        misc.path_split(src_path).tail,
-      );
-      opts0.timeout = 90 * 1000;
-      try {
-        await webapp_client.project_client.copy_path_between_projects(opts0);
-        cb();
-      } catch (err) {
-        cb(err);
-      }
-    };
-    async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
-  }
 
-  public async rename_file(opts: {
+    this.set_activity({ id, stop: "" });
+  };
+
+  renameFile = async ({
+    src,
+    dest,
+    compute_server_id,
+  }: {
     src: string;
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
-    const id = misc.uuid();
-    const status = `Renaming ${opts.src} to ${opts.dest}`;
+  }): Promise<void> => {
     let error: any = undefined;
-    const intl = await getIntl();
-    const what = intl.formatMessage(dialogs.project_actions_rename_file, {
-      src: opts.src,
-    });
-    if (!(await ensure_project_running(this.project_id, what))) {
-      return;
-    }
-
+    const id = misc.uuid();
+    const status = `Renaming ${src} to ${dest}`;
     this.set_activity({ id, status });
     try {
-      const api = await this.api();
-      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
-      await api.rename_file(opts.src, opts.dest, compute_server_id);
+      const fs = this.fs(compute_server_id);
+      await fs.rename(src, dest);
       this.log({
         event: "file_action",
         action: "renamed",
-        src: opts.src,
-        dest: opts.dest + ((await this.isdir(opts.dest)) ? "/" : ""),
+        src,
+        dest: dest + ((await this.isDir(dest)) ? "/" : ""),
         compute_server_id,
       });
     } catch (err) {
@@ -2494,53 +2367,111 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } finally {
       this.set_activity({ id, stop: "", error });
     }
-  }
+  };
+
+  // note: there is no need to explicitly close or await what is returned by
+  // fs(...) since it's just a lightweight wrapper object to format appropriate RPC calls.
+  private _filesystem: { [compute_server_id: number]: FilesystemClient } = {};
+  fs = (compute_server_id?: number): FilesystemClient => {
+    compute_server_id ??= this.get_store()?.get("compute_server_id") ?? 0;
+    this._filesystem[compute_server_id] ??= webapp_client.conat_client
+      .conat()
+      .fs({ project_id: this.project_id, compute_server_id });
+    return this._filesystem[compute_server_id];
+  };
+
+  // if available in cache, this returns the filenames in the current directory,
+  // which is often useful, or null if they are not known. This is sync, so it
+  // can't query the backend.  (Here Files is a map from path names to data about them.)
+  get_filenames_in_current_dir = (): Files | null => {
+    const store = this.get_store();
+    if (store == undefined) {
+      return null;
+    }
+    const path = store.get("current_path");
+    if (path == null) {
+      return null;
+    }
+    return this.getFilesCache(path);
+  };
+
+  getCacheId = (compute_server_id?: number) => {
+    return getCacheId({
+      project_id: this.project_id,
+      compute_server_id:
+        compute_server_id ?? this.get_store()?.get("compute_server_id") ?? 0,
+    });
+  };
+
+  private getFilesCache = (
+    path: string,
+    compute_server_id?: number,
+  ): Files | null => {
+    return getFiles({
+      cacheId: this.getCacheId(compute_server_id),
+      path: path == "." ? "" : path,
+    });
+  };
+
+  // using listings cache, attempt to tell if path is a directory;
+  // undefined if no data about path in the cache.
+  isDirViaCache = (
+    path: string,
+    compute_server_id?: number,
+  ): boolean | undefined => {
+    if (!path) {
+      return true;
+    }
+    const { head: dir, tail: base } = misc.path_split(path);
+    const files = this.getFilesCache(dir, compute_server_id);
+    const data = files?.[base];
+    if (data == null) {
+      return undefined;
+    } else {
+      return !!data.isDir;
+    }
+  };
 
   // return true if exists and is a directory
-  private async isdir(path: string): Promise<boolean> {
+  // error if doesn't exist or can't find out.
+  // Use isDirViaCache for more of a fast hint.
+  isDir = async (
+    path: string,
+    compute_server_id?: number,
+  ): Promise<boolean> => {
     if (path == "") return true; // easy special case
-    try {
-      await webapp_client.project_client.exec({
-        project_id: this.project_id,
-        command: "test",
-        args: ["-d", path],
-        err_on_exit: true,
-      });
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
+    const stats = await this.fs(compute_server_id).stat(path);
+    return stats.isDirectory();
+  };
 
-  public async move_files(opts: {
+  moveFiles = async ({
+    src,
+    dest,
+    compute_server_id,
+  }: {
     src: string[];
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
-    if (
-      !(await ensure_project_running(
-        this.project_id,
-        "move " + opts.src.join(", "),
-      ))
-    ) {
-      return;
-    }
+  }): Promise<void> => {
     const id = misc.uuid();
-    const status = `Moving ${opts.src.length} ${misc.plural(
-      opts.src.length,
+    const status = `Moving ${src.length} ${misc.plural(
+      src.length,
       "file",
-    )} to ${opts.dest}`;
+    )} to ${dest}`;
     this.set_activity({ id, status });
     let error: any = undefined;
     try {
-      const api = await this.api();
-      const compute_server_id = this.getComputeServerId(opts.compute_server_id);
-      await api.move_files(opts.src, opts.dest, compute_server_id);
+      const fs = this.fs(compute_server_id);
+      await Promise.all(
+        src.map(async (path) =>
+          fs.move(path, join(dest, basename(path)), { overwrite: true }),
+        ),
+      );
       this.log({
         event: "file_action",
         action: "moved",
-        files: opts.src,
-        dest: opts.dest + "/" /* target is assumed to be a directory */,
+        files: src,
+        dest: dest + "/" /* target is assumed to be a directory */,
         compute_server_id,
       });
     } catch (err) {
@@ -2548,7 +2479,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } finally {
       this.set_activity({ id, stop: "", error });
     }
-  }
+  };
 
   private checkForSandboxError(message): boolean {
     const projectsStore = this.redux.getStore("projects");
@@ -2565,52 +2496,57 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return false;
   }
 
-  public async delete_files(opts: {
+  deleteFiles = async ({
+    paths,
+    compute_server_id,
+  }: {
     paths: string[];
     compute_server_id?: number;
-  }): Promise<void> {
-    let mesg;
-    opts = defaults(opts, {
-      paths: required,
-      compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
-    });
-    if (opts.paths.length === 0) {
+  }): Promise<void> => {
+    if (paths.length == 0) {
+      // nothing to do
       return;
     }
-
-    if (
-      this.checkForSandboxError(
-        "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
-      )
-    ) {
-      return;
-    }
-
-    if (
-      !(await ensure_project_running(
-        this.project_id,
-        `delete ${opts.paths.join(", ")}`,
-      ))
-    ) {
-      return;
-    }
-
     const id = misc.uuid();
-    if (isEqual(opts.paths, [".trash"])) {
+    let mesg;
+    if (isEqual(paths, [".trash"])) {
       mesg = "the trash";
-    } else if (opts.paths.length === 1) {
-      mesg = `${opts.paths[0]}`;
+    } else if (paths.length === 1) {
+      mesg = `${paths[0]}`;
     } else {
-      mesg = `${opts.paths.length} files`;
+      mesg = `${paths.length} files`;
     }
     this.set_activity({ id, status: `Deleting ${mesg}...` });
+
     try {
-      await delete_files(this.project_id, opts.paths, opts.compute_server_id);
+      // delete any snapshots:
+      const snapshots: string[] = [];
+      const nonSnapshotPaths: string[] = [];
+      for (const path of paths) {
+        if (dirname(path) == SNAPSHOTS) {
+          snapshots.push(basename(path));
+        } else {
+          nonSnapshotPaths.push(path);
+        }
+      }
+      if (snapshots.length > 0) {
+        for (const name of snapshots) {
+          await webapp_client.conat_client.hub.projects.deleteSnapshot({
+            project_id: this.project_id,
+            name,
+          });
+        }
+      }
+      if (nonSnapshotPaths.length > 0) {
+        const fs = this.fs(compute_server_id);
+        await fs.rm(nonSnapshotPaths, { force: true, recursive: true });
+      }
+
       this.log({
         event: "file_action",
         action: "deleted",
-        files: opts.paths,
-        compute_server_id: opts.compute_server_id,
+        files: paths,
+        compute_server_id,
       });
       this.set_activity({
         id,
@@ -2624,7 +2560,41 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         stop: "",
       });
     }
-  }
+  };
+
+  // remove all files in the given path (or subtree of that path)
+  // for which filter(filename) returns true.
+  // - path should be relative to HOME
+  // - filname will also be relative to HOME and will end in a slash if it is a directory
+  // Returns the deleted paths.
+  deleteMatchingFiles = async ({
+    path,
+    filter,
+    recursive,
+    compute_server_id,
+  }: {
+    path: string;
+    filter: (path: string) => boolean;
+    recursive?: boolean;
+    compute_server_id?: number;
+  }): Promise<string[]> => {
+    const fs = this.fs(compute_server_id);
+    const options: string[] = ["-H", "-I"];
+    if (!recursive) {
+      options.push("-d", "1");
+    }
+    const { stdout } = await fs.fd(path, { options });
+    const paths = Buffer.from(stdout)
+      .toString()
+      .split("\n")
+      .slice(0, -1)
+      .map((p) => join(path, p))
+      .filter(filter);
+    if (paths.length > 0) {
+      await this.deleteFiles({ paths, compute_server_id });
+    }
+    return paths;
+  };
 
   download_file = async ({
     path,
@@ -2673,14 +2643,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  print_file(opts): void {
+  print_file = (opts): void => {
     opts.print = true;
     this.download_file(opts);
-  }
+  };
 
-  show_upload(show): void {
+  show_upload = (show): void => {
     this.setState({ show_upload: show });
-  }
+  };
 
   // Compute the absolute path to the file with given name but with the
   // given extension added to the file (e.g., "md") if the file doesn't have
@@ -2705,89 +2675,62 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return s;
   };
 
-  async create_folder(opts: {
+  createFolder = async ({
+    name,
+    current_path,
+    switch_over = true,
+    compute_server_id,
+  }: {
     name: string;
     current_path?: string;
+    // Whether or not to switch to the new folder (default: true)
     switch_over?: boolean;
     compute_server_id?: number;
-  }): Promise<void> {
-    let p;
-    opts = defaults(opts, {
-      name: required,
-      current_path: undefined,
-      switch_over: true, // Whether or not to switch to the new folder
-      compute_server_id: undefined,
-    });
-    if (
-      !(await ensure_project_running(
-        this.project_id,
-        `create the folder '${opts.name}'`,
-      ))
-    ) {
-      return;
-    }
-    let { compute_server_id, name } = opts;
-    const { current_path, switch_over } = opts;
-    compute_server_id = this.getComputeServerId(compute_server_id);
-    this.setState({ file_creation_error: undefined });
-    if (name[name.length - 1] === "/") {
-      name = name.slice(0, -1);
-    }
+  }): Promise<void> => {
+    const path = current_path ? join(current_path, name) : name;
+    const fs = this.fs(compute_server_id);
     try {
-      p = this.construct_absolute_path(name, current_path);
-    } catch (e) {
-      this.setState({ file_creation_error: e.message });
-      return;
-    }
-    try {
-      await this.ensure_directory_exists(p, compute_server_id);
+      await fs.mkdir(path, { recursive: true });
     } catch (err) {
-      this.setState({
-        file_creation_error: `Error creating directory '${p}' -- ${err}`,
-      });
-      return;
+      this.setState({ file_creation_error: `${err}` });
     }
-    this.fetch_directory_listing({ path: p, compute_server_id });
     if (switch_over) {
-      this.open_directory(p);
+      this.open_directory(path);
     }
     // Log directory creation to the event log.  / at end of path says it is a directory.
-    this.log({ event: "file_action", action: "created", files: [p + "/"] });
-  }
+    this.log({ event: "file_action", action: "created", files: [path + "/"] });
+  };
 
-  create_file = async (opts: {
+  createFile = async ({
+    name,
+    ext,
+    current_path,
+    switch_over = true,
+    compute_server_id,
+  }: {
     name: string;
     ext?: string;
     current_path?: string;
     switch_over?: boolean;
     compute_server_id?: number;
   }) => {
-    let p;
-    opts = defaults(opts, {
-      name: undefined,
-      ext: undefined,
-      current_path: undefined,
-      switch_over: true, // Whether or not to switch to the new file
-      compute_server_id: undefined,
-    });
-    const compute_server_id = this.getComputeServerId(opts.compute_server_id);
     this.setState({ file_creation_error: undefined }); // clear any create file display state
-    let { name } = opts;
-    if ((name === ".." || name === ".") && opts.ext == null) {
+    if ((name === ".." || name === ".") && ext == null) {
       this.setState({
         file_creation_error: "Cannot create a file named . or ..",
       });
       return;
     }
     if (misc.is_only_downloadable(name)) {
-      this.new_file_from_web(name, opts.current_path ?? "");
+      this.new_file_from_web(name, current_path ?? "");
       return;
     }
+
     if (name[name.length - 1] === "/") {
-      if (opts.ext == null) {
-        this.create_folder({
+      if (ext == null) {
+        this.createFolder({
           name,
-          current_path: opts.current_path,
+          current_path,
           compute_server_id,
         });
         return;
@@ -2795,23 +2738,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         name = name.slice(0, name.length - 1);
       }
     }
-    try {
-      p = this.construct_absolute_path(name, opts.current_path, opts.ext);
-    } catch (e) {
-      console.warn("Absolute path creation error");
-      this.setState({ file_creation_error: e.message });
-      return;
-    }
 
-    const intl = await getIntl();
-    const what = intl.formatMessage(dialogs.project_actions_create_file_what, {
-      path: p,
-    });
-    if (!(await ensure_project_running(this.project_id, what))) {
-      return;
+    let path = current_path ? join(current_path, name) : name;
+    if (ext) {
+      path += "." + ext;
     }
-    const ext = misc.filename_extension(p);
-    if (BANNED_FILE_TYPES.indexOf(ext) != -1) {
+    ext = misc.filename_extension(path);
+
+    if (BANNED_FILE_TYPES.has(ext)) {
       this.setState({
         file_creation_error: `Cannot create a file with the ${ext} extension`,
       });
@@ -2820,7 +2754,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (ext === "tex") {
       const filename = misc.path_split(name).tail;
       for (const bad_char of BAD_LATEX_FILENAME_CHARACTERS) {
-        if (filename.indexOf(bad_char) !== -1) {
+        if (filename.includes(bad_char)) {
           this.setState({
             file_creation_error: `Cannot use '${bad_char}' in a LaTeX filename '${filename}'`,
           });
@@ -2828,28 +2762,30 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     }
+    const content = getFileTemplate(ext);
+    await this.ensureContainingDirectoryExists(path, compute_server_id);
+    const fs = this.fs(compute_server_id);
     try {
-      await this.projectApi().editor.newFile(p);
+      await fs.writeFile(path, content);
     } catch (err) {
       this.setState({
         file_creation_error: `${err}`,
       });
       return;
     }
-    this.log({ event: "file_action", action: "created", files: [p] });
+    this.log({ event: "file_action", action: "created", files: [path] });
     if (ext) {
       redux.getActions("account")?.addTag(`create-${ext}`);
     }
-    if (opts.switch_over) {
+    if (switch_over) {
       this.open_file({
-        path: p,
+        path,
         // so opens on current compute server, and because switch_over is only something
         // we do when user is explicitly opening the file
         explicit: true,
+        foreground: true,
         compute_server_id,
       });
-    } else {
-      this.fetch_directory_listing();
     }
   };
 
@@ -2875,7 +2811,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         alert: true,
       });
     } finally {
-      this.fetch_directory_listing();
       this.set_activity({ id, stop: "" });
       this.setState({ downloading_file: false });
       this.set_active_tab("files", { update_file_listing: false });
@@ -2917,13 +2852,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = client_db.sha1(project_id, path);
 
     const projects_store = redux.getStore("projects");
-    const dflt_compute_img = await redux
+    const defaultComputeImage = await redux
       .getStore("customize")
       .getDefaultComputeImage();
 
     const compute_image: string =
       projects_store.getIn(["project_map", project_id, "compute_image"]) ??
-      dflt_compute_img;
+      defaultComputeImage;
 
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | Map<string, any> = table._table.get(id);
@@ -2986,7 +2921,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // can't just change always since we frequently update last_edited to get the share to get copied over.
       this.log({
         event: "public_path",
-        path: path + ((await this.isdir(path)) ? "/" : ""),
+        path: path + ((await this.isDir(path)) ? "/" : ""),
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
@@ -3025,6 +2960,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_subdirectories", subdirectories);
+    this.search();
   };
 
   toggle_search_checkbox_case_sensitive = () => {
@@ -3037,6 +2973,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_case_sensitive", case_sensitive);
+    this.search();
   };
 
   toggle_search_checkbox_hidden_files() {
@@ -3049,6 +2986,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux
       .getActions("account")
       ?.set_other_settings("find_hidden_files", hidden_files);
+    this.search();
   }
 
   toggle_search_checkbox_git_grep() {
@@ -3059,168 +2997,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const git_grep = !store.get("git_grep");
     this.setState({ git_grep });
     redux.getActions("account")?.set_other_settings("find_git_grep", git_grep);
+    this.search();
   }
 
-  process_search_results(err, output, max_results, max_output, cmd) {
+  toggle_search_checkbox_regexp() {
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
-    if (err) {
-      err = misc.to_user_string(err);
-    }
-    if ((err && output == null) || (output != null && output.stdout == null)) {
-      this.setState({ search_error: err });
-      return;
-    }
-
-    const results = output.stdout.split("\n");
-    const too_many_results = !!(
-      output.stdout.length >= max_output ||
-      results.length > max_results ||
-      err
-    );
-    let num_results = 0;
-    const search_results: {}[] = [];
-    for (const line of results) {
-      if (line.trim() === "") {
-        continue;
-      }
-      let i = line.indexOf(":");
-      num_results += 1;
-      if (i !== -1) {
-        // all valid lines have a ':', the last line may have been truncated too early
-        let filename = line.slice(0, i);
-        if (filename.slice(0, 2) === "./") {
-          filename = filename.slice(2);
-        }
-        let context = line.slice(i + 1);
-        // strip codes in worksheet output
-        if (context.length > 0 && context[0] === MARKERS.output) {
-          i = context.slice(1).indexOf(MARKERS.output);
-          context = context.slice(i + 2, context.length - 1);
-        }
-
-        const m = /^(\d+):/.exec(context);
-        let line_number: number | undefined;
-        if (m != null) {
-          try {
-            line_number = parseInt(m[1]);
-          } catch (e) {}
-        }
-
-        search_results.push({
-          filename,
-          description: context,
-          line_number,
-          filter: `${filename.toLowerCase()} ${context.toLowerCase()}`,
-        });
-      }
-      if (num_results >= max_results) {
-        break;
-      }
-    }
-
-    if (store.get("command") === cmd) {
-      // only update the state if the results are from the most recent command
-      this.setState({
-        too_many_results,
-        search_results,
-      });
-    }
+    const regexp = !store.get("regexp");
+    this.setState({ regexp });
+    redux.getActions("account")?.set_other_settings("regexp", regexp);
+    this.search();
   }
-
-  search = () => {
-    let cmd, ins;
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-
-    const query = store.get("user_input").trim().replace(/"/g, '\\"');
-    if (query === "") {
-      return;
-    }
-    const search_query = `"${query}"`;
-    this.setState({
-      search_results: undefined,
-      search_error: undefined,
-      most_recent_search: query,
-      most_recent_path: store.get("current_path"),
-      too_many_results: false,
-    });
-    const path = store.get("current_path");
-
-    track("search", {
-      project_id: this.project_id,
-      path,
-      query,
-      neural_search: store.get("neural_search"),
-      subdirectories: store.get("subdirectories"),
-      hidden_files: store.get("hidden_files"),
-      git_grep: store.get("git_grep"),
-    });
-
-    // generate the grep command for the given query with the given flags
-    if (store.get("case_sensitive")) {
-      ins = "";
-    } else {
-      ins = " -i ";
-    }
-
-    if (store.get("git_grep")) {
-      let max_depth;
-      if (store.get("subdirectories")) {
-        max_depth = "";
-      } else {
-        max_depth = "--max-depth=0";
-      }
-      // The || true is so that if git rev-parse has exit code 0,
-      // but "git grep" finds nothing (hence has exit code 1), we don't
-      // fall back to normal git (the other side of the ||). See
-      //    https://github.com/sagemathinc/cocalc/issues/4276
-      cmd = `git rev-parse --is-inside-work-tree && (git grep -n -I -H ${ins} ${max_depth} ${search_query} || true) || `;
-    } else {
-      cmd = "";
-    }
-    if (store.get("subdirectories")) {
-      if (store.get("hidden_files")) {
-        cmd += `rgrep -n -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
-      } else {
-        cmd += `rgrep -n -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
-      }
-    } else {
-      if (store.get("hidden_files")) {
-        cmd += `grep -n -I -H ${ins} ${search_query} -- .* *`;
-      } else {
-        cmd += `grep -n -I -H ${ins} ${search_query} -- *`;
-      }
-    }
-
-    cmd += ` | grep -v ${MARKERS.cell}`;
-    const max_results = 1000;
-    const max_output = 110 * max_results; // just in case
-
-    this.setState({
-      command: cmd,
-    });
-
-    const compute_server_id = this.getComputeServerId();
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: cmd + " | cut -c 1-256", // truncate horizontal line length (imagine a binary file that is one very long line)
-      timeout: 20, // how long grep runs on client
-      max_output,
-      bash: true,
-      err_on_exit: true,
-      compute_server_id,
-      filesystem: true,
-      path: store.get("current_path"),
-      cb: (err, output) => {
-        this.process_search_results(err, output, max_results, max_output, cmd);
-      },
-    });
-  };
 
   set_file_listing_scroll(scroll_top) {
     this.setState({ file_listing_scroll_top: scroll_top });
@@ -3236,17 +3025,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //  log
   //  settings
   //  search
-  async load_target(
+  load_target = async (
     target,
     foreground = true,
     ignore_kiosk = false,
     change_history = true,
     fragmentId?: FragmentId,
-  ): Promise<void> {
+  ): Promise<void> => {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
-    const last = segments.slice(-1).join();
     const main_segment = segments[0] as FixedTab | "home";
     switch (main_segment) {
       case "active":
@@ -3265,28 +3053,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store == null) {
           return; // project closed already
         }
-        // We check whether the path is a directory or not, first by checking if
-        // we have a recent directory listing in our cache, and if not, by calling
-        // isdir, which is a single exec.
-        let isdir;
-        let { item, err } = store.get_item_in_path(last, parent_path);
-        if (item == null || err) {
-          try {
-            isdir = await webapp_client.project_client.isdir({
-              project_id: this.project_id,
-              path: normalize(full_path),
-            });
-          } catch (err) {
-            // TODO: e.g., project is not running?
-            // I've seen this, e.g., when trying to open a file when not running, and it just
-            // gets retried and works.
-            console.log(`Error opening '${target}' -- ${err}`);
-            return;
-          }
-        } else {
-          isdir = item.get("isdir");
-        }
-        if (isdir) {
+
+        // We check whether the path is a directory or not:
+        const isDir = await this.isDir(full_path);
+        if (isDir) {
           this.open_directory(full_path, change_history);
         } else {
           this.open_file({
@@ -3344,7 +3114,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
-  }
+  };
 
   set_compute_image = async (compute_image: string): Promise<void> => {
     const projects_store = this.redux.getStore("projects");
@@ -3405,6 +3175,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   async show(): Promise<void> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
+    try {
+      await this.redux
+        .getActions("projects")
+        .updateProjectState(this.project_id);
+    } catch {
+      // this can fail, e.g., if user is not a collab on the project, server down, etc.
+    }
     const a = store.get("active_project_tab");
     if (!misc.startswith(a, "editor-")) return;
     this.show_file(misc.tab_to_path(a));
@@ -3420,31 +3197,35 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.hide_file(misc.tab_to_path(a));
   }
 
-  async ensure_directory_exists(
+  ensureContainingDirectoryExists = async (
     path: string,
     compute_server_id?: number,
-  ): Promise<void> {
+  ) => {
+    await this.ensureDirectoryExists(dirname(path), compute_server_id);
+  };
+
+  ensureDirectoryExists = async (
+    path: string,
+    compute_server_id?: number,
+  ): Promise<void> => {
     compute_server_id = this.getComputeServerId(compute_server_id);
-    await webapp_client.exec({
-      project_id: this.project_id,
-      command: "mkdir",
-      args: ["-p", path],
-      compute_server_id,
-      filesystem: true,
-    });
-    // WARNING: If we don't do this sync, the
-    // create_folder/open_directory code gets messed up
-    // (with the backend watcher stuff) and the directory
-    // gets stuck "Loading...".  Anyway, this is a good idea
-    // to ensure the directory is fully created and usable.
-    // And no, I don't like having to do this.
-    await webapp_client.exec({
-      project_id: this.project_id,
-      command: "sync",
-      compute_server_id,
-      filesystem: true,
-    });
-  }
+    const v = this.getFilesCache(dirname(path), compute_server_id);
+    if (v?.[basename(path)]) {
+      // already exists
+      return;
+    }
+    // create it -- just make it and if it already exists, not an error
+    // (this avoids race conditions and is the right way)
+    const fs = this.fs(compute_server_id);
+    try {
+      await fs.mkdir(path, { recursive: true });
+    } catch (err) {
+      if (err.code == "EEXISTS") {
+        return;
+      }
+      throw err;
+    }
+  };
 
   /* NOTE!  Below we store the modal state *both* in a private
   variable *and* in the store.  The reason is because we need
@@ -3452,18 +3233,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   wait_until_no_modals to work robustless, and setState can
   wait before changing the state.
   */
-  public clear_modal(): void {
+  clear_modal = (): void => {
     delete this.modal;
     this.setState({ modal: undefined });
-  }
+  };
 
-  public async show_modal({
+  show_modal = async ({
     title,
     content,
   }: {
     title: string;
     content: string;
-  }): Promise<"ok" | "cancel"> {
+  }): Promise<"ok" | "cancel"> => {
     await this.wait_until_no_modals();
     let response: "ok" | "cancel" = "cancel";
     const modal = fromJS({
@@ -3476,9 +3257,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ modal });
     await this.wait_until_no_modals();
     return response;
-  }
+  };
 
-  public async wait_until_no_modals(): Promise<void> {
+  wait_until_no_modals = async (): Promise<void> => {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -3494,7 +3275,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       until: noModal,
       timeout: 99999,
     });
-  }
+  };
 
   public show_public_config(path: string): void {
     this.set_current_path(misc.path_split(path).head);
@@ -3553,21 +3334,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == null) return;
     this.setRecentlyDeleted(path, 0);
-    (async () => {
-      try {
-        const o = await webapp_client.conat_client.openFiles(this.project_id);
-        o.setNotDeleted(path);
-      } catch (err) {
-        console.log("WARNING: issue undeleting file", err);
-      }
-    })();
   };
 
   private initProjectStatus = async () => {
-    this.projectStatusSub = await getProjectStatus({
-      project_id: this.project_id,
-      compute_server_id: 0,
-    });
+    try {
+      this.projectStatusSub = await getProjectStatus({
+        project_id: this.project_id,
+        compute_server_id: 0,
+      });
+    } catch (err) {
+      // happens if you open a project you are not a collab on
+      console.warn(`unable to subscribe to project status updates: `, err);
+      return;
+    }
     for await (const mesg of this.projectStatusSub) {
       const status = mesg.data;
       this.setState({ status });
@@ -3636,11 +3415,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   // undefined if not specified or not known
-  getComputeServerIdForFile = ({
-    path,
-  }: {
-    path: string;
-  }): number | undefined => {
+  getComputeServerIdForFile = (path: string): number | undefined => {
     if (this.computeServerManager?.state != "connected") {
       // don't know anything yet.
       // TODO: maybe we should change this to be async and guarantee answer known -- not sure.
@@ -3717,4 +3492,108 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
     });
   };
+
+  private searchId = 0;
+  search = async () => {
+    const store = this.get_store();
+    if (!store) {
+      return;
+    }
+    const searchId = ++this.searchId;
+    const setState = (x) => {
+      if (this.searchId != searchId) {
+        // there's a newer search
+        return;
+      }
+      this.setState(x);
+    };
+    try {
+      await search({
+        setState,
+        fs: this.fs(),
+        query: store.get("user_input").trim(),
+        path: store.get("current_path"),
+        options: {
+          case_sensitive: store.get("case_sensitive"),
+          git_grep: store.get("git_grep"),
+          subdirectories: store.get("subdirectories"),
+          hidden_files: store.get("hidden_files"),
+          regexp: store.get("regexp"),
+        },
+      });
+    } catch (err) {
+      setState({ search_error: `${err}` });
+    }
+  };
+
+  initSnapshots = reuseInFlight(async () => {
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        const store = redux.getStore("projects");
+        if (store == null) {
+          return false;
+        }
+        const project = store.getIn(["project_map", this.project_id]);
+        if (project == null) {
+          return false;
+        }
+        const counts =
+          project.get("snapshots")?.toJS() ?? DEFAULT_SNAPSHOT_COUNTS;
+        if (counts.disabled) {
+          return false;
+        }
+        try {
+          await webapp_client.conat_client.hub.projects.updateSnapshots({
+            project_id: this.project_id,
+            counts,
+          });
+        } catch (err) {
+          console.warn(
+            `WARNING: Issue updating snapshots of ${this.project_id}`,
+            err,
+            { counts },
+          );
+        }
+        return false;
+      },
+      // every 15 minutes
+      { min: 60 * 1000 * 15, max: 60 * 1000 * 15 },
+    );
+  });
+
+  initBackups = reuseInFlight(async () => {
+    await until(
+      async () => {
+        if (this.isClosed()) return true;
+        const store = redux.getStore("projects");
+        if (store == null) {
+          return false;
+        }
+        const project = store.getIn(["project_map", this.project_id]);
+        if (project == null) {
+          return false;
+        }
+        const counts = project.get("backups")?.toJS() ?? DEFAULT_BACKUP_COUNTS;
+        if (counts.disabled) {
+          return false;
+        }
+        try {
+          await webapp_client.conat_client.hub.projects.updateBackups({
+            project_id: this.project_id,
+            counts,
+          });
+        } catch (err) {
+          console.warn(
+            `WARNING: Issue updating backups of ${this.project_id}`,
+            err,
+            { counts },
+          );
+        }
+        return false;
+      },
+      // every hour - though usually make only one backup per day
+      { min: 60 * 1000 * 60, max: 60 * 1000 * 60 },
+    );
+  });
 }

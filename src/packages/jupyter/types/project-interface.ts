@@ -15,6 +15,7 @@ import type { JupyterSockets } from "@cocalc/jupyter/zmq";
 import type { KernelInfo } from "@cocalc/util/jupyter/types";
 export type { KernelInfo };
 import type { EventIterator } from "@cocalc/util/event-iterator";
+import { type BackendState, type KernelState } from "@cocalc/jupyter/types";
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
@@ -76,7 +77,7 @@ export interface ExecOpts {
   timeout_ms?: number;
 }
 
-export type OutputMessage = object; // todo
+export type OutputMessage = any; // todo
 
 export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
   emit_output(result: OutputMessage): void;
@@ -97,7 +98,9 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   name: string | undefined; // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
   store: any;
   readonly identity: string;
-
+  failedError: string;
+  getStatus(): { kernel_state: KernelState; backend_state: BackendState };
+  isClosed(): boolean;
   get_state(): string;
   signal(signal: string): void;
   close(): void;
@@ -105,8 +108,6 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   execute_code(opts: ExecOpts): CodeExecutionEmitterInterface;
   cancel_execute(id: string): void;
   execute_code_now(opts: ExecOpts): Promise<object[]>;
-  process_output(content: any): void;
-  get_blob_store(): BlobStoreInterface | undefined;
   complete(opts: { code: any; cursor_pos: any });
   introspect(opts: {
     code: any;
@@ -116,8 +117,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   kernel_info(): Promise<KernelInfo>;
   more_output(id: string): any[];
   nbconvert(args: string[], timeout?: number): Promise<void>;
-  load_attachment(path: string): Promise<string>;
-  send_comm_message_to_kernel(msg: {
+  sendCommMessageToKernel(msg: {
     msg_id: string;
     comm_id: string;
     target_name: string;
@@ -125,7 +125,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
     buffers?: any[];
     buffers64?: any[];
   }): void;
-  get_connection_file(): string | undefined;
+  getConnectionFile(): string | undefined;
 
   _execute_code_queue: CodeExecutionEmitterInterface[];
   clear_execute_code_queue(): void;
@@ -133,4 +133,9 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
 
   chdir(path: string): Promise<void>;
   ensure_running(): Promise<void>;
+
+  ipywidgetsGetBuffer(
+    model_id: string,
+    buffer_path: string | string[],
+  ): Buffer | undefined;
 }

@@ -1,40 +1,26 @@
 import { type SubvolumeSnapshots } from "./subvolume-snapshots";
+import { type SubvolumeRustic } from "./subvolume-rustic";
+import {
+  SNAPSHOT_INTERVALS_MS,
+  DEFAULT_SNAPSHOT_COUNTS,
+  type SnapshotCounts,
+} from "@cocalc/util/db-schema/projects";
 import getLogger from "@cocalc/backend/logger";
+import { isISODate } from "@cocalc/util/misc";
+
+export { type SnapshotCounts };
 
 const logger = getLogger("file-server:btrfs:snapshots");
-
-const DATE_REGEXP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-
-// Lengths of time in minutes to keep snapshots
-// (code below assumes these are listed in ORDER from shortest to longest)
-export const SNAPSHOT_INTERVALS_MS = {
-  frequent: 15 * 1000 * 60,
-  daily: 60 * 24 * 1000 * 60,
-  weekly: 60 * 24 * 7 * 1000 * 60,
-  monthly: 60 * 24 * 7 * 4 * 1000 * 60,
-};
-
-// How many of each type of snapshot to retain
-export const DEFAULT_SNAPSHOT_COUNTS = {
-  frequent: 24,
-  daily: 14,
-  weekly: 7,
-  monthly: 4,
-} as SnapshotCounts;
-
-export interface SnapshotCounts {
-  frequent: number;
-  daily: number;
-  weekly: number;
-  monthly: number;
-}
 
 export async function updateRollingSnapshots({
   snapshots,
   counts,
+  opts,
 }: {
-  snapshots: SubvolumeSnapshots;
+  snapshots: SubvolumeSnapshots | SubvolumeRustic;
   counts?: Partial<SnapshotCounts>;
+  // options to create
+  opts?;
 }) {
   counts = { ...DEFAULT_SNAPSHOT_COUNTS, ...counts };
 
@@ -44,45 +30,68 @@ export async function updateRollingSnapshots({
     counts,
     changed,
   });
-  if (!changed) {
-    // definitely no data written since most recent snapshot, so nothing to do
-    return;
-  }
 
   // get exactly the iso timestamp snapshot names:
-  const snapshotNames = (await snapshots.ls())
-    .map((x) => x.name)
-    .filter((name) => DATE_REGEXP.test(name));
+  const snapshotNames = (await snapshots.readdir()).filter(isISODate);
   snapshotNames.sort();
-  if (snapshotNames.length > 0) {
-    const age = Date.now() - new Date(snapshotNames.slice(-1)[0]).valueOf();
+  let needNewSnapshot = false;
+  if (changed) {
+    const timeSinceLastSnapshot =
+      snapshotNames.length == 0
+        ? 1e12 // infinitely old
+        : Date.now() - new Date(snapshotNames.slice(-1)[0]).valueOf();
     for (const key in SNAPSHOT_INTERVALS_MS) {
-      if (counts[key]) {
-        if (age < SNAPSHOT_INTERVALS_MS[key]) {
-          // no need to snapshot since there is already a sufficiently recent snapshot
-          logger.debug("updateRollingSnapshots: no need to snapshot", {
-            name: snapshots.subvolume.name,
-          });
-          return;
-        }
-        // counts[key] nonzero and snapshot is old enough so we'll be making a snapshot
+      if (counts[key] && timeSinceLastSnapshot > SNAPSHOT_INTERVALS_MS[key]) {
+        // there is NOT a sufficiently recent snapshot to satisfy the constraint
+        // of having at least one snapshot for the given interval.
+        needNewSnapshot = true;
         break;
       }
     }
   }
 
-  // make a new snapshot
-  const name = new Date().toISOString();
-  await snapshots.create(name);
-  // delete extra snapshots
-  snapshotNames.push(name);
-  const toDelete = snapshotsToDelete({ counts, snapshots: snapshotNames });
-  for (const expired of toDelete) {
+  // Regarding error reporting we try to do everything below and throw the
+  // create error or last delete error...
+
+  let createError: any = undefined;
+  if (changed && needNewSnapshot) {
+    // make a new snapshot -- but only bother
+    // definitely no data written since most recent snapshot, so nothing to do
+    const name = new Date().toISOString();
+    logger.debug(
+      "updateRollingSnapshots: creating snapshot of",
+      snapshots.subvolume.name,
+    );
     try {
-      await snapshots.delete(expired);
-    } catch {
-      // some snapshots can't be deleted, e.g., they were used for the last send.
+      await snapshots.create(name, opts);
+      snapshotNames.push(name);
+    } catch (err) {
+      createError = err;
     }
+  }
+
+  // delete extra snapshots
+  const toDelete = snapshotsToDelete({ counts, snapshots: snapshotNames });
+  let deleteError: any = undefined;
+  for (const name of toDelete) {
+    try {
+      logger.debug(
+        "updateRollingSnapshots: deleting snapshot of",
+        snapshots.subvolume.name,
+        name,
+      );
+      await snapshots.delete(name);
+    } catch (err) {
+      // ONLY report this if create doesn't error, to give both delete and create a chance to run.
+      deleteError = err;
+    }
+  }
+
+  if (createError) {
+    throw createError;
+  }
+  if (deleteError) {
+    throw deleteError;
   }
 }
 

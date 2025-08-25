@@ -10,6 +10,7 @@ import { redux } from "../app-framework";
 import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
 import { disconnect_from_all_projects } from "../project/websocket/connect";
+import { lite } from "@cocalc/frontend/lite";
 
 // set to true when there are no load issues.
 const NEVER_TIMEOUT_VISIBLE = false;
@@ -40,7 +41,8 @@ export class IdleClient {
     // Do not bother on touch devices, since they already automatically tend to
     // disconnect themselves very aggressively to save battery life, and it's
     // sketchy trying to ensure that banner will dismiss properly.
-    if (IS_TOUCH) {
+    if (IS_TOUCH || lite) {
+      // never use idle timeout on touch devices (phones) or in lite mode
       return;
     }
 

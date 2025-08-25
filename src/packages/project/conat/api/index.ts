@@ -53,11 +53,11 @@ Remember, if you don't set API_KEY, then the project MUST be running so that the
 import { type ProjectApi } from "@cocalc/conat/project/api";
 import { connectToConat } from "@cocalc/project/conat/connection";
 import { getSubject } from "../names";
-import { terminate as terminateOpenFiles } from "@cocalc/project/conat/open-files";
 import { close as closeListings } from "@cocalc/project/conat/listings";
 import { project_id } from "@cocalc/project/data";
 import { close as closeFilesRead } from "@cocalc/project/conat/files/read";
 import { close as closeFilesWrite } from "@cocalc/project/conat/files/write";
+import { close as closeJupyter } from "@cocalc/project/conat/jupyter";
 import { getLogger } from "@cocalc/project/logger";
 
 const logger = getLogger("conat:api");
@@ -101,12 +101,12 @@ async function handleMessage(api, subject, mesg) {
     // TODO: should be part of handleApiRequest below, but done differently because
     // one case halts this loop
     const { service } = request.args[0] ?? {};
-    if (service == "open-files") {
-      terminateOpenFiles();
+    if (service == "listings") {
+      closeListings();
       await mesg.respond({ status: "terminated", service });
       return;
-    } else if (service == "listings") {
-      closeListings();
+    } else if (service == "jupyter") {
+      closeJupyter();
       await mesg.respond({ status: "terminated", service });
       return;
     } else if (service == "files:read") {
@@ -152,11 +152,13 @@ async function handleApiRequest(request, mesg) {
 
 import * as system from "./system";
 import * as editor from "./editor";
+import * as jupyter from "./jupyter";
 import * as sync from "./sync";
 
 export const projectApi: ProjectApi = {
   system,
   editor,
+  jupyter,
   sync,
 };
 
@@ -164,7 +166,9 @@ async function getResponse({ name, args }) {
   const [group, functionName] = name.split(".");
   const f = projectApi[group]?.[functionName];
   if (f == null) {
-    throw Error(`unknown function '${name}'`);
+    throw Error(
+      `unknown function '${name}' -- available functions are ${JSON.stringify(Object.keys(projectApi[group]))}`,
+    );
   }
   return await f(...args);
 }

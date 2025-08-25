@@ -7,7 +7,6 @@ to this target or the target project isn't running.
 */
 
 import LRU from "lru-cache";
-
 import getLogger from "@cocalc/hub/logger";
 import { database } from "@cocalc/hub/servers/database";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
@@ -15,8 +14,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import hasAccess from "./check-for-access-to-project";
 import { parseReq } from "./parse";
-
-const hub_projects = require("../projects");
+import { projectApiClient } from "@cocalc/conat/project/api";
 
 const logger = getLogger("proxy:target");
 
@@ -144,7 +142,7 @@ export async function getTarget({
     port = parseInt(port_desc);
     if (!Number.isInteger(port)) {
       dbg("determining name=", port_desc, "server port...");
-      port = await namedServerPort(project_id, port_desc, projectControl);
+      port = await namedServerPort(project_id, port_desc);
       dbg("got named server name=", port_desc, " port=", port);
     }
   } else if (type === "raw") {
@@ -177,21 +175,17 @@ const namedServerPortCache = new LRU<string, number>({
 async function _namedServerPort(
   project_id: string,
   name: NamedServerName,
-  projectControl,
 ): Promise<number> {
   const key = project_id + name;
   const p = namedServerPortCache.get(key);
   if (p) {
     return p;
   }
-  const project = hub_projects.new_project(
-    // NOT @cocalc/server/projects/control like above...
-    project_id,
-    database,
-    projectControl,
-  );
-  const port = await project.named_server_port(name);
-  namedServerPortCache.set(key, port);
+  // TODO: to use nsjail instead of k8s to run projects in a scalable way,
+  // we are going to have also get the host ip address a port mapping
+  // right here.
+  const api = projectApiClient({ project_id });
+  const { port } = await api.system.startNamedServer(name);
   return port;
 }
 

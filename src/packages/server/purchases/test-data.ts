@@ -39,9 +39,6 @@ export async function createTestAccount(account_id: string) {
     firstName: "Test",
     lastName: "User",
     account_id,
-    // important -- otherwise every time we call createTestAccount, a project gets created and is running,
-    // and these do NOT get cleaned up ever.
-    noFirstProject: true,
   });
 }
 

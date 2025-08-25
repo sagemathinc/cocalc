@@ -335,6 +335,11 @@ export function uuidsha1(data: string): string {
   });
 }
 
+const SHA1_REGEXP = /^[a-f0-9]{40}$/;
+export function isSha1(s: string): boolean {
+  return s.length === 40 && !!s.match(SHA1_REGEXP);
+}
+
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 export function len(obj: object | undefined | null): number {
   if (obj == null) {
@@ -501,7 +506,7 @@ export function trunc_left<T>(
   sArg: T,
   max_length = 1024,
   ellipsis = ELLIPSIS,
-): T | string  {
+): T | string {
   if (sArg == null) {
     return sArg;
   }
@@ -2734,4 +2739,49 @@ export function uint8ArrayToBase64(uint8Array: Uint8Array) {
     binaryString += String.fromCharCode(uint8Array[i]);
   }
   return btoa(binaryString);
+}
+
+// Inspired by https://github.com/etiennedi/kubernetes-resource-parser/tree/master
+export function k8sCpuParser(input: string | number): number {
+  if (typeof input == "number") {
+    return input;
+  }
+  const milliMatch = input.match(/^([0-9]+)m$/);
+  if (milliMatch) {
+    return parseFloat(milliMatch[1]) / 1000;
+  }
+  return parseFloat(input);
+}
+
+const memoryMultipliers = {
+  k: 1000,
+  M: 1000 ** 2,
+  G: 1000 ** 3,
+  T: 1000 ** 4,
+  P: 1000 ** 5,
+  E: 1000 ** 6,
+  Ki: 1024,
+  Mi: 1024 ** 2,
+  Gi: 1024 ** 3,
+  Ti: 1024 ** 4,
+  Pi: 1024 ** 5,
+  Ei: 1024 ** 6,
+} as const;
+
+export function k8sMemoryParser(input: string | number): number {
+  if (typeof input == "number") {
+    return input;
+  }
+  const unitMatch = input.match(/^([0-9]+)([A-Za-z]{1,2})$/);
+  if (unitMatch) {
+    return parseInt(unitMatch[1], 10) * memoryMultipliers[unitMatch[2]];
+  }
+
+  return parseInt(input, 10);
+}
+
+export const DATE_REGEXP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+export function isISODate(s: string): boolean {
+  return DATE_REGEXP.test(s);
 }

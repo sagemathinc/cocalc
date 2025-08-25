@@ -49,13 +49,13 @@ export function assertHasWritePermission({
   if (path.length > MAX_PATH_LENGTH) {
     throw new ConatError(
       `permission denied: path (of length ${path.length}) is too long (limit is '${MAX_PATH_LENGTH}' characters)`,
-      { code: 403 },
+      { code: 403, subject },
     );
   }
   if (path.startsWith("/") || path.endsWith("/")) {
     throw new ConatError(
       `permission denied: path '${path}' must not start or end with '/'`,
-      { code: 403 },
+      { code: 403, subject },
     );
   }
   const v = subject.split(".");
@@ -79,10 +79,10 @@ export function assertHasWritePermission({
       } else {
         throw new ConatError(
           `permission denied: subject '${subject}' does not grant write permission to path='${path}' since it is not under '${base}'`,
-          { code: 403 },
+          { code: 403, subject },
         );
       }
     }
   }
-  throw new ConatError(`invalid subject: '${subject}'`, { code: 403 });
+  throw new ConatError(`invalid subject: '${subject}'`, { code: 403, subject });
 }

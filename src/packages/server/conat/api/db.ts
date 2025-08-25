@@ -30,8 +30,6 @@ export async function touch({
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("user must be collaborator on project");
   }
-  // TODO: we also connect still (this will of course go away very soon!!)
-  D.ensure_connection_to_project?.(project_id);
   await callback2(D.touch, { account_id, project_id, path, action });
 }
 

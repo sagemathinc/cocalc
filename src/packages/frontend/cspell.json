@@ -62,6 +62,7 @@
     "immutablejs",
     "ipynb",
     "isdir",
+    "isDir",
     "kernelspec",
     "LLM",
     "LLMs",

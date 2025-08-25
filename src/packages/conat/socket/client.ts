@@ -91,8 +91,8 @@ export class ConatSocketClient extends ConatSocketBase {
     });
   }
 
-  waitUntilDrain = async () => {
-    await this.tcp?.send.waitUntilDrain();
+  drain = async () => {
+    await this.tcp?.send.drain();
   };
 
   private sendCommandToServer = async (
@@ -225,7 +225,7 @@ export class ConatSocketClient extends ConatSocketBase {
     if (this.state == "closed") {
       throw Error("closed");
     }
-    // console.log("sending request from client ", { subject, data, options });
+    //console.log("sending request from client ", { subject, data, options });
     return await this.client.request(subject, data, options);
   };
 

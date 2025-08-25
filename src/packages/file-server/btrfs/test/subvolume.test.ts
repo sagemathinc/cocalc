@@ -1,9 +1,8 @@
 import { before, after, fs, sudo } from "./setup";
-import { mkdir } from "fs/promises";
-import { join } from "path";
 import { wait } from "@cocalc/backend/conat/test/util";
 import { randomBytes } from "crypto";
 import { type Subvolume } from "../subvolume";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 beforeAll(before);
 
@@ -19,7 +18,7 @@ describe("setting and getting quota of a subvolume", () => {
   });
 
   it("get directory listing", async () => {
-    const v = await vol.fs.ls("");
+    const v = await vol.fs.readdir("");
     expect(v).toEqual([]);
   });
 
@@ -36,9 +35,8 @@ describe("setting and getting quota of a subvolume", () => {
     const { used } = await vol.quota.usage();
     expect(used).toBeGreaterThan(0);
 
-    const v = await vol.fs.ls("");
-    // size is potentially random, reflecting compression
-    expect(v).toEqual([{ name: "buf", mtime: v[0].mtime, size: v[0].size }]);
+    const v = await vol.fs.readdir("");
+    expect(v).toEqual(["buf"]);
   });
 
   it("fail to write a 50MB file (due to quota)", async () => {
@@ -54,20 +52,20 @@ describe("the filesystem operations", () => {
 
   it("creates a volume and get empty listing", async () => {
     vol = await fs.subvolumes.get("fs");
-    expect(await vol.fs.ls("")).toEqual([]);
+    expect(await vol.fs.readdir("")).toEqual([]);
   });
 
   it("error listing non-existent path", async () => {
     vol = await fs.subvolumes.get("fs");
     expect(async () => {
-      await vol.fs.ls("no-such-path");
+      await vol.fs.readdir("no-such-path");
     }).rejects.toThrow("ENOENT");
   });
 
   it("creates a text file to it", async () => {
     await vol.fs.writeFile("a.txt", "hello");
-    const ls = await vol.fs.ls("");
-    expect(ls).toEqual([{ name: "a.txt", mtime: ls[0].mtime, size: 5 }]);
+    const ls = await vol.fs.readdir("");
+    expect(ls).toEqual(["a.txt"]);
   });
 
   it("read the file we just created as utf8", async () => {
@@ -87,17 +85,18 @@ describe("the filesystem operations", () => {
   let origStat;
   it("snapshot filesystem and see file is in snapshot", async () => {
     await vol.snapshots.create("snap");
-    const s = await vol.fs.ls(vol.snapshots.path("snap"));
-    expect(s).toEqual([{ name: "a.txt", mtime: s[0].mtime, size: 5 }]);
+    const s = await vol.fs.readdir(vol.snapshots.path("snap"));
+    expect(s).toContain("a.txt");
 
-    const stat = await vol.fs.stat("a.txt");
-    origStat = stat;
-    expect(stat.mtimeMs / 1000).toBeCloseTo(s[0].mtime ?? 0);
+    const stat0 = await vol.fs.stat(vol.snapshots.path("snap"));
+    const stat1 = await vol.fs.stat("a.txt");
+    origStat = stat1;
+    expect(stat1.mtimeMs).toBeCloseTo(stat0.mtimeMs, -2);
   });
 
   it("unlink (delete) our file", async () => {
     await vol.fs.unlink("a.txt");
-    expect(await vol.fs.ls("")).toEqual([]);
+    expect(await vol.fs.readdir("")).toEqual([SNAPSHOTS]);
   });
 
   it("snapshot still exists", async () => {
@@ -126,6 +125,7 @@ describe("the filesystem operations", () => {
   it("make a file readonly, then change it back", async () => {
     await vol.fs.writeFile("c.txt", "hi");
     await vol.fs.chmod("c.txt", "440");
+    await fs.sync();
     expect(async () => {
       await vol.fs.appendFile("c.txt", " there");
     }).rejects.toThrow("EACCES");
@@ -143,18 +143,17 @@ describe("the filesystem operations", () => {
     await vol.fs.writeFile("w.txt", "hi");
     const ac = new AbortController();
     const { signal } = ac;
-    const watcher = vol.fs.watch("w.txt", { signal });
+    const watcher = await vol.fs.watch("w.txt", { signal });
     vol.fs.appendFile("w.txt", " there");
     // @ts-ignore
     const { value, done } = await watcher.next();
     expect(done).toBe(false);
     expect(value).toEqual({ eventType: "change", filename: "w.txt" });
     ac.abort();
-
-    expect(async () => {
-      // @ts-ignore
-      await watcher.next();
-    }).rejects.toThrow("aborted");
+    {
+      const { done } = await watcher.next();
+      expect(done).toBe(true);
+    }
   });
 
   it("rename a file", async () => {
@@ -185,9 +184,9 @@ describe("test snapshots", () => {
   });
 
   it("snapshot the volume", async () => {
-    expect(await vol.snapshots.ls()).toEqual([]);
+    expect(await vol.snapshots.readdir()).toEqual([]);
     await vol.snapshots.create("snap1");
-    expect((await vol.snapshots.ls()).map((x) => x.name)).toEqual(["snap1"]);
+    expect(await vol.snapshots.readdir()).toEqual(["snap1"]);
     expect(await vol.snapshots.hasUnsavedChanges()).toBe(false);
   });
 
@@ -219,77 +218,11 @@ describe("test snapshots", () => {
   });
 
   it("unlock our snapshot and delete it", async () => {
+    await fs.sync();
     await vol.snapshots.unlock("snap1");
     await vol.snapshots.delete("snap1");
     expect(await vol.snapshots.exists("snap1")).toBe(false);
-    expect(await vol.snapshots.ls()).toEqual([]);
-  });
-});
-
-describe.only("test bup backups", () => {
-  let vol: Subvolume;
-  it("creates a volume", async () => {
-    vol = await fs.subvolumes.get("bup-test");
-    await vol.fs.writeFile("a.txt", "hello");
-  });
-
-  it("create a bup backup", async () => {
-    await vol.bup.save();
-  });
-
-  it("list bup backups of this vol -- there are 2, one for the date and 'latest'", async () => {
-    const v = await vol.bup.ls();
-    expect(v.length).toBe(2);
-    const t = (v[0].mtime ?? 0) * 1000;
-    expect(Math.abs(t.valueOf() - Date.now())).toBeLessThan(10_000);
-  });
-
-  it("confirm a.txt is in our backup", async () => {
-    const x = await vol.bup.ls("latest");
-    expect(x).toEqual([
-      { name: "a.txt", size: 5, mtime: x[0].mtime, isdir: false },
-    ]);
-  });
-
-  it("restore a.txt from our backup", async () => {
-    await vol.fs.writeFile("a.txt", "hello2");
-    await vol.bup.restore("latest/a.txt");
-    expect(await vol.fs.readFile("a.txt", "utf8")).toEqual("hello");
-  });
-
-  it("prune bup backups does nothing since we have so few", async () => {
-    await vol.bup.prune();
-    expect((await vol.bup.ls()).length).toBe(2);
-  });
-
-  it("add a directory and back up", async () => {
-    await mkdir(join(vol.path, "mydir"));
-    await vol.fs.writeFile(join("mydir", "file.txt"), "hello3");
-    expect((await vol.fs.ls("mydir"))[0].name).toBe("file.txt");
-    await vol.bup.save();
-    const x = await vol.bup.ls("latest");
-    expect(x).toEqual([
-      { name: "a.txt", size: 5, mtime: x[0].mtime, isdir: false },
-      { name: "mydir", size: 0, mtime: x[1].mtime, isdir: true },
-    ]);
-    expect(Math.abs((x[0].mtime ?? 0) * 1000 - Date.now())).toBeLessThan(
-      60_000,
-    );
-  });
-
-  it("change file in the directory, then restore from backup whole dir", async () => {
-    await vol.fs.writeFile(join("mydir", "file.txt"), "changed");
-    await vol.bup.restore("latest/mydir");
-    expect(await vol.fs.readFile(join("mydir", "file.txt"), "utf8")).toEqual(
-      "hello3",
-    );
-  });
-
-  it("most recent snapshot has a backup before the restore", async () => {
-    const s = await vol.snapshots.ls();
-    const recent = s.slice(-1)[0].name;
-    const p = vol.snapshots.path(recent, "mydir", "file.txt");
-    expect(await vol.fs.readFile(p, "utf8")).toEqual("changed");
+    expect(await vol.snapshots.readdir()).toEqual([]);
   });
 });
 

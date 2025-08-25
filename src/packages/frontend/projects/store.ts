@@ -6,7 +6,6 @@
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
-
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 import { is_custom_image } from "@cocalc/frontend/custom-software/util";
@@ -33,6 +32,7 @@ import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
+import { lite } from "@cocalc/frontend/lite";
 
 export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 
@@ -127,6 +127,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   public get_state(project_id: string): string | undefined {
+    if (lite) return "running";
     return this.getIn(["project_map", project_id, "state", "state"]);
   }
 
@@ -245,6 +246,9 @@ export class ProjectsStore extends Store<ProjectsState> {
   'admin' - user is not owner/collaborator but is an admin, hence has rights.
   */
   public get_my_group(project_id: string): UserGroup | undefined {
+    if (lite) {
+      return "owner";
+    }
     const account_store = redux.getStore("account");
     if (account_store == null) {
       return;
@@ -299,17 +303,15 @@ export class ProjectsStore extends Store<ProjectsState> {
     return this.get("open_projects").includes(project_id);
   }
 
-  public wait_until_project_is_open(
+  waitUntilProjectIsOpen = async (
     project_id: string,
     timeout: number, // timeout in seconds (NOT milliseconds!)
-    cb: (err?) => void,
-  ): void {
-    this.wait({
+  ) => {
+    await this.async_wait({
       until: () => this.is_project_open(project_id),
       timeout,
-      cb,
     });
-  }
+  };
 
   public wait_until_project_exists(
     project_id: string,
@@ -539,7 +541,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (quotas == null) {
       return undefined;
     }
-    const kind = quotas.member_host ?? true ? "member" : "free";
+    const kind = (quotas.member_host ?? true) ? "member" : "free";
     // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
     const upgraded =
       (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||

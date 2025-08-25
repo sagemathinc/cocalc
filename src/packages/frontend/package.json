@@ -48,7 +48,7 @@
     "@cocalc/local-storage-lru": "^2.4.3",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@cocalc/widgets": "^1.2.0",
+    "@cocalc/widgets": "^1.3.0",
     "@dnd-kit/core": "^6.0.7",
     "@dnd-kit/modifiers": "^6.0.1",
     "@dnd-kit/sortable": "^7.0.2",

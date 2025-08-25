@@ -7,7 +7,6 @@ import { dkv as createDKV, type DKV, type DKVOptions } from "@cocalc/conat/sync/
 import { dko as createDKO, type DKO } from "@cocalc/conat/sync/dko";
 import { akv as createAKV, type AKV } from "@cocalc/conat/sync/akv";
 import { astream as createAStream, type AStream } from "@cocalc/conat/sync/astream";
-import { createOpenFiles, type OpenFiles } from "@cocalc/conat/sync/open-files";
 export { inventory } from "@cocalc/conat/sync/inventory";
 import "./index";
 
@@ -35,6 +34,3 @@ export async function dko<T = any>(opts: DKVOptions): Promise<DKO<T>> {
   return await createDKO(opts);
 }
 
-export async function openFiles(project_id: string, opts?): Promise<OpenFiles> {
-  return await createOpenFiles({ project_id, ...opts });
-}

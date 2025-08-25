@@ -91,6 +91,8 @@ Table({
           // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
           // instead it gets its own virtual table.
           pay_as_you_go_quotas: null,
+          snapshots: null,
+          backups: null,
         },
       },
       set: {
@@ -113,6 +115,8 @@ Table({
           sandbox: true,
           avatar_image_tiny: true,
           avatar_image_full: true,
+          snapshots: true,
+          backups: true,
         },
         required_fields: {
           project_id: true,
@@ -343,6 +347,16 @@ Table({
       type: "string",
       pg_type: "VARCHAR(256)",
       desc: "Random ephemeral secret token used temporarily by project to authenticate with hub.",
+    },
+    snapshots: {
+      type: "map",
+      desc: "See the SnapshotSchedule interface.",
+      render: { type: "json", editable: false },
+    },
+    backups: {
+      type: "map",
+      desc: "See the SnapshotSchedule interface; same as for snapshots, but for backups.",
+      render: { type: "json", editable: false },
     },
   },
 });
@@ -722,38 +736,55 @@ export interface CreateProjectOptions {
   // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
   license?: string;
   public_path_id?: string; // may imply use of a license
-  // noPool = do not allow using the pool (e.g., need this when creating projects to put in the pool);
-  // not a real issue since when creating for pool account_id is null, and then we wouldn't use the pool...
-  noPool?: boolean;
   // start running the moment the project is created -- uses more resources, but possibly better user experience
   start?: boolean;
 
   // admins can specify the project_id - nobody else can -- useful for debugging.
   project_id?: string;
+
+  // If given, files will be exact clone of those from src_project_id.
+  // account_id must be a collab on src_project_id.
+  // The implementation is highly efficient using "btrfs subvolume clone".
+  // Snapshots are not included in the clone.
+  src_project_id?: string;
 }
 
-interface BaseCopyOptions {
-  target_project_id?: string;
-  target_path?: string; // path into project; if not given, defaults to source path above.
-  overwrite_newer?: boolean; // if true, newer files in target are copied over (otherwise, uses rsync's --update)
-  delete_missing?: boolean; // if true, delete files in dest path not in source, **including** newer files
-  backup?: boolean; // make backup files
-  timeout?: number; // in **seconds**, not milliseconds
-  bwlimit?: number;
-  wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
-  scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
-  public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
-  exclude?: string[]; // options passed to rsync via --exclude
-}
-export interface UserCopyOptions extends BaseCopyOptions {
-  account_id?: string;
-  src_project_id: string;
-  src_path: string;
-  // simulate copy taking at least this long -- useful for dev/debugging.
-  debug_delay_ms?: number;
+// RELATED TO SNAPSHOTTING PROJECTS
+
+// Lengths of time in minutes to keep snapshots
+// (code below assumes these are listed in ORDER from shortest to longest)
+export const SNAPSHOT_INTERVALS_MS = {
+  frequent: 15 * 1000 * 60,
+  daily: 60 * 24 * 1000 * 60,
+  weekly: 60 * 24 * 7 * 1000 * 60,
+  monthly: 60 * 24 * 7 * 4 * 1000 * 60,
+};
+
+// How many of each type of snapshot to retain
+export const DEFAULT_SNAPSHOT_COUNTS = {
+  frequent: 24,
+  daily: 14,
+  weekly: 7,
+  monthly: 4,
+} as SnapshotCounts;
+
+export const DEFAULT_BACKUP_COUNTS = {
+  frequent: 0,
+  daily: 3,
+  weekly: 4,
+  monthly: 6,
+} as SnapshotCounts;
+
+// We have at least one snapshot for each interval, assuming
+// there are actual changes since the last snapshot, and at
+// most the listed number.
+export interface SnapshotCounts {
+  frequent: number;
+  daily: number;
+  weekly: number;
+  monthly: number;
 }
 
-// for copying files within and between projects
-export interface CopyOptions extends BaseCopyOptions {
-  path: string;
+export interface SnapshotSchedule extends SnapshotCounts {
+  disabled?: boolean;
 }

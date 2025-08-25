@@ -17,6 +17,7 @@ import { disconnect_from_project } from "@cocalc/frontend/project/websocket/conn
 import { session_manager } from "@cocalc/frontend/session";
 import { once } from "@cocalc/util/async-utils";
 import { PageState } from "./store";
+import { lite } from "@cocalc/frontend/lite";
 
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;
@@ -141,6 +142,10 @@ export class PageActions extends Actions<PageState> {
   }
 
   async set_active_tab(key, change_history = true): Promise<void> {
+    if (lite) {
+      key = "00000000-0000-4000-8000-000000000000";
+    }
+
     const prev_key = this.redux.getStore("page").get("active_top_tab");
     this.setState({ active_top_tab: key });
 

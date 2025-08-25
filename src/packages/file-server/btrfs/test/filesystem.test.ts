@@ -1,5 +1,6 @@
 import { before, after, fs } from "./setup";
 import { isValidUUID } from "@cocalc/util/misc";
+import { RUSTIC } from "@cocalc/file-server/btrfs/subvolume-rustic";
 
 beforeAll(before);
 
@@ -22,7 +23,7 @@ describe("some basic tests", () => {
 describe("operations with subvolumes", () => {
   it("can't use a reserved subvolume name", async () => {
     expect(async () => {
-      await fs.subvolumes.get("bup");
+      await fs.subvolumes.get(RUSTIC);
     }).rejects.toThrow("is reserved");
   });
 
@@ -30,7 +31,7 @@ describe("operations with subvolumes", () => {
     const vol = await fs.subvolumes.get("cocalc");
     expect(vol.name).toBe("cocalc");
     // it has no snapshots
-    expect(await vol.snapshots.ls()).toEqual([]);
+    expect(await vol.snapshots.readdir()).toEqual([]);
   });
 
   it("our subvolume is in the list", async () => {
@@ -62,24 +63,37 @@ describe("operations with subvolumes", () => {
     ]);
   });
 
-  it("rsync from one volume to another", async () => {
-    await fs.subvolumes.rsync({ src: "sagemath", target: "cython" });
+  it("cp from one volume to another", async () => {
+    await fs.subvolumes.fs.cp("sagemath", "cython", {
+      recursive: true,
+      reflink: true,
+    });
   });
 
-  it("rsync an actual file", async () => {
+  it("cp an actual file", async () => {
     const sagemath = await fs.subvolumes.get("sagemath");
     const cython = await fs.subvolumes.get("cython");
-    await sagemath.fs.writeFile("README.md", "hi");
-    await fs.subvolumes.rsync({ src: "sagemath", target: "cython" });
+    await sagemath.fs.writeFile("README.md", "hi5");
+    await fs.subvolumes.fs.cp("sagemath/README.md", "cython/README.md", {
+      reflink: true,
+    });
     const copy = await cython.fs.readFile("README.md", "utf8");
-    expect(copy).toEqual("hi");
+    expect(copy).toEqual("hi5");
+
+    // also one without reflink
+    await sagemath.fs.writeFile("README2.md", "hi2");
+    await fs.subvolumes.fs.cp("sagemath/README2.md", "cython/README2.md", {
+      reflink: false,
+    });
+    const copy2 = await cython.fs.readFile("README2.md", "utf8");
+    expect(copy2).toEqual("hi2");
   });
 
   it("clone a subvolume with contents", async () => {
     await fs.subvolumes.clone("cython", "pyrex");
     const pyrex = await fs.subvolumes.get("pyrex");
     const clone = await pyrex.fs.readFile("README.md", "utf8");
-    expect(clone).toEqual("hi");
+    expect(clone).toEqual("hi5");
   });
 });
 
@@ -97,7 +111,7 @@ describe("clone of a subvolume with snapshots should have no snapshots", () => {
   it("clone has no snapshots", async () => {
     const clone = await fs.subvolumes.get("my-clone");
     expect(await clone.fs.readFile("abc.txt", "utf8")).toEqual("hi");
-    expect(await clone.snapshots.ls()).toEqual([]);
+    expect(await clone.snapshots.readdir()).toEqual([]);
     await clone.snapshots.create("my-clone-snap");
   });
 });

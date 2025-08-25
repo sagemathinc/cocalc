@@ -9,7 +9,6 @@
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
 import { useIntl } from "react-intl";
-
 import {
   Actions,
   rclass,
@@ -61,6 +60,7 @@ import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 import { delay } from "awaiting";
+import { init as initLite } from "./lite";
 
 // update every 2 minutes.
 const UPDATE_INTERVAL = 2 * 60000;
@@ -188,6 +188,8 @@ export interface CustomizeState {
   i18n?: List<Locale>;
 
   user_tracking?: string;
+
+  lite?: boolean;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -261,7 +263,7 @@ export class CustomizeActions extends Actions<CustomizeState> {
       unlicensed_project_timetravel_limit: undefined,
     });
   };
-  
+
   reload = async () => {
     await loadCustomizeState();
   };
@@ -305,6 +307,7 @@ async function loadCustomizeState() {
     ollama = null, // the derived public information
     custom_openai = null,
   } = customize;
+  processLite(configuration);
   process_kucalc(configuration);
   process_software(software, configuration.is_cocalc_com);
   process_customize(configuration); // this sets _is_configured to true
@@ -704,3 +707,12 @@ async function init_analytics() {
 }
 
 init_analytics();
+
+let liteInitialized = false;
+function processLite(configuration) {
+  if (!configuration.lite || liteInitialized) {
+    return;
+  }
+  liteInitialized = true;
+  initLite(redux);
+}

@@ -7,24 +7,40 @@ import getPort from "get-port";
 import { exec } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-
 import basePath from "@cocalc/backend/base-path";
 import { data } from "@cocalc/backend/data";
 import { project_id } from "@cocalc/project/data";
 import { INFO } from "@cocalc/project/info-json";
 import { getLogger } from "@cocalc/project/logger";
-import { NamedServerName } from "@cocalc/util/types/servers";
+import {
+  type NamedServerName,
+  NAMED_SERVER_NAMES,
+} from "@cocalc/util/types/servers";
 import getSpec from "./list";
 
 const winston = getLogger("named-servers:control");
 
+function assertNamedServer(name: string) {
+  if (typeof name != "string" || !NAMED_SERVER_NAMES.includes(name as any)) {
+    throw Error(`the named servers are: ${NAMED_SERVER_NAMES.join(", ")}`);
+  }
+}
+
+function getBase(name: NamedServerName): string {
+  const baseType = name === "rserver" ? "server" : "port";
+  return join(basePath, `/${project_id}/${baseType}/${name}`);
+}
+
 // Returns the port or throws an exception.
-export async function start(name: NamedServerName): Promise<number> {
+export async function start(
+  name: NamedServerName,
+): Promise<{ port: number; url: string }> {
+  assertNamedServer(name);
   winston.debug(`start ${name}`);
   const s = await status(name);
-  if (s.status === "running") {
+  if (s.state === "running") {
     winston.debug(`${name} is already running`);
-    return s.port;
+    return { port: s.port, url: s.url };
   }
   const port = await getPort({ port: preferredPort(name) });
   // For servers that need a basePath, they will use this one.
@@ -35,9 +51,8 @@ export async function start(name: NamedServerName): Promise<number> {
   if (ip === "localhost") {
     ip = "127.0.0.1";
   }
-  // TODO that baseType should come from named-server-panel:SPEC[name].usesBasePath
-  const baseType = name === "rserver" ? "server" : "port";
-  const base = join(basePath, `/${project_id}/${baseType}/${name}`);
+
+  const base = getBase(name);
   const cmd = await getCommand(name, ip, port, base);
   winston.debug(`will start ${name} by running "${cmd}"`);
 
@@ -47,7 +62,7 @@ export async function start(name: NamedServerName): Promise<number> {
 
   const child = exec(cmd, { cwd: process.env.HOME });
   await writeFile(p.pid, `${child.pid}`);
-  return port;
+  return { port, url: base };
 }
 
 async function getCommand(
@@ -62,10 +77,13 @@ async function getCommand(
   return `${cmd} 1>${stdout} 2>${stderr}`;
 }
 
-// Returns the status and port (if defined).
+// Returns the state and port (if defined).
 export async function status(
   name: NamedServerName,
-): Promise<{ status: "running"; port: number } | { status: "stopped" }> {
+): Promise<
+  { state: "running"; port: number; url: string } | { state: "stopped" }
+> {
+  assertNamedServer(name);
   const { pid, port } = await paths(name);
   try {
     const pidValue = parseInt((await readFile(pid)).toString());
@@ -78,10 +96,10 @@ export async function status(
     if (!Number.isInteger(portValue)) {
       throw Error("invalid port");
     }
-    return { status: "running", port: portValue };
+    return { state: "running", port: portValue, url: getBase(name) };
   } catch (_err) {
     // it's not running or the port isn't valid
-    return { status: "stopped" };
+    return { state: "stopped" };
   }
 }
 
