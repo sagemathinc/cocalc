@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Application } from "express";
 import { path as STATIC_PATH } from "@cocalc/static";
 import { path as ASSET_PATH } from "@cocalc/assets";
 import getPort from "@cocalc/backend/get-port";
@@ -9,10 +9,16 @@ import { once } from "node:events";
 import { PROJECT_ID } from "./const";
 import { handleFileDownload } from "@cocalc/conat/files/file-download";
 import { join } from "path";
+import initBlobUpload from "./hub/blobs/upload";
+import initBlobDownload from "./hub/blobs/download";
 
 const logger = getLogger("lite:static");
 
-export async function init() {
+export async function initHttpServer(): Promise<{
+  httpServer: ReturnType<typeof httpCreateServer>;
+  app: Application;
+  port: number;
+}> {
   const app = express();
   const httpServer = httpCreateServer(app);
   httpServer.on("error", (err) => {
@@ -29,6 +35,17 @@ export async function init() {
     }
   });
 
+  const port = port0 ?? (await getPort());
+  httpServer.listen(port);
+  await once(httpServer, "listening");
+
+  console.log(
+    "*".repeat(60) + `\n\nhttp://localhost:${port}\n\n` + "*".repeat(60),
+  );
+  return { httpServer, app, port };
+}
+
+export async function initApp({ app, conatClient }) {
   app.use("/static", express.static(STATIC_PATH));
 
   app.use(
@@ -45,17 +62,12 @@ export async function init() {
     await handleFileDownload({ req, res });
   });
 
+  initBlobUpload(app, conatClient);
+  initBlobDownload(app, conatClient);
+
   app.get("*", (req, res) => {
+    if (req.url.endsWith("__webpack_hmr")) return;
     console.log("redirecting", req.url);
     res.redirect("/static/app.html");
   });
-
-  const port = port0 ?? (await getPort());
-  httpServer.listen(port);
-  await once(httpServer, "listening");
-
-  console.log(
-    "*".repeat(60) + `\n\nhttp://localhost:${port}\n\n` + "*".repeat(60),
-  );
-  return { httpServer, port };
 }

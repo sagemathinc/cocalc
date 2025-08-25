@@ -10,7 +10,7 @@ import { setConatClient } from "@cocalc/conat/client";
 import { once } from "@cocalc/util/async-utils";
 import { setConatServer } from "@cocalc/backend/data";
 import { project_id } from "@cocalc/project/data";
-import { init as initHttpServer } from "./http";
+import { initHttpServer, initApp } from "./http";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initBugCounter } from "@cocalc/project/bug-counter";
 import { init as initChangefeeds } from "./hub/changefeeds";
@@ -38,7 +38,7 @@ export async function main(): Promise<number> {
   initBugCounter();
 
   logger.debug("start http server");
-  const { httpServer, port } = await initHttpServer();
+  const { httpServer, app, port } = await initHttpServer();
 
   logger.debug("create server");
   const options = {
@@ -59,6 +59,9 @@ export async function main(): Promise<number> {
   const conatClient = conat();
   setConatClient({ conat, getLogger });
 
+  logger.debug("init app");
+  initApp({ app, conatClient });
+
   logger.debug("create persist server");
   persistServer = createPersistServer({ client: conatClient });
 
@@ -68,7 +71,7 @@ export async function main(): Promise<number> {
 
   logger.debug("start changefeed server");
   initChangefeeds();
-  
+
   logger.debug("start hub api");
   initHubApi();
 
