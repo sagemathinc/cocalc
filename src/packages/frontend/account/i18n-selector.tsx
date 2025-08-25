@@ -66,7 +66,7 @@ Thank you for your patience and understanding as we work to make our application
 interface LanguageSelectorProps
   extends Omit<SelectProps, "options" | "onChange"> {
   value?: string;
-  onChange?: (language: string) => void;
+  onChange?: (language: Locale) => void;
 }
 
 /**

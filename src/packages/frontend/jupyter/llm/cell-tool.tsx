@@ -37,7 +37,12 @@ import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
-import { IntlMessage, labels, LOCALIZATIONS } from "@cocalc/frontend/i18n";
+import {
+  IntlMessage,
+  labels,
+  Locale,
+  LOCALIZATIONS,
+} from "@cocalc/frontend/i18n";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -461,7 +466,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   const [targetLanguage, setTargetLanguage] =
     useState<TargetLanguage>("Python");
   const [otherLanguage, setOtherLanguage] = useState("");
-  const [targetTextLanguage, setTargetTextLanguage] = useState<string>("es"); // Default to Spanish
+  const [targetTextLanguage, setTargetTextLanguage] = useState<Locale>("es"); // Default to Spanish
   const [includeOutput, setIncludeOutput] = useState<boolean>(false);
   const [stepByStep, setStepByStep] = useState<boolean>(true);
   const [message, setMessage] = useState<string>("");
@@ -582,13 +587,14 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     id,
     actions,
     llmTools?.model,
-    includeOutput,
+    cellTypes,
+    contextRange,
     extra,
-    targetLanguage,
+    includeOutput,
     otherLanguage,
     stepByStep,
-    contextRange,
-    cellTypes,
+    targetLanguage,
+    targetTextLanguage,
   ]);
 
   // end of hooks
