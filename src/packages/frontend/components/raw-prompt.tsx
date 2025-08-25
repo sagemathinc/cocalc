@@ -1,8 +1,8 @@
 import { CSS } from "@cocalc/frontend/app-framework";
 import { useBottomScroller } from "@cocalc/frontend/app-framework/use-bottom-scroller";
-import { COLORS } from "@cocalc/util/theme";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Paragraph } from "@cocalc/frontend/components";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { COLORS } from "@cocalc/util/theme";
 
 const STYLE = {
   border: "1px solid lightgrey",
@@ -21,18 +21,20 @@ interface Props {
   input: React.JSX.Element | string;
   style?: CSS;
   scrollBottom?: boolean;
+  rawText?: boolean;
 }
 
 export function RawPrompt({
   input,
   style: style0,
   scrollBottom = false,
+  rawText = false,
 }: Props) {
   const ref = useBottomScroller(scrollBottom, input);
   const style = { ...STYLE, ...style0 };
-  if (typeof input == "string") {
+  if (typeof input == "string" && !rawText) {
     // this looks so much nicer; I realize it doesn't implement scrollBottom.
-    // But just dropping the input as plain text like below just seems 
+    // But just dropping the input as plain text like below just seems
     // utterly broken!
     return <StaticMarkdown style={style} value={input} />;
   } else {
