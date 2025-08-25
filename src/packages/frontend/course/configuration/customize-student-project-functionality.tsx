@@ -227,7 +227,7 @@ const OPTIONS: Option[] = [
     description: defineMessage({
       id: "course.customize-student-project-functionality.disableSomeChatGPT.description",
       defaultMessage:
-        "Disable AI integration (ChatGPT & co.) except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to use AI assistance to get unstuck.",
+        "Disable AI integration (ChatGPT & co.) except for 'Hint', 'Explain' buttons, and chat replies. Students can get hints to help them get unstuck, but cannot get complete solutions from 'Help me fix'.",
     }),
   },
   {
@@ -406,7 +406,7 @@ export const useStudentProjectFunctionality: Hook = (project_id?: string) => {
   return state;
 };
 
-// Getting the information known right now about studnet project functionality.
+// Getting the information known right now about student project functionality.
 // Similar to the above hook, but just a point in time snapshot.  Use this
 // for old components that haven't been converted to react hooks yet.
 export function getStudentProjectFunctionality(
