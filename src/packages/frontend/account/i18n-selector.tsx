@@ -4,7 +4,7 @@
  */
 
 /*
-Basically a drop-down to change the langauge (i18n localization)
+Basically a drop-down to change the language (i18n localization)
 */
 
 import { DownOutlined } from "@ant-design/icons";
@@ -114,7 +114,7 @@ export function I18NSelector(props: Readonly<Props>) {
 
   const menu: MenuProps = {
     items,
-    style: { maxHeight: "75vh", overflow: "auto" },
+    style: { maxHeight: "50vh", overflow: "auto" },
     onClick: ({ key }) => {
       if (key in LOCALIZATIONS) {
         if (confirm) {

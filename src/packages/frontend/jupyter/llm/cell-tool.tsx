@@ -31,6 +31,8 @@ import LLMSelector, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { IntlMessage, labels } from "@cocalc/frontend/i18n";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
@@ -130,7 +132,7 @@ const MODIFICATIONS: Readonly<{ label: string; value: string }[]> = [
   { label: "Function", value: "Wrap the code in a function." },
   {
     label: "Refactor",
-    value: "Rrewrite the code according to best practices.",
+    value: "Rewrite the code according to best practices.",
   },
 ] as const;
 
@@ -274,6 +276,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   const [stepByStep, setStepByStep] = useState<boolean>(true);
   const [message, setMessage] = useState<string>("");
   const [tokens, setTokens] = useState<number>(0);
+  const { prompts: historyPrompts, addPrompt } = useLLMHistory("general");
 
   const kernelLanguage = useMemo((): string => {
     const kernel_info = actions?.store.get("kernel_info");
@@ -561,13 +564,23 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     return (
       <Flex gap="10px" align="center" style={{ width: "100%" }}>
         {label}:
-        <Input
-          value={extra}
-          placeholder={placeholder}
-          onChange={(e) => setExtra(e.target.value)}
-          onKeyDown={handleKeyDown}
-          style={{ width: "100%" }}
-        />
+        <Space.Compact
+          style={{ width: "100%", display: "flex", alignItems: "stretch" }}
+        >
+          <Input
+            value={extra}
+            placeholder={placeholder}
+            onChange={(e) => setExtra(e.target.value)}
+            onKeyDown={handleKeyDown}
+            style={{ width: "100%" }}
+          />
+          <LLMHistorySelector
+            prompts={historyPrompts}
+            onSelect={setExtra}
+            disabled={isQuerying}
+            alignSelf="stretch"
+          />
+        </Space.Compact>
       </Flex>
     );
   }
@@ -827,6 +840,11 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   async function onConfirm() {
     setIsQuerying(true);
     try {
+      // Add prompt to history based on mode
+      if (mode && extra.trim()) {
+        addPrompt(extra);
+      }
+
       await getExplanation(false);
       track(TRACKING_KEY, {
         action: "submitted",

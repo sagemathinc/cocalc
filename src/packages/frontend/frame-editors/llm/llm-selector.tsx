@@ -333,7 +333,7 @@ export default function LLMSelector({
           The models marked as "{FREE}" do not incur any charges.
           However, they are rate limited to avoid abuse.
           The more capable models are marked "{PREMIUM}" and charged by the number of
-          read and geenerated tokens – i.e. "pay-as-you-go" – and do not have rate limitations.
+          read and generated tokens – i.e. "pay-as-you-go" – and do not have rate limitations.
           Usually, these charges are very small!
         </Paragraph>
         <Paragraph>
@@ -378,7 +378,7 @@ export default function LLMSelector({
   return (
     <Space direction="horizontal" style={{ whiteSpace: "nowrap" }}>
       <Select
-        dropdownStyle={style}
+        styles={{ popup: { root: style } }}
         size={size}
         value={model}
         onChange={setModel}

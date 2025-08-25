@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 import { debounce } from "lodash";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
@@ -22,8 +27,10 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { dialogs } from "@cocalc/frontend/i18n";
+import { dialogs, labels } from "@cocalc/frontend/i18n";
 import { show_react_modal } from "@cocalc/frontend/misc";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import track from "@cocalc/frontend/user-tracking";
@@ -77,6 +84,7 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [tokens, setTokens] = useState<number>(0);
+  const { prompts: historyPrompts, addPrompt } = useLLMHistory("formula");
 
   useEffect(() => {
     if (typeof locale === "string") {
@@ -112,7 +120,7 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
     .hasLanguageModelEnabled(project_id, LLM_USAGE_TAG);
 
   function getSystemPrompt(): string {
-    const p1 = `Typset the plain-text description of a mathematical formula as a LaTeX formula. The formula will be`;
+    const p1 = `Typeset the plain-text description of a mathematical formula as a LaTeX formula. The formula will be`;
     const p2 = `Return only the LaTeX formula, ready to be inserted into the document. Do not add any explanations.`;
     switch (mode) {
       case "tex":
@@ -226,6 +234,10 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
         model,
       });
       const { system, input, history } = getPrompt();
+
+      // Add prompt to history before generating
+      addPrompt(input);
+
       const reply = await webapp_client.openai_client.query({
         input,
         history,
@@ -235,7 +247,7 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
         tag: LLM_USAGE_TAG,
       });
       const tex = processFormula(reply);
-      // significant differece? Also show the full reply
+      // significant difference? Also show the full reply
       if (reply.length > 2 * tex.length) {
         setFullReply(reply);
       } else {
@@ -259,7 +271,11 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
     return (
       <>
         <Title level={4}>
-          <AIAvatar size={20} /> Generate LaTeX Formula
+          <AIAvatar size={20} />{" "}
+          <FormattedMessage
+            id="codemirror.extensions.ai_formula.title"
+            defaultMessage="Generate LaTeX Formula"
+          />
         </Title>
         {enabled ? (
           <>
@@ -278,46 +294,42 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
   function renderContent() {
     const help = (
       <HelpIcon title="Usage" extra="Help">
-        <Paragraph>
-          You can enter the description of your desired formula in various ways:
-          <ul>
-            <li>
-              natural language: <Text code>drake equation</Text>,
-            </li>
-            <li>
-              simple algebraic notation:{" "}
-              <Text code>(a+b)^2 = a^2 + 2 a b + b^2</Text>,
-            </li>
-            <li>
-              or a combination of both:{" "}
-              <Text code>integral from 0 to infinity of (1+sin(x))/x^2 dx</Text>
-              .
-            </li>
-          </ul>
-        </Paragraph>
-        <Paragraph>
-          If the formula is not quite right, click "Geneate" once again, try a
-          different language model, or adjust the description. Of course, you
-          can also edit it as usual after you have inserted it.
-        </Paragraph>
-        <Paragraph>
-          Once you're happy, click the "Insert formula" button and the generated
-          LaTeX formula will be inserted at the current cursor position. The
-          "Insert fully reply" button will, well, insert the entire answer.
-        </Paragraph>
-        <Paragraph>
-          Prior to opening this dialog, you can even select a portion of your
-          text. This will be used as your description and the AI language model
-          will be queried immediately. Inserting the formula will then replace
-          the selected text.
-        </Paragraph>
+        <FormattedMessage
+          id="codemirror.extensions.ai_formula.help"
+          defaultMessage={`
+            <p>You can enter the description of your desired formula in various ways:</p>
+            <ul>
+            <li>natural language: <code>drake equation</code>,</li>
+            <li>simple algebraic notation: <code>(a+b)^2 = a^2 + 2 a b + b^2</code>,</li>
+            <li>or a combination of both: <code>integral from 0 to infinity of (1+sin(x))/x^2 dx</code>.</li>
+            </ul>
+            <p>If the formula is not quite right, click "Generate" once again, try a different language model, or adjust the description.
+            Of course, you can also edit it as usual after you have inserted it.</p>
+            <p>Once you're happy, click the "Insert formula" button and the generated LaTeX formula will be inserted at the current cursor position.
+            The "Insert fully reply" button will, well, insert the entire answer.</p>
+            <p>Prior to opening this dialog, you can even select a portion of your text.
+            This will be used as your description and the AI language model will be queried immediately.
+            Inserting the formula will then replace the selected text.</p>`}
+          values={{
+            p: (children: any) => <Paragraph>{children}</Paragraph>,
+            ul: (children: any) => <ul>{children}</ul>,
+            li: (children: any) => <li>{children}</li>,
+            code: (children: any) => <Text code>{children}</Text>,
+          }}
+        />
       </HelpIcon>
     );
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <Paragraph style={{ marginBottom: 0 }}>
-          The <LLMModelName model={model} size={18} /> language model will
-          generate a LaTeX formula based on your description. {help}
+          <FormattedMessage
+            id="codemirror.extensions.ai_formula.description"
+            defaultMessage="The {model} language model will generate a LaTeX formula based on your description. {help}"
+            values={{
+              model: <LLMModelName model={model} size={18} />,
+              help,
+            }}
+          />
         </Paragraph>
         <div style={{ textAlign: "right" }}>
           <LLMCostEstimation
@@ -332,13 +344,20 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
           <Input
             allowClear
             disabled={generating}
-            placeholder={
-              "Describe the formula in natural language and/or algebraic notation."
-            }
-            defaultValue={text}
+            placeholder={intl.formatMessage({
+              id: "codemirror.extensions.ai_formula.input_placeholder",
+              defaultMessage:
+                "Describe the formula in natural language and/or algebraic notation.",
+            })}
+            value={input}
             onChange={(e) => setInput(e.target.value)}
             onPressEnter={doGenerate}
             addonBefore={<Icon name="fx" />}
+          />
+          <LLMHistorySelector
+            prompts={historyPrompts}
+            onSelect={setInput}
+            disabled={generating}
           />
           <Button
             disabled={!input.trim() || generating}
@@ -346,7 +365,7 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
             onClick={doGenerate}
             type={formula ? "default" : "primary"}
           >
-            Generate
+            {intl.formatMessage(labels.generate)}
           </Button>
         </Space.Compact>
         {formula ? (
@@ -382,8 +401,14 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
           <>
             <Divider />
             <Paragraph type="secondary">
-              Note: You might have to ensure that{" "}
-              <code>{"\\usepackage{amsmath}"}</code> is loaded in the preamble.
+              <FormattedMessage
+                id="codemirror.extensions.ai_formula.amsmath_note"
+                defaultMessage="Note: You might have to ensure that <code>{amsmath_package}</code> is loaded in the preamble."
+                values={{
+                  code: (children: any) => <code>{children}</code>,
+                  amsmath_package: "\\usepackage{amsmath}",
+                }}
+              />
             </Paragraph>
           </>
         ) : undefined}
@@ -393,29 +418,42 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
 
   function renderButtons() {
     return (
-      <div>
-        <Button onClick={onCancel}>Cancel</Button>
+      <Space.Compact>
+        <Button onClick={onCancel}>{intl.formatMessage(labels.cancel)}</Button>
         <Button
           type={"default"}
           disabled={!fullReply}
           onClick={() => cb(undefined, `\n\n${fullReply}\n\n`)}
         >
-          Insert full reply
+          {intl.formatMessage({
+            id: "codemirror.extensions.ai_formula.insert_full_reply_button",
+            defaultMessage: "Insert full reply",
+          })}
         </Button>
         <Button
           type={formula ? "primary" : "default"}
           disabled={!formula}
           onClick={() => cb(undefined, wrapFormula(formula))}
         >
-          Insert formula
+          {intl.formatMessage({
+            id: "codemirror.extensions.ai_formula.insert_formula_button",
+            defaultMessage: "Insert formula",
+          })}
         </Button>
-      </div>
+      </Space.Compact>
     );
   }
 
   function renderBody() {
     if (!enabled) {
-      return <div>AI language models are disabled.</div>;
+      return (
+        <div>
+          <FormattedMessage
+            id="codemirror.extensions.ai_formula.disabled_message"
+            defaultMessage="AI language models are disabled."
+          />
+        </div>
+      );
     }
     return renderContent();
   }
@@ -430,8 +468,7 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
       open
       footer={renderButtons()}
       onCancel={onCancel}
-      centered
-      width={"70vw"}
+      width={{ xs: "90vw", sm: "90vw", md: "80vw", lg: "70vw", xl: "60vw" }}
     >
       {renderBody()}
     </Modal>
