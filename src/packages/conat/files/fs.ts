@@ -480,7 +480,7 @@ export async function fsServer({
       const f = await fs(subject);
       watches[subject] = watchServer({
         client,
-        subject: subject! + "-watch",
+        subject: `watch-${subject}`,
         watch: f.watch,
       });
     },
@@ -595,7 +595,7 @@ export function fsClient({
     await ensureWatchServerExists(path, options);
     return await watchClient({
       client,
-      subject: subject + "-watch",
+      subject: `watch-${subject}`,
       path,
       options,
     });
