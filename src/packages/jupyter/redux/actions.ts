@@ -31,20 +31,18 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
-import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import { JupyterStore, JupyterStoreState } from "@cocalc/jupyter/redux/store";
-import { Cell, KernelInfo } from "@cocalc/jupyter/types";
+import { Cell } from "@cocalc/jupyter/types";
 import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
-import { jupyterApiClient } from "@cocalc/conat/service/jupyter";
 import { type AKV, akv } from "@cocalc/conat/sync/akv";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   JUPYTER_MIMETYPES,
   isJupyterBase64MimeType,
@@ -171,14 +169,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.setState({ read_only: b });
       this.set_cm_options();
     }
-  };
-
-  protected api = (opts: { timeout?: number } = {}) => {
-    return jupyterApiClient({
-      project_id: this.project_id,
-      path: this.path,
-      timeout: opts.timeout,
-    });
   };
 
   protected dbg(f: string) {
@@ -752,60 +742,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     this.syncdb.commit();
-  };
-
-  public save = async (): Promise<void> => {
-    if (this.store.get("read_only") || this.isDeleted()) {
-      // can't save when readonly or deleted
-      return;
-    }
-    // Save the .ipynb file to disk.  Note that this
-    // *changes* the syncdb by updating the last save time.
-    try {
-      // Make sure syncdb content is all sent to the project.
-      // This does not actually save the syncdb file to disk.
-      // This "save" means save state to backend.
-      // We save two things -- first the syncdb state:
-      await this.syncdb.save();
-      if (this._state === "closed") return;
-
-      // Second the .ipynb file state:
-      // Export the ipynb file to disk, being careful not to actually
-      // save it until the backend actually gets the given version and
-      // has processed it!
-      const version = this.syncdb.newestVersion();
-      try {
-        await this.api({ timeout: 5 * 60 * 1000 }).save_ipynb_file({ version });
-      } catch (err) {
-        console.log(`WARNING: ${err}`);
-        throw Error(
-          `There was a problem writing the ipynb file to disk -- ${err}`,
-        );
-      }
-      if (this._state === ("closed" as State)) return;
-      // Save our custom-format syncdb to disk.
-      await this.syncdb.save_to_disk();
-    } catch (err) {
-      if (this._state === ("closed" as State)) return;
-      if (err.toString().indexOf("no kernel with path") != -1) {
-        // This means that the kernel simply hasn't been initialized yet.
-        // User can try to save later, once it has.
-        return;
-      }
-      if (err.toString().indexOf("unknown endpoint") != -1) {
-        this.set_error(
-          "You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings.",
-        );
-        return;
-      }
-      this.set_error(err.toString());
-    } finally {
-      if (this._state === "closed") return;
-      // And update the save status finally.
-      if (typeof this.set_save_status === "function") {
-        this.set_save_status();
-      }
-    }
   };
 
   save_asap = async (): Promise<void> => {
@@ -1384,74 +1320,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cell_input(id, new_input, save);
   }
 
-  set_backend_kernel_info = async (): Promise<void> => {
-    if (this._state === "closed" || this.syncdb.is_read_only()) {
-      return;
-    }
-
-    if (this.is_project || this.is_compute_server) {
-      const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
-      if (
-        this.jupyter_kernel == null ||
-        this.jupyter_kernel.get_state() == "closed"
-      ) {
-        dbg("no Jupyter kernel defined");
-        return;
-      }
-      dbg("getting kernel_info...");
-      let backend_kernel_info: KernelInfo;
-      try {
-        backend_kernel_info = immutable.fromJS(
-          await this.jupyter_kernel.kernel_info(),
-        );
-      } catch (err) {
-        dbg(`error = ${err}`);
-        return;
-      }
-      this.setState({ backend_kernel_info });
-    } else {
-      await this._set_backend_kernel_info_client();
-    }
-  };
-
-  _set_backend_kernel_info_client = reuseInFlight(async (): Promise<void> => {
-    await retry_until_success({
-      max_time: 120000,
-      start_delay: 1000,
-      max_delay: 10000,
-      f: this._fetch_backend_kernel_info_from_server,
-      desc: "jupyter:_set_backend_kernel_info_client",
-    });
-  });
-
-  _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
-    const f = async () => {
-      if (this._state === "closed") {
-        return;
-      }
-      const data = await this.api().kernel_info();
-      this.setState({
-        backend_kernel_info: immutable.fromJS(data),
-        // this is when the server for this doc started, not when kernel last started!
-        start_time: data.start_time,
-      });
-    };
-    try {
-      await retry_until_success({
-        max_time: 1000 * 60 * 30,
-        start_delay: 500,
-        max_delay: 3000,
-        f,
-        desc: "jupyter:_fetch_backend_kernel_info_from_server",
-      });
-    } catch (err) {
-      this.set_error(err);
-    }
-    if (this.is_closed()) return;
-    // Update the codemirror editor options.
-    this.set_cm_options();
-  };
-
   // Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
   // 'copy', 'share', 'download', 'open_file', 'close_file', 'reopen_file'
   // Each just shows
@@ -1539,56 +1407,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   scroll(pos): any {
     this.deprecated("scroll", pos);
   }
-
-  // submit input for a particular cell -- this is used by the
-  // Input component output message type for interactive input.
-  public async submit_input(id: string, value: string): Promise<void> {
-    const output = this.store.getIn(["cells", id, "output"]);
-    if (output == null) {
-      return;
-    }
-    const n = `${output.size - 1}`;
-    const mesg = output.get(n);
-    if (mesg == null) {
-      return;
-    }
-
-    if (mesg.getIn(["opts", "password"])) {
-      // handle password input separately by first submitting to the backend.
-      try {
-        await this.submit_password(id, value);
-      } catch (err) {
-        this.set_error(`Error setting backend key/value store (${err})`);
-        return;
-      }
-      const m = value.length;
-      value = "";
-      for (let i = 0; i < m; i++) {
-        value == "●";
-      }
-      this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
-      this.save_asap();
-      return;
-    }
-
-    this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
-    this.save_asap();
-  }
-
-  submit_password = async (id: string, value: any): Promise<void> => {
-    await this.set_in_backend_key_value_store(id, value);
-  };
-
-  set_in_backend_key_value_store = async (
-    key: any,
-    value: any,
-  ): Promise<void> => {
-    try {
-      await this.api().store({ key, value });
-    } catch (err) {
-      this.set_error(err);
-    }
-  };
 
   set_cell_slide = (id: string, value: any) => {
     if (!value) {

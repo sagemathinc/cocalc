@@ -660,34 +660,8 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.commit();
   }
 
-  public async nbconvert_get_error(): Promise<void> {
-    const key: string | undefined = this.store.getIn([
-      "nbconvert",
-      "error",
-      "key",
-    ]);
-    if (key == null) {
-      return;
-    }
-    let error;
-    try {
-      error = await this.api().store({ key });
-    } catch (err) {
-      this.set_error(err);
-      return;
-    }
-    if (this._state === "closed") {
-      return;
-    }
-    const nbconvert = this.store.get("nbconvert");
-    if (nbconvert != null && nbconvert.getIn(["error", "key"]) === key) {
-      this.setState({ nbconvert: nbconvert.set("error", error) });
-    }
-  }
-
   public show_about(): void {
     this.setState({ about: true });
-    this.set_backend_kernel_info();
   }
 
   public toggle_line_numbers(): void {

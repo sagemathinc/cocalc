@@ -12,7 +12,6 @@ import type { Map } from "immutable";
 import React from "react";
 import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { Input } from "./input";
 import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
 import { MoreOutput } from "./more-output";
@@ -36,12 +35,8 @@ function messageComponent(message: Map<string, any>): any {
   if (message.get("name") === "stderr") {
     return Stderr;
   }
-  if (message.get("name") === "input") {
-    if (message.get("value") != null) {
-      return InputDone;
-    } else {
-      return Input;
-    }
+  if (message.get("name") === "input" && message.get("value") != null) {
+    return InputDone;
   }
   if (message.get("data") != null) {
     return Data;
