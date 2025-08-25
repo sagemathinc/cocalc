@@ -23,14 +23,20 @@ export async function handleFileDownload({
 }: {
   req;
   res;
-  url: string;
+  url?: string;
   allowUnsafe?: boolean;
   client?: ConatClient;
   maxWait?: number;
 }) {
-  logger.debug("handling the request via conat file streaming", url);
+  url ??= req.url;
+  logger.debug("downloading file from project to browser", url);
+  if (!url) {
+    res.statusCode = 500;
+    res.end("Invalid URL");
+    return;
+  }
   const i = url.indexOf("files/");
-  const compute_server_id = parseInt(req.query.id ?? '0');
+  const compute_server_id = parseInt(req.query.id ?? "0");
   let j = url.lastIndexOf("?");
   if (j == -1) {
     j = url.length;

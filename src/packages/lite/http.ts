@@ -5,6 +5,8 @@ import { createServer as httpCreateServer } from "http";
 import getLogger from "@cocalc/backend/logger";
 import port0 from "@cocalc/backend/port";
 import { once } from "node:events";
+import { PROJECT_ID } from "./const";
+import { handleFileDownload } from "@cocalc/conat/files/file-download";
 
 const logger = getLogger("lite:static");
 
@@ -31,7 +33,15 @@ export async function init() {
     res.json({ configuration: { lite: true, site_name: "" } });
   });
 
-  app.get("*", (_, res) => res.redirect("/static/app.html"));
+  // file download
+  app.get(`/${PROJECT_ID}/files/*`, async (req, res) => {
+    await handleFileDownload({ req, res });
+  });
+
+  app.get("*", (req, res) => {
+    console.log("redirecting", req.url);
+    res.redirect("/static/app.html");
+  });
 
   const port = port0 ?? (await getPort());
   httpServer.listen(port);
