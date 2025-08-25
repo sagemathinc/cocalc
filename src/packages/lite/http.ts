@@ -1,5 +1,6 @@
 import express from "express";
 import { path as STATIC_PATH } from "@cocalc/static";
+import { path as ASSET_PATH } from "@cocalc/assets";
 import getPort from "@cocalc/backend/get-port";
 import { createServer as httpCreateServer } from "http";
 import getLogger from "@cocalc/backend/logger";
@@ -7,6 +8,7 @@ import port0 from "@cocalc/backend/port";
 import { once } from "node:events";
 import { PROJECT_ID } from "./const";
 import { handleFileDownload } from "@cocalc/conat/files/file-download";
+import { join } from "path";
 
 const logger = getLogger("lite:static");
 
@@ -28,6 +30,11 @@ export async function init() {
   });
 
   app.use("/static", express.static(STATIC_PATH));
+
+  app.use(
+    "/webapp/favicon.ico",
+    express.static(join(ASSET_PATH, "favicon.ico")),
+  );
 
   app.get("/customize", async (_, res) => {
     res.json({ configuration: { lite: true, site_name: "" } });

@@ -23,6 +23,7 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "@cocalc/assets": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/lite": "workspace:*",
