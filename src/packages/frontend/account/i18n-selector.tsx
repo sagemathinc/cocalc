@@ -8,7 +8,16 @@ Basically a drop-down to change the language (i18n localization)
 */
 
 import { DownOutlined } from "@ant-design/icons";
-import { Button, Dropdown, MenuProps, Modal, Space, Tooltip } from "antd";
+import {
+  Button,
+  Dropdown,
+  MenuProps,
+  Modal,
+  Select,
+  SelectProps,
+  Space,
+  Tooltip,
+} from "antd";
 import { SizeType } from "antd/es/config-provider/SizeContext";
 import { useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
@@ -53,6 +62,50 @@ We're excited to start offering our application in multiple languages! Here's wh
 Thank you for your patience and understanding as we work to make our application accessible to a global audience!`,
   description: "Content of translation information modal",
 });
+
+interface LanguageSelectorProps
+  extends Omit<SelectProps, "options" | "onChange"> {
+  value?: string;
+  onChange?: (language: Locale) => void;
+}
+
+/**
+ * A reusable language selector component for translation purposes.
+ */
+export function LanguageSelector({
+  value,
+  onChange,
+  ...props
+}: LanguageSelectorProps) {
+  const intl = useIntl();
+
+  let availableLocales = Object.keys(LOCALIZATIONS) as Locale[];
+
+  const options = availableLocales.map((locale) => {
+    const localization = LOCALIZATIONS[locale];
+    const other =
+      locale === value
+        ? localization.name
+        : intl.formatMessage(localization.trans);
+    return {
+      value: locale,
+      label: `${localization.flag} ${localization.native} (${other})`,
+    };
+  });
+
+  return (
+    <Select
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder="Select a language..."
+      showSearch
+      optionFilterProp="label"
+      popupMatchSelectWidth={false}
+      {...props}
+    />
+  );
+}
 
 export function I18NSelector(props: Readonly<Props>) {
   const { isWide = true, size, confirm = false } = props;
