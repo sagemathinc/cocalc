@@ -46,7 +46,7 @@
   },
   "devDependenicesNotes": "For license and size reasons, we make @cocalc/crm a dev dependency so it is NOT installed unless explicitly installed as a separate step.",
   "devDependencies": {
-    "@types/express": "^4.17.21",
+    "@types/express": "^4.17.23",
     "@types/node": "^18.16.14",
     "coffeescript": "^2.5.1"
   },

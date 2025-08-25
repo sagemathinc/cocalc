@@ -156,7 +156,7 @@
     "@types/codemirror": "^5.60.15",
     "@types/jquery": "^3.5.5",
     "@types/katex": "^0.16.7",
-    "@types/lodash": "^4.14.202",
+    "@types/lodash": "^4.17.20",
     "@types/markdown-it": "12.2.3",
     "@types/md5": "^2.2.0",
     "@types/react": "^19.1.10",

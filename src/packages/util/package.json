@@ -71,7 +71,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/util",
   "devDependencies": {
-    "@types/lodash": "^4.14.202",
+    "@types/lodash": "^4.17.20",
     "@types/node": "^18.16.14",
     "@types/seedrandom": "^3.0.8",
     "@types/uuid": "^8.3.1",

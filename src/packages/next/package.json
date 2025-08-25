@@ -99,7 +99,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
-    "@types/express": "^4.17.21",
+    "@types/express": "^4.17.23",
     "@types/node": "^18.16.14",
     "@types/react": "^19.1.10",
     "@uiw/react-textarea-code-editor": "^3.1.1",

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { MoreOutput } from "../more-output";
 import { fromJS } from "immutable";
 import { JupyterActions } from "@cocalc/jupyter/redux/actions";
@@ -22,11 +22,11 @@ describe("test More Output button with no actions (so not enabled)", () => {
 
 describe("test More Output button with actions", () => {
   const actions = {
-    fetch_more_output: jest.fn(),
+    fetchMoreOutput: jest.fn(),
   };
 
   beforeEach(() => {
-    actions.fetch_more_output.mockClear();
+    actions.fetchMoreOutput.mockClear();
   });
 
   it("shows 'Fetch additional output'", () => {
@@ -42,7 +42,7 @@ describe("test More Output button with actions", () => {
     );
   });
 
-  it("calls fetch_more_output on click", () => {
+  it("calls fetchMoreOutput on click", async () => {
     render(
       <MoreOutput
         actions={actions as unknown as JupyterActions}
@@ -50,9 +50,10 @@ describe("test More Output button with actions", () => {
         id="id"
       />,
     );
-    fireEvent.click(screen.getByRole("button"));
-    expect(actions.fetch_more_output).toHaveBeenCalledTimes(1);
-    expect(actions.fetch_more_output).toHaveBeenCalledWith("id");
+    await act(async () => {
+      await fireEvent.click(screen.getByRole("button"));
+    });
+    expect(actions.fetchMoreOutput).toHaveBeenCalledTimes(1);
+    expect(actions.fetchMoreOutput).toHaveBeenCalledWith("id");
   });
 });
-
