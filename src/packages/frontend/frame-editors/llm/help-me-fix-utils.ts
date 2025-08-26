@@ -56,7 +56,7 @@ export async function getHelp(options: GetHelpOptions) {
     extraFileInfo,
     model,
     prioritize,
-    open: true,
+    open: false,
     full: false,
     isHint: false,
   });

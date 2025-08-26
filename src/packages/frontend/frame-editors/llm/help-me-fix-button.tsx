@@ -80,10 +80,10 @@ export default function HelpMeFixButton({
       description={() => (
         <div
           style={{
-            width: "450px",
+            width: "550px",
             overflow: "auto",
             maxWidth: "90vw",
-            maxHeight: "300px",
+            maxHeight: "400px",
           }}
         >
           The following will be sent to {modelToName(model)}:
