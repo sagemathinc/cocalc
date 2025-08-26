@@ -70,7 +70,6 @@ export default async function createProject(opts: CreateProjectOptions) {
     await client.clone({ project_id, src_project_id });
   }
 
-  const pool = getPool();
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };
   let site_license;
@@ -85,6 +84,7 @@ export default async function createProject(opts: CreateProjectOptions) {
 
   const envs = await getSoftwareEnvironments("server");
 
+  const pool = getPool();
   await pool.query(
     "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW())",
     [
@@ -97,9 +97,8 @@ export default async function createProject(opts: CreateProjectOptions) {
     ],
   );
 
-  const project = getProject(project_id);
-  await project.state();
   if (start) {
+    const project = getProject(project_id);
     // intentionally not blocking
     startNewProject(project, project_id);
   }

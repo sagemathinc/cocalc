@@ -15,8 +15,7 @@ describe("creates compute server then sets the purchase id and confirms it", () 
   const account_id = uuid();
   let project_id;
 
-  let server_id;
-  it("creates compute server", async () => {
+  it("create user", async () => {
     await createAccount({
       email: "",
       password: "xyz",
@@ -24,11 +23,18 @@ describe("creates compute server then sets the purchase id and confirms it", () 
       lastName: "One",
       account_id,
     });
+  });
+
+  it("create project", async () => {
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
     });
+  });
+
+  let server_id;
+  it("creates compute server", async () => {
     const s = {
       title: "myserver",
       idle_timeout: 15,
