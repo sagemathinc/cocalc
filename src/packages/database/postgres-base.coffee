@@ -271,6 +271,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         password         : @_password
                         database         : @_database
                         ssl              : @_ssl
+                        options          : "-c timezone=UTC" # make the session time zone UTC
                         statement_timeout: DEFAULT_STATEMENT_TIMEOUT_MS # we set a statement_timeout, to avoid queries locking up PG
                     if @_notification?
                         client.on('notification', @_notification)
