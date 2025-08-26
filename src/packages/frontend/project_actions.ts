@@ -115,7 +115,7 @@ import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import {
   DEFAULT_SNAPSHOT_COUNTS,
   DEFAULT_BACKUP_COUNTS,
-} from "@cocalc/util/db-schema/projects";
+} from "@cocalc/util/consts/snapshots";
 
 const { defaults, required } = misc;
 

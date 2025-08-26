@@ -25,7 +25,7 @@ import { field_cmp } from "@cocalc/util/misc";
 import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConatError } from "@cocalc/conat/core/client";
-import { DEFAULT_BACKUP_COUNTS } from "@cocalc/util/db-schema/projects";
+import { DEFAULT_BACKUP_COUNTS } from "@cocalc/util/consts/snapshots";
 
 export const RUSTIC = "rustic";
 

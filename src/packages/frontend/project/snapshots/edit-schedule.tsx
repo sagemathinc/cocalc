@@ -6,7 +6,7 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   DEFAULT_SNAPSHOT_COUNTS,
   type SnapshotSchedule,
-} from "@cocalc/util/db-schema/projects";
+} from "@cocalc/util/consts/snapshots";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 

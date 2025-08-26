@@ -4,7 +4,7 @@ import {
   SNAPSHOT_INTERVALS_MS,
   DEFAULT_SNAPSHOT_COUNTS,
   type SnapshotCounts,
-} from "@cocalc/util/db-schema/projects";
+} from "@cocalc/util/consts/snapshots";
 import getLogger from "@cocalc/backend/logger";
 import { isISODate } from "@cocalc/util/misc";
 
