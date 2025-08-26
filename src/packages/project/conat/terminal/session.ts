@@ -4,7 +4,7 @@ import { path_split, split } from "@cocalc/util/misc";
 import { console_init_filename, len } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getLogger } from "@cocalc/project/logger";
-import { readlink, realpath } from "node:fs/promises";
+import { readlink, realpath, rm } from "node:fs/promises";
 import { dstream, type DStream } from "@cocalc/project/conat/sync";
 import {
   createBrowserClient,
@@ -16,6 +16,9 @@ import { ThrottleString } from "@cocalc/util/throttle";
 import { join } from "path";
 import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 import { delay } from "awaiting";
+import { SpoolWatcher } from "@cocalc/backend/spool-watcher";
+import { data } from "@cocalc/backend/data";
+import { randomId } from "@cocalc/conat/names";
 
 const logger = getLogger("project:conat:terminal:session");
 
@@ -73,6 +76,8 @@ export class Session {
   } = {};
   public pid: number;
   private nsjail?: boolean;
+  private messageSpool?: SpoolWatcher;
+  private spoolDirectory?: string;
 
   constructor({
     termPath,
@@ -90,6 +95,7 @@ export class Session {
     this.browserApi = createBrowserClient({ project_id, termPath });
     this.options = options;
     this.streamName = `terminal-${termPath}`;
+    this.spoolDirectory = join(data, "term-spool", randomId());
   }
 
   kill = async () => {
@@ -131,6 +137,7 @@ export class Session {
   restart = async () => {
     this.pty?.destroy();
     this.stream?.close();
+    this.messageSpool?.close();
     delete this.pty;
     await this.init();
   };
@@ -141,8 +148,18 @@ export class Session {
     }
     this.pty?.destroy();
     this.stream?.close();
+    this.messageSpool?.close();
     delete this.pty;
     delete this.stream;
+    delete this.messageSpool;
+    (async () => {
+      try {
+        if (this.spoolDirectory) {
+          await rm(this.spoolDirectory, { force: true, recursive: true });
+        }
+      } catch {}
+    })();
+    delete this.spoolDirectory;
     this.state = "closed";
     this.clientSizes = {};
   };
@@ -204,6 +221,7 @@ export class Session {
       ...this.options.env,
       ...envForSpawn(),
       COCALC_TERMINAL_FILENAME: tail,
+      COCALC_CONTROL_DIR: this.spoolDirectory,
       TMUX: undefined, // ensure not set
     };
     let command = this.options.command ?? DEFAULT_COMMAND;
@@ -261,8 +279,6 @@ export class Session {
     // due to being *slightly* off.
     const throttle = new ThrottleString(MAX_MSGS_PER_SECOND - 3);
     throttle.on("data", (data: string) => {
-      // logger.debug("got data out of pty");
-      this.handleBackendMessages(data);
       this.stream?.publish(data);
     });
     this.pty.onData(throttle.write);
@@ -271,6 +287,8 @@ export class Session {
       this.stream?.publish(EXIT_MESSAGE);
       this.state = "off";
     });
+
+    await this.initMessageSpool();
   };
 
   setSize = ({
@@ -365,67 +383,23 @@ export class Session {
     return { rows, cols };
   };
 
-  private backendMessagesBuffer = "";
-  private backendMessagesState = "none";
-
-  private resetBackendMessagesBuffer = () => {
-    this.backendMessagesBuffer = "";
-    this.backendMessagesState = "none";
-  };
-
-  private handleBackendMessages = (data: string) => {
-    /* parse out messages like this:
-            \x1b]49;"valid JSON string here"\x07
-         and format and send them via our json channel.
-      */
-    if (this.backendMessagesState === "none") {
-      const i = data.indexOf("\x1b]49;");
-      if (i == -1) {
-        return; // nothing to worry about
-      }
-      // stringify it so it is easy to see what is there:
-      this.backendMessagesState = "reading";
-      this.backendMessagesBuffer = data.slice(i);
-    } else {
-      this.backendMessagesBuffer += data;
+  private initMessageSpool = async () => {
+    if (!this.spoolDirectory) {
+      throw Error("no spool directory");
     }
-    if (this.backendMessagesBuffer.length >= 6) {
-      const i = this.backendMessagesBuffer.indexOf("\x07");
-      if (i == -1) {
-        // continue to wait... unless too long
-        if (this.backendMessagesBuffer.length > 10000) {
-          this.resetBackendMessagesBuffer();
-        }
-        return;
-      }
-      const s = this.backendMessagesBuffer.slice(5, i);
-      this.resetBackendMessagesBuffer();
-      logger.debug(
-        `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`,
-      );
-      let mesg;
+    this.messageSpool = new SpoolWatcher(this.spoolDirectory, async (msg) => {
       try {
-        mesg = JSON.parse(s);
+        await this.browserApi.command(msg);
       } catch (err) {
-        logger.warn(
-          `handle_backend_message: error sending JSON payload ${JSON.stringify(
-            s,
-          )}, ${err}`,
+        // could fail, e.g., if there are no browser clients suddenly.
+        logger.debug(
+          "WARNING: problem sending command to browser clients",
+          err,
         );
-        return;
       }
-      (async () => {
-        try {
-          await this.browserApi.command(mesg);
-        } catch (err) {
-          // could fail, e.g., if there are no browser clients suddenly.
-          logger.debug(
-            "WARNING: problem sending command to browser clients",
-            err,
-          );
-        }
-      })();
-    }
+    });
+
+    await this.messageSpool.start();
   };
 }
 
