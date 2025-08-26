@@ -359,7 +359,7 @@ export class JupyterKernel
         dbg("setting special environment for Sage kernels");
         opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
       }
-    } catch (err) {
+    } catch {
       dbg(`No kernelData available for ${this.name}`);
     }
 
@@ -655,7 +655,7 @@ export class JupyterKernel
     // spawning should get us to the 'starting' state, or something went wrong.
     let state = this.get_state();
     if (state != "starting" && state != "running") {
-      throw Error("unable to spawn kernel");
+      throw Error(this.failedError ?? "unable to spawn kernel");
     }
     if (this._kernel?.initCode != null) {
       for (const code of this._kernel?.initCode ?? []) {
