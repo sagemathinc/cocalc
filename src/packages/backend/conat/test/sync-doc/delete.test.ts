@@ -9,6 +9,7 @@ describe("deleting a file that is open as a syncdoc", () => {
   let client1, client2, s1, s2, fs;
   const deletedThreshold = 50; // make test faster
   const watchRecreateWait = 100;
+  const readLockTimeout = 250;
 
   it("creates two clients editing 'a.txt'", async () => {
     client1 = connect();
@@ -21,6 +22,7 @@ describe("deleting a file that is open as a syncdoc", () => {
       fs,
       deletedThreshold,
       watchRecreateWait,
+      readLockTimeout,
     });
 
     await once(s1, "ready");
@@ -31,6 +33,7 @@ describe("deleting a file that is open as a syncdoc", () => {
       service: server.service,
       deletedThreshold,
       watchRecreateWait,
+      readLockTimeout,
     });
     await once(s2, "ready");
   });
@@ -49,12 +52,21 @@ describe("deleting a file that is open as a syncdoc", () => {
     expect(s1.isClosed()).toBe(false);
     expect(s2.isClosed()).toBe(false);
     s1.from_str("back");
-    const d1 = once(s1, "watching");
-    const d2 = once(s2, "watching");
+    const w1 = once(s1, "watching");
+    const w2 = once(s2, "watching");
     await s1.save_to_disk();
+    await w1;
+    await w2;
+
+    // note: we lock for a moment after write to avoid a race condition
+    // with multiple clientss editing.
+    try {
+      await fs.readFile("a.txt", "utf8");
+    } catch (err) {
+      expect(`${err}`).toContain("locked");
+    }
+    await delay(readLockTimeout * 3);
     expect(await fs.readFile("a.txt", "utf8")).toEqual("back");
-    await d1;
-    await d2;
   });
 
   it(`deleting 'a.txt' again -- still triggers deleted events`, async () => {
@@ -66,22 +78,6 @@ describe("deleting a file that is open as a syncdoc", () => {
     await d2;
     expect(Date.now() - start).toBeLessThan(deletedThreshold + 1000);
   });
-
-  //   it("disconnect one client, delete file, then reconnect client", async () => {
-  //     console.log(1);
-  //     client2.disconnect();
-  //     const d1 = once(s1, "deleted");
-  //     const d2 = once(s2, "deleted");
-  //     console.log(2);
-  //     await fs.unlink("a.txt");
-  //     console.log(3);
-  //     client2.connect();
-  //     console.log(4);
-  //     await d1;
-  //     console.log(5);
-  //     await d2;
-  //     expect(Date.now() - start).toBeLessThan(deletedThreshold + 1000);
-  //   });
 });
 
 describe("deleting a file then recreate it quickly does NOT trigger a 'deleted' event", () => {
