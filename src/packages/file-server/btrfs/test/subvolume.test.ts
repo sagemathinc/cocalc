@@ -6,6 +6,7 @@ import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 beforeAll(before);
 
+jest.setTimeout(15000);
 describe("setting and getting quota of a subvolume", () => {
   let vol: Subvolume;
   it("set the quota of a subvolume to 5 M", async () => {
@@ -27,7 +28,7 @@ describe("setting and getting quota of a subvolume", () => {
     await vol.fs.writeFile("buf", buf);
     await wait({
       until: async () => {
-        await sudo({ command: "sync" });
+        await vol.filesystem.sync();
         const { used } = await vol.quota.usage();
         return used > 0;
       },
@@ -212,6 +213,7 @@ describe("test snapshots", () => {
 
   it("lock our snapshot and confirm it prevents deletion", async () => {
     await vol.snapshots.lock("snap1");
+    await fs.sync();
     expect(async () => {
       await vol.snapshots.delete("snap1");
     }).rejects.toThrow("locked");

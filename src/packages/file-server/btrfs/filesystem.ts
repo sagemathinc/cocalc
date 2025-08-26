@@ -17,6 +17,8 @@ import { Subvolumes } from "./subvolumes";
 import { mkdir } from "fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import rustic from "@cocalc/backend/sandbox/rustic";
+import { until } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
 
 export interface Options {
   // mount = root mountpoint of the btrfs filesystem. If you specify the image
@@ -39,6 +41,8 @@ export interface Options {
   rustic: string;
 }
 
+let mountLock = false;
+
 export class Filesystem {
   public readonly opts: Options;
   public readonly subvolumes: Subvolumes;
@@ -52,6 +56,7 @@ export class Filesystem {
     await mkdirp([this.opts.mount]);
     await this.initDevice();
     await this.mountFilesystem();
+    await this.sync();
     await btrfs({
       args: ["quota", "enable", "--simple", this.opts.mount],
     });
@@ -114,51 +119,73 @@ export class Filesystem {
 
   private _mountFilesystem = async () => {
     if (!this.opts.image) {
-      throw Error(`there must be a btrfs filesystem at ${this.opts.mount}`);
+      throw Error(`there must be a btrfs image at ${this.opts.image}`);
     }
-    const args: string[] = ["-o", "loop"];
-    args.push(
-      "-o",
-      "compress=zstd",
-      "-o",
-      "noatime",
-      "-o",
-      "space_cache=v2",
-      "-o",
-      "autodefrag",
-      this.opts.image,
-      "-t",
-      "btrfs",
-      this.opts.mount,
-    );
-    {
-      const { exit_code: failed } = await sudo({
-        command: "mount",
-        args,
-        err_on_exit: false,
-      });
-      if (failed) {
-        // try again with more loopback devices
-        await ensureMoreLoopbackDevices();
-        const { stderr, exit_code } = await sudo({
+    await until(() => !mountLock);
+    try {
+      mountLock = true;
+      const args: string[] = ["-o", "loop"];
+      args.push(
+        "-o",
+        "compress=zstd",
+        "-o",
+        "noatime",
+        "-o",
+        "space_cache=v2",
+        "-o",
+        "autodefrag",
+        this.opts.image,
+        "-t",
+        "btrfs",
+        this.opts.mount,
+      );
+      {
+        const { exit_code: failed } = await sudo({
           command: "mount",
           args,
           err_on_exit: false,
         });
-        if (exit_code) {
-          return { stderr, exit_code };
+        if (failed) {
+          // try again with more loopback devices
+          await ensureMoreLoopbackDevices();
+          const { stderr, exit_code } = await sudo({
+            command: "mount",
+            args,
+            err_on_exit: false,
+          });
+          if (exit_code) {
+            return { stderr, exit_code };
+          }
         }
       }
+      await until(
+        async () => {
+          try {
+            await sudo({
+              command: "df",
+              args: ["-t", "btrfs", this.opts.mount],
+            });
+            return true;
+          } catch (err) {
+            console.log(err);
+            return false;
+          }
+        },
+        { min: 250 },
+      );
+      const { stderr, exit_code } = await sudo({
+        command: "chown",
+        args: [
+          `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
+          this.opts.mount,
+        ],
+        err_on_exit: false,
+      });
+      return { stderr, exit_code };
+    } finally {
+      await delay(1000);
+      mountLock = false;
     }
-    const { stderr, exit_code } = await sudo({
-      command: "chown",
-      args: [
-        `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
-        this.opts.mount,
-      ],
-      err_on_exit: false,
-    });
-    return { stderr, exit_code };
   };
 
   private initRustic = async () => {
