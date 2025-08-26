@@ -85,7 +85,7 @@ import {
   Example,
   Ext,
   JUPYTER,
-  PAPERSIZE,
+  PAPER_SIZE,
 } from "./ai-generate-examples";
 import {
   DEFAULT_LANG_EXTRA,
@@ -252,7 +252,7 @@ function AIGenerateDocument({
   const [ipynb, setIpynb] = useState<null | Ipynb>(null);
 
   useEffect(() => {
-    const sizes = PAPERSIZE[ext];
+    const sizes = PAPER_SIZE[ext];
     if (paperSize == null && sizes != null) {
       setPaperSize(sizes[0]);
     }
@@ -704,7 +704,7 @@ function AIGenerateDocument({
   }
 
   function renderPaperSize() {
-    const sizes = PAPERSIZE[ext];
+    const sizes = PAPER_SIZE[ext];
     if (!sizes) return;
 
     return (
