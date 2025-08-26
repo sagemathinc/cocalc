@@ -12,6 +12,7 @@ export interface GetHelpOptions {
   error: string;
   input?: string;
   task?: string;
+  line?: string;
   language?: string;
   extraFileInfo?: string;
   redux: any;
@@ -22,6 +23,7 @@ export interface GetHelpOptions {
 export interface CreateMessageOpts {
   tag?: string;
   error: string;
+  line: string;
   input?: string;
   task?: string;
   language?: string;
@@ -38,6 +40,7 @@ export async function getHelp(options: GetHelpOptions) {
     project_id,
     path,
     tag,
+    line = "",
     error,
     input,
     task,
@@ -51,6 +54,7 @@ export async function getHelp(options: GetHelpOptions) {
   const solutionText = createMessage({
     error,
     task,
+    line,
     input,
     language,
     extraFileInfo,
@@ -77,6 +81,7 @@ export async function getHelp(options: GetHelpOptions) {
 
 export function createMessage({
   error,
+  line,
   language,
   input,
   model,
@@ -104,19 +109,18 @@ export function createMessage({
     message.push(`I ${task}.`);
   }
 
-  if (error.length > 3000) {
-    // 3000 is about 500 tokens
-    // This uses structure:
-    error = shortenError(error, language);
-    if (error.length > 3000) {
-      // this just puts ... in the middle.
-      error = trunc_middle(error, 3000);
-    }
-  }
+  error = trimStr(error, language);
+  line = trimStr(line, language);
 
   message.push(`I received the following error:`);
   const delimE = backtickSequence(error);
   message.push(`${delimE}${language}\n${error}\n${delimE}`);
+
+  if (line) {
+    message.push(`For the following line:`);
+    const delimL = backtickSequence(line);
+    message.push(`${delimL}${language}\n${line}\n${delimL}`);
+  }
 
   // We put the input last, since it could be huge and get truncated.
   // It's much more important to show the error, obviously.
@@ -150,4 +154,17 @@ export function createMessage({
   if (full) message.push("</details>");
 
   return message.join("\n\n");
+}
+
+function trimStr(s: string, language): string {
+  if (s.length > 3000) {
+    // 3000 is about 500 tokens
+    // This uses structure:
+    s = shortenError(s, language);
+    if (s.length > 3000) {
+      // this just puts ... in the middle.
+      s = trunc_middle(s, 3000);
+    }
+  }
+  return s;
 }

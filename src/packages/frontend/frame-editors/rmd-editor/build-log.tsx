@@ -5,11 +5,12 @@
 
 import Anser from "anser";
 import React from "react";
-import Ansi from "@cocalc/frontend/components/ansi-to-react";
+
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import HelpMeFix from "../llm/help-me-fix";
+import Ansi from "@cocalc/frontend/components/ansi-to-react";
+import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { Actions } from "./actions";
 import {
   STYLE_ERR,
