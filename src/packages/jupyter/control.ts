@@ -223,7 +223,7 @@ export async function complete(opts: {
 
 export async function getConnectionFile(opts: { path }) {
   const kernel = getKernel(opts.path);
-  await kernel.ensure_running();
+  await kernel.ensureRunning();
   const c = kernel.getConnectionFile();
   if (c == null) {
     throw Error("unable to start kernel");

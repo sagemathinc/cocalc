@@ -240,7 +240,6 @@ export class JupyterKernel
   private _kernel_info?: KernelInfo;
   public _execute_code_queue: CodeExecutionEmitter[] = [];
   public sockets?: JupyterSockets;
-  private has_ensured_running: boolean = false;
   public failedError: string = "";
   private kernel_state: KernelState;
 
@@ -286,6 +285,9 @@ export class JupyterKernel
   private setState = (state: BackendState): void => {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     //             'failed'
+    // In particular, there is no way to have the underlying jupyter
+    // kernel restart without having to create a new Kernel instance.  This
+    // instance manages one single lifecycle as above only.
     if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
@@ -634,8 +636,14 @@ export class JupyterKernel
     }
   };
 
-  ensure_running = reuseInFlight(async (): Promise<void> => {
-    const dbg = this.dbg("ensure_running");
+  // either ensures the kernel is in the running state, or
+  // throws an error.
+  private hasEnsuredRunning: boolean = false;
+  ensureRunning = reuseInFlight(async (): Promise<void> => {
+    if (this.hasEnsuredRunning) {
+      return;
+    }
+    const dbg = this.dbg("ensureRunning");
     dbg(this._state);
     if (this.isClosed()) {
       throw Error("closed so not possible to ensure running");
@@ -643,20 +651,46 @@ export class JupyterKernel
     if (this._state == "running") {
       return;
     }
-    dbg("spawning");
     await this.spawn();
-    if (this.get_state() != "starting" && this.get_state() != "running") {
-      return;
+    // spawning should get us to the 'starting' state, or something went wrong.
+    let state = this.get_state();
+    if (state != "starting" && state != "running") {
+      throw Error("unable to spawn kernel");
     }
     if (this._kernel?.initCode != null) {
       for (const code of this._kernel?.initCode ?? []) {
         dbg("initCode ", code);
+        // this queues the code up for when the kernel is actually running...
         this.execute_code({ code }, true);
       }
     }
-    if (!this.has_ensured_running) {
-      this.has_ensured_running = true;
-    }
+    await until(async () => {
+      // this state changes to 'running' when we receive an iopub message.
+      // trying to do anything before that happens just results in a completely broken kernel.
+      const state = this.get_state();
+      if (state == "closed" || state == "running" || this.sockets == null) {
+        return true;
+      }
+      const message = {
+        parent_header: {},
+        metadata: {},
+        channel: "shell",
+        content: {},
+        header: {
+          msg_id: uuid(),
+          username: "",
+          session: "",
+          msg_type: "kernel_info_request" as MessageType,
+          version: VERSION,
+          date: new Date().toISOString(),
+        },
+      };
+
+      // Send the message
+      this.sockets.send(message);
+      return false;
+    });
+    this.hasEnsuredRunning = true;
   });
 
   execute_code = (
@@ -734,7 +768,7 @@ export class JupyterKernel
     }
     dbg(`queue has ${n} items; ensure kernel running`);
     try {
-      await this.ensure_running();
+      await this.ensureRunning();
       await this._execute_code_queue[0].go();
     } catch (err) {
       dbg(`WARNING: error running kernel -- ${err}`);
@@ -791,9 +825,7 @@ export class JupyterKernel
 
   call = async (msg_type: string, content?: any): Promise<any> => {
     this.dbg("call")(msg_type);
-    if (!this.has_ensured_running) {
-      await this.ensure_running();
-    }
+    await this.ensureRunning();
     // Do a paranoid double check anyways...
     if (this.sockets == null || this.isClosed()) {
       throw Error("not running, so can't call");

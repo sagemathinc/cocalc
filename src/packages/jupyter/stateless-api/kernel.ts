@@ -144,7 +144,7 @@ export default class Kernel {
       path,
       ulimit: Kernel.ulimit[this.kernelName] ?? DEFAULT_ULIMIT,
     });
-    await this.kernel.ensure_running();
+    await this.kernel.ensureRunning();
     if (this.state == "closed") {
       this.close();
       return;

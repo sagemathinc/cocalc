@@ -132,7 +132,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   _process_execute_code_queue(): Promise<void>;
 
   chdir(path: string): Promise<void>;
-  ensure_running(): Promise<void>;
+  ensureRunning(): Promise<void>;
 
   ipywidgetsGetBuffer(
     model_id: string,

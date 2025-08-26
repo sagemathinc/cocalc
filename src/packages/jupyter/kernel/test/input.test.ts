@@ -34,7 +34,7 @@ describe("test that interactive input throws an error if we do not provide a std
 describe("test interactive input", () => {
   let k;
   it("get a python kernel", async () => {
-    k = await getPythonKernel("python-stdin.ipynb");
+    k = await getPythonKernel("python-stdin-1.ipynb");
   });
 
   it("start some code running with stdin set and see it is called", async () => {
@@ -47,6 +47,7 @@ describe("test interactive input", () => {
     const output = k.execute_code({ code, stdin });
     for await (const _ of output.iter()) {
     }
+
     expect(v).toEqual([{ prompt: "a:", password: false }]);
   });
 
