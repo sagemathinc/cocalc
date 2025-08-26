@@ -60,24 +60,24 @@ describe("find files", () => {
     expect(new Set(w)).toEqual(new Set(["pattern", "blue/Patton"]));
   });
 
-  // this is NOT a great test, unfortunately.
-  const count = 5000;
-  it.skip(`hopefully exceed the timeout by creating ${count} files`, async () => {
-    for (let i = 0; i < count; i++) {
-      await writeFile(join(tempDir, `${i}`), "");
-    }
-    const t = Date.now();
-    const { stdout, truncated } = await find(tempDir, {
-      options: ["-printf", "%f\n"],
-      timeout: 0.002,
-    });
+//   // this is NOT a great test, unfortunately.
+//   const count = 5000;
+//   it(`hopefully exceed the timeout by creating ${count} files`, async () => {
+//     for (let i = 0; i < count; i++) {
+//       await writeFile(join(tempDir, `${i}`), "");
+//     }
+//     const t = Date.now();
+//     const { stdout, truncated } = await find(tempDir, {
+//       options: ["-printf", "%f\n"],
+//       timeout: 0.002,
+//     });
 
-    expect(truncated).toBe(true);
-    expect(Date.now() - t).toBeGreaterThan(1);
+//     expect(truncated).toBe(true);
+//     expect(Date.now() - t).toBeGreaterThan(1);
 
-    const { stdout: stdout2 } = await find(tempDir, {
-      options: ["-maxdepth", "1", "-mindepth", "1", "-printf", "%f\n"],
-    });
-    expect(stdout2.length).toBeGreaterThan(stdout.length);
-  });
+//     const { stdout: stdout2 } = await find(tempDir, {
+//       options: ["-maxdepth", "1", "-mindepth", "1", "-printf", "%f\n"],
+//     });
+//     expect(stdout2.length).toBeGreaterThan(stdout.length);
+//   });
 });

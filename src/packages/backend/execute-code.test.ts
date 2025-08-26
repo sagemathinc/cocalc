@@ -268,7 +268,7 @@ describe("async", () => {
 
   // This test screws up running multiple tests in parallel.
   // ** HENCE SKIPPING THIS - enable it if you edit the executeCode code...**
-  it.skip("longer running async job", async () => {
+  it.skip("(BAD TEST) longer running async job", async () => {
     setMonitorIntervalSeconds(1);
     const c = await executeCode({
       command: "sh",

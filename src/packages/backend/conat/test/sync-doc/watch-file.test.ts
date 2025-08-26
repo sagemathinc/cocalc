@@ -13,6 +13,9 @@ import {
 beforeAll(before);
 afterAll(after);
 
+const readLockTimeout = 100;
+const watchDebounce = 50;
+
 describe("basic watching of file on disk happens automatically", () => {
   const project_id = uuid();
   const path = "a.txt";
@@ -26,18 +29,22 @@ describe("basic watching of file on disk happens automatically", () => {
       project_id,
       path,
       service: server.service,
+      readLockTimeout,
+      watchDebounce,
     });
     await once(s, "ready");
     expect(s.to_str()).toEqual("init");
   });
 
   it("changes the file on disk and call readFile to immediately update", async () => {
+    await delay(1.5 * readLockTimeout);
     await fs.writeFile(path, "modified");
     await s.readFile();
     expect(s.to_str()).toEqual("modified");
   });
 
   it("change file on disk and it automatically updates with no explicit call needed", async () => {
+    await delay(2 * watchDebounce);
     await fs.writeFile(path, "changed again!");
     await wait({
       until: () => {
@@ -47,6 +54,7 @@ describe("basic watching of file on disk happens automatically", () => {
   });
 
   it("change file on disk should not trigger a load from disk", async () => {
+    await delay(2 * watchDebounce);
     const orig = s.readFileDebounced;
     let c = 0;
     s.readFileDebounced = () => {
@@ -70,6 +78,8 @@ describe("basic watching of file on disk happens automatically", () => {
       project_id,
       path,
       service: server.service,
+      readLockTimeout,
+      watchDebounce,
     });
     await once(s2, "ready");
     let c = 0,
@@ -91,6 +101,7 @@ describe("basic watching of file on disk happens automatically", () => {
 
   it("file watching must still work if either client is closed", async () => {
     s.close();
+    await delay(2 * watchDebounce);
     await fs.writeFile(path, "version4");
     await wait({
       until: () => {
@@ -100,25 +111,38 @@ describe("basic watching of file on disk happens automatically", () => {
     expect(s2.to_str()).toEqual("version4");
   });
 
-  let client3, s3;
-  it("add a third client and close client2 and have file watching still work", async () => {
-    client3 = connect();
-    s3 = client3.sync.string({
+  it("another change and test", async () => {
+    await delay(watchDebounce * 2);
+    await fs.writeFile(path, "version5");
+    await wait({
+      until: () => {
+        console.log(s2.to_str());
+        return s2.to_str() == "version5";
+      },
+    });
+    expect(s2.to_str()).toEqual("version5");
+  });
+
+  it("add a third client, close client2 and have file watching still work", async () => {
+    const client3 = connect();
+    const s3 = client3.sync.string({
       project_id,
       path,
       service: server.service,
+      readLockTimeout,
+      watchDebounce,
     });
     await once(s3, "ready");
     s2.close();
-
-    await fs.writeFile(path, "version5");
+    await delay(watchDebounce * 2);
+    await fs.writeFile(path, "version6");
 
     await wait({
       until: () => {
-        return s3.to_str() == "version5";
+        return s3.to_str() == "version6";
       },
     });
-    expect(s3.to_str()).toEqual("version5");
+    expect(s3.to_str()).toEqual("version6");
   });
 });
 
