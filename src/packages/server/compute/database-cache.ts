@@ -30,10 +30,6 @@ export interface Cache {
   delete: (key) => Promise<void>;
 }
 
-// For this to work properly and pass tests with a non-UTC clock, we have to use this
-// more complicated form than just "expire > now()".  I don't understand why exactly.
-const NOT_EXPIRED = "extract(epoch from expire) > extract(epoch from NOW())";
-
 export function createTTLCache({
   cloud,
   ttl,
@@ -58,7 +54,7 @@ export function createTTLCache({
 
     get: async (key) => {
       const { rows } = await db.query(
-        `SELECT value FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND ${NOT_EXPIRED}`,
+        "SELECT value FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND expire > NOW()",
         [cloud, keyToString(key)],
       );
       return rows[0]?.value == null ? undefined : JSON.parse(rows[0]?.value);
@@ -66,7 +62,7 @@ export function createTTLCache({
 
     has: async (key) => {
       const { rows } = await db.query(
-        `SELECT COUNT(*) AS count FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND ${NOT_EXPIRED}`,
+        "SELECT COUNT(*) AS count FROM compute_servers_cache WHERE cloud=$1 AND key=$2 AND expire > NOW()",
         [cloud, keyToString(key)],
       );
       return (rows[0]?.count ?? 0) > 0;
