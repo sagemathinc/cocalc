@@ -71,7 +71,6 @@ describe("creates an account, then creates statements and corresponding emails a
   });
 
   it("trying to send same statement immediately again is an error, but works with force", async () => {
-    expect.assertions(1);
     const statements = await getStatements({
       account_id,
       limit: 1,

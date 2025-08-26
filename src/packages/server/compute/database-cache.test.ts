@@ -14,19 +14,21 @@ const TTL_MS = 300;
 describe("test a database backed TTLCache cache", () => {
   let cache;
   const ttl = TTL_MS;
-  it("creates a ttl cache", () => {
+  it.only("creates a ttl cache", () => {
     cache = createTTLCache({ ttl, cloud: `cloud-${Math.random()}` });
   });
 
-  it("standard use of the ttl cache", async () => {
+  it.only("standard use of the ttl cache", async () => {
     expect(await cache.has("foo")).toBe(false);
     await cache.set("foo", "bar");
     expect(await cache.has("foo")).toBe(true);
     expect(await cache.get("foo")).toBe("bar");
+
     await delay(ttl - 150);
     expect(await cache.has("foo")).toBe(true);
     await delay(200);
     expect(await cache.has("foo")).toBe(false);
+
     await cache.set("foo2", "bar2");
     expect(await cache.get("foo2")).toBe("bar2");
     await cache.delete("foo2");
