@@ -284,9 +284,16 @@ def test(args) -> None:
     flaky = []
     fails = []
     success = []
+    start = time.time()
 
     def status():
-        print("Status: ", {"fails": fails, "flaky": flaky, "success": success})
+        print(
+            "Status: ", {
+                "fails": fails,
+                "flaky": flaky,
+                "success": success,
+                "time": (time.time() - start) / 60.0
+            })
 
     v = packages(args)
     v.sort()
