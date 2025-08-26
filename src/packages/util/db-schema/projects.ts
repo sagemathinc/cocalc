@@ -16,6 +16,7 @@ import { NOTES } from "./crm";
 import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
+export type { SnapshotCounts } from "@cocalc/util/consts/snapshots";
 
 export const MAX_FILENAME_SEARCH_RESULTS = 100;
 

@@ -86,6 +86,7 @@ function rateLimit(server: express.Application): void {
     max: MAX_REQUESTS_PER_MINUTE,
   });
   // apply rate limiter to all requests
+  // @ts-ignore
   server.use(limiter);
 }
 

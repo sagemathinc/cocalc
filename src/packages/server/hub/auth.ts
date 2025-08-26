@@ -284,7 +284,9 @@ export class PassportManager {
     logger.debug("init");
 
     // initialize use of middleware
+    // @ts-ignore
     this.router.use(express_session({ secret: v4() })); // secret is totally random and per-hub session
+    // @ts-ignore
     this.router.use(passport.initialize());
     this.router.use(passport.session());
 

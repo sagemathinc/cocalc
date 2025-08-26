@@ -4,7 +4,7 @@ import {
   client as createFileClient,
 } from "@cocalc/conat/files/file-server";
 import { uuid } from "@cocalc/util/misc";
-import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
+import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 
 beforeAll(before);
 

@@ -1,8 +1,6 @@
 import { authFirstRequireAccount } from "./util";
-import {
-  type CreateProjectOptions,
-  type SnapshotCounts,
-} from "@cocalc/util/db-schema/projects";
+import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
+import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 export const projects = {

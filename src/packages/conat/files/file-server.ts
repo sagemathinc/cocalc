@@ -23,7 +23,7 @@ Additional functionality:
 
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
-import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
+import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "./fs";
 export { type CopyOptions };
 
