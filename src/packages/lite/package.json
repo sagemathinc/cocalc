@@ -5,10 +5,7 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": [
-    "lite",
-    "cocalc"
-  ],
+  "keywords": ["lite", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
@@ -17,6 +14,7 @@
     "test": "exit 0",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
     "build-lite": "./bin/build-lite.sh",
+    "build-sea": "cd sea && ./build.sh",
     "app": "pnpm exec cocalc-lite",
     "app-electron": "pnpm electron-rebuild && electron ."
   },

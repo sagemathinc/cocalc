@@ -40,8 +40,15 @@ rm -rf zeromq*/node_modules/zeromq/prebuilds/*win*
 rm -rf @types*
 rm -rf @img*
 rm -rf @rspack*
-rm -rf plotly* mermaid* antd* pdfjs* maplibre* mapbox* three* @lumino* @mermaid* sass* webpack* @icons+material '@napi-rs+canvas'*
-rm -rf typescript* @tsd+typescript@4.7.4
+rm -rf rxjs*
+# @zxcvbn is password strength but cocalc-lite doesn't have account creation
+rm -rf @zxcvbn* zod*
+# jsdom -- used for testing and next
+rm -rf jsdom*
+# note: cytoscape-fcose is a mermaid dep so alraedy bundled up
+# this is aa bunch of frontend only stuff
+rm -rf d3* @icons+material* katex* slate* react-highlight-words* codemirror* plotly* @plotly* mermaid* cytoscape-fcose* antd* pdfjs* maplibre* mapbox* three* @lumino* @mermaid* sass* webpack* @icons+material '@napi-rs+canvas'*
+rm -rf typescript* @tsd+typescript
 
 # TODO: rewrite util/db-schema/crm.ts to NOT use @ant-design/colors at all?  This should be in the frontend only.
 mkdir x
@@ -49,13 +56,26 @@ mv @ant-design* x
 mv x/@ant-design+colors* .
 rm -rf x
 
+rm -rf @cocalc+gcloud-pricing-calculator
+
+# AI libraries in the server/ package -- this will all get proxied through a cocalc.com server via a subscription, so don't need it here:
+rm -rf js-tiktoken* gpt3-tokenizer* openai* @mistralai* @anthropic* @langchain*
+
+if [ `uname` == "Linux" ]; then
+  rm -rf zeromq*/node_modules/zeromq/build/darwin/
+fi
+
+if [ `uname` == "Darwin" ]; then
+  rm -rf zeromq*/node_modules/zeromq/build/linux/
+fi
+
 # This is weird/scary and doesn't work on macos:
 # cd ../..
 # curl -sf https://gobinaries.com/tj/node-prune  | PREFIX=/tmp sh
 # node-prune -include '**win32**'
 
 cd "$TARGET"
-rm -rf *.md .* docs
+rm -rf *.md .github .git docs
 mv src/packages/* .
 rm -rf src
 # remove rustic for now, until we build a backup system for cocalc-lite based on it.

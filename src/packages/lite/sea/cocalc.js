@@ -18,6 +18,7 @@ const destDir = path.join(
 
 const stamp = path.join(destDir, ".ok");
 if (!fs.existsSync(stamp)) {
+  console.log("Unpacking...");
   // Read the SEA asset into a Buffer
   const ab = getRawAsset("cocalc-lite.tar.gz"); // ArrayBuffer (no copy)
   const buf = Buffer.from(new Uint8Array(ab)); // turn into Node Buffer
@@ -44,7 +45,7 @@ if (!fs.existsSync(stamp)) {
 
 const Module = require("node:module");
 
-const script = path.join(destDir, "cocalc-lite/src/packages/lite/bin/start.js");
+const script = path.join(destDir, "cocalc-lite/lite/bin/start.js");
 
 if (!fs.existsSync(script)) {
   console.error("missing start.js at", script);
