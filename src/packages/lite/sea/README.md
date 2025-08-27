@@ -17,7 +17,9 @@ docker run -v `pwd`:/x -it --rm ubuntu:20.04  /x/cocalc
 ```
 
 ---
+
 -
+
 Using this on a compute server.
 
 scp it to root@[server]
@@ -41,3 +43,4 @@ This should work for proxy.json to directly connect, but it isn't:
 ```
 
 but we should just add ssl support and use this instead of that proxy.
+

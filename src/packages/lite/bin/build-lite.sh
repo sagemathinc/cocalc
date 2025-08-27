@@ -9,7 +9,8 @@ set -ev
 
 NAME=cocalc-lite
 TMP=/tmp/$NAME
-mkdir $TMP
+rm -rf "$TMP"
+mkdir "$TMP"
 TARGET="$TMP/$NAME"
 SRC="$TARGET/src"
 
@@ -53,7 +54,16 @@ rm -rf typescript* @tsd+typescript
 rm -rf @cocalc+gcloud-pricing-calculator
 rm -rf @maplibre*  @orama*
 rm -rf caniuse-lite@* cytoscape@* cytoscape-cose-bilkent@*
+rm -rf refractor@* rc-picker@* @uiw+react-textarea-code-editor@* ajv@*
 rm -rf langium@* moment@* react-dom@* @sinclair+typebox@* @xterm+addon-fit@* @xterm+addon-webgl@* @xterm+addon-web-links@* @xterm+xterm@* yjs@* zlibjs@*  lodash-es@* @swc+helpers@*
+rm -rf @jupyter*
+rm -rf @asamuzakjp+css-color@* csv-parse@* elementary-circuits-directed-graph@* jquery@* react-timeago@8.3.0_react@* *webpack*
+rm -rf @stripe*
+rm -rf @dnd-kit*
+rm -rf uglify-js*
+rm -rf y-protocols*
+rm -rf @nteract*
+rm -rf dropzone@*
 
 # TODO: rewrite util/db-schema/crm.ts to NOT use @ant-design/colors at all?  This should be in the frontend only.
 mkdir x
@@ -66,11 +76,23 @@ rm -rf js-tiktoken* gpt3-tokenizer* openai* @mistralai* @anthropic* @langchain*
 
 if [ `uname` == "Linux" ]; then
   rm -rf zeromq*/node_modules/zeromq/build/darwin/
+  rm -rf zeromq*/node_modules/zeromq/build/win32/
 fi
 
 if [ `uname` == "Darwin" ]; then
   rm -rf zeromq*/node_modules/zeromq/build/linux/
+  rm -rf zeromq*/node_modules/zeromq/build/win32/
 fi
+
+if [ `uname` == 'x86_64']; then
+  rm -rf zeromq*/node_modules/zeromq/build/*/arm64
+fi
+if [ `uname` == 'arm64']; then
+  rm -rf zeromq*/node_modules/zeromq/build/*/x*64
+fi
+
+# Upstream sqlite sources are ~10MB:
+rm -rf better-sqlite3@*/node_modules/better-sqlite3/deps/sqlite3
 
 cd "$SRC"/..
 rm -rf *.md .github .git docs
