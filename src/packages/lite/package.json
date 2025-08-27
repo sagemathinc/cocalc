@@ -8,7 +8,7 @@
   "keywords": ["lite", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf dist node_modules",
+    "clean": "rm -rf dist node_modules sea/cocalc cocalc-lite.tar.xz sea/cocalc-lite.tar.xz sea/sea-prep.blob",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "exit 0",

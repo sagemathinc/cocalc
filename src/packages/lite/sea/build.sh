@@ -13,7 +13,7 @@ echo "Building SEA for $OS"
 cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"   # make sure it's writable even if copied from system paths
 
-cp ../cocalc-lite.tar.gz . || true
+cp ../cocalc-lite.tar.xz .
 
 # 2) Bundle app into a SEA blob
 #    This writes ./sea-prep.blob using your sea-config.json
@@ -46,5 +46,6 @@ case "$OS" in
     ;;
 esac
 
+rm cocalc-lite.tar.xz
 
 echo "Done. Built $TARGET"

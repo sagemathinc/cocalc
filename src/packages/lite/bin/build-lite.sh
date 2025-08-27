@@ -11,25 +11,26 @@ NAME=cocalc-lite
 TMP=/tmp/$NAME
 mkdir $TMP
 TARGET="$TMP/$NAME"
+SRC="$TARGET/src"
 
 echo "Creating $TARGET"
 
 BIN=`dirname "$(realpath $0)"`
 
 git clone --depth=1 $BIN/../../../.. $TARGET
-chmod a+r "$TARGET"
-cd "$TARGET"/src
 
-pnpm build --exclude=next,hub,server,database,file-server
+cd "$SRC"/packages
+rm -rf database hub next server file-server
 
-rm -rf "$TARGET"/.git
+cd "$SRC"
+pnpm build --exclude=database,hub,next,server,file-server
 
 # Delete packages that were only needed for the build.
 # Deleting node_modules and installing is the recommended approach by pnpm.
-cd packages
+cd "$SRC"/packages
 rm -rf node_modules && pnpm install --prod --package-import-method=copy
 
-rm -rf  database hub next server frontend cdn file-server
+rm -rf cdn frontend
 
 rm -rf static/dist/*.map static/dist/embed-*.js
 
@@ -49,14 +50,14 @@ rm -rf jsdom*
 # this is aa bunch of frontend only stuff
 rm -rf d3* @icons+material* katex* slate* react-highlight-words* codemirror* plotly* @plotly* mermaid* cytoscape-fcose* antd* pdfjs* maplibre* mapbox* three* @lumino* @mermaid* sass* webpack* @icons+material '@napi-rs+canvas'*
 rm -rf typescript* @tsd+typescript
+rm -rf @cocalc+gcloud-pricing-calculator
+rm -rf @maplibre*
 
 # TODO: rewrite util/db-schema/crm.ts to NOT use @ant-design/colors at all?  This should be in the frontend only.
 mkdir x
 mv @ant-design* x
 mv x/@ant-design+colors* .
 rm -rf x
-
-rm -rf @cocalc+gcloud-pricing-calculator
 
 # AI libraries in the server/ package -- this will all get proxied through a cocalc.com server via a subscription, so don't need it here:
 rm -rf js-tiktoken* gpt3-tokenizer* openai* @mistralai* @anthropic* @langchain*
@@ -69,12 +70,7 @@ if [ `uname` == "Darwin" ]; then
   rm -rf zeromq*/node_modules/zeromq/build/linux/
 fi
 
-# This is weird/scary and doesn't work on macos:
-# cd ../..
-# curl -sf https://gobinaries.com/tj/node-prune  | PREFIX=/tmp sh
-# node-prune -include '**win32**'
-
-cd "$TARGET"
+cd "$SRC"/..
 rm -rf *.md .github .git docs
 mv src/packages/* .
 rm -rf src
@@ -82,6 +78,6 @@ rm -rf src
 rm -f backend/node_modules/.bin/rustic
 
 cd $TMP
-tar zcvf $BIN/../$NAME.tar.gz $NAME
+tar Jcvf $BIN/../$NAME.tar.xz $NAME
 
 rm -rf "$TARGET"

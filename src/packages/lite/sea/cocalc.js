@@ -20,12 +20,12 @@ const stamp = path.join(destDir, ".ok");
 if (!fs.existsSync(stamp)) {
   console.log("Unpacking...");
   // Read the SEA asset into a Buffer
-  const ab = getRawAsset("cocalc-lite.tar.gz"); // ArrayBuffer (no copy)
+  const ab = getRawAsset("cocalc-lite.tar.xz"); // ArrayBuffer (no copy)
   const buf = Buffer.from(new Uint8Array(ab)); // turn into Node Buffer
 
   fs.mkdirSync(destDir, { recursive: true });
 
-  const child = spawnSync("tar", ["-xzf", "-", "-C", destDir], {
+  const child = spawnSync("tar", ["-Jxf", "-", "-C", destDir], {
     input: buf,
     stdio: ["pipe", "inherit", "inherit"],
   });

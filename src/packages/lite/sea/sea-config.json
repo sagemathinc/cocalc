@@ -4,6 +4,6 @@
   "disableExperimentalSEAWarning": true,
   "useSnapshot": false,
   "assets": {
-    "cocalc-lite.tar.gz": "cocalc-lite.tar.gz"
+    "cocalc-lite.tar.xz": "cocalc-lite.tar.xz"
   }
 }
