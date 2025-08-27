@@ -51,7 +51,9 @@ rm -rf jsdom*
 rm -rf d3* @icons+material* katex* slate* react-highlight-words* codemirror* plotly* @plotly* mermaid* cytoscape-fcose* antd* pdfjs* maplibre* mapbox* three* @lumino* @mermaid* sass* webpack* @icons+material '@napi-rs+canvas'*
 rm -rf typescript* @tsd+typescript
 rm -rf @cocalc+gcloud-pricing-calculator
-rm -rf @maplibre*
+rm -rf @maplibre*  @orama*
+rm -rf caniuse-lite@* cytoscape@* cytoscape-cose-bilkent@*
+rm -rf langium@* moment@* react-dom@* @sinclair+typebox@* @xterm+addon-fit@* @xterm+addon-webgl@* @xterm+addon-web-links@* @xterm+xterm@* yjs@* zlibjs@*  lodash-es@* @swc+helpers@*
 
 # TODO: rewrite util/db-schema/crm.ts to NOT use @ant-design/colors at all?  This should be in the frontend only.
 mkdir x
