@@ -11,8 +11,10 @@ TMP=/tmp/cocalc-lite
 mkdir $TMP
 TARGET="$TMP/cocalc-lite"
 
+echo "Creating $TARGET"
+
 BIN=`dirname "$(realpath $0)"`
-    
+
 git clone --depth=1 $BIN/../../../.. $TARGET
 chmod a+r "$TARGET"
 cd "$TARGET"/src
@@ -24,9 +26,9 @@ rm -rf "$TARGET"/.git
 # Delete packages that were only needed for the build.
 # Deleting node_modules and installing is the recommended approach by pnpm.
 cd packages
-rm -rf node_modules && pnpm install --prod
+rm -rf node_modules && pnpm install --prod --package-import-method=copy
 
-rm -rf  database hub next server frontend assets cdn file-server
+rm -rf  database hub next server frontend cdn file-server
 
 rm -rf static/dist/*.map static/dist/embed-*.js
 
@@ -45,3 +47,5 @@ node-prune -include '**win32**'
 
 cd $TMP
 tar zcvf $BIN/../cocalc-lite.tar.gz cocalc-lite
+
+rm -rf "$TARGET"
