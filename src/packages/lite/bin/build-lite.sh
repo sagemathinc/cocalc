@@ -7,9 +7,10 @@
 
 set -ev
 
-TMP=/tmp/cocalc-lite
+NAME=cocalc-lite
+TMP=/tmp/$NAME
 mkdir $TMP
-TARGET="$TMP/cocalc-lite"
+TARGET="$TMP/$NAME"
 
 echo "Creating $TARGET"
 
@@ -37,15 +38,30 @@ rm -rf @next* next*
 rm -rf googleapis* @google*
 rm -rf zeromq*/node_modules/zeromq/prebuilds/*win*
 rm -rf @types*
+rm -rf @img*
 rm -rf @rspack*
 rm -rf plotly* mermaid* antd* pdfjs* maplibre* mapbox* three* @lumino* @mermaid* sass* webpack* @icons+material '@napi-rs+canvas'*
 rm -rf typescript* @tsd+typescript@4.7.4
 
-cd ../..
-curl -sf https://gobinaries.com/tj/node-prune  | PREFIX=/tmp sh
-node-prune -include '**win32**'
+# TODO: rewrite util/db-schema/crm.ts to NOT use @ant-design/colors at all?  This should be in the frontend only.
+mkdir x
+mv @ant-design* x
+mv x/@ant-design+colors* .
+rm -rf x
+
+# This is weird/scary and doesn't work on macos:
+# cd ../..
+# curl -sf https://gobinaries.com/tj/node-prune  | PREFIX=/tmp sh
+# node-prune -include '**win32**'
+
+cd "$TARGET"
+rm -rf *.md .* docs
+mv src/packages/* .
+rm -rf src
+# remove rustic for now, until we build a backup system for cocalc-lite based on it.
+rm -f backend/node_modules/.bin/rustic
 
 cd $TMP
-tar zcvf $BIN/../cocalc-lite.tar.gz cocalc-lite
+tar zcvf $BIN/../$NAME.tar.gz $NAME
 
 rm -rf "$TARGET"

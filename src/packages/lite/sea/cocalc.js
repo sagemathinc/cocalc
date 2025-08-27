@@ -1,6 +1,8 @@
 // cocalc.js
 console.log("Starting CoCalc");
 
+const VERSION = "v0.1";
+
 const { getRawAsset } = require("node:sea");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -11,7 +13,7 @@ const { spawnSync } = require("node:child_process");
 const destDir = path.join(
   process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
   "cocalc-lite",
-  "v1",
+  VERSION,
 );
 
 const stamp = path.join(destDir, ".ok");
@@ -55,7 +57,7 @@ process.argv = [process.execPath, script, ...process.argv.slice(2)];
 
 // make sure PATH (and any other env) includes your extracted tools
 process.env.PATH =
-  path.join(destDir, "cocalc-lite/src/packages/lite/bin") +
+  path.join(destDir, "cocalc-lite/lite/bin") +
   path.delimiter +
   process.env.PATH;
 
