@@ -786,15 +786,23 @@ export class ProjectsStore extends Store<ProjectsState> {
    */
   private limitAIinCourseProject(tag?: string): boolean {
     // Regarding the aiEnabledCache:
-    // We only care about 'explain' or 'help-me-fix' or 'reply' in the tags
+    // We only care about 'explain' or 'help-me-fix-hint' or 'reply' in the tags
     // right now regarding disabling AI integration, hence to make our cache
     // better we base the key only on those possibilities.
     if (!tag) return false; // no tag, all good
-    const allowed_tags = ["explain", "help-me-fix", "reply"];
+
+    // These tags are always allowed (non-limited), even with disableSomeChatGPT
+    const allowed_tags = ["explain", "help-me-fix-hint", "reply"];
     for (const allowed of allowed_tags) {
-      // we match more, e.g. "help-me-fix:[somethinge else]" or "jupyter-explain"
+      // we match more, e.g. "help-me-fix-hint:[something else]" or "jupyter-explain"
       if (tag.includes(allowed)) return false;
     }
+
+    // help-me-fix-solution is limited - restricted by disableSomeChatGPT
+    if (tag.includes("help-me-fix-solution")) {
+      return true;
+    }
+
     return true;
   }
 
