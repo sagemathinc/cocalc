@@ -6,11 +6,13 @@ import { createServer as httpCreateServer } from "http";
 import getLogger from "@cocalc/backend/logger";
 import port0 from "@cocalc/backend/port";
 import { once } from "node:events";
-import { PROJECT_ID } from "./const";
+import { project_id, compute_server_id } from "@cocalc/project/data";
 import { handleFileDownload } from "@cocalc/conat/files/file-download";
 import { join } from "path";
 import initBlobUpload from "./hub/blobs/upload";
 import initBlobDownload from "./hub/blobs/download";
+import { account_id } from "@cocalc/backend/data";
+import { FALLBACK_UUID } from "@cocalc/util/misc";
 
 const logger = getLogger("lite:static");
 
@@ -39,9 +41,22 @@ export async function initHttpServer(): Promise<{
   httpServer.listen(port);
   await once(httpServer, "listening");
 
-  console.log(
-    "*".repeat(60) + `\n\nhttp://localhost:${port}\n\n` + "*".repeat(60),
-  );
+  console.log("*".repeat(60) + "\n");
+  console.log(`http://localhost:${port}`);
+  const info: any = {};
+  if (project_id != FALLBACK_UUID) {
+    info.project_id = project_id;
+  }
+  if (account_id != FALLBACK_UUID) {
+    info.account_id = account_id;
+  }
+  if (compute_server_id) {
+    info.compute_server_id = compute_server_id;
+  }
+  if (Object.keys(info).length > 0) {
+    console.log(JSON.stringify(info, undefined, 2));
+  }
+  console.log("\n" + "*".repeat(60));
   return { httpServer, app, port };
 }
 
@@ -54,11 +69,19 @@ export async function initApp({ app, conatClient }) {
   );
 
   app.get("/customize", async (_, res) => {
-    res.json({ configuration: { lite: true, site_name: "" } });
+    res.json({
+      configuration: {
+        lite: true,
+        site_name: "",
+        project_id,
+        account_id,
+        compute_server_id,
+      },
+    });
   });
 
   // file download
-  app.get(`/${PROJECT_ID}/files/*`, async (req, res) => {
+  app.get(`/${project_id}/files/*`, async (req, res) => {
     await handleFileDownload({ req, res });
   });
 

@@ -103,6 +103,7 @@ export type SoftwareEnvironments = TypedMap<{
 export interface CustomizeState {
   time: number; // this will always get set once customize has loaded.
   is_commercial: boolean;
+
   openai_enabled: boolean;
   google_vertexai_enabled: boolean;
   mistral_enabled: boolean;
@@ -190,6 +191,9 @@ export interface CustomizeState {
   user_tracking?: string;
 
   lite?: boolean;
+  account_id?: string;
+  project_id?: string;
+  compute_server_id?: number;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -714,5 +718,5 @@ function processLite(configuration) {
     return;
   }
   liteInitialized = true;
-  initLite(redux);
+  initLite(redux, configuration);
 }

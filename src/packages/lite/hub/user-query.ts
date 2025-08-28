@@ -27,7 +27,8 @@ You have to have a server running (say on port 30000).  Then:
 
 */
 
-import { ACCOUNT_ID, PROJECT_ID } from "../const";
+import { account_id } from "@cocalc/backend/data";
+import { project_id } from "@cocalc/project/data";
 import * as misc from "@cocalc/util/misc";
 import type { DKV } from "@cocalc/conat/sync/dkv";
 import { cloneDeep, isEqual } from "lodash";
@@ -57,8 +58,8 @@ export default function userQuery({
   }
 
   const subs = {
-    "{account_id}": ACCOUNT_ID,
-    "{project_id}": PROJECT_ID,
+    "{account_id}": account_id,
+    "{project_id}": project_id,
     "{now}": new Date(),
   };
   query = cloneDeep(query);
@@ -112,7 +113,7 @@ export async function init(client) {
   if (kv.get("accounts") == null) {
     kv.set("accounts", [
       {
-        account_id: ACCOUNT_ID,
+        account_id,
         email_address: "user@cocalc.com",
       },
     ]);
@@ -120,7 +121,7 @@ export async function init(client) {
   if (kv.get("projects") == null) {
     kv.set("projects", [
       {
-        project_id: PROJECT_ID,
+        project_id,
         title: "CoCalc Lite",
         state: { state: "running" },
       },

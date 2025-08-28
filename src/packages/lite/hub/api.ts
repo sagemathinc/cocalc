@@ -6,7 +6,7 @@ import getLogger from "@cocalc/backend/logger";
 import { type HubApi, transformArgs } from "@cocalc/conat/hub/api";
 import { conat } from "@cocalc/backend/conat";
 import userQuery, { init as initUserQuery } from "./user-query";
-import { ACCOUNT_ID } from "../const";
+import { account_id as ACCOUNT_ID } from "@cocalc/backend/data";
 
 const logger = getLogger("lite:hub:api");
 

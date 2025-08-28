@@ -1,13 +1,23 @@
+import { type CustomizeState } from "@cocalc/frontend/customize";
+import { FALLBACK_UUID } from "@cocalc/util/misc";
+
 export let lite = false;
 
-export function init(redux) {
+export let project_id: string = "";
+export let account_id: string = "";
+export let compute_server_id: number = 0;
+
+export function init(redux, configuration: CustomizeState) {
   console.log("Initializing CoCalc Lite!");
   lite = true;
-  redux.getActions("account").setState({ is_logged_in: true });
+  ({
+    account_id = FALLBACK_UUID,
+    project_id = FALLBACK_UUID,
+    compute_server_id = 0,
+  } = configuration);
+  redux.getActions("account").setState({ is_logged_in: true, account_id });
   redux.getActions("projects").setState({
-    open_projects: ["00000000-0000-4000-8000-000000000000"],
+    open_projects: [project_id],
   });
-  redux
-    .getActions("page")
-    .set_active_tab("00000000-0000-4000-8000-000000000000");
+  redux.getActions("page").set_active_tab(project_id);
 }

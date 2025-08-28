@@ -290,6 +290,8 @@ export function endswith(s: any, t: any): boolean {
 import { v4 as v4uuid } from "uuid";
 export const uuid: () => string = v4uuid;
 
+export const FALLBACK_UUID = "00000000-0000-4000-8000-000000000000";
+
 const uuid_regexp = new RegExp(
   /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i,
 );

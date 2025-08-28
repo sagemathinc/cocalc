@@ -15,7 +15,7 @@ import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initBugCounter } from "@cocalc/project/bug-counter";
 import { init as initChangefeeds } from "./hub/changefeeds";
 import { init as initHubApi } from "./hub/api";
-import { ACCOUNT_ID } from "./const";
+import { account_id } from "@cocalc/backend/data";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -45,7 +45,7 @@ export async function main(): Promise<number> {
     httpServer,
     port,
     getUser: async () => {
-      return { account_id: ACCOUNT_ID };
+      return { account_id };
     },
   };
   conatServer = createConatServer(options);
