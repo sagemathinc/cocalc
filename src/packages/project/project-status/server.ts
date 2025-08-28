@@ -18,7 +18,6 @@ Hence in particular, information like cpu, memory and disk are smoothed out and 
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
@@ -33,12 +32,12 @@ import {
 } from "@cocalc/comm/project-status/types";
 import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 import { createPublisher } from "@cocalc/conat/project/project-status";
-import { compute_server_id, project_id } from "@cocalc/project/data";
 import { getLogger } from "@cocalc/project/logger";
 import { how_long_ago_m, round1 } from "@cocalc/util/misc";
 import { version as smcVersion } from "@cocalc/util/smc-version";
 import { ProjectInfo } from "@cocalc/util/types/project-info/types";
 import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
+import { getIdentity } from "@cocalc/project/conat/connection";
 
 // TODO: only return the "next" value, if it is significantly different from "prev"
 //function threshold(prev?: number, next?: number): number | undefined {
@@ -327,15 +326,14 @@ export class ProjectStatusServer extends EventEmitter {
 // singleton, we instantiate it when we need it
 let status: ProjectStatusServer | undefined = undefined;
 
-export function init() {
+export function init(opts?) {
   logger.debug("initializing project status server, and enabling publishing");
   if (status == null) {
     status = new ProjectStatusServer();
   }
   createPublisher({
     projectStatusServer: status,
-    compute_server_id,
-    project_id,
+    ...getIdentity(opts),
   });
   status.start();
 }

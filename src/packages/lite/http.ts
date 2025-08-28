@@ -90,7 +90,7 @@ export async function initApp({ app, conatClient }) {
 
   app.get("*", (req, res) => {
     if (req.url.endsWith("__webpack_hmr")) return;
-    console.log("redirecting", req.url);
+    logger.debug("redirecting", req.url);
     res.redirect("/static/app.html");
   });
 }

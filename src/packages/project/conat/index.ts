@@ -25,9 +25,9 @@ export default async function init(opts?) {
 
   await initAPI(opts);
   await initJupyter(opts);
-  initWebsocketApi();
-  await initRead();
-  await initWrite();
-  initProjectStatus();
-  initUsageInfo();
+  initWebsocketApi(opts);
+  await initRead(opts);
+  await initWrite(opts);
+  initProjectStatus(opts);
+  initUsageInfo(opts);
 }

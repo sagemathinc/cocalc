@@ -71,7 +71,10 @@ import {
   readFile,
 } from "./read";
 import { projectSubject } from "@cocalc/conat/names";
-import { type Subscription } from "@cocalc/conat/core/client";
+import {
+  type Subscription,
+  type Client as ConatClient,
+} from "@cocalc/conat/core/client";
 import { type Readable } from "node:stream";
 import { getLogger } from "@cocalc/conat/client";
 const logger = getLogger("conat:files:write");
@@ -96,10 +99,12 @@ export async function close({ project_id, compute_server_id }) {
 }
 
 export async function createServer({
+  client = conat(),
   project_id,
   compute_server_id,
   createWriteStream,
 }: {
+  client?: ConatClient;
   project_id: string;
   compute_server_id: number;
   // createWriteStream returns a writeable stream
@@ -113,8 +118,7 @@ export async function createServer({
   if (sub != null) {
     return;
   }
-  const cn = await conat();
-  sub = await cn.subscribe(subject);
+  sub = await client.subscribe(subject);
   subs[subject] = sub;
   listen({ sub, createWriteStream, project_id, compute_server_id });
 }
@@ -195,11 +199,19 @@ export interface WriteFileOptions {
 }
 
 export async function writeFile({
+  client = conat(),
   project_id,
   compute_server_id = 0,
   path,
   stream,
   maxWait = 1000 * 60 * 10, // 10 minutes
+}: {
+  client?: ConatClient;
+  project_id: string;
+  compute_server_id?: number;
+  path: string;
+  stream;
+  maxWait?: number;
 }): Promise<{ bytes: number; chunks: number }> {
   logger.debug("writeFile", { project_id, compute_server_id, path, maxWait });
   const name = randomId();
@@ -215,8 +227,7 @@ export async function writeFile({
       name,
     });
     // tell compute server / project to start reading our file.
-    const cn = await conat();
-    const resp = await cn.request(
+    const resp = await client.request(
       getWriteSubject({ project_id, compute_server_id }),
       { name, path, maxWait },
       { timeout: maxWait },

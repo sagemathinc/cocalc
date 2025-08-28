@@ -25,7 +25,7 @@ import {
   createUsageInfoService,
   type UsageInfoService,
 } from "@cocalc/conat/project/usage-info";
-import { compute_server_id, project_id } from "@cocalc/project/data";
+import { getIdentity } from "@cocalc/project/conat/connection";
 
 export const UPDATE_INTERVAL_S = 2;
 
@@ -40,10 +40,9 @@ function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
 }
 
 let server: UsageInfoService | null = null;
-export function init() {
+export function init(opts?) {
   server = createUsageInfoService({
-    project_id,
-    compute_server_id,
+    ...getIdentity(opts),
     createUsageInfoServer: (path) => new UsageInfoServer(path),
   });
 }

@@ -71,17 +71,16 @@ function getSubject({ project_id, compute_server_id, name = "" }) {
 export async function createServer({
   createReadStream,
   project_id,
-  compute_server_id,
+  compute_server_id = 0,
   name = "",
-  client,
+  client = conat(),
 }: {
   createReadStream;
   project_id: string;
-  compute_server_id: number;
+  compute_server_id?: number;
   name?: string;
   client?: ConatClient;
 }) {
-  client ??= await conat();
   const subject = getSubject({
     project_id,
     compute_server_id,
@@ -175,15 +174,14 @@ export interface ReadFileOptions {
 }
 
 export async function* readFile({
+  client = conat(),
   project_id,
   compute_server_id = 0,
   path,
   name = "",
   maxWait = 1000 * 60 * 10, // 10 minutes
-  client,
 }: ReadFileOptions) {
   logger.debug("readFile", { project_id, compute_server_id, path });
-  client ??= await conat();
   const subject = getSubject({
     project_id,
     compute_server_id,

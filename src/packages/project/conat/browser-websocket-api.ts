@@ -38,21 +38,24 @@ then after that code runs you can access x from the node console!
 */
 
 import { getLogger } from "@cocalc/project/logger";
-import { connectToConat } from "./connection";
 import { handleApiCall } from "@cocalc/project/browser-websocket/api";
 import { getSubject } from "./names";
+import { getIdentity } from "./connection";
 
 const logger = getLogger("project:conat:browser-websocket-api");
 
-export async function init() {
-  const client = connectToConat();
+export async function init(opts?) {
+  const { client, ...id } = getIdentity(opts);
   const subject = getSubject({
     service: "browser-api",
+    ...id,
   });
   logger.debug(`initAPI -- project subject '${subject}'`);
   const sub = await client.subscribe(subject);
-  logger.debug(`browser primus subject: ${getSubject({ service: "primus" })}`);
-  const primus = client.socket.listen(getSubject({ service: "primus" }));
+  logger.debug(
+    `browser primus subject: ${getSubject({ ...id, service: "primus" })}`,
+  );
+  const primus = client.socket.listen(getSubject({ ...id, service: "primus" }));
   primus.on("connection", (spark) => {
     logger.debug("got a spark");
     spark.on("data", (data) => {
