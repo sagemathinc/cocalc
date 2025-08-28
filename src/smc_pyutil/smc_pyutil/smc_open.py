@@ -5,6 +5,7 @@
 # via "open *" and killing their frontend.
 from __future__ import absolute_import
 from __future__ import print_function
+
 MAX_FILES = 15
 
 # ROOT_SYMLINK is a symlink to / from somehow in the user's home directory.
@@ -15,16 +16,9 @@ MAX_FILES = 15
 #      0 lrwxrwxrwx 1 user user 1 Oct 22 23:00 .smc/root -> /
 ROOT_SYMLINK = '.smc/root'
 
-import json, os, sys
+import os, sys, json, time, uuid
 
 home = os.environ['HOME']
-
-if 'TMUX' in os.environ:
-    prefix = '\x1bPtmux;\x1b'
-    postfix = '\x1b\\'
-else:
-    prefix = ''
-    postfix = ''
 
 
 def process(paths):
@@ -76,8 +70,39 @@ def process(paths):
 
     if v:
         mesg = {'event': 'open', 'paths': v}
-        ser = json.dumps(mesg, separators=(',', ':'))
-        print(prefix + '\x1b]49;%s\x07' % ser + postfix)
+        write_mesg(mesg)
+
+
+def write_mesg(msg: dict) -> None:
+    dirpath = os.environ.get("COCALC_CONTROL_DIR")
+    if not dirpath:
+        print("COCALC_CONTROL_DIR not set", file=sys.stderr)
+        sys.exit(2)
+    os.makedirs(dirpath, exist_ok=True)
+    base = f"{int(time.monotonic_ns())}-{os.getpid()}-{uuid.uuid4().hex[:8]}.json"
+    tmp = os.path.join(dirpath, "." + base + ".tmp")
+    dst = os.path.join(dirpath, base)
+    data = (json.dumps(msg, separators=(",", ":")) + "\n").encode()
+
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())  # ensure file data is durable
+        os.replace(tmp, dst)  # atomic rename into place
+        # (Optional) fsync the directory for crash-safety:
+        dfd = os.open(dirpath, os.O_DIRECTORY)
+        try:
+            os.fsync(dfd)
+        finally:
+            os.close(dfd)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except FileNotFoundError:
+                pass
 
 
 def main():

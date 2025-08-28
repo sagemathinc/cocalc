@@ -9,7 +9,7 @@ Paths to temporary files used by the project.
 
 import { join } from "path";
 import { data } from "@cocalc/backend/data";
-import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { is_valid_uuid_string, FALLBACK_UUID } from "@cocalc/util/misc";
 import { pidFilename } from "@cocalc/util/project-info";
 
 export const infoJson = join(data, "info.json");
@@ -38,21 +38,21 @@ function getIDs() {
   let project_id;
   if (process.env.COCALC_PROJECT_ID) {
     project_id = process.env.COCALC_PROJECT_ID;
-  } else {
-    if (!process.env.HOME) {
-      throw Error("HOME not defined, so no way to determine project_id");
-    }
+  } else if (process.env.HOME) {
     const v = process.env.HOME.split("/");
-    project_id = v[v.length - 1];
-    if (!is_valid_uuid_string(project_id)) {
-      throw Error("unable to determine project_id from HOME directory path");
+    if (is_valid_uuid_string(v[v.length - 1])) {
+      project_id = v[v.length - 1];
     }
+  }
+  if (!project_id) {
+    // fallback generic project_id
+    project_id = FALLBACK_UUID;
   }
   // Throw in some consistency checks:
   if (!is_valid_uuid_string(project_id)) {
     throw Error(`project_id=${project_id} is not a valid UUID`);
   }
-  const username = process.env.COCALC_USERNAME ?? project_id.replace(/-/g, "");
+  const username = process.env.COCALC_USERNAME ?? "user";
   return { project_id, username };
 }
 

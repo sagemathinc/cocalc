@@ -102,7 +102,7 @@ export interface ProjectClient extends EventEmitter {
   // Only required to work on project client.
   path_access: (opts: { path: string; mode: string; cb: Function }) => void;
 
-  path_exists: (opts: { path: string; cb: Function }) => void;
+  path_exists?: (opts: { path: string; cb: Function }) => void;
 
   path_stat: (opts: { path: string; cb: Function }) => void;
 
@@ -141,13 +141,6 @@ export interface ProjectClient extends EventEmitter {
     project_id?: string,
   ) => boolean | undefined | null;
   set_deleted: (filename: string, project_id?: string) => void;
-
-  ipywidgetsGetBuffer?: (
-    project_id: string, // id of the project
-    path: string, // path = name of ipynb file
-    model_id: string, // id of the ipywidgets model
-    buffer_path: string, // JSON.stringify(['binary','buffer','path'])
-  ) => ArrayBuffer;
 }
 
 export interface Client extends ProjectClient {
@@ -169,13 +162,15 @@ export interface Client extends ProjectClient {
 
   sage_session: (opts: { path: string }) => any;
 
-  touchOpenFile?: (opts: {
-    project_id: string;
-    path: string;
-    doctype?;
-  }) => Promise<void>;
-
   touch_project?: (path: string) => void;
+
+  ipywidgetsGetBuffer?: (opts: {
+    project_id: string;
+    compute_server_id?: number;
+    path: string;
+    model_id: string;
+    buffer_path: string | string[];
+  }) => Promise<ArrayBuffer>;
 }
 
 export interface DocType {

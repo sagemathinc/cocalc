@@ -180,6 +180,11 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+export const rusticRepo: string =
+  process.env.RUSTIC_REPO ?? join(data, "rustic");
+
+export const account_id: string =
+  process.env.COCALC_ACCOUNT_ID ?? "00000000-0000-4000-8000-000000000000";
 
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory
@@ -252,6 +257,9 @@ export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
 
 // number of api servers (if configured to run)
 export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
+export let conatProjectRunnerCount = parseInt(
+  process.env.CONAT_PROJECT_RUNNER_COUNT ?? "1",
+);
 
 // if configured, will create a socketio cluster using
 // the cluster adapter, listening on the given port.

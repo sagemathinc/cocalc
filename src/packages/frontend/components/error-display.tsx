@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// DEPRECATED -- the ShowError component in ./error.tsx is much better.
+
 import { Alert } from "antd";
 
 // use "style" to customize

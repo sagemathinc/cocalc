@@ -28,7 +28,6 @@ import "@cocalc/project/conat/env"; // ensure conat env available
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { createWriteStream as fs_createWriteStream } from "fs";
 import { rename } from "fs/promises";
-import { compute_server_id, project_id } from "@cocalc/project/data";
 import { join } from "path";
 import {
   createServer,
@@ -36,6 +35,7 @@ import {
 } from "@cocalc/conat/files/write";
 import { randomId } from "@cocalc/conat/names";
 import { rimraf } from "rimraf";
+import { getIdentity } from "../connection";
 
 async function createWriteStream(path: string) {
   // console.log("createWriteStream", { path });
@@ -58,10 +58,10 @@ async function createWriteStream(path: string) {
 }
 
 // the project should call this on startup:
-export async function init() {
-  await createServer({ project_id, compute_server_id, createWriteStream });
+export async function init(opts?) {
+  await createServer({ ...getIdentity(opts), createWriteStream });
 }
 
-export async function close() {
-  await closeWriteServer({ project_id, compute_server_id });
+export async function close(opts?) {
+  await closeWriteServer(getIdentity(opts));
 }

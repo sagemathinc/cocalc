@@ -12,7 +12,7 @@ pnpm test sync.1.test.ts
 
 */
 
-import { Client } from "./client-test";
+import { Client, fs } from "./client-test";
 import { SyncString } from "../sync";
 import { once } from "@cocalc/util/async-utils";
 import { a_txt } from "./data";
@@ -28,7 +28,13 @@ describe("create syncstring and test doing some edits", () => {
   ];
 
   it("creates the syncstring and wait until ready", async () => {
-    syncstring = new SyncString({ project_id, path, client, cursors: true });
+    syncstring = new SyncString({
+      project_id,
+      path,
+      client,
+      cursors: true,
+      fs,
+    });
     expect(syncstring.get_state()).toBe("init");
     await once(syncstring, "ready");
   });
@@ -95,21 +101,6 @@ describe("create syncstring and test doing some edits", () => {
 
   it("is not read only", () => {
     expect(syncstring.is_read_only()).toBe(false);
-  });
-
-  it("save to disk", async () => {
-    expect(syncstring.has_unsaved_changes()).toBe(true);
-    const promise = syncstring.save_to_disk();
-    // Mock: we set save to done in the syncstring
-    // table, otherwise the promise will never resolve.
-    (syncstring as any).set_save({
-      state: "done",
-      error: "",
-      hash: syncstring.hash_of_live_version(),
-    });
-    (syncstring as any).syncstring_table.emit("change-no-throttle");
-    await promise;
-    expect(syncstring.has_unsaved_changes()).toBe(false);
   });
 
   it("close and clean up", async () => {

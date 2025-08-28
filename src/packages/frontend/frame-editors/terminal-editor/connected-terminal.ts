@@ -46,7 +46,7 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-const ENABLE_WEBGL = true;
+const ENABLE_WEBGL = false;
 
 // ephemeral = faster, less load on servers, but if project and browser all
 // close, the history is gone... which may be good and less confusing.

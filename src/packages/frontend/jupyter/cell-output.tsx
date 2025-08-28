@@ -16,6 +16,7 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import { CollapsedOutput, OutputToggle } from "./cell-output-toggle";
 import { CellOutputMessages } from "./output-messages/message";
 import { OutputPrompt } from "./prompt/output";
+import RawInput from "./raw-input";
 
 interface CellOutputProps {
   actions?: JupyterActions;
@@ -32,6 +33,7 @@ interface CellOutputProps {
   divRef?;
   llmTools?: LLMTools;
   isDragging?: boolean;
+  stdin?;
 }
 
 export function CellOutput({
@@ -49,6 +51,7 @@ export function CellOutput({
   style,
   llmTools,
   isDragging,
+  stdin,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -64,7 +67,7 @@ export function CellOutput({
     );
   }
 
-  if (cell.get("output") == null) {
+  if (cell.get("output") == null && !stdin) {
     return <div key="out" style={{ minHeight }} />;
   }
 
@@ -84,25 +87,28 @@ export function CellOutput({
         "cocalc-output-div" /* used by stable unsafe html for clipping */
       }
     >
-      {!hidePrompt && (
-        <ControlColumn
+      {!hidePrompt && <ControlColumn cell={cell} actions={actions} id={id} />}
+      <div style={{ flex: 1 }}>
+        <OutputColumn
           cell={cell}
           actions={actions}
           id={id}
+          more_output={more_output}
+          project_id={project_id}
+          directory={directory}
+          name={name}
+          trust={trust}
+          llmTools={llmTools}
+          isDragging={isDragging}
         />
-      )}
-      <OutputColumn
-        cell={cell}
-        actions={actions}
-        id={id}
-        more_output={more_output}
-        project_id={project_id}
-        directory={directory}
-        name={name}
-        trust={trust}
-        llmTools={llmTools}
-        isDragging={isDragging}
-      />
+        {stdin && (
+          <RawInput
+            style={{ marginTop: "5px" }}
+            {...stdin.toJS()}
+            actions={actions}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -212,11 +218,7 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle
-        actions={actions}
-        id={id}
-        scrolled={cell.get("scrolled")}
-      >
+      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled")}>
         {prompt}
       </OutputToggle>
     );

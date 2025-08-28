@@ -3,18 +3,14 @@
 # License: MS-RSL – see LICENSE.md for details
 
 from __future__ import absolute_import, print_function
+
 MAX_FILES = 100
 
-import json, os, sys
+from smc_pyutil.smc_open import write_mesg
+
+import os, sys
 
 home = os.environ['HOME']
-
-if 'TMUX' in os.environ:
-    prefix = '\x1bPtmux;\x1b'
-    postfix = '\x1b\\'
-else:
-    prefix = ''
-    postfix = ''
 
 
 def process(paths):
@@ -56,8 +52,7 @@ def process(paths):
 
     if v:
         mesg = {'event': 'close', 'paths': v}
-        ser = json.dumps(mesg, separators=(',', ':'))
-        print(prefix + '\x1b]49;%s\x07' % ser + postfix)
+        write_mesg(mesg)
 
 
 def main():

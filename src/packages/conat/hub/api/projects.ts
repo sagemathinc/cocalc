@@ -1,6 +1,7 @@
 import { authFirstRequireAccount } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
-import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
+import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 export const projects = {
   createProject: authFirstRequireAccount,
@@ -10,6 +11,21 @@ export const projects = {
   inviteCollaborator: authFirstRequireAccount,
   inviteCollaboratorWithoutAccount: authFirstRequireAccount,
   setQuotas: authFirstRequireAccount,
+
+  getDiskQuota: authFirstRequireAccount,
+
+  createBackup: authFirstRequireAccount,
+  deleteBackup: authFirstRequireAccount,
+  restoreBackup: authFirstRequireAccount,
+  updateBackups: authFirstRequireAccount,
+  getBackups: authFirstRequireAccount,
+  getBackupFiles: authFirstRequireAccount,
+  getBackupQuota: authFirstRequireAccount,
+
+  createSnapshot: authFirstRequireAccount,
+  deleteSnapshot: authFirstRequireAccount,
+  updateSnapshots: authFirstRequireAccount,
+  getSnapshotQuota: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -30,7 +46,11 @@ export interface Projects {
   // request to have conat permissions to project subjects.
   createProject: (opts: CreateProjectOptions) => Promise<string>;
 
-  copyPathBetweenProjects: (opts: UserCopyOptions) => Promise<void>;
+  copyPathBetweenProjects: (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
+  }) => Promise<void>;
 
   removeCollaborator: ({
     account_id,
@@ -85,6 +105,7 @@ export interface Projects {
     };
   }) => Promise<void>;
 
+  // for admins only!
   setQuotas: (opts: {
     account_id?: string;
     project_id: string;
@@ -98,4 +119,80 @@ export interface Projects {
     member_host?: number;
     always_running?: number;
   }) => Promise<void>;
+
+  getDiskQuota: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<{ used: number; size: number }>;
+
+  /////////////
+  // BACKUPS
+  /////////////
+  createBackup: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<{ time: Date; id: string }>;
+
+  deleteBackup: (opts: {
+    account_id?: string;
+    project_id: string;
+    id: string;
+  }) => Promise<void>;
+
+  restoreBackup: (opts: {
+    account_id?: string;
+    project_id: string;
+    path?: string;
+    id: string;
+  }) => Promise<void>;
+
+  updateBackups: (opts: {
+    account_id?: string;
+    project_id: string;
+    counts?: Partial<SnapshotCounts>;
+  }) => Promise<void>;
+
+  getBackups: (opts: { account_id?: string; project_id: string }) => Promise<
+    {
+      id: string;
+      time: Date;
+    }[]
+  >;
+
+  getBackupFiles: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<string[]>;
+
+  getBackupQuota: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<{ limit: number }>;
+
+  /////////////
+  // SNAPSHOTS
+  /////////////
+
+  createSnapshot: (opts: {
+    account_id?: string;
+    project_id: string;
+    name?: string;
+  }) => Promise<void>;
+
+  deleteSnapshot: (opts: {
+    account_id?: string;
+    project_id: string;
+    name: string;
+  }) => Promise<void>;
+
+  updateSnapshots: (opts: {
+    account_id?: string;
+    project_id: string;
+    counts?: Partial<SnapshotCounts>;
+  }) => Promise<void>;
+
+  getSnapshotQuota: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<{ limit: number }>;
 }

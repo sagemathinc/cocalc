@@ -1,15 +1,10 @@
 import { uuid } from "@cocalc/util/misc";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import createProject from "@cocalc/server/projects/create";
 import addLicenseToProject from "./add-to-project";
+import { before, after, getPool } from "@cocalc/server/test";
 
-beforeAll(async () => {
-  await initEphemeralDatabase({});
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("test various cases of adding a license to a project", () => {
   let project_id = uuid();
@@ -29,7 +24,7 @@ describe("test various cases of adding a license to a project", () => {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({ [license_id]: {} });
   });
@@ -39,7 +34,7 @@ describe("test various cases of adding a license to a project", () => {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({ [license_id]: {} });
   });
@@ -50,7 +45,7 @@ describe("test various cases of adding a license to a project", () => {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({
       [license_id]: {},
@@ -62,12 +57,12 @@ describe("test various cases of adding a license to a project", () => {
     const pool = getPool();
     await pool.query(
       "UPDATE projects SET site_license='{}' WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     await addLicenseToProject({ project_id, license_id });
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({ [license_id]: {} });
   });

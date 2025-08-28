@@ -11,7 +11,7 @@ import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
 import { parseReq } from "./parse";
 import hasAccess from "./check-for-access-to-project";
-import { handleFileDownload } from "./file-download";
+import { handleFileDownload } from "@cocalc/conat/files/file-download";
 
 const logger = getLogger("proxy:handle-request");
 
@@ -90,7 +90,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       ) {
         throw Error(`user does not have read access to project`);
       }
-      await handleFileDownload(req, res, url, project_id);
+      await handleFileDownload({ req, res, url });
       return;
     }
 

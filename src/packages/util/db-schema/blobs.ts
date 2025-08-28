@@ -9,7 +9,7 @@ import { Table } from "./types";
 //   https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files
 // All code in cocalc (frontend, etc.) should use this,
 // rather than copying or defining their own!
-export const MAX_BLOB_SIZE = 10000000;
+export const MAX_BLOB_SIZE = 25_000_000;
 
 // some throttling -- note that after a bit, most blobs end up longterm
 // cloud storage and are never accessed.  This is mainly a limit to
