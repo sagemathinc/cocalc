@@ -47,7 +47,7 @@ export default function StudentPay({ actions, settings }) {
       end: dayjs().add(3, "month").toDate(),
     } as PurchaseInfo;
     setTimeout(() => {
-      // React requirment: this must happen in different render loop, because
+      // React requirement: this must happen in different render loop, because
       // it causes an update to the UI.
       actions.configuration.setStudentPay({ info, cost });
     }, 1);
@@ -218,6 +218,7 @@ export default function StudentPay({ actions, settings }) {
                       info={info}
                       onChange={setInfo}
                       hiddenFields={new Set(["quantity", "custom_member"])}
+                      minDiskGb={1}
                     />
                     <div style={{ margin: "15px 0" }}>
                       <StudentPayCheckboxLabel
@@ -278,7 +279,7 @@ function RequireStudentsPayWhen({ when, setWhen, cost, minPayment, info }) {
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
         <DatePicker
           changeOnBlur
-          showToday
+          showNow
           allowClear={false}
           disabledDate={(current) =>
             current < start.subtract(1, "day") ||

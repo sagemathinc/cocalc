@@ -80,7 +80,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "ms": "2.1.2",
-    "next": "15.3.4",
+    "next": "15.5.0",
     "next-rest-framework": "6.0.0-beta.4",
     "next-translate": "^2.6.2",
     "password-hash": "^1.2.2",
@@ -103,7 +103,7 @@
     "@types/node": "^18.16.14",
     "@types/react": "^19.1.10",
     "@uiw/react-textarea-code-editor": "^3.1.1",
-    "next-rspack": "^15.4.6",
+    "next-rspack": "^15.5.0",
     "node-mocks-http": "^1.14.1"
   }
 }
