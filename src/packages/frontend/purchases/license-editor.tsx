@@ -40,6 +40,7 @@ interface Props {
   hiddenFields?: Set<Field>;
   noCancel?: boolean;
   minDiskGb?: number;
+  minRamGb?: number;
 }
 
 const END_PRESETS: {
@@ -66,6 +67,7 @@ export default function LicenseEditor({
   cellStyle,
   noCancel,
   minDiskGb = MIN_DISK_GB,
+  minRamGb = 4,
 }: Props) {
   if (info.type == "vouchers") {
     return <Alert type="error" message="Editing vouchers is not allowed." />;
@@ -206,7 +208,7 @@ export default function LicenseEditor({
             value: (
               <InputNumber
                 disabled={disabledFields?.has("custom_ram")}
-                min={1}
+                min={minRamGb}
                 max={MAX.ram}
                 step={1}
                 value={info.custom_ram}

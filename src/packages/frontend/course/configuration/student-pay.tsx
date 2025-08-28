@@ -12,7 +12,6 @@ import dayjs from "dayjs";
 import { isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
@@ -227,6 +226,7 @@ export default function StudentPay({ actions, settings }) {
                       onChange={setInfo}
                       hiddenFields={new Set(["quantity", "custom_member"])}
                       minDiskGb={1}
+                      minRamGb={2}
                     />
                     <div style={{ margin: "15px 0" }}>
                       <StudentPayCheckboxLabel
