@@ -19,20 +19,16 @@ Then run this code in nodejs:
 import { run } from "@cocalc/project/conat/api/jupyter";
 import { outputHandler, getKernelStatus } from "@cocalc/jupyter/control";
 import { jupyterServer } from "@cocalc/conat/project/jupyter/run-code";
-import { connectToConat } from "@cocalc/project/conat/connection";
-import { compute_server_id, project_id } from "@cocalc/project/data";
 import { getLogger } from "@cocalc/project/logger";
+import { getIdentity } from "./connection";
 
 const logger = getLogger("project:conat:jupyter");
 
 let server: any = null;
-export function init() {
+export function init(opts?) {
   logger.debug("initializing jupyter run server");
-  const client = connectToConat();
   server = jupyterServer({
-    client,
-    project_id,
-    compute_server_id,
+    ...getIdentity(opts),
     run,
     outputHandler,
     getKernelStatus,
