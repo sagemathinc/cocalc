@@ -7,7 +7,6 @@ import { CustomUpgrades, Subscription, User } from "./types";
 
 import costVersions from "./cost-versions";
 
-
 export const CURRENT_VERSION = "3";
 
 // Another gamble implicit in this is that pre's are available.  When they
@@ -83,6 +82,10 @@ interface CostsStructure {
 }
 
 export function getCosts(version: string): CostsStructure {
+  const x = costVersions[version];
+  if (x == null) {
+    throw Error(`Unknown cost version '${version}'`);
+  }
   const {
     SUB_DISCOUNT,
     GCE_COSTS,
