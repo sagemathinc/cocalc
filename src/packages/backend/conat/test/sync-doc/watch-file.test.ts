@@ -116,7 +116,6 @@ describe("basic watching of file on disk happens automatically", () => {
     await fs.writeFile(path, "version5");
     await wait({
       until: () => {
-        console.log(s2.to_str());
         return s2.to_str() == "version5";
       },
     });

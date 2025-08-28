@@ -372,13 +372,13 @@ export class SandboxedFilesystem {
   readdir = async (path: string, options?) => {
     const x = (await readdir(await this.safeAbsPath(path), options)) as any[];
     if (options?.withFileTypes) {
-      // each entry in x has a path and parentPath field, which refers to the
+      // each entry in x has a name and parentPath field, which refers to the
       // absolute paths to the directory that contains x or the target of x (if
       // it is a link).  This is an absolute path on the fileserver, which we try
       // not to expose from the sandbox, hence we modify them all if possible.
       for (const a of x) {
-        if (a.path.startsWith(this.path)) {
-          a.path = a.path.slice(this.path.length + 1);
+        if (a.name.startsWith(this.path)) {
+          a.name = a.name.slice(this.path.length + 1);
         }
         if (a.parentPath.startsWith(this.path)) {
           a.parentPath = a.parentPath.slice(this.path.length + 1);

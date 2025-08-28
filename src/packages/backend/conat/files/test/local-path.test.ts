@@ -162,7 +162,6 @@ describe("use all the standard api functions of fs", () => {
       expect.objectContaining({
         name: "subdir",
         parentPath: path,
-        path,
       }),
     );
     expect(w[0].isDirectory()).toBe(true);
@@ -170,11 +169,12 @@ describe("use all the standard api functions of fs", () => {
       expect.objectContaining({
         name: "b.txt",
         parentPath: join(path, "subdir"),
-        path: join(path, "subdir"),
       }),
     );
     expect(w[1].isFile()).toBe(true);
-    expect(await fs.readFile(join(w[1].path, w[1].name), "utf8")).toEqual("x");
+    expect(await fs.readFile(join(w[1].parentPath, w[1].name), "utf8")).toEqual(
+      "x",
+    );
   });
 
   it("readdir works with non-utf8 filenames in the path", async () => {
