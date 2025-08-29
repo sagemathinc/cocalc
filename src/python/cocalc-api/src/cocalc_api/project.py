@@ -1,6 +1,6 @@
 import httpx
 from typing import Any, Optional
-from .util import api_method
+from .util import api_method, handle_error
 from .api_types import ExecuteCodeOutput, PingResponse
 
 
@@ -40,7 +40,7 @@ class Project:
             payload["timeout"] = timeout
         resp = self.client.post(self.host + '/api/conat/project', json=payload)
         resp.raise_for_status()
-        return resp.json()
+        return handle_error(resp.json())
 
     @property
     def system(self):

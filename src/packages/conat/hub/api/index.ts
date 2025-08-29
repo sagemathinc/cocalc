@@ -5,6 +5,7 @@ import { type Projects, projects } from "./projects";
 import { type DB, db } from "./db";
 import { type Jupyter, jupyter } from "./jupyter";
 import { handleErrorMessage } from "@cocalc/conat/util";
+import { type Sync, sync } from "./sync";
 
 export interface HubApi {
   system: System;
@@ -12,6 +13,7 @@ export interface HubApi {
   db: DB;
   purchases: Purchases;
   jupyter: Jupyter;
+  sync: Sync;
 }
 
 const HubApiStructure = {
@@ -20,6 +22,7 @@ const HubApiStructure = {
   db,
   purchases,
   jupyter,
+  sync,
 } as const;
 
 export function transformArgs({ name, args, account_id, project_id }) {

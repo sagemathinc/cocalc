@@ -3,6 +3,12 @@ import inspect
 from typing import Any, Callable
 
 
+def handle_error(x: Any) -> Any:
+    if 'error' in x:
+        raise RuntimeError(x['error'])
+    return x
+
+
 def api_method(name: str,
                opts: bool = False,
                timeout_seconds: bool = False) -> Callable:

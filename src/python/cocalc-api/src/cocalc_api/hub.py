@@ -1,6 +1,6 @@
 import httpx
 from typing import Any, Optional
-from .util import api_method
+from .util import api_method, handle_error
 from .api_types import PingResponse
 
 
@@ -32,7 +32,7 @@ class Hub:
             payload["timeout"] = timeout
         resp = self.client.post(self.host + '/api/conat/hub', json=payload)
         resp.raise_for_status()
-        return resp.json()
+        return handle_error(resp.json())
 
     @property
     def system(self):
@@ -49,6 +49,11 @@ class Hub:
         """Access jupyter-related API functions."""
         return Jupyter(self)
 
+
+    @property
+    def sync(self):
+        """Access sync engine related functions."""
+        return Sync(self)
 
 class System:
 
@@ -220,3 +225,25 @@ class Jupyter:
             {'output': [{'data': {'text/plain': '3^4 * 5^2'}}], ...}
         """
         ...
+        
+        
+
+class Sync:
+
+    def __init__(self, parent: "Hub"):
+        self._parent = parent
+
+    @api_method("sync.history")
+    def history(self, project_id: str, path:str):
+        """
+        Get complete edit history of a file.
+
+        Args:
+            project_id (str): The project_id of the project containing the file.
+            path (str): The path to the file.
+
+        Returns:
+            Any: Array of patches in a compressed diff-match-patch format, along with time and user data.
+        """
+        ...
+
