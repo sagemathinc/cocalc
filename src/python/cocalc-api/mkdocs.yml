@@ -18,3 +18,4 @@ nav:
       - System: api/system.md
       - Projects: api/projects.md
       - Jupyter: api/jupyter.md
+      - Project: api/project.md

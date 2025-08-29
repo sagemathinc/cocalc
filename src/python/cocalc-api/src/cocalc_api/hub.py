@@ -205,10 +205,12 @@ class Jupyter:
             Any: JSON response containing execution results.
             
         Examples:
-            Execute a simple sum in a Jupyter kernel:
+            Execute a simple sum using a Jupyter kernel:
             
             >>> import cocalc_api;  hub = cocalc_api.Hub(api_key="sk-...")
-            >>> hub.jupyter.execute(history=['a=100;print(a)'], input='sum(range(a+1))', kernel='python3')
+            >>> hub.jupyter.execute(history=['a=100;print(a)'], 
+                           input='sum(range(a+1))',
+                           kernel='python3')
             {'output': [{'data': {'text/plain': '5050'}}], ...}
             
             Factor a number using the sagemath kernel in a specific project:

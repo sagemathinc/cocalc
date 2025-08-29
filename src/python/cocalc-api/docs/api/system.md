@@ -1,1 +1,1 @@
-::: cocalc_api.client.System
+::: cocalc_api.hub.System

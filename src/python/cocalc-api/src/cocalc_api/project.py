@@ -102,15 +102,25 @@ class System:
             compute_server_id (Optional[number]): compute server to run code on (instead of home base project)
         
         Returns:
-            output (ExecuteCodeOutput): instance with fields
-                stdout (str): output to stdout
-                stderr (str): output to stderr
-                exit_code (int): the exit code of the process
+            ExecuteCodeOutput: Result of executing the command.
+
+        Notes:
+            The returned `ExecuteCodeOutput` has the following fields:
+
+            - `stdout` (str): Output written to stdout.
+            - `stderr` (str): Output written to stderr.
+            - `exit_code` (int): Exit code of the process.
+
         
-        Examples
+        Examples:
+        
+            >>> import cocalc_api
+            >>> project = cocalc_api.Project(api_key="sk-...", 
+                             project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
+            >>> project.system.exec(command="echo 'hello from cocalc'")
+            {'stdout': 'hello from cocalc\\n', 'stderr':'', 'exit_code': 0}
         """
         raise NotImplementedError
-
 
     @api_method("system.jupyterExecute")
     def jupyter_execute(
@@ -133,12 +143,12 @@ class System:
             Any: JSON response containing execution results.
             
         Examples:
-            Execute a simple sum in a Jupyter kernel:
+            Execute a simple sum using a Jupyter kernel:
             
             >>> import cocalc_api;  project = cocalc_api.Project(api_key="sk-...")
-            >>> project.jupyter.execute(history=['a=100;print(a)'], input='sum(range(a+1))', kernel='python3')
+            >>> project.jupyter.execute(history=['a=100;print(a)'], 
+                         input='sum(range(a+1))', 
+                         kernel='python3')
             {'output': [{'data': {'text/plain': '5050'}}], ...}
         """
         ...
-
-        

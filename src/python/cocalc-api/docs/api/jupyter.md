@@ -1,1 +1,1 @@
-::: cocalc_api.client.Jupyter
+::: cocalc_api.hub.Jupyter

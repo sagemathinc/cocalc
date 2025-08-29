@@ -1,1 +1,1 @@
-::: cocalc_api.client.Projects
+::: cocalc_api.hub.Projects
