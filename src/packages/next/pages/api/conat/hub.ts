@@ -12,7 +12,7 @@ key=sk-...02
 
 curl -sk -u $key: -H 'Content-Type: application/json' \
    -d '{"name":"system.getNames", "args":[["d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb"]]}' \
-   http://localhost:9000/api/hub
+   http://localhost:9000/api/conat/hub
 
 The api is defined in packages/conat/hub/api/
 */
