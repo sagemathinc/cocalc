@@ -1,0 +1,20 @@
+site_name: CoCalc API (Python)
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+
+nav:
+  - Home: index.md
+  - API Reference:
+      - System: api/system.md
+      - Projects: api/projects.md
+      - Jupyter: api/jupyter.md

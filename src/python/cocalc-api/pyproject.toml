@@ -14,6 +14,9 @@ packages = ["src/cocalc_api"]
 [project.urls]
 Homepage = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
 Repository = "https://github.com/sagemathinc/cocalc"
+#Documentation = "https://<your-docs-hosting-url>"
+Source = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
+Issues = "https://github.com/sagemathinc/cocalc/issues"
 
 [tool.mypy]
 python_version = "3.13"
@@ -27,6 +30,9 @@ lint.select = ["E", "F", "B"]  # Pyflakes, pycodestyle, bugbear, etc.
 [dependency-groups]
 dev = [
     "ipython",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
     "mypy",
     "pytest>=8.4.1",
     "ruff>=0.12.11",
