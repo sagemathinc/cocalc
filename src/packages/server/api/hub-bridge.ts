@@ -23,19 +23,17 @@ export default async function hubBridge({
 async function callHub({
   client,
   account_id,
-  service = "api",
   name,
   args = [],
   timeout = DEFAULT_TIMEOUT,
 }: {
   client: ConatClient;
   account_id: string;
-  service?: string;
   name: string;
   args?: any[];
   timeout?: number;
 }) {
-  const subject = `hub.account.${account_id}.${service}`;
+  const subject = `hub.account.${account_id}.api`;
   try {
     const data = { name, args };
     const resp = await client.request(subject, data, { timeout });

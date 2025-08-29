@@ -1,9 +1,10 @@
 import httpx
 from typing import Any, Optional
 from .util import api_method
+from .api_types import PingResponse
 
 
-class CoCalcAPI:
+class Hub:
 
     def __init__(self, api_key: str, host: str = "https://cocalc.com"):
         self.api_key = api_key
@@ -51,17 +52,18 @@ class CoCalcAPI:
 
 class System:
 
-    def __init__(self, parent: "CoCalcAPI"):
+    def __init__(self, parent: "Hub"):
         self._parent = parent
 
-    def ping(self) -> Any:
+    @api_method("system.ping")
+    def ping(self) -> PingResponse:
         """
         Ping the server.
 
         Returns:
             Any: JSON object containing the current server time.
         """
-        return self._parent.call("system.ping", [])
+        raise NotImplementedError
 
     def get_names(self, account_ids: list[str]) -> list[str]:
         """
@@ -78,7 +80,7 @@ class System:
 
 class Projects:
 
-    def __init__(self, parent: "CoCalcAPI"):
+    def __init__(self, parent: "Hub"):
         self._parent = parent
 
     @api_method("projects.copyPathBetweenProjects")
@@ -163,7 +165,7 @@ class Projects:
 
 class Jupyter:
 
-    def __init__(self, parent: "CoCalcAPI"):
+    def __init__(self, parent: "Hub"):
         self._parent = parent
 
     @api_method("jupyter.kernels")
@@ -205,13 +207,13 @@ class Jupyter:
         Examples:
             Execute a simple sum in a Jupyter kernel:
             
-            >>> import cocalc_api;  api = cocalc_api.CoCalcAPI(api_key="sk-...")
-            >>> api.jupyter.execute(history=['a=100;print(a)'], input='sum(range(a+1))', kernel='python3')
+            >>> import cocalc_api;  hub = cocalc_api.Hub(api_key="sk-...")
+            >>> hub.jupyter.execute(history=['a=100;print(a)'], input='sum(range(a+1))', kernel='python3')
             {'output': [{'data': {'text/plain': '5050'}}], ...}
             
             Factor a number using the sagemath kernel in a specific project:
             
-            >>> api.jupyter.execute(history=['a=2025'], input='factor(a)', kernel='sagemath', 
+            >>> hub.jupyter.execute(history=['a=2025'], input='factor(a)', kernel='sagemath', 
             ...     project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
             {'output': [{'data': {'text/plain': '3^4 * 5^2'}}], ...}
         """

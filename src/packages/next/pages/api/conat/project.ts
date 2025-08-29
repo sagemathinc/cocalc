@@ -20,6 +20,7 @@ The api is defined in packages/conat/project/api/
 import projectBridge from "@cocalc/server/api/project-bridge";
 import getParams from "lib/api/get-params";
 import { getAccountFromApiKey } from "@cocalc/server/auth/api";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export default async function handle(req, res) {
   try {
@@ -45,8 +46,10 @@ export default async function handle(req, res) {
       }
     }
     if (account_id) {
-      // auth via account_id
-      if(!await )
+      // account_id based auth
+      if (!(await isCollaborator({ account_id, project_id }))) {
+        throw Error("user must be a collaborator on the project");
+      }
     }
     const resp = await projectBridge({
       project_id,

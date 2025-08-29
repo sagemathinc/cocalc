@@ -1,3 +1,4 @@
-from .client import CoCalcAPI
+from .hub import Hub
+from .project import Project
 
-__all__ = ["CoCalcAPI"]
+__all__ = ["Hub", "Project"]

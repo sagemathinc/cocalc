@@ -15,6 +15,10 @@ serve-docs:
 build-docs: install
 	uv run mkdocs build
 
+publish: install
+	uv build
+	uv publish
+
 clean:
 	rm -rf dist build *.egg-info site
 	find . -name "__pycache__" -type d -exec rm -rf {} +

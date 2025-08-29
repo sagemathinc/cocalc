@@ -1,6 +1,6 @@
 [project]
 name = "cocalc-api"
-version = "0.1.0"
+version = "0.2.0"
 description = "Python client for the CoCalc API"
 authors = [{ name="William Stein", email="wstein@sagemath.com" }]
 readme = "README.md"
@@ -10,11 +10,12 @@ license = "MIT"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cocalc_api"]
+include = ["src/cocalc_api/py.typed"]
 
 [project.urls]
 Homepage = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
 Repository = "https://github.com/sagemathinc/cocalc"
-#Documentation = "https://<your-docs-hosting-url>"
+Documentation = "https://cocalc.com/api/python"
 Source = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
 Issues = "https://github.com/sagemathinc/cocalc/issues"
 
