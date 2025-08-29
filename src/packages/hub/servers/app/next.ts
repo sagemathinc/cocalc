@@ -55,7 +55,7 @@ export default async function init(app: Application) {
     // 1: The raw static server:
     const raw = join(shareBasePath, "raw");
     app.all(
-      join(raw, "*splat"),
+      join(raw, "{*splat}"),
       (req: Request, res: Response, next: NextFunction) => {
         // Embedding only enabled for PDF files -- see note above
         const download =
@@ -77,7 +77,7 @@ export default async function init(app: Application) {
     // 2: The download server -- just like raw, but files always get sent via download.
     const download = join(shareBasePath, "download");
     app.all(
-      join(download, "*splat"),
+      join(download, "{*splat}"),
       (req: Request, res: Response, next: NextFunction) => {
         try {
           handleRaw({
