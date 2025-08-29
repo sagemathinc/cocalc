@@ -29,6 +29,11 @@ export const labels = defineMessages({
     defaultMessage: "Edit",
     description: "Short label on a button to edit a text field.",
   },
+  generate: {
+    id: "labels.generate",
+    defaultMessage: "Generate",
+    description: "Short label on a button to generate something.",
+  },
   other: {
     id: "labels.other",
     defaultMessage: "Other",
@@ -689,7 +694,7 @@ export const labels = defineMessages({
   },
   nbgrader: {
     id: "labels.nbgrader",
-    defaultMessage: "NBgrader",
+    defaultMessage: "nbgrader",
   },
   name: { id: "labels.name", defaultMessage: "Name" },
   description: { id: "labels.description", defaultMessage: "Description" },

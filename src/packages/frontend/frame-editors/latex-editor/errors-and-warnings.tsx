@@ -143,9 +143,8 @@ const Item: React.FC<ItemProps> = React.memo(
           style={{ float: "right", marginLeft: "10px" }}
           size="small"
           task={"ran latex"}
-          error={
-            (item.get("message") ?? "") + "\n" + (item.get("content") ?? "")
-          }
+          error={item.get("message") ?? ""}
+          line={item.get("content") ?? ""}
           input={() => {
             const s = actions._syncstring.to_str();
             const v = s

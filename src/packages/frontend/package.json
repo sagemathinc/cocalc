@@ -115,7 +115,7 @@
     "markdown-it-front-matter": "^0.2.3",
     "md5": "^2",
     "memoize-one": "^5.1.1",
-    "mermaid": "^11.7.0",
+    "mermaid": "^11.10.0",
     "node-forge": "^1.0.0",
     "onecolor": "^3.1.0",
     "pdfjs-dist": "^4.6.82",
@@ -135,6 +135,7 @@
     "react-redux": "^9.2.0",
     "react-timeago": "^8.2.0",
     "react-virtuoso": "^4.9.0",
+    "sanitize-html": "^2.17.0",
     "slate": "^0.103.0",
     "superb": "^3.0.0",
     "three-ancient": "npm:three@=0.78.0",
@@ -145,7 +146,6 @@
     "use-resize-observer": "^9.1.0",
     "utility-types": "^3.10.0",
     "video-extensions": "^1.2.0",
-    "xss": "^1.0.11",
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {

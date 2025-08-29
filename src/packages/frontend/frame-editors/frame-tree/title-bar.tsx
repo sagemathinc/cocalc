@@ -55,7 +55,7 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
-import LanguageModelTitleBarButton from "../llm/title-bar-button";
+import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
 import {
   APPLICATION_MENU,
   COMMANDS,

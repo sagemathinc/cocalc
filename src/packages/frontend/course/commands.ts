@@ -156,7 +156,7 @@ export const COMMANDS: { [name: string]: Command } = {
     icon: "graduation-cap",
     label: defineMessage({
       id: "course.commands.nbgrader.label",
-      defaultMessage: "Configure Nbgrader",
+      defaultMessage: "Configure nbgrader",
     }),
     button: labels.nbgrader,
     title: defineMessage({
@@ -185,7 +185,7 @@ export const COMMANDS: { [name: string]: Command } = {
   "network-file-systems": {
     icon: "database",
     label: labels.cloud_storage_remote_filesystems,
-    button: "Nbgrader",
+    button: labels.nbgrader,
     title: defineMessage({
       id: "course.commands.network-file-systems.tooltip",
       defaultMessage:

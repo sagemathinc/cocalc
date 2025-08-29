@@ -289,7 +289,7 @@ export class ConfigurationActions {
         });
       }
 
-      // we also make sure all teachers have access to that project – otherwise NBGrader can't work, etc.
+      // we also make sure all teachers have access to that project – otherwise nbgrader can't work, etc.
       // this has to happen *after* setting the course field, extended access control, ...
       const ps = redux.getStore("projects");
       const teachers = ps.get_users(store.get("course_project_id"));

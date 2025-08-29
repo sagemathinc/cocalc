@@ -35,12 +35,13 @@ describe("compute-cost v1 pricing", () => {
     );
   });
 
-  it("computes correct cost when version not given (since version 1 is the default)", () => {
+  it("computes cost throws error when version not given (defaults are DANGEROUS AND CONFUSING)", () => {
     const info = { ...info1 };
     // @ts-ignore
     delete info["version"];
-    const cost = compute_cost(info);
-    expect(decimalMultiply(cost.cost_sub_month, cost.quantity)).toBe(monthly1);
+    expect(() => {
+      compute_cost(info);
+    }).toThrow();
   });
 
   it("computes correct cost with a different version of pricing params", () => {
@@ -134,16 +135,6 @@ describe("compute-cost v3 pricing", () => {
     const cost1 = compute_cost(info1);
     expect(decimalMultiply(cost1.cost_sub_month, cost1.quantity)).toBe(
       monthly3,
-    );
-  });
-
-  it("version 1 is the default", () => {
-    const info = { ...info1 };
-    // @ts-ignore
-    delete info["version"];
-    const cost = compute_cost(info);
-    expect(decimalMultiply(cost.cost_sub_month, cost.quantity)).toBe(
-      MONTHLY_V1,
     );
   });
 

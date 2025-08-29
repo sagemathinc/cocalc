@@ -147,8 +147,8 @@ export function commands(actions: AllActions): {
       i: "graduation-cap",
       m: defineMessage({
         id: "jupyter.commands.cell_toolbar_create_assignment.label",
-        defaultMessage: "Create Assignment Using NBgrader",
-        description: "Do not translate 'NBGrader'",
+        defaultMessage: "Create Assignment Using nbgrader",
+        description: "Do not translate 'nbgrader'",
       }),
       menu: defineMessage({
         id: "jupyter.commands.cell_toolbar_create_assignment.menu",
@@ -1485,7 +1485,7 @@ export function commands(actions: AllActions): {
 
     "help - nbgrader in cocalc": {
       i: "external-link",
-      m: "NBgrader in CoCalc",
+      m: "nbgrader in CoCalc",
       f: () => {
         open_new_tab("https://doc.cocalc.com/teaching-nbgrader.html");
       },
