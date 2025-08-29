@@ -12,7 +12,6 @@ import dayjs from "dayjs";
 import { isEqual } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
@@ -22,10 +21,12 @@ import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { currency } from "@cocalc/util/misc";
+import ShowError from "@cocalc/frontend/components/error";
 
 export default function StudentPay({ actions, settings }) {
   const intl = useIntl();
 
+  const [error, setError] = useState<string>("");
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
@@ -37,20 +38,24 @@ export default function StudentPay({ actions, settings }) {
   }, []);
 
   const [info, setInfo] = useState<PurchaseInfo>(() => {
-    const cur = settings.get("payInfo")?.toJS();
+    let cur = settings.get("payInfo")?.toJS();
+    let info: PurchaseInfo;
     if (cur != null) {
-      return cur;
+      info = { ...DEFAULT_PURCHASE_INFO, ...cur };
+    } else {
+      info = {
+        ...DEFAULT_PURCHASE_INFO,
+        // @ts-ignore
+        start: new Date(),
+        end: dayjs().add(3, "month").toDate(),
+      };
     }
-    const info = {
-      ...DEFAULT_PURCHASE_INFO,
-      start: new Date(),
-      end: dayjs().add(3, "month").toDate(),
-    } as PurchaseInfo;
     setTimeout(() => {
       // React requirement: this must happen in different render loop, because
       // it causes an update to the UI.
       actions.configuration.setStudentPay({ info, cost });
     }, 1);
+    console.log(info);
     return info;
   });
 
@@ -74,7 +79,8 @@ export default function StudentPay({ actions, settings }) {
   const cost = useMemo(() => {
     try {
       return compute_cost(info).cost;
-    } catch (_) {
+    } catch (err) {
+      setError(`${err}`);
       return null;
     }
   }, [info]);
@@ -149,6 +155,7 @@ export default function StudentPay({ actions, settings }) {
         </>
       }
     >
+      <ShowError error={error} setError={setError} />
       {cost != null && !showStudentPay && !!settings?.get("student_pay") && (
         <div style={{ float: "right" }}>
           <MoneyStatistic title="Cost Per Student" value={cost} />
@@ -219,6 +226,7 @@ export default function StudentPay({ actions, settings }) {
                       onChange={setInfo}
                       hiddenFields={new Set(["quantity", "custom_member"])}
                       minDiskGb={1}
+                      minRamGb={2}
                     />
                     <div style={{ margin: "15px 0" }}>
                       <StudentPayCheckboxLabel

@@ -4,9 +4,7 @@
  */
 
 import { CustomUpgrades, Subscription, User } from "./types";
-
 import costVersions from "./cost-versions";
-
 
 export const CURRENT_VERSION = "3";
 
@@ -93,7 +91,7 @@ export function getCosts(version: string): CostsStructure {
     RAM_OVERCOMMIT,
     CPU_OVERCOMMIT,
     ALWAYS_RUNNING_FACTOR,
-  } = costVersions[version];
+  } = costVersions[version] ?? costVersions[CURRENT_VERSION];
 
   const CUSTOM_COST: CostMap = {
     ram:
