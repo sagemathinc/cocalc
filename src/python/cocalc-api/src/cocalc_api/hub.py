@@ -49,11 +49,16 @@ class Hub:
         """Access jupyter-related API functions."""
         return Jupyter(self)
 
-
     @property
     def sync(self):
         """Access sync engine related functions."""
         return Sync(self)
+
+    @property
+    def db(self):
+        """Access database state related functions."""
+        return Database(self)
+
 
 class System:
 
@@ -225,8 +230,7 @@ class Jupyter:
             {'output': [{'data': {'text/plain': '3^4 * 5^2'}}], ...}
         """
         ...
-        
-        
+
 
 class Sync:
 
@@ -234,7 +238,7 @@ class Sync:
         self._parent = parent
 
     @api_method("sync.history")
-    def history(self, project_id: str, path:str):
+    def history(self, project_id: str, path: str):
         """
         Get complete edit history of a file.
 
@@ -246,4 +250,40 @@ class Sync:
             Any: Array of patches in a compressed diff-match-patch format, along with time and user data.
         """
         ...
+
+
+class Database:
+
+    def __init__(self, parent: "Hub"):
+        self._parent = parent
+
+    @api_method("db.userQuery")
+    def query(self, query: dict[str, Any]) -> dict[str, Any]:
+        """
+        Do a user query.  The input is of one of the following forms, where the tables are defined at
+        https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/db-schema
+        
+        - {"table-name":{"key":"value", ...}}  with no None values sets one record in the database
+        - {"table-name":[{"key":"value", "key2":None...}]} gets an array of all matching records 
+          in the database, filling in None's with the actual values.
+        - {"table-name:{"key":"value", "key2":None}} gets one record, filling in None's with actual values.
+        
+        This is used for most configuration, e.g., user names, project descriptions, etc.
+
+        Args:
+            query (dict[str, Any]): Object that defines the query, as explained above.
+            
+        Examples:
+        
+        Get and also change your first name:
+        
+            >>> import cocalc_api; hub = cocalc_api.Hub(api_key="sk...")
+            >>> hub.db.query({"accounts":{"first_name":None}})
+            {'accounts': {'first_name': 'William'}}
+            >>> hub.db.query({"accounts":{"first_name":"W"}})
+            {}
+            >>> hub.db.query({"accounts":{"first_name":None}})
+            {'accounts': {'first_name': 'W'}}
+        """
+        raise NotImplementedError
 
