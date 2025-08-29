@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore codegen
+
 /*
 A Language Model component that allows users to interact with ChatGPT and other language models.
 for several text and code related function.  This calls the language model actions
@@ -21,7 +23,7 @@ import {
   Tooltip,
 } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useIntl } from "react-intl";
+import { defineMessage, useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -41,9 +43,9 @@ import {
   Title,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { labels } from "@cocalc/frontend/i18n";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { IntlMessage, labels } from "@cocalc/frontend/i18n";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import track from "@cocalc/frontend/user-tracking";
@@ -54,8 +56,10 @@ import { Actions } from "../code-editor/actions";
 import { AI_ASSIST_TAG } from "./consts";
 import Context from "./context";
 import { Options, createChatMessage } from "./create-chat";
+import { useLLMHistory } from "./use-llm-history";
+import { LLMHistorySelector } from "./llm-history-selector";
 import LLMSelector, { modelToName } from "./llm-selector";
-import TitleBarButtonTour from "./title-bar-button-tour";
+import TitleBarButtonTour from "./llm-assistant-tour";
 
 import type { Scope } from "./types";
 
@@ -66,8 +70,8 @@ interface Preset {
   codegen: boolean;
   tag: string;
   icon: IconName;
-  label: string;
-  description: string;
+  label: IntlMessage;
+  description: IntlMessage;
 }
 
 const PRESETS: Readonly<Readonly<Preset>[]> = [
@@ -76,52 +80,100 @@ const PRESETS: Readonly<Readonly<Preset>[]> = [
     codegen: true,
     tag: "fix-errors",
     icon: "bug",
-    label: "Fix Errors",
-    description: "Explain how to fix any mistakes it can find.",
+    label: defineMessage({
+      id: "frame-editors.llm.preset.fix-errors.label",
+      defaultMessage: "Fix Errors",
+      description: "LLM assistant preset label for fixing code errors",
+    }),
+    description: defineMessage({
+      id: "frame-editors.llm.preset.fix-errors.description",
+      defaultMessage: "Explain how to fix any mistakes it can find.",
+      description: "LLM assistant preset description for fixing code errors",
+    }),
   },
   {
     command: "Finish writing this",
     codegen: true,
     tag: "complete",
     icon: "pen",
-    label: "Autocomplete",
-    description:
-      "Finish writing this. Language models can automatically write code, finish a poem, and much more.",
+    label: defineMessage({
+      id: "frame-editors.llm.preset.complete.label",
+      defaultMessage: "Autocomplete",
+      description: "LLM assistant preset label for code autocompletion",
+    }),
+    description: defineMessage({
+      id: "frame-editors.llm.preset.complete.description",
+      defaultMessage:
+        "Finish writing this. Language models can automatically write code, finish a poem, and much more.",
+      description: "LLM assistant preset description for code autocompletion",
+    }),
   },
   {
     command: "Explain in detail how this code works",
     codegen: false,
     tag: "explain",
     icon: "bullhorn",
-    label: "Explain",
-    description:
-      "For example, you can select some code and will try to explain line by line how it works.",
+    label: defineMessage({
+      id: "frame-editors.llm.preset.explain.label",
+      defaultMessage: "Explain",
+      description: "LLM assistant preset label for explaining code",
+    }),
+    description: defineMessage({
+      id: "frame-editors.llm.preset.explain.description",
+      defaultMessage:
+        "For example, you can select some code and will try to explain line by line how it works.",
+      description: "LLM assistant preset description for explaining code",
+    }),
   },
   {
     command: "Review for quality and correctness and suggest improvements",
     codegen: false,
     tag: "review",
     icon: "eye",
-    label: "Review",
-    description:
-      "Review this for correctness and quality and suggest improvements.",
+    label: defineMessage({
+      id: "frame-editors.llm.preset.review.label",
+      defaultMessage: "Review",
+      description: "LLM assistant preset label for code review",
+    }),
+    description: defineMessage({
+      id: "frame-editors.llm.preset.review.description",
+      defaultMessage:
+        "Review this for correctness and quality and suggest improvements.",
+      description: "LLM assistant preset description for code review",
+    }),
   },
   {
     command: "Add comments to",
     codegen: true,
     tag: "comment",
     icon: "comment",
-    label: "Add Comments",
-    description:
-      "Tell you how to add comments so this is easier to understand.",
+    label: defineMessage({
+      id: "frame-editors.llm.preset.comment.label",
+      defaultMessage: "Add Comments",
+      description: "LLM assistant preset label for adding comments",
+    }),
+    description: defineMessage({
+      id: "frame-editors.llm.preset.comment.description",
+      defaultMessage:
+        "Tell you how to add comments so this is easier to understand.",
+      description: "LLM assistant preset description for adding comments",
+    }),
   },
   {
     command: "Summarize",
     codegen: false,
     tag: "summarize",
     icon: "bolt",
-    label: "Summarize",
-    description: "Write a summary of this.",
+    label: defineMessage({
+      id: "frame-editors.llm.preset.summarize.label",
+      defaultMessage: "Summarize",
+      description: "LLM assistant preset label for summarizing content",
+    }),
+    description: defineMessage({
+      id: "frame-editors.llm.preset.summarize.description",
+      defaultMessage: "Write a summary of this.",
+      description: "LLM assistant preset description for summarizing content",
+    }),
   },
 ] as const;
 
@@ -203,10 +255,11 @@ export default function LanguageModelTitleBarButton({
   const inputRef = useRef<HTMLElement>(null);
 
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const { prompts: historyPrompts, addPrompt } = useLLMHistory("general");
 
   function setPreset(preset: Preset) {
     setTag(preset.tag);
-    setDescription(preset.description);
+    setDescription(intl.formatMessage(preset.description));
     setCommand(preset.command);
   }
 
@@ -237,12 +290,7 @@ export default function LanguageModelTitleBarButton({
   }, [showDialog]);
 
   useEffect(() => {
-    if (
-      showDialog &&
-      scope &&
-      actions != null &&
-      !noContext
-    ) {
+    if (showDialog && scope && actions != null && !noContext) {
       const c = actions.languageModelGetContext(id, scope);
       setContext(c);
     }
@@ -346,6 +394,10 @@ export default function LanguageModelTitleBarButton({
     if (options == null) {
       return;
     }
+
+    // Add prompt to history
+    addPrompt(command);
+
     await queryLLM(options);
     setShowDialog(false);
     setError("");
@@ -419,14 +471,14 @@ export default function LanguageModelTitleBarButton({
         label: (
           <>
             <Text strong style={{ marginRight: "5px" }}>
-              {label}:
+              {intl.formatMessage(label)}:
             </Text>{" "}
-            <Text type="secondary">{description}</Text>
+            <Text type="secondary">{intl.formatMessage(description)}</Text>
           </>
         ),
         onClick: () => {
           setPreset(preset);
-          track(TAG_TMPL, { project_id, template: label });
+          track(TAG_TMPL, { project_id, template: intl.formatMessage(label) });
         },
       };
     });
@@ -592,29 +644,39 @@ export default function LanguageModelTitleBarButton({
           <LLMNameLink model={model} /> to do. Be specific!
         </Paragraph>
         <Paragraph ref={describeRef}>
-          <Input.TextArea
-            ref={inputRef}
-            allowClear
-            autoFocus
-            style={{ flex: 1 }}
-            placeholder={"What should the language model do..."}
-            value={command}
-            onChange={(e) => {
-              setCommand(e.target.value);
-              setTag("");
-              if (e.target.value) {
-                setDescription(getCustomDescription(frameType));
-              } else {
-                setDescription("");
-              }
-            }}
-            onPressEnter={(e) => {
-              if (e.shiftKey) {
-                doIt();
-              }
-            }}
-            autoSize={{ minRows: 2, maxRows: 10 }}
-          />
+          <Space.Compact
+            style={{ width: "100%", display: "flex", alignItems: "stretch" }}
+          >
+            <Input.TextArea
+              ref={inputRef}
+              allowClear
+              autoFocus
+              style={{ flex: 1 }}
+              placeholder={"What should the language model do..."}
+              value={command}
+              onChange={(e) => {
+                setCommand(e.target.value);
+                setTag("");
+                if (e.target.value) {
+                  setDescription(getCustomDescription(frameType));
+                } else {
+                  setDescription("");
+                }
+              }}
+              onPressEnter={(e) => {
+                if (e.shiftKey) {
+                  doIt();
+                }
+              }}
+              autoSize={{ minRows: 2, maxRows: 10 }}
+            />
+            <LLMHistorySelector
+              prompts={historyPrompts}
+              onSelect={setCommand}
+              disabled={querying}
+              alignSelf="stretch"
+            />
+          </Space.Compact>
         </Paragraph>
         {renderOptions()}
         {renderShowOptions()}
@@ -722,10 +784,10 @@ async function updateMessage({
   return { message, tokens, inputOriginalLen, inputTruncatedLen };
 }
 
-function getScope(id, actions: Actions): Scope {
+function getScope(id: string, actions: Actions): Scope {
   const scopes = actions.languageModelGetScopes();
   // don't know: selection if something is selected; otherwise,
-  // ballback below.
+  // fallback below.
   if (
     scopes.has("selection") &&
     actions.languageModelGetContext(id, "selection")?.trim()

@@ -25,6 +25,7 @@ import { delay } from "awaiting";
 import { debounce, isEmpty, throttle } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   CSS,
@@ -51,10 +52,12 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { Actions as LatexActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
 import { Actions as RmdActions } from "@cocalc/frontend/frame-editors/rmd-editor/actions";
 import { dialogs, labels } from "@cocalc/frontend/i18n";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
@@ -82,7 +85,7 @@ import {
   Example,
   Ext,
   JUPYTER,
-  PAPERSIZE,
+  PAPER_SIZE,
 } from "./ai-generate-examples";
 import {
   DEFAULT_LANG_EXTRA,
@@ -156,6 +159,7 @@ function AIGenerateDocument({
   const [paperSize, setPaperSize] = useState<string | null>(null);
   // User's description of document they want to generate.
   const [prompt, setPrompt] = useState<string>("");
+  const { prompts: historyPrompts, addPrompt } = useLLMHistory("generate");
   const [querying, setQuerying] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -248,7 +252,7 @@ function AIGenerateDocument({
   const [ipynb, setIpynb] = useState<null | Ipynb>(null);
 
   useEffect(() => {
-    const sizes = PAPERSIZE[ext];
+    const sizes = PAPER_SIZE[ext];
     if (paperSize == null && sizes != null) {
       setPaperSize(sizes[0]);
     }
@@ -322,6 +326,9 @@ function AIGenerateDocument({
     if (fullPrompt == null) return;
 
     const { input, history, system } = fullPrompt;
+
+    // Add prompt to history
+    addPrompt(prompt);
 
     try {
       cancel.current = false;
@@ -578,7 +585,7 @@ function AIGenerateDocument({
       if (cancel.current) {
         // we abort this
         llmStream.removeAllListeners();
-        // singal "finalization"
+        // signal "finalization"
         processTokens(answer, true);
         return;
       }
@@ -645,7 +652,7 @@ function AIGenerateDocument({
         case "ipynb":
         case "ipynb-sagemath":
           return spec != null
-            ? (JUPYTER[spec.language?.toLowerCase()] ?? [])
+            ? JUPYTER[spec.language?.toLowerCase()] ?? []
             : [];
         default:
           return DOCUMENT[ext];
@@ -697,7 +704,7 @@ function AIGenerateDocument({
   }
 
   function renderPaperSize() {
-    const sizes = PAPERSIZE[ext];
+    const sizes = PAPER_SIZE[ext];
     if (!sizes) return;
 
     return (
@@ -836,21 +843,28 @@ function AIGenerateDocument({
           />
         </Paragraph>
         <Paragraph>
-          <Input.TextArea
-            ref={promptRef}
-            allowClear
-            autoSize={{ minRows: 3, maxRows: 6 }}
-            maxLength={3000}
-            placeholder={placeholder}
-            value={prompt}
-            disabled={querying}
-            onChange={({ target: { value } }) => setPrompt(value)}
-            onPressEnter={(e) => {
-              if (e.shiftKey) {
-                generate();
-              }
-            }}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input.TextArea
+              ref={promptRef}
+              allowClear
+              autoSize={{ minRows: 3, maxRows: 6 }}
+              maxLength={3000}
+              placeholder={placeholder}
+              value={prompt}
+              disabled={querying}
+              onChange={({ target: { value } }) => setPrompt(value)}
+              onPressEnter={(e) => {
+                if (e.shiftKey) {
+                  generate();
+                }
+              }}
+            />
+            <LLMHistorySelector
+              prompts={historyPrompts}
+              onSelect={setPrompt}
+              disabled={querying}
+            />
+          </Space.Compact>
         </Paragraph>
         {!error ? renderExamples() : undefined}
         {!error ? renderPaperSize() : undefined}

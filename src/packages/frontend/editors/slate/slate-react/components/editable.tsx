@@ -273,6 +273,9 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         getTargetRanges(): DOMStaticRange[];
         inputType: string;
         isComposing: boolean;
+        ctrlKey?: boolean;
+        altKey?: boolean;
+        metaKey?: boolean;
       },
     ) => {
       if (
@@ -294,6 +297,16 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         }
 
         event.preventDefault();
+
+        if (
+          type == "insertText" &&
+          !event.isComposing &&
+          event.data == " " &&
+          !(event.ctrlKey || event.altKey || event.metaKey)
+        ) {
+          editor.insertText(" ", {});
+          return;
+        }
 
         // COMPAT: For the deleting forward/backward input types we don't want
         // to change the selection because it is the range that will be deleted,
@@ -694,6 +707,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                   }
                 }
               }
+              1;
             }
           },
           [readOnly, attributes.onCut],

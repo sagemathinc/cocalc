@@ -19,6 +19,10 @@ OS doesn't take.  On MacOS that includes option+space for now.
 TODO: instead, anytime autoformat happens, there could be an indicator about it in the
 toolbar, with a button to undo it (leaving the space).  This would be general for
 return as well.
+
+IMPORTANT: we also explicitly do this same insertText action in
+frontend/editors/slate/slate-react/components/editable.tsx
+to handle virtual keyboards. See https://github.com/sagemathinc/cocalc/issues/8536
 */
 
 import { toggleCheckbox } from "../elements/checkbox/editable";

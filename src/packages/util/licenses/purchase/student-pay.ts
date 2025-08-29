@@ -5,6 +5,7 @@ import type { PurchaseInfo } from "./types";
 
 export const DEFAULT_PURCHASE_INFO = {
   type: "quota",
+  version: "3",
   user: "academic",
   upgrade: "custom",
   quantity: 1,

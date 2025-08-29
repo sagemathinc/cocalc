@@ -135,6 +135,7 @@
     "react-redux": "^9.2.0",
     "react-timeago": "^8.2.0",
     "react-virtuoso": "^4.9.0",
+    "sanitize-html": "^2.17.0",
     "slate": "^0.103.0",
     "superb": "^3.0.0",
     "three-ancient": "npm:three@=0.78.0",
@@ -145,7 +146,6 @@
     "use-resize-observer": "^9.1.0",
     "utility-types": "^3.10.0",
     "video-extensions": "^1.2.0",
-    "xss": "^1.0.11",
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {

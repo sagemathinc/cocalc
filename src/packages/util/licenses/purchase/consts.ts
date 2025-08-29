@@ -4,12 +4,7 @@
  */
 
 import { CustomUpgrades, Subscription, User } from "./types";
-
 import costVersions from "./cost-versions";
-
-// version for licenses before we were using versioning; this is what
-// is used when the version is not defined.
-const FALLBACK_VERSION = "1";
 
 export const CURRENT_VERSION = "3";
 
@@ -85,7 +80,7 @@ interface CostsStructure {
   max: { [key in CustomUpgrades]: number };
 }
 
-export function getCosts(version = FALLBACK_VERSION): CostsStructure {
+export function getCosts(version: string): CostsStructure {
   const {
     SUB_DISCOUNT,
     GCE_COSTS,
@@ -96,7 +91,7 @@ export function getCosts(version = FALLBACK_VERSION): CostsStructure {
     RAM_OVERCOMMIT,
     CPU_OVERCOMMIT,
     ALWAYS_RUNNING_FACTOR,
-  } = costVersions[version];
+  } = costVersions[version] ?? costVersions[CURRENT_VERSION];
 
   const CUSTOM_COST: CostMap = {
     ram:

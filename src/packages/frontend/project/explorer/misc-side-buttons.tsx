@@ -190,7 +190,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
 
   function render_upload_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableUploads) {
-      return;
+      return <span />;
     }
     return (
       <Button
