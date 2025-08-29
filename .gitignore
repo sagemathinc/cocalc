@@ -164,3 +164,5 @@ src/.claude/settings.local.json
 
 # test reports by jest-junit
 junit.xml
+*.egg-info
+.python-version

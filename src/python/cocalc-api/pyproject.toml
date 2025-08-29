@@ -1,0 +1,16 @@
+[project]
+name = "cocalc-api"
+version = "0.1.0"
+description = "Python client for the CoCalc API"
+authors = [{ name="William Stein", email="wstein@sagemath.com" }]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["httpx"]
+license = "MIT"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cocalc_api"]
+
+[project.urls]
+Homepage = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
+Repository = "https://github.com/sagemathinc/cocalc"

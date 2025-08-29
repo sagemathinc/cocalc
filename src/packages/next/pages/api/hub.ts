@@ -31,7 +31,7 @@ export default async function handle(req, res) {
     }
     const { name, args, timeout } = getParams(req);
     const resp = await hubBridge({ account_id, name, args, timeout });
-    res.json({ resp });
+    res.json(resp);
   } catch (err) {
     res.json({ error: err.message });
   }
