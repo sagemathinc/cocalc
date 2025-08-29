@@ -8,6 +8,9 @@ def api_method(name: str, opts: bool = False) -> Callable:
     Decorator for CoCalcAPI methods.
     Converts arguments (excluding self) into a dict, removes None values,
     and calls parent.call(name, [args_dict]).
+
+    - name: of the api call
+    - opts: if given,  
     """
 
     def decorator(func: Callable) -> Callable:

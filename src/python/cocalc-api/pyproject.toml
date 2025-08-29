@@ -26,6 +26,7 @@ lint.select = ["E", "F", "B"]  # Pyflakes, pycodestyle, bugbear, etc.
 
 [dependency-groups]
 dev = [
+    "ipython",
     "mypy",
     "pytest>=8.4.1",
     "ruff>=0.12.11",

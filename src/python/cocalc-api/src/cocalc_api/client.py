@@ -15,20 +15,38 @@ class CoCalcAPI:
              name: str,
              arguments: list[Any],
              timeout: Optional[int] = None) -> Any:
+        """
+        Perform an API call to the CoCalc backend.
+
+        Args:
+            name (str): The remote function name to invoke (e.g. "system.ping").
+            arguments (list[Any]): Arguments to pass to the remote function.
+            timeout (Optional[int]): Timeout in milliseconds. Defaults to None.
+
+        Returns:
+            Any: JSON-decoded response from the API.
+        """
         payload: dict[str, Any] = {"name": name, "args": arguments}
         if timeout is not None:
-            payload["timeout"] = timeout        
+            payload["timeout"] = timeout
         resp = self.client.post(self.host + '/api/conat/hub', json=payload)
         resp.raise_for_status()
         return resp.json()
 
     @property
     def system(self):
+        """Access system-level API functions."""
         return System(self)
 
     @property
     def projects(self):
+        """Access project-related API functions."""
         return Projects(self)
+
+    @property
+    def jupyter(self):
+        """Access jupyter-related API functions."""
+        return Jupyter(self)
 
 
 class System:
@@ -38,15 +56,22 @@ class System:
 
     def ping(self) -> Any:
         """
-        Ping the server. Returns the current server time.
+        Ping the server.
+
+        Returns:
+            Any: JSON object containing the current server time.
         """
         return self._parent.call("system.ping", [])
 
-    def get_names(self, account_ids: list[str]) -> Any:
+    def get_names(self, account_ids: list[str]) -> list[str]:
         """
-        Get the displayed names of CoCalc accounts with given account_ids.
-        
-        - account_ids -- list of uuid strings
+        Get the displayed names of CoCalc accounts with given IDs.
+
+        Args:
+            account_ids (list[str]): List of account UUID strings.
+
+        Returns:
+            Any: Mapping from account_id to profile information.
         """
         return self._parent.call("system.getNames", [account_ids])
 
@@ -66,11 +91,15 @@ class Projects:
     ):
         """
         Copy a path from one project to another (or within a project).
-        
-        - src_project_id -- the source project_id
-        - src_path -- the source path
-        - target_project_id -- the target project_id (optional, defaults to src_project_id)
-        - target_path - the target path (optional, defaults to src_path)
+
+        Args:
+            src_project_id (str): Source project ID.
+            src_path (str): Path in the source project to copy.
+            target_project_id (Optional[str]): Target project ID. Defaults to src_project_id.
+            target_path (Optional[str]): Target path in the target project. Defaults to src_path.
+
+        Returns:
+            Any: JSON response indicating success or error.
         """
         ...
 
@@ -83,15 +112,18 @@ class Projects:
         public_path_id: Optional[str] = None,
     ) -> str:
         """
-        Create a new project that you own.
-        
-        - title -- optional title of the project
-        - description -- optional description of project
-        - license -- optional license id (or multiple ids separated by commas) -- if given, project will be created with this license
-        - public_path_id -- optional; if given, project is initially populated with content from this publically shared path
-        
-        Returns the project_id as a string.
+        Create a new project.
+
+        Args:
+            title (Optional[str]): Title of the project.
+            description (Optional[str]): Description of the project.
+            license (Optional[str]): License ID (or multiple IDs separated by commas).
+            public_path_id (Optional[str]): If provided, project is populated with content from this shared path.
+
+        Returns:
+            str: The ID of the newly created project.
         """
+        # actually implemented via the decorator
         raise NotImplementedError
 
     @api_method("projects.addCollaborator", opts=True)
@@ -99,11 +131,88 @@ class Projects:
                          account_id: str | list[str]):
         """
         Add a collaborator to a project.
-        
-        - project_id -- the project to add a user to
-        - account_id -- account_id of the user to add
-        
-        NOTE: You can also pass in arrows of the same size for project_id and account_id to add
-        several collaborators to projects at once.  In this case account_id[i] is added to project_id[i].
+
+        Args:
+            project_id (str | list[str]): Project ID(s) to add a collaborator to.
+            account_id (str | list[str]): Account ID(s) of the collaborator(s).
+
+        Note:
+            You can pass arrays of the same length for `project_id` and `account_id` to
+            add several collaborators at once. In this case, `account_id[i]` is added to
+            `project_id[i]`.
+
+        Returns:
+            Any: JSON response from the API.
+        """
+        ...
+
+    @api_method("projects.removeCollaborator", opts=True)
+    def remove_collaborator(self, project_id: str, account_id: str):
+        """
+        Remove a collaborator from a project.
+
+        Args:
+            project_id (str): The project to remove a user from.
+            account_id (str): Account ID of the user to remove.
+
+        Returns:
+            Any: JSON response from the API.
+        """
+        ...
+
+
+class Jupyter:
+
+    def __init__(self, parent: "CoCalcAPI"):
+        self._parent = parent
+
+    @api_method("jupyter.kernels")
+    def kernels(self, project_id: Optional[str] = None):
+        """
+        Get specifications of available Jupyter kernels.
+
+        Args:
+            project_id (Optional[str]): If provided, return kernel specs for this project.
+                If not given, a global anonymous project may be used.
+
+        Returns:
+            Any: JSON response containing kernel specs.
+        """
+        ...
+
+    @api_method("jupyter.execute")
+    def execute(
+        self,
+        input: str,
+        kernel: str,
+        history: Optional[list[str]] = None,
+        project_id: Optional[str] = None,
+        path: Optional[str] = None,
+    ):
+        """
+        Execute code in a Jupyter kernel.
+
+        Args:
+            input (str): Code to execute.
+            kernel (Optional[str]): Name of kernel to use. Get options using jupyter.kernels()
+            history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
+            project_id (Optional[str]): Project in which to run the code -- if not given, global anonymous project is used, if available.
+            path (Optional[str]): File path context for execution.
+
+        Returns:
+            Any: JSON response containing execution results.
+            
+        Examples:
+            Execute a simple sum in a Jupyter kernel:
+            
+            >>> import cocalc_api;  api = cocalc_api.CoCalcAPI(api_key="sk-...")
+            >>> api.jupyter.execute(history=['a=100;print(a)'], input='sum(range(a+1))', kernel='python3')
+            {'output': [{'data': {'text/plain': '5050'}}], ...}
+            
+            Factor a number using the sagemath kernel in a specific project:
+            
+            >>> api.jupyter.execute(history=['a=2025'], input='factor(a)', kernel='sagemath', 
+            ...     project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
+            {'output': [{'data': {'text/plain': '3^4 * 5^2'}}], ...}
         """
         ...
