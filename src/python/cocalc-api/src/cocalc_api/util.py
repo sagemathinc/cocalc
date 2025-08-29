@@ -3,14 +3,19 @@ import inspect
 from typing import Any, Callable
 
 
-def api_method(name: str, opts: bool = False) -> Callable:
+def api_method(name: str,
+               opts: bool = False,
+               timeout_seconds: bool = False) -> Callable:
     """
     Decorator for CoCalcAPI methods.
     Converts arguments (excluding self) into a dict, removes None values,
     and calls parent.call(name, [args_dict]).
 
-    - name: of the api call
-    - opts: if given,  
+        name (str): of the api call
+        opts (bool): if given, structure arg_dict with all the explicit user-provided options under a field "opts".
+        timeout_seconds (bool): if given and user input has a timeout field, assume it is in seconds and make the api
+            call have the corresponding timeout.
+      
     """
 
     def decorator(func: Callable) -> Callable:
@@ -26,9 +31,13 @@ def api_method(name: str, opts: bool = False) -> Callable:
                 for k, v in bound.arguments.items()
                 if k != "self" and v is not None
             }
+            if timeout_seconds and 'timeout' in args_dict:
+                timeout = 1000 * args_dict['timeout']
+            else:
+                timeout = None
             if opts:
                 args_dict = {'opts': args_dict}
-            return self._parent.call(name, [args_dict])
+            return self._parent.call(name, [args_dict], timeout=timeout)
 
         return wrapper
 

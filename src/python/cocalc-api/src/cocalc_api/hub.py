@@ -192,7 +192,7 @@ class Jupyter:
         path: Optional[str] = None,
     ):
         """
-        Execute code in a Jupyter kernel.
+        Execute code using a Jupyter kernel.
 
         Args:
             input (str): Code to execute.
