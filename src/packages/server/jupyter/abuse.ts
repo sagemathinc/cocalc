@@ -4,7 +4,7 @@ blatant abuse.  Everything is hardcoded and nothing is configurable via the
 admin settings panel yet.
 */
 
-import { isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID, isValidAnonymousID } from "@cocalc/util/misc";
 import recentUsage from "./recent-usage";
 import getLogger from "@cocalc/backend/logger";
 
@@ -31,35 +31,35 @@ const QUOTAS = {
 // Throws an exception if the request should not be allowed.
 export default async function checkForAbuse({
   account_id,
-  analytics_cookie,
+  anonymous_id,
 }: {
   account_id?: string;
-  analytics_cookie?: string;
+  anonymous_id?: string;
 }): Promise<void> {
-  if (!isValidUUID(account_id) && !isValidUUID(analytics_cookie)) {
+  if (!isValidUUID(account_id) && !isValidAnonymousID(anonymous_id)) {
     // at least some amount of tracking.
-    throw Error("at least one of account_id or analytics_cookie must be set");
+    throw Error("at least one of account_id or anonymous_id must be set");
   }
   const usage = await recentUsage({
     cache: "short",
     period: PERIOD,
     account_id,
-    analytics_cookie,
+    anonymous_id,
   });
   log.debug("recent usage by this user", {
     account_id,
-    analytics_cookie,
+    anonymous_id,
     usage,
   });
   if (account_id) {
     if (usage > QUOTAS.account) {
       throw Error(
-        `You may use at most ${QUOTAS.account} seconds of compute time per ${PERIOD}. Please try again later or do this computation in a project.`
+        `You may use at most ${QUOTAS.account} seconds of compute time per ${PERIOD}. Please try again later or do this computation in a project.`,
       );
     }
   } else if (usage > QUOTAS.noAccount) {
     throw Error(
-      `You may use at most ${QUOTAS.noAccount} seconds of compute time per ${PERIOD}. Sign in to increase your quota.`
+      `You may use at most ${QUOTAS.noAccount} seconds of compute time per ${PERIOD}. Sign in to increase your quota.`,
     );
   }
 
@@ -69,7 +69,7 @@ export default async function checkForAbuse({
   log.debug("overallUsage = ", usage);
   if (overallUsage > QUOTAS.global) {
     throw Error(
-      `There is too much overall usage of code evaluation right now.  Please try again later or do this computation in a project.`
+      `There is too much overall usage of code evaluation right now.  Please try again later or do this computation in a project.`,
     );
   }
 }
