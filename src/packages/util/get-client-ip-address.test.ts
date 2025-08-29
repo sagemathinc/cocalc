@@ -188,6 +188,15 @@ describe("getClientIpAddress()", () => {
       expect(result).toBe("192.0.2.60");
     });
 
+    it("should handle IPv4 addresses with ports in X-Forwarded-For", () => {
+      const req = createRequest({
+        "x-forwarded-for": "192.168.1.1:8080",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("192.168.1.1");
+    });
+
     it("should handle multiple parameters in Forwarded header", () => {
       const req = createRequest({
         forwarded: "for=192.0.2.60;proto=http;by=203.0.113.43",
@@ -223,6 +232,33 @@ describe("getClientIpAddress()", () => {
       const result = getClientIpAddress(req);
       expect(result).toBeUndefined();
     });
+
+    it("should handle Forwarded header with spaces around commas", () => {
+      const req = createRequest({
+        forwarded: "for=192.0.2.60 , for=203.0.113.43",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("192.0.2.60");
+    });
+
+    it("should handle Forwarded header with spaces around semicolons", () => {
+      const req = createRequest({
+        forwarded: "for=192.0.2.60 ; proto=http ; by=203.0.113.43",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("192.0.2.60");
+    });
+
+    it("should handle Forwarded header with mixed spacing", () => {
+      const req = createRequest({
+        forwarded: "  for=192.0.2.60  ;  proto=http  ;  by=203.0.113.43  ",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("192.0.2.60");
+    });
   });
 
   describe("IPv6 Support", () => {
@@ -247,6 +283,24 @@ describe("getClientIpAddress()", () => {
     it("should handle IPv6 loopback", () => {
       const req = createRequest({
         "x-forwarded-for": "::1",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("::1");
+    });
+
+    it("should handle IPv6 addresses with ports", () => {
+      const req = createRequest({
+        "x-forwarded-for": "[2001:db8::1]:8080",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("2001:db8::1");
+    });
+
+    it("should handle compressed IPv6 addresses with ports", () => {
+      const req = createRequest({
+        "x-forwarded-for": "[::1]:9000",
       });
 
       const result = getClientIpAddress(req);
@@ -287,6 +341,24 @@ describe("getClientIpAddress()", () => {
 
       const result = getClientIpAddress(req);
       expect(result).toBe("192.168.1.1");
+    });
+
+    it("should handle IP addresses with whitespace", () => {
+      const req = createRequest({
+        "x-forwarded-for": "  192.168.1.1  ",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("192.168.1.1");
+    });
+
+    it("should handle IPv6 addresses with whitespace and ports", () => {
+      const req = createRequest({
+        "x-forwarded-for": "  [2001:db8::1]:8080  ",
+      });
+
+      const result = getClientIpAddress(req);
+      expect(result).toBe("2001:db8::1");
     });
   });
 });

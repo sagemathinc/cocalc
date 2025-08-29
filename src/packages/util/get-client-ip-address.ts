@@ -23,8 +23,9 @@ export function getClientIpAddress(req: {
       // Handle comma-separated values (like X-Forwarded-For)
       const ips = headerValue.split(",").map((ip) => ip.trim());
       for (const ip of ips) {
-        if (isIP(ip)) {
-          return ip;
+        const processedIp = normalizeIPAddress(ip);
+        if (isIP(processedIp)) {
+          return processedIp;
         }
       }
     }
@@ -40,36 +41,24 @@ export function getClientIpAddress(req: {
   // https://github.com/pbojinov/request-ip/pull/71
   const forwardedHeader = getHeaderValue(req.headers, "forwarded");
   if (forwardedHeader) {
-    // Split by comma for multiple forwarded entries
-    const forwardedEntries = forwardedHeader.split(",");
+    // Split by comma for multiple forwarded entries, trimming each entry
+    const forwardedEntries = forwardedHeader.split(",").map(entry => entry.trim());
 
     for (const entry of forwardedEntries) {
-      // Split by semicolon for parameters
-      const params = entry.split(";");
+      // Split by semicolon for parameters, trimming each parameter
+      const params = entry.split(";").map(param => param.trim());
 
       for (const param of params) {
-        const trimmed = param.trim();
-        if (trimmed.toLowerCase().startsWith("for=")) {
-          let ipVal = trimmed.substring(4).trim();
+        if (param.toLowerCase().startsWith("for=")) {
+          let ipVal = param.substring(4).trim();
 
           // Remove quotes if present
           if (ipVal.startsWith('"') && ipVal.endsWith('"')) {
             ipVal = ipVal.slice(1, -1);
           }
 
-          // Handle IPv6 brackets
-          if (ipVal.startsWith("[") && ipVal.endsWith("]")) {
-            ipVal = ipVal.slice(1, -1);
-          }
-
-          // Handle port stripping for IPv4 addresses
-          if (ipVal.includes(":")) {
-            const parts = ipVal.split(":");
-            // Only strip port if it looks like IPv4:port (not IPv6)
-            if (parts.length === 2 && isIP(parts[0])) {
-              ipVal = parts[0];
-            }
-          }
+          // Normalize IP address (remove brackets and ports)
+          ipVal = normalizeIPAddress(ipVal);
 
           if (isIP(ipVal)) {
             return ipVal;
@@ -80,6 +69,40 @@ export function getClientIpAddress(req: {
   }
 
   return undefined;
+}
+
+// Helper function to normalize IP address by removing brackets and ports
+function normalizeIPAddress(ip: string): string {
+  let processedIp = ip.trim();
+
+  // Remove IPv6 brackets if present (do this first!)
+  const bracketStart = processedIp.startsWith("[");
+  const closingBracketIndex = processedIp.indexOf("]");
+  const hasPortAfterBracket = closingBracketIndex > 0 && processedIp[closingBracketIndex + 1] === ":";
+  if (bracketStart && hasPortAfterBracket) {
+    // Extract IPv6 part and port: [2001:db8::1]:8080 -> 2001:db8::1:8080
+    processedIp = processedIp.substring(1, closingBracketIndex) + processedIp.substring(closingBracketIndex + 1);
+  } else if (processedIp.startsWith("[") && processedIp.endsWith("]")) {
+    // Simple bracket removal: [2001:db8::1] -> 2001:db8::1
+    processedIp = processedIp.slice(1, -1);
+  }
+
+  // Strip port if present (handles both IPv4:port and IPv6:port)
+  if (processedIp.includes(":")) {
+    const lastColonIndex = processedIp.lastIndexOf(":");
+    if (lastColonIndex > 0) {
+      const potentialPort = processedIp.substring(lastColonIndex + 1);
+      // If the part after the last colon looks like a port number
+      if (/^\d+$/.test(potentialPort)) {
+        const potentialIP = processedIp.substring(0, lastColonIndex);
+        if (isIP(potentialIP)) {
+          processedIp = potentialIP;
+        }
+      }
+    }
+  }
+
+  return processedIp;
 }
 
 // Helper function to get header value case-insensitively
