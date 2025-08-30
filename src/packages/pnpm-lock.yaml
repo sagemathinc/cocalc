@@ -1490,6 +1490,21 @@ importers:
 
   static:
     devDependencies:
+      '@cocalc/assets':
+        specifier: workspace:*
+        version: link:../assets
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@cocalc/cdn':
+        specifier: workspace:*
+        version: link:../cdn
+      '@cocalc/frontend':
+        specifier: workspace:*
+        version: link:../frontend
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
       '@rspack/cli':
         specifier: ^1.5.1
         version: 1.5.1(@rspack/core@1.5.1(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)

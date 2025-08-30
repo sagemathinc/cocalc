@@ -48,9 +48,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/cdn": "workspace:*",
     "@cocalc/frontend": "workspace:*",
-    "@cocalc/util": "workspace:*"
-  },
-  "devDependencies": {
+    "@cocalc/util": "workspace:*",
     "@rspack/cli": "^1.5.1",
     "@rspack/core": "^1.5.1",
     "@rspack/plugin-react-refresh": "^1.5.0",
