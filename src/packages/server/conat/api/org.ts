@@ -7,6 +7,8 @@ import {
   revokeUserAuthToken,
 } from "@cocalc/server/auth/auth-token";
 import send from "@cocalc/server/messages/send";
+import { secureRandomString } from "@cocalc/backend/misc";
+import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 
 // this is a permissions check
 async function isOrganizationAdmin({
@@ -35,7 +37,7 @@ async function isAllowed({
   name: string;
 }): Promise<boolean> {
   return (
-    account_id &&
+    !!account_id &&
     ((await isOrganizationAdmin({ account_id, name })) ||
       (await isAdmin(account_id)))
   );
@@ -48,43 +50,45 @@ async function assertAllowed(opts) {
 }
 
 async function isNameAvailable(name: string): Promise<boolean> {
-  // obvious potential for race conditions...
-  const a = pool.query("SELECT COUNT(*) AS count FROM accounts WHERE name=$1");
+  // obvious potential for race conditions, but this is only used by
+  // site admins
+  const pool = getPool();
+  const a = pool.query("SELECT COUNT(*) AS count FROM accounts WHERE name=$1", [
+    name,
+  ]);
   const b = pool.query(
     "SELECT COUNT(*) AS count FROM organizations WHERE name=$1",
+    [name],
   );
   const v = await Promise.all([a, b]);
   return v[0].rows[0].count == 0 && v[1].rows[0].count == 0;
 }
 
-// get every organization that the given account is a member or admin of.  If account_id is a site
-// admin, this gets all organizations, and status will usually be 'none' in that case.
+// get every organization; this is only for site admins.
 export async function getAll({ account_id }: { account_id?: string }): Promise<
   {
     name: string;
-    relation: "admin" | "member" | "none";
     title?: string;
+    admin_account_ids?: string[];
   }[]
 > {
   const pool = getPool();
-  if (await isAdmin(account_id)) {
-    // user is site admin so get everything
-    const { rows } = await pool.query("SELECT name, title FROM organizations");
-    rows.map((x) => {
-      return { ...x, relation: "none" };
-    });
-  } else {
-    const { rows } = await pool.query(
-      "SELECT name, title FROM organizations WHERE $1=ANY(admin_account_ids)",
-      [account_id],
-    );
-    return rows;
+  if (!(await isAdmin(account_id))) {
+    throw Error("must be a site admin");
   }
+  // user is site admin so get everything
+  const { rows } = await pool.query(
+    "SELECT name, title, admin_account_ids FROM organizations",
+  );
+  return rows;
 }
 
 // create a new organization with the given unique name (at most 39 characters); only admins
 // can create an organization.  Returns uuid of organization.
-export async function create(opts: {
+export async function create({
+  account_id,
+  name,
+}: {
   account_id?: string;
   name: string;
 }): Promise<string> {
@@ -104,7 +108,10 @@ export async function create(opts: {
 }
 
 // get properties of an existing organization
-export async function get(opts: {
+export async function get({
+  account_id,
+  name,
+}: {
   account_id?: string;
   name: string;
 }): Promise<{
@@ -115,7 +122,7 @@ export async function get(opts: {
   email_address?: string;
   admin_account_ids?: string[];
 }> {
-  await assertAllowed(opts);
+  await assertAllowed({ account_id, name });
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT name, title, description, link, email_address, admin_account_ids FROM organizations WHERE name=$1",
@@ -163,6 +170,9 @@ export async function addAdmin({
   name: string;
   admin_account_id;
 }): Promise<void> {
+  if (!(await isValidAccount(admin_account_id))) {
+    throw Error(`invalid account '${admin_account_id}'`);
+  }
   if (
     await isOrganizationAdmin({
       name,
@@ -193,9 +203,9 @@ export async function addAdmin({
   );
 
   await addUser({
-    account_id: opts.account_id,
-    name: opts.name,
-    user_account_id: opts.admin,
+    account_id,
+    name,
+    user_account_id: admin_account_id,
   });
 }
 
@@ -224,13 +234,16 @@ export async function createUser({
   email,
   firstName,
   lastName,
+  password,
 }: {
   account_id?: string;
   name: string;
   email: string;
   firstName: string;
   lastName: string;
+  password: string;
 }): Promise<string> {
+  password ??= await secureRandomString(16);
   await assertAllowed({ account_id, name });
   // create new account
   const new_account_id = uuid();
@@ -240,6 +253,7 @@ export async function createUser({
     lastName,
     account_id: new_account_id,
     owner_id: account_id,
+    password,
   });
   // add account to org
   const pool = getPool();
@@ -250,7 +264,11 @@ export async function createUser({
   return new_account_id;
 }
 
-export async function removeUser(opts: {
+export async function removeUser({
+  account_id,
+  name,
+  user_account_id,
+}: {
   account_id?: string;
   name: string;
   user_account_id: string;
@@ -272,6 +290,7 @@ export async function removeAdmin({
   admin_account_id;
 }): Promise<void> {
   await assertAllowed({ account_id, name });
+  const pool = getPool();
   await pool.query(
     `
   UPDATE organizations
@@ -302,6 +321,9 @@ export async function createToken({
   const name = await getOrg(user_account_id);
   if (!name) {
     throw Error(`user is not in an org`);
+  }
+  if (!account_id) {
+    throw Error("invalid account_id");
   }
   await assertAllowed({ account_id, name });
   return await createAuthTokenNoCheck({
@@ -358,6 +380,7 @@ export async function message({
     [name],
   );
   await send({
+    from_id: account_id,
     to_ids: rows.map((x) => x.account_id),
     subject,
     body,

@@ -65,7 +65,7 @@ export async function createAuthTokenNoCheck({
   );
   await centralLog({
     event: "auth-token",
-    value: { account_id, user_account_id, is_admin },
+    value: { account_id: created_by, user_account_id, is_admin },
   });
   return authToken;
 }
