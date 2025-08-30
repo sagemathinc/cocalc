@@ -55,13 +55,15 @@ export interface Org {
   addAdmin: (opts: {
     account_id?: string;
     name: string;
-    admin_account_id;
+    // user = account_id or email address
+    user: string;
   }) => Promise<void>;
 
   addUser: (opts: {
     account_id?: string;
     name: string;
-    user_account_id;
+    // user = account_id or email address
+    user: string;
   }) => Promise<void>;
 
   createUser: (opts: {
@@ -76,19 +78,22 @@ export interface Org {
   removeUser: (opts: {
     account_id?: string;
     name: string;
-    user_account_id: string;
+    // user = account_id or email address
+    user: string;
   }) => Promise<void>;
 
   removeAdmin: (opts: {
     account_id?: string;
     name: string;
-    admin_account_id;
+    // user = account_id or email address
+    user: string;
   }) => Promise<void>;
 
   createToken: (opts: {
     account_id?: string;
-    user_account_id;
-  }) => Promise<string>;
+    // user = account_id or email address
+    user: string;
+  }) => Promise<{ token: string; url: string }>;
 
   expireToken: (opts: { account_id?: string; token: string }) => Promise<void>;
 

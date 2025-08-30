@@ -8,7 +8,7 @@ import {
 } from "@cocalc/server/auth/auth-token";
 import send from "@cocalc/server/messages/send";
 import { secureRandomString } from "@cocalc/backend/misc";
-import isValidAccount from "@cocalc/server/accounts/is-valid-account";
+import siteUrl from "@cocalc/server/hub/site-url";
 
 // this is a permissions check
 async function isOrganizationAdmin({
@@ -164,21 +164,18 @@ export async function set(opts: {
 export async function addAdmin({
   account_id,
   name,
-  admin_account_id,
+  user,
 }: {
   account_id?: string;
   name: string;
-  admin_account_id;
+  user: string;
 }): Promise<void> {
-  if (!(await isValidAccount(admin_account_id))) {
-    throw Error(`invalid account '${admin_account_id}'`);
+  const { name: currentOrgName, account_id: admin_account_id } =
+    await getAccount(user);
+  if (!admin_account_id) {
+    throw Error(`no such account '${user}'`);
   }
-  if (
-    await isOrganizationAdmin({
-      name,
-      account_id: admin_account_id,
-    })
-  ) {
+  if (currentOrgName == name) {
     // already an admin of the org
     return;
   }
@@ -205,21 +202,25 @@ export async function addAdmin({
   await addUser({
     account_id,
     name,
-    user_account_id: admin_account_id,
+    user: admin_account_id,
   });
 }
 
 export async function addUser({
   account_id,
   name,
-  user_account_id,
+  user,
 }: {
   account_id?: string;
   name: string;
-  user_account_id: string;
+  user: string;
 }): Promise<void> {
   if (!(await isAdmin(account_id))) {
     throw Error("only site admins can move user to an org right now");
+  }
+  const { account_id: user_account_id } = await getAccount(user);
+  if (!user_account_id) {
+    throw Error(`cannot find user '${user}'`);
   }
   const pool = getPool();
   await pool.query("UPDATE accounts SET org=$1 WHERE account_id=$2", [
@@ -267,15 +268,24 @@ export async function createUser({
 export async function removeUser({
   account_id,
   name,
-  user_account_id,
+  user,
 }: {
   account_id?: string;
   name: string;
-  user_account_id: string;
+  user: string;
 }): Promise<void> {
   await assertAllowed({ account_id, name });
+  const { account_id: user_account_id } = await getAccount(user);
+  if (!user_account_id) {
+    throw Error(`cannot find user '${user}'`);
+  }
+  if (await isOrganizationAdmin({ account_id: user_account_id, name })) {
+    throw Error(
+      "admin cannot be removed from org; first remove them from being an admin",
+    );
+  }
   const pool = getPool();
-  await pool.query("UPDATE accounts SET org=NULL WHERE account_id=$2", [
+  await pool.query("UPDATE accounts SET org=NULL WHERE account_id=$1", [
     user_account_id,
   ]);
 }
@@ -283,13 +293,17 @@ export async function removeUser({
 export async function removeAdmin({
   account_id,
   name,
-  admin_account_id,
+  user,
 }: {
   account_id?: string;
   name: string;
-  admin_account_id;
+  user: string;
 }): Promise<void> {
   await assertAllowed({ account_id, name });
+  const { account_id: admin_account_id } = await getAccount(user);
+  if (!admin_account_id) {
+    throw Error(`cannot find user '${user}'`);
+  }
   const pool = getPool();
   await pool.query(
     `
@@ -301,37 +315,47 @@ export async function removeAdmin({
   );
 }
 
-async function getOrg(account_id: string): Promise<string | undefined> {
+export async function getAccount(
+  user: string,
+): Promise<
+  | { account_id: undefined; name: undefined; email_address: undefined }
+  | { account_id: string; name: string; email_address?: string }
+> {
   const pool = getPool();
-  const { rows } = await pool.query("SELECT org FROM accounts account_id=$1", [
-    account_id,
-  ]);
-  return rows[0]?.org;
+  const { rows } = await pool.query(
+    "SELECT org as name, account_id, email_address FROM accounts WHERE account_id::varchar=$1::varchar OR email_address=$1::varchar",
+    [user],
+  );
+  return rows[0] ?? {};
 }
 
 export async function createToken({
   account_id,
-  user_account_id,
+  user,
   expire,
 }: {
   account_id?: string;
-  user_account_id: string;
+  user: string;
   expire?: number; // when token expires as ms since epoch (default = 12 hours from now)
-}): Promise<string> {
-  const name = await getOrg(user_account_id);
+}): Promise<{ token: string; url: string }> {
+  const { name, account_id: account_id0 } = await getAccount(user);
   if (!name) {
     throw Error(`user is not in an org`);
   }
   if (!account_id) {
-    throw Error("invalid account_id");
+    throw Error("must be signed in");
+  }
+  if (!account_id0) {
+    throw Error("account not found");
   }
   await assertAllowed({ account_id, name });
-  return await createAuthTokenNoCheck({
-    user_account_id,
+  const token = await createAuthTokenNoCheck({
+    user_account_id: account_id0,
     created_by: account_id,
     is_admin: await isAdmin(account_id),
     expire,
   });
+  return { token, url: await siteUrl(`auth/impersonate?auth_token=${token}`) };
 }
 
 export async function expireToken({ token }: { token: string }): Promise<void> {

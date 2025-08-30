@@ -6,6 +6,7 @@
     "./*": "./dist/*.js",
     "./auth/*": "./dist/auth/*.js",
     "./api/*": "./dist/api/*.js",
+    "./hub/*": "./dist/hub/*.js",
     "./accounts/*": "./dist/accounts/*.js",
     "./bookmarks/*": "./dist/bookmarks/*.js",
     "./compute/*": "./dist/compute/*.js",
