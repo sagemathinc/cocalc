@@ -38,6 +38,7 @@ describe("compute-cost v1 pricing", () => {
   it("computes cost default", () => {
     const c_v1 = compute_cost(info1);
     const c_v3 = compute_cost({ ...info1, version: "3" });
+    // @ts-ignore
     const cWithoutVersion = compute_cost({ ...info1, version: undefined });
     expect(c_v1).not.toEqual(c_v3);
     expect(c_v3).toEqual(cWithoutVersion);

@@ -39,11 +39,29 @@ export async function generateUserAuthToken({
   }
 
   // ready to go
+  return await createAuthTokenNoCheck({
+    user_account_id,
+    created_by: account_id,
+    is_admin,
+  });
+}
+
+export async function createAuthTokenNoCheck({
+  user_account_id,
+  created_by,
+  is_admin,
+  expire = Date.now() + 1000 * 60 * 60 * 12,
+}: {
+  user_account_id: string;
+  created_by: string;
+  is_admin: boolean;
+  expire?: number;
+}): Promise<string> {
   const authToken = generate(24);
   const pool = getPool();
   await pool.query(
-    "INSERT INTO auth_tokens (auth_token, expire, account_id, created_by, created, is_admin) VALUES($1, NOW()+INTERVAL '12 hours', $2, $3, NOW(), $4)",
-    [authToken, user_account_id, account_id, is_admin],
+    "INSERT INTO auth_tokens (auth_token, expire, account_id, created_by, created, is_admin) VALUES($1, $2, $3, $4, NOW(), $5)",
+    [authToken, new Date(expire), user_account_id, created_by, is_admin],
   );
   await centralLog({
     event: "auth-token",

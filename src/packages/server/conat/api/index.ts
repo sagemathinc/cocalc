@@ -165,6 +165,7 @@ import * as system from "./system";
 import * as projects from "./projects";
 import * as jupyter from "./jupyter";
 import * as sync from "./sync";
+import * as org from "./org";
 
 export const hubApi: HubApi = {
   system,
@@ -173,6 +174,7 @@ export const hubApi: HubApi = {
   purchases,
   jupyter,
   sync,
+  org,
 };
 
 async function getResponse({ name, args, account_id, project_id }) {

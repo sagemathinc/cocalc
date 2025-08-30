@@ -1,7 +1,7 @@
 import httpx
 from typing import Any, Optional
 from .util import api_method, handle_error
-from .api_types import PingResponse
+from .api_types import PingResponse, UserSearchResult
 
 
 class Hub:
@@ -86,6 +86,48 @@ class System:
             Any: Mapping from account_id to profile information.
         """
         return self._parent.call("system.getNames", [account_ids])
+
+    @api_method("system.userSearch")
+    def user_search(self, query: str) -> UserSearchResult:
+        """
+        Search for existing users by name or email address.
+        
+        Args:
+            query (str): A query, e.g., partial name, email address, etc.
+            
+        Returns:
+            list[UserSearchResult]: array of dicts with account_id, name,
+                first_name, last_name, last_active (in ms since epoch),
+                created (in ms since epoch) and email_address_verified.
+                
+        Examples:
+        
+            Search for myself:
+            
+            >>> import cocalc_api; hub = cocalc_api.Hub(api_key="sk...")
+            >>> hub.system.user_search('w')
+            [{'account_id': 'd0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb',
+              'first_name': 'W',
+              'last_name': 'Stein',
+              'name': None,
+              'last_active': 1756503700052,
+              'created': 1756056224470,
+              'email_address_verified': None}]
+              
+             You can search by email address to ONLY get the user
+             that has that email address:
+             
+             >>>  hub.system.user_search('wstein@gmail.com')
+            [{'account_id': 'd0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb',
+              'first_name': 'W',
+              'last_name': 'Stein',
+              'name': None,
+              'email_address': 'wstein@gmail.com',
+              'last_active': 1756503700052,
+              'created': 1756056224470,
+              'email_address_verified': None}]
+        """
+        raise NotImplementedError
 
 
 class Projects:
@@ -286,4 +328,3 @@ class Database:
             {'accounts': {'first_name': 'W'}}
         """
         raise NotImplementedError
-
