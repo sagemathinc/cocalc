@@ -26,7 +26,7 @@ export default async function handle(req, res) {
   try {
     const { account_id, project_id: project_id0 } =
       (await getAccountFromApiKey(req)) ?? {};
-    if (!account_id && !project_id) {
+    if (!account_id && !project_id0) {
       throw Error("must sign in as project or account");
     }
     const {
