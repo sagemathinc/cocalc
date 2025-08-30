@@ -1,7 +1,7 @@
 import httpx
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from .util import api_method, handle_error
-from .api_types import PingResponse, UserSearchResult
+from .api_types import PingResponse, UserSearchResult, MessageType, TokenType, OrganizationUser
 
 
 class Hub:
@@ -58,6 +58,16 @@ class Hub:
     def db(self):
         """Access database state related functions."""
         return Database(self)
+
+    @property
+    def messages(self):
+        """Sending and receiving messages."""
+        return Messages(self)
+
+    @property
+    def org(self):
+        """Managing organizations."""
+        return Organizations(self)
 
 
 class System:
@@ -305,10 +315,10 @@ class Database:
         Do a user query.  The input is of one of the following forms, where the tables are defined at
         https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/db-schema
         
-        - {"table-name":{"key":"value", ...}}  with no None values sets one record in the database
-        - {"table-name":[{"key":"value", "key2":None...}]} gets an array of all matching records 
+        - `{"table-name":{"key":"value", ...}}`  with no None values sets one record in the database
+        - `{"table-name":[{"key":"value", "key2":None...}]}` gets an array of all matching records 
           in the database, filling in None's with the actual values.
-        - {"table-name:{"key":"value", "key2":None}} gets one record, filling in None's with actual values.
+        - `{"table-name:{"key":"value", "key2":None}}` gets one record, filling in None's with actual values.
         
         This is used for most configuration, e.g., user names, project descriptions, etc.
 
@@ -328,3 +338,218 @@ class Database:
             {'accounts': {'first_name': 'W'}}
         """
         raise NotImplementedError
+
+
+class Messages:
+
+    def __init__(self, parent: "Hub"):
+        self._parent = parent
+
+    @api_method("messages.send")
+    def send(self, subject: str, body: str, to_ids: list[str],
+             reply_id: Optional[int]) -> int:
+        """
+        Send a message to one or more users.
+
+        Args:
+            subject (str): short plain text subject of the message
+            body (str): Longer markdown body of the message (math typesetting and cocalc links work)
+            to_ids (list[str]): email addresses or account_id of each recipients
+            reply_id (Optional[int]): optional message you're replying to (for threading)
+
+        Returns:
+            int: id of the message
+        """
+        raise NotImplementedError
+
+    @api_method("messages.get")
+    def get(
+        self,
+        limit: Optional[int],
+        offset: Optional[int],
+        type: Optional[Literal["received", "sent", "new", "starred", "liked"]],
+    ) -> list[MessageType]:
+        """
+        Get your messages.
+        """
+        raise NotImplementedError
+
+
+"""
+  message: authFirst,
+  removeUser: authFirst,
+  removeAdmin: authFirst,
+  """
+
+
+class Organizations:
+
+    def __init__(self, parent: "Hub"):
+        self._parent = parent
+
+    @api_method("org.getAll")
+    def get_all(self):
+        """
+        Get all organizations (site admins only).
+
+        Returns:
+            Any: ...
+        """
+        raise NotImplementedError
+
+    @api_method("org.create")
+    def create(self, name: str):
+        """
+        Create an organization (site admins only).
+
+        Args:
+            name (str) - name of the organization; must be globally unique,
+                at most 39 characters, and CANNOT BE CHANGED
+
+        Returns:
+            Any: ...
+        """
+        raise NotImplementedError
+
+    @api_method("org.get")
+    def get(self, name: str):
+        """
+        Get an organization
+
+        Args:
+            name (str) - name of the organization
+            
+        Returns:
+            Any: ...
+        """
+        raise NotImplementedError
+
+    @api_method("org.set")
+    def set(self, name: str, title: Optional[str], description: Optional[str],
+            email_address: Optional[str], link: Optional[str]):
+        """
+        Set properties of an organization.
+
+        Args:
+            name (str): name of the organization
+            title (Optional[str]): the title of the organization
+            description (Optional[str]): description of the organization
+            email_address (Optional[str]): email address to reach the organization 
+               (nothing to do with a cocalc account)
+            link (Optional[str]): a website of the organization
+        """
+        raise NotImplementedError
+
+    @api_method("org.addAdmin")
+    def add_admin(self, name: str, user: str):
+        """
+        Make the user with given account_id or email an admin
+        of the named organization.
+
+        Args:
+            name (str): name of the organization
+            user (str): email or account_id
+        """
+        raise NotImplementedError
+
+    @api_method("org.addUser")
+    def add_user(self, name: str, user: str):
+        """
+        Make the user with given account_id or email a member
+        of the named organization. Only site admins can do this.
+        If you are an org admin, instead use create_user to create
+        new users in your organization, or contact support.
+
+        Args:
+            name (str): name of the organization
+            user (str): email or account_id
+        """
+        raise NotImplementedError
+
+    @api_method("org.createUser")
+    def create_user(self, name: str, email: str, firstName: Optional[str],
+                    lastName: Optional[str], password: Optional[str]) -> str:
+        """
+        Create a new cocalc account that is a member of the
+        named organization.
+
+        Args:
+            name (str): name of the organization
+            email (str): email address
+            firstName (Optional[str]): optional first name of the user
+            lastName (Optional[str]): optional last name of the user
+            password (Optional[str]): optional password (will be randomized if 
+                not given; you can instead use create_token to grant temporary
+                account access).
+                
+        Returns:
+            str: account_id of the new user
+        """
+        raise NotImplementedError
+
+    @api_method("org.createToken")
+    def create_token(self, user: str) -> TokenType:
+        """
+        Create a token that provides temporary access to the given
+        account.  You must be an admin for the org that the user
+        belongs to or a site admin.
+
+        Args:
+            user (str): email address or account_id
+                
+        Returns:
+            TokenType: token that grants temporary access
+            
+        Notes:
+            The returned `TokenType` has the following fields:
+
+            - `token` (str): The random token itself, which you may retain
+              in case you want to explicitly expire it early.
+            - `url` (str): The url that the user should visit to sign in as
+              them.  You can also test out this url, since the token works
+              multiple times.
+        """
+        raise NotImplementedError
+
+    @api_method("org.expireToken")
+    def expire_token(self, token: str):
+        """
+        Immediately expire a token created using create_token.
+
+        Args:
+            token (str): a token
+        """
+        raise NotImplementedError
+
+    @api_method("org.getUsers")
+    def get_users(self, name: str) -> OrganizationUser:
+        """
+        Return list of all accounts that are members of the named organization.
+
+        Args:
+            name (str): name of the organization
+            
+        Returns:
+            list[OrganizationUser]
+            
+        Notes:
+            The returned `OrganizationUser` has the following fields:
+
+            - `first_name` (str)
+            - `last_name` (str)
+            - `account_id` (str): a uuid
+            - `email_address` (str)
+        """
+        raise NotImplementedError
+
+    @api_method("org.message")
+    def message(self, name: str, subject: str, body: str):
+        """
+        Send a message from you to every account that is a member of
+        the named organization.
+        
+        Args:
+            name (str): name of the organization
+            subject (str): plain text subject of the message
+            body (str): markdown body of the message (math typesetting works)
+        """

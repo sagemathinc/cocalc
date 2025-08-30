@@ -1,9 +1,9 @@
 import { authFirst } from "./util";
 
 export const org = {
-  get: authFirst,
   getAll: authFirst,
   create: authFirst,
+  get: authFirst,
   set: authFirst,
   addAdmin: authFirst,
   addUser: authFirst,

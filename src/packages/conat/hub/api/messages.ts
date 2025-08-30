@@ -7,13 +7,14 @@ import {
 export interface Messages {
   send: (opts: {
     account_id?: string;
+    // to_ids-- account_id's or email addresses of users with accounts
     to_ids: string[];
     // short plain text formatted subject
     subject: string;
     // longer markdown formatted body
     body: string;
     reply_id?: number;
-  }) => Promise<any[]>;
+  }) => Promise<number>;
 
   get: (opts: ApiMessagesGet) => Promise<MessageMe[]>;
 }

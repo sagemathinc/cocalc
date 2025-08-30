@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 
 def handle_error(x: Any) -> Any:
-    if 'error' in x:
+    if isinstance(x, dict) and 'error' in x:
         raise RuntimeError(x['error'])
     return x
 

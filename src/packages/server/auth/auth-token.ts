@@ -50,7 +50,7 @@ export async function createAuthTokenNoCheck({
   user_account_id,
   created_by,
   is_admin,
-  expire = Date.now() + 1000 * 60 * 60 * 12,
+  expire = Date.now() + 1000 * 60 * 60 * 24,
 }: {
   user_account_id: string;
   created_by: string;

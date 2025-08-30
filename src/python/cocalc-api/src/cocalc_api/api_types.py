@@ -23,3 +23,32 @@ class UserSearchResult(TypedDict):
     created: Optional[int]
     # true if their email has been verified (a sign they are more trustworthy).
     email_address_verified: Optional[bool]
+
+
+class MessageType(TypedDict):
+    id: int
+    from_id: str
+    to_ids: list[str]
+    subject: str
+    body: str
+    sent: Optional[str]
+    thread_id: Optional[int]
+    index: Optional[int]
+    read: Optional[bool]
+    saved: Optional[bool]
+    starred: Optional[bool]
+    liked: Optional[bool]
+    deleted: Optional[bool]
+    expire: Optional[bool]
+
+
+class TokenType(TypedDict):
+    token: str
+    url: str
+
+
+class OrganizationUser(TypedDict):
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email_address: Optional[str]
+    account_id: str
