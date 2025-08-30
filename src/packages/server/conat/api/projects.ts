@@ -75,3 +75,31 @@ export async function setQuotas(opts: {
   // @ts-ignore
   await project?.setAllQuotas();
 }
+
+export async function start({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to start it");
+  }
+  const project = await getProject(project_id);
+  await project.start();
+}
+
+export async function stop({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to stop it");
+  }
+  const project = await getProject(project_id);
+  await project.stop();
+}

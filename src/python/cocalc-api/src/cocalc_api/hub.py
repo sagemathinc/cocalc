@@ -101,19 +101,19 @@ class System:
     def user_search(self, query: str) -> UserSearchResult:
         """
         Search for existing users by name or email address.
-        
+
         Args:
             query (str): A query, e.g., partial name, email address, etc.
-            
+
         Returns:
             list[UserSearchResult]: array of dicts with account_id, name,
                 first_name, last_name, last_active (in ms since epoch),
                 created (in ms since epoch) and email_address_verified.
-                
+
         Examples:
-        
+
             Search for myself:
-            
+
             >>> import cocalc_api; hub = cocalc_api.Hub(api_key="sk...")
             >>> hub.system.user_search('w')
             [{'account_id': 'd0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb',
@@ -123,10 +123,10 @@ class System:
               'last_active': 1756503700052,
               'created': 1756056224470,
               'email_address_verified': None}]
-              
+
              You can search by email address to ONLY get the user
              that has that email address:
-             
+
              >>>  hub.system.user_search('wstein@gmail.com')
             [{'account_id': 'd0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb',
               'first_name': 'W',
@@ -144,6 +144,39 @@ class Projects:
 
     def __init__(self, parent: "Hub"):
         self._parent = parent
+
+    def get(self,
+            fields: Optional[list[str]] = None,
+            all: Optional[bool] = False,
+            project_id: Optional[str] = None):
+        """
+        Get data about projects that you are a collaborator on.  Only gets
+        recent projects by default; set all=True to get all projects.
+
+        Args:
+            fields (Optional[list[str]]): the fields about the project to get.
+                default: ['project_id', 'title', 'last_edited', 'state'], but see
+                https://github.com/sagemathinc/cocalc/blob/master/src/packages/util/db-schema/projects.ts
+            all (Optional[bool]): if True, return ALL your projects,
+                not just the recent ones. False by default.
+            project_id (Optional[string]): if given as a project_id, gets just the
+                one project (as a length of length 1).
+
+        Returns:
+            list[dict[str,Any]]: list of projects
+        """
+        if fields is None:
+            fields = ['project_id', 'title', 'last_edited', 'state']
+        v: list[dict[str, Any]] = [{}]
+        for field in fields:
+            v[0][field] = None
+        if project_id:
+            v[0]['project_id'] = project_id
+        query: dict[str, list[dict[str, None]]] = {}
+        table = 'projects_all' if all else 'projects'
+        query[table] = v
+        result = self._parent.db.query(query)
+        return result[table]
 
     @api_method("projects.copyPathBetweenProjects")
     def copy_path_between_projects(
@@ -224,6 +257,26 @@ class Projects:
         """
         ...
 
+    @api_method("projects.start")
+    def start(self, project_id: str):
+        """
+        Start a project.
+
+        Args:
+            project_id (str): project_id of the project to start
+        """
+        ...
+
+    @api_method("projects.stop")
+    def stop(self, project_id: str):
+        """
+        Stop a project.
+
+        Args:
+            project_id (str): project_id of the project to stop
+        """
+        ...
+
 
 class Jupyter:
 
@@ -265,19 +318,19 @@ class Jupyter:
 
         Returns:
             Any: JSON response containing execution results.
-            
+
         Examples:
             Execute a simple sum using a Jupyter kernel:
-            
+
             >>> import cocalc_api;  hub = cocalc_api.Hub(api_key="sk-...")
-            >>> hub.jupyter.execute(history=['a=100;print(a)'], 
+            >>> hub.jupyter.execute(history=['a=100;print(a)'],
                            input='sum(range(a+1))',
                            kernel='python3')
             {'output': [{'data': {'text/plain': '5050'}}], ...}
-            
+
             Factor a number using the sagemath kernel in a specific project:
-            
-            >>> hub.jupyter.execute(history=['a=2025'], input='factor(a)', kernel='sagemath', 
+
+            >>> hub.jupyter.execute(history=['a=2025'], input='factor(a)', kernel='sagemath',
             ...     project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
             {'output': [{'data': {'text/plain': '3^4 * 5^2'}}], ...}
         """
@@ -314,21 +367,21 @@ class Database:
         """
         Do a user query.  The input is of one of the following forms, where the tables are defined at
         https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/db-schema
-        
+
         - `{"table-name":{"key":"value", ...}}`  with no None values sets one record in the database
-        - `{"table-name":[{"key":"value", "key2":None...}]}` gets an array of all matching records 
+        - `{"table-name":[{"key":"value", "key2":None...}]}` gets an array of all matching records
           in the database, filling in None's with the actual values.
         - `{"table-name:{"key":"value", "key2":None}}` gets one record, filling in None's with actual values.
-        
+
         This is used for most configuration, e.g., user names, project descriptions, etc.
 
         Args:
             query (dict[str, Any]): Object that defines the query, as explained above.
-            
+
         Examples:
-        
+
         Get and also change your first name:
-        
+
             >>> import cocalc_api; hub = cocalc_api.Hub(api_key="sk...")
             >>> hub.db.query({"accounts":{"first_name":None}})
             {'accounts': {'first_name': 'William'}}
@@ -346,8 +399,11 @@ class Messages:
         self._parent = parent
 
     @api_method("messages.send")
-    def send(self, subject: str, body: str, to_ids: list[str],
-             reply_id: Optional[int]) -> int:
+    def send(self,
+             subject: str,
+             body: str,
+             to_ids: list[str],
+             reply_id: Optional[int] = None) -> int:
         """
         Send a message to one or more users.
 
@@ -365,9 +421,10 @@ class Messages:
     @api_method("messages.get")
     def get(
         self,
-        limit: Optional[int],
-        offset: Optional[int],
-        type: Optional[Literal["received", "sent", "new", "starred", "liked"]],
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        type: Optional[Literal["received", "sent", "new", "starred",
+                               "liked"]] = None,
     ) -> list[MessageType]:
         """
         Get your messages.
@@ -418,15 +475,19 @@ class Organizations:
 
         Args:
             name (str) - name of the organization
-            
+
         Returns:
             Any: ...
         """
         raise NotImplementedError
 
     @api_method("org.set")
-    def set(self, name: str, title: Optional[str], description: Optional[str],
-            email_address: Optional[str], link: Optional[str]):
+    def set(self,
+            name: str,
+            title: Optional[str] = None,
+            description: Optional[str] = None,
+            email_address: Optional[str] = None,
+            link: Optional[str] = None):
         """
         Set properties of an organization.
 
@@ -434,7 +495,7 @@ class Organizations:
             name (str): name of the organization
             title (Optional[str]): the title of the organization
             description (Optional[str]): description of the organization
-            email_address (Optional[str]): email address to reach the organization 
+            email_address (Optional[str]): email address to reach the organization
                (nothing to do with a cocalc account)
             link (Optional[str]): a website of the organization
         """
@@ -467,8 +528,12 @@ class Organizations:
         raise NotImplementedError
 
     @api_method("org.createUser")
-    def create_user(self, name: str, email: str, firstName: Optional[str],
-                    lastName: Optional[str], password: Optional[str]) -> str:
+    def create_user(self,
+                    name: str,
+                    email: str,
+                    firstName: Optional[str] = None,
+                    lastName: Optional[str] = None,
+                    password: Optional[str] = None) -> str:
         """
         Create a new cocalc account that is a member of the
         named organization.
@@ -478,10 +543,10 @@ class Organizations:
             email (str): email address
             firstName (Optional[str]): optional first name of the user
             lastName (Optional[str]): optional last name of the user
-            password (Optional[str]): optional password (will be randomized if 
+            password (Optional[str]): optional password (will be randomized if
                 not given; you can instead use create_token to grant temporary
                 account access).
-                
+
         Returns:
             str: account_id of the new user
         """
@@ -496,10 +561,10 @@ class Organizations:
 
         Args:
             user (str): email address or account_id
-                
+
         Returns:
             TokenType: token that grants temporary access
-            
+
         Notes:
             The returned `TokenType` has the following fields:
 
@@ -528,10 +593,10 @@ class Organizations:
 
         Args:
             name (str): name of the organization
-            
+
         Returns:
             list[OrganizationUser]
-            
+
         Notes:
             The returned `OrganizationUser` has the following fields:
 
@@ -547,7 +612,7 @@ class Organizations:
         """
         Send a message from you to every account that is a member of
         the named organization.
-        
+
         Args:
             name (str): name of the organization
             subject (str): plain text subject of the message

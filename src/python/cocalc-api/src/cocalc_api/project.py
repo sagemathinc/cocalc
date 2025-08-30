@@ -60,11 +60,11 @@ class System:
 
         Returns:
             Any: JSON object containing the current server time.
-            
+
         Examples:
             Ping a project.  The api_key can be either an account api key or a project
             specific api key (in which case the project_id option is optional):
-            
+
             >>> import cocalc_api;  project = cocalc_api.Project(api_key="sk-...", project_id='...')
             >>> project.ping()
             {'now': 1756489740133}
@@ -88,9 +88,9 @@ class System:
     ) -> ExecuteCodeOutput:
         """
         Execute an arbitrary shell command in the project.
-        
+
         Args:
-        
+
             command (str): command to run; can be a program name (e.g., "ls") or absolute path, or a full bash script
             args (Optional[list[str]]): optional arguments to the command
             path (Optional[str]): path (relative to HOME directory) where command will be run
@@ -100,7 +100,7 @@ class System:
             bash (Optional[bool]): if True, ignore args and evaluate command as a bash command
             env (Optional[dict[str, Any]]): if given, added to exec environment
             compute_server_id (Optional[number]): compute server to run code on (instead of home base project)
-        
+
         Returns:
             ExecuteCodeOutput: Result of executing the command.
 
@@ -111,11 +111,11 @@ class System:
             - `stderr` (str): Output written to stderr.
             - `exit_code` (int): Exit code of the process.
 
-        
+
         Examples:
-        
+
             >>> import cocalc_api
-            >>> project = cocalc_api.Project(api_key="sk-...", 
+            >>> project = cocalc_api.Project(api_key="sk-...",
                              project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
             >>> project.system.exec(command="echo 'hello from cocalc'")
             {'stdout': 'hello from cocalc\\n', 'stderr':'', 'exit_code': 0}
@@ -141,13 +141,13 @@ class System:
 
         Returns:
             Any: JSON response containing execution results.
-            
+
         Examples:
             Execute a simple sum using a Jupyter kernel:
-            
+
             >>> import cocalc_api;  project = cocalc_api.Project(api_key="sk-...")
-            >>> project.jupyter.execute(history=['a=100;print(a)'], 
-                         input='sum(range(a+1))', 
+            >>> project.jupyter.execute(history=['a=100;print(a)'],
+                         input='sum(range(a+1))',
                          kernel='python3')
             {'output': [{'data': {'text/plain': '5050'}}], ...}
         """

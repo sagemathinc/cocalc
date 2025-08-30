@@ -10,6 +10,8 @@ export const projects = {
   inviteCollaborator: authFirstRequireAccount,
   inviteCollaboratorWithoutAccount: authFirstRequireAccount,
   setQuotas: authFirstRequireAccount,
+  start: authFirstRequireAccount,
+  stop: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -98,4 +100,7 @@ export interface Projects {
     member_host?: number;
     always_running?: number;
   }) => Promise<void>;
+
+  start: (opts: { account_id: string; project_id: string }) => Promise<void>;
+  stop: (opts: { account_id: string; project_id: string }) => Promise<void>;
 }
