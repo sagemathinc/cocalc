@@ -5,8 +5,8 @@
   "scripts": {
     "make": "pnpm run build",
     "make-dev": "pnpm run build-dev",
-    "build": "./workspaces.py install && ./workspaces.py build",
-    "build-dev": "./workspaces.py install && ./workspaces.py build --dev",
+    "build": "./workspaces.py install && ./workspaces.py build && python-api",
+    "build-dev": "./workspaces.py install && ./workspaces.py build --dev && python-api",
     "build-lite-dev": "./workspaces.py install && ./workspaces.py build --dev --exclude=hub,server,next,file-server",
     "clean": "rm -rf packages/node_modules && ./workspaces.py clean && cd compute/compute && pnpm clean ",
     "hub": "cd packages/hub && npm run hub-project-dev-nobuild",
@@ -25,7 +25,8 @@
     "local-ci": "./scripts/ci.sh",
     "conat-connections": "cd packages/backend && pnpm conat-connections",
     "conat-watch": "cd packages/backend && pnpm conat-watch",
-    "conat-inventory": "cd packages/backend && pnpm conat-inventory"
+    "conat-inventory": "cd packages/backend && pnpm conat-inventory",
+    "python-api": "cd python/cocalc-api && make all"
   },
   "repository": {
     "type": "git",

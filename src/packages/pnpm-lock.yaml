@@ -188,6 +188,9 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
+      bufferutil:
+        specifier: ^4.0.9
+        version: 4.0.9
       consistent-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -214,10 +217,13 @@ importers:
         version: 3.0.1
       socket.io:
         specifier: ^4.8.1
-        version: 4.8.1(bufferutil@4.0.9)
+        version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       socket.io-client:
         specifier: ^4.8.1
-        version: 4.8.1(bufferutil@4.0.9)
+        version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+      utf-8-validate:
+        specifier: ^6.0.5
+        version: 6.0.5
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -382,13 +388,13 @@ importers:
         version: 1.4.1
       '@jupyter-widgets/base':
         specifier: ^4.1.1
-        version: 4.1.7(bufferutil@4.0.9)(react@19.1.1)
+        version: 4.1.7(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)
       '@jupyter-widgets/controls':
         specifier: 5.0.0-rc.2
-        version: 5.0.0-rc.2(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)
+        version: 5.0.0-rc.2(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)(utf-8-validate@6.0.5)
       '@jupyter-widgets/output':
         specifier: ^4.1.0
-        version: 4.1.7(bufferutil@4.0.9)(react@19.1.1)
+        version: 4.1.7(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)
       '@microlink/react-json-view':
         specifier: ^1.23.3
         version: 1.27.0(@types/react@19.1.10)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -559,7 +565,7 @@ importers:
         version: 0.2.0
       jest-environment-jsdom:
         specifier: ^30.0.2
-        version: 30.0.5(bufferutil@4.0.9)
+        version: 30.0.5(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       jquery:
         specifier: ^3.6.0
         version: 3.7.1
@@ -616,7 +622,7 @@ importers:
         version: 4.10.38
       plotly.js:
         specifier: ^2.29.1
-        version: 2.35.3(@rspack/core@1.5.0(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3)
+        version: 2.35.3(@rspack/core@1.5.1(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3)
       project-name-generator:
         specifier: ^2.1.6
         version: 2.1.9
@@ -652,7 +658,7 @@ importers:
         version: 7.1.11(react@19.1.1)(typescript@5.9.2)
       react-plotly.js:
         specifier: ^2.6.0
-        version: 2.6.0(plotly.js@2.35.3(@rspack/core@1.5.0(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3))(react@19.1.1)
+        version: 2.6.0(plotly.js@2.35.3(@rspack/core@1.5.1(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3))(react@19.1.1)
       react-redux:
         specifier: ^9.2.0
         version: 9.2.0(@types/react@19.1.10)(react@19.1.1)
@@ -665,6 +671,9 @@ importers:
       react-virtuoso:
         specifier: ^4.9.0
         version: 4.14.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      sanitize-html:
+        specifier: ^2.17.0
+        version: 2.17.0
       slate:
         specifier: ^0.103.0
         version: 0.103.0
@@ -701,9 +710,6 @@ importers:
       video-extensions:
         specifier: ^1.2.0
         version: 1.2.0
-      xss:
-        specifier: ^1.0.11
-        version: 1.0.15
       zlibjs:
         specifier: ^0.3.1
         version: 0.3.1
@@ -1187,13 +1193,13 @@ importers:
         version: 0.2.4
       websocket-sftp:
         specifier: ^0.8.4
-        version: 0.8.4(bufferutil@4.0.9)
+        version: 0.8.4(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       which:
         specifier: ^2.0.2
         version: 2.0.2
       ws:
         specifier: ^8.18.0
-        version: 8.18.3(bufferutil@4.0.9)
+        version: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     devDependencies:
       '@types/body-parser':
         specifier: ^1.19.5
@@ -1257,22 +1263,22 @@ importers:
         version: 1.4.1
       '@langchain/anthropic':
         specifier: ^0.3.26
-        version: 0.3.26(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))
+        version: 0.3.26(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))
       '@langchain/core':
         specifier: ^0.3.68
-        version: 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))
+        version: 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))
       '@langchain/google-genai':
         specifier: ^0.2.16
-        version: 0.2.16(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))
+        version: 0.2.16(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))
       '@langchain/mistralai':
         specifier: ^0.2.1
-        version: 0.2.1(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))(zod@3.25.76)
+        version: 0.2.1(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))(zod@3.25.76)
       '@langchain/ollama':
         specifier: ^0.2.3
-        version: 0.2.3(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))
+        version: 0.2.3(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))
       '@langchain/openai':
         specifier: ^0.6.6
-        version: 0.6.9(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))(ws@8.18.3(bufferutil@4.0.9))
+        version: 0.6.9(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))
       '@node-saml/passport-saml':
         specifier: ^5.1.0
         version: 5.1.0
@@ -1380,7 +1386,7 @@ importers:
         version: 6.10.1
       openai:
         specifier: ^5.12.1
-        version: 5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)
+        version: 5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)
       parse-domain:
         specifier: ^5.0.0
         version: 5.0.0(encoding@0.1.13)
@@ -1427,7 +1433,7 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0
       sanitize-html:
-        specifier: ^2.12.1
+        specifier: ^2.17.0
         version: 2.17.0
       stripe:
         specifier: ^17.5.0
@@ -1484,30 +1490,15 @@ importers:
 
   static:
     devDependencies:
-      '@cocalc/assets':
-        specifier: workspace:*
-        version: link:../assets
-      '@cocalc/backend':
-        specifier: workspace:*
-        version: link:../backend
-      '@cocalc/cdn':
-        specifier: workspace:*
-        version: link:../cdn
-      '@cocalc/frontend':
-        specifier: workspace:*
-        version: link:../frontend
-      '@cocalc/util':
-        specifier: workspace:*
-        version: link:../util
       '@rspack/cli':
-        specifier: ^1.3.15
-        version: 1.4.11(@rspack/core@1.4.11(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)
+        specifier: ^1.5.1
+        version: 1.5.1(@rspack/core@1.5.1(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)
       '@rspack/core':
-        specifier: ^1.3.15
-        version: 1.4.11(@swc/helpers@0.5.15)
+        specifier: ^1.5.1
+        version: 1.5.1(@swc/helpers@0.5.15)
       '@rspack/plugin-react-refresh':
-        specifier: ^1.4.3
-        version: 1.4.3(react-refresh@0.17.0)(webpack-hot-middleware@2.26.1)
+        specifier: ^1.5.0
+        version: 1.5.0(react-refresh@0.17.0)(webpack-hot-middleware@2.26.1)
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.8.0
@@ -1567,7 +1558,7 @@ importers:
         version: 2.7.0
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.2(@rspack/core@1.4.11(@swc/helpers@0.5.15))(webpack@5.101.3)
+        version: 7.1.2(@rspack/core@1.5.1(@swc/helpers@0.5.15))(webpack@5.101.3)
       entities:
         specifier: ^2.2.0
         version: 2.2.0
@@ -1597,7 +1588,7 @@ importers:
         version: 2.1.2(webpack@5.101.3)
       html-webpack-plugin:
         specifier: ^5.5.3
-        version: 5.6.4(@rspack/core@1.4.11(@swc/helpers@0.5.15))(webpack@5.101.3)
+        version: 5.6.4(@rspack/core@1.5.1(@swc/helpers@0.5.15))(webpack@5.101.3)
       identity-obj-proxy:
         specifier: ^3.0.0
         version: 3.0.0
@@ -1654,7 +1645,7 @@ importers:
         version: 1.90.0
       sass-loader:
         specifier: ^16.0.5
-        version: 16.0.5(@rspack/core@1.4.11(@swc/helpers@0.5.15))(sass@1.90.0)(webpack@5.101.3)
+        version: 16.0.5(@rspack/core@1.5.1(@swc/helpers@0.5.15))(sass@1.90.0)(webpack@5.101.3)
       script-loader:
         specifier: ^0.7.2
         version: 0.7.2
@@ -1760,7 +1751,7 @@ importers:
         version: 8.0.9
       ws:
         specifier: ^8.18.0
-        version: 8.18.3(bufferutil@4.0.9)
+        version: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     devDependencies:
       '@types/cookie':
         specifier: ^0.6.0
@@ -1844,7 +1835,7 @@ importers:
         version: 18.19.123
       jest-environment-jsdom:
         specifier: ^30.0.2
-        version: 30.0.5(bufferutil@4.0.9)
+        version: 30.0.5(bufferutil@4.0.9)(utf-8-validate@6.0.5)
 
   util:
     dependencies:
@@ -3468,17 +3459,11 @@ packages:
   '@module-federation/error-codes@0.15.0':
     resolution: {integrity: sha512-CFJSF+XKwTcy0PFZ2l/fSUpR4z247+Uwzp1sXVkdIfJ/ATsnqf0Q01f51qqSEA6MYdQi6FKos9FIcu3dCpQNdg==}
 
-  '@module-federation/error-codes@0.17.1':
-    resolution: {integrity: sha512-n6Elm4qKSjwAPxLUGtwnl7qt4y1dxB8OpSgVvXBIzqI9p27a3ZXshLPLnumlpPg1Qudaj8sLnSnFtt9yGpt5yQ==}
-
   '@module-federation/error-codes@0.18.0':
     resolution: {integrity: sha512-Woonm8ehyVIUPXChmbu80Zj6uJkC0dD9SJUZ/wOPtO8iiz/m+dkrOugAuKgoiR6qH4F+yorWila954tBz4uKsQ==}
 
   '@module-federation/runtime-core@0.15.0':
     resolution: {integrity: sha512-RYzI61fRDrhyhaEOXH3AgIGlHiot0wPFXu7F43cr+ZnTi+VlSYWLdlZ4NBuT9uV6JSmH54/c+tEZm5SXgKR2sQ==}
-
-  '@module-federation/runtime-core@0.17.1':
-    resolution: {integrity: sha512-LCtIFuKgWPQ3E+13OyrVpuTPOWBMI/Ggwsq1Q874YeT8Px28b8tJRCj09DjyRFyhpSPyV/uG80T6iXPAUoLIfQ==}
 
   '@module-federation/runtime-core@0.18.0':
     resolution: {integrity: sha512-ZyYhrDyVAhUzriOsVfgL6vwd+5ebYm595Y13KeMf6TKDRoUHBMTLGQ8WM4TDj8JNsy7LigncK8C03fn97of0QQ==}
@@ -3486,17 +3471,11 @@ packages:
   '@module-federation/runtime-tools@0.15.0':
     resolution: {integrity: sha512-kzFn3ObUeBp5vaEtN1WMxhTYBuYEErxugu1RzFUERD21X3BZ+b4cWwdFJuBDlsmVjctIg/QSOoZoPXRKAO0foA==}
 
-  '@module-federation/runtime-tools@0.17.1':
-    resolution: {integrity: sha512-4kr6zTFFwGywJx6whBtxsc84V+COAuuBpEdEbPZN//YLXhNB0iz2IGsy9r9wDl+06h84bD+3dQ05l9euRLgXzQ==}
-
   '@module-federation/runtime-tools@0.18.0':
     resolution: {integrity: sha512-fSga9o4t1UfXNV/Kh6qFvRyZpPp3EHSPRISNeyT8ZoTpzDNiYzhtw0BPUSSD8m6C6XQh2s/11rI4g80UY+d+hA==}
 
   '@module-federation/runtime@0.15.0':
     resolution: {integrity: sha512-dTPsCNum9Bhu3yPOcrPYq0YnM9eCMMMNB1wuiqf1+sFbQlNApF0vfZxooqz3ln0/MpgE0jerVvFsLVGfqvC9Ug==}
-
-  '@module-federation/runtime@0.17.1':
-    resolution: {integrity: sha512-vKEN32MvUbpeuB/s6UXfkHDZ9N5jFyDDJnj83UTJ8n4N1jHIJu9VZ6Yi4/Ac8cfdvU8UIK9bIbfVXWbUYZUDsw==}
 
   '@module-federation/runtime@0.18.0':
     resolution: {integrity: sha512-+C4YtoSztM7nHwNyZl6dQKGUVJdsPrUdaf3HIKReg/GQbrt9uvOlUWo2NXMZ8vDAnf/QRrpSYAwXHmWDn9Obaw==}
@@ -3504,17 +3483,11 @@ packages:
   '@module-federation/sdk@0.15.0':
     resolution: {integrity: sha512-PWiYbGcJrKUD6JZiEPihrXhV3bgXdll4bV7rU+opV7tHaun+Z0CdcawjZ82Xnpb8MCPGmqHwa1MPFeUs66zksw==}
 
-  '@module-federation/sdk@0.17.1':
-    resolution: {integrity: sha512-nlUcN6UTEi+3HWF+k8wPy7gH0yUOmCT+xNatihkIVR9REAnr7BUvHFGlPJmx7WEbLPL46+zJUbtQHvLzXwFhng==}
-
   '@module-federation/sdk@0.18.0':
     resolution: {integrity: sha512-Lo/Feq73tO2unjmpRfyyoUkTVoejhItXOk/h5C+4cistnHbTV8XHrW/13fD5e1Iu60heVdAhhelJd6F898Ve9A==}
 
   '@module-federation/webpack-bundler-runtime@0.15.0':
     resolution: {integrity: sha512-i+3wu2Ljh2TmuUpsnjwZVupOVqV50jP0ndA8PSP4gwMKlgdGeaZ4VH5KkHAXGr2eiYUxYLMrJXz1+eILJqeGDg==}
-
-  '@module-federation/webpack-bundler-runtime@0.17.1':
-    resolution: {integrity: sha512-Swspdgf4PzcbvS9SNKFlBzfq8h/Qxwqjq/xRSqw1pqAZWondZQzwTTqPXhgrg0bFlz7qWjBS/6a8KuH/gRvGaQ==}
 
   '@module-federation/webpack-bundler-runtime@0.18.0':
     resolution: {integrity: sha512-TEvErbF+YQ+6IFimhUYKK3a5wapD90d90sLsNpcu2kB3QGT7t4nIluE25duXuZDVUKLz86tEPrza/oaaCWTpvQ==}
@@ -4024,24 +3997,14 @@ packages:
     peerDependencies:
       react: ^16.14.0 || >=17
 
-  '@rspack/binding-darwin-arm64@1.4.11':
-    resolution: {integrity: sha512-PrmBVhR8MC269jo6uQ+BMy1uwIDx0HAJYLQRQur8gXiehWabUBCRg/d4U9KR7rLzdaSScRyc5JWXR52T7/4MfA==}
-    cpu: [arm64]
-    os: [darwin]
-
   '@rspack/binding-darwin-arm64@1.4.5':
     resolution: {integrity: sha512-rK8mJ+85cXrGSTZvr5vqI17TDimAUWYjl0T+JEg5MTqRNbpyovbGHbrrsQyIicwaFOS1wWkaLrBolC/+/FLUeg==}
     cpu: [arm64]
     os: [darwin]
 
-  '@rspack/binding-darwin-arm64@1.5.0':
-    resolution: {integrity: sha512-7909YLNnKf0BYxiCpCWOk13WyWS4493Kxk1NQwy9KPLY9ydQExk84KVsix2NuNBaI8Pnk3aVLBPJiSNXtHLjnA==}
+  '@rspack/binding-darwin-arm64@1.5.1':
+    resolution: {integrity: sha512-iPQUqNrwmr3IH451EOrmAnADEwkxMnM83VnG3opzYMu2ipuWQdJXcnQ0m/qzoKeoNQ9zhLfdGdMQqvP5pV/Tlg==}
     cpu: [arm64]
-    os: [darwin]
-
-  '@rspack/binding-darwin-x64@1.4.11':
-    resolution: {integrity: sha512-YIV8Wzy+JY0SoSsVtN4wxFXOjzxxVPnVXNswrrfqVUTPr9jqGOFYUWCGpbt8lcCgfuBFm6zN8HpOsKm1xUNsVA==}
-    cpu: [x64]
     os: [darwin]
 
   '@rspack/binding-darwin-x64@1.4.5':
@@ -4049,28 +4012,18 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@rspack/binding-darwin-x64@1.5.0':
-    resolution: {integrity: sha512-poGuQsGKCMQqSswgrz8X+frqMVTdmtzUDyvi/p9BLwW+2DwWgmywU8jwE+BYtjfWp1tErBSTlLxmEPQTdcIQgQ==}
+  '@rspack/binding-darwin-x64@1.5.1':
+    resolution: {integrity: sha512-Kcx8bTDdKqOe5sDUw+NFF+GzRgBHRYVs0NlVKlvKW59EIw0PEvcs0GKL0wDwkFuTL3+GRk4Uec+qHyIkv50SNA==}
     cpu: [x64]
     os: [darwin]
-
-  '@rspack/binding-linux-arm64-gnu@1.4.11':
-    resolution: {integrity: sha512-ms6uwECUIcu+6e82C5HJhRMHnfsI+l33v7XQezntzRPN0+sG3EpikEoT7SGbgt4vDwaWLR7wS20suN4qd5r3GA==}
-    cpu: [arm64]
-    os: [linux]
 
   '@rspack/binding-linux-arm64-gnu@1.4.5':
     resolution: {integrity: sha512-vnz5OItcPREgz+hVqx14HRf0aJQ7yI/2ZEbeTC+Y1JSCbeYAcu6NXYVXDwTOgCNOp1AdMR+rmItHWiJ7goI//Q==}
     cpu: [arm64]
     os: [linux]
 
-  '@rspack/binding-linux-arm64-gnu@1.5.0':
-    resolution: {integrity: sha512-Bvmk8h3tRhN9UgOtH+vK0SgFM3qEO36eJz7oddOl4lJQxBf2GNA87bGtkMtX+AVPz/PUn7r82uWxrlVNQHAbFg==}
-    cpu: [arm64]
-    os: [linux]
-
-  '@rspack/binding-linux-arm64-musl@1.4.11':
-    resolution: {integrity: sha512-9evq0DOdxMN/H8VM8ZmyY9NSuBgILNVV6ydBfVPMHPx4r1E7JZGpWeKDegZcS5Erw3sS9kVSIxyX78L5PDzzKw==}
+  '@rspack/binding-linux-arm64-gnu@1.5.1':
+    resolution: {integrity: sha512-6TeGUOy9De3E/XcbmcPW9YkAK2wfB7/K6UAtXp4oWiVjueQJj3FMFnRkzatagOUDoSRASqz2JiQKiMDvQpGu+g==}
     cpu: [arm64]
     os: [linux]
 
@@ -4079,14 +4032,9 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@rspack/binding-linux-arm64-musl@1.5.0':
-    resolution: {integrity: sha512-bH7UwkbACDYT37YnN9kkhaF9niFFK9ndcdNvYFFr1oUT4W9Ie3V9b41EXijqp3pyh0mDSeeLPFY0aEx1t3e7Pw==}
+  '@rspack/binding-linux-arm64-musl@1.5.1':
+    resolution: {integrity: sha512-qHXHDG+5z2zZ2CYYisvmLQQ6f8E1yiP/lyfGTpOF8KGz5eZEWkSdYXUdctE9PWW9lVkapWcuz9eP1Nt74KSvvA==}
     cpu: [arm64]
-    os: [linux]
-
-  '@rspack/binding-linux-x64-gnu@1.4.11':
-    resolution: {integrity: sha512-bHYFLxPPYBOSaHdQbEoCYGMQ1gOrEWj7Mro/DLfSHZi1a0okcQ2Q1y0i1DczReim3ZhLGNrK7k1IpFXCRbAobQ==}
-    cpu: [x64]
     os: [linux]
 
   '@rspack/binding-linux-x64-gnu@1.4.5':
@@ -4094,13 +4042,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@rspack/binding-linux-x64-gnu@1.5.0':
-    resolution: {integrity: sha512-xZ5dwNrE5KtpQyMd9israpJTcTQ3UYUUq23fTcNc79xE5aspkGixDFAYoql4YkhO0O+JWRmdSaFAn6jD+IQWQA==}
-    cpu: [x64]
-    os: [linux]
-
-  '@rspack/binding-linux-x64-musl@1.4.11':
-    resolution: {integrity: sha512-wrm4E7q2k4+cwT6Uhp6hIQ3eUe/YoaUttj6j5TqHYZX6YeLrNPtD9+ne6lQQ17BV8wmm6NZsmoFIJ5xIptpRhQ==}
+  '@rspack/binding-linux-x64-gnu@1.5.1':
+    resolution: {integrity: sha512-ywQcyc3s0XNspkbsN+glrnSoyWJOcaLDr536kY5SoAgfiaKlg9Fmg42jAwEv9SUSx3jRxyqaFCsSjNv5/mvBsA==}
     cpu: [x64]
     os: [linux]
 
@@ -4109,41 +4052,27 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@rspack/binding-linux-x64-musl@1.5.0':
-    resolution: {integrity: sha512-mv65jYvcyYPkPZJ9kjSvTAcH0o7C5jfICWCQcMmN1tCGD3b8gmf9GqSZ8e+W/JkuvrJ05qTo/PvEq9nhu+pNIg==}
+  '@rspack/binding-linux-x64-musl@1.5.1':
+    resolution: {integrity: sha512-0nF959K2pZMdRQewohjHxWSD97lIXlOh/xznr0f3zpFv2M/cB1HjHqD/yvZNgU+/hDdEeXplJp7WpD+/tJzX3w==}
     cpu: [x64]
     os: [linux]
-
-  '@rspack/binding-wasm32-wasi@1.4.11':
-    resolution: {integrity: sha512-hiYxHZjaZ17wQtXyLCK0IdtOvMWreGVTiGsaHCxyeT+SldDG+r16bXNjmlqfZsjlfl1mkAqKz1dg+mMX28OTqw==}
-    cpu: [wasm32]
 
   '@rspack/binding-wasm32-wasi@1.4.5':
     resolution: {integrity: sha512-LRyln0jg2FblwFQg+0lPVc/bvDeo3A3EVWQtsTtOwjb4cjAG/Zqo5Q0VobaJTKgBOF9eAHTo9IL92SSj433+Eg==}
     cpu: [wasm32]
 
-  '@rspack/binding-wasm32-wasi@1.5.0':
-    resolution: {integrity: sha512-8rVpl6xfaAFJgo1wCd+emksfl+/8nlehrtkmjY9bj79Ou+kp07L9e1B+UU0jfs8e7aLPntQuF68kzLHwYLzWIQ==}
+  '@rspack/binding-wasm32-wasi@1.5.1':
+    resolution: {integrity: sha512-iM+p8qIWH1uYxKh+MfNyCQ5Ia2QaGeKaGYPzikKakLAK2XaUCflmWP8fGppVUYxX0+b1a4tBOZveN8g1QeZsXw==}
     cpu: [wasm32]
-
-  '@rspack/binding-win32-arm64-msvc@1.4.11':
-    resolution: {integrity: sha512-+HF/mnjmTr8PC1dccRt1bkrD2tPDGeqvXC1BBLYd/Klq1VbtIcnrhfmvQM6KaXbiLcY9VWKzcZPOTmnyZ8TaHQ==}
-    cpu: [arm64]
-    os: [win32]
 
   '@rspack/binding-win32-arm64-msvc@1.4.5':
     resolution: {integrity: sha512-JWc15Mof/aC41UQSZLwa6oEsPYaYCApW0152Abhnt27qir2pfqYcT5qWt26OJvFDJoe+KzpIG1H91yJviChYYw==}
     cpu: [arm64]
     os: [win32]
 
-  '@rspack/binding-win32-arm64-msvc@1.5.0':
-    resolution: {integrity: sha512-dWSmNm+GR6WSkOwbhlUcot4Oqwyon+1PRZ9E0vIMFHKGvESf9CQjgHAX0QE9G0kJmRM5x3I16J4x44Kw3W/98Q==}
+  '@rspack/binding-win32-arm64-msvc@1.5.1':
+    resolution: {integrity: sha512-vTbYk5wixqTNs7DE+HHYYol1bl1wg8vkvShdnWFV8kQ8PPwZymNuLbuLng7yp8tN2FKWaQ5YTuhmIrzF3dLuzw==}
     cpu: [arm64]
-    os: [win32]
-
-  '@rspack/binding-win32-ia32-msvc@1.4.11':
-    resolution: {integrity: sha512-EU2fQGwrRfwFd/tcOInlD0jy6gNQE4Q3Ayj0Is+cX77sbhPPyyOz0kZDEaQ4qaN2VU8w4Hu/rrD7c0GAKLFvCw==}
-    cpu: [ia32]
     os: [win32]
 
   '@rspack/binding-win32-ia32-msvc@1.4.5':
@@ -4151,14 +4080,9 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@rspack/binding-win32-ia32-msvc@1.5.0':
-    resolution: {integrity: sha512-YtOrFEkwhO3Y3sY6Jq0OOYPY7NBTNYuwJ6epTgzPEDGs2cBnwZfzhq0jmD/koWtv1L9+twX95vKosBdauF0tNA==}
+  '@rspack/binding-win32-ia32-msvc@1.5.1':
+    resolution: {integrity: sha512-QPUy14Lu4CVpnarGhLoe0Dg+zF1bUAonVdEZSP9DttI1NOBkvl39c1WnnY33c1nwps0n/EQBoGJXDaTVuZfS+Q==}
     cpu: [ia32]
-    os: [win32]
-
-  '@rspack/binding-win32-x64-msvc@1.4.11':
-    resolution: {integrity: sha512-1Nc5ZzWqfvE+iJc47qtHFzYYnHsC3awavXrCo74GdGip1vxtksM3G30BlvAQHHVtEmULotWqPbjZpflw/Xk9Ag==}
-    cpu: [x64]
     os: [win32]
 
   '@rspack/binding-win32-x64-msvc@1.4.5':
@@ -4166,34 +4090,22 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rspack/binding-win32-x64-msvc@1.5.0':
-    resolution: {integrity: sha512-V4fcPVYWJgDkIkSsFwmUdwC9lkL8+1dzDOwyTWe6KW2MYHF2D148WPHNyVVE6gum12TShpbIsh0j4NiiMhkMtw==}
+  '@rspack/binding-win32-x64-msvc@1.5.1':
+    resolution: {integrity: sha512-Qxl/P2NPYhKM1RqQZtSNauYIvTXb4G4gPOFRHc8iLZRnjN0cxRxJcoonz/hBX436qnv5ZYs7wEqZe2HQCBUtmw==}
     cpu: [x64]
     os: [win32]
-
-  '@rspack/binding@1.4.11':
-    resolution: {integrity: sha512-maGl/zRwnl0QVwkBCkgjn5PH20L9HdlRIdkYhEsfTepy5x2QZ0ti/0T49djjTJQrqb+S1i6wWQymMMMMMsxx6Q==}
 
   '@rspack/binding@1.4.5':
     resolution: {integrity: sha512-hO7DrZMMOyzwK7EEYfHMJmWhsNjeYLr39pEnXOWeuCCcwus6e/QNSSf2m/2mSFf0JeINwQqHkA1JvJEZ5JSj6g==}
 
-  '@rspack/binding@1.5.0':
-    resolution: {integrity: sha512-UGXQmwEu2gdO+tnGv2q4rOWJdWioy6dlLXeZOLYAZVh3mrfKJhZWtDEygX9hCdE5thWNRTlEvx30QQchJAszIQ==}
+  '@rspack/binding@1.5.1':
+    resolution: {integrity: sha512-/RdQwmnXNjUG1ysf63R/tdWCyDQ5GSqbvOMsTuBd+3r3qnyCCAEPg6ed3vwI+GvnRXw1QzOXF98b+tkt0eFESA==}
 
-  '@rspack/cli@1.4.11':
-    resolution: {integrity: sha512-21/EF/gdtTt03LYtXDFFE9rJNUfpxMtIszGgjfULal3IgYHAjo7mKPp6QlPQLSMi/26+TYHa9WZUrnHf8GUIJg==}
+  '@rspack/cli@1.5.1':
+    resolution: {integrity: sha512-/tOvdAAgCxoCpwZwts7c1eqDSsz8vTcJZyfSdH9VksOXZhMVFnrPxh2F4el/CDQT0dDpVFRTSDXlN5eHeFqk5w==}
     hasBin: true
     peerDependencies:
       '@rspack/core': ^1.0.0-alpha || ^1.x
-
-  '@rspack/core@1.4.11':
-    resolution: {integrity: sha512-JtKnL6p7Kc/YgWQJF3Woo4OccbgKGyT/4187W4dyex8BMkdQcbqCNIdi6dFk02hwQzxpOOxRSBI4hlGRbz7oYQ==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@swc/helpers': '>=0.5.1'
-    peerDependenciesMeta:
-      '@swc/helpers':
-        optional: true
 
   '@rspack/core@1.4.5':
     resolution: {integrity: sha512-4OlxGQ4yPbAOYbVStMotaYrydm8r5VbLByrmQ34LNBYIDSmwaBmHQVMYGIesuGW681pr139XwInKvsoAoW6VTA==}
@@ -4204,8 +4116,8 @@ packages:
       '@swc/helpers':
         optional: true
 
-  '@rspack/core@1.5.0':
-    resolution: {integrity: sha512-eEtiKV+CUcAtnt1K+eiHDzmBXQcNM8CfCXOzr0+gHGp4w4Zks2B8RF36sYD03MM2bg8VRXXsf0MicQ8FvRMCOg==}
+  '@rspack/core@1.5.1':
+    resolution: {integrity: sha512-/zWrSNFfdTFKyZP1X3Hhg7kcEsd5//GUABbVvr3P5z4HO+gYEnnaXP1Ciu0wlYke+c3M0b5pvnqB+ka0YbYeTg==}
     engines: {node: '>=18.12.0'}
     peerDependencies:
       '@swc/helpers': '>=0.5.1'
@@ -4232,8 +4144,8 @@ packages:
       webpack-hot-middleware:
         optional: true
 
-  '@rspack/plugin-react-refresh@1.4.3':
-    resolution: {integrity: sha512-wZx4vWgy5oMEvgyNGd/oUKcdnKaccYWHCRkOqTdAPJC3WcytxhTX+Kady8ERurSBiLyQpoMiU3Iyd+F1Y2Arbw==}
+  '@rspack/plugin-react-refresh@1.5.0':
+    resolution: {integrity: sha512-pYOmc1mrK8Ui/7VWUgjKt9YqrxFn4woURTgGpFYWwsFvJxmWm05zog4fUbChvErbaBHkx1aA+KHxIvM/6tFODg==}
     peerDependencies:
       react-refresh: '>=0.10.0 <1.0.0'
       webpack-hot-middleware: 2.x
@@ -6358,9 +6270,6 @@ packages:
     engines: {node: '>=4'}
     hasBin: true
 
-  cssfilter@0.0.10:
-    resolution: {integrity: sha512-FAaLDaplstoRsDR8XGYH51znUN0UY7nMc6Z9/fvE8EXGwvJE9hu7W2vHwx1+bd6gCYnln9nLbzxFTrcO9YQDZw==}
-
   cssstyle@4.6.0:
     resolution: {integrity: sha512-2z+rWdzbbSZv6/rhtvzvqeZQHrBaqgogqt85sqFNbabZOuFbCVFb8kPeEtZjiKkbrm395irpNKiYeFeLiQnFPg==}
     engines: {node: '>=18'}
@@ -8092,10 +8001,6 @@ packages:
   internmap@2.0.3:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
-
-  interpret@3.1.1:
-    resolution: {integrity: sha512-6xwYfHbajpoF0xLW+iwLkhwgvLoZDfjYfoFNu8ftMoXINzwuymNLd9u/KmwtdT2GbR+/Cz66otEGEVVUHX9QLQ==}
-    engines: {node: '>=10.13.0'}
 
   intl-messageformat@10.7.16:
     resolution: {integrity: sha512-UmdmHUmp5CIKKjSoE10la5yfU+AYJAaiYLsodbjL4lji83JNvgOQUjGaGhGrpFCb0Uh7sl7qfP1IyILa8Z40ug==}
@@ -10781,10 +10686,6 @@ packages:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
 
-  rechoir@0.8.0:
-    resolution: {integrity: sha512-/vxpCXddiX8NGfGO/mTafwjq4aFa/71pvamip0++IQk3zG8cbCj0fifNPrjjF1XMXUne91jL9OoxmdykoEtifQ==}
-    engines: {node: '>= 10.13.0'}
-
   redent@3.0.0:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
@@ -12071,6 +11972,10 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  utf-8-validate@6.0.5:
+    resolution: {integrity: sha512-EYZR+OpIXp9Y1eG1iueg8KRsY8TuT8VNgnanZ0uA3STqhHQTLwbl+WX76/9X5OY12yQubymBpaBSmMPkSTQcKA==}
+    engines: {node: '>=6.14.2'}
+
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
@@ -12462,11 +12367,6 @@ packages:
   xpath@0.0.34:
     resolution: {integrity: sha512-FxF6+rkr1rNSQrhUNYrAFJpRXNzlDoMxeXN5qI84939ylEv3qqPFKa85Oxr6tDaJKqwW6KKyo2v26TSv3k6LeA==}
     engines: {node: '>=0.6.0'}
-
-  xss@1.0.15:
-    resolution: {integrity: sha512-FVdlVVC67WOIPvfOwhoMETV72f6GbW7aOabBC3WxN/oUdoEMDyLz4OgRv5/gck2ZeNqEQu+Tb0kloovXOfpYVg==}
-    engines: {node: '>= 0.10.0'}
-    hasBin: true
 
   xtend@2.2.0:
     resolution: {integrity: sha512-SLt5uylT+4aoXxXuwtQp5ZnMMzhDb1Xkg4pEqc00WUJCQifPfV9Ub1VrNhp9kXkrjZD2I2Hl8WnjP37jzZLPZw==}
@@ -13992,7 +13892,7 @@ snapshots:
 
   '@jest/diff-sequences@30.0.1': {}
 
-  '@jest/environment-jsdom-abstract@30.0.5(jsdom@26.1.0(bufferutil@4.0.9))':
+  '@jest/environment-jsdom-abstract@30.0.5(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))':
     dependencies:
       '@jest/environment': 30.0.5
       '@jest/fake-timers': 30.0.5
@@ -14001,7 +13901,7 @@ snapshots:
       '@types/node': 24.3.0
       jest-mock: 30.0.5
       jest-util: 30.0.5
-      jsdom: 26.1.0(bufferutil@4.0.9)
+      jsdom: 26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
 
   '@jest/environment@30.0.5':
     dependencies:
@@ -14221,9 +14121,9 @@ snapshots:
 
   '@juggle/resize-observer@3.4.0': {}
 
-  '@jupyter-widgets/base@4.1.7(bufferutil@4.0.9)(react@19.1.1)':
+  '@jupyter-widgets/base@4.1.7(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)':
     dependencies:
-      '@jupyterlab/services': 7.4.6(bufferutil@4.0.9)(react@19.1.1)
+      '@jupyterlab/services': 7.4.6(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)
       '@lumino/coreutils': 2.2.1
       '@lumino/messaging': 2.0.3
       '@lumino/widgets': 2.7.1
@@ -14238,9 +14138,9 @@ snapshots:
       - react
       - utf-8-validate
 
-  '@jupyter-widgets/base@6.0.11(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)':
+  '@jupyter-widgets/base@6.0.11(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)(utf-8-validate@6.0.5)':
     dependencies:
-      '@jupyterlab/services': 7.4.6(bufferutil@4.0.9)(react@19.1.1)
+      '@jupyterlab/services': 7.4.6(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)
       '@lumino/coreutils': 2.2.1
       '@lumino/messaging': 1.10.3
       '@lumino/widgets': 1.37.2(crypto@1.0.1)
@@ -14255,9 +14155,9 @@ snapshots:
       - react
       - utf-8-validate
 
-  '@jupyter-widgets/controls@5.0.0-rc.2(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)':
+  '@jupyter-widgets/controls@5.0.0-rc.2(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)(utf-8-validate@6.0.5)':
     dependencies:
-      '@jupyter-widgets/base': 6.0.11(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)
+      '@jupyter-widgets/base': 6.0.11(bufferutil@4.0.9)(crypto@1.0.1)(react@19.1.1)(utf-8-validate@6.0.5)
       '@lumino/algorithm': 1.9.2
       '@lumino/domutils': 1.8.2
       '@lumino/messaging': 1.10.3
@@ -14273,9 +14173,9 @@ snapshots:
       - react
       - utf-8-validate
 
-  '@jupyter-widgets/output@4.1.7(bufferutil@4.0.9)(react@19.1.1)':
+  '@jupyter-widgets/output@4.1.7(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)':
     dependencies:
-      '@jupyter-widgets/base': 4.1.7(bufferutil@4.0.9)(react@19.1.1)
+      '@jupyter-widgets/base': 4.1.7(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - bufferutil
       - react
@@ -14303,7 +14203,7 @@ snapshots:
     dependencies:
       '@lumino/coreutils': 2.2.1
 
-  '@jupyterlab/services@7.4.6(bufferutil@4.0.9)(react@19.1.1)':
+  '@jupyterlab/services@7.4.6(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@6.0.5)':
     dependencies:
       '@jupyter/ydoc': 3.1.0
       '@jupyterlab/coreutils': 6.4.6
@@ -14315,7 +14215,7 @@ snapshots:
       '@lumino/polling': 2.1.4
       '@lumino/properties': 2.0.3
       '@lumino/signaling': 2.1.4
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - bufferutil
       - react
@@ -14342,20 +14242,20 @@ snapshots:
       '@lumino/properties': 2.0.3
       '@lumino/signaling': 2.1.4
 
-  '@langchain/anthropic@0.3.26(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))':
+  '@langchain/anthropic@0.3.26(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))':
     dependencies:
       '@anthropic-ai/sdk': 0.56.0
-      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))
+      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))
       fast-xml-parser: 4.5.3
 
-  '@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))':
+  '@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.3.62(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))
+      langsmith: 0.3.62(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
@@ -14368,31 +14268,31 @@ snapshots:
       - '@opentelemetry/sdk-trace-base'
       - openai
 
-  '@langchain/google-genai@0.2.16(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))':
+  '@langchain/google-genai@0.2.16(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))':
     dependencies:
       '@google/generative-ai': 0.24.1
-      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))
+      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))
       uuid: 11.1.0
 
-  '@langchain/mistralai@0.2.1(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))(zod@3.25.76)':
+  '@langchain/mistralai@0.2.1(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))(zod@3.25.76)':
     dependencies:
-      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))
+      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))
       '@mistralai/mistralai': 1.9.18(zod@3.25.76)
       uuid: 10.0.0
     transitivePeerDependencies:
       - zod
 
-  '@langchain/ollama@0.2.3(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))':
+  '@langchain/ollama@0.2.3(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))':
     dependencies:
-      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))
+      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))
       ollama: 0.5.17
       uuid: 10.0.0
 
-  '@langchain/openai@0.6.9(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)))(ws@8.18.3(bufferutil@4.0.9))':
+  '@langchain/openai@0.6.9(@langchain/core@0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))':
     dependencies:
-      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76))
+      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76))
       js-tiktoken: 1.0.21
-      openai: 5.12.2(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)
+      openai: 5.12.2(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)
       zod: 3.25.76
     transitivePeerDependencies:
       - ws
@@ -14631,42 +14531,27 @@ snapshots:
 
   '@module-federation/error-codes@0.15.0': {}
 
-  '@module-federation/error-codes@0.17.1': {}
-
-  '@module-federation/error-codes@0.18.0':
-    optional: true
+  '@module-federation/error-codes@0.18.0': {}
 
   '@module-federation/runtime-core@0.15.0':
     dependencies:
       '@module-federation/error-codes': 0.15.0
       '@module-federation/sdk': 0.15.0
 
-  '@module-federation/runtime-core@0.17.1':
-    dependencies:
-      '@module-federation/error-codes': 0.17.1
-      '@module-federation/sdk': 0.17.1
-
   '@module-federation/runtime-core@0.18.0':
     dependencies:
       '@module-federation/error-codes': 0.18.0
       '@module-federation/sdk': 0.18.0
-    optional: true
 
   '@module-federation/runtime-tools@0.15.0':
     dependencies:
       '@module-federation/runtime': 0.15.0
       '@module-federation/webpack-bundler-runtime': 0.15.0
 
-  '@module-federation/runtime-tools@0.17.1':
-    dependencies:
-      '@module-federation/runtime': 0.17.1
-      '@module-federation/webpack-bundler-runtime': 0.17.1
-
   '@module-federation/runtime-tools@0.18.0':
     dependencies:
       '@module-federation/runtime': 0.18.0
       '@module-federation/webpack-bundler-runtime': 0.18.0
-    optional: true
 
   '@module-federation/runtime@0.15.0':
     dependencies:
@@ -14674,41 +14559,25 @@ snapshots:
       '@module-federation/runtime-core': 0.15.0
       '@module-federation/sdk': 0.15.0
 
-  '@module-federation/runtime@0.17.1':
-    dependencies:
-      '@module-federation/error-codes': 0.17.1
-      '@module-federation/runtime-core': 0.17.1
-      '@module-federation/sdk': 0.17.1
-
   '@module-federation/runtime@0.18.0':
     dependencies:
       '@module-federation/error-codes': 0.18.0
       '@module-federation/runtime-core': 0.18.0
       '@module-federation/sdk': 0.18.0
-    optional: true
 
   '@module-federation/sdk@0.15.0': {}
 
-  '@module-federation/sdk@0.17.1': {}
-
-  '@module-federation/sdk@0.18.0':
-    optional: true
+  '@module-federation/sdk@0.18.0': {}
 
   '@module-federation/webpack-bundler-runtime@0.15.0':
     dependencies:
       '@module-federation/runtime': 0.15.0
       '@module-federation/sdk': 0.15.0
 
-  '@module-federation/webpack-bundler-runtime@0.17.1':
-    dependencies:
-      '@module-federation/runtime': 0.17.1
-      '@module-federation/sdk': 0.17.1
-
   '@module-federation/webpack-bundler-runtime@0.18.0':
     dependencies:
       '@module-federation/runtime': 0.18.0
       '@module-federation/sdk': 0.18.0
-    optional: true
 
   '@msgpack/msgpack@3.1.2': {}
 
@@ -15250,63 +15119,40 @@ snapshots:
       react: 19.1.1
       react-is: 18.3.1
 
-  '@rspack/binding-darwin-arm64@1.4.11':
-    optional: true
-
   '@rspack/binding-darwin-arm64@1.4.5':
     optional: true
 
-  '@rspack/binding-darwin-arm64@1.5.0':
-    optional: true
-
-  '@rspack/binding-darwin-x64@1.4.11':
+  '@rspack/binding-darwin-arm64@1.5.1':
     optional: true
 
   '@rspack/binding-darwin-x64@1.4.5':
     optional: true
 
-  '@rspack/binding-darwin-x64@1.5.0':
-    optional: true
-
-  '@rspack/binding-linux-arm64-gnu@1.4.11':
+  '@rspack/binding-darwin-x64@1.5.1':
     optional: true
 
   '@rspack/binding-linux-arm64-gnu@1.4.5':
     optional: true
 
-  '@rspack/binding-linux-arm64-gnu@1.5.0':
-    optional: true
-
-  '@rspack/binding-linux-arm64-musl@1.4.11':
+  '@rspack/binding-linux-arm64-gnu@1.5.1':
     optional: true
 
   '@rspack/binding-linux-arm64-musl@1.4.5':
     optional: true
 
-  '@rspack/binding-linux-arm64-musl@1.5.0':
-    optional: true
-
-  '@rspack/binding-linux-x64-gnu@1.4.11':
+  '@rspack/binding-linux-arm64-musl@1.5.1':
     optional: true
 
   '@rspack/binding-linux-x64-gnu@1.4.5':
     optional: true
 
-  '@rspack/binding-linux-x64-gnu@1.5.0':
-    optional: true
-
-  '@rspack/binding-linux-x64-musl@1.4.11':
+  '@rspack/binding-linux-x64-gnu@1.5.1':
     optional: true
 
   '@rspack/binding-linux-x64-musl@1.4.5':
     optional: true
 
-  '@rspack/binding-linux-x64-musl@1.5.0':
-    optional: true
-
-  '@rspack/binding-wasm32-wasi@1.4.11':
-    dependencies:
-      '@napi-rs/wasm-runtime': 1.0.3
+  '@rspack/binding-linux-x64-musl@1.5.1':
     optional: true
 
   '@rspack/binding-wasm32-wasi@1.4.5':
@@ -15314,50 +15160,28 @@ snapshots:
       '@napi-rs/wasm-runtime': 0.2.12
     optional: true
 
-  '@rspack/binding-wasm32-wasi@1.5.0':
+  '@rspack/binding-wasm32-wasi@1.5.1':
     dependencies:
       '@napi-rs/wasm-runtime': 1.0.3
-    optional: true
-
-  '@rspack/binding-win32-arm64-msvc@1.4.11':
     optional: true
 
   '@rspack/binding-win32-arm64-msvc@1.4.5':
     optional: true
 
-  '@rspack/binding-win32-arm64-msvc@1.5.0':
-    optional: true
-
-  '@rspack/binding-win32-ia32-msvc@1.4.11':
+  '@rspack/binding-win32-arm64-msvc@1.5.1':
     optional: true
 
   '@rspack/binding-win32-ia32-msvc@1.4.5':
     optional: true
 
-  '@rspack/binding-win32-ia32-msvc@1.5.0':
-    optional: true
-
-  '@rspack/binding-win32-x64-msvc@1.4.11':
+  '@rspack/binding-win32-ia32-msvc@1.5.1':
     optional: true
 
   '@rspack/binding-win32-x64-msvc@1.4.5':
     optional: true
 
-  '@rspack/binding-win32-x64-msvc@1.5.0':
+  '@rspack/binding-win32-x64-msvc@1.5.1':
     optional: true
-
-  '@rspack/binding@1.4.11':
-    optionalDependencies:
-      '@rspack/binding-darwin-arm64': 1.4.11
-      '@rspack/binding-darwin-x64': 1.4.11
-      '@rspack/binding-linux-arm64-gnu': 1.4.11
-      '@rspack/binding-linux-arm64-musl': 1.4.11
-      '@rspack/binding-linux-x64-gnu': 1.4.11
-      '@rspack/binding-linux-x64-musl': 1.4.11
-      '@rspack/binding-wasm32-wasi': 1.4.11
-      '@rspack/binding-win32-arm64-msvc': 1.4.11
-      '@rspack/binding-win32-ia32-msvc': 1.4.11
-      '@rspack/binding-win32-x64-msvc': 1.4.11
 
   '@rspack/binding@1.4.5':
     optionalDependencies:
@@ -15372,29 +15196,27 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 1.4.5
       '@rspack/binding-win32-x64-msvc': 1.4.5
 
-  '@rspack/binding@1.5.0':
+  '@rspack/binding@1.5.1':
     optionalDependencies:
-      '@rspack/binding-darwin-arm64': 1.5.0
-      '@rspack/binding-darwin-x64': 1.5.0
-      '@rspack/binding-linux-arm64-gnu': 1.5.0
-      '@rspack/binding-linux-arm64-musl': 1.5.0
-      '@rspack/binding-linux-x64-gnu': 1.5.0
-      '@rspack/binding-linux-x64-musl': 1.5.0
-      '@rspack/binding-wasm32-wasi': 1.5.0
-      '@rspack/binding-win32-arm64-msvc': 1.5.0
-      '@rspack/binding-win32-ia32-msvc': 1.5.0
-      '@rspack/binding-win32-x64-msvc': 1.5.0
-    optional: true
+      '@rspack/binding-darwin-arm64': 1.5.1
+      '@rspack/binding-darwin-x64': 1.5.1
+      '@rspack/binding-linux-arm64-gnu': 1.5.1
+      '@rspack/binding-linux-arm64-musl': 1.5.1
+      '@rspack/binding-linux-x64-gnu': 1.5.1
+      '@rspack/binding-linux-x64-musl': 1.5.1
+      '@rspack/binding-wasm32-wasi': 1.5.1
+      '@rspack/binding-win32-arm64-msvc': 1.5.1
+      '@rspack/binding-win32-ia32-msvc': 1.5.1
+      '@rspack/binding-win32-x64-msvc': 1.5.1
 
-  '@rspack/cli@1.4.11(@rspack/core@1.4.11(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)':
+  '@rspack/cli@1.5.1(@rspack/core@1.5.1(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)':
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      '@rspack/core': 1.4.11(@swc/helpers@0.5.15)
-      '@rspack/dev-server': 1.1.4(@rspack/core@1.4.11(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)
+      '@rspack/core': 1.5.1(@swc/helpers@0.5.15)
+      '@rspack/dev-server': 1.1.4(@rspack/core@1.5.1(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)
       colorette: 2.0.20
       exit-hook: 4.0.0
-      interpret: 3.1.1
-      rechoir: 0.8.0
+      pirates: 4.0.7
       webpack-bundle-analyzer: 4.10.2(bufferutil@4.0.9)
       yargs: 17.7.2
     transitivePeerDependencies:
@@ -15406,14 +15228,6 @@ snapshots:
       - webpack
       - webpack-cli
 
-  '@rspack/core@1.4.11(@swc/helpers@0.5.15)':
-    dependencies:
-      '@module-federation/runtime-tools': 0.17.1
-      '@rspack/binding': 1.4.11
-      '@rspack/lite-tapable': 1.0.1
-    optionalDependencies:
-      '@swc/helpers': 0.5.15
-
   '@rspack/core@1.4.5(@swc/helpers@0.5.15)':
     dependencies:
       '@module-federation/runtime-tools': 0.15.0
@@ -15422,23 +15236,22 @@ snapshots:
     optionalDependencies:
       '@swc/helpers': 0.5.15
 
-  '@rspack/core@1.5.0(@swc/helpers@0.5.15)':
+  '@rspack/core@1.5.1(@swc/helpers@0.5.15)':
     dependencies:
       '@module-federation/runtime-tools': 0.18.0
-      '@rspack/binding': 1.5.0
+      '@rspack/binding': 1.5.1
       '@rspack/lite-tapable': 1.0.1
     optionalDependencies:
       '@swc/helpers': 0.5.15
-    optional: true
 
-  '@rspack/dev-server@1.1.4(@rspack/core@1.4.11(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)':
+  '@rspack/dev-server@1.1.4(@rspack/core@1.5.1(@swc/helpers@0.5.15))(@types/express@4.17.23)(bufferutil@4.0.9)(webpack@5.101.3)':
     dependencies:
-      '@rspack/core': 1.4.11(@swc/helpers@0.5.15)
+      '@rspack/core': 1.5.1(@swc/helpers@0.5.15)
       chokidar: 3.6.0
       http-proxy-middleware: 2.0.9(@types/express@4.17.23)
       p-retry: 6.2.1
       webpack-dev-server: 5.2.2(bufferutil@4.0.9)(webpack@5.101.3)
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - '@types/express'
       - bufferutil
@@ -15458,7 +15271,7 @@ snapshots:
     optionalDependencies:
       webpack-hot-middleware: 2.26.1
 
-  '@rspack/plugin-react-refresh@1.4.3(react-refresh@0.17.0)(webpack-hot-middleware@2.26.1)':
+  '@rspack/plugin-react-refresh@1.5.0(react-refresh@0.17.0)(webpack-hot-middleware@2.26.1)':
     dependencies:
       error-stack-parser: 2.1.4
       html-entities: 2.6.0
@@ -15964,7 +15777,7 @@ snapshots:
 
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
-      '@types/express-serve-static-core': 4.19.6
+      '@types/express-serve-static-core': 5.0.7
       '@types/node': 18.19.123
 
   '@types/connect@3.4.38':
@@ -17989,7 +17802,7 @@ snapshots:
 
   css-global-keywords@1.0.1: {}
 
-  css-loader@7.1.2(@rspack/core@1.4.11(@swc/helpers@0.5.15))(webpack@5.101.3):
+  css-loader@7.1.2(@rspack/core@1.5.1(@swc/helpers@0.5.15))(webpack@5.101.3):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       postcss: 8.5.6
@@ -18000,21 +17813,7 @@ snapshots:
       postcss-value-parser: 4.2.0
       semver: 7.7.2
     optionalDependencies:
-      '@rspack/core': 1.4.11(@swc/helpers@0.5.15)
-      webpack: 5.101.3
-
-  css-loader@7.1.2(@rspack/core@1.5.0(@swc/helpers@0.5.15))(webpack@5.101.3):
-    dependencies:
-      icss-utils: 5.1.0(postcss@8.5.6)
-      postcss: 8.5.6
-      postcss-modules-extract-imports: 3.1.0(postcss@8.5.6)
-      postcss-modules-local-by-default: 4.2.0(postcss@8.5.6)
-      postcss-modules-scope: 3.2.1(postcss@8.5.6)
-      postcss-modules-values: 4.0.0(postcss@8.5.6)
-      postcss-value-parser: 4.2.0
-      semver: 7.7.2
-    optionalDependencies:
-      '@rspack/core': 1.5.0(@swc/helpers@0.5.15)
+      '@rspack/core': 1.5.1(@swc/helpers@0.5.15)
       webpack: 5.101.3
 
   css-select@4.3.0:
@@ -18042,8 +17841,6 @@ snapshots:
   csscolorparser@1.0.3: {}
 
   cssesc@3.0.0: {}
-
-  cssfilter@0.0.10: {}
 
   cssstyle@4.6.0:
     dependencies:
@@ -18656,12 +18453,12 @@ snapshots:
     dependencies:
       once: 1.4.0
 
-  engine.io-client@6.6.3(bufferutil@4.0.9):
+  engine.io-client@6.6.3(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
       debug: 4.3.7
       engine.io-parser: 5.2.3
-      ws: 8.17.1(bufferutil@4.0.9)
+      ws: 8.17.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       xmlhttprequest-ssl: 2.1.2
     transitivePeerDependencies:
       - bufferutil
@@ -18670,7 +18467,7 @@ snapshots:
 
   engine.io-parser@5.2.3: {}
 
-  engine.io@6.6.4(bufferutil@4.0.9):
+  engine.io@6.6.4(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       '@types/cors': 2.8.19
       '@types/node': 18.19.123
@@ -18680,7 +18477,7 @@ snapshots:
       cors: 2.8.5
       debug: 4.3.7
       engine.io-parser: 5.2.3
-      ws: 8.17.1(bufferutil@4.0.9)
+      ws: 8.17.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -19986,7 +19783,7 @@ snapshots:
 
   html-void-elements@3.0.0: {}
 
-  html-webpack-plugin@5.6.4(@rspack/core@1.4.11(@swc/helpers@0.5.15))(webpack@5.101.3):
+  html-webpack-plugin@5.6.4(@rspack/core@1.5.1(@swc/helpers@0.5.15))(webpack@5.101.3):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -19994,7 +19791,7 @@ snapshots:
       pretty-error: 4.0.0
       tapable: 2.2.3
     optionalDependencies:
-      '@rspack/core': 1.4.11(@swc/helpers@0.5.15)
+      '@rspack/core': 1.5.1(@swc/helpers@0.5.15)
       webpack: 5.101.3
 
   htmlparser2@10.0.0:
@@ -20207,8 +20004,6 @@ snapshots:
   internmap@1.0.1: {}
 
   internmap@2.0.3: {}
-
-  interpret@3.1.1: {}
 
   intl-messageformat@10.7.16:
     dependencies:
@@ -20679,13 +20474,13 @@ snapshots:
       jest-util: 30.0.5
       pretty-format: 30.0.5
 
-  jest-environment-jsdom@30.0.5(bufferutil@4.0.9):
+  jest-environment-jsdom@30.0.5(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       '@jest/environment': 30.0.5
-      '@jest/environment-jsdom-abstract': 30.0.5(jsdom@26.1.0(bufferutil@4.0.9))
+      '@jest/environment-jsdom-abstract': 30.0.5(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))
       '@types/jsdom': 21.1.7
       '@types/node': 24.3.0
-      jsdom: 26.1.0(bufferutil@4.0.9)
+      jsdom: 26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -21035,7 +20830,7 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  jsdom@26.1.0(bufferutil@4.0.9):
+  jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       cssstyle: 4.6.0
       data-urls: 5.0.0
@@ -21055,7 +20850,7 @@ snapshots:
       whatwg-encoding: 3.1.1
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.2.0
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -21229,7 +21024,7 @@ snapshots:
 
   langs@2.0.0: {}
 
-  langsmith@0.3.62(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)):
+  langsmith@0.3.62(@opentelemetry/api@1.9.0)(openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)):
     dependencies:
       '@types/uuid': 10.0.0
       chalk: 4.1.2
@@ -21240,7 +21035,7 @@ snapshots:
       uuid: 10.0.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
-      openai: 5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)
+      openai: 5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)
 
   launch-editor@2.11.1:
     dependencies:
@@ -22150,14 +21945,14 @@ snapshots:
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
 
-  openai@5.12.2(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76):
+  openai@5.12.2(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76):
     optionalDependencies:
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       zod: 3.25.76
 
-  openai@5.13.1(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76):
+  openai@5.13.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76):
     optionalDependencies:
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       zod: 3.25.76
 
   opener@1.5.2: {}
@@ -22541,7 +22336,7 @@ snapshots:
       exsolve: 1.0.7
       pathe: 2.0.3
 
-  plotly.js@2.35.3(@rspack/core@1.5.0(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3):
+  plotly.js@2.35.3(@rspack/core@1.5.1(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3):
     dependencies:
       '@plotly/d3': 3.8.2
       '@plotly/d3-sankey': 0.7.2
@@ -22557,7 +22352,7 @@ snapshots:
       color-parse: 2.0.0
       color-rgba: 2.1.1
       country-regex: 1.1.0
-      css-loader: 7.1.2(@rspack/core@1.5.0(@swc/helpers@0.5.15))(webpack@5.101.3)
+      css-loader: 7.1.2(@rspack/core@1.5.1(@swc/helpers@0.5.15))(webpack@5.101.3)
       d3-force: 1.2.1
       d3-format: 1.4.5
       d3-geo: 1.12.1
@@ -23363,9 +23158,9 @@ snapshots:
 
   react-lifecycles-compat@3.0.4: {}
 
-  react-plotly.js@2.6.0(plotly.js@2.35.3(@rspack/core@1.5.0(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3))(react@19.1.1):
+  react-plotly.js@2.6.0(plotly.js@2.35.3(@rspack/core@1.5.1(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3))(react@19.1.1):
     dependencies:
-      plotly.js: 2.35.3(@rspack/core@1.5.0(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3)
+      plotly.js: 2.35.3(@rspack/core@1.5.1(@swc/helpers@0.5.15))(mapbox-gl@1.13.3)(webpack@5.101.3)
       prop-types: 15.8.1
       react: 19.1.1
 
@@ -23469,10 +23264,6 @@ snapshots:
       picomatch: 2.3.1
 
   readdirp@4.1.2: {}
-
-  rechoir@0.8.0:
-    dependencies:
-      resolve: 1.22.10
 
   redent@3.0.0:
     dependencies:
@@ -23770,11 +23561,11 @@ snapshots:
       parse-srcset: 1.0.2
       postcss: 8.5.6
 
-  sass-loader@16.0.5(@rspack/core@1.4.11(@swc/helpers@0.5.15))(sass@1.90.0)(webpack@5.101.3):
+  sass-loader@16.0.5(@rspack/core@1.5.1(@swc/helpers@0.5.15))(sass@1.90.0)(webpack@5.101.3):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
-      '@rspack/core': 1.4.11(@swc/helpers@0.5.15)
+      '@rspack/core': 1.5.1(@swc/helpers@0.5.15)
       sass: 1.90.0
       webpack: 5.101.3
 
@@ -24048,20 +23839,20 @@ snapshots:
 
   smart-buffer@4.2.0: {}
 
-  socket.io-adapter@2.5.5(bufferutil@4.0.9):
+  socket.io-adapter@2.5.5(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       debug: 4.3.7
-      ws: 8.17.1(bufferutil@4.0.9)
+      ws: 8.17.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  socket.io-client@4.8.1(bufferutil@4.0.9):
+  socket.io-client@4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
       debug: 4.3.7
-      engine.io-client: 6.6.3(bufferutil@4.0.9)
+      engine.io-client: 6.6.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       socket.io-parser: 4.2.4
     transitivePeerDependencies:
       - bufferutil
@@ -24075,14 +23866,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  socket.io@4.8.1(bufferutil@4.0.9):
+  socket.io@4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       accepts: 1.3.8
       base64id: 2.0.0
       cors: 2.8.5
       debug: 4.3.7
-      engine.io: 6.6.4(bufferutil@4.0.9)
-      socket.io-adapter: 2.5.5(bufferutil@4.0.9)
+      engine.io: 6.6.4(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+      socket.io-adapter: 2.5.5(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       socket.io-parser: 4.2.4
     transitivePeerDependencies:
       - bufferutil
@@ -24988,6 +24779,10 @@ snapshots:
     dependencies:
       react: 19.1.1
 
+  utf-8-validate@6.0.5:
+    dependencies:
+      node-gyp-build: 4.8.4
+
   util-deprecate@1.0.2: {}
 
   util@0.12.5:
@@ -25214,7 +25009,7 @@ snapshots:
       sockjs: 0.3.24
       spdy: 4.0.2
       webpack-dev-middleware: 7.4.2(webpack@5.101.3)
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     optionalDependencies:
       webpack: 5.101.3
     transitivePeerDependencies:
@@ -25307,12 +25102,12 @@ snapshots:
 
   websocket-extensions@0.1.4: {}
 
-  websocket-sftp@0.8.4(bufferutil@4.0.9):
+  websocket-sftp@0.8.4(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     dependencies:
       awaiting: 3.0.0
       debug: 4.4.1
       port-get: 1.0.4
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -25426,13 +25221,15 @@ snapshots:
     optionalDependencies:
       bufferutil: 4.0.9
 
-  ws@8.17.1(bufferutil@4.0.9):
+  ws@8.17.1(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     optionalDependencies:
       bufferutil: 4.0.9
+      utf-8-validate: 6.0.5
 
-  ws@8.18.3(bufferutil@4.0.9):
+  ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5):
     optionalDependencies:
       bufferutil: 4.0.9
+      utf-8-validate: 6.0.5
 
   wsl-utils@0.1.0:
     dependencies:
@@ -25481,11 +25278,6 @@ snapshots:
   xpath@0.0.33: {}
 
   xpath@0.0.34: {}
-
-  xss@1.0.15:
-    dependencies:
-      commander: 2.20.3
-      cssfilter: 0.0.10
 
   xtend@2.2.0: {}
 

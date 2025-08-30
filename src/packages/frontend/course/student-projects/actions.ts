@@ -832,6 +832,7 @@ export class StudentProjectsActions {
       await this.course_actions.shared_project.configure();
       await this.set_all_student_project_course_info();
     } catch (err) {
+      console.warn(err);
       this.course_actions.set_error(
         `Error configuring student projects - ${err}`,
       );

@@ -25,11 +25,13 @@ export default async function getProject(): Promise<string> {
     await getServerSettings();
 
   if (!isValidUUID(jupyter_account_id)) {
-    throw Error("Jupyter API account_id is not a valid uuid.");
+    throw Error(
+      "Jupyter API is not correctly configured (account_id is not a valid uuid) -- contact your site admin",
+    );
   }
 
   if (jupyter_project_pool_size < 1) {
-    throw Error("Project pool must have size at least 1");
+    throw Error("Jupyter API project pool must have size at least 1 -- contact your site admin");
   }
 
   const projects = (
@@ -43,7 +45,7 @@ export default async function getProject(): Promise<string> {
     "there are ",
     projects.length,
     " projects, and we need ",
-    jupyter_project_pool_size
+    jupyter_project_pool_size,
   );
 
   const numToCreate = jupyter_project_pool_size - projects.length;
@@ -74,7 +76,7 @@ export default async function getProject(): Promise<string> {
       });
       await pool.query(
         `UPDATE projects SET ${set} WHERE project_id=\$${params.length + 1}`,
-        params.concat(project_id)
+        params.concat(project_id),
       );
       projects.push({ project_id });
     }
