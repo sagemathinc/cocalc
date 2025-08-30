@@ -59,7 +59,7 @@ interface Message0 {
 }
 
 export const NON_BITSET_FIELDS = [
-  "id",essag
+  "id",
   "subject",
   "body",
   "from_id",
