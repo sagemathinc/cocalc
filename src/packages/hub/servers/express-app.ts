@@ -30,7 +30,9 @@ import initHttpServer from "./http";
 import initRobots from "./robots";
 import basePath from "@cocalc/backend/base-path";
 import { initConatServer } from "@cocalc/server/conat/socketio";
-import { conatSocketioCount } from "@cocalc/backend/data";
+import { conatSocketioCount, root } from "@cocalc/backend/data";
+
+const PYTHON_API_PATH = join(root, "python", "cocalc-api", "site");
 
 // NOTE: we are not using compression because that interferes with streaming file download,
 // and could be generally confusing.
@@ -117,6 +119,8 @@ export default async function init(opts: Options): Promise<{
     const query = parseURL(req.url, true).search || "";
     res.redirect(join(basePath, "static/app.html") + query);
   });
+
+  router.use("/api/python", express.static(PYTHON_API_PATH));
 
   initBlobs(router);
   initBlobUpload(router);

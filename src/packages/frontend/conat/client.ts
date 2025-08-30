@@ -314,10 +314,10 @@ export class ConatClient extends EventEmitter {
       return resp.data;
     } catch (err) {
       try {
-        err.message = `${err.message} - callHub: subject='${subject}', name='${name}', `;
+        err.message = `${err.message} - callHub: subject='${subject}', name='${name}', code='${err.code}'`;
       } catch {
         err = new Error(
-          `${err.message} - callHub: subject='${subject}', name='${name}', `,
+          `${err.message} - callHub: subject='${subject}', name='${name}', code='${err.code}'`,
         );
       }
       throw err;
@@ -463,4 +463,3 @@ async function waitForOnline(): Promise<void> {
     window.addEventListener("online", handler);
   });
 }
-

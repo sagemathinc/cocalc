@@ -1,6 +1,7 @@
 import createProject from "@cocalc/server/projects/create";
 export { createProject };
 import isAdmin from "@cocalc/server/accounts/is-admin";
+import { getProject } from "@cocalc/server/projects/control";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 export * from "@cocalc/server/projects/collaborators";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
@@ -77,4 +78,32 @@ export async function getDiskQuota({
   }
   const client = filesystemClient();
   return await client.getQuota({ project_id });
+}
+
+export async function start({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to start it");
+  }
+  const project = await getProject(project_id);
+  await project.start();
+}
+
+export async function stop({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to stop it");
+  }
+  const project = await getProject(project_id);
+  await project.stop();
 }
