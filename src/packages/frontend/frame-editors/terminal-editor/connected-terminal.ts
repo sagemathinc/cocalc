@@ -348,6 +348,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
       await conn.init();
     } catch (err) {
+      console.warn("WARNING -- problem connecting to terminal", err);
       this.set_connection_status("disconnected");
       throw err;
     }

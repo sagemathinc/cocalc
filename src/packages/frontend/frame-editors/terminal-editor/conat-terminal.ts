@@ -88,7 +88,7 @@ export class ConatTerminal extends EventEmitter {
         try {
           await this.api.conat.ping({ maxWait: 5000 });
           return false;
-        } catch {
+        } catch (err) {
           this.close();
           return true;
         }
@@ -212,11 +212,7 @@ export class ConatTerminal extends EventEmitter {
     await until(
       async () => {
         if (this.state == "closed") return true;
-        const compute_server_id =
-          (await webapp_client.project_client.getServerIdForPath({
-            project_id: this.project_id,
-            path: this.termPath,
-          })) ?? 0;
+        const compute_server_id = await this.getComputeServerId();
         const api = webapp_client.conat_client.projectApi({
           project_id: this.project_id,
           compute_server_id,
@@ -229,7 +225,6 @@ export class ConatTerminal extends EventEmitter {
           });
           return true;
         } catch (err) {
-          console.log(`WARNING: starting terminal -- ${err} (will retry)`);
           return false;
         }
       },
@@ -335,4 +330,13 @@ export class ConatTerminal extends EventEmitter {
       impl,
     });
   };
+
+  private getComputeServerId = reuseInFlight(async () => {
+    return (
+      (await webapp_client.project_client.getServerIdForPath({
+        project_id: this.project_id,
+        path: this.termPath,
+      })) ?? 0
+    );
+  });
 }

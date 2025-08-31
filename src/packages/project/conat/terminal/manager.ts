@@ -20,6 +20,7 @@ export const createTerminalService = async (
   termPath: string,
   opts?: CreateTerminalOptions,
 ) => {
+  console.log("createTerminalService", { termPath, opts });
   if (manager == null) {
     logger.debug("createTerminalService -- creating manager");
     manager = new TerminalManager();
