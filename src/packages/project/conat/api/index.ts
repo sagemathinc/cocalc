@@ -58,7 +58,6 @@ import { close as closeFilesWrite } from "@cocalc/project/conat/files/write";
 import { close as closeJupyter } from "@cocalc/project/conat/jupyter";
 import { getLogger } from "@cocalc/project/logger";
 import { getIdentity } from "../connection";
-
 const logger = getLogger("conat:api");
 
 let terminate = false;

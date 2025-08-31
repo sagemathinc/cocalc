@@ -46,6 +46,7 @@ import {
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
+import { terminalClient } from "@cocalc/conat/project/terminal";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -448,6 +449,20 @@ export class ConatClient extends EventEmitter {
   projectRunner = (project_id: string) => {
     return projectRunnerClient({
       subject: `project.${project_id}.run`,
+      client: this.conat(),
+    });
+  };
+
+  terminalClient = ({
+    project_id,
+    compute_server_id,
+  }: {
+    project_id: string;
+    compute_server_id?: number;
+  }) => {
+    return terminalClient({
+      project_id,
+      compute_server_id,
       client: this.conat(),
     });
   };

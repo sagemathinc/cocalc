@@ -11,6 +11,7 @@ import { init as initWrite } from "./files/write";
 import { init as initProjectStatus } from "@cocalc/project/project-status/server";
 import { init as initUsageInfo } from "@cocalc/project/usage-info";
 import { init as initJupyter } from "./jupyter";
+import { init as initTerminalServer } from "./terminal-server";
 import { getIdentity } from "./connection";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 
@@ -28,6 +29,7 @@ export default async function init(opts?: {
     address: opts.client?.options.address,
   });
 
+  initTerminalServer(opts);
   await initAPI(opts);
   await initJupyter(opts);
   initWebsocketApi(opts);

@@ -16,6 +16,7 @@
     "./compute/*": "./dist/compute/*.js",
     "./service": "./dist/service/index.js",
     "./project/api": "./dist/project/api/index.js",
+    "./project/terminal": "./dist/project/terminal/index.js",
     "./browser-api": "./dist/browser-api/index.js",
     "./*": "./dist/*.js"
   },

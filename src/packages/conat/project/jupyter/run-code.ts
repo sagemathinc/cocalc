@@ -1,6 +1,4 @@
 /*
-A conat socket server that takes as input
-
 Tests are in
 
 packages/backend/conat/test/juypter/run-code.test.s
