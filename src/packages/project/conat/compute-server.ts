@@ -11,7 +11,7 @@ import { getService as getFileserverService } from "@cocalc/conat/files/fs";
 
 const logger = getLogger("project:conat:compute");
 
-export async function computeServer({
+export async function init({
   apiKey,
   compute_server_id,
   address,

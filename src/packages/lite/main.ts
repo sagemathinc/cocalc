@@ -1,4 +1,18 @@
+/*
+Launching it like this:
+
+PORT=30000 COMPUTE_SERVER='http://localhost:9001?apiKey=sk-p2P7iMlc5sJ4pbQ9000005&id=1'  pnpm app
+
+make it:
+
+- serve cocalc-lite on port 30000, AND
+- also at the same time be a compute server (id=1) for the cocalc instance running at port 9001,
+  identified as the project that sk-p2P7iMlc5sJ4pbQ9000005 gives access to.
+
+*/
+
 import startProjectServices from "@cocalc/project/conat";
+import { init as initComputeServer } from "@cocalc/project/conat/compute-server";
 import { cleanup } from "@cocalc/project/project-setup";
 import {
   init as createConatServer,
@@ -33,7 +47,6 @@ function conat(opts?): Client {
 
 export async function main(): Promise<number> {
   logger.debug("main");
-
   process.chdir(process.env.HOME ?? "");
   initBugCounter();
 
@@ -76,12 +89,45 @@ export async function main(): Promise<number> {
   initHubApi();
 
   logger.debug("start fs service");
+  const path = process.cwd();
   localPathFileserver({
     client: conatClient,
-    path: process.cwd(),
+    path,
     project_id,
     unsafeMode: true,
   });
+
+  if (process.env.COMPUTE_SERVER) {
+    const url = new URL(process.env.COMPUTE_SERVER);
+
+    const apiKey = url.searchParams.get("apiKey");
+    const address = url.origin + (url.pathname.length > 1 ? url.pathname : "");
+    const compute_server_id = parseInt(url.searchParams.get("id") ?? "0");
+    logger.debug("start compute server --> ", {
+      address,
+      compute_server_id,
+      path,
+    });
+    if (!address) {
+      throw Error("API_HOST must be set");
+    }
+    if (!apiKey) {
+      throw Error("API_KEY must be set");
+    }
+    if (!compute_server_id) {
+      throw Error("COMPUTE_SERVER_ID must be set");
+    }
+
+    console.log(
+      `Compute Server: --> ${address}, compute_server_id=${compute_server_id}`,
+    );
+    await initComputeServer({
+      apiKey,
+      address,
+      compute_server_id,
+      path,
+    });
+  }
 
   process.once("exit", () => {
     conatServer?.close();

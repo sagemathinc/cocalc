@@ -42,7 +42,7 @@ export async function initHttpServer(): Promise<{
   await once(httpServer, "listening");
 
   console.log("*".repeat(60) + "\n");
-  console.log(`http://localhost:${port}`);
+  console.log(`CoCalc Lite Server:  http://localhost:${port}`);
   const info: any = {};
   if (project_id != FALLBACK_UUID) {
     info.project_id = project_id;
