@@ -9,6 +9,8 @@ import {
 } from "@cocalc/conat/socket";
 import { getLogger } from "@cocalc/conat/client";
 import { ThrottleString } from "@cocalc/util/throttle";
+import { delay } from "awaiting";
+
 const MAX_MSGS_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
 );
@@ -16,6 +18,8 @@ const MAX_MSGS_PER_SECOND = parseInt(
 const MAX_HISTORY_LENGTH = parseInt(
   process.env.COCALC_TERMINAL_MAX_HISTORY_LENGTH ?? "1000000",
 );
+
+const DEFAULT_SIZE_WAIT = 2000;
 
 import { EventEmitter } from "events";
 
@@ -64,6 +68,7 @@ export function terminalServer({
 
   const sessions: { [id: string]: any } = {};
   const history: { [id: string]: string } = {};
+  const sizes: { [id: string]: { rows: number; cols: number }[] } = {};
 
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
@@ -83,6 +88,19 @@ export function terminalServer({
       } catch (err) {
         logger.debug("WARNING: error writing terminal data to socket", err);
       }
+    };
+
+    const getClientSize = async () => {
+      if (!sessionId) {
+        return;
+      }
+      try {
+        const { data } = await socket.request({ cmd: "size" });
+        if (data) {
+          sizes[sessionId] ??= [];
+          sizes[sessionId].push(data);
+        }
+      } catch {}
     };
 
     socket.on("closed", () => {
@@ -108,6 +126,23 @@ export function terminalServer({
             mesg.respondSync(process.env);
             return;
 
+          case "sizes":
+            if (pty == null || !sessionId) {
+              mesg.respondSync([]);
+              return;
+            }
+            sizes[sessionId] = [];
+            pty.emit("get-size");
+            await delay(data.wait ?? DEFAULT_SIZE_WAIT);
+            mesg.respondSync(sizes);
+            return;
+
+          case "resize":
+            const { rows, cols } = data;
+            pty?.resize(cols, rows);
+            mesg.respondSync(null);
+            return;
+
           case "history":
             mesg.respondSync(history[sessionId ?? ""]);
             return;
@@ -115,6 +150,7 @@ export function terminalServer({
           case "spawn":
             if (pty != null) {
               pty.removeListener("data", sendToClient);
+              pty.removeListener("get-size", getClientSize);
             }
             const { command, args, options } = data;
             const { id } = options ?? {};
@@ -152,6 +188,8 @@ export function terminalServer({
               } catch {}
             });
 
+            pty.on("get-size", getClientSize);
+
             mesg.respondSync({ pid: pty.pid, history: history[id ?? ""] });
             return;
 
@@ -175,25 +213,33 @@ export function terminalServer({
 export class TerminalClient extends EventEmitter {
   public readonly socket;
   public pid: number;
+  private getSize?: () => { rows: number; cols: number };
 
-  constructor(
-    private client: ConatClient,
-    private subject: string,
-  ) {
+  constructor({
+    client,
+    subject,
+    getSize,
+  }: {
+    client: ConatClient;
+    subject: string;
+    getSize?: () => { rows: number; cols: number };
+  }) {
     super();
-    this.socket = this.client.socket.connect(this.subject);
+    this.getSize = getSize;
+    this.socket = client.socket.connect(subject);
     this.socket.on("request", async (mesg) => {
       const { data } = mesg;
       try {
         switch (data.cmd) {
+          case "size":
+            mesg.respondSync(this.getSize?.() ?? null);
+            return;
           case "exit":
             this.emit("exit");
             return;
           default:
             console.warn(`terminal: got unknown message type '${data.type}'`);
-            await mesg.respond(
-              new Error(`unknown message type '${data.type}'`),
-            );
+            mesg.respondSync(new Error(`unknown message type '${data.type}'`));
         }
       } catch (err) {
         console.warn("error responding to jupyter request", err);
@@ -228,12 +274,19 @@ export class TerminalClient extends EventEmitter {
   };
 
   history = async () => {
-    const { data } = await this.socket.request({ cmd: "history" });
-    return data;
+    return (await this.socket.request({ cmd: "history" })).data;
   };
 
   env = async () => {
+    return (await this.socket.request({ cmd: "env" })).data;
+  };
 
+  resize = async ({ rows, cols }: { rows: number; cols: number }) => {
+    await this.socket.request({ cmd: "resize", rows, cols });
+  };
+
+  sizes = async (wait?: number) => {
+    return (await this.socket.request({ cmd: "sizes", wait })).data;
   };
 }
 
@@ -241,7 +294,7 @@ export function terminalClient(opts: {
   project_id: string;
   compute_server_id?: number;
   client: ConatClient;
+  getSize?: () => { rows: number; cols: number };
 }): TerminalClient {
-  const subject = getSubject(opts);
-  return new TerminalClient(opts.client, subject);
+  return new TerminalClient({ ...opts, subject: getSubject(opts) });
 }

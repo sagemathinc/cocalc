@@ -41,6 +41,7 @@ import { ConatTerminal } from "./conat-terminal";
 import { termPath } from "@cocalc/util/terminal/names";
 import { dirname } from "path";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { type TerminalClient } from "@cocalc/conat/project/terminal";
 
 declare const $: any;
 
@@ -75,6 +76,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private id: string;
   readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
+  private pty: TerminalClient | null = null;
   private is_paused: boolean = false;
   private pauseKeyCount: number = 0;
   private keyhandler_initialized: boolean = false;
@@ -91,7 +93,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     do something, then exit.
     */
 
-  private ignore_terminal_data: boolean = true;
   private render_buffer: string = "";
   private conn_write_buffer: string[] = [];
   private history: string = "";
@@ -289,11 +290,15 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   connect = reuseInFlight(async () => {
     if (this.isClosed()) return;
 
-    const term = webapp_client.conat_client.terminalClient({
+    const pty = webapp_client.conat_client.terminalClient({
       project_id: this.project_id,
       compute_server_id: await this.getComputeServerId(),
+      getSize: () => {
+        return { rows: this.terminal.rows, cols: this.terminal.cols };
+      },
     });
-    term.socket.on("data", this.handleDataFromProject);
+    this.pty = pty;
+    pty.socket.on("data", this.handleDataFromProject);
 
     this.terminal.onData((data) => {
       if (this.ptyExited) {
@@ -302,9 +307,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         return;
       }
       if (this.ignoreData) return;
-      term.socket.write(data);
+      pty.socket.write(data);
     });
-    term.on("exit", async () => {
+    pty.on("exit", async () => {
       if (this.isClosed()) return;
       this.handleDataFromProject(EXIT_MESSAGE);
       this.ptyExited = true;
@@ -313,12 +318,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const env0 = this.actions.get_term_env();
     try {
       this.ignoreData++;
-      const history = await term.spawn(this.command ?? "bash", this.args, {
+      const history = await pty.spawn(this.command ?? "bash", this.args, {
         id: this.termPath,
         cwd: this.workingDir ?? dirname(this.path),
         env:
           Object.keys(env0).length > 0
-            ? { ...(await term.env()), ...env0 }
+            ? { ...(await pty.env()), ...env0 }
             : undefined,
       });
       if (history) {
@@ -332,79 +337,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     window.x = { t: this, term };
   });
-
-  connect0 = async () => {
-    try {
-      if (this.conn != null) {
-        this.conn.removeListener("closed", this.connect); // avoid infinite loop
-        this.conn.close();
-        delete this.conn;
-      }
-      this.ignore_terminal_data = true;
-      this.set_connection_status("connecting");
-      try {
-        await this.configureComputeServerId();
-      } catch {
-        // expected to throw sometimes, e.g., if the project tab closes
-        // right when the terminal is being created, in which case this.state
-        // will be closed and we exit.
-      }
-      if (this.state == "closed") {
-        return;
-      }
-      const conn = new ConatTerminal({
-        termPath: this.termPath,
-        path: this.path,
-        project_id: this.project_id,
-        terminalResize: this.terminal_resize,
-        openPaths: this.open_paths,
-        closePaths: this.close_paths,
-        measureSize: this.measureSize,
-        options: {
-          command: this.command,
-          args: this.args,
-          cwd: this.workingDir,
-          env: this.actions.get_term_env(),
-        },
-        ephemeral: EPHEMERAL,
-      });
-      this.conn = conn as any;
-      conn.once("closed", this.connect);
-      conn.on("kick", this.close_request);
-      conn.on("data", this.handleDataFromProject);
-      conn.once("initialize", (data) => {
-        this.terminal.clear();
-        this.render(data);
-      });
-      conn.once("ready", () => {
-        delete this.last_geom;
-        this.ignore_terminal_data = false;
-        this.set_connection_status("connected");
-        this.terminal.refresh(0, this.terminal.rows - 1);
-        this.init_keyhandler();
-        this.measureSize();
-        if (this.conn != null && this.conn_write_buffer.length > 0) {
-          const buf = this.conn_write_buffer.join("");
-          if (buf) {
-            this.conn.write(buf);
-            this.conn_write_buffer.length = 0;
-          }
-        }
-        if (this.firstOpen) {
-          this.firstOpen = false;
-          this.project_actions.log_opened_time(this.path);
-        }
-      });
-      if (endswith(this.path, ".term")) {
-        touchPath(this.project_id, this.path); // no need to await
-      }
-      await conn.init();
-    } catch (err) {
-      console.warn("WARNING -- problem connecting to terminal", err);
-      this.set_connection_status("disconnected");
-      throw err;
-    }
-  };
 
   reload = async (): Promise<void> => {
     await this.connect();
@@ -441,7 +373,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.activity();
-    if (this.is_paused && !this.ignore_terminal_data) {
+    if (this.is_paused) {
       this.render_buffer += data;
     } else {
       this.render(data);
@@ -544,7 +476,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
       // record that terminal is being actively used.
       this.last_active = Date.now();
-      this.ignore_terminal_data = false;
 
       if (this.is_paused) {
         this.pauseKeyCount += 1;
@@ -756,14 +687,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       // no need to resize
       return;
     }
-    if (this.ignore_terminal_data) {
-      // CRITICAL -- we must wait until after the
-      // next call to no_ignore before doing
-      // the resize; otherwise, the resize causes
-      // no_ignore to trigger prematurely (#3277).
-      this.resize_after_no_ignore = { rows, cols };
-      return;
-    }
     this.terminal_resize({ rows, cols });
   };
 
@@ -871,10 +794,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   measureSize = ({ kick }: { kick?: boolean } = {}): void => {
-    if (this.ignore_terminal_data) {
-      // during initial load
-      return;
-    }
     const geom = this.fitAddon?.proposeDimensions();
     if (geom == null) {
       return;
