@@ -39,6 +39,8 @@ import { setTheme } from "./themes";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { ConatTerminal } from "./conat-terminal";
 import { termPath } from "@cocalc/util/terminal/names";
+import { dirname } from "path";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 declare const $: any;
 
@@ -46,7 +48,9 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-const ENABLE_WEBGL = false;
+const EXIT_MESSAGE = "\r\n[Process completed - press any key]\r\n";
+
+const ENABLE_WEBGL = true;
 
 // ephemeral = faster, less load on servers, but if project and browser all
 // close, the history is gone... which may be good and less confusing.
@@ -281,7 +285,42 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal_settings = settings;
   };
 
-  connect = async () => {
+  private ptyExited = false;
+  connect = reuseInFlight(async () => {
+    if (this.isClosed()) return;
+
+    const term = webapp_client.conat_client.terminalClient({
+      project_id: this.project_id,
+      compute_server_id: await this.getComputeServerId(),
+    });
+    term.socket.on("data", this.handleDataFromProject);
+
+    this.terminal.onData((data) => {
+      if (this.ptyExited) {
+        this.ptyExited = false;
+        this.connect();
+        return;
+      }
+      term.socket.write(data);
+    });
+    term.on("exit", async () => {
+      if (this.isClosed()) return;
+      this.terminal.write(EXIT_MESSAGE);
+      this.ptyExited = true;
+    });
+
+    await term.spawn(this.command ?? "bash", this.args, {
+      id: this.termPath,
+      cwd: this.workingDir ?? dirname(this.path),
+      //env: this.actions.get_term_env(),
+    });
+    if (this.isClosed()) {
+      return;
+    }
+    window.x = { t: this, term };
+  });
+
+  connect0 = async () => {
     try {
       if (this.conn != null) {
         this.conn.removeListener("closed", this.connect); // avoid infinite loop

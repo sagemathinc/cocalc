@@ -12,6 +12,8 @@ import { Throttle } from "@cocalc/util/throttle";
 const MAX_MSGS_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
 );
+import { EventEmitter } from "events";
+
 const logger = getLogger("conat:project:terminal");
 
 function getSubject({
@@ -24,6 +26,15 @@ function getSubject({
   return `terminal.project-${project_id}.${compute_server_id}`;
 }
 
+export interface Options {
+  cwd?: string;
+  env?: { [key: string]: string };
+  rows?: number;
+  cols?: number;
+  handleFlowControl?: boolean;
+  id?: string;
+}
+
 export function terminalServer({
   client,
   project_id,
@@ -33,7 +44,11 @@ export function terminalServer({
   client: ConatClient;
   project_id: string;
   compute_server_id?: number;
-  spawn;
+  spawn: (
+    command: string,
+    args?: string[],
+    options?: Options,
+  ) => Promise<{ pid: number }>;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
@@ -42,6 +57,8 @@ export function terminalServer({
   });
   logger.debug("server: listening on ", { subject });
 
+  const sessions: { [id: string]: any } = {};
+
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
       id: socket.id,
@@ -49,21 +66,70 @@ export function terminalServer({
     });
 
     let pty: any = null;
+    let sessionId: string | null = null;
     socket.on("data", (data) => {
       pty?.write(data);
     });
+
+    const sendToClient = (data) => {
+      try {
+        socket.write(data);
+      } catch (err) {
+        logger.debug("WARNING: error writing terminal data to socket", err);
+      }
+    };
+
+    socket.on("closed", () => {
+      pty?.removeListener("data", sendToClient);
+    });
+
     socket.on("request", async (mesg) => {
       const { data } = mesg;
       const { cmd } = data;
       try {
         switch (cmd) {
+          case "destroy":
+            pty?.destroy();
+            if (sessionId) {
+              delete sessions[sessionId];
+              sessionId = null;
+            }
+            pty = null;
+            mesg.respondSync(null);
+            return;
+
           case "spawn":
-            pty = spawn(...data.args);
-            mesg.respondSync({ pid: pty.pid });
-            pty.on("data", (data) => {
-              socket.write(data);
+            if (pty != null) {
+              pty.removeListener("data", sendToClient);
+            }
+            const { command, args, options } = data;
+            const { id } = options ?? {};
+            if (id) {
+              sessionId = id;
+            }
+            if (id && sessions[id] != null) {
+              pty = sessions[id];
+            } else {
+              pty = spawn(command, args, options);
+              if (id) {
+                sessions[id] = pty;
+              }
+            }
+            pty.on("data", sendToClient);
+
+            pty.once("exit", async () => {
+              if (sessionId) {
+                delete sessions[sessionId];
+                sessionId = null;
+              }
+              try {
+                await socket.request({ cmd: "exit" });
+              } catch {}
             });
-            break;
+
+            mesg.respondSync({ pid: pty.pid });
+            return;
+
           default:
             throw Error(`unknown command '${cmd}'`);
         }
@@ -81,19 +147,25 @@ export function terminalServer({
   return server;
 }
 
-export class TerminalClient {
+export class TerminalClient extends EventEmitter {
   public readonly socket;
+  public pid: number;
+
   constructor(
     private client: ConatClient,
     private subject: string,
   ) {
+    super();
     this.socket = this.client.socket.connect(this.subject);
     this.socket.on("request", async (mesg) => {
       const { data } = mesg;
       try {
         switch (data.cmd) {
+          case "exit":
+            this.emit("exit");
+            return;
           default:
-            console.warn(`Jupyter: got unknown message type '${data.type}'`);
+            console.warn(`terminal: got unknown message type '${data.type}'`);
             await mesg.respond(
               new Error(`unknown message type '${data.type}'`),
             );
@@ -110,9 +182,23 @@ export class TerminalClient {
     } catch {}
   };
 
-  spawn = async (...args): Promise<{ pid: number }> => {
-    const resp = await this.socket.request({ cmd: "spawn", args });
-    return resp.data;
+  spawn = async (
+    command,
+    args?: string[],
+    options?: Options,
+  ): Promise<void> => {
+    const { data } = await this.socket.request({
+      cmd: "spawn",
+      command,
+      args,
+      options,
+    });
+    // console.log("spawned terminal with pid", data.pid);
+    this.pid = data.pid;
+  };
+
+  destroy = async () => {
+    await this.socket.request({ cmd: "destroy" });
   };
 }
 
