@@ -1178,7 +1178,7 @@ export class Client extends EventEmitter {
     };
 
     return new Proxy(
-      {},
+      { subject },
       {
         get: (target, name) => {
           const s = target[String(name)];

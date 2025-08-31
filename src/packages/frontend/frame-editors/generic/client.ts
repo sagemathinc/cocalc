@@ -158,6 +158,7 @@ export function log_error(error: string | object): void {
 interface SyncstringOpts {
   project_id: string;
   path: string;
+  compute_server_id?: number;
   cursors?: boolean;
   before_change_hook?: Function;
   after_change_hook?: Function;
@@ -174,7 +175,6 @@ export function syncstring(opts: SyncstringOpts): any {
   }
   opts1.id = schema.client_db.sha1(opts.project_id, opts.path);
   return webapp_client.conat_client.conat().sync.string(opts1);
-  //  return webapp_client.sync_string(opts1);
 }
 
 import { DataServer } from "@cocalc/sync/editor/generic/sync-doc";
@@ -184,6 +184,7 @@ import type { SyncString } from "@cocalc/sync/editor/string/sync";
 interface SyncstringOpts2 {
   project_id: string;
   path: string;
+  compute_server_id?: number;
   cursors?: boolean;
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
@@ -198,6 +199,7 @@ export function syncstring2(opts: SyncstringOpts2): SyncString {
 export interface SyncDBOpts {
   project_id: string;
   path: string;
+  compute_server_id?: number;
   primary_keys: string[];
   string_cols?: string[];
   cursors?: boolean;

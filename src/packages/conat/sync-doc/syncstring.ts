@@ -20,7 +20,13 @@ export function syncstring({
   service,
   ...opts
 }: SyncStringOptions): SyncString {
-  const fs = opts.fs ?? client.fs({ service, project_id: opts.project_id });
+/  const fs =
+    opts.fs ??
+    client.fs({
+      service,
+      project_id: opts.project_id,
+      compute_server_id: opts.compute_server_id,
+    });
   const syncClient = new SyncClient(client);
   return new SyncString({ ...opts, fs, client: syncClient });
 }

@@ -306,6 +306,7 @@ export class Actions<
         this._syncstring = syncstring({
           project_id: this.project_id,
           path: this.path,
+          compute_server_id: this.getComputeServerId(),
           cursors: !this.disable_cursors,
           before_change_hook: () => this.set_syncstring_to_codemirror(),
           after_change_hook: () => this.set_codemirror_to_syncstring(),
@@ -316,6 +317,7 @@ export class Actions<
         this._syncstring = syncstring2({
           project_id: this.project_id,
           path: this.path,
+          compute_server_id: this.getComputeServerId(),
           cursors: !this.disable_cursors,
         });
       } else if (this.doctype == "syncdb") {
@@ -329,6 +331,7 @@ export class Actions<
         this._syncstring = syncdb2({
           project_id: this.project_id,
           path: this.path,
+          compute_server_id: this.getComputeServerId(),
           primary_keys: this.primary_keys,
           string_cols: this.string_cols,
           cursors: !this.disable_cursors,
@@ -2254,7 +2257,7 @@ export class Actions<
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return false;
     return true;
-  }
+  };
 
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
