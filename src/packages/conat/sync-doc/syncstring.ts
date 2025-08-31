@@ -20,7 +20,7 @@ export function syncstring({
   service,
   ...opts
 }: SyncStringOptions): SyncString {
-/  const fs =
+  const fs =
     opts.fs ??
     client.fs({
       service,
