@@ -135,7 +135,7 @@ export function Explorer() {
   const mask = useTypedRedux("account", "other_settings")?.get("mask_files");
 
   const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
-  const fs = useFs({ project_id });
+  const fs = useFs({ project_id, compute_server_id });
   let {
     refresh,
     listing,
@@ -394,7 +394,6 @@ export function Explorer() {
               <div
                 style={{
                   fontSize: "10pt",
-                  marginTop: "-10px",
                   marginBottom: "5px",
                 }}
               >

@@ -283,6 +283,8 @@ export function ComputeServerDocStatus({
   );
 }
 
+const ENABLED = true;
+
 // gets progress of starting the compute server with given id and having it actively available to host this file.
 function getProgress(
   server: ComputeServerUserInfo | undefined,
@@ -294,6 +296,14 @@ function getProgress(
   message: string;
   status: "exception" | "active" | "normal" | "success";
 } {
+  if (ENABLED) {
+    return {
+      progress: 100,
+      message: "Compute server is fully connected!",
+      status: "success",
+    };
+  }
+
   if (requestedId == 0) {
     return {
       progress: 50,
@@ -372,7 +382,6 @@ function getProgress(
   }
 
   // below it is running
-
   const computeIsLive = server.detailed_state?.compute?.state == "ready";
   if (computeIsLive) {
     if (id == requestedId) {
