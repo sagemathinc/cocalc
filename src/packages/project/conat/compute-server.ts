@@ -4,7 +4,7 @@ Act as a compute server.
 
 import { connectToConat } from "./connection";
 import { getLogger } from "@cocalc/project/logger";
-//import startProjectServices from "./index";
+import startProjectServices from "./index";
 import { once } from "@cocalc/util/async-utils";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { getService as getFileserverService } from "@cocalc/conat/files/fs";
@@ -42,6 +42,6 @@ export async function init({
     unsafeMode: true,
   });
 
-  //await startProjectServices({ project_id, compute_server_id, client });
+  await startProjectServices({ project_id, compute_server_id, client });
   return client;
 }

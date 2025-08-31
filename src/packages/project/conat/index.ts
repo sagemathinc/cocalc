@@ -32,7 +32,7 @@ export default async function init(opts?: {
   await initJupyter(opts);
   initWebsocketApi(opts);
   await initRead(opts);
-  await initWrite(opts);
-  initProjectStatus(opts);
-  initUsageInfo(opts);
+  //await initWrite(opts);
+  //initProjectStatus(opts);
+  //initUsageInfo(opts);
 }
