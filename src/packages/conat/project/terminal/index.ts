@@ -12,6 +12,11 @@ import { ThrottleString } from "@cocalc/util/throttle";
 const MAX_MSGS_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
 );
+
+const MAX_HISTORY_LENGTH = parseInt(
+  process.env.COCALC_TERMINAL_MAX_HISTORY_LENGTH ?? "1000000",
+);
+
 import { EventEmitter } from "events";
 
 const logger = getLogger("conat:project:terminal");
@@ -58,6 +63,7 @@ export function terminalServer({
   logger.debug("server: listening on ", { subject });
 
   const sessions: { [id: string]: any } = {};
+  const history: { [id: string]: string } = {};
 
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
@@ -98,6 +104,14 @@ export function terminalServer({
             mesg.respondSync(null);
             return;
 
+          case "env":
+            mesg.respondSync(process.env);
+            return;
+
+          case "history":
+            mesg.respondSync(history[sessionId ?? ""]);
+            return;
+
           case "spawn":
             if (pty != null) {
               pty.removeListener("data", sendToClient);
@@ -113,6 +127,14 @@ export function terminalServer({
               pty = spawn(command, args, options);
               if (id) {
                 sessions[id] = pty;
+                history[id] = "";
+                const maxLen = options?.maxHistoryLength ?? MAX_HISTORY_LENGTH;
+                pty.on("data", (data) => {
+                  history[id] += data;
+                  if (history[id].length > maxLen + 1000) {
+                    history[id] = history[id].slice(-maxLen);
+                  }
+                });
               }
             }
 
@@ -130,7 +152,7 @@ export function terminalServer({
               } catch {}
             });
 
-            mesg.respondSync({ pid: pty.pid });
+            mesg.respondSync({ pid: pty.pid, history: history[id ?? ""] });
             return;
 
           default:
@@ -189,7 +211,7 @@ export class TerminalClient extends EventEmitter {
     command,
     args?: string[],
     options?: Options,
-  ): Promise<void> => {
+  ): Promise<string | undefined> => {
     const { data } = await this.socket.request({
       cmd: "spawn",
       command,
@@ -198,10 +220,20 @@ export class TerminalClient extends EventEmitter {
     });
     // console.log("spawned terminal with pid", data.pid);
     this.pid = data.pid;
+    return data.history;
   };
 
   destroy = async () => {
     await this.socket.request({ cmd: "destroy" });
+  };
+
+  history = async () => {
+    const { data } = await this.socket.request({ cmd: "history" });
+    return data;
+  };
+
+  env = async () => {
+
   };
 }
 

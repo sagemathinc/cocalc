@@ -301,19 +301,32 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.connect();
         return;
       }
+      if (this.ignoreData) return;
       term.socket.write(data);
     });
     term.on("exit", async () => {
       if (this.isClosed()) return;
-      this.terminal.write(EXIT_MESSAGE);
+      this.handleDataFromProject(EXIT_MESSAGE);
       this.ptyExited = true;
     });
 
-    await term.spawn(this.command ?? "bash", this.args, {
-      id: this.termPath,
-      cwd: this.workingDir ?? dirname(this.path),
-      //env: this.actions.get_term_env(),
-    });
+    const env0 = this.actions.get_term_env();
+    try {
+      this.ignoreData++;
+      const history = await term.spawn(this.command ?? "bash", this.args, {
+        id: this.termPath,
+        cwd: this.workingDir ?? dirname(this.path),
+        env:
+          Object.keys(env0).length > 0
+            ? { ...(await term.env()), ...env0 }
+            : undefined,
+      });
+      if (history) {
+        this.handleDataFromProject(history);
+      }
+    } finally {
+      this.ignoreData--;
+    }
     if (this.isClosed()) {
       return;
     }
