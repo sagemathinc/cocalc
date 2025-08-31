@@ -31,7 +31,7 @@ export const MIN_WARN_INTERVAL = 30_000;
 
 // this is a hard limit on the number of processes we gather, just to
 // be on the safe side to avoid processing too much data.
-const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 256);
+const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 1024);
 
 interface ProcessStatsOpts {
   procLimit?: number;

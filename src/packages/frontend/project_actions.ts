@@ -448,13 +448,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  public get_store(): ProjectStore | undefined {
+  get_store = (): ProjectStore | undefined => {
     if (this.redux.hasStore(this.name)) {
       return this.redux.getStore<ProjectStoreState, ProjectStore>(this.name);
     } else {
       return undefined;
     }
-  }
+  };
 
   clear_all_activity(): void {
     this.setState({ activity: undefined });
@@ -1067,6 +1067,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   open_file = async (opts: OpenFileOpts): Promise<void> => {
     // Log that we *started* opening the file.
     log_file_open(this.project_id, opts.path);
+    await this.waitUntilComputeServersKnown();
+    if (this.state == "closed") return;
     await open_file(this, opts);
   };
 
@@ -3389,6 +3391,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   };
 
+  // Wait until we know what compute servers all paths are
+  // currently assigned to (or closed), so it's safe to open
+  // files.  Otherwise, we might try to open a file on the home
+  // base when it's supposed to be opened on a compute server.
+  private computeServersKnown = false;
+  waitUntilComputeServersKnown = reuseInFlight(async () => {
+    if (this.computeServersKnown) return;
+    await until(async () => {
+      const store = this.get_store();
+      if (store?.get("compute_server_ids") || this.state == "closed") {
+        return true;
+      }
+      try {
+        this.initExpensive();
+        if (store) {
+          await once(store, "change");
+        }
+      } catch {
+        // closed
+        return true;
+      }
+      return false;
+    });
+    this.computeServersKnown = true;
+  });
+
   private closeComputeServerManager = () => {
     // console.log("closeComputeServerManager");
     if (this.computeServerManager == null) {
@@ -3421,7 +3449,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // TODO: maybe we should change this to be async and guarantee answer known -- not sure.
       return;
     }
-    return this.computeServerManager?.get(canonicalPath(path));
+    return this.computeServerManager.get(canonicalPath(path));
   };
 
   // In case of confirmation, returns true on success or false if user says "no"

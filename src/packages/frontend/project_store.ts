@@ -344,6 +344,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       compute_server_id,
       create_compute_server,
       create_compute_server_template_id,
+      // compute_server_ids -- starts out NOT set so we know the data is NOT known:
+      compute_server_ids: undefined
     };
   };
 
