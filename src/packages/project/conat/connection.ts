@@ -3,9 +3,12 @@ Create a connection to a conat server authenticated as a project or compute
 server, via an api key or the project secret token.
 */
 
-import { apiKey, conatServer } from "@cocalc/backend/data";
-import { secretToken } from "@cocalc/project/data";
-import { connect, type Client as ConatClient } from "@cocalc/conat/core/client";
+import * as backendData from "@cocalc/backend/data";
+import {
+  connect,
+  type Client as ConatClient,
+  type ClientOptions,
+} from "@cocalc/conat/core/client";
 import {
   API_COOKIE_NAME,
   PROJECT_SECRET_COOKIE_NAME,
@@ -13,15 +16,17 @@ import {
 } from "@cocalc/backend/auth/cookie-names";
 import { inboxPrefix } from "@cocalc/conat/names";
 import { setConatClient } from "@cocalc/conat/client";
-import * as data from "@cocalc/project/data";
+import * as projectData from "@cocalc/project/data";
 import { version as ourVersion } from "@cocalc/util/smc-version";
 import { getLogger } from "@cocalc/project/logger";
 import { initHubApi } from "@cocalc/conat/hub/api";
 import { delay } from "awaiting";
 
+const data = { ...backendData, ...projectData };
+
 const logger = getLogger("conat:connection");
 
-const VERSION_CHECK_INTERVAL = 2 * 60000;
+const VERSION_CHECK_INTERVAL = 5 * 60_000;
 
 export function getIdentity({
   client = connectToConat(),
@@ -39,29 +44,43 @@ export function getIdentity({
   return { client, compute_server_id, project_id };
 }
 
-let cache: ConatClient | null = null;
-export function connectToConat(options?): ConatClient {
-  if (cache != null) {
-    return cache;
-  }
+export function connectToConat(
+  options?: ClientOptions & {
+    apiKey?: string;
+    secretToken?: string;
+    project_id?: string;
+  },
+): ConatClient {
+  const apiKey = options?.apiKey ?? data.apiKey;
+  const project_id = options?.project_id ?? data.project_id;
+  const secretToken = options?.secretToken ?? data.secretToken;
+  const address = options?.address ?? data.conatServer;
+
   let Cookie;
   if (apiKey) {
     Cookie = `${API_COOKIE_NAME}=${apiKey}`;
   } else if (secretToken) {
-    Cookie = `${PROJECT_SECRET_COOKIE_NAME}=${secretToken}; ${PROJECT_ID_COOKIE_NAME}=${data.project_id}`;
+    Cookie = `${PROJECT_SECRET_COOKIE_NAME}=${secretToken}; ${PROJECT_ID_COOKIE_NAME}=${project_id}`;
   } else {
     Cookie = "";
   }
-  cache = connect({
-    address: conatServer,
-    inboxPrefix: inboxPrefix({ project_id: data.project_id }),
+  const conn = connect({
+    address,
+    inboxPrefix: inboxPrefix({ project_id }),
     extraHeaders: { Cookie },
     ...options,
   });
+  if (apiKey) {
+    // we don't know the project_id that this apiKey provides access to. That
+    // project_id is in info.user, which we only know after being authenticated
+    // with the api key!
+    conn.inboxPrefixHook = (info) => {
+      return info?.user ? inboxPrefix(info?.user) : undefined;
+    };
+  }
 
-  versionCheckLoop(cache);
-
-  return cache!;
+  versionCheckLoop(conn);
+  return conn;
 }
 
 export function init() {

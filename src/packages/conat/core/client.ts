@@ -531,6 +531,9 @@ export class Client extends EventEmitter {
       }
       const firstTime = this.info == null;
       this.info = info;
+      if (firstTime) {
+        this.initInbox();
+      }
       this.emit("info", info);
       setTimeout(this.syncSubscriptions, firstTime ? 3000 : 0);
     });
@@ -559,7 +562,6 @@ export class Client extends EventEmitter {
       this.disconnectAllSockets();
     });
     this.conn.io.connect();
-    this.initInbox();
     this.statsLoop();
   }
 
@@ -706,6 +708,13 @@ export class Client extends EventEmitter {
     return this.inbox;
   });
 
+  // if inboxPrefixHook is set, it will be called with the sign-in
+  // info, and what it retujrns will be used as the inboxPrefix,
+  // instead of using this.options.inboxPrefix.  This is useful because
+  // the inbox prefix you might want to use could depend on your
+  // identity wrt a remote server (example: a project api key knows
+  // the project_id but the client might not).
+  public inboxPrefixHook?: (info: ServerInfo | undefined) => string | undefined;
   private initInbox = async () => {
     // For request/respond instead of setting up one
     // inbox *every time there is a request*, we setup a single
@@ -720,7 +729,10 @@ export class Client extends EventEmitter {
     // multiple servers solving the race condition would slow everything down
     // due to having to wait for so many acknowledgements.  Instead, we
     // remove all those problems by just using a single inbox subscription.
-    const inboxPrefix = this.options.inboxPrefix ?? INBOX_PREFIX;
+    const inboxPrefix =
+      this.inboxPrefixHook?.(this.info) ??
+      this.options.inboxPrefix ??
+      INBOX_PREFIX;
     if (!inboxPrefix.startsWith(INBOX_PREFIX)) {
       throw Error(`custom inboxPrefix must start with '${INBOX_PREFIX}'`);
     }
@@ -744,7 +756,7 @@ export class Client extends EventEmitter {
         }
         return false;
       },
-      { start: 1000, max: 15000 },
+      { start: 3000, max: 30000 },
     );
     if (this.isClosed()) {
       return;
@@ -1504,8 +1516,7 @@ export class Client extends EventEmitter {
   sync = {
     dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
       await dkv<T>({ ...opts, client: this }),
-    akv: <T,>(opts: DKVOptions): AKV<T> =>
-      akv<T>({ ...opts, client: this }),
+    akv: <T,>(opts: DKVOptions): AKV<T> => akv<T>({ ...opts, client: this }),
     dko: async <T,>(opts: DKVOptions): Promise<DKO<T>> =>
       await dko<T>({ ...opts, client: this }),
     dstream: async <T,>(opts: DStreamOptions): Promise<DStream<T>> =>
