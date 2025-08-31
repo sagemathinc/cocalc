@@ -8,7 +8,7 @@ import {
   type ServerSocket,
 } from "@cocalc/conat/socket";
 import { getLogger } from "@cocalc/conat/client";
-import { Throttle } from "@cocalc/util/throttle";
+import { ThrottleString } from "@cocalc/util/throttle";
 const MAX_MSGS_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
 );
@@ -115,7 +115,10 @@ export function terminalServer({
                 sessions[id] = pty;
               }
             }
-            pty.on("data", sendToClient);
+
+            const throttle = new ThrottleString(MAX_MSGS_PER_SECOND);
+            throttle.on("data", sendToClient);
+            pty.on("data", throttle.write);
 
             pty.once("exit", async () => {
               if (sessionId) {
