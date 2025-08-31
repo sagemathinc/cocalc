@@ -31,7 +31,7 @@ const VERSION_CHECK_INTERVAL = 5 * 60_000;
 export function getIdentity({
   client = connectToConat(),
   compute_server_id = data.compute_server_id,
-  project_id = data.project_id,
+  project_id,
 }: {
   client?: ConatClient;
   compute_server_id?: number;
@@ -41,7 +41,8 @@ export function getIdentity({
   compute_server_id: number;
   project_id: string;
 } {
-  return { client, compute_server_id, project_id };
+  project_id ??= client.info?.user?.project_id ?? data.project_id;
+  return { client, compute_server_id, project_id: project_id! };
 }
 
 export function connectToConat(
@@ -106,7 +107,11 @@ async function callHub({
   args: any[];
   timeout?: number;
 }) {
-  const subject = `hub.project.${data.project_id}.${service}`;
+  const project_id = client.info?.user?.project_id;
+  if (!project_id) {
+    throw Error("project_id not known");
+  }
+  const subject = `hub.project.${project_id}.${service}`;
   const resp = await client.request(subject, { name, args }, { timeout });
   return resp.data;
 }
