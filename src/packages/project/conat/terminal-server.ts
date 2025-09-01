@@ -1,7 +1,7 @@
 import { terminalServer } from "@cocalc/conat/project/terminal";
 import { spawn } from "@lydell/node-pty";
 import { getIdentity } from "./connection";
-import { realpath } from "node:fs/promises";
+import { readlink, realpath } from "node:fs/promises";
 import { getLogger } from "@cocalc/project/logger";
 const logger = getLogger("project:conat:terminal-server");
 
