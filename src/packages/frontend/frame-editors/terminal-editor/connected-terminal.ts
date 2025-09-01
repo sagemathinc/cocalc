@@ -85,7 +85,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private render_buffer: string = "";
   private history: string = "";
-  private resize_after_no_ignore: { rows: number; cols: number } | undefined;
   private last_active: number = 0;
   private touch_interval;
 
@@ -189,6 +188,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
       this.pty.socket.write(data);
     });
+
+    this.initKeyHandler();
 
     this.connect();
 
@@ -460,7 +461,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.touch_interval = setInterval(this.touch, 60000);
   };
 
-  init_keyhandler = (): void => {
+  initKeyHandler = (): void => {
     if (this.isClosed()) {
       return;
     }
@@ -564,41 +565,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     } catch (err) {
       console.warn("Error resizing terminal", err, rows, cols);
     }
-  };
-
-  i;
-
-  // Stop ignoring terminal data... but ONLY once
-  // the render buffer is also empty.
-  no_ignore = async (): Promise<void> => {
-    if (this.isClosed()) {
-      return;
-    }
-    const g = (cb) => {
-      const f = async () => {
-        x.dispose();
-        if (this.resize_after_no_ignore !== undefined) {
-          this.terminal_resize(this.resize_after_no_ignore);
-          delete this.resize_after_no_ignore;
-        }
-        // cause render to actually appear now.
-        await delay(0);
-        if (this.isClosed()) {
-          return;
-        }
-        try {
-          this.terminal.refresh(0, this.terminal.rows - 1);
-        } catch (err) {
-          // See https://github.com/sagemathinc/cocalc/issues/3572
-          console.warn(`TERMINAL WARNING -- ${err}`);
-        }
-        // Finally start listening to user input.
-        this.init_keyhandler();
-        cb();
-      };
-      const x = this.terminal.onRender(f);
-    };
-    await callback(g);
   };
 
   close_request = (): void => {

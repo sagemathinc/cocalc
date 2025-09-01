@@ -54,11 +54,13 @@ export function terminalServer({
   client: ConatClient;
   project_id: string;
   compute_server_id?: number;
+  // spawn a pseudo tty:
   spawn: (
     command: string,
     args?: string[],
     options?: Options,
   ) => Promise<{ pid: number }>;
+  // get the current working directory of the process with given pid
   cwd?: (pid: number) => Promise<string | undefined>;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
