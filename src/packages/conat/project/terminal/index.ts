@@ -49,6 +49,7 @@ export function terminalServer({
   project_id,
   compute_server_id = 0,
   spawn,
+  cwd,
 }: {
   client: ConatClient;
   project_id: string;
@@ -58,6 +59,7 @@ export function terminalServer({
     args?: string[],
     options?: Options,
   ) => Promise<{ pid: number }>;
+  cwd?: (pid: number) => Promise<string | undefined>;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
@@ -138,6 +140,11 @@ export function terminalServer({
             mesg.respondSync(process.env);
             return;
 
+          case "cwd":
+            const pid = pty?.pid;
+            mesg.respondSync(pid ? cwd?.(pid) : undefined);
+            return;
+
           case "broadcast":
             pty.emit("broadcast", data.event, data.payload);
             mesg.respondSync(null);
@@ -196,6 +203,7 @@ export function terminalServer({
             pty.on("data", throttle.write);
 
             pty.once("exit", async () => {
+              pty = null;
               if (sessionId) {
                 delete sessions[sessionId];
                 sessionId = null;
@@ -231,7 +239,7 @@ export function terminalServer({
 export class TerminalClient extends EventEmitter {
   public readonly socket;
   public pid: number;
-  private getSize?: () => { rows: number; cols: number };
+  private getSize?: () => undefined | { rows: number; cols: number };
 
   constructor({
     client,
@@ -240,7 +248,7 @@ export class TerminalClient extends EventEmitter {
   }: {
     client: ConatClient;
     subject: string;
-    getSize?: () => { rows: number; cols: number };
+    getSize?: () => undefined | { rows: number; cols: number };
   }) {
     super();
     this.getSize = getSize;
@@ -305,6 +313,10 @@ export class TerminalClient extends EventEmitter {
     return (await this.socket.request({ cmd: "env" })).data;
   };
 
+  cwd = async () => {
+    return (await this.socket.request({ cmd: "pty" })).data;
+  };
+
   resize = async ({ rows, cols }: { rows: number; cols: number }) => {
     await this.socket.request({ cmd: "resize", rows, cols });
   };
@@ -322,7 +334,7 @@ export function terminalClient(opts: {
   project_id: string;
   compute_server_id?: number;
   client: ConatClient;
-  getSize?: () => { rows: number; cols: number };
+  getSize?: () => undefined | { rows: number; cols: number };
 }): TerminalClient {
   return new TerminalClient({ ...opts, subject: getSubject(opts) });
 }

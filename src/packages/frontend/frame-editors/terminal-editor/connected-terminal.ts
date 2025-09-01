@@ -24,20 +24,13 @@ import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
-import {
-  close,
-  endswith,
-  filename_extension,
-  replace_all,
-} from "@cocalc/util/misc";
+import { close, filename_extension, replace_all } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { ConnectionStatus } from "../frame-tree/types";
 import { touch, touch_project } from "../generic/client";
 import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { ConatTerminal } from "./conat-terminal";
 import { termPath } from "@cocalc/util/terminal/names";
 import { dirname } from "path";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -91,12 +84,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     */
 
   private render_buffer: string = "";
-  private conn_write_buffer: string[] = [];
   private history: string = "";
-  private last_geom: { rows: number; cols: number } | undefined;
   private resize_after_no_ignore: { rows: number; cols: number } | undefined;
   private last_active: number = 0;
-  private conn?: ConatTerminal;
   private touch_interval;
 
   public is_visible: boolean = false;
@@ -111,8 +101,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private render_done: Function[] = [];
   private ignoreData: number = 0;
-
-  private firstOpen = true;
+  private writeBuffer: string[] = [];
 
   constructor(
     actions: Actions<T>,
@@ -123,6 +112,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     args?: string[],
     workingDir?: string,
   ) {
+    console.log("connected-terminal");
     this.actions = actions;
     this.account_store = redux.getStore("account");
     this.project_actions = redux.getProjectActions(actions.project_id);
@@ -182,11 +172,25 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.element = this.terminal.element;
     this.update_settings();
     this.init_title();
-    this.init_terminal_data();
     this.init_settings();
     this.init_touch();
     this.set_connection_status("disconnected");
-    // this.reconnectIfNotResponding();
+
+    this.terminal.onData((data) => {
+      if (this.ptyExited) {
+        this.ptyExited = false;
+        this.connect();
+        return;
+      }
+      if (this.ignoreData) return;
+      if (!this.pty || this.pty.socket.state != "ready") {
+        this.writeBuffer.push(data);
+        return;
+      }
+      this.pty.socket.write(data);
+    });
+
+    this.connect();
 
     // The docs https://xtermjs.org/docs/api/terminal/classes/terminal/#resize say
     // "It’s best practice to debounce calls to resize, this will help ensure that
@@ -239,21 +243,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     clearInterval(this.touch_interval);
     this.account_store.removeListener("change", this.update_settings);
     this.terminal.dispose();
-    if (this.conn != null) {
-      this.disconnect();
-    }
     close(this);
     this.state = "closed";
-  };
-
-  private disconnect = (): void => {
-    if (this.conn === undefined) {
-      return;
-    }
-    this.conn.removeAllListeners();
-    this.conn.end();
-    delete this.conn;
-    this.set_connection_status("disconnected");
   };
 
   private update_settings = (): void => {
@@ -287,31 +278,42 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private ptyExited = false;
   connect = reuseInFlight(async () => {
-    if (this.isClosed()) return;
+    console.log("connect");
+    if (this.isClosed() || this.ptyExited) return;
+
+    if (this.pty != null) {
+      this.pty.close();
+      this.pty = null;
+    }
 
     const pty = webapp_client.conat_client.terminalClient({
       project_id: this.project_id,
       compute_server_id: await this.getComputeServerId(),
       getSize: () => {
-        return this.fitAddon.proposeDimensions();
+        if (this.is_visible) {
+          return this.fitAddon.proposeDimensions();
+        }
       },
     });
+    // window.x = { t: this, pty };
     this.pty = pty;
     pty.socket.on("data", this.handleDataFromProject);
 
-    this.terminal.onData((data) => {
-      if (this.ptyExited) {
-        this.ptyExited = false;
-        this.connect();
-        return;
-      }
-      if (this.ignoreData) return;
-      pty.socket.write(data);
-    });
     pty.on("exit", async () => {
       if (this.isClosed()) return;
       this.handleDataFromProject(EXIT_MESSAGE);
       this.ptyExited = true;
+      pty?.close();
+    });
+
+    pty.socket.on("disconnected", async () => {
+      await delay(1);
+      this.connect();
+    });
+
+    pty.socket.on("closed", async () => {
+      await delay(1);
+      this.connect();
     });
 
     pty.on("resize", ({ rows, cols }) => {
@@ -334,9 +336,16 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
             ? { ...(await pty.env()), ...env0 }
             : undefined,
       });
+      this.set_connection_status("connected");
       if (history) {
         this.handleDataFromProject(history);
       }
+      pty.socket.write(this.writeBuffer.join(""));
+      this.writeBuffer.length = 0;
+      pty.on("ready", () => {
+        pty.socket.write(this.writeBuffer.join(""));
+        this.writeBuffer.length = 0;
+      });
       this.measureSize();
     } finally {
       this.ignoreData--;
@@ -344,37 +353,26 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.isClosed()) {
       return;
     }
-    window.x = { t: this, pty };
+    if (this.path?.endsWith(".term")) {
+      touchPath(this.project_id, this.path); // no need to await
+    }
   });
 
   reload = async (): Promise<void> => {
     await this.connect();
   };
 
-  conn_write = (data): void => {
-    if (this.state == "closed") {
-      return; // no-op  -- see #4918
+  conn_write = (data: string): void => {
+    if (typeof data != "string") {
+      throw Error("conn_write - only strings");
     }
-    if (this.conn === undefined) {
-      if (typeof data == "string") {
-        this.conn_write_buffer.push(data);
-      }
-      return;
+    if (this.isClosed()) return;
+    if (this.pty == null) {
+      this.writeBuffer.push(data);
+    } else {
+      this.pty.socket.write(data);
     }
-    this.conn.write(data);
-    //this.lastSend = Date.now();
   };
-
-  // this should never ever be necessary.  It's a just-in-case things
-  // were myseriously totally broken measure...
-  //   private reconnectIfNotResponding = async () => {
-  //     while (this.state != "closed") {
-  //       if (this.lastSend - this.lastReceive >= MAX_DELAY) {
-  //         await this.connect();
-  //       }
-  //       await delay(MAX_DELAY / 2);
-  //     }
-  //   };
 
   private handleDataFromProject = (data: any): void => {
     this.assert_not_closed();
@@ -610,7 +608,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     // this frame.
     if (
       this.actions._tree_is_single_leaf() &&
-      endswith(this.actions.path, ".term")
+      this.actions.path?.endsWith(".term")
     ) {
       this._close_path(this.path);
     } else {
@@ -639,7 +637,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return false;
   };
 
-  private open_paths = async (paths: Path[]) => {
+  openPaths = async (paths: Path[]) => {
     if (!this.is_visible) {
       return;
     }
@@ -712,10 +710,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   update_cwd = debounce(
     async () => {
-      if (this.isClosed()) return;
+      if (this.isClosed() || this.pty == null) return;
       let cwd;
       try {
-        cwd = await this.conn?.api.cwd();
+        cwd = await this.pty.cwd();
       } catch {
         return;
       }
@@ -736,27 +734,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   kill = async () => {
     this.terminal?.clear();
-    this.conn_write({ cmd: "kill" });
+    // TODO: this.conn_write({ cmd: "kill" });
     await this.connect();
   };
 
   set_command(command: string | undefined, args: string[] | undefined): void {
     this.command = command;
     this.args = args;
-    this.conn_write({ cmd: "set_command", command, args });
-  }
-
-  init_terminal_data(): void {
-    this.terminal.onKey(({ key }) => {
-      if (this.ignoreData) {
-        this.conn_write(key);
-      }
-    });
-    this.terminal.onData((data) => {
-      if (!this.ignoreData) {
-        this.conn_write(data);
-      }
-    });
+    // TODO: this.conn_write({ cmd: "set_command", command, args });
   }
 
   init_settings(): void {
@@ -805,7 +790,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   measureSize = asyncThrottle(
     async ({ kick }: { kick?: boolean } = {}): Promise<void> => {
-      if(this.isClosed()) return;
+      if (this.isClosed()) return;
       const geom = this.fitAddon.proposeDimensions();
       if (geom == null || this.pty == null) {
         return;
@@ -817,7 +802,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         console.log("WARNING: unable to resize pty", err);
         return;
       }
-      if(this.isClosed()) return;
+      if (this.isClosed()) return;
       this.terminal.resize(cols, rows);
       if (!kick) {
         try {
@@ -876,42 +861,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return (
       (await computeServerAssociations.getServerIdForPath(this.termPath)) ?? 0
     );
-  };
-
-  // This is called when connecting to in some cases give the user the option
-  // to run the terminal on a different compute server if the compute server
-  // is not set for this terminal frame and:
-  //   - the ambient path has the compute server set to a positive number
-  //   - or the current default compute server (what's selected in the file explorer) is positive.
-  private configureComputeServerId = async () => {
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    const cur = await computeServerAssociations.getServerIdForPath(
-      this.termPath,
-    );
-    if (cur != null) {
-      // nothing to do -- it's already explicitly set.
-      return;
-    }
-    const id = await computeServerAssociations.getServerIdForPath(this.path);
-    if (!id) {
-      // the ambient path is on the project, so nothing to do
-      return;
-    }
-    if (
-      await redux
-        .getActions("page")
-        .popconfirm(
-          modalParams({ current: 0, target: id, path: this.termPath }),
-        )
-    ) {
-      // yes, switch it
-      computeServerAssociations.connectComputeServerToPath({
-        id,
-        path: this.termPath,
-      });
-      await computeServerAssociations.save();
-    }
   };
 }
 

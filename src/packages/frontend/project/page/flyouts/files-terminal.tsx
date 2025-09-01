@@ -101,7 +101,6 @@ export function TerminalFlyout({
     terminalRef.current.element?.remove();
     terminalRef.current.is_visible = false;
     // Ignore size for this terminal.
-    terminalRef.current.conn_write({ cmd: "size", rows: 0, cols: 0 });
     terminalRef.current.close();
     terminalRef.current = undefined;
     setTerminalExists(false);

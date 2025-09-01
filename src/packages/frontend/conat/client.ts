@@ -456,7 +456,7 @@ export class ConatClient extends EventEmitter {
   terminalClient = (opts: {
     project_id: string;
     compute_server_id?: number;
-    getSize?: () => { rows: number; cols: number };
+    getSize?: () => undefined | { rows: number; cols: number };
   }) => {
     return terminalClient({
       client: this.conat(),
