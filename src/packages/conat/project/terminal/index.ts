@@ -103,9 +103,21 @@ export function terminalServer({
       } catch {}
     };
 
-    socket.on("closed", () => {
-      pty?.removeListener("data", sendToClient);
-    });
+    const broadcast = async (event, payload?) => {
+      try {
+        await socket.request({ cmd: "broadcast", event, payload });
+      } catch {}
+    };
+
+    const removeListeners = () => {
+      if (pty == null) return;
+      pty.removeListener("data", sendToClient);
+      pty.removeListener("get-size", getClientSize);
+      pty.removeListener("broadcast", broadcast);
+      pty.emit("broadcast", "leave");
+    };
+
+    socket.on("closed", removeListeners);
 
     socket.on("request", async (mesg) => {
       const { data } = mesg;
@@ -126,6 +138,11 @@ export function terminalServer({
             mesg.respondSync(process.env);
             return;
 
+          case "broadcast":
+            pty.emit("broadcast", data.event, data.payload);
+            mesg.respondSync(null);
+            return;
+
           case "sizes":
             if (pty == null || !sessionId) {
               mesg.respondSync([]);
@@ -134,12 +151,15 @@ export function terminalServer({
             sizes[sessionId] = [];
             pty.emit("get-size");
             await delay(data.wait ?? DEFAULT_SIZE_WAIT);
-            mesg.respondSync(sizes);
+            mesg.respondSync(sizes[sessionId]);
             return;
 
           case "resize":
             const { rows, cols } = data;
-            pty?.resize(cols, rows);
+            if (pty != null) {
+              pty.resize(cols, rows);
+              pty.emit("broadcast", "resize", { rows, cols });
+            }
             mesg.respondSync(null);
             return;
 
@@ -148,10 +168,7 @@ export function terminalServer({
             return;
 
           case "spawn":
-            if (pty != null) {
-              pty.removeListener("data", sendToClient);
-              pty.removeListener("get-size", getClientSize);
-            }
+            removeListeners();
             const { command, args, options } = data;
             const { id } = options ?? {};
             if (id) {
@@ -189,6 +206,7 @@ export function terminalServer({
             });
 
             pty.on("get-size", getClientSize);
+            pty.on("broadcast", broadcast);
 
             mesg.respondSync({ pid: pty.pid, history: history[id ?? ""] });
             return;
@@ -234,8 +252,13 @@ export class TerminalClient extends EventEmitter {
           case "size":
             mesg.respondSync(this.getSize?.() ?? null);
             return;
+          case "broadcast":
+            this.emit(data.event, data.payload);
+            mesg.respondSync(null);
+            return;
           case "exit":
             this.emit("exit");
+            mesg.respondSync(null);
             return;
           default:
             console.warn(`terminal: got unknown message type '${data.type}'`);
@@ -248,6 +271,7 @@ export class TerminalClient extends EventEmitter {
   }
 
   close = () => {
+    this.removeAllListeners();
     try {
       this.socket.close();
     } catch {}
@@ -287,6 +311,10 @@ export class TerminalClient extends EventEmitter {
 
   sizes = async (wait?: number) => {
     return (await this.socket.request({ cmd: "sizes", wait })).data;
+  };
+
+  broadcast = async (event: Event, payload?) => {
+    await this.socket.request({ cmd: "broadcast", event, payload });
   };
 }
 

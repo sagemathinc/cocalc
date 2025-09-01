@@ -42,6 +42,7 @@ import { termPath } from "@cocalc/util/terminal/names";
 import { dirname } from "path";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type TerminalClient } from "@cocalc/conat/project/terminal";
+import { asyncThrottle } from "@cocalc/util/async-utils";
 
 declare const $: any;
 
@@ -51,11 +52,7 @@ const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
 const EXIT_MESSAGE = "\r\n[Process completed - press any key]\r\n";
 
-const ENABLE_WEBGL = true;
-
-// ephemeral = faster, less load on servers, but if project and browser all
-// close, the history is gone... which may be good and less confusing.
-const EPHEMERAL = true;
+const ENABLE_WEBGL = false;
 
 interface Path {
   file?: string;
@@ -235,6 +232,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.isClosed()) {
       return;
     }
+    this.pty?.close();
+    this.pty = null;
     this.set_connection_status("disconnected");
     this.state = "closed";
     clearInterval(this.touch_interval);
@@ -294,7 +293,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       project_id: this.project_id,
       compute_server_id: await this.getComputeServerId(),
       getSize: () => {
-        return { rows: this.terminal.rows, cols: this.terminal.cols };
+        return this.fitAddon.proposeDimensions();
       },
     });
     this.pty = pty;
@@ -315,6 +314,15 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.ptyExited = true;
     });
 
+    pty.on("resize", ({ rows, cols }) => {
+      this.terminal.resize(cols, rows);
+    });
+
+    pty.on("leave", () => {
+      // a user left the session so resize terminal
+      this.measureSize();
+    });
+
     const env0 = this.actions.get_term_env();
     try {
       this.ignoreData++;
@@ -329,13 +337,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (history) {
         this.handleDataFromProject(history);
       }
+      this.measureSize();
     } finally {
       this.ignoreData--;
     }
     if (this.isClosed()) {
       return;
     }
-    window.x = { t: this, term };
+    window.x = { t: this, pty };
   });
 
   reload = async (): Promise<void> => {
@@ -787,27 +796,55 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   set_font_size(font_size: number): void {
     this.terminal.options.fontSize = font_size;
+    this.measureSize();
   }
 
   getOption(option: string): any {
     return this.terminal.options[option];
   }
 
-  measureSize = ({ kick }: { kick?: boolean } = {}): void => {
-    const geom = this.fitAddon?.proposeDimensions();
-    if (geom == null) {
+  measureSize = asyncThrottle(
+    async ({ kick }: { kick?: boolean } = {}): Promise<void> => {
+      if(this.isClosed()) return;
+      const geom = this.fitAddon.proposeDimensions();
+      if (geom == null || this.pty == null) {
+        return;
+      }
+      const { rows, cols } = geom;
+      try {
+        await this.pty.resize(geom);
+      } catch (err) {
+        console.log("WARNING: unable to resize pty", err);
+        return;
+      }
+      if(this.isClosed()) return;
+      this.terminal.resize(cols, rows);
+      if (!kick) {
+        try {
+          await this.resizeToFitAllClients(2000);
+        } catch (err) {
+          console.log("WARNING: unable to resize clients", err);
+          return;
+        }
+      }
+    },
+    2500,
+    { leading: true, trailing: true },
+  );
+
+  resizeToFitAllClients = async (wait = 2000) => {
+    const sizes = await this.pty?.sizes(wait);
+    if (sizes == null || sizes.length < 2) {
       return;
     }
-    const { rows, cols } = geom;
-    if (
-      !kick &&
-      this.last_geom?.rows === rows &&
-      this.last_geom?.cols === cols
-    ) {
-      return;
+    let { rows, cols } = sizes[0];
+    for (const size of sizes.slice(1)) {
+      rows = Math.min(size.rows, rows);
+      cols = Math.min(size.cols, cols);
     }
-    this.last_geom = { rows, cols };
-    this.conn_write({ cmd: "size", rows, cols, kick });
+    if (sizes[0].rows != rows || sizes[0].cols != cols) {
+      await this.pty?.resize({ rows, cols });
+    }
   };
 
   copy = (): void => {
