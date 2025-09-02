@@ -45,7 +45,10 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
+const SPAWN_TIMEOUT = 5000;
+
 const EXIT_MESSAGE = "\r\n[Process completed - press any key]\r\n";
+const CONNECTING_MESSAGE = `\r\n\x1b[1;37m[\x1b[0m\x1b[36m CONNECTING{TARGET}... \x1b[0m\x1b[1;37m]\x1b[0m\r\n\r\n`;
 
 const ENABLE_WEBGL = false;
 
@@ -261,6 +264,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.pty?.close();
     this.pty = null;
+    this.compute_server_id = null;
     this.set_connection_status("disconnected");
     this.state = "closed";
     clearInterval(this.touch_interval);
@@ -300,117 +304,143 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   private ptyExited = false;
+  private compute_server_id: number | null = null;
+
   connect = reuseInFlight(async () => {
     if (this.isClosed() || this.ptyExited) return;
 
-    if (this.pty != null) {
-      this.pty.close();
-      this.pty = null;
-    }
-
-    const pty = webapp_client.conat_client.terminalClient({
-      project_id: this.project_id,
-      compute_server_id: await this.getComputeServerId(),
-      getSize: () => {
-        if (this.is_visible) {
-          return this.fitAddon.proposeDimensions();
-        }
-      },
-    });
-    // window.x = { t: this, pty };
-    this.pty = pty;
-    pty.socket.on("data", this.handleDataFromProject);
-
-    pty.on("exit", async () => {
-      if (this.isClosed()) return;
-      this.handleDataFromProject(EXIT_MESSAGE);
-      this.ptyExited = true;
-      pty?.close();
-    });
-
-    pty.on("user-command", (payload) => {
-      switch (payload.event) {
-        case "open":
-          this.openPaths(payload.paths);
-          return;
-        case "close":
-          this.closePaths(payload.paths);
-          return;
-        default:
-          console.warn("unknown user-command:", payload);
-      }
-    });
-
-    pty.on("kick", (id) => {
-      if (this.kickId != id) {
-        // not us
-        this.close_request();
-      }
-    });
-
-    pty.on("update-cwd", this.setCwd);
-
-    pty.socket.on("disconnected", async () => {
-      await delay(1);
-      this.connect();
-    });
-
-    pty.socket.on("closed", async () => {
-      await delay(1);
-      this.connect();
-    });
-
-    pty.on("resize", ({ rows, cols }) => {
-      this.terminal.resize(cols, rows);
-    });
-
-    pty.on("leave", () => {
-      // a user left the session so resize terminal
-      this.measureSize();
-    });
-
-    const HISTFILE = historyFile(this.path);
-    const env0 = {
-      ...this.actions.get_term_env(),
-      // setting COCALC_CONTROL_DIR enables the open and close
-      // commands. The backend sets this variable to the actual
-      // spool directory.
-      COCALC_CONTROL_DIR: "set-by-backend",
-      COCALC_TERMINAL_FILENAME: this.termPath,
-      PROMPT_COMMAND: "history -a",
-      ...(HISTFILE ? { HISTFILE } : undefined),
-    };
     try {
-      this.ignoreData++;
-      const options = {
-        id: this.termPath,
-        cwd: this.workingDir ?? dirname(this.path),
-        env0,
-      };
-      const history = await pty.spawn(
-        this.command ?? "bash",
-        this.args,
-        options,
-      );
-      this.set_connection_status("connected");
-      if (history) {
-        this.handleDataFromProject(history);
+      this.compute_server_id = null;
+      if (this.pty != null) {
+        this.pty.close();
+        this.pty = null;
       }
-      pty.socket.write(this.writeBuffer.join(""));
-      this.writeBuffer.length = 0;
-      pty.on("ready", () => {
+
+      this.terminal.reset();
+      this.compute_server_id = await this.getComputeServerId();
+      this.handleDataFromProject(
+        CONNECTING_MESSAGE.replace(
+          "{TARGET}",
+          this.compute_server_id ? " TO COMPUTE SERVER" : " TO HOME BASE",
+        ),
+      );
+
+      const pty = webapp_client.conat_client.terminalClient({
+        project_id: this.project_id,
+        compute_server_id: this.compute_server_id!,
+        getSize: () => {
+          if (this.is_visible) {
+            return this.fitAddon.proposeDimensions();
+          }
+        },
+      });
+      this.pty = pty;
+      pty.socket.on("data", this.handleDataFromProject);
+
+      pty.on("exit", async () => {
+        if (this.isClosed()) return;
+        this.handleDataFromProject(EXIT_MESSAGE);
+        this.ptyExited = true;
+        pty?.close();
+      });
+
+      pty.on("user-command", (payload) => {
+        switch (payload.event) {
+          case "open":
+            this.openPaths(payload.paths);
+            return;
+          case "close":
+            this.closePaths(payload.paths);
+            return;
+          default:
+            console.warn("unknown user-command:", payload);
+        }
+      });
+
+      pty.on("kick", (id) => {
+        if (this.kickId != id) {
+          // not us
+          this.close_request();
+        }
+      });
+
+      pty.on("update-cwd", this.setCwd);
+
+      pty.socket.on("disconnected", async () => {
+        setTimeout(this.connect, 1);
+      });
+
+      pty.socket.on("closed", async () => {
+        setTimeout(this.connect, 1);
+      });
+
+      pty.on("resize", ({ rows, cols }) => {
+        this.terminal.resize(cols, rows);
+      });
+
+      pty.on("leave", () => {
+        // a user left the session so resize terminal
+        this.measureSize();
+      });
+
+      const HISTFILE = historyFile(this.path);
+      const env0 = {
+        ...this.actions.get_term_env(),
+        // setting COCALC_CONTROL_DIR enables the open and close
+        // commands. The backend sets this variable to the actual
+        // spool directory.
+        COCALC_CONTROL_DIR: "set-by-backend",
+        COCALC_TERMINAL_FILENAME: this.termPath,
+        PROMPT_COMMAND: "history -a",
+        ...(HISTFILE ? { HISTFILE } : undefined),
+      };
+      try {
+        this.ignoreData++;
+        const options = {
+          id: this.termPath,
+          cwd: this.workingDir ?? dirname(this.path),
+          env0,
+          timeout: SPAWN_TIMEOUT,
+        };
+        const history = await pty.spawn(
+          this.command ?? "bash",
+          this.args,
+          options,
+        );
+        this.set_connection_status("connected");
+        this.terminal.reset();
+        if (history) {
+          this.handleDataFromProject(history);
+        }
         pty.socket.write(this.writeBuffer.join(""));
         this.writeBuffer.length = 0;
-      });
-      this.measureSize();
+        pty.on("ready", () => {
+          pty.socket.write(this.writeBuffer.join(""));
+          this.writeBuffer.length = 0;
+        });
+        this.measureSize();
+      } finally {
+        this.ignoreData--;
+      }
+      if (this.isClosed()) {
+        return;
+      }
+      if (this.path?.endsWith(".term")) {
+        touchPath(this.project_id, this.path); // no need to await
+      }
+    } catch (err) {
+      console.log("error spawning pty", err);
+      setTimeout(this.connect, 2000);
     } finally {
-      this.ignoreData--;
-    }
-    if (this.isClosed()) {
-      return;
-    }
-    if (this.path?.endsWith(".term")) {
-      touchPath(this.project_id, this.path); // no need to await
+      // NOTE: a tricky situation is that a user will start connect with one
+      // compute server id, it doesn't work, so they change it - thus they
+      // change the compute server id midway through connecting. So we always
+      // call this update after connecting, in case something changed.
+      if (this.compute_server_id != (await this.getComputeServerId())) {
+        // it changed during connect, so connect again with the right one.
+        setTimeout(this.connect, 1000);
+        this.connect();
+      }
     }
   });
 
@@ -508,10 +538,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   touch = async () => {
     if (this.isClosed()) return;
     if (Date.now() - this.last_active < 70000) {
-      if (this.project_actions.isTabClosed()) {
+      if (
+        this.project_actions.isTabClosed() ||
+        this.compute_server_id == null
+      ) {
         return;
       }
-      touch_project(this.project_id, await this.getComputeServerId());
+      touch_project(this.project_id, this.compute_server_id);
     }
   };
 
@@ -671,7 +704,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     let i = 0;
     let foreground = false;
-    const compute_server_id = await this.getComputeServerId();
+    const compute_server_id = this.compute_server_id ?? 0;
     for (const x of paths) {
       i += 1;
       if (i === paths.length) {
@@ -824,7 +857,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   measureSize = async (): Promise<void> => {
     if (this.isClosed() || !this.is_visible) return;
     const geom = this.fitAddon.proposeDimensions();
-    if (geom == null || this.pty == null) {
+    if (geom == null || this.pty == null || this.pty.socket.state == "closed") {
       return;
     }
     const { rows, cols } = geom;
@@ -835,7 +868,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     try {
       await this.pty.resize(geom);
     } catch (err) {
-      console.warn("WARNING: unable to resize pty", err);
+      console.log("WARNING: unable to resize pty", err);
       return;
     }
     if (this.isClosed()) return;
@@ -843,7 +876,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     try {
       await this.resizeToFitAllClients();
     } catch (err) {
-      console.warn("WARNING: unable to resize clients", err);
+      console.log("WARNING: unable to resize clients", err);
       return;
     }
   };
@@ -890,12 +923,20 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.scrollToBottom();
   };
 
-  getComputeServerId = async (): Promise<number> => {
+  // definitely gets the correct assigned compute server, even if it has to wait:
+  private getComputeServerId = async (): Promise<number> => {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     return (
       (await computeServerAssociations.getServerIdForPath(this.termPath)) ?? 0
     );
+  };
+
+  updateComputeServerId = async () => {
+    if ((await this.getComputeServerId()) != this.compute_server_id) {
+      // it changed
+      this.connect();
+    }
   };
 }
 

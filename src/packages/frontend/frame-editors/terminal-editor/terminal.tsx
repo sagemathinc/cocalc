@@ -66,6 +66,10 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   });
 
   useEffect(() => {
+    terminalRef.current?.updateComputeServerId();
+  }, [computeServerId]);
+
+  useEffect(() => {
     return delete_terminal; // clean up on unmount
   }, []);
 

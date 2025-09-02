@@ -52,6 +52,9 @@ export interface Options {
   cols?: number;
   handleFlowControl?: boolean;
   id?: string;
+
+  // ms until throw error if backend doesn't respond
+  timeout?: number;
 }
 
 export function terminalServer({
@@ -351,12 +354,15 @@ export class TerminalClient extends EventEmitter {
     args?: string[],
     options?: Options,
   ): Promise<string | undefined> => {
-    const { data } = await this.socket.request({
-      cmd: "spawn",
-      command,
-      args,
-      options,
-    });
+    const { data } = await this.socket.request(
+      {
+        cmd: "spawn",
+        command,
+        args,
+        options,
+      },
+      { timeout: options?.timeout },
+    );
     // console.log("spawned terminal with pid", data.pid);
     this.pid = data.pid;
     return data.history;

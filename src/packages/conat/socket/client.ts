@@ -220,7 +220,11 @@ export class ConatSocketClient extends ConatSocketBase {
   };
 
   request = async (data, options?) => {
-    await this.waitUntilReady(options?.timeout);
+    try {
+      await this.waitUntilReady(options?.timeout);
+    } catch {
+      throw Error("request timed out");
+    }
     const subject = `${this.subject}.server.${this.id}`;
     if (this.state == "closed") {
       throw Error("closed");
