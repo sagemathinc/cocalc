@@ -10,6 +10,12 @@ import {
 import { getLogger } from "@cocalc/conat/client";
 import { ThrottleString } from "@cocalc/util/throttle";
 import { delay } from "awaiting";
+import {
+  createPtyWritable,
+  writeToWritablePty,
+  type Writable,
+} from "./writable-pty";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const MAX_MSGS_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
@@ -95,17 +101,39 @@ export function terminalServer({
       subject: socket.subject,
     });
 
-    let pty: any = null;
     let sessionId: string | null = null;
+    let pty: any = null;
+    let wpty: Writable | null = null;
+    let buffer: string[] = [];
+    const setPty = (p) => {
+      pty = p;
+      wpty = p == null ? null : createPtyWritable(p);
+      buffer.length = 0;
+    };
     socket.on("data", (data) => {
-      pty?.write(data);
+      buffer.push(data);
+      processBuffer();
+    });
+
+    const processBuffer = reuseInFlight(async () => {
+      while (buffer.length > 0 && wpty != null) {
+        try {
+          const data = buffer.shift()!;
+          await writeToWritablePty(wpty, data);
+        } catch (err) {
+          logger.debug("server: writeToWritablePty", err);
+          return;
+        }
+        await delay(1);
+      }
     });
 
     const sendToClient = (data) => {
       try {
         socket.write(data);
       } catch (err) {
-        if (err.code != "EPIPE") { // epipe means socket is closed...
+        if (err.code != "EPIPE") {
+          // epipe means socket is closed...
           logger.debug("WARNING: error writing terminal data to socket", err);
         }
       }
@@ -149,7 +177,7 @@ export function terminalServer({
             delete sessions[sessionId];
             sessionId = null;
           }
-          pty = null;
+          setPty(null);
           return;
 
         case "env":
@@ -191,7 +219,7 @@ export function terminalServer({
             sessionId = id;
           }
           if (id && sessions[id] != null) {
-            pty = sessions[id];
+            setPty(sessions[id]);
           } else {
             if (preHook != null) {
               const opts = { command, args, options };
@@ -204,7 +232,7 @@ export function terminalServer({
                 ...options.env0,
               };
             }
-            pty = spawn(command, args, options);
+            setPty(spawn(command, args, options));
             if (id) {
               sessions[id] = pty;
               history[id] = "";
@@ -224,7 +252,7 @@ export function terminalServer({
           pty.on("data", throttle.write);
 
           pty.once("exit", async () => {
-            pty = null;
+            setPty(null);
             if (sessionId) {
               delete sessions[sessionId];
               sessionId = null;
