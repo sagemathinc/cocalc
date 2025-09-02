@@ -370,6 +370,10 @@ def build(args) -> None:
                 # clear dist/ dir
                 shutil.rmtree(dist, ignore_errors=True)
         package_path = os.path.join(CUR, path)
+        if not os.path.exists(package_path):
+            # e.g., in some cases we delete packages entirely to speed
+            # up the build
+            return
         if args.dev and '"build-dev"' in open(
                 os.path.join(CUR, path, 'package.json')).read():
             cmd("pnpm run build-dev", package_path)
