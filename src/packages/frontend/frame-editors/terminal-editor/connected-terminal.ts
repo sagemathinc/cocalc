@@ -36,6 +36,8 @@ import { dirname } from "path";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type TerminalClient } from "@cocalc/conat/project/terminal";
 import { asyncThrottle } from "@cocalc/util/async-utils";
+import { path_split } from "@cocalc/util/misc";
+import { join } from "path";
 
 declare const $: any;
 
@@ -111,7 +113,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     args?: string[],
     workingDir?: string,
   ) {
-    console.log("connected-terminal");
     this.actions = actions;
     this.account_store = redux.getStore("account");
     this.project_actions = redux.getProjectActions(actions.project_id);
@@ -164,7 +165,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         // potentially not cleaned up properly.  I read the code of webglAddon.dispose
         // and it doesn't do anything if the addon wasn't initialized.
         webglAddon.dispose = () => {};
-        console.log(`WebGL Terminal not available (using fallback). -- ${err}`);
+        console.warn(`WebGL Terminal not available (using fallback). -- ${err}`);
       }
     }
 
@@ -279,7 +280,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private ptyExited = false;
   connect = reuseInFlight(async () => {
-    console.log("connect");
     if (this.isClosed() || this.ptyExited) return;
 
     if (this.pty != null) {
@@ -307,6 +307,19 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       pty?.close();
     });
 
+    pty.on("user-command", (payload) => {
+      switch (payload.event) {
+        case "open":
+          this.openPaths(payload.paths);
+          return;
+        case "close":
+          this.closePaths(payload.paths);
+          return;
+        default:
+          console.warn("unknown user-command:", payload);
+      }
+    });
+
     pty.socket.on("disconnected", async () => {
       await delay(1);
       this.connect();
@@ -326,17 +339,29 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.measureSize();
     });
 
-    const env0 = this.actions.get_term_env();
+    const HISTFILE = historyFile(this.path);
+    const env0 = {
+      ...this.actions.get_term_env(),
+      // setting COCALC_CONTROL_DIR enables the open and close
+      // commands. The backend sets this variable to the actual
+      // spool directory.
+      COCALC_CONTROL_DIR: "set-by-backend",
+      COCALC_TERMINAL_FILENAME: this.termPath,
+      PROMPT_COMMAND: "history -a",
+      ...(HISTFILE ? { HISTFILE } : undefined),
+    };
     try {
       this.ignoreData++;
-      const history = await pty.spawn(this.command ?? "bash", this.args, {
+      const options = {
         id: this.termPath,
         cwd: this.workingDir ?? dirname(this.path),
-        env:
-          Object.keys(env0).length > 0
-            ? { ...(await pty.env()), ...env0 }
-            : undefined,
-      });
+        env0,
+      };
+      const history = await pty.spawn(
+        this.command ?? "bash",
+        this.args,
+        options,
+      );
       this.set_connection_status("connected");
       if (history) {
         this.handleDataFromProject(history);
@@ -576,7 +601,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.actions._tree_is_single_leaf() &&
       this.actions.path?.endsWith(".term")
     ) {
-      this._close_path(this.path);
+      this.closePath(this.path);
     } else {
       this.actions.close_frame(this.id);
     }
@@ -603,7 +628,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return false;
   };
 
-  openPaths = async (paths: Path[]) => {
+  private openPaths = async (paths: Path[]) => {
     if (!this.is_visible) {
       return;
     }
@@ -639,18 +664,18 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
-  _close_path = (path: string): void => {
+  private closePath = (path: string): void => {
     const project_actions = this.actions._get_project_actions();
     project_actions.close_tab(path);
   };
 
-  close_paths = (paths: Path[]): void => {
+  private closePaths = (paths: Path[]): void => {
     if (!this.is_visible) {
       return;
     }
     for (const x of paths) {
       if (x.file != null) {
-        this._close_path(x.file);
+        this.closePath(x.file);
       }
     }
   };
@@ -754,49 +779,53 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return this.terminal.options[option];
   }
 
-  measureSize = asyncThrottle(
-    async ({ kick }: { kick?: boolean } = {}): Promise<void> => {
-      if (this.isClosed()) return;
-      const geom = this.fitAddon.proposeDimensions();
-      if (geom == null || this.pty == null) {
-        return;
-      }
-      const { rows, cols } = geom;
-      try {
-        await this.pty.resize(geom);
-      } catch (err) {
-        console.log("WARNING: unable to resize pty", err);
-        return;
-      }
-      if (this.isClosed()) return;
-      this.terminal.resize(cols, rows);
-      if (!kick) {
-        try {
-          await this.resizeToFitAllClients(2000);
-        } catch (err) {
-          console.log("WARNING: unable to resize clients", err);
-          return;
-        }
-      }
-    },
-    2500,
-    { leading: true, trailing: true },
-  );
-
-  resizeToFitAllClients = async (wait = 2000) => {
-    const sizes = await this.pty?.sizes(wait);
-    if (sizes == null || sizes.length < 2) {
+  measureSize = async ({ kick }: { kick?: boolean } = {}): Promise<void> => {
+    if (this.isClosed() || !this.is_visible) return;
+    const geom = this.fitAddon.proposeDimensions();
+    if (geom == null || this.pty == null) {
       return;
     }
-    let { rows, cols } = sizes[0];
-    for (const size of sizes.slice(1)) {
-      rows = Math.min(size.rows, rows);
-      cols = Math.min(size.cols, cols);
+    const { rows, cols } = geom;
+    if (isNaN(rows) || isNaN(cols)) {
+      // e.g., when terminal is hidden
+      return;
     }
-    if (sizes[0].rows != rows || sizes[0].cols != cols) {
-      await this.pty?.resize({ rows, cols });
+    try {
+      await this.pty.resize(geom);
+    } catch (err) {
+      console.warn("WARNING: unable to resize pty", err);
+      return;
+    }
+    if (this.isClosed()) return;
+    this.terminal.resize(cols, rows);
+    if (!kick) {
+      try {
+        await this.resizeToFitAllClients();
+      } catch (err) {
+        console.warn("WARNING: unable to resize clients", err);
+        return;
+      }
     }
   };
+
+  resizeToFitAllClients = asyncThrottle(
+    async () => {
+      const sizes = await this.pty?.sizes(2000);
+      if (sizes == null || sizes.length < 2) {
+        return;
+      }
+      let { rows, cols } = sizes[0];
+      for (const size of sizes.slice(1)) {
+        rows = Math.min(size.rows, rows);
+        cols = Math.min(size.cols, cols);
+      }
+      if (sizes[0].rows != rows || sizes[0].cols != cols) {
+        await this.pty?.resize({ rows, cols });
+      }
+    },
+    3000,
+    { leading: true, trailing: true },
+  );
 
   copy = (): void => {
     const sel: string = this.terminal.getSelection();
@@ -853,4 +882,15 @@ function handleLink(_: MouseEvent, uri: string): void {
   const e = $(`<div><a href='${uri}'>x</a></div>`);
   e.process_smc_links();
   e.find("a").click();
+}
+
+function historyFile(path: string): string | undefined {
+  if (path.startsWith("/")) {
+    // only set histFile for paths in the home directory i.e.,
+    // relative to HOME. Absolute paths -- we just leave it alone.
+    // E.g., the miniterminal uses /tmp/... for its path.
+    return undefined;
+  }
+  const { head, tail } = path_split(path);
+  return join("$HOME", head, tail.endsWith(".term") ? tail : ".bash_history");
 }

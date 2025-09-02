@@ -1,8 +1,13 @@
-import { terminalServer } from "@cocalc/conat/project/terminal";
+import { terminalServer, type Options } from "@cocalc/conat/project/terminal";
 import { spawn } from "@lydell/node-pty";
 import { getIdentity } from "./connection";
 import { readlink, realpath } from "node:fs/promises";
 import { getLogger } from "@cocalc/project/logger";
+import { SpoolWatcher } from "@cocalc/backend/spool-watcher";
+import { data } from "@cocalc/backend/data";
+import { randomId } from "@cocalc/conat/names";
+import { join } from "path";
+
 const logger = getLogger("project:conat:terminal-server");
 
 export function init(opts) {
@@ -12,7 +17,38 @@ export function init(opts) {
     ...opts,
     spawn,
     cwd,
+    preHook,
+    postHook,
   });
+}
+
+async function preHook({ options }: { options: Options }) {
+  if (options.env0) {
+    for (const key in options.env0) {
+      options.env0[key] = options.env0[key].replace(
+        /\$HOME/g,
+        process.env.HOME ?? "",
+      );
+    }
+  }
+  if (options.env0?.COCALC_CONTROL_DIR != null) {
+    options.env0.COCALC_CONTROL_DIR = join(data, "terminal", randomId());
+  }
+  return options;
+}
+
+async function postHook({ options, pty }) {
+  const spoolDir = options?.env?.COCALC_CONTROL_DIR;
+  if (!spoolDir) {
+    return;
+  }
+  const messageSpool = new SpoolWatcher(spoolDir, async (payload) => {
+    pty.emit("broadcast", "user-command", payload);
+  });
+  pty.once("exit", () => {
+    messageSpool.close();
+  });
+  await messageSpool.start();
 }
 
 // get current working directory of a process, if possible

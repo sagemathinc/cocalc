@@ -38,6 +38,8 @@ function getSubject({
 export interface Options {
   cwd?: string;
   env?: { [key: string]: string };
+  // env0 is merged into existing environment, whereas env makes a new environment
+  env0?: { [key: string]: string };
   rows?: number;
   cols?: number;
   handleFlowControl?: boolean;
@@ -50,6 +52,8 @@ export function terminalServer({
   compute_server_id = 0,
   spawn,
   cwd,
+  preHook,
+  postHook,
 }: {
   client: ConatClient;
   project_id: string;
@@ -62,6 +66,17 @@ export function terminalServer({
   ) => Promise<{ pid: number }>;
   // get the current working directory of the process with given pid
   cwd?: (pid: number) => Promise<string | undefined>;
+  preHook?: (opts: {
+    command: string;
+    args?: string[];
+    options?: Options;
+  }) => Promise<void>;
+  postHook?: (opts: {
+    command: string;
+    args?: string[];
+    options?: Options;
+    pty;
+  }) => Promise<void>;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
@@ -123,107 +138,114 @@ export function terminalServer({
 
     socket.on("closed", removeListeners);
 
-    socket.on("request", async (mesg) => {
-      const { data } = mesg;
+    const handleRequest = async ({ data }) => {
       const { cmd } = data;
-      try {
-        switch (cmd) {
-          case "destroy":
-            pty?.destroy();
+      switch (cmd) {
+        case "destroy":
+          pty?.destroy();
+          if (sessionId) {
+            delete sessions[sessionId];
+            sessionId = null;
+          }
+          pty = null;
+          return;
+
+        case "env":
+          return process.env;
+
+        case "cwd":
+          const pid = pty?.pid;
+          return pid ? cwd?.(pid) : undefined;
+
+        case "broadcast":
+          pty.emit("broadcast", data.event, data.payload);
+          return;
+
+        case "sizes":
+          if (pty == null || !sessionId) {
+            return [];
+          }
+          sizes[sessionId] = [];
+          pty.emit("get-size");
+          await delay(data.wait ?? DEFAULT_SIZE_WAIT);
+          return sizes[sessionId];
+
+        case "resize":
+          const { rows, cols } = data;
+          if (pty != null) {
+            pty.resize(cols, rows);
+            pty.emit("broadcast", "resize", { rows, cols });
+          }
+          return;
+
+        case "history":
+          return history[sessionId ?? ""];
+
+        case "spawn":
+          removeListeners();
+          let { command, args, options = {} } = data;
+          const { id } = options ?? {};
+          if (id) {
+            sessionId = id;
+          }
+          if (id && sessions[id] != null) {
+            pty = sessions[id];
+          } else {
+            if (preHook != null) {
+              const opts = { command, args, options };
+              await preHook(opts);
+              ({ command, args, options } = opts);
+            }
+            if (options.env0 != null) {
+              options.env = {
+                ...(options.env ?? process.env),
+                ...options.env0,
+              };
+            }
+            pty = spawn(command, args, options);
+            if (id) {
+              sessions[id] = pty;
+              history[id] = "";
+              const maxLen = options?.maxHistoryLength ?? MAX_HISTORY_LENGTH;
+              pty.on("data", (data) => {
+                history[id] += data;
+                if (history[id].length > maxLen + 1000) {
+                  history[id] = history[id].slice(-maxLen);
+                }
+              });
+            }
+            await postHook?.({ command, args, options, pty });
+          }
+
+          const throttle = new ThrottleString(MAX_MSGS_PER_SECOND);
+          throttle.on("data", sendToClient);
+          pty.on("data", throttle.write);
+
+          pty.once("exit", async () => {
+            pty = null;
             if (sessionId) {
               delete sessions[sessionId];
               sessionId = null;
             }
-            pty = null;
-            mesg.respondSync(null);
-            return;
+            try {
+              await socket.request({ cmd: "exit" });
+            } catch {}
+          });
 
-          case "env":
-            mesg.respondSync(process.env);
-            return;
+          pty.on("get-size", getClientSize);
+          pty.on("broadcast", broadcast);
 
-          case "cwd":
-            const pid = pty?.pid;
-            mesg.respondSync(pid ? cwd?.(pid) : undefined);
-            return;
+          return { pid: pty.pid, history: history[id ?? ""] };
 
-          case "broadcast":
-            pty.emit("broadcast", data.event, data.payload);
-            mesg.respondSync(null);
-            return;
+        default:
+          throw Error(`unknown command '${cmd}'`);
+      }
+    };
 
-          case "sizes":
-            if (pty == null || !sessionId) {
-              mesg.respondSync([]);
-              return;
-            }
-            sizes[sessionId] = [];
-            pty.emit("get-size");
-            await delay(data.wait ?? DEFAULT_SIZE_WAIT);
-            mesg.respondSync(sizes[sessionId]);
-            return;
-
-          case "resize":
-            const { rows, cols } = data;
-            if (pty != null) {
-              pty.resize(cols, rows);
-              pty.emit("broadcast", "resize", { rows, cols });
-            }
-            mesg.respondSync(null);
-            return;
-
-          case "history":
-            mesg.respondSync(history[sessionId ?? ""]);
-            return;
-
-          case "spawn":
-            removeListeners();
-            const { command, args, options } = data;
-            const { id } = options ?? {};
-            if (id) {
-              sessionId = id;
-            }
-            if (id && sessions[id] != null) {
-              pty = sessions[id];
-            } else {
-              pty = spawn(command, args, options);
-              if (id) {
-                sessions[id] = pty;
-                history[id] = "";
-                const maxLen = options?.maxHistoryLength ?? MAX_HISTORY_LENGTH;
-                pty.on("data", (data) => {
-                  history[id] += data;
-                  if (history[id].length > maxLen + 1000) {
-                    history[id] = history[id].slice(-maxLen);
-                  }
-                });
-              }
-            }
-
-            const throttle = new ThrottleString(MAX_MSGS_PER_SECOND);
-            throttle.on("data", sendToClient);
-            pty.on("data", throttle.write);
-
-            pty.once("exit", async () => {
-              pty = null;
-              if (sessionId) {
-                delete sessions[sessionId];
-                sessionId = null;
-              }
-              try {
-                await socket.request({ cmd: "exit" });
-              } catch {}
-            });
-
-            pty.on("get-size", getClientSize);
-            pty.on("broadcast", broadcast);
-
-            mesg.respondSync({ pid: pty.pid, history: history[id ?? ""] });
-            return;
-
-          default:
-            throw Error(`unknown command '${cmd}'`);
-        }
+    socket.on("request", async (mesg) => {
+      try {
+        const resp = await handleRequest(mesg);
+        mesg.respondSync(resp ?? null);
       } catch (err) {
         logger.debug(err);
         mesg.respondSync(err);
@@ -255,27 +277,29 @@ export class TerminalClient extends EventEmitter {
     super();
     this.getSize = getSize;
     this.socket = client.socket.connect(subject);
-    this.socket.on("request", async (mesg) => {
-      const { data } = mesg;
+
+    const handleRequest = ({ data }) => {
+      switch (data.cmd) {
+        case "size":
+          return this.getSize?.();
+        case "broadcast":
+          this.emit(data.event, data.payload);
+          return;
+        case "exit":
+          this.emit("exit");
+          return;
+        default:
+          throw new Error(`unknown message type '${data.type}'`);
+      }
+    };
+
+    this.socket.on("request", (mesg) => {
       try {
-        switch (data.cmd) {
-          case "size":
-            mesg.respondSync(this.getSize?.() ?? null);
-            return;
-          case "broadcast":
-            this.emit(data.event, data.payload);
-            mesg.respondSync(null);
-            return;
-          case "exit":
-            this.emit("exit");
-            mesg.respondSync(null);
-            return;
-          default:
-            console.warn(`terminal: got unknown message type '${data.type}'`);
-            mesg.respondSync(new Error(`unknown message type '${data.type}'`));
-        }
+        const resp = handleRequest(mesg);
+        mesg.respondSync(resp ?? null);
       } catch (err) {
-        console.warn("error responding to jupyter request", err);
+        console.warn(err);
+        mesg.respondSync(err);
       }
     });
   }
