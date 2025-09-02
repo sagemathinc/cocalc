@@ -192,12 +192,36 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         return;
       }
       this.pty.socket.write(data);
+      this.reconnectIfNotRunning();
     });
 
     this.initKeyHandler();
 
     this.connect();
   }
+
+  // If the pty is configured and the socket is connected, but
+  // for some reason the actual process is dead, then connect
+  // again, which will start the process or reconnect to it.
+  private reconnectIfNotRunning = asyncThrottle(
+    async () => {
+      if (this.lastReceivedData >= Date.now() - 10000) {
+        // we received data from the pty in the last 10 seconds,
+        // so consider it as obviously running fine.
+        return;
+      }
+      if (this.pty?.socket.state != "ready") {
+        // not supposed to be running
+        return;
+      }
+      // make a call to the backend to check on the pty itself
+      if ((await this.pty.state()) != "running") {
+        this.connect();
+      }
+    },
+    5000,
+    { leading: false, trailing: true },
+  );
 
   isClosed = () => (this.state ?? "closed") === "closed";
 
@@ -406,7 +430,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
+  private lastReceivedData: number = 0;
   private handleDataFromProject = (data: any): void => {
+    this.lastReceivedData = Date.now();
     this.assert_not_closed();
     if (!data || typeof data != "string") {
       return;

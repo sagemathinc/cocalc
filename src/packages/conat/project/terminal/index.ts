@@ -17,6 +17,8 @@ import {
 } from "./writable-pty";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
+type State = "running" | "off";
+
 const MAX_MSGS_PER_SECOND = parseInt(
   process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
 );
@@ -186,6 +188,9 @@ export function terminalServer({
         case "cwd":
           const pid = pty?.pid;
           return pid ? cwd?.(pid) : undefined;
+
+        case "state":
+          return (pty?.pid ? "running" : "off") as State;
 
         case "broadcast":
           pty.emit("broadcast", data.event, data.payload);
@@ -373,6 +378,10 @@ export class TerminalClient extends EventEmitter {
     return (await this.socket.request({ cmd: "cwd" })).data;
   };
 
+  state = async (): Promise<State> => {
+    return (await this.socket.request({ cmd: "state" })).data;
+  };
+
   resize = async ({ rows, cols }: { rows: number; cols: number }) => {
     await this.socket.request({ cmd: "resize", rows, cols });
   };
@@ -381,7 +390,7 @@ export class TerminalClient extends EventEmitter {
     return (await this.socket.request({ cmd: "sizes", wait })).data;
   };
 
-  broadcast = async (event:string, payload?) => {
+  broadcast = async (event: string, payload?) => {
     await this.socket.request({ cmd: "broadcast", event, payload });
   };
 }

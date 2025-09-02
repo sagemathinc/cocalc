@@ -24,7 +24,8 @@ cd "$SRC"/packages
 rm -rf database hub next server file-server
 
 cd "$SRC"
-pnpm build --exclude=database,hub,next,server,file-server
+./workspaces.py install --exclude=database,hub,next,server,file-server
+./workspaces.py build --exclude=database,hub,next,server,file-server
 
 # Delete packages that were only needed for the build.
 # Deleting node_modules and installing is the recommended approach by pnpm.
