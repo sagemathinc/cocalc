@@ -725,14 +725,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   kick_other_users_out(): void {
-    // @ts-ignore
-    this.conn?.kick();
     this.measureSize({ kick: true });
   }
 
   kill = async () => {
+    this.pty?.destroy();
     this.terminal?.clear();
-    // TODO: this.conn_write({ cmd: "kill" });
+    await delay(1);
     await this.connect();
   };
 
