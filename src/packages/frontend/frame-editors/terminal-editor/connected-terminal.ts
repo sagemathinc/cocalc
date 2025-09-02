@@ -38,6 +38,7 @@ import { type TerminalClient } from "@cocalc/conat/project/terminal";
 import { asyncDebounce, asyncThrottle } from "@cocalc/util/async-utils";
 import { path_split } from "@cocalc/util/misc";
 import { join } from "path";
+import { randomId } from "@cocalc/conat/names";
 
 declare const $: any;
 
@@ -313,6 +314,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
           return;
         default:
           console.warn("unknown user-command:", payload);
+      }
+    });
+
+    pty.on("kick", (id) => {
+      if (this.kickId != id) {
+        // not us
+        this.close_request();
       }
     });
 
@@ -724,8 +732,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
+  private kickId: string = "";
   kick_other_users_out(): void {
-    this.measureSize({ kick: true });
+    this.kickId = randomId();
+    this.pty?.broadcast("kick", this.kickId);
   }
 
   kill = async () => {
@@ -785,7 +795,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return this.terminal.options[option];
   }
 
-  measureSize = async ({ kick }: { kick?: boolean } = {}): Promise<void> => {
+  measureSize = async (): Promise<void> => {
     if (this.isClosed() || !this.is_visible) return;
     const geom = this.fitAddon.proposeDimensions();
     if (geom == null || this.pty == null) {
@@ -804,13 +814,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     if (this.isClosed()) return;
     this.terminal.resize(cols, rows);
-    if (!kick) {
-      try {
-        await this.resizeToFitAllClients();
-      } catch (err) {
-        console.warn("WARNING: unable to resize clients", err);
-        return;
-      }
+    try {
+      await this.resizeToFitAllClients();
+    } catch (err) {
+      console.warn("WARNING: unable to resize clients", err);
+      return;
     }
   };
 

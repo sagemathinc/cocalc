@@ -381,7 +381,7 @@ export class TerminalClient extends EventEmitter {
     return (await this.socket.request({ cmd: "sizes", wait })).data;
   };
 
-  broadcast = async (event: Event, payload?) => {
+  broadcast = async (event:string, payload?) => {
     await this.socket.request({ cmd: "broadcast", event, payload });
   };
 }
