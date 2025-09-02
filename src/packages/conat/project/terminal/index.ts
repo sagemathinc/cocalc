@@ -105,7 +105,9 @@ export function terminalServer({
       try {
         socket.write(data);
       } catch (err) {
-        logger.debug("WARNING: error writing terminal data to socket", err);
+        if (err.code != "EPIPE") { // epipe means socket is closed...
+          logger.debug("WARNING: error writing terminal data to socket", err);
+        }
       }
     };
 
@@ -340,7 +342,7 @@ export class TerminalClient extends EventEmitter {
   };
 
   cwd = async () => {
-    return (await this.socket.request({ cmd: "pty" })).data;
+    return (await this.socket.request({ cmd: "cwd" })).data;
   };
 
   resize = async ({ rows, cols }: { rows: number; cols: number }) => {

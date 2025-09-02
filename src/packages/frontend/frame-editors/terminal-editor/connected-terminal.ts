@@ -6,14 +6,14 @@
 /*
 Wrapper object around xterm.js's Terminal, which adds
 extra support for being connected to:
-  - a backend project via NATS
+  - a backend server pty via a sonat socket, which can be on a 
+    project or compute server
   - react/redux
   - frame-editor (via actions)
 */
 
 import { callback, delay } from "awaiting";
 import { Map } from "immutable";
-import { debounce } from "lodash";
 import { Terminal as XTerminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -35,13 +35,12 @@ import { termPath } from "@cocalc/util/terminal/names";
 import { dirname } from "path";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type TerminalClient } from "@cocalc/conat/project/terminal";
-import { asyncThrottle } from "@cocalc/util/async-utils";
+import { asyncDebounce, asyncThrottle } from "@cocalc/util/async-utils";
 import { path_split } from "@cocalc/util/misc";
 import { join } from "path";
 
 declare const $: any;
 
-// NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
@@ -104,6 +103,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private ignoreData: number = 0;
   private writeBuffer: string[] = [];
 
+  private title?: string;
+
   constructor(
     actions: Actions<T>,
     number: number,
@@ -165,7 +166,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         // potentially not cleaned up properly.  I read the code of webglAddon.dispose
         // and it doesn't do anything if the addon wasn't initialized.
         webglAddon.dispose = () => {};
-        console.warn(`WebGL Terminal not available (using fallback). -- ${err}`);
+        console.warn(
+          `WebGL Terminal not available (using fallback). -- ${err}`,
+        );
       }
     }
 
@@ -193,13 +196,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.initKeyHandler();
 
     this.connect();
-
-    // The docs https://xtermjs.org/docs/api/terminal/classes/terminal/#resize say
-    // "It’s best practice to debounce calls to resize, this will help ensure that
-    //  the pty can respond to the resize event before another one occurs."
-    // We do NOT debounce, because it strangely breaks everything,
-    // as you can see by just resizing the window.
-    // this.terminal_resize = debounce(this.terminal_resize, 2000);
   }
 
   isClosed = () => (this.state ?? "closed") === "closed";
@@ -320,6 +316,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
     });
 
+    pty.on("update-cwd", this.setCwd);
+
     pty.socket.on("disconnected", async () => {
       await delay(1);
       this.connect();
@@ -414,7 +412,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   private activity = () => {
-    //this.lastReceive = Date.now();
     this.project_actions.flag_file_activity(this.path);
   };
 
@@ -459,9 +456,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   init_title = (): void => {
     this.terminal.onTitleChange((title) => {
-      if (title != null) {
+      this.title = title;
+      if (title) {
         this.actions.set_title(this.id, title);
-        this.update_cwd();
+      } else {
+        this.updateCwd(); // just in case reverting back to cwd
       }
     });
   };
@@ -699,7 +698,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.render_buffer = "";
   };
 
-  update_cwd = debounce(
+  private updateCwd = asyncDebounce(
     async () => {
       if (this.isClosed() || this.pty == null) return;
       let cwd;
@@ -709,13 +708,21 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         return;
       }
       if (this.isClosed()) return;
-      if (cwd != null) {
-        this.actions.set_terminal_cwd(this.id, cwd);
-      }
+      this.setCwd(cwd);
     },
-    1000,
+    3000,
     { leading: true, trailing: true },
   );
+
+  private setCwd = (cwd?: string) => {
+    if (this.title) {
+      this.actions.set_title(this.id, this.title);
+    } else if (cwd?.startsWith("/")) {
+      this.actions.set_title(this.id, cwd);
+    } else {
+      this.actions.set_title(this.id, join("~", cwd ?? ""));
+    }
+  };
 
   kick_other_users_out(): void {
     // @ts-ignore

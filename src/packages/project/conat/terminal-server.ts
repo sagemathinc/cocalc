@@ -7,6 +7,7 @@ import { SpoolWatcher } from "@cocalc/backend/spool-watcher";
 import { data } from "@cocalc/backend/data";
 import { randomId } from "@cocalc/conat/names";
 import { join } from "path";
+import { debounce } from "lodash";
 
 const logger = getLogger("project:conat:terminal-server");
 
@@ -49,6 +50,26 @@ async function postHook({ options, pty }) {
     messageSpool.close();
   });
   await messageSpool.start();
+
+  if (process.platform == "linux" && process.env.HOME != null) {
+    let cur: string | undefined = "";
+    pty.on(
+      "data",
+      debounce(
+        async () => {
+          try {
+            const c = await cwd(pty.pid);
+            if (c != cur) {
+              cur = c;
+              pty.emit("broadcast", "update-cwd", cur);
+            }
+          } catch {}
+        },
+        250,
+        { leading: true, trailing: true },
+      ),
+    );
+  }
 }
 
 // get current working directory of a process, if possible
