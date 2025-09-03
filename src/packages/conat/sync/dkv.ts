@@ -218,7 +218,7 @@ export class DKV<T = any> extends EventEmitter {
     }
     this.kv.on("change", this.handleRemoteChange);
     await this.kv.init();
-    // allow_msg_ttl is used for deleting tombstones.
+    // allow_msg_ttl is used for deleting tombstones so MUST be enabled for dkv.
     await this.kv.config({ allow_msg_ttl: true });
     this.emit("connected");
   };
