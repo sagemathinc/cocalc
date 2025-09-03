@@ -100,7 +100,7 @@ export class IdleClient {
   };
 
   private idle_check = (): void => {
-    if (!this.idle_time) return;
+    if (!this.idle_time || lite) return;
     const remaining = this.idle_time - Date.now();
     if (remaining > 0) {
       // console.log(`Standby in ${Math.round(remaining / 1000)}s if not active`);
@@ -173,7 +173,7 @@ export class IdleClient {
   };
 
   show_notification = (): void => {
-    if (this.notification_is_visible) return;
+    if (this.notification_is_visible || lite) return;
     const idle = $("#cocalc-idle-notification");
     if (idle.length === 0) {
       const content = this.notification_html();

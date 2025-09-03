@@ -3,7 +3,6 @@ import { FALLBACK_UUID } from "@cocalc/util/misc";
 import { init as initSyncDoc } from "./sync";
 
 export let lite = false;
-
 export let project_id: string = "";
 export let account_id: string = "";
 export let compute_server_id: number = 0;
