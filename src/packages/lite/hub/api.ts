@@ -62,8 +62,12 @@ async function handleMessage(mesg) {
   }
 }
 
+async function getNames(account_ids: string[]) {
+  return { [account_ids[0]]: { first_name: "CoCalc", last_name: "User" } };
+}
+
 export const hubApi: HubApi = {
-  system: {},
+  system: { getNames },
   projects: {},
   db: { userQuery },
   purchases: {},

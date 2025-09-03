@@ -1340,12 +1340,6 @@ export class SyncDoc extends EventEmitter {
     const firstLoad = this.versions().length == 0;
     const mtime = stats.mtime.valueOf();
     if (firstLoad || mtime > lastChanged) {
-      console.log(
-        "loadFromDiskIfNewer -- newer by ",
-        mtime - lastChanged,
-        "ms so loading",
-        { mtime, lastChanged },
-      );
       dbg(
         `disk file changed more recently than edits, so loading ${mtime} > ${lastChanged}; firstLoad=${firstLoad}`,
       );

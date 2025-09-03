@@ -19,6 +19,7 @@ import { Actions } from "@cocalc/util/redux/Actions";
 import { show_announce_end, show_announce_start } from "./dates";
 import { AccountStore } from "./store";
 import { AccountState } from "./types";
+import { lite } from "@cocalc/frontend/lite";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -246,6 +247,9 @@ export class AccountActions extends Actions<AccountState> {
   };
 
   addTag = async (tag: string) => {
+    if (lite) {
+      return;
+    }
     const store = this.redux.getStore("account");
     if (!store) return;
     const tags = store.get("tags");
