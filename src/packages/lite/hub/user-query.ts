@@ -6,10 +6,11 @@ You have to have a server running (say on port 30000).  Then:
 
   unset COCALC_PROJECT_ID; PORT=30000 DEBUG_CONSOLE=yes DEBUG=cocalc:*  node
 
-  Welcome to Node.js v20.18.1.
-  Type ".help" for more information.
+  Welcome to [...]
 
   > a = require('@cocalc/backend/conat'); b = require('@cocalc/lite/hub/user-query'); await b.init(a.conat())
+  
+  > kv = await a.conat().sync.dkv({name:'database'})
 
   > await b.default({query:{accounts:[{email_address:null}]}})
   userQuery {
@@ -177,8 +178,12 @@ function userSetQuery(query: object, options: object[]) {
     // in obj and return
     for (const key in obj) {
       // todo: probably need to use schema instead
-      row[key] =
-        typeof row[key] == "object" ? { ...row[key], ...obj[key] } : obj[key];
+      
+      // here it is important that arrays get replaced, whereas objects really
+      // are maps so merge:
+      row[key] = misc.is_object(row[key])
+        ? { ...row[key], ...obj[key] }
+        : obj[key];
     }
     kv.set(table, rows);
     return;
