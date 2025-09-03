@@ -179,6 +179,8 @@ const logger = getLogger("sync-doc");
 logger.debug("init");
 
 export class SyncDoc extends EventEmitter {
+  static events = new EventEmitter();
+
   public readonly opts: SyncOpts;
   public readonly compute_server_id: number;
   public readonly project_id: string; // project_id that contains the doc
@@ -265,8 +267,8 @@ export class SyncDoc extends EventEmitter {
 
   constructor(opts: SyncOpts) {
     super();
+    console.log("constructor of SyncDoc");
     this.opts = opts;
-    // TODO
     this.compute_server_id = opts.compute_server_id ?? 0;
 
     if (opts.string_id === undefined) {
@@ -353,6 +355,8 @@ export class SyncDoc extends EventEmitter {
     this.setMaxListeners(100);
 
     this.init();
+    console.log(`SyncDoc.events.emit("new", this);`);
+    SyncDoc.events.emit("new", this);
   }
 
   /*
@@ -2944,6 +2948,37 @@ export class SyncDoc extends EventEmitter {
           threshold - elapsed,
         ),
       );
+    }
+  };
+
+  // Synchronize the state of this with an completely different doc.
+  // This is not efficient yet, but there are some steps to make it
+  // efficient, and also obviously we need to take into account
+  // snapshots properly.  This is a quick proof of concept to see
+  // how this feels.
+  // I guess this is literally "the merge operation of a CRDT"...
+  sync = (doc: SyncDoc) => {
+    const X = this.patches_table.get();
+    if (X == null) {
+      throw Error("patches_table not initialized");
+    }
+    const Y = doc.patches_table.get();
+    if (Y == null) {
+      throw Error("doc patches_table not initialized");
+    }
+    for (const key in X) {
+      // @ts-ignore
+      const key1 = doc.patches_table.getKey(X[key]);
+      if (Y[key1] === undefined) {
+        doc.patches_table.set(X[key], "none");
+      }
+    }
+    for (const key in Y) {
+      // @ts-ignore
+      const key1 = this.patches_table.getKey(Y[key]);
+      if (X[key1] === undefined) {
+        this.patches_table.set(Y[key], "none");
+      }
     }
   };
 }

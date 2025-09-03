@@ -30,6 +30,7 @@ import { init as initBugCounter } from "@cocalc/project/bug-counter";
 import { init as initChangefeeds } from "./hub/changefeeds";
 import { init as initHubApi } from "./hub/api";
 import { account_id } from "@cocalc/backend/data";
+import { initComputeServerProxy } from "./hub/proxy";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -126,6 +127,12 @@ export async function main(): Promise<number> {
       address,
       compute_server_id,
       path,
+    });
+
+    initComputeServerProxy({
+      httpServer,
+      apiKey,
+      address,
     });
   }
 

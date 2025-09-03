@@ -47,6 +47,7 @@ import {
 } from "@cocalc/frontend/misc/remember-me";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import { terminalClient } from "@cocalc/conat/project/terminal";
+import { lite } from "@cocalc/frontend/lite";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -67,9 +68,11 @@ export class ConatClient extends EventEmitter {
   private _conatClient: null | ReturnType<typeof connectToConat>;
   public numConnectionAttempts = 0;
   private automaticallyReconnect;
+  public address: string;
 
-  constructor(client: WebappClient) {
+  constructor(client: WebappClient, { address }: { address?: string } = {}) {
     super();
+    this.address = address ?? location.origin + appBasePath;
     this.setMaxListeners(100);
     this.client = client;
     this.hub = initHubApi(this.callHub);
@@ -92,9 +95,8 @@ export class ConatClient extends EventEmitter {
   conat = () => {
     if (this._conatClient == null) {
       this.startStatsReporter();
-      const address = location.origin + appBasePath;
       this._conatClient = connectToConat({
-        address,
+        address: this.address,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
         // it is necessary to manually managed reconnects due to a bugs
         // in socketio that has stumped their devs
@@ -178,6 +180,10 @@ export class ConatClient extends EventEmitter {
     });
     initTime();
     const client = this.conat();
+    client.inboxPrefixHook = (info) => {
+      return info?.user ? inboxPrefix(info?.user) : undefined;
+    };
+
     client.on("info", (info) => {
       if (client.info?.user?.account_id) {
         console.log("Connected as ", JSON.stringify(client.info?.user));
@@ -195,6 +201,9 @@ export class ConatClient extends EventEmitter {
           // and we're out of here:
           location.reload();
         }
+      } else if (lite && client.info?.user?.project_id) {
+        // we *also* sign in as the PROJECT in lite mode.
+        console.log("lite: created project client");
       } else {
         console.log("Sign in failed -- ", client.info);
         this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
@@ -259,9 +268,7 @@ export class ConatClient extends EventEmitter {
         await delay(750);
         await waitForOnline();
         attempts += 1;
-        console.log(
-          `Connecting to ${this._conatClient?.options.address}: attempts ${attempts}`,
-        );
+        console.log(`Connecting to ${this.address}: attempts ${attempts}`);
         this._conatClient?.connect();
         return false;
       },
@@ -475,3 +482,9 @@ async function waitForOnline(): Promise<void> {
     window.addEventListener("online", handler);
   });
 }
+
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+export function connect(address: string) {
+  return new ConatClient(webapp_client, { address });
+}
+

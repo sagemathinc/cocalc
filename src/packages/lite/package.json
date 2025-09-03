@@ -5,7 +5,10 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["lite", "cocalc"],
+  "keywords": [
+    "lite",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules sea/cocalc cocalc-lite.tar.xz sea/cocalc-lite.tar.xz sea/sea-prep.blob",
@@ -35,6 +38,7 @@
     "@types/lodash": "^4.17.20",
     "express": "^4.21.2",
     "formidable": "^3.5.4",
+    "http-proxy-3": "^1.20.10",
     "lodash": "^4.17.21"
   },
   "repository": {

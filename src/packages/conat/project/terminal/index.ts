@@ -57,6 +57,10 @@ export interface Options {
   timeout?: number;
 }
 
+const sessions: { [id: string]: any } = {};
+const history: { [id: string]: string } = {};
+const sizes: { [id: string]: { rows: number; cols: number }[] } = {};
+
 export function terminalServer({
   client,
   project_id,
@@ -95,10 +99,6 @@ export function terminalServer({
     keepAliveTimeout: 5000,
   });
   logger.debug("server: listening on ", { subject });
-
-  const sessions: { [id: string]: any } = {};
-  const history: { [id: string]: string } = {};
-  const sizes: { [id: string]: { rows: number; cols: number }[] } = {};
 
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
