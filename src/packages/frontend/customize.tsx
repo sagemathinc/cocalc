@@ -194,6 +194,7 @@ export interface CustomizeState {
   account_id?: string;
   project_id?: string;
   compute_server_id?: number;
+  remote_sync?: boolean;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

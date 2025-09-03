@@ -111,6 +111,7 @@ const INTERNAL_METHODS = new Set([
   "rusticRepo",
   "host",
   "readFileLock",
+  "_lockFile",
 ]);
 
 export class SandboxedFilesystem {
@@ -360,13 +361,26 @@ export class SandboxedFilesystem {
       throw new ConatError(`path is locked - ${p}`, { code: "LOCK" });
     }
     if (lock) {
-      this.readFileLock.add(p);
-      setTimeout(() => {
-        this.readFileLock.delete(p);
-      }, lock);
+      this._lockFile(p, lock);
     }
 
     return await readFile(p, encoding);
+  };
+
+  lockFile = async (path: string, lock?: number) => {
+    const p = await this.safeAbsPath(path);
+    this._lockFile(p, lock);
+  };
+
+  private _lockFile = (path: string, lock?: number) => {
+    if (lock) {
+      this.readFileLock.add(path);
+      setTimeout(() => {
+        this.readFileLock.delete(path);
+      }, lock);
+    } else {
+      this.readFileLock.delete(path);
+    }
   };
 
   readdir = async (path: string, options?) => {
@@ -488,9 +502,13 @@ export class SandboxedFilesystem {
     return iter;
   };
 
-  writeFile = async (path: string, data: string | Buffer) => {
+  writeFile = async (path: string, data: string | Buffer, lock?: number) => {
     this.assertWritable(path);
-    return await writeFile(await this.safeAbsPath(path), data);
+    const p = await this.safeAbsPath(path);
+    if (lock) {
+      this._lockFile(p, lock);
+    }
+    return await writeFile(p, data);
   };
 }
 

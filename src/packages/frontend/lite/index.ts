@@ -1,6 +1,6 @@
 import { type CustomizeState } from "@cocalc/frontend/customize";
 import { FALLBACK_UUID } from "@cocalc/util/misc";
-import "./sync";
+import { init as initSyncDoc } from "./sync";
 
 export let lite = false;
 
@@ -21,4 +21,8 @@ export function init(redux, configuration: CustomizeState) {
     open_projects: [project_id],
   });
   redux.getActions("page").set_active_tab(project_id);
+
+  if (configuration.remote_sync) {
+    initSyncDoc();
+  }
 }

@@ -135,9 +135,13 @@ export interface Filesystem {
     // If lock is given then any other client that tries to read from this
     // for lock ms after the lock is created will get an exception with code='LOCK'.
     // This is an extension to node's fs.readFile that is very useful when
-    // initializing realtime sync clients.
+    // initializing realtime sync clients.  It makes it so we can have several
+    // clients all try to read at the same time, and exactly one wins.
     lock?: number,
   ) => Promise<string | Buffer>;
+  // lockFile is exactly like readFile with the lock parameter, but
+  // it lets you lock (or unlock) a file without actually reading it.
+  lockFile: (path: string, lock?: number) => Promise<void>;
   readdir(path: string, options?): Promise<string[]>;
   readdir(path: string, options: { withFileTypes?: false }): Promise<string[]>;
   readdir(path: string, options: { withFileTypes: true }): Promise<IDirent[]>;
@@ -155,7 +159,12 @@ export interface Filesystem {
     atime: number | string | Date,
     mtime: number | string | Date,
   ) => Promise<void>;
-  writeFile: (path: string, data: string | Buffer) => Promise<void>;
+  // for lock see docs for readFile above
+  writeFile: (
+    path: string,
+    data: string | Buffer,
+    lock?: number,
+  ) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
 
@@ -401,6 +410,10 @@ export async function fsServer({
     async readFile(path: string, encoding?, lock?) {
       return await (await fs(this.subject)).readFile(path, encoding, lock);
     },
+    async lockFile(path: string, lock?: number) {
+      return await (await fs(this.subject)).lockFile(path, lock);
+    },
+
     async readdir(path: string, options?) {
       const files = await (await fs(this.subject)).readdir(path, options);
       if (!options?.withFileTypes) {
@@ -468,8 +481,8 @@ export async function fsServer({
     ) {
       await (await fs(this.subject)).utimes(path, atime, mtime);
     },
-    async writeFile(path: string, data: string | Buffer) {
-      await (await fs(this.subject)).writeFile(path, data);
+    async writeFile(path: string, data: string | Buffer, lock?: number) {
+      await (await fs(this.subject)).writeFile(path, data, lock);
     },
     // @ts-ignore
     async watch() {

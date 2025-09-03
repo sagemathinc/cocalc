@@ -1243,7 +1243,8 @@ export class Actions<
       this.is_public ||
       !this.store.get("is_loaded") ||
       this._syncstring == null ||
-      this._syncstring.get_state() != "ready"
+      this._syncstring.get_state() != "ready" ||
+      this.isClosed()
     ) {
       return;
     }

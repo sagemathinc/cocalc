@@ -39,8 +39,9 @@ const READ_LOCK_TIMEOUT = 3000;
 // all clients ignore file changes from when a save starts until this
 // amount of time later, so they avoid loading a file just because it was
 // saved by themself or another client.  This is especially important for
-// large files that can take a long time to save.
-export const IGNORE_ON_SAVE_INTERVAL = 5000;
+// large files that can take a long time to save, but also to avoid
+// multiple clients loading a file at once and causing duplication.
+export const IGNORE_ON_SAVE_INTERVAL = 3000;
 
 // reading file when it changes on disk is deboucned this much, e.g.,
 // if the file keeps changing you won't see those changes until it
@@ -179,6 +180,7 @@ logger.debug("init");
 
 export class SyncDoc extends EventEmitter {
   static events = new EventEmitter();
+  static lite = false;
 
   public readonly opts: SyncOpts;
   public readonly compute_server_id: number;
@@ -1220,7 +1222,9 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-    await this.loadFromDiskIfNewer();
+    if (!SyncDoc.lite) {
+      await this.loadFromDiskIfNewer();
+    }
 
     this.emit("init");
     this.assert_not_closed("initAll -- after waiting until fully ready");
@@ -1314,7 +1318,9 @@ export class SyncDoc extends EventEmitter {
     await Promise.all(v);
   };
 
-  private loadFromDiskIfNewer = async (): Promise<boolean> => {
+  loadFromDiskIfNewer = async ({
+    lastChanged,
+  }: { lastChanged?: number } = {}): Promise<boolean> => {
     const dbg = this.dbg("loadFromDiskIfNewer");
     let stats;
     try {
@@ -1330,11 +1336,18 @@ export class SyncDoc extends EventEmitter {
       }
     }
     dbg("path exists");
-    const lastChanged = this.last_changed();
+    lastChanged = lastChanged ?? this.last_changed();
     const firstLoad = this.versions().length == 0;
-    if (firstLoad || stats.mtime.valueOf() > lastChanged) {
+    const mtime = stats.mtime.valueOf();
+    if (firstLoad || mtime > lastChanged) {
+      console.log(
+        "loadFromDiskIfNewer -- newer by ",
+        mtime - lastChanged,
+        "ms so loading",
+        { mtime, lastChanged },
+      );
       dbg(
-        `disk file changed more recently than edits, so loading ${stats.ctime} > ${lastChanged}; firstLoad=${firstLoad}`,
+        `disk file changed more recently than edits, so loading ${mtime} > ${lastChanged}; firstLoad=${firstLoad}`,
       );
       try {
         await this.readFile();
@@ -1475,6 +1488,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private init_evaluator = async () => {
+    if (this.isClosed()) return;
     const dbg = this.dbg("init_evaluator");
     const ext = filename_extension(this.path);
     if (ext !== "sagews") {
@@ -2502,18 +2516,15 @@ export class SyncDoc extends EventEmitter {
     // include {ignore:true} with events for this long,
     // so no clients waste resources loading in response to us saving
     // to disk.
-    try {
-      await this.fileWatcher?.ignore(
-        this.opts.ignoreOnSaveInterval ?? IGNORE_ON_SAVE_INTERVAL,
-      );
-    } catch {
-      // not a big problem if we can't ignore (e.g., this happens potentially
-      // after deleting the file or if file doesn't exist)
-    }
     if (this.isClosed()) return;
     this.last_save_to_disk_time = new Date();
+    this.emit("before-save-to-disk");
     try {
-      await this.fs.writeFile(this.path, value);
+      // also lock so no other client can read the file
+      // (which is a waste and confusing)
+      const lock = this.opts.ignoreOnSaveInterval ?? IGNORE_ON_SAVE_INTERVAL;
+      await this.fs.writeFile(this.path, value, lock);
+      if (this.isClosed()) return;
       this.lastReadFile = Date.now();
     } catch (err) {
       if (err.code == "EACCES") {
@@ -2524,8 +2535,10 @@ export class SyncDoc extends EventEmitter {
       }
       throw err;
     }
+    if (this.isClosed()) return;
     const lastChanged = this.last_changed();
     await this.fs.utimes(this.path, lastChanged / 1000, lastChanged / 1000);
+    if (this.isClosed()) return;
     this.valueOnDisk = value;
     this.emit("save-to-disk");
   };
@@ -2956,7 +2969,8 @@ export class SyncDoc extends EventEmitter {
   // snapshots properly.  This is a quick proof of concept to see
   // how this feels.
   // I guess this is literally "the merge operation of a CRDT"...
-  sync = (doc: SyncDoc) => {
+
+  push = (doc: SyncDoc) => {
     const X = this.patches_table.get();
     if (X == null) {
       throw Error("patches_table not initialized");
@@ -2969,16 +2983,14 @@ export class SyncDoc extends EventEmitter {
       // @ts-ignore
       const key1 = doc.patches_table.getKey(X[key]);
       if (Y[key1] === undefined) {
+        console.log("push", JSON.stringify(X[key]));
         doc.patches_table.set(X[key], "none");
       }
     }
-    for (const key in Y) {
-      // @ts-ignore
-      const key1 = this.patches_table.getKey(Y[key]);
-      if (X[key1] === undefined) {
-        this.patches_table.set(Y[key], "none");
-      }
-    }
+  };
+
+  pull = (doc: SyncDoc) => {
+    return doc.push(this);
   };
 }
 

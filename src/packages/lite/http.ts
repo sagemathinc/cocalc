@@ -76,6 +76,7 @@ export async function initApp({ app, conatClient }) {
         project_id,
         account_id,
         compute_server_id,
+        remote_sync: !!process.env.COMPUTE_SERVER,
       },
     });
   });
