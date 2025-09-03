@@ -1,5 +1,6 @@
 import { type CustomizeState } from "@cocalc/frontend/customize";
 import { FALLBACK_UUID } from "@cocalc/util/misc";
+import "./sync";
 
 export let lite = false;
 

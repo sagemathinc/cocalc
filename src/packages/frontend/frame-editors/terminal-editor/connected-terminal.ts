@@ -39,6 +39,7 @@ import { asyncDebounce, asyncThrottle } from "@cocalc/util/async-utils";
 import { path_split } from "@cocalc/util/misc";
 import { join } from "path";
 import { randomId } from "@cocalc/conat/names";
+import { lite } from "@cocalc/frontend/lite";
 
 declare const $: any;
 
@@ -321,7 +322,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.handleDataFromProject(
         CONNECTING_MESSAGE.replace(
           "{TARGET}",
-          this.compute_server_id ? " TO COMPUTE SERVER" : " TO HOME BASE",
+          lite
+            ? ""
+            : this.compute_server_id
+              ? " TO COMPUTE SERVER"
+              : " TO HOME BASE",
         ),
       );
 

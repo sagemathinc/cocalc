@@ -44,16 +44,5 @@ export async function init({
 
   await startProjectServices({ project_id, compute_server_id, client });
 
-  initSyncDoc({ client });
-
   return client;
-}
-
-import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
-
-function initSyncDoc({ client }) {
-  console.log("initSyncDoc -- listening", client != null);
-  SyncDoc.events.on("new", (doc) => {
-    console.log("created a new sync doc", doc.path);
-  });
 }

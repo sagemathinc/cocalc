@@ -11,7 +11,7 @@ export interface SyncDBOpts0 extends SyncOpts0 {
   primary_keys: string[];
   string_cols?: string[];
   // format = what format to store the underlying file using: json or msgpack
-  // The default is json unless otherwise specified.
+  // The default is json unless otherwise specified.  (I never used msgpack at all)
   format?: "json" | "msgpack";
 }
 

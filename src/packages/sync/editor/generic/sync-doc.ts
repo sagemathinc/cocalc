@@ -109,8 +109,10 @@ export type DataServer = "project" | "database";
 export interface SyncOpts0 {
   project_id: string;
   path: string;
-  compute_server_id?: number;
   client: Client;
+  fs: Filesystem;
+
+  compute_server_id?: number;
   patch_interval?: number;
 
   // file_use_interval defaults to 60000.
@@ -133,9 +135,6 @@ export interface SyncOpts0 {
 
   // which data/changefeed server to use
   data_server?: DataServer;
-
-  // filesystem interface
-  fs: Filesystem;
 
   // if true, do not implicitly save on commit.  This is very
   // useful for unit testing to easily simulate offline state.
@@ -209,7 +208,7 @@ export class SyncDoc extends EventEmitter {
 
   // doctype: object describing document constructor
   // (used by project to open file)
-  private doctype: DocType;
+  public doctype: DocType;
 
   private state: State = "init";
 
@@ -267,7 +266,6 @@ export class SyncDoc extends EventEmitter {
 
   constructor(opts: SyncOpts) {
     super();
-    console.log("constructor of SyncDoc");
     this.opts = opts;
     this.compute_server_id = opts.compute_server_id ?? 0;
 
@@ -355,7 +353,8 @@ export class SyncDoc extends EventEmitter {
     this.setMaxListeners(100);
 
     this.init();
-    console.log(`SyncDoc.events.emit("new", this);`);
+    // This makes it possible for other parts of the app to react to
+    // creation of new synchronized docs.
     SyncDoc.events.emit("new", this);
   }
 

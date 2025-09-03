@@ -482,9 +482,3 @@ async function waitForOnline(): Promise<void> {
     window.addEventListener("online", handler);
   });
 }
-
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-export function connect(address: string) {
-  return new ConatClient(webapp_client, { address });
-}
-
