@@ -1578,8 +1578,11 @@ export class JupyterActions extends JupyterActions0 {
           // code is the default type
           continue;
         }
+        const last = cell.start && cell.end ? cell.end - cell.start : null;
         if (!cell?.input?.trim()) {
-          // nothing to do
+          // nothing to do but clear output
+          this._set({ id: cell.id, last, output: null });
+
           continue;
         }
         if (!kernel) {
@@ -1593,7 +1596,6 @@ export class JupyterActions extends JupyterActions0 {
             cell.output[n] = null;
           }
           // time last evaluation took
-          const last = cell.start && cell.end ? cell.end - cell.start : null;
           this._set({ id: cell.id, last, output: cell.output }, false);
         }
         cells.push(cell);
