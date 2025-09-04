@@ -56,6 +56,10 @@ export interface Patch {
   parents?: number[];
 
   version?: number;
+
+  // if true, this patch puts the document into a state where it
+  // just read the file from disk.
+  file?: boolean;
 }
 
 export interface Document {

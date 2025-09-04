@@ -1578,7 +1578,7 @@ export class Actions<
       // editor to immediately react when we commit. This is particularly
       // important in the whiteboard where we draw/move objects, and show
       // a preview, then the real thing only after the change event from commit.
-      this._syncstring.commit(true);
+      this._syncstring.commit({ emitChangeImmediately: true });
     }
   }
 

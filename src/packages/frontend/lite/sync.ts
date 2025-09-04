@@ -93,7 +93,7 @@ export async function connectToRemote(doc: SyncDoc) {
         if (doc.get_state() != "ready" || doc2.get_state() != "ready") {
           return;
         }
-        doc.push(doc2);
+        doc.push(doc2, { source: "lite" });
       },
       CHANGE_DEBOUNCE,
       { leading: false, trailing: true },
@@ -106,7 +106,7 @@ export async function connectToRemote(doc: SyncDoc) {
         if (doc.get_state() != "ready" || doc2.get_state() != "ready") {
           return;
         }
-        doc.pull(doc2);
+        doc.pull(doc2, { source: "base" });
       },
       CHANGE_DEBOUNCE,
       { leading: false, trailing: true },

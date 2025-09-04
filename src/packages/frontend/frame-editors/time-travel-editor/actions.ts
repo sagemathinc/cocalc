@@ -335,7 +335,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     } else {
       syncdoc.revert(version);
     }
-    await syncdoc.commit(true);
+    await syncdoc.commit({ emitChangeImmediately: true });
     if (this.docpath.endsWith(".ipynb")) {
       const a = this.redux.getEditorActions(
         this.project_id,

@@ -1790,7 +1790,7 @@ export class SyncDoc extends EventEmitter {
     return time;
   };
 
-  private commit_patch = (time: number, patch: XPatch): void => {
+  private commit_patch = (time: number, patch: XPatch, file = false): void => {
     this.timeOfLastCommit = time;
     this.assert_not_closed("commit_patch");
     assertDefined(this.patch_list);
@@ -1808,6 +1808,9 @@ export class SyncDoc extends EventEmitter {
       parents: this.patch_list.getHeads(),
       version: this.patch_list.lastVersion() + 1,
     };
+    if (file) {
+      obj.file = true;
+    }
 
     this.my_patches[time.valueOf()] = obj;
 
@@ -2029,6 +2032,7 @@ export class SyncDoc extends EventEmitter {
       is_snapshot,
       parents,
       version: x.get("version"),
+      file: x.get("file"),
     };
     if (is_snapshot) {
       obj.snapshot = x.get("snapshot"); // this is a string
@@ -2327,13 +2331,13 @@ export class SyncDoc extends EventEmitter {
         }
         dbg("file no longer exists -- setting to blank");
         this.from_str("");
-        this.commit();
+        this.commit({ file: true });
       } else {
         throw err;
       }
     }
     // save new version to stream, which we just set via from_str
-    this.commit(true);
+    this.commit({ emitChangeImmediately: true, file: true });
     await this.save();
     this.emit("after-change");
   });
@@ -2445,7 +2449,13 @@ export class SyncDoc extends EventEmitter {
   // were changes and false otherwise.   This works
   // fine offline, and does not wait until anything
   // is saved to the network, etc.
-  commit = (emitChangeImmediately = false): boolean => {
+  commit = ({
+    emitChangeImmediately = false,
+    file = false,
+  }: {
+    emitChangeImmediately?: boolean;
+    file?: boolean;
+  } = {}): boolean => {
     if (
       this.last == null ||
       this.doc == null ||
@@ -2471,7 +2481,7 @@ export class SyncDoc extends EventEmitter {
     this.last = this.doc;
     // ... and save that to patches table
     const time = this.next_patch_time();
-    this.commit_patch(time, patch);
+    this.commit_patch(time, patch, file);
     if (!this.noAutosave) {
       this.save(); // so eventually also gets sync'd out to other clients
     }
@@ -2550,7 +2560,6 @@ export class SyncDoc extends EventEmitter {
       // properly.
       return;
     }
-
     this.commit();
     await this.writeFile();
     this.update_has_unsaved_changes();
@@ -2964,7 +2973,7 @@ export class SyncDoc extends EventEmitter {
   // how this feels.
   // I guess this is literally "the merge operation of a CRDT"...
 
-  push = (doc: SyncDoc) => {
+  push = (doc: SyncDoc, { source }: { source?: string | number } = {}) => {
     const X = this.patches_table.get();
     if (X == null) {
       throw Error("patches_table not initialized");
@@ -2977,14 +2986,18 @@ export class SyncDoc extends EventEmitter {
       // @ts-ignore
       const key1 = doc.patches_table.getKey(X[key]);
       if (Y[key1] === undefined) {
-        console.log("push", JSON.stringify(X[key]));
-        doc.patches_table.set(X[key], "none");
+        // console.log("push", JSON.stringify(X[key]));
+        let obj = X[key];
+        if (source != null) {
+          obj = { source, ...X[key] };
+        }
+        doc.patches_table.set(obj, "none");
       }
     }
   };
 
-  pull = (doc: SyncDoc) => {
-    return doc.push(this);
+  pull = (doc: SyncDoc, opts?) => {
+    return doc.push(this, opts);
   };
 }
 
