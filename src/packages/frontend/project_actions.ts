@@ -1567,6 +1567,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Sets the active file_sort to next_column_name
   set_sorted_file_column(column_name): void {
+    console.log("DEPRECATED");
     let is_descending;
     const store = this.get_store();
     if (store == undefined) {

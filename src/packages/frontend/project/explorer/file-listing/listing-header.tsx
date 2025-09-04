@@ -4,13 +4,11 @@
  */
 
 import React from "react";
-import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, Gap, VisibleMDLG } from "@cocalc/frontend/components";
 import { Col, Row } from "antd";
 
-// TODO: Flatten active_file_sort for easy PureComponent use
 interface Props {
-  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
+  active_file_sort: { column_name: string; is_descending: boolean };
   sort_by: (heading: string) => void;
 }
 
@@ -45,14 +43,10 @@ export function ListingHeader({ active_file_sort, sort_by }: Props) {
         >
           {display_name}
           <Gap />
-          {active_file_sort.get("column_name") === column_name ? (
+          {active_file_sort.column_name === column_name ? (
             <Icon
               style={inner_icon_style}
-              name={
-                active_file_sort.get("is_descending")
-                  ? "caret-up"
-                  : "caret-down"
-              }
+              name={active_file_sort.is_descending ? "caret-up" : "caret-down"}
             />
           ) : undefined}
         </a>

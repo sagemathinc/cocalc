@@ -12,7 +12,7 @@ import * as immutable from "immutable";
 import { useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { TypedMap, useTypedRedux, redux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
@@ -25,7 +25,7 @@ import { type DirectoryListingEntry } from "@cocalc/frontend/project/explorer/ty
 
 interface Props {
   actions: ProjectActions;
-  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
+  active_file_sort: { column_name: string; is_descending: boolean };
   listing: DirectoryListingEntry[];
   file_search: string;
   checked_files: immutable.Set<string>;
@@ -36,10 +36,12 @@ interface Props {
   isRunning?: boolean; // true if this project is running
   stale?: boolean;
   publicFiles: Set<string>;
+  sort_by: (column_name:string) => void;
 }
 
 export function FileListing({
   actions,
+  active_file_sort,
   listing,
   checked_files,
   current_path,
@@ -49,8 +51,8 @@ export function FileListing({
   file_search = "",
   stale,
   publicFiles,
+  sort_by,
 }: Props) {
-  const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
   const selected_file_index =
     useTypedRedux({ project_id }, "selected_file_index") ?? 0;
@@ -179,10 +181,7 @@ export function FileListing({
           flexDirection: "column",
         }}
       >
-        <ListingHeader
-          active_file_sort={active_file_sort}
-          sort_by={actions.set_sorted_file_column}
-        />
+        <ListingHeader active_file_sort={active_file_sort} sort_by={sort_by} />
         {listing.length > 0 ? renderRows() : render_no_files()}
       </div>
     </>

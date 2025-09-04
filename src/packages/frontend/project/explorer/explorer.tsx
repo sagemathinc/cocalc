@@ -54,6 +54,7 @@ import {
 } from "@cocalc/frontend/project_store";
 import { Icon } from "@cocalc/frontend/components";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
+import { getSort, setSort } from "./config";
 
 const FLEX_ROW_STYLE = {
   display: "flex",
@@ -73,9 +74,9 @@ const ERROR_STYLE: CSSProperties = {
 
 function sortDesc(active_file_sort?): {
   sortField: SortField;
-  sortDirection: "asc" | "desc";
+  sortDirection: "desc" | "asc";
 } {
-  const { column_name, is_descending } = active_file_sort?.toJS() ?? {
+  const { column_name, is_descending } = active_file_sort ?? {
     column_name: "name",
     is_descending: false,
   };
@@ -134,7 +135,12 @@ export function Explorer() {
   const images = useTypedRedux("compute_images", "images");
   const mask = useTypedRedux("account", "other_settings")?.get("mask_files");
 
-  const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
+  const active_file_sort = getSort({
+    project_id,
+    path: current_path,
+    compute_server_id,
+  });
+
   const fs = useFs({ project_id, compute_server_id });
   let {
     refresh,
@@ -594,6 +600,14 @@ export function Explorer() {
             ) : (
               <FileListing
                 active_file_sort={active_file_sort}
+                sort_by={(column_name: string) =>
+                  setSort({
+                    column_name,
+                    project_id,
+                    path: current_path,
+                    compute_server_id,
+                  })
+                }
                 listing={listing}
                 file_search={file_search}
                 checked_files={checked_files}
