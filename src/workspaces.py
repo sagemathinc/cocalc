@@ -390,6 +390,24 @@ def build(args) -> None:
         thread_map(f, v, 1)
 
 
+def tsc(args) -> None:
+    v = packages(args)
+    CUR = os.path.abspath('.')
+
+    def f(path: str) -> None:
+        if (path.endswith('packages/') or path.endswith('/next')):
+            return
+        package_path = os.path.join(CUR, path)
+        if not os.path.exists(os.path.join(package_path, 'tsconfig.json')):
+            return
+        cmd("pnpm exec tsc", package_path)
+
+    if args.parallel:
+        thread_map(f, v)
+    else:
+        thread_map(f, v, 1)
+
+
 def clean(args) -> None:
     v = packages(args)
 
@@ -550,6 +568,11 @@ def main() -> None:
         help="only build enough for development (saves time and space)")
     packages_arg(subparser)
     subparser.set_defaults(func=build)
+
+    subparser = subparsers.add_parser(
+        'tsc', help='run typescript once on all packages')
+    packages_arg(subparser)
+    subparser.set_defaults(func=tsc)
 
     subparser = subparsers.add_parser(
         'clean', help='delete dist and node_modules folders')
