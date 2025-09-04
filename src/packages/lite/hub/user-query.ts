@@ -25,7 +25,10 @@ You have to have a server running (say on port 30000).  Then:
       }
     ]
   }
-
+  
+The implementation below is quite dumb, mainly since it writes the entire
+table every time a row is added or edited.  It should be enough for small
+testing, but needs to be redone, obviously!
 */
 
 import { account_id } from "@cocalc/backend/data";
@@ -34,9 +37,10 @@ import * as misc from "@cocalc/util/misc";
 import type { DKV } from "@cocalc/conat/sync/dkv";
 import { cloneDeep, isEqual } from "lodash";
 import { client_db, SCHEMA } from "@cocalc/util/schema";
-//import getLogger from "@cocalc/backend/logger";
+import { EventEmitter } from "events";
 
-//const logger = getLogger("lite:hub:user-query");
+// import getLogger from "@cocalc/backend/logger";
+// const logger = getLogger("lite:hub:user-query");
 
 interface Option {
   set?: boolean;
@@ -137,20 +141,21 @@ export async function init(client) {
 function userGetQuery(
   query: object,
   _options: object[],
-  _changes: string | undefined,
-  _cb?: Function, // only used when changes set, and then only used for updates
+  changes: string | undefined,
+  cb?: Function, // only used when changes set, and then only used for updates
 ) {
   const table = Object.keys(query)[0];
   const isMulti = misc.is_array(query[table]);
-  const rows = kv.get(table) ?? [];
+  const dbTable = getTable(query);
+  const rows = kv.get(dbTable) ?? [];
 
   // find all matches
 
   let matches;
   if (isMulti) {
-    matches = search(table, rows, query[table][0], false);
+    matches = search(dbTable, rows, query[table][0], false);
   } else {
-    matches = search(table, rows, query[table], true);
+    matches = search(dbTable, rows, query[table], true);
   }
   const fields = Object.keys(isMulti ? query[table][0] : query[table]);
   const v: any[] = [];
@@ -161,10 +166,29 @@ function userGetQuery(
     }
     v.push(y);
   }
-  setDefaults(table, v, fields);
+  setDefaults(dbTable, v, fields);
+
+  if (changes && cb != null) {
+    serveChangefeed({ query, changes, cb });
+  }
 
   return { [table]: isMulti ? v : v[0] };
 }
+
+function getTable(query): string {
+  let table = Object.keys(query)[0];
+  if (!table) {
+    throw Error("invalid query");
+  }
+  const s = SCHEMA[table];
+  const virtual = s?.virtual;
+  if (typeof virtual == "string") {
+    return virtual;
+  }
+  return table;
+}
+
+const db = new EventEmitter();
 
 function userSetQuery(query: object, options: object[]) {
   if (misc.is_array(query)) {
@@ -175,8 +199,9 @@ function userSetQuery(query: object, options: object[]) {
   }
   const table = Object.keys(query)[0];
   const obj = query[table];
-  const rows = cloneDeep(kv.get(table) ?? []);
-  const row = search(table, rows, obj, true)[0];
+  const dbTable = getTable(query);
+  const rows = cloneDeep(kv.get(dbTable) ?? []);
+  const row = search(dbTable, rows, obj, true)[0];
   if (row != null) {
     // found a match -- we set that one with changed values
     // in obj and return
@@ -189,11 +214,13 @@ function userSetQuery(query: object, options: object[]) {
         ? { ...row[key], ...obj[key] }
         : obj[key];
     }
-    kv.set(table, rows);
+    kv.set(dbTable, rows);
+    db.emit(dbTable, row, "update");
     return;
   }
   // no matches, so insert new row
   rows.push(obj);
+  db.emit(dbTable, row, "insert");
   kv.set(table, rows);
 }
 
@@ -267,4 +294,23 @@ function setDefaults(table, obj: object[], fields: string[]) {
   }
 }
 
-export function cancelQuery(_id: string) {}
+const listeners: {
+  [id: string]: { event: string; listener: (...args: any[]) => void };
+} = {};
+
+function serveChangefeed({ query, changes, cb }) {
+  const dbTable = getTable(query);
+  const listener = (row) => cb(undefined, row);
+  listeners[changes] = { event: dbTable, listener };
+  db.on(dbTable, listener);
+}
+
+export function cancelQuery(id: string) {
+  const x = listeners[id];
+  if (x == null) {
+    return;
+  }
+  const { event, listener } = x;
+  db.removeListener(event, listener);
+  delete listeners[id];
+}

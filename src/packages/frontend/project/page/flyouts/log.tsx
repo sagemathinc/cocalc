@@ -8,7 +8,6 @@ import immutable from "immutable";
 import { debounce } from "lodash";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -486,7 +485,9 @@ export function LogFlyout({
   }
 
   function renderShowAll() {
-    if (project_log_all != null) return null;
+    if (project_log_all != null) {
+      return <div style={{ height: "1px" }} />;
+    }
     return (
       <div style={{ flex: "1 1 auto", borderTop: FIX_BORDER }}>
         <Button

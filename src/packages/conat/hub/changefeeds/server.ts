@@ -145,7 +145,7 @@ export function changefeedServer({
           err,
         );
         try {
-          socket.write({ error: `${err}` });
+          socket.write(err);
         } catch {}
         socket.close();
       }
