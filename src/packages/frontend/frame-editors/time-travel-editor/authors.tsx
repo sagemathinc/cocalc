@@ -111,7 +111,7 @@ export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
   };
 
   const renderAuthor = (account_id: string) => {
-    if (userMap != null && userMap.has(account_id)) {
+    if (userMap?.has(account_id)) {
       return renderUser(account_id);
     } else if (account_id == actions.project_id) {
       return renderProject();

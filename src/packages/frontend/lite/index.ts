@@ -1,5 +1,8 @@
 import { type CustomizeState } from "@cocalc/frontend/customize";
-import { FALLBACK_UUID } from "@cocalc/util/misc";
+import {
+  FALLBACK_PROJECT_UUID,
+  FALLBACK_ACCOUNT_UUID,
+} from "@cocalc/util/misc";
 import { init as initSyncDoc } from "./sync";
 
 export let lite = false;
@@ -11,8 +14,8 @@ export function init(redux, configuration: CustomizeState) {
   console.log("Initializing CoCalc Lite!");
   lite = true;
   ({
-    account_id = FALLBACK_UUID,
-    project_id = FALLBACK_UUID,
+    account_id = FALLBACK_ACCOUNT_UUID,
+    project_id = FALLBACK_PROJECT_UUID,
     compute_server_id = 0,
   } = configuration);
   redux.getActions("account").setState({ is_logged_in: true, account_id });

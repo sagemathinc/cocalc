@@ -30,6 +30,7 @@ import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
+import { FALLBACK_ACCOUNT_UUID } from "@cocalc/util/misc";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -184,7 +185,7 @@ export const rusticRepo: string =
   process.env.RUSTIC_REPO ?? join(data, "rustic");
 
 export const account_id: string =
-  process.env.COCALC_ACCOUNT_ID ?? "00000000-0000-4000-8000-000000000000";
+  process.env.COCALC_ACCOUNT_ID ?? FALLBACK_ACCOUNT_UUID;
 
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory

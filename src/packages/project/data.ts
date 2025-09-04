@@ -9,7 +9,7 @@ Paths to temporary files used by the project.
 
 import { join } from "path";
 import { data } from "@cocalc/backend/data";
-import { is_valid_uuid_string, FALLBACK_UUID } from "@cocalc/util/misc";
+import { is_valid_uuid_string, FALLBACK_PROJECT_UUID } from "@cocalc/util/misc";
 import { pidFilename } from "@cocalc/util/project-info";
 
 export const infoJson = join(data, "info.json");
@@ -46,7 +46,7 @@ function getIDs() {
   }
   if (!project_id) {
     // fallback generic project_id
-    project_id = FALLBACK_UUID;
+    project_id = FALLBACK_PROJECT_UUID;
   }
   // Throw in some consistency checks:
   if (!is_valid_uuid_string(project_id)) {

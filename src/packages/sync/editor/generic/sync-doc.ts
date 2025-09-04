@@ -818,8 +818,15 @@ export class SyncDoc extends EventEmitter {
 
   // account_id of the user who made the edit at
   // the given point in time.
-  account_id = (time: number): string => {
+  account_id = (time: number): string | undefined => {
     this.assert_is_ready("account_id");
+    try {
+      if (this.patch_list?.patch(time)?.file) {
+        return this.project_id;
+      }
+    } catch {
+      return;
+    }
     return this.users[this.user_id(time)];
   };
 
@@ -2455,6 +2462,8 @@ export class SyncDoc extends EventEmitter {
     file = false,
   }: {
     emitChangeImmediately?: boolean;
+    // mark this as a commit obtained by loading the file from disk,
+    // which can be used as input to the merge conflict resolution.
     file?: boolean;
   } = {}): boolean => {
     if (

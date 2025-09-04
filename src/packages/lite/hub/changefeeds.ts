@@ -27,7 +27,7 @@ import {
 import userQuery, { cancelQuery } from "./user-query";
 
 let server: ConatSocketServer | null = null;
-export function init({ client }) {
+export function init({ client }) { 
   server = changefeedServer({
     client,
     userQuery,

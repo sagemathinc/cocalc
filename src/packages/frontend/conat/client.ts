@@ -69,10 +69,15 @@ export class ConatClient extends EventEmitter {
   public numConnectionAttempts = 0;
   private automaticallyReconnect;
   public address: string;
+  private remote: boolean;
 
-  constructor(client: WebappClient, { address }: { address?: string } = {}) {
+  constructor(
+    client: WebappClient,
+    { address, remote }: { address?: string; remote?: boolean } = {},
+  ) {
     super();
     this.address = address ?? location.origin + appBasePath;
+    this.remote = !!remote;
     this.setMaxListeners(100);
     this.client = client;
     this.hub = initHubApi(this.callHub);
@@ -192,15 +197,15 @@ export class ConatClient extends EventEmitter {
           hub: info.id ?? "",
         });
         const cookie = Cookies.get(ACCOUNT_ID_COOKIE);
-        if (cookie && cookie != client.info.user.account_id) {
+        if (!this.remote && cookie && cookie != client.info.user.account_id) {
           // make sure account_id cookie is set to the actual account we're
           // signed in as, then refresh since some things are going to be
           // broken otherwise. To test this use dev tools and just change the account_id
           // cookies value to something random.
           Cookies.set(ACCOUNT_ID_COOKIE, client.info.user.account_id);
           // and we're out of here:
-          console.log("WILL RELOAD IN 3 SECONDS...");
-          setTimeout(() => location.reload(), 3000);
+          console.log("WILL RELOAD IN 1 SECOND...");
+          setTimeout(() => location.reload(), 1000);
         }
       } else if (lite && client.info?.user?.project_id) {
         // we *also* sign in as the PROJECT in lite mode.

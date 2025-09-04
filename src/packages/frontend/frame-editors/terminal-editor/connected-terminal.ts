@@ -437,6 +437,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       console.log("error spawning pty", err);
       setTimeout(this.connect, 2000);
     } finally {
+      if (this.isClosed()) {
+        return;
+      }
       // NOTE: a tricky situation is that a user will start connect with one
       // compute server id, it doesn't work, so they change it - thus they
       // change the compute server id midway through connecting. So we always
@@ -938,7 +941,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   updateComputeServerId = async () => {
-    if ((await this.getComputeServerId()) != this.compute_server_id) {
+    if (
+      !this.isClosed() &&
+      (await this.getComputeServerId()) != this.compute_server_id
+    ) {
       // it changed
       this.connect();
     }

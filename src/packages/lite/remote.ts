@@ -7,8 +7,8 @@ import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("lite:remote");
 
 export const hasRemote = !!process.env.COMPUTE_SERVER;
+export let project_id: string = "";
 let client: Client | null = null;
-let project_id: string = "";
 
 export async function init({ httpServer, path }) {
   if (!hasRemote) {

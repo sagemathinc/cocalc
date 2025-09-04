@@ -43,7 +43,7 @@ export function remoteClient() {
     return remote;
   }
   const address = location.origin + join(appBasePath + "/conat-remote");
-  remote = new ConatClient(webapp_client, { address });
+  remote = new ConatClient(webapp_client, { address, remote: true });
   return remote!;
 }
 

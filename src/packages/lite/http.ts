@@ -12,7 +12,10 @@ import { join } from "path";
 import initBlobUpload from "./hub/blobs/upload";
 import initBlobDownload from "./hub/blobs/download";
 import { account_id } from "@cocalc/backend/data";
-import { FALLBACK_UUID } from "@cocalc/util/misc";
+import {
+  FALLBACK_PROJECT_UUID,
+  FALLBACK_ACCOUNT_UUID,
+} from "@cocalc/util/misc";
 
 const logger = getLogger("lite:static");
 
@@ -44,10 +47,10 @@ export async function initHttpServer(): Promise<{
   console.log("*".repeat(60) + "\n");
   console.log(`CoCalc Lite Server:  http://localhost:${port}`);
   const info: any = {};
-  if (project_id != FALLBACK_UUID) {
+  if (project_id != FALLBACK_PROJECT_UUID) {
     info.project_id = project_id;
   }
-  if (account_id != FALLBACK_UUID) {
+  if (account_id != FALLBACK_ACCOUNT_UUID) {
     info.account_id = account_id;
   }
   if (compute_server_id) {
