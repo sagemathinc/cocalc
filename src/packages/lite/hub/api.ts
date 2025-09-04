@@ -7,6 +7,7 @@ import { type HubApi, transformArgs } from "@cocalc/conat/hub/api";
 import { conat } from "@cocalc/backend/conat";
 import userQuery, { init as initUserQuery } from "./user-query";
 import { account_id as ACCOUNT_ID } from "@cocalc/backend/data";
+import { callRemoteHub, hasRemote } from "../remote";
 
 const logger = getLogger("lite:hub:api");
 
@@ -63,7 +64,20 @@ async function handleMessage(mesg) {
 }
 
 async function getNames(account_ids: string[]) {
-  return { [account_ids[0]]: { first_name: "CoCalc", last_name: "User" } };
+  if (hasRemote) {
+    const names = await callRemoteHub({
+      name: "system.getNames",
+      args: [account_ids],
+    });
+    if (account_ids.includes(ACCOUNT_ID)) {
+      // TODO when we define local config or mapping to upstream account (?).
+      names[ACCOUNT_ID] = { first_name: "CoCalc", last_name: "User" };
+    }
+    return names;
+  } else {
+    // this is all we know
+    return { [ACCOUNT_ID]: { first_name: "CoCalc", last_name: "User" } };
+  }
 }
 
 export const hubApi: HubApi = {

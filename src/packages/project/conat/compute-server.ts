@@ -21,7 +21,7 @@ export async function init({
   compute_server_id: number;
   address: string;
   path?: string;
-}) {
+}): Promise<{ client; project_id }> {
   logger.debug("computeServer: ", { apiKey, compute_server_id, address });
   const client = connectToConat({ apiKey, address });
   if (client.info == null) {
@@ -44,5 +44,5 @@ export async function init({
 
   await startProjectServices({ project_id, compute_server_id, client });
 
-  return client;
+  return { client, project_id };
 }

@@ -12,7 +12,6 @@ make it:
 */
 
 import startProjectServices from "@cocalc/project/conat";
-import { init as initComputeServer } from "@cocalc/project/conat/compute-server";
 import { cleanup } from "@cocalc/project/project-setup";
 import {
   init as createConatServer,
@@ -30,8 +29,7 @@ import { init as initBugCounter } from "@cocalc/project/bug-counter";
 import { init as initChangefeeds } from "./hub/changefeeds";
 import { init as initHubApi } from "./hub/api";
 import { account_id } from "@cocalc/backend/data";
-import { initComputeServerProxy } from "./hub/proxy";
-
+import { init as initRemote } from "./remote";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("lite:main");
@@ -86,55 +84,21 @@ export async function main(): Promise<number> {
   logger.debug("start changefeed server");
   initChangefeeds();
 
+  const path = process.cwd();
+
+  logger.debug("start remote connection (if enabled)");
+  await initRemote({ httpServer, path });
+
   logger.debug("start hub api");
   initHubApi();
 
   logger.debug("start fs service");
-  const path = process.cwd();
   localPathFileserver({
     client: conatClient,
     path,
     project_id,
     unsafeMode: true,
   });
-
-  if (process.env.COMPUTE_SERVER) {
-    const url = new URL(process.env.COMPUTE_SERVER);
-
-    const apiKey = url.searchParams.get("apiKey");
-    const address = url.origin + (url.pathname.length > 1 ? url.pathname : "");
-    const compute_server_id = parseInt(url.searchParams.get("id") ?? "0");
-    logger.debug("start compute server --> ", {
-      address,
-      compute_server_id,
-      path,
-    });
-    if (!address) {
-      throw Error("API_HOST must be set");
-    }
-    if (!apiKey) {
-      throw Error("API_KEY must be set");
-    }
-    if (!compute_server_id) {
-      throw Error("COMPUTE_SERVER_ID must be set");
-    }
-
-    console.log(
-      `Compute Server: --> ${address}, compute_server_id=${compute_server_id}`,
-    );
-    await initComputeServer({
-      apiKey,
-      address,
-      compute_server_id,
-      path,
-    });
-
-    initComputeServerProxy({
-      httpServer,
-      apiKey,
-      address,
-    });
-  }
 
   process.once("exit", () => {
     conatServer?.close();
