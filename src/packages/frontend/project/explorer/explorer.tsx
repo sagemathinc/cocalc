@@ -93,7 +93,7 @@ function sortDesc(active_file_sort?): {
 }
 
 export function Explorer() {
-  const { actions, project_id } = useProjectContext();
+  const { actions, project_id, compute_server_id } = useProjectContext();
 
   const newFileRef = useRef<any>(null);
   const searchAndTerminalBar = useRef<any>(null);
@@ -107,7 +107,6 @@ export function Explorer() {
     "available_features",
   )?.toJS();
   const checked_files = useTypedRedux({ project_id }, "checked_files");
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const configuration = useTypedRedux({ project_id }, "configuration");
   const current_path = useTypedRedux({ project_id }, "current_path");
   const error = useTypedRedux({ project_id }, "error");

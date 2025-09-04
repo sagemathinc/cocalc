@@ -116,6 +116,7 @@ import {
   DEFAULT_SNAPSHOT_COUNTS,
   DEFAULT_BACKUP_COUNTS,
 } from "@cocalc/util/consts/snapshots";
+import { getSearch } from "@cocalc/frontend/project/explorer/config";
 
 const { defaults, required } = misc;
 
@@ -2929,71 +2930,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     await webapp_client.async_query({ query });
   };
 
-  /*
-   * Actions for Project Search
-   */
-
-  toggle_search_checkbox_subdirectories = () => {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const subdirectories = !store.get("subdirectories");
-    this.setState({ subdirectories });
-    redux
-      .getActions("account")
-      ?.set_other_settings("find_subdirectories", subdirectories);
-    this.search();
-  };
-
-  toggle_search_checkbox_case_sensitive = () => {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const case_sensitive = !store.get("case_sensitive");
-    this.setState({ case_sensitive });
-    redux
-      .getActions("account")
-      ?.set_other_settings("find_case_sensitive", case_sensitive);
-    this.search();
-  };
-
-  toggle_search_checkbox_hidden_files() {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const hidden_files = !store.get("hidden_files");
-    this.setState({ hidden_files });
-    redux
-      .getActions("account")
-      ?.set_other_settings("find_hidden_files", hidden_files);
-    this.search();
-  }
-
-  toggle_search_checkbox_git_grep() {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const git_grep = !store.get("git_grep");
-    this.setState({ git_grep });
-    redux.getActions("account")?.set_other_settings("find_git_grep", git_grep);
-    this.search();
-  }
-
-  toggle_search_checkbox_regexp() {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const regexp = !store.get("regexp");
-    this.setState({ regexp });
-    redux.getActions("account")?.set_other_settings("regexp", regexp);
-    this.search();
-  }
-
   set_file_listing_scroll(scroll_top) {
     this.setState({ file_listing_scroll_top: scroll_top });
   }
@@ -3516,19 +3452,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       this.setState(x);
     };
+    const path = store.get("current_path");
+    const options = getSearch({
+      project_id: this.project_id,
+      compute_server_id: this.get_store()?.get("compute_server_id"),
+      path,
+    });
     try {
       await search({
         setState,
         fs: this.fs(),
         query: store.get("user_input").trim(),
-        path: store.get("current_path"),
-        options: {
-          case_sensitive: store.get("case_sensitive"),
-          git_grep: store.get("git_grep"),
-          subdirectories: store.get("subdirectories"),
-          hidden_files: store.get("hidden_files"),
-          regexp: store.get("regexp"),
-        },
+        path,
+        options,
       });
     } catch (err) {
       setState({ search_error: `${err}` });

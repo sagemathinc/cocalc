@@ -30,12 +30,28 @@ function key({ project_id, compute_server_id = 0, path = "" }: Location) {
   return `${project_id}-${compute_server_id}-${path}`;
 }
 
-export function get(location: Location) {
+// if field is given, goes up the path searching for something with field set
+export function get(location: Location, field?: string) {
   if (kv == null) {
     init();
     return undefined;
   }
-  return kv.get(key(location));
+  const value = kv.get(key(location));
+  if (field && !value?.[field] && location.path) {
+    let path = location.path;
+    while (true) {
+      const newPath = dirname(path);
+      if (newPath.length >= path.length) {
+        return undefined;
+      }
+      path = newPath;
+      const value2 = get({ ...location, path });
+      if (value2?.[field]) {
+        return value2;
+      }
+    }
+  }
+  return value;
 }
 
 export async function set(
@@ -59,6 +75,34 @@ export async function set(
   kv.set(k, { ...kv.get(k), ...opts.config });
 }
 
+export function setSearch({ search, ...location }: Location & { search: any }) {
+  set({
+    ...location,
+    // merge what was there with what's new
+    config: { search: { ...get(location)?.search, ...search } },
+  });
+  const actions = redux.getProjectActions(location.project_id);
+  actions.setState({ search_page: Math.random() });
+  actions.search();
+}
+
+const FALLBACK_SEARCH = {
+  subdirectories: true,
+  case_sensitive: false,
+  regexp: false,
+  hidden_files: false,
+  git_grep: true,
+} as const;
+
+export function getSearch(location) {
+  if (kv == null) {
+    init();
+    return FALLBACK_SEARCH;
+  }
+  const { search } = get(location, "search") ?? {};
+  return { ...FALLBACK_SEARCH, ...search };
+}
+
 const FALLBACK_SORT = { column_name: "name", is_descending: false } as const;
 
 export function getSort(location: Location): {
@@ -69,42 +113,8 @@ export function getSort(location: Location): {
     init();
     return FALLBACK_SORT;
   }
-  const { sort } = get(location) ?? {};
-  if (sort == null) {
-    return getDefaultSort(location);
-  } else {
-    return sort;
-  }
-}
-
-// assuming that location has no defined sort, come
-// up with a default based on nearby usage...
-export function getDefaultSort(location: Location) {
-  if (kv == null || !location.path) {
-    return FALLBACK_SORT;
-  }
-  let path = dirname(location.path);
-  while (true) {
-    const x = get({ ...location, path }) ?? {};
-    if (x.sort != null) {
-      return x.sort;
-    }
-    const newPath = dirname(path);
-    if (newPath.length >= path.length) {
-      break;
-    }
-    path = newPath;
-  }
-  // nothing in this tree.
-  // try to find any preference from this user
-  // ever (could restrict to the project)
-  for (const x in kv.keys()) {
-    const { sort } = kv.get(x) ?? {};
-    if (sort != null) {
-      return sort;
-    }
-  }
-  return FALLBACK_SORT;
+  const { sort } = get(location, "sort") ?? {};
+  return sort ?? FALLBACK_SORT;
 }
 
 export function setSort({
@@ -116,7 +126,7 @@ export function setSort({
     cur == null || column_name != cur.column_name ? false : !cur?.is_descending;
   set({ ...location, config: { sort: { column_name, is_descending } } });
 
-  // we ONLY trigger an update when the change is on this client, rather than 
+  // we ONLY trigger an update when the change is on this client, rather than
   // listening for changes on kv. The reason is because changing a sort order
   // on device causing it to change on another could be annoying...
   redux

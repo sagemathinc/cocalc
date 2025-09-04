@@ -44,16 +44,29 @@ import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
+import { getSearch, setSearch } from "@cocalc/frontend/project/explorer/config";
 
 export const ProjectSearchBody: React.FC<{
   mode: "project" | "flyout";
 }> = ({ mode = "project" }) => {
-  const { project_id } = useProjectContext();
-  const subdirectories = useTypedRedux({ project_id }, "subdirectories");
-  const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
-  const regexp = useTypedRedux({ project_id }, "regexp");
-  const hidden_files = useTypedRedux({ project_id }, "hidden_files");
-  const git_grep = useTypedRedux({ project_id }, "git_grep");
+  const { project_id, compute_server_id } = useProjectContext();
+  const path = useTypedRedux({ project_id }, "current_path");
+  const search = useTypedRedux({ project_id }, "search_page"); // updates on change
+  const currentSearch = useMemo(() => {
+    return getSearch({ project_id, compute_server_id, path });
+  }, [search, project_id, path]);
+
+  const { subdirectories, case_sensitive, regexp, hidden_files, git_grep } =
+    currentSearch;
+
+  const toggle = (field: string) => {
+    setSearch({
+      project_id,
+      compute_server_id,
+      path,
+      search: { [field]: !currentSearch[field] },
+    });
+  };
 
   const actions = useActions({ project_id });
 
@@ -76,33 +89,27 @@ export const ProjectSearchBody: React.FC<{
           />
           <Checkbox
             checked={subdirectories}
-            onChange={() => actions?.toggle_search_checkbox_subdirectories()}
+            onChange={() => toggle("subdirectories")}
           >
             <Icon name="folder-open" /> Include <b>subdirectories</b>
           </Checkbox>
           <Checkbox
             checked={case_sensitive}
-            onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
+            onChange={() => toggle("case_sensitive")}
           >
             <Icon name="font-size" /> <b>Case sensitive</b>
           </Checkbox>
           <Checkbox
             checked={hidden_files}
-            onChange={() => actions?.toggle_search_checkbox_hidden_files()}
+            onChange={() => toggle("hidden_files")}
           >
             <Icon name="eye-slash" /> Include <b>hidden files</b>
           </Checkbox>
-          <Checkbox
-            checked={git_grep}
-            onChange={() => actions?.toggle_search_checkbox_git_grep()}
-          >
+          <Checkbox checked={git_grep} onChange={() => toggle("git_grep")}>
             <Icon name="git" /> <b>Git aware</b>: exclude files via .gitignore
             and similar rules.
           </Checkbox>
-          <Checkbox
-            checked={regexp}
-            onChange={() => actions?.toggle_search_checkbox_regexp()}
-          >
+          <Checkbox checked={regexp} onChange={() => toggle("regexp")}>
             <Icon name="code" /> <b>Regular expressions</b> (
             <A href="https://docs.rs/regex/1.11.1/regex/#syntax">
               ripgrep syntax
@@ -128,39 +135,33 @@ export const ProjectSearchBody: React.FC<{
         />
         <Checkbox
           checked={subdirectories}
-          onChange={() => actions?.toggle_search_checkbox_subdirectories()}
+          onChange={() => toggle("subdirectories")}
         >
           <Icon name="folder-open" /> Subdirectories
         </Checkbox>
         <Checkbox
           checked={case_sensitive}
-          onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
+          onChange={() => toggle("case_sensitive")}
         >
           <Icon name="font-size" /> Case sensitive
         </Checkbox>
         <Checkbox
           checked={hidden_files}
-          onChange={() => actions?.toggle_search_checkbox_hidden_files()}
+          onChange={() => toggle("hidden_files")}
         >
           <Icon name="eye-slash" /> Hidden files{" "}
           <HelpIcon title="Hidden files">
             On Linux, hidden files start with a dot, e.g., ".bashrc".
           </HelpIcon>
         </Checkbox>
-        <Checkbox
-          checked={git_grep}
-          onChange={() => actions?.toggle_search_checkbox_git_grep()}
-        >
+        <Checkbox checked={git_grep} onChange={() => toggle("git_grep")}>
           <Icon name="git" /> Git search{" "}
           <HelpIcon title="Git search">
             If directory is in a Git repository, uses "git grep" to search for
             files.
           </HelpIcon>
         </Checkbox>
-        <Checkbox
-          checked={regexp}
-          onChange={() => actions?.toggle_search_checkbox_regexp()}
-        >
+        <Checkbox checked={regexp} onChange={() => toggle("regexp")}>
           <Icon name="code" /> <b>Regular expressions</b> (
           <A href="https://docs.rs/regex/1.11.1/regex/#syntax">
             ripgrep syntax

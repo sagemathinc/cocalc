@@ -139,14 +139,9 @@ export interface ProjectStoreState {
   most_recent_search?: string;
   most_recent_path: string;
 
-  // TODO: these shouldn't be top level!
-  subdirectories?: boolean;
-  case_sensitive?: boolean;
-  regexp?: boolean;
-  hidden_files?: boolean;
-  git_grep: boolean;
-  info_visible?: boolean;
-
+  // Search page -- update this when params change
+  search_page?: number;
+  
   // Project Settings
   get_public_path_id?: (path: string) => any;
 
@@ -282,7 +277,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
         QueryParams.remove("compute-server-template");
       }
     }
-    const other_settings = redux.getStore("account")?.get("other_settings");
     let compute_server_id;
     try {
       const key = this.computeServerIdLocalStorageKey;
@@ -327,12 +321,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Find
       user_input: "",
-      git_grep: other_settings?.get("find_git_grep") ?? true,
-      subdirectories: other_settings?.get("find_subdirectories"),
-      case_sensitive: other_settings?.get("find_case_sensitive"),
-      hidden_files: other_settings?.get("find_hidden_files"),
-      regexp: other_settings?.get("regexp"),
-
+      search_page: 0,
       most_recent_path: "",
 
       // Project Settings
