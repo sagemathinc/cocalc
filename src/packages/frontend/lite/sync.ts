@@ -24,7 +24,6 @@ export function init() {
   console.log("lite: init remote sync");
   SyncDoc.lite = true;
   SyncDoc.events.on("new", (doc) => {
-    console.log("new doc");
     if (doc.client.client_id() == webapp_client.account_id) {
       console.log("local doc, so connecting to remote");
       // it's a local doc, so we connect it to remote
@@ -49,8 +48,6 @@ export function remoteClient() {
 
 // doc must be local
 export async function connectToRemote(doc: SyncDoc) {
-  console.log("connecting ", doc.path, " to remote ");
-
   if (doc.get_state() != "ready") {
     await once(doc, "ready");
   }

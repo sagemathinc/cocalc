@@ -34,6 +34,9 @@ import * as misc from "@cocalc/util/misc";
 import type { DKV } from "@cocalc/conat/sync/dkv";
 import { cloneDeep, isEqual } from "lodash";
 import { client_db, SCHEMA } from "@cocalc/util/schema";
+//import getLogger from "@cocalc/backend/logger";
+
+//const logger = getLogger("lite:hub:user-query");
 
 interface Option {
   set?: boolean;
@@ -54,6 +57,7 @@ export default function userQuery({
   // if cb is given uses cb interface -- if not given, uses async interface
   cb?: Function;
 }) {
+  // logger.debug("userQuery", { query, changes, options });
   if (changes && cb == null) {
     throw Error("if changes is set then cb must also be set.");
   }
@@ -178,7 +182,7 @@ function userSetQuery(query: object, options: object[]) {
     // in obj and return
     for (const key in obj) {
       // todo: probably need to use schema instead
-      
+
       // here it is important that arrays get replaced, whereas objects really
       // are maps so merge:
       row[key] = misc.is_object(row[key])

@@ -24,10 +24,14 @@ import {
   changefeedServer,
   type ConatSocketServer,
 } from "@cocalc/conat/hub/changefeeds";
+import { type Client } from "@cocalc/conat/core/client";
 import userQuery, { cancelQuery } from "./user-query";
+import getLogger from "@cocalc/backend/logger";
+const logger = getLogger("lite:hub:changefeeds");
 
 let server: ConatSocketServer | null = null;
-export function init({ client }) { 
+export function init({ client }: { client: Client }) {
+  logger.debug("init changefeedServer", { address: client.options.address });
   server = changefeedServer({
     client,
     userQuery,
