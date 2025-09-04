@@ -24,13 +24,12 @@ import {
   changefeedServer,
   type ConatSocketServer,
 } from "@cocalc/conat/hub/changefeeds";
-import { conat } from "@cocalc/backend/conat";
 import userQuery, { cancelQuery } from "./user-query";
 
 let server: ConatSocketServer | null = null;
-export function init() {
+export function init({ client }) {
   server = changefeedServer({
-    client: conat(),
+    client,
     userQuery,
     cancelQuery,
   });

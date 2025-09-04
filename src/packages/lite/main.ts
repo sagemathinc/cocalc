@@ -79,15 +79,15 @@ export async function main(): Promise<number> {
 
   logger.debug("start project services");
   cleanup();
-  startProjectServices();
+  startProjectServices({ client: conatClient });
 
   logger.debug("start changefeed server");
-  initChangefeeds();
+  initChangefeeds({ client: conatClient });
 
   const path = process.cwd();
 
   logger.debug("start hub api");
-  await initHubApi();
+  await initHubApi({ client: conatClient });
 
   logger.debug("start fs service");
   localPathFileserver({

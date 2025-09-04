@@ -4,21 +4,19 @@ This is a very lightweight small subset of the hub's API for browser clients.
 
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, transformArgs } from "@cocalc/conat/hub/api";
-import { conat } from "@cocalc/backend/conat";
 import userQuery, { init as initUserQuery } from "./user-query";
 import { account_id as ACCOUNT_ID } from "@cocalc/backend/data";
 import { callRemoteHub, hasRemote } from "../remote";
 
 const logger = getLogger("lite:hub:api");
 
-export async function init() {
+export async function init({ client }) {
   const subject = "hub.*.*.api";
   logger.debug(`init -- subject='${subject}', options=`, {
     queue: "0",
   });
-  const cn = await conat({ noCache: true });
-  await initUserQuery(cn);
-  const api = await cn.subscribe(subject, { queue: "0" });
+  await initUserQuery(client);
+  const api = await client.subscribe(subject, { queue: "0" });
   listen(api);
 }
 
