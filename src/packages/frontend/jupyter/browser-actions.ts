@@ -325,7 +325,10 @@ export class JupyterActions extends JupyterActions0 {
   public async close(): Promise<void> {
     try {
       if (this.isClosed()) return;
-      this.jupyterClient?.close();
+      for (const c of Object.values(this.jupyterClients)) {
+        c.close();
+      }
+      this.jupyterClients = {};
       super.close();
     } catch {}
   }
@@ -1508,45 +1511,44 @@ export class JupyterActions extends JupyterActions0 {
     this.runQueue.length = 0;
   }
 
-  private jupyterClient?: JupyterClient;
+  private jupyterClients: { [compute_server_id: number]: JupyterClient } = {};
   private getJupyterClient = async (): Promise<JupyterClient | null> => {
-    await this.waitUntilProjectIsRunning();
-    if (
-      this.jupyterClient == null ||
-      this.jupyterClient.socket.state == "closed"
-    ) {
-      // [ ] **TODO: Must invalidate this when compute server changes!!!!!**
-      // and
-      const compute_server_id = await this.getComputeServerId();
-      if (this.isClosed()) {
-        return null;
-      }
-      this.jupyterClient = jupyterClient({
-        path: this.syncdbPath,
-        client: webapp_client.conat_client.conat(),
-        project_id: this.project_id,
-        compute_server_id,
-        stdin: async ({ id, prompt, password }) => {
-          // set the redux store so that it is known we would like some stdin,
-          // wait for the user to respond, and return the result.
-          this.setState({ stdin: { id, prompt, password } });
-          try {
-            const [input] = await once(this.store, "stdin");
-            this.setState({ stdin: undefined });
-            return input;
-          } catch (err) {
-            return `${err}`;
-          }
-        },
-      });
-      this.jupyterClient.socket.on("closed", () => {
-        delete this.jupyterClient;
-        // TODO: doing this is not ideal, but it's probably less confusing.
-        this.clearRunQueue();
-        this.runningNow = false;
-      });
+    const compute_server_id = await this.getComputeServerId();
+    if (this.isClosed()) return null;
+    let c = this.jupyterClients[compute_server_id];
+    if (c != null && c.socket.state != "closed") {
+      return c;
     }
-    return this.jupyterClient!;
+    if (compute_server_id == 0) {
+      await this.waitUntilProjectIsRunning();
+      if (this.isClosed()) return null;
+    }
+    c = jupyterClient({
+      path: this.syncdbPath,
+      client: webapp_client.conat_client.conat(),
+      project_id: this.project_id,
+      compute_server_id,
+      stdin: async ({ id, prompt, password }) => {
+        // set the redux store so that it is known we would like some stdin,
+        // wait for the user to respond, and return the result.
+        this.setState({ stdin: { id, prompt, password } });
+        try {
+          const [input] = await once(this.store, "stdin");
+          this.setState({ stdin: undefined });
+          return input;
+        } catch (err) {
+          return `${err}`;
+        }
+      },
+    });
+    c.socket.on("closed", () => {
+      delete this.jupyterClients[compute_server_id];
+      // TODO: doing this is not ideal, but it's probably less confusing.
+      this.clearRunQueue();
+      this.runningNow = false;
+    });
+    this.jupyterClients[compute_server_id] = c;
+    return c;
   };
 
   private runQueue: any[] = [];
@@ -1954,13 +1956,18 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   signal = async (signal = "SIGINT"): Promise<void> => {
-    const api = await this.jupyterApi();
-    try {
-      await api.signal({ path: this.path, signal });
-      this.clear_all_cell_run_state();
-    } catch (err) {
-      this.set_error(err);
+    const v: any[] = [];
+    for (const compute_server_id in this.jupyterClients) {
+      const api = webapp_client.project_client.conatApi(
+        this.project_id,
+        parseInt(compute_server_id),
+      );
+      v.push(api.jupyter.signal({ path: this.path, signal }));
     }
+    try {
+      await Promise.all(v);
+    } catch {}
+    this.clear_all_cell_run_state();
   };
 
   // Kill the running kernel and does NOT start it up again.
