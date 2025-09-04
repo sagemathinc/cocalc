@@ -10,6 +10,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import { debounce } from "lodash";
 import { once } from "@cocalc/util/async-utils";
+import { isJupyterPath, ipynbPath } from "@cocalc/util/jupyter/names";
 
 // we lock remote file for this long whenever we save it to disk,
 // so remote doesn't try to read it due to change at the same time,
@@ -79,14 +80,14 @@ export async function connectToRemote(doc: SyncDoc) {
   doc.on("before-save-to-disk", async () => {
     if (doc2.get_state() != "ready") return;
     try {
-      await doc2.fs.lockFile(doc2.path, WRITE_LOCK_TIME);
+      await doc2.fs.lockFile(savePath(doc2.path), WRITE_LOCK_TIME);
     } catch {}
   });
 
   doc2.on("before-save-to-disk", async () => {
     if (doc.get_state() != "ready") return;
     try {
-      await doc.fs.lockFile(doc.path, WRITE_LOCK_TIME);
+      await doc.fs.lockFile(savePath(doc.path), WRITE_LOCK_TIME);
     } catch {}
   });
 
@@ -143,6 +144,14 @@ export async function remoteSyncDoc(doc: SyncDoc): Promise<SyncDoc> {
     return conat.sync.db({ ...opts, primary_keys, string_cols });
   } else {
     throw Error(`unknown doc type ${type}`);
+  }
+}
+
+function savePath(path: string): string {
+  if (isJupyterPath(path)) {
+    return ipynbPath(path);
+  } else {
+    return path;
   }
 }
 

@@ -214,7 +214,7 @@ function ipynbOutputs({
   // If the last message has the more_output field, then there may be
   // more output messages stored, which are not in the cells object.
   let len = objArrayLength(output);
-  if (output[`${len - 1}`].more_output != null) {
+  if (output[`${len - 1}`]?.more_output != null) {
     let n: number = len - 1;
     const cnt = more_output?.length ?? 0;
     if (cnt === 0 || more_output == null) {

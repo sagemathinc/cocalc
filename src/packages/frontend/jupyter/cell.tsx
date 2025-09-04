@@ -266,10 +266,10 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
 
     // 30px -- make room for InsertCell(above)
     const marginTop = props.isFirst
-      ? "30px"
+      ? "20px"
       : props.actions != null
-        ? "10px"
-        : "20px";
+        ? "0px"
+        : "10px";
 
     const style: React.CSSProperties = {
       border: `1px solid ${color}`,
@@ -277,6 +277,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       borderRight: `10px solid ${color}`,
       borderRadius: "10px",
       position: "relative",
+      padding: "2px 2px 5px 2px",
       // The bigger top margin when in fully read only mode (no props.actions,
       // e.g., timetravel view) is to deal with the fact that the insert cell
       // bar isn't rendered, but some of the controls off
@@ -285,18 +286,16 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       // top margin makes things look very weirdly unbalanced.
       ...(props.cell.get("output") || props.actions == null
         ? {
-            padding: "2px",
             margin:
               props.actions != null
                 ? `${marginTop} 15px 2px 5px`
                 : `${marginTop} 15px 2px 5px`,
           }
         : {
-            padding: "2px 2px 15px 2px",
             margin:
               props.actions != null
-                ? `${marginTop} 15px -15px 5px`
-                : `${marginTop} 15px -15px 5px`,
+                ? `${marginTop} 15px 0 5px`
+                : `${marginTop} 15px 0 5px`,
           }),
     };
 
