@@ -199,7 +199,8 @@ export class ConatClient extends EventEmitter {
           // cookies value to something random.
           Cookies.set(ACCOUNT_ID_COOKIE, client.info.user.account_id);
           // and we're out of here:
-          location.reload();
+          console.log("WILL RELOAD IN 3 SECONDS...");
+          setTimeout(() => location.reload(), 3000);
         }
       } else if (lite && client.info?.user?.project_id) {
         // we *also* sign in as the PROJECT in lite mode.

@@ -19,6 +19,10 @@ export async function init() {
   const cn = await conat({ noCache: true });
   await initUserQuery(cn);
   const api = await cn.subscribe(subject, { queue: "0" });
+  listen(api);
+}
+
+async function listen(api) {
   for await (const mesg of api) {
     (async () => {
       try {

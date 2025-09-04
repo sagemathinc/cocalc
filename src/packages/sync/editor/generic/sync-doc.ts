@@ -101,6 +101,7 @@ import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
 import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
 import { getLogger } from "@cocalc/conat/client";
+import * as remote from "./remote";
 
 const DEBUG = false;
 
@@ -215,7 +216,7 @@ export class SyncDoc extends EventEmitter {
   private state: State = "init";
 
   private syncstring_table: SyncTable;
-  private patches_table: SyncTable;
+  public patches_table: SyncTable;
   private cursors_table: SyncTable;
 
   public evaluator?: Evaluator;
@@ -2966,38 +2967,12 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
-  // Synchronize the state of this with an completely different doc.
-  // This is not efficient yet, but there are some steps to make it
-  // efficient, and also obviously we need to take into account
-  // snapshots properly.  This is a quick proof of concept to see
-  // how this feels.
-  // I guess this is literally "the merge operation of a CRDT"...
-
   push = (doc: SyncDoc, { source }: { source?: string | number } = {}) => {
-    const X = this.patches_table.get();
-    if (X == null) {
-      throw Error("patches_table not initialized");
-    }
-    const Y = doc.patches_table.get();
-    if (Y == null) {
-      throw Error("doc patches_table not initialized");
-    }
-    for (const key in X) {
-      // @ts-ignore
-      const key1 = doc.patches_table.getKey(X[key]);
-      if (Y[key1] === undefined) {
-        // console.log("push", JSON.stringify(X[key]));
-        let obj = X[key];
-        if (source != null) {
-          obj = { source, ...X[key] };
-        }
-        doc.patches_table.set(obj, "none");
-      }
-    }
+    remote.push({ local: this, remote: doc, source });
   };
 
-  pull = (doc: SyncDoc, opts?) => {
-    return doc.push(this, opts);
+  pull = (doc: SyncDoc, { source }: { source?: string | number } = {}) => {
+    remote.push({ local: doc, remote: this, source });
   };
 }
 

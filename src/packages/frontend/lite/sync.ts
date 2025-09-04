@@ -86,6 +86,13 @@ export async function connectToRemote(doc: SyncDoc) {
     } catch {}
   });
 
+  doc2.on("before-save-to-disk", async () => {
+    if (doc.get_state() != "ready") return;
+    try {
+      await doc.fs.lockFile(doc.path, WRITE_LOCK_TIME);
+    } catch {}
+  });
+
   doc.on(
     "change",
     debounce(

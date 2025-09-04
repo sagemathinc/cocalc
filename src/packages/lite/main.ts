@@ -86,11 +86,8 @@ export async function main(): Promise<number> {
 
   const path = process.cwd();
 
-  logger.debug("start remote connection (if enabled)");
-  await initRemote({ httpServer, path });
-
   logger.debug("start hub api");
-  initHubApi();
+  await initHubApi();
 
   logger.debug("start fs service");
   localPathFileserver({
@@ -99,6 +96,11 @@ export async function main(): Promise<number> {
     project_id,
     unsafeMode: true,
   });
+
+  logger.debug("start remote connection (if enabled)");
+  // TODO: I think initRemote messes up the default conat
+  // client thus we have to run it last right now.
+  await initRemote({ httpServer, path });
 
   process.once("exit", () => {
     conatServer?.close();
