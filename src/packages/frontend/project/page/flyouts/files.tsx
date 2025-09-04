@@ -9,7 +9,6 @@ import { debounce, fromPairs } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import {
   React,
-  TypedMap,
   redux,
   usePrevious,
   useTypedRedux,
@@ -54,6 +53,7 @@ import { fileItemStyle } from "./utils";
 import useFs from "@cocalc/frontend/project/listing/use-fs";
 import useListing from "@cocalc/frontend/project/listing/use-listing";
 import ShowError from "@cocalc/frontend/components/error";
+import { getSort } from "@cocalc/frontend/project/explorer/config";
 
 type PartialClickEvent = Pick<
   React.MouseEvent | React.KeyboardEvent,
@@ -67,10 +67,10 @@ const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
   true,
 ];
 
-export type ActiveFileSort = TypedMap<{
+export interface ActiveFileSort {
   column_name: string;
   is_descending: boolean;
-}>;
+}
 
 export function FilesFlyout({
   flyoutWidth,
@@ -92,10 +92,18 @@ export function FilesFlyout({
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-  const activeFileSort: ActiveFileSort = useTypedRedux(
-    { project_id },
-    "active_file_sort",
+
+  const sort = useTypedRedux({ project_id }, "active_file_sort");
+  const activeFileSort = useMemo(
+    () =>
+      getSort({
+        project_id,
+        path: current_path,
+        compute_server_id,
+      }),
+    [sort, current_path, compute_server_id, project_id],
   );
+
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const hidden = useTypedRedux({ project_id }, "show_hidden");
@@ -172,8 +180,8 @@ export function FilesFlyout({
 
     processedFiles.sort((a, b) => {
       // This replicated what project_store is doing
-      const col = activeFileSort.get("column_name");
-      switch (col) {
+      const col = activeFileSort.column_name;
+      switch (col as string) {
         case "name":
           return a.name.localeCompare(b.name);
         case "size":
@@ -194,7 +202,7 @@ export function FilesFlyout({
       }
     });
 
-    if (activeFileSort.get("is_descending")) {
+    if (activeFileSort.is_descending) {
       processedFiles.reverse(); // inplace op
     }
 
@@ -465,8 +473,8 @@ export function FilesFlyout({
 
   function renderListItemExtra(item: DirectoryListingEntry) {
     if (!showExtra) return null;
-    const col = activeFileSort.get("column_name");
-    switch (col) {
+    const col = activeFileSort.column_name;
+    switch (col as string) {
       case "time":
         return renderTimeAgo(item);
       case "type":
@@ -483,8 +491,8 @@ export function FilesFlyout({
 
   function renderListItemExtra2(item: DirectoryListingEntry) {
     if (!showExtra2) return;
-    const col = activeFileSort.get("column_name");
-    switch (col) {
+    const col = activeFileSort.column_name;
+    switch (col as string) {
       case "time":
       case "type":
         return item.isDir ? "" : human_readable_size(item.size, true);

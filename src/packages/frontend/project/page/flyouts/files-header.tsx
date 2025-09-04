@@ -31,12 +31,13 @@ import { separate_file_extension, strictMod } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
-import { ActiveFileSort } from "./files";
+import type { ActiveFileSort } from "./files";
 import { FilesSelectedControls } from "./files-controls";
 import { FilesSelectButtons } from "./files-select-extra";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
 import ForkProject from "@cocalc/frontend/project/explorer/fork";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { setSort } from "@cocalc/frontend/project/explorer/config";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -76,30 +77,28 @@ interface Props {
   publicFiles: Set<string>;
 }
 
-export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
-  const {
-    activeFileSort,
-    disableUploads,
-    handleSearchChange,
-    isEmpty,
-    open,
-    refInput,
-    scrollIdx,
-    setScrollIdx,
-    setScrollIdxHide,
-    setSearchState,
-    virtuosoRef,
-    showFileSharingDialog,
-    checked_files,
-    directoryFiles,
-    getFile,
-    activeFile,
-    modeState,
-    selectAllFiles,
-    clearAllSelections,
-    publicFiles,
-  } = props;
-
+export function FilesHeader({
+  activeFileSort,
+  disableUploads,
+  handleSearchChange,
+  isEmpty,
+  open,
+  refInput,
+  scrollIdx,
+  setScrollIdx,
+  setScrollIdxHide,
+  setSearchState,
+  virtuosoRef,
+  showFileSharingDialog,
+  checked_files,
+  directoryFiles,
+  getFile,
+  activeFile,
+  modeState,
+  selectAllFiles,
+  clearAllSelections,
+  publicFiles,
+}: Readonly<Props>): React.JSX.Element {
   const intl = useIntl();
 
   const {
@@ -111,7 +110,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   const [mode, setMode] = modeState;
 
   const uploadClassName = `upload-button-flyout-${project_id}`;
-
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const kucalc = useTypedRedux("customize", "kucalc");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
@@ -219,11 +218,11 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   }
 
   function renderSortButton(name: string, display: string): React.JSX.Element {
-    const isActive = activeFileSort.get("column_name") === name;
+    const isActive = activeFileSort.column_name === name;
     const direction = isActive ? (
       <Icon
         style={{ marginLeft: FLYOUT_PADDING }}
-        name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
+        name={activeFileSort.is_descending ? "caret-up" : "caret-down"}
       />
     ) : undefined;
 
@@ -231,7 +230,14 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       <Radio.Button
         value={name}
         style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
-        onClick={() => actions?.set_sorted_file_column(name)}
+        onClick={() =>
+          setSort({
+            column_name: name,
+            project_id,
+            path: current_path,
+            compute_server_id,
+          })
+        }
       >
         {display}
         {direction}

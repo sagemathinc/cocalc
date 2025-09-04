@@ -263,32 +263,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function render_default_file_sort(): Rendered {
-    return (
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.other-settings.default_file_sort.label",
-          defaultMessage: "Default file sort",
-        })}
-      >
-        <SelectorInput
-          selected={props.other_settings.get("default_file_sort")}
-          options={{
-            time: intl.formatMessage({
-              id: "account.other-settings.default_file_sort.by_time",
-              defaultMessage: "Sort by time",
-            }),
-            name: intl.formatMessage({
-              id: "account.other-settings.default_file_sort.by_name",
-              defaultMessage: "Sort by name",
-            }),
-          }}
-          on_change={(value) => on_change("default_file_sort", value)}
-        />
-      </LabeledRow>
-    );
-  }
-
   function render_new_filenames(): Rendered {
     const selected =
       props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
@@ -695,7 +669,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {render_i18n_selector()}
         {render_vertical_fixed_bar_options()}
         {render_new_filenames()}
-        {render_default_file_sort()}
         {render_standby_timeout()}
         <div style={{ height: "10px" }} />
         <Tours />

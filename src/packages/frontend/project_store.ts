@@ -94,7 +94,6 @@ export interface ProjectStoreState {
 
   // Project Files
   activity: any; // immutable,
-  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   file_action?: FileAction;
   file_search?: string;
   show_hidden?: boolean;
@@ -182,6 +181,9 @@ export interface ProjectStoreState {
 
   // while true, explorer keyhandler will not be enabled
   disableExplorerKeyhandler?: boolean;
+  
+  // whe change this when any sort changes, so the UI can update
+  active_file_sort?: number;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
@@ -318,10 +320,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       checked_files: immutable.Set(),
       show_library: false,
       file_listing_scroll_top: undefined,
-      active_file_sort: TypedMap({
-        is_descending: false,
-        column_name: other_settings?.get("default_file_sort") ?? "time",
-      }),
 
       // Project New
       library: immutable.Map({}),

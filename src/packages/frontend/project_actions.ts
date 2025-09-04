@@ -1565,26 +1565,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  // Sets the active file_sort to next_column_name
-  set_sorted_file_column(column_name): void {
-    console.log("DEPRECATED");
-    let is_descending;
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const current = store.get("active_file_sort");
-    if (current.get("column_name") === column_name) {
-      is_descending = !current.get("is_descending");
-    } else {
-      is_descending = false;
-    }
-    const next_file_sort = current
-      .set("is_descending", is_descending)
-      .set("column_name", column_name);
-    this.setState({ active_file_sort: next_file_sort });
-  }
-
   // Increases the selected file index by 1
   // undefined increments to 0
   increment_selected_file_index(): void {

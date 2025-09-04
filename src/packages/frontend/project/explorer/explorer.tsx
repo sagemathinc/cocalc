@@ -135,11 +135,16 @@ export function Explorer() {
   const images = useTypedRedux("compute_images", "images");
   const mask = useTypedRedux("account", "other_settings")?.get("mask_files");
 
-  const active_file_sort = getSort({
-    project_id,
-    path: current_path,
-    compute_server_id,
-  });
+  const sort = useTypedRedux({ project_id }, "active_file_sort");
+  const active_file_sort = useMemo(
+    () =>
+      getSort({
+        project_id,
+        path: current_path,
+        compute_server_id,
+      }),
+    [sort, current_path, compute_server_id, project_id],
+  );
 
   const fs = useFs({ project_id, compute_server_id });
   let {

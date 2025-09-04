@@ -6,6 +6,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { type DKV } from "@cocalc/conat/sync/dkv";
 import { type SortField } from "@cocalc/frontend/project/listing/use-listing";
 import { dirname } from "path";
+import { redux } from "@cocalc/frontend/app-framework";
 
 const NAME = "cocalc-explorer-config";
 
@@ -114,4 +115,11 @@ export function setSort({
   let is_descending =
     cur == null || column_name != cur.column_name ? false : !cur?.is_descending;
   set({ ...location, config: { sort: { column_name, is_descending } } });
+
+  // we ONLY trigger an update when the change is on this client, rather than 
+  // listening for changes on kv. The reason is because changing a sort order
+  // on device causing it to change on another could be annoying...
+  redux
+    .getProjectActions(location.project_id)
+    .setState({ active_file_sort: Math.random() });
 }

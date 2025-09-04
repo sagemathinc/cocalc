@@ -496,7 +496,7 @@ Table({
             mask_files: false,
             page_size: 500,
             standby_timeout_m: 5,
-            default_file_sort: "name",
+            // default_file_sort: "name",  // <--- DEPRECATED
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             show_global_info2: null,
             first_steps: true,
