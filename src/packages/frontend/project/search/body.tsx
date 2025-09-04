@@ -10,7 +10,7 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Button, Card, Col, Input, Row, Tag } from "antd";
+import { Button, Card, Col, Input, Row } from "antd";
 import { useMemo, useState } from "react";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { Alert, Checkbox } from "@cocalc/frontend/antd-bootstrap";
@@ -54,11 +54,6 @@ export const ProjectSearchBody: React.FC<{
   const regexp = useTypedRedux({ project_id }, "regexp");
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
   const git_grep = useTypedRedux({ project_id }, "git_grep");
-  const neural_search = useTypedRedux({ project_id }, "neural_search");
-  const neural_search_enabled = useTypedRedux(
-    "customize",
-    "neural_search_enabled",
-  );
 
   const actions = useActions({ project_id });
 
@@ -80,28 +75,24 @@ export const ProjectSearchBody: React.FC<{
             style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
           />
           <Checkbox
-            disabled={neural_search}
             checked={subdirectories}
             onChange={() => actions?.toggle_search_checkbox_subdirectories()}
           >
             <Icon name="folder-open" /> Include <b>subdirectories</b>
           </Checkbox>
           <Checkbox
-            disabled={neural_search}
             checked={case_sensitive}
             onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
           >
             <Icon name="font-size" /> <b>Case sensitive</b>
           </Checkbox>
           <Checkbox
-            disabled={neural_search}
             checked={hidden_files}
             onChange={() => actions?.toggle_search_checkbox_hidden_files()}
           >
             <Icon name="eye-slash" /> Include <b>hidden files</b>
           </Checkbox>
           <Checkbox
-            disabled={neural_search}
             checked={git_grep}
             onChange={() => actions?.toggle_search_checkbox_git_grep()}
           >
@@ -109,7 +100,6 @@ export const ProjectSearchBody: React.FC<{
             and similar rules.
           </Checkbox>
           <Checkbox
-            disabled={neural_search}
             checked={regexp}
             onChange={() => actions?.toggle_search_checkbox_regexp()}
           >
@@ -119,22 +109,6 @@ export const ProjectSearchBody: React.FC<{
             </A>
             )
           </Checkbox>
-          {neural_search_enabled && (
-            <Checkbox
-              checked={neural_search}
-              onChange={() =>
-                actions?.setState({ neural_search: !neural_search })
-              }
-            >
-              <Tag color="green" style={{ float: "right" }}>
-                New
-              </Tag>
-              <div>
-                <Icon name="robot" /> <b>Neural search</b>: jupyter, tasks,
-                chat, whiteboards, and slides.
-              </div>
-            </Checkbox>
-          )}
         </Col>
       </Row>
     );
@@ -153,21 +127,18 @@ export const ProjectSearchBody: React.FC<{
           style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
         />
         <Checkbox
-          disabled={neural_search}
           checked={subdirectories}
           onChange={() => actions?.toggle_search_checkbox_subdirectories()}
         >
           <Icon name="folder-open" /> Subdirectories
         </Checkbox>
         <Checkbox
-          disabled={neural_search}
           checked={case_sensitive}
           onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
         >
           <Icon name="font-size" /> Case sensitive
         </Checkbox>
         <Checkbox
-          disabled={neural_search}
           checked={hidden_files}
           onChange={() => actions?.toggle_search_checkbox_hidden_files()}
         >
@@ -177,7 +148,6 @@ export const ProjectSearchBody: React.FC<{
           </HelpIcon>
         </Checkbox>
         <Checkbox
-          disabled={neural_search}
           checked={git_grep}
           onChange={() => actions?.toggle_search_checkbox_git_grep()}
         >
@@ -188,7 +158,6 @@ export const ProjectSearchBody: React.FC<{
           </HelpIcon>
         </Checkbox>
         <Checkbox
-          disabled={neural_search}
           checked={regexp}
           onChange={() => actions?.toggle_search_checkbox_regexp()}
         >
@@ -198,16 +167,6 @@ export const ProjectSearchBody: React.FC<{
           </A>
           )
         </Checkbox>
-        {neural_search_enabled && (
-          <Checkbox
-            checked={neural_search}
-            onChange={() =>
-              actions?.setState({ neural_search: !neural_search })
-            }
-          >
-            <Icon name="robot" /> Neural search
-          </Checkbox>
-        )}
       </div>
     );
   }

@@ -146,7 +146,6 @@ export interface ProjectStoreState {
   hidden_files?: boolean;
   git_grep: boolean;
   info_visible?: boolean;
-  neural_search?: boolean;
 
   // Project Settings
   get_public_path_id?: (path: string) => any;
