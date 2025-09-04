@@ -419,7 +419,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         }
         pty.socket.write(this.writeBuffer.join(""));
         this.writeBuffer.length = 0;
-        pty.on("ready", () => {
+        pty.once("ready", () => {
           pty.socket.write(this.writeBuffer.join(""));
           this.writeBuffer.length = 0;
         });
@@ -461,7 +461,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       throw Error("conn_write - only strings");
     }
     if (this.isClosed()) return;
-    if (this.pty == null) {
+    if (this.pty == null || this.pty.socket.state != "ready") {
       this.writeBuffer.push(data);
     } else {
       this.pty.socket.write(data);
