@@ -62,5 +62,7 @@ process.env.PATH =
   path.delimiter +
   process.env.PATH;
 
+process.env.AUTH_TOKEN = "random";
+
 // run like “node start.js”
 Module.runMain(); // loads process.argv[1] as the main script
