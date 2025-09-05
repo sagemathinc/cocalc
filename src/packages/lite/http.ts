@@ -26,12 +26,13 @@ import {
 import selfsigned from "selfsigned";
 import fs from "node:fs";
 import os from "node:os";
+import { initAuth } from "./auth-token";
 
 const logger = getLogger("lite:static");
 
 type AnyServer = HTTPServer | HTTPSServer;
 
-export async function initHttpServer(): Promise<{
+export async function initHttpServer({ AUTH_TOKEN }): Promise<{
   httpServer: ReturnType<typeof httpCreateServer>;
   app: Application;
   port: number;
@@ -62,8 +63,7 @@ export async function initHttpServer(): Promise<{
     httpServer.listen(port, hostname);
     await once(httpServer, "listening");
 
-    console.log("*".repeat(60) + "\n");
-    console.log(`CoCalc Lite Server:  https://${hostname}:${port}`);
+    showURL({ url: `https://${hostname}:${port}`, AUTH_TOKEN });
     console.log(`TLS: key=${keyPath}\n     cert=${certPath}`);
   } else {
     httpServer = httpCreateServer(app);
@@ -81,9 +81,7 @@ export async function initHttpServer(): Promise<{
 
     httpServer.listen(port, hostname);
     await once(httpServer, "listening");
-
-    console.log("*".repeat(60) + "\n");
-    console.log(`CoCalc Lite Server:  http://${hostname}:${port}`);
+    showURL({ url: `http://${hostname}:${port}`, AUTH_TOKEN });
   }
 
   const info: any = {};
@@ -103,7 +101,9 @@ export async function initHttpServer(): Promise<{
   return { httpServer, app, port, isHttps };
 }
 
-export async function initApp({ app, conatClient }) {
+export async function initApp({ app, conatClient, AUTH_TOKEN, isHttps }) {
+  initAuth({ app, AUTH_TOKEN, isHttps });
+
   app.use("/static", express.static(STATIC_PATH));
 
   app.use(
@@ -229,4 +229,12 @@ function getOrCreateSelfSigned(hostname: string) {
   }
 
   return { key, cert, keyPath, certPath, certDir };
+}
+
+function showURL({ url, AUTH_TOKEN }) {
+  const auth = AUTH_TOKEN
+    ? `?auth_token=${encodeURIComponent(AUTH_TOKEN)}`
+    : "";
+  console.log("*".repeat(60) + "\n");
+  console.log(`CoCalc Lite Server:  ${url}${auth}`);
 }

@@ -49,8 +49,12 @@ export async function main(): Promise<number> {
   process.chdir(process.env.HOME ?? "");
   initBugCounter();
 
+  const AUTH_TOKEN = process.env.AUTH_TOKEN;
+
   logger.debug("start http server");
-  const { httpServer, app, port, isHttps } = await initHttpServer();
+  const { httpServer, app, port, isHttps } = await initHttpServer({
+    AUTH_TOKEN,
+  });
 
   logger.debug("create server");
   const options = {
@@ -73,7 +77,7 @@ export async function main(): Promise<number> {
   setConatClient({ conat, getLogger });
 
   logger.debug("init app");
-  initApp({ app, conatClient });
+  initApp({ app, conatClient, AUTH_TOKEN, isHttps });
 
   logger.debug("create persist server");
   persistServer = createPersistServer({ client: conatClient });
