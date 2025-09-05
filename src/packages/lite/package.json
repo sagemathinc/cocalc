@@ -39,7 +39,8 @@
     "express": "^4.21.2",
     "formidable": "^3.5.4",
     "http-proxy-3": "^1.20.10",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "selfsigned": "^3.0.1"
   },
   "repository": {
     "type": "git",

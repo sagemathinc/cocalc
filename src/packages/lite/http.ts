@@ -2,7 +2,14 @@ import express, { type Application } from "express";
 import { path as STATIC_PATH } from "@cocalc/static";
 import { path as ASSET_PATH } from "@cocalc/assets";
 import getPort from "@cocalc/backend/get-port";
-import { createServer as httpCreateServer } from "http";
+import {
+  createServer as httpCreateServer,
+  type Server as HTTPServer,
+} from "http";
+import {
+  createServer as httpsCreateServer,
+  type Server as HTTPSServer,
+} from "https";
 import getLogger from "@cocalc/backend/logger";
 import port0 from "@cocalc/backend/port";
 import { once } from "node:events";
@@ -16,37 +23,69 @@ import {
   FALLBACK_PROJECT_UUID,
   FALLBACK_ACCOUNT_UUID,
 } from "@cocalc/util/misc";
+import selfsigned from "selfsigned";
+import fs from "node:fs";
+import os from "node:os";
 
 const logger = getLogger("lite:static");
+
+type AnyServer = HTTPServer | HTTPSServer;
 
 export async function initHttpServer(): Promise<{
   httpServer: ReturnType<typeof httpCreateServer>;
   app: Application;
   port: number;
+  isHttps: boolean;
 }> {
   const app = express();
-  const httpServer = httpCreateServer(app);
-  httpServer.on("error", (err) => {
-    logger.error(
-      "*".repeat(60) +
-        `\nWARNING -- hub http server error: ${err.stack || err}\n` +
-        "*".repeat(60),
-    );
-    // @ts-ignore
-    if (err.code === "EADDRINUSE" || err.code == "EACCES") {
-      // this means we never got the server going, so better just terminate
-      console.log(err);
-      process.exit(1);
-    }
-  });
 
   const port = port0 ?? (await getPort());
-  const host = process.env.HOST ?? "localhost";
-  httpServer.listen(port, host);
-  await once(httpServer, "listening");
+  const hostEnv = process.env.HOST ?? "localhost";
+  const { isHttps, hostname } = sanitizeHost(hostEnv);
+  let httpServer: AnyServer;
 
-  console.log("*".repeat(60) + "\n");
-  console.log(`CoCalc Lite Server:  http://${host}:${port}`);
+  if (isHttps) {
+    const { key, cert, keyPath, certPath } = getOrCreateSelfSigned(hostname);
+    httpServer = httpsCreateServer({ key, cert }, app);
+    httpServer.on("error", (err: any) => {
+      logger.error(
+        "*".repeat(60) +
+          `\nWARNING -- hub https server error: ${err.stack || err}\n` +
+          "*".repeat(60),
+      );
+      if (err?.code === "EADDRINUSE" || err?.code === "EACCES") {
+        console.log(err);
+        process.exit(1);
+      }
+    });
+
+    httpServer.listen(port, hostname);
+    await once(httpServer, "listening");
+
+    console.log("*".repeat(60) + "\n");
+    console.log(`CoCalc Lite Server:  https://${hostname}:${port}`);
+    console.log(`TLS: key=${keyPath}\n     cert=${certPath}`);
+  } else {
+    httpServer = httpCreateServer(app);
+    httpServer.on("error", (err: any) => {
+      logger.error(
+        "*".repeat(60) +
+          `\nWARNING -- hub http server error: ${err.stack || err}\n` +
+          "*".repeat(60),
+      );
+      if (err?.code === "EADDRINUSE" || err?.code === "EACCES") {
+        console.log(err);
+        process.exit(1);
+      }
+    });
+
+    httpServer.listen(port, hostname);
+    await once(httpServer, "listening");
+
+    console.log("*".repeat(60) + "\n");
+    console.log(`CoCalc Lite Server:  http://${hostname}:${port}`);
+  }
+
   const info: any = {};
   if (project_id != FALLBACK_PROJECT_UUID) {
     info.project_id = project_id;
@@ -61,7 +100,7 @@ export async function initHttpServer(): Promise<{
     console.log(JSON.stringify(info, undefined, 2));
   }
   console.log("\n" + "*".repeat(60));
-  return { httpServer, app, port };
+  return { httpServer, app, port, isHttps };
 }
 
 export async function initApp({ app, conatClient }) {
@@ -98,4 +137,96 @@ export async function initApp({ app, conatClient }) {
     logger.debug("redirecting", req.url);
     res.redirect("/static/app.html");
   });
+}
+
+function resolveCertDir(): string {
+  if (process.env.SSL_DIR) {
+    return process.env.SSL_DIR;
+  }
+  const home = os.homedir();
+  // const platform = process.platform;
+  //   if (platform === "win32") {
+  //     const base = process.env.LOCALAPPDATA || join(home, "AppData", "Local");
+  //     return join(base, "CoCalcLite", "devcert");
+  //   }
+  // Linux/macOS (+others): prefer XDG config if set.
+  const xdg = process.env.XDG_CONFIG_HOME || join(home, ".config");
+  return join(xdg, "cocalc-lite", "devcert");
+}
+
+function ensureDir(p: string) {
+  fs.mkdirSync(p, { recursive: true });
+}
+
+function readIfExists(p: string): string | undefined {
+  try {
+    return fs.readFileSync(p, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+function sanitizeHost(rawHost: string): { isHttps: boolean; hostname: string } {
+  // Accept: "localhost", "0.0.0.0", "https://localhost", etc.
+  const trimmed = rawHost.trim();
+  const isHttps = trimmed.startsWith("https://");
+  if (isHttps) {
+    const u = new URL(trimmed);
+    return { isHttps: true, hostname: u.hostname };
+  } else if (trimmed.startsWith("http://")) {
+    const u = new URL(trimmed);
+    return { isHttps: false, hostname: u.hostname };
+  }
+  return { isHttps: false, hostname: trimmed };
+}
+
+function getCertPaths(certDir: string, hostname: string) {
+  const base = join(certDir, hostname);
+  return {
+    keyPath: base + ".key.pem",
+    certPath: base + ".cert.pem",
+  };
+}
+
+function getOrCreateSelfSigned(hostname: string) {
+  const certDir = resolveCertDir();
+  ensureDir(certDir);
+  const { keyPath, certPath } = getCertPaths(certDir, hostname);
+
+  let key = readIfExists(keyPath);
+  let cert = readIfExists(certPath);
+
+  if (!key || !cert) {
+    // Generate a fresh self-signed cert; include SANs for common localhost usage.
+    const attrs = [{ name: "commonName", value: hostname }];
+    const pems = selfsigned.generate(attrs, {
+      days: 365,
+      keySize: 2048,
+      algorithm: "sha256",
+      extensions: [
+        {
+          name: "subjectAltName",
+          altNames: [
+            { type: 2, value: hostname }, // DNS
+            { type: 2, value: "localhost" },
+            { type: 7, ip: "127.0.0.1" },
+            { type: 7, ip: "::1" },
+          ],
+        },
+      ],
+    });
+
+    key = pems.private; // PEM string
+    cert = pems.cert; // PEM string
+
+    // Persist so we reuse next time.
+    fs.writeFileSync(keyPath, key, { mode: 0o600 });
+    fs.writeFileSync(certPath, cert, { mode: 0o644 });
+
+    logger.info(`Generated new self-signed cert for ${hostname}`);
+    logger.info(`Saved key:  ${keyPath}`);
+    logger.info(`Saved cert: ${certPath}`);
+  }
+
+  return { key, cert, keyPath, certPath, certDir };
 }

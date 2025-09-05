@@ -50,11 +50,12 @@ export async function main(): Promise<number> {
   initBugCounter();
 
   logger.debug("start http server");
-  const { httpServer, app, port } = await initHttpServer();
+  const { httpServer, app, port, isHttps } = await initHttpServer();
 
   logger.debug("create server");
   const options = {
     httpServer,
+    ssl: isHttps,
     port,
     getUser: async () => {
       return { account_id };
@@ -64,7 +65,7 @@ export async function main(): Promise<number> {
   if (conatServer.state != "ready") {
     await once(conatServer, "ready");
   }
-  logger.debug(conatServer.address());
+  logger.debug("conat address: ", conatServer.address());
   setConatServer(conatServer.address());
 
   logger.debug("create client");
