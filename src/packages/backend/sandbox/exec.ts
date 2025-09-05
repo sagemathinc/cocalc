@@ -48,6 +48,10 @@ export interface Options {
   // run command under nsjail with these options, which are not sanitized
   // in any way.
   nsjail?: string[];
+
+  // by default the environment is EMPTY, which is usually what we want for fairly
+  // locked down execution.  Use this to add something nontrivial to the default empty.
+  env?: { [name: string]: string };
 }
 
 type ValidateFunction = (value: string) => void;
@@ -66,6 +70,7 @@ export default async function exec({
   cwd,
   username,
   nsjail,
+  env = {},
 }: Options): Promise<ExecOutput> {
   if (arch() == "darwin") {
     options = options.concat(darwin);
@@ -96,7 +101,7 @@ export default async function exec({
     // console.log(`${cmd} ${args.join(" ")}`, { cwd });
     const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
-      env: {} as any, // sometimes next complains about this
+      env,
       cwd,
       ...userId,
     });
