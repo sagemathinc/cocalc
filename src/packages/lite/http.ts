@@ -27,6 +27,7 @@ import selfsigned from "selfsigned";
 import fs from "node:fs";
 import os from "node:os";
 import { initAuth } from "./auth-token";
+import { hasRemote } from "./remote";
 
 const logger = getLogger("lite:static");
 
@@ -119,7 +120,7 @@ export async function initApp({ app, conatClient, AUTH_TOKEN, isHttps }) {
         project_id,
         account_id,
         compute_server_id,
-        remote_sync: !!process.env.COMPUTE_SERVER,
+        remote_sync: hasRemote,
       },
     });
   });

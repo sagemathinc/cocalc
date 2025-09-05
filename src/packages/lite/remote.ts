@@ -6,7 +6,10 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("lite:remote");
 
-export const hasRemote = !!process.env.COMPUTE_SERVER;
+const COMPUTE_SERVER = process.env.COMPUTE_SERVER;
+// this env variable is sensitive and we don't want it to leak:
+delete process.env.COMPUTE_SERVER;
+export const hasRemote = !!COMPUTE_SERVER;
 export let project_id: string = "";
 let client: Client | null = null;
 
@@ -14,7 +17,7 @@ export async function init({ httpServer, path }) {
   if (!hasRemote) {
     return;
   }
-  const url = new URL(process.env.COMPUTE_SERVER!);
+  const url = new URL(COMPUTE_SERVER!);
 
   const apiKey = url.searchParams.get("apiKey");
   const address = url.origin + (url.pathname.length > 1 ? url.pathname : "");
