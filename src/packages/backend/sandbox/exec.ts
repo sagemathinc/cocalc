@@ -98,7 +98,7 @@ export default async function exec({
       cmd = nsjailPath;
     }
 
-    // console.log(`${cmd} ${args.join(" ")}`, { cwd });
+    //console.log(`${cmd} ${args.join(" ")}`, { cwd, env });
     const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
       env,

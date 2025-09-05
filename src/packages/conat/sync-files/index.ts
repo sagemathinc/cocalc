@@ -65,20 +65,16 @@ export class SyncFiles {
 
   close = () => {};
 
-  private getRemotePath = async ({
-    project_id,
-    path,
-  }: {
-    remote: Client;
-    project_id: string;
-    path: string;
-  }) => {
-    // - generate ssh key pair locally, if necessary  (in ~/.cocalc/mutagen ?)
-    // - ensure remote has our ssh key and determine what the remote ssh target is
-
-    // hard code for now
-    const remotePath = `/home/wstein/build/cocalc-lite/src/data/btrfs/mnt/project-${project_id}/${path}`;
-    return remotePath;
+  private parseRemote = async (remote: string) => {
+    if (remote.startsWith("cocalc:")) {
+      // cocalc:project_id/path
+      const project_id = remote.slice("cocalc:".length, "cocalc:".length + 36);
+      const path = remote.slice("cocalc:".length + 37);
+      return `/home/wstein/build/cocalc-lite/src/data/btrfs/mnt/project-${project_id}/${path}`;
+    } else {
+      // arbitrary mutagen target
+      return remote;
+    }
   };
 
   // Sync path between us and path on the remote.  Here remote
@@ -87,10 +83,7 @@ export class SyncFiles {
   create = async ({
     remote,
 
-    project_id,
     path,
-
-    localPath,
 
     paused,
     label = {},
@@ -102,12 +95,8 @@ export class SyncFiles {
 
     maxFileSize,
   }: {
-    remote: Client;
-
-    project_id: string;
     path: string;
-
-    localPath?: string;
+    remote: string;
 
     paused?: boolean;
     label?: { [key: string]: string };
@@ -123,22 +112,27 @@ export class SyncFiles {
 
     maxFileSize?: string;
   }) => {
-    const remotePath = await this.getRemotePath({ remote, project_id, path });
-    localPath ??= path;
-    console.log({ localPath, remotePath });
+    if (!path) {
+      throw Error("path must be specified and not be ''");
+    }
+    if (!remote) {
+      throw Error("remote must be specified and not be ''");
+    }
+    const beta = await this.parseRemote(remote);
+    console.log({ path, beta });
     // - create the sync rule using mutagen
     const args = ["create"];
     switch (resolve) {
       case "local":
-        args.push(localPath, remotePath);
+        args.push(path, beta);
         args.push("--mode", "two-way-resolved");
         break;
       case "remote":
-        args.push(remotePath, localPath);
+        args.push(beta, path);
         args.push("--mode", "two-way-resolved");
         break;
       case "manual":
-        args.push(localPath, remotePath);
+        args.push(path, beta);
         break;
       default:
         throw new Error("resolve must be 'local', 'remote', or 'manual'");
@@ -163,19 +157,10 @@ export class SyncFiles {
     if (paused) {
       args.push("--paused");
     }
-    if (label.project_id) {
-      throw Error("project_id is always set automatically");
-    }
-    label.project_id = project_id;
-    if (label.path) {
-      throw Error("path is always set automatically");
-    }
-    label.path = path;
     for (const key in label) {
       args.push("--label", `${key}=${label[key]}`);
     }
-    const x = await this.mutagen(args);
-    return x;
+    return await this.mutagen(args);
   };
 
   list = async ({

@@ -4,11 +4,13 @@ export async function close(path: string) {
 
 import exec, { type ExecOutput } from "@cocalc/backend/sandbox/exec";
 import which from "which";
+import { dirname } from "path";
 
 export async function mutagen(args: string[]): Promise<ExecOutput> {
   return await exec({
     cmd: await which("mutagen"),
     safety: args,
-    env: { HOME: process.env.HOME ?? "" },
+    // ssh needed in some cases --
+    env: { HOME: process.env.HOME ?? "", PATH: dirname(await which("ssh")) },
   });
 }

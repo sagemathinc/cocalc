@@ -885,7 +885,12 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   measureSize = async (): Promise<void> => {
     if (this.isClosed() || !this.is_visible) return;
-    const geom = this.fitAddon.proposeDimensions();
+    let geom;
+    try {
+      geom = this.fitAddon.proposeDimensions();
+    } catch {
+      return;
+    }
     if (geom == null || this.pty == null || this.pty.socket.state == "closed") {
       return;
     }
