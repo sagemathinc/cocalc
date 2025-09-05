@@ -184,19 +184,40 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.init_touch();
     this.set_connection_status("disconnected");
 
-    this.terminal.onData((data) => {
+    const handleData = (data: string) => {
       if (this.ptyExited) {
         this.ptyExited = false;
         this.connect();
         return;
       }
-      if (this.ignoreData) return;
       if (!this.pty || this.pty.socket.state != "ready") {
         this.writeBuffer.push(data);
         return;
       }
+      // NOTE: As long as the socket is ready, there is no way
+      // data gets dropped or re-ordered once this write succeeds,
+      // since that's exactly what sockets are designed to guarantee.
       this.pty.socket.write(data);
       this.reconnectIfNotRunning();
+    };
+
+    this.terminal.onKey(({ key }) => {
+      if (!this.ignoreData) return;
+      // onKey events even while ignoreData is set absolutely
+      // need to be handled! Otherwise, characters while typing (esp.
+      // over a slower connection) will randomly get dropped when
+      // rendering data!   This whole notion of ignoreData is needed
+      // mainly because our terminals are **collaborative**.
+      // A good way to see why we need this onKey handler is
+      // to type "123456789" repeatedly by running your fingers
+      // accross the number row of the keyboard.  Often 4 gets
+      // dropped while the output of 123 get processed.
+      handleData(key);
+    });
+
+    this.terminal.onData((data) => {
+      if (this.ignoreData) return; // gets handled by onKey if it is actually typed
+      handleData(data);
     });
 
     this.initKeyHandler();
