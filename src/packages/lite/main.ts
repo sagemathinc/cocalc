@@ -30,6 +30,7 @@ import { init as initChangefeeds } from "./hub/changefeeds";
 import { init as initHubApi } from "./hub/api";
 import { account_id } from "@cocalc/backend/data";
 import { init as initRemote } from "./remote";
+import { getAuthToken } from "./auth-token";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("lite:main");
@@ -49,7 +50,8 @@ export async function main(): Promise<number> {
   process.chdir(process.env.HOME ?? "");
   initBugCounter();
 
-  const AUTH_TOKEN = process.env.AUTH_TOKEN;
+  const AUTH_TOKEN = await getAuthToken();
+  console.log({ AUTH_TOKEN });
 
   logger.debug("start http server");
   const { httpServer, app, port, isHttps } = await initHttpServer({

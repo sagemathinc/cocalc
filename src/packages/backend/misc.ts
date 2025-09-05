@@ -74,9 +74,13 @@ import { callback } from "awaiting";
 import { randomBytes } from "crypto";
 
 export async function secureRandomString(length: number): Promise<string> {
-  return (await callback(randomBytes, length)).toString("base64");
+  return (await callback(randomBytes, length + 2))
+    .toString("base64")
+    .slice(0, -2);
 }
 
 export function secureRandomStringSync(length: number): string {
-  return randomBytes(length).toString("base64");
+  return randomBytes(length + 2)
+    .toString("base64")
+    .slice(0, -2);
 }

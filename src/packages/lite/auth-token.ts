@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { secureRandomString } from "@cocalc/backend/misc";
 
 const AUTH_COOKIE_NAME = "cocalc-lite-auth";
 const AUTH_COOKIE_VALUE = "ok"; // opaque; could be a random secret if you want per-run uniqueness
@@ -76,4 +77,16 @@ export async function initAuth({ app, AUTH_TOKEN, isHttps }) {
 </body></html>`,
       );
   });
+}
+
+export async function getAuthToken() {
+  if (process.env.AUTH_TOKEN == null) {
+    return;
+  }
+  if (process.env.AUTH_TOKEN.length <= 6) {
+    // set but short -- so make big random and secure
+    return await secureRandomString(16);
+  }
+  // use supplied token
+  return process.env.AUTH_TOKEN;
 }
