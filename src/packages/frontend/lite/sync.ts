@@ -44,6 +44,8 @@ export function remoteClient() {
   }
   const address = location.origin + join(appBasePath + "/conat-remote");
   remote = new ConatClient(webapp_client, { address, remote: true });
+  // @ts-ignore
+  webapp_client.remote = remote;
   return remote!;
 }
 

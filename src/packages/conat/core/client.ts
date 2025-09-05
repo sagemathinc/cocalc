@@ -271,6 +271,7 @@ import {
   type ConatSyncTable,
   createSyncTable,
 } from "@cocalc/conat/sync/synctable";
+import { syncFiles } from "@cocalc/conat/sync-files";
 
 export const MAX_INTEREST_TIMEOUT = 90_000;
 
@@ -1529,6 +1530,13 @@ export class Client extends EventEmitter {
       syncstring({ ...opts, client: this }),
     db: (opts: Omit<Omit<SyncDBOptions, "client">, "fs">): SyncDB =>
       syncdb({ ...opts, client: this }),
+    files: ({
+      project_id,
+      compute_server_id = 0,
+    }: {
+      project_id: string;
+      compute_server_id?: number;
+    }) => syncFiles({ client: this, project_id, compute_server_id }),
   };
 
   socket = {
