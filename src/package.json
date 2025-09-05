@@ -27,7 +27,7 @@
     "conat-connections": "cd packages/backend && pnpm conat-connections",
     "conat-watch": "cd packages/backend && pnpm conat-watch",
     "conat-inventory": "cd packages/backend && pnpm conat-inventory",
-    "python-api": "cd python/cocalc-api && make all"
+    "python-api": "cd python/cocalc-api && PATH=$HOME/.local/bin:$PATH make all"
   },
   "repository": {
     "type": "git",
