@@ -1,8 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { secureRandomString } from "@cocalc/backend/misc";
+import passwordHash from "@cocalc/backend/auth/password-hash";
 
 const AUTH_COOKIE_NAME = "cocalc-lite-auth";
-const AUTH_COOKIE_VALUE = "ok"; // opaque; could be a random secret if you want per-run uniqueness
 const NINETY_DAYS_SECS = 90 * 24 * 60 * 60;
 
 function parseCookies(header?: string): Record<string, string> {
@@ -22,7 +22,14 @@ function safeEqualStr(a: string, b: string): boolean {
   return timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 
-function makeAuthCookie(secure): string {
+function getAuthCookieValue(AUTH_TOKEN?: string) {
+  if (!AUTH_TOKEN) {
+    return "";
+  }
+  return passwordHash(AUTH_TOKEN);
+}
+
+function makeAuthCookie(secure: boolean, AUTH_COOKIE_VALUE: string): string {
   const attrs = [
     `${AUTH_COOKIE_NAME}=${encodeURIComponent(AUTH_COOKIE_VALUE)}`,
     "Path=/",
@@ -43,7 +50,8 @@ function stripAuthTokenFromUrlPath(originalPath: string): string {
 }
 
 export async function initAuth({ app, AUTH_TOKEN, isHttps }) {
-  // --- AUTH GUARD (only active when AUTH_TOKEN is set) ---
+  const AUTH_COOKIE_VALUE = getAuthCookieValue(AUTH_TOKEN);
+
   app.use((req, res, next) => {
     if (!AUTH_TOKEN) return next(); // no auth enabled
 
@@ -58,7 +66,7 @@ export async function initAuth({ app, AUTH_TOKEN, isHttps }) {
 
     if (token && safeEqualStr(token, AUTH_TOKEN)) {
       // Good token → set cookie and redirect to clean URL (no query token)
-      res.setHeader("Set-Cookie", makeAuthCookie(isHttps));
+      res.setHeader("Set-Cookie", makeAuthCookie(isHttps, AUTH_COOKIE_VALUE));
       const clean = stripAuthTokenFromUrlPath(req.url);
       // 303 avoids issues with non-GET replays
       res.status(303).setHeader("Location", clean).end();
@@ -80,13 +88,15 @@ export async function initAuth({ app, AUTH_TOKEN, isHttps }) {
 }
 
 export async function getAuthToken() {
-  if (process.env.AUTH_TOKEN == null) {
+  const { AUTH_TOKEN } = process.env;
+  delete process.env.AUTH_TOKEN; // don't want it to look to user
+  if (AUTH_TOKEN == null) {
     return;
   }
-  if (process.env.AUTH_TOKEN.length <= 6) {
+  if (AUTH_TOKEN.length <= 6) {
     // set but short -- so make big random and secure
     return await secureRandomString(16);
   }
   // use supplied token
-  return process.env.AUTH_TOKEN;
+  return AUTH_TOKEN;
 }

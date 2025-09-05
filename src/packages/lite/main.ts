@@ -51,7 +51,6 @@ export async function main(): Promise<number> {
   initBugCounter();
 
   const AUTH_TOKEN = await getAuthToken();
-  console.log({ AUTH_TOKEN });
 
   logger.debug("start http server");
   const { httpServer, app, port, isHttps } = await initHttpServer({
