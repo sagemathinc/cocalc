@@ -672,8 +672,8 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
         mode === "translate_text"
           ? getLanguageName(targetTextLanguage)
           : targetLanguage === OTHER_LANG
-          ? otherLanguage
-          : targetLanguage,
+            ? otherLanguage
+            : targetLanguage,
       stepByStep,
     });
 

@@ -2823,7 +2823,7 @@ export class SyncDoc extends EventEmitter {
   // keeps the project from stopping.
   private touchProject = throttle(() => {
     if (this.client?.is_browser()) {
-      this.client.touch_project?.(this.path);
+      this.client.touch_project?.(this.project_id);
     }
   }, 60000);
 

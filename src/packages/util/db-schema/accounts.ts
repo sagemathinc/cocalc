@@ -495,8 +495,7 @@ Table({
             // with all build processes. So mask_files is off by default if not explicitly selected.
             mask_files: false,
             page_size: 500,
-            standby_timeout_m: 5,
-            // default_file_sort: "name",  // <--- DEPRECATED
+            standby_timeout_m: 15,
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             show_global_info2: null,
             first_steps: true,

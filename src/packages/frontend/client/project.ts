@@ -400,6 +400,11 @@ export class ProjectClient {
     // that compute server as active, which keeps it running in case it has idle timeout configured.
     compute_server_id?: number,
   ): Promise<void> => {
+    if (!is_valid_uuid_string(project_id)) {
+      console.warn("WARNING -- touch_project takes a project_id, but got ", {
+        project_id,
+      });
+    }
     if (compute_server_id) {
       // this is throttled, etc. and is independent of everything below.
       touchComputeServer({

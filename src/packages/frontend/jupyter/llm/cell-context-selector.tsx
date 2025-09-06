@@ -143,7 +143,9 @@ export function LLMCellContextSelector({
           <Flex flex={0}>
             <Switch
               checked={cellTypes === "all"}
-              onChange={(val) => onCellTypesChange(val ? "all" : "code")}
+              onChange={(checked) => {
+                onCellTypesChange(checked ? "all" : "code");
+              }}
               unCheckedChildren="Code cells"
               checkedChildren="All Cells"
             />
