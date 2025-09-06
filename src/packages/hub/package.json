@@ -28,7 +28,7 @@
     "cookies": "^0.8.0",
     "cors": "^2.8.5",
     "debug": "^4.4.0",
-    "express": "^4.21.2",
+    "express": "^5.1.0",
     "formidable": "^3.5.4",
     "http-proxy-3": "^1.20.8",
     "lodash": "^4.17.21",
@@ -47,7 +47,7 @@
   },
   "devDependenicesNotes": "For license and size reasons, we make @cocalc/crm a dev dependency so it is NOT installed unless explicitly installed as a separate step.",
   "devDependencies": {
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.3",
     "@types/node": "^18.16.14",
     "coffeescript": "^2.5.1"
   },
