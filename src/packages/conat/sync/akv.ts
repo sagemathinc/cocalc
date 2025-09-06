@@ -116,6 +116,10 @@ export class AKV<T = any> {
       | undefined;
   };
 
+  // if you set a key with a ttl, then we check that ttl is allowed
+  // and if not, set it, since by default it is off.  It's a little
+  // more expensive on the server when allowed.
+  private ttlKnownAllowed = false;
   set = async (
     key: string,
     value: T,
@@ -128,11 +132,19 @@ export class AKV<T = any> {
     },
   ): Promise<{ seq: number; time: number }> => {
     const { headers, ...options0 } = options ?? {};
-    return await this.stream.set({
+    const ret = await this.stream.set({
       key,
       messageData: messageData(value, { headers }),
       ...options0,
     });
+    if (options?.ttl && !this.ttlKnownAllowed) {
+      this.ttlKnownAllowed = (await this.stream.config()).allow_msg_ttl;
+      if (!this.ttlKnownAllowed) {
+        await this.stream.config({ config: { allow_msg_ttl: true } });
+      }
+      this.ttlKnownAllowed = true;
+    }
+    return ret;
   };
 
   keys = async ({ timeout }: { timeout?: number } = {}): Promise<string[]> => {

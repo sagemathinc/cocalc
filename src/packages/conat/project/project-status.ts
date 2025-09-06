@@ -20,11 +20,11 @@ function getSubject({ project_id, compute_server_id }) {
 
 // publishes status updates when they are emitted.
 export async function createPublisher({
+  client = conat(),
   project_id,
   compute_server_id,
   projectStatusServer,
 }) {
-  const client = await conat();
   const subject = getSubject({ project_id, compute_server_id });
   logger.debug("publishing status updates on ", { subject });
   projectStatusServer.on("status", (status) => {
@@ -35,10 +35,10 @@ export async function createPublisher({
 
 // async iterator over the status updates:
 export async function get({
+  client = conat(),
   project_id,
   compute_server_id,
 }): Promise<Subscription> {
-  const client = await conat();
   const subject = getSubject({ project_id, compute_server_id });
   return await client.subscribe(subject);
 }

@@ -17,7 +17,8 @@ import {
   useTypedRedux,
 } from "../app-framework";
 import { Icon, Gap } from "../components";
-const { SiteName } = require("../customize");
+import { SiteName } from "../customize";
+import { lite } from "@cocalc/frontend/lite";
 
 interface Props {
   project_id: string;
@@ -40,7 +41,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
   const last_name = useTypedRedux("account", "last_name");
   const [editingName, setEditingName] = useState<boolean>(false);
   const actions = useActions("account");
-  if (first_name == null || last_name == null) {
+  if (first_name == null || last_name == null || lite) {
     // loading?
     return <></>;
   }

@@ -17,7 +17,6 @@ import {
   Typography,
 } from "antd";
 import { useEffect, useRef, useState, type JSX } from "react";
-
 import { HelpIcon } from "@cocalc/frontend/components/help-icon";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
@@ -199,7 +198,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       <Form.Item
         label="Shared RAM"
         name="ram"
-        initialValue={PARAMS.ram.dflt}
+        initialValue={PARAMS.ram.default}
         extra={explainRam()}
       >
         <IntegerSlider
@@ -268,7 +267,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       <Form.Item
         label="Shared CPUs"
         name="cpu"
-        initialValue={PARAMS.cpu.dflt}
+        initialValue={PARAMS.cpu.default}
         extra={renderCpuExtra()}
       >
         <IntegerSlider
@@ -314,7 +313,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       <Form.Item
         label="Disk space"
         name="disk"
-        initialValue={PARAMS.disk.dflt}
+        initialValue={PARAMS.disk.default}
         extra={
           showExplanations ? (
             <>

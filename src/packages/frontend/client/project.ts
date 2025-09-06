@@ -41,6 +41,8 @@ import { WebappClient } from "./client";
 import { throttle } from "lodash";
 import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
 import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
+import { type ProjectApi } from "@cocalc/conat/project/api";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -50,8 +52,11 @@ export class ProjectClient {
     this.client = client;
   }
 
-  private conatApi = (project_id: string) => {
-    return this.client.conat_client.projectApi({ project_id });
+  conatApi = (project_id: string, compute_server_id = 0): ProjectApi => {
+    return this.client.conat_client.projectApi({
+      project_id,
+      compute_server_id,
+    });
   };
 
   // This can write small text files in one message.
@@ -118,16 +123,10 @@ export class ProjectClient {
     return url;
   };
 
-  copy_path_between_projects = async (opts: {
-    src_project_id: string; // id of source project
-    src_path: string; // relative path of director or file in the source project
-    target_project_id: string; // if of target project
-    target_path?: string; // defaults to src_path
-    overwrite_newer?: boolean; // overwrite newer versions of file at destination (destructive)
-    delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
-    backup?: boolean; // make ~ backup files instead of overwriting changed files
-    timeout?: number; // **timeout in milliseconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-    exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
+  copyPathBetweenProjects = async (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
   }): Promise<void> => {
     await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
   };
@@ -479,8 +478,8 @@ export class ProjectClient {
     start?: boolean;
     // "license_id1,license_id2,..." -- if given, create project with these licenses applied
     license?: string;
-    // never use pool
-    noPool?: boolean;
+    // make exact clone of the files from this project:
+    src_project_id?: string;
   }): Promise<string> => {
     const project_id =
       await this.client.conat_client.hub.projects.createProject(opts);
@@ -498,7 +497,7 @@ export class ProjectClient {
     return (await this.api(opts.project_id)).realpath(opts.path);
   };
 
-  isdir = async ({
+  isDir = async ({
     project_id,
     path,
   }: {
@@ -513,21 +512,6 @@ export class ProjectClient {
     });
     return !exit_code && stdout.trim() == "directory";
   };
-
-  ipywidgetsGetBuffer = reuseInFlight(
-    async (
-      project_id: string,
-      path: string,
-      model_id: string,
-      buffer_path: string,
-    ): Promise<ArrayBuffer> => {
-      const actions = redux.getEditorActions(project_id, path);
-      return await actions.jupyter_actions.ipywidgetsGetBuffer(
-        model_id,
-        buffer_path,
-      );
-    },
-  );
 
   // getting, setting, editing, deleting, etc., the  api keys for a project
   api_keys = async (opts: {

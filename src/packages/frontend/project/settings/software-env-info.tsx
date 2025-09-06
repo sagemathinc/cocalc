@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// cSpell:ignore descr disp dflt
+// cSpell:ignore descr disp
 
 import { join } from "path";
 import { FormattedMessage } from "react-intl";

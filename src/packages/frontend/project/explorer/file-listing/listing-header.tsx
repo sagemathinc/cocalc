@@ -4,13 +4,11 @@
  */
 
 import React from "react";
-import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, Gap, VisibleMDLG } from "@cocalc/frontend/components";
 import { Col, Row } from "antd";
 
-// TODO: Flatten active_file_sort for easy PureComponent use
 interface Props {
-  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
+  active_file_sort: { column_name: string; is_descending: boolean };
   sort_by: (heading: string) => void;
 }
 
@@ -24,11 +22,7 @@ const row_style: React.CSSProperties = {
 
 const inner_icon_style = { marginRight: "10px" };
 
-// TODO: Something should uniformly describe how sorted table headers work.
-// 5/8/2017 We have 3 right now, Course students, assignments panel and this one.
-export const ListingHeader: React.FC<Props> = (props: Props) => {
-  const { active_file_sort, sort_by } = props;
-
+export function ListingHeader({ active_file_sort, sort_by }: Props) {
   function render_sort_link(
     column_name: string,
     display_name: string,
@@ -49,14 +43,10 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
         >
           {display_name}
           <Gap />
-          {active_file_sort.get("column_name") === column_name ? (
+          {active_file_sort.column_name === column_name ? (
             <Icon
               style={inner_icon_style}
-              name={
-                active_file_sort.get("is_descending")
-                  ? "caret-up"
-                  : "caret-down"
-              }
+              name={active_file_sort.is_descending ? "caret-up" : "caret-down"}
             />
           ) : undefined}
         </a>
@@ -81,4 +71,4 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
       </Col>
     </Row>
   );
-};
+}

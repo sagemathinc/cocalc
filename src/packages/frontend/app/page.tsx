@@ -12,7 +12,6 @@ declare var DEBUG: boolean;
 
 import { Spin } from "antd";
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -52,6 +51,7 @@ import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { VerifyEmail } from "./verify-email-banner";
 import VersionWarning from "./version-warning";
 import { CookieWarning, LocalStorageWarning } from "./warnings";
+import { lite } from "@cocalc/frontend/lite";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -213,7 +213,7 @@ export const Page: React.FC = () => {
   }
 
   function render_sign_in_tab(): React.JSX.Element | null {
-    if (is_logged_in || !showSignInTab) return null;
+    if (lite || is_logged_in || !showSignInTab) return null;
 
     return (
       <Next
@@ -375,7 +375,7 @@ export const Page: React.FC = () => {
       {local_storage_warning && <LocalStorageWarning />}
       {show_i18n && <I18NBanner />}
       <VerifyEmail />
-      {!fullscreen && (
+      {!lite && !fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
@@ -389,7 +389,7 @@ export const Page: React.FC = () => {
         </nav>
       )}
       {fullscreen && render_fullscreen()}
-      {isNarrow && (
+      {!lite && isNarrow && (
         <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
       )}
       <ActiveContent />

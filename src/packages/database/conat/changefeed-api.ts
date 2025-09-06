@@ -29,7 +29,6 @@ import {
   changefeedServer,
   type ConatSocketServer,
 } from "@cocalc/conat/hub/changefeeds";
-
 import { db } from "@cocalc/database";
 import { conat } from "@cocalc/backend/conat";
 

@@ -74,7 +74,7 @@ interface ErrorProps {
 }
 
 const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
-  const { actions, nbconvert } = props;
+  const { nbconvert } = props;
   const preNode = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -117,7 +117,6 @@ const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
     return <span />;
   }
   if (!misc.is_string(error)) {
-    actions.nbconvert_get_error();
     return <Loading />;
   } else {
     return (

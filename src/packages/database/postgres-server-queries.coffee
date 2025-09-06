@@ -1517,7 +1517,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id : required
             path       : required
-            listing    : required   # files in path [{name:..., isdir:boolean, ....}, ...]
+            listing    : required   # files in path [{name:..., isDir:boolean, ....}, ...]
             cb         : required
         # Get all public paths for the given project_id, then check if path is "in" one according
         # to the definition in misc.

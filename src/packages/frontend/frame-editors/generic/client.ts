@@ -10,9 +10,7 @@ Typescript async/await rewrite of @cocalc/util/client.coffee...
 import { Map } from "immutable";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { callback2 } from "@cocalc/util/async-utils";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { FakeSyncstring } from "./syncstring-fake";
 import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
 export { type User };
@@ -37,8 +35,7 @@ export function getComputeServerId({
   path: string;
 }) {
   let compute_server_id =
-    redux.getProjectActions(project_id).getComputeServerIdForFile({ path }) ??
-    0;
+    redux.getProjectActions(project_id).getComputeServerIdForFile(path) ?? 0;
   if (compute_server_id && excludeFromComputeServer(path)) {
     compute_server_id = 0;
   }
@@ -154,30 +151,6 @@ export async function write_text_file_to_project(
   await webapp_client.project_client.write_text_file(opts);
 }
 
-export async function formatter(
-  project_id: string,
-  path: string,
-  config: FormatterConfig,
-): Promise<CompressedPatch> {
-  const api = await webapp_client.project_client.api(project_id);
-  const resp = await api.formatter(path, config);
-
-  if (resp.status === "error") {
-    const loc = resp.error?.loc;
-    if (loc && loc.start) {
-      throw Error(
-        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`,
-      );
-    } else if (resp.error) {
-      throw Error(resp.error);
-    } else {
-      throw Error("Syntax error prevented formatting code.");
-    }
-  } else {
-    return resp.patch;
-  }
-}
-
 export function log_error(error: string | object): void {
   webapp_client.tracking_client.log_error(error);
 }
@@ -185,6 +158,7 @@ export function log_error(error: string | object): void {
 interface SyncstringOpts {
   project_id: string;
   path: string;
+  compute_server_id?: number;
   cursors?: boolean;
   before_change_hook?: Function;
   after_change_hook?: Function;
@@ -200,7 +174,7 @@ export function syncstring(opts: SyncstringOpts): any {
     delete opts.fake;
   }
   opts1.id = schema.client_db.sha1(opts.project_id, opts.path);
-  return webapp_client.sync_string(opts1);
+  return webapp_client.conat_client.conat().sync.string(opts1);
 }
 
 import { DataServer } from "@cocalc/sync/editor/generic/sync-doc";
@@ -210,6 +184,7 @@ import type { SyncString } from "@cocalc/sync/editor/string/sync";
 interface SyncstringOpts2 {
   project_id: string;
   path: string;
+  compute_server_id?: number;
   cursors?: boolean;
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
@@ -218,14 +193,13 @@ interface SyncstringOpts2 {
 }
 
 export function syncstring2(opts: SyncstringOpts2): SyncString {
-  const opts1: any = opts;
-  opts1.client = webapp_client;
-  return webapp_client.sync_client.sync_string(opts1);
+  return webapp_client.conat_client.conat().sync.string(opts);
 }
 
 export interface SyncDBOpts {
   project_id: string;
   path: string;
+  compute_server_id?: number;
   primary_keys: string[];
   string_cols?: string[];
   cursors?: boolean;
@@ -238,8 +212,7 @@ export interface SyncDBOpts {
 }
 
 export function syncdb(opts: SyncDBOpts): any {
-  const opts1: any = opts;
-  return webapp_client.sync_db(opts1);
+  return webapp_client.conat_client.conat().sync.db(opts);
 }
 
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
@@ -250,7 +223,7 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
   }
   const opts1: any = opts;
   opts1.client = webapp_client;
-  return webapp_client.sync_client.sync_db(opts1);
+  return webapp_client.conat_client.conat().sync.db(opts1);
 }
 
 interface QueryOpts {

@@ -27,12 +27,12 @@ You can also skip step 1 if you instead set COMPUTE_SERVER_ID to something nonze
 import "@cocalc/project/conat/env"; // ensure conat env available
 
 import { createReadStream as fs_createReadStream } from "fs";
-import { compute_server_id, project_id } from "@cocalc/project/data";
 import { join } from "path";
 import {
   createServer,
   close as closeReadServer,
 } from "@cocalc/conat/files/read";
+import { getIdentity } from "../connection";
 
 function createReadStream(path: string) {
   if (path[0] != "/" && process.env.HOME) {
@@ -42,10 +42,10 @@ function createReadStream(path: string) {
 }
 
 // the project should call this on startup:
-export async function init() {
-  await createServer({ project_id, compute_server_id, createReadStream });
+export async function init(opts?) {
+  await createServer({ ...getIdentity(opts), createReadStream });
 }
 
-export async function close() {
-  await closeReadServer({ project_id, compute_server_id });
+export async function close(opts?) {
+  await closeReadServer(getIdentity(opts));
 }

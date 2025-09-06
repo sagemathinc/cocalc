@@ -231,10 +231,10 @@ function ActionButton({
     >
       <Icon name={icon} /> {label}{" "}
       {doing && (
-        <>
+        <span>
           <div style={{ display: "inline-block", width: "10px" }} />
           <Spin />
-        </>
+        </span>
       )}
     </Button>
   );
@@ -294,7 +294,7 @@ function ActionButton({
   }
 
   const content = (
-    <>
+    <span>
       {button}
       {showOnPremStart && action == "start" && (
         <OnPremGuide
@@ -303,9 +303,9 @@ function ActionButton({
           configuration={configuration}
           id={id}
           title={
-            <>
+            <div>
               <Icon name="server" /> Connect Your Virtual Machine to CoCalc
-            </>
+            </div>
           }
         />
       )}
@@ -316,9 +316,9 @@ function ActionButton({
           configuration={configuration}
           id={id}
           title={
-            <>
+            <div>
               <Icon name="stop" /> Disconnect Your Virtual Machine from CoCalc
-            </>
+            </div>
           }
         />
       )}
@@ -336,7 +336,7 @@ function ActionButton({
           }
         />
       )}
-    </>
+    </span>
   );
 
   // Do NOT use popover in case we're doing a popconfirm.

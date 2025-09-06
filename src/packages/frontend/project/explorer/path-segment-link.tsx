@@ -27,18 +27,16 @@ export interface PathSegmentItem {
 }
 
 // One segment of the directory links at the top of the files listing.
-export function createPathSegmentLink(props: Readonly<Props>): PathSegmentItem {
-  const {
-    path = "",
-    display,
-    on_click,
-    full_name,
-    history,
-    active = false,
-    key,
-    style,
-  } = props;
-
+export function createPathSegmentLink({
+  path = "",
+  display,
+  on_click,
+  full_name,
+  history,
+  active = false,
+  key,
+  style,
+}: Readonly<Props>): PathSegmentItem {
   function render_content(): React.JSX.Element | string | undefined {
     if (full_name && full_name !== display) {
       return (

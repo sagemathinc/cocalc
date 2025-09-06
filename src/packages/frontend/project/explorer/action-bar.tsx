@@ -5,22 +5,25 @@
 
 import { Space } from "antd";
 import * as immutable from "immutable";
-import { throttle } from "lodash";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
-import { ComputeImages } from "@cocalc/frontend/custom-software/init";
+import { type ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
-import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
+import {
+  file_actions,
+  type ProjectActions,
+  type FileAction,
+} from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-
-import { useProjectContext } from "../context";
+import { DirectoryListingEntry } from "@cocalc/util/types";
+import { VisibleMDLG } from "@cocalc/frontend/components";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -31,11 +34,9 @@ const ROW_INFO_STYLE = {
 interface Props {
   project_id?: string;
   checked_files: immutable.Set<string>;
-  listing: { name: string; isdir: boolean }[];
-  page_number: number;
-  page_size: number;
+  listing: DirectoryListingEntry[];
   current_path?: string;
-  project_map?: immutable.Map<string, string>;
+  project_map?;
   images?: ComputeImages;
   actions: ProjectActions;
   available_features?;
@@ -43,100 +44,47 @@ interface Props {
   project_is_running?: boolean;
 }
 
-export const ActionBar: React.FC<Props> = (props: Props) => {
+export function ActionBar({
+  project_id,
+  checked_files,
+  listing,
+  current_path,
+  project_map,
+  images,
+  actions,
+  available_features,
+  show_custom_software_reset,
+  project_is_running,
+}: Props) {
   const intl = useIntl();
-  const [showLabels, setShowLabels] = useState<boolean>(true);
-  const { mainWidthPx } = useProjectContext();
   const buttonRef = useRef<HTMLDivElement>(null);
-  const widthThld = useRef<number>(0);
-  const [select_entire_directory, set_select_entire_directory] = useState<
-    "hidden" | "check" | "clear"
-  >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
-    props.actions.project_id,
+    actions.project_id,
   );
   if (student_project_functionality.disableActions) {
     return <div></div>;
   }
 
-  useEffect(() => {
-    // user changed directory, hide the "select entire directory" button
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
-  }, [props.current_path]);
-
-  useEffect(() => {
-    if (
-      props.checked_files.size === props.listing.length &&
-      select_entire_directory === "check"
-    ) {
-      // user just clicked the "select entire directory" button, show the "clear" button
-      set_select_entire_directory("clear");
-    }
-  }, [props.checked_files, props.listing, select_entire_directory]);
-
-  useEffect(() => {
-    const btnbar = buttonRef.current;
-    if (btnbar == null) return;
-    const resizeObserver = new ResizeObserver(
-      throttle(
-        (entries) => {
-          if (entries.length > 0) {
-            const width = entries[0].contentRect.width;
-            // TODO: this "+100" is sloppy. This makes it much better than before
-            // (e.g. german buttons were cutoff all the time), but could need more tweaking
-            if (showLabels && width > mainWidthPx + 100) {
-              setShowLabels(false);
-              widthThld.current = width;
-            } else if (!showLabels && width < widthThld.current - 1) {
-              setShowLabels(true);
-            }
-          }
-        },
-        100,
-        { leading: false, trailing: true },
-      ),
-    );
-    resizeObserver.observe(btnbar);
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [mainWidthPx, buttonRef.current]);
-
   function clear_selection(): void {
-    props.actions.set_all_files_unchecked();
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
+    actions.set_all_files_unchecked();
   }
 
   function check_all_click_handler(): void {
-    if (props.checked_files.size === 0) {
-      const files_on_page = props.listing.slice(
-        props.page_size * props.page_number,
-        props.page_size * (props.page_number + 1),
+    if (checked_files.size === 0) {
+      actions.set_file_list_checked(
+        listing.map((file) => misc.path_to_file(current_path ?? "", file.name)),
       );
-      props.actions.set_file_list_checked(
-        files_on_page.map((file) =>
-          misc.path_to_file(props.current_path ?? "", file.name),
-        ),
-      );
-      if (props.listing.length > props.page_size) {
-        // if there are more items than one page, show a button to select everything
-        set_select_entire_directory("check");
-      }
     } else {
       clear_selection();
     }
   }
 
   function render_check_all_button(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
+    if (listing.length === 0) {
       return;
     }
 
-    const checked = props.checked_files.size > 0;
+    const checked = checked_files.size > 0;
     const button_text = intl.formatMessage(
       {
         id: "project.explorer.action-bar.check_all.button",
@@ -148,10 +96,10 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     );
 
     let button_icon;
-    if (props.checked_files.size === 0) {
+    if (checked_files.size === 0) {
       button_icon = "square-o";
     } else {
-      if (props.checked_files.size >= props.listing.length) {
+      if (checked_files.size >= listing.length) {
         button_icon = "check-square-o";
       } else {
         button_icon = "minus-square-o";
@@ -169,37 +117,12 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function do_select_entire_directory(): void {
-    props.actions.set_file_list_checked(
-      props.listing.map((file) =>
-        misc.path_to_file(props.current_path ?? "", file.name),
-      ),
-    );
-  }
-
-  function render_select_entire_directory(): React.JSX.Element | undefined {
-    switch (select_entire_directory) {
-      case "check":
-        return (
-          <Button bsSize="xsmall" onClick={do_select_entire_directory}>
-            Select All {props.listing.length} Items
-          </Button>
-        );
-      case "clear":
-        return (
-          <Button bsSize="xsmall" onClick={clear_selection}>
-            Clear Entire Selection
-          </Button>
-        );
-    }
-  }
-
   function render_currently_selected(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
+    if (listing.length === 0) {
       return;
     }
-    const checked = props.checked_files.size;
-    const total = props.listing.length;
+    const checked = checked_files.size;
+    const total = listing.length;
     const style = ROW_INFO_STYLE;
 
     if (checked === 0) {
@@ -237,27 +160,29 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
             )}
           </span>
           <Gap />
-          {render_select_entire_directory()}
         </div>
       );
     }
   }
 
-  function render_action_button(name: string): React.JSX.Element {
-    const disabled =
-      isDisabledSnapshots(name) &&
-      (props.current_path != null
-        ? props.current_path.startsWith(".snapshots")
-        : undefined);
+  function render_action_button(name: FileAction) {
+    if (isSnapshotPath(current_path)) {
+      if (isDisabledSnapshots(name)) {
+        return null;
+      }
+      if (current_path != SNAPSHOTS && name == "delete") {
+        return null;
+      }
+    }
     const obj = file_actions[name];
     const handle_click = (_e: React.MouseEvent) => {
-      props.actions.set_file_action(name);
+      actions.set_file_action(name);
     };
 
     return (
-      <Button onClick={handle_click} disabled={disabled} key={name}>
+      <Button onClick={handle_click} key={name}>
         <Icon name={obj.icon} />{" "}
-        {showLabels ? `${intl.formatMessage(obj.name)}...` : ""}
+        <VisibleMDLG>{`${intl.formatMessage(obj.name)}...`}</VisibleMDLG>
       </Button>
     );
   }
@@ -273,21 +198,18 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       | "copy"
       | "share"
     )[];
-    if (!props.project_is_running) {
+    if (checked_files.size === 0) {
       return;
-    }
-    if (props.checked_files.size === 0) {
-      return;
-    } else if (props.checked_files.size === 1) {
-      let isdir;
-      const item = props.checked_files.first();
-      for (const file of props.listing) {
-        if (misc.path_to_file(props.current_path ?? "", file.name) === item) {
-          ({ isdir } = file);
+    } else if (checked_files.size === 1) {
+      let isDir;
+      const item = checked_files.first();
+      for (const file of listing) {
+        if (misc.path_to_file(current_path ?? "", file.name) === item) {
+          ({ isDir } = file);
         }
       }
 
-      if (isdir) {
+      if (isDir) {
         // one directory selected
         action_buttons = [...ACTION_BUTTONS_DIR];
       } else {
@@ -306,25 +228,25 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_button_area(): React.JSX.Element | undefined {
-    if (props.checked_files.size === 0) {
+    if (checked_files.size === 0) {
       if (
-        props.project_id == null ||
-        props.images == null ||
-        props.project_map == null ||
-        props.available_features == null
+        project_id == null ||
+        images == null ||
+        project_map == null ||
+        available_features == null
       ) {
         return;
       }
       return (
         <Space.Compact>
           <CustomSoftwareInfo
-            project_id={props.project_id}
-            images={props.images}
-            project_map={props.project_map}
-            actions={props.actions}
-            available_features={props.available_features}
-            show_custom_software_reset={!!props.show_custom_software_reset}
-            project_is_running={!!props.project_is_running}
+            project_id={project_id}
+            images={images}
+            project_map={project_map}
+            actions={actions}
+            available_features={available_features}
+            show_custom_software_reset={!!show_custom_software_reset}
+            project_is_running={!!project_is_running}
           />
         </Space.Compact>
       );
@@ -332,25 +254,21 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       return render_action_buttons();
     }
   }
-  if (props.checked_files.size === 0 && IS_MOBILE) {
+  if (checked_files.size === 0 && IS_MOBILE) {
     return null;
   }
   return (
     <div style={{ flex: "1 0 auto" }}>
       <div ref={buttonRef} style={{ flex: "1 0 auto" }}>
         <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
-          <Space.Compact>
-            {props.project_is_running ? render_check_all_button() : undefined}
-          </Space.Compact>
+          <Space.Compact>{render_check_all_button()}</Space.Compact>
           {render_button_area()}
         </ButtonToolbar>
       </div>
-      <div style={{ flex: "1 0 auto" }}>
-        {props.project_is_running ? render_currently_selected() : undefined}
-      </div>
+      <div style={{ flex: "1 0 auto" }}>{render_currently_selected()}</div>
     </div>
   );
-};
+}
 
 export const ACTION_BUTTONS_DIR = [
   "download",
@@ -382,13 +300,16 @@ export const ACTION_BUTTONS_MULTI = [
   "copy",
 ] as const;
 
+const DISABLED_SNAPSHOT_ACTIONS = new Set([
+  "move",
+  "compress",
+  "share",
+]);
+
 export function isDisabledSnapshots(name: string) {
-  return [
-    "move",
-    "compress",
-    "rename",
-    "delete",
-    "share",
-    "duplicate",
-  ].includes(name);
+  return DISABLED_SNAPSHOT_ACTIONS.has(name);
+}
+
+export function isSnapshotPath(path?: string) {
+  return path == SNAPSHOTS || path?.startsWith(SNAPSHOTS + "/");
 }

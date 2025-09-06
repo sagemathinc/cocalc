@@ -7,12 +7,11 @@
 Run code in a project.
 */
 
-import callProject from "@cocalc/server/projects/call";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import { ExecInputSchema, ExecOutputSchema } from "lib/api/schema/exec";
+import exec from "@cocalc/server/projects/exec";
 
 async function handle(req, res) {
   try {
@@ -48,37 +47,25 @@ async function get(req) {
     async_await,
   } = getParams(req);
 
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be a collaborator on the project");
-  }
+  const execOpts = {
+    filesystem,
+    path,
+    command,
+    args,
+    timeout,
+    max_output,
+    bash,
+    aggregate,
+    err_on_exit,
+    env,
+    async_call,
+    async_get,
+    async_stats,
+    async_await,
+  };
 
-  const resp = await callProject({
-    account_id,
-    project_id,
-    mesg: {
-      event: "project_exec",
-      project_id,
-      compute_server_id,
-      filesystem,
-      path,
-      command,
-      args,
-      timeout,
-      max_output,
-      bash,
-      aggregate,
-      err_on_exit,
-      env,
-      async_call,
-      async_get,
-      async_stats,
-      async_await,
-    },
-  });
-  // event and id don't make sense for http post api
-  delete resp.event;
-  delete resp.id;
-  return resp;
+  // this *does* do permissions check
+  return await exec({ account_id, project_id, compute_server_id, execOpts });
 }
 
 export default apiRoute({

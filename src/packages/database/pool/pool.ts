@@ -15,12 +15,18 @@ import { getLogger } from "@cocalc/backend/logger";
 import { STATEMENT_TIMEOUT_MS } from "../consts";
 import getCachedPool, { CacheTime } from "./cached";
 import dbPassword from "./password";
+import { types } from "pg";
+export * from "./util";
+
 
 const L = getLogger("db:pool");
 
-export * from "./util";
 
 let pool: Pool | undefined = undefined;
+
+// This makes it so when we read dates out, if they are in a "timestamp with no timezone" field in the
+// database, then they are interpreted as having been UTC, which is always what we do.
+types.setTypeParser(1114, (str: string) => new Date(str + " UTC"));
 
 export default function getPool(cacheTime?: CacheTime): Pool {
   if (cacheTime != null) {
@@ -39,6 +45,7 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       // the test suite assumes small pool, or there will be random failures sometimes (?)
       max: process.env.PGDATABASE == TEST ? 2 : undefined,
       ssl,
+      options: "-c timezone=UTC", // ← make the session time zone UTC
     });
 
     pool.on("error", (err: Error) => {
@@ -105,6 +112,7 @@ export async function initEphemeralDatabase({
     database: "smc",
     statement_timeout: STATEMENT_TIMEOUT_MS,
     ssl,
+    options: "-c timezone=UTC", // ← make the session time zone UTC
   });
   db.on("error", (err: Error) => {
     L.debug("WARNING: Unexpected error on idle client in PG pool", {

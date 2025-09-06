@@ -20,11 +20,11 @@
     "strictNullChecks": true,
     "target": "es2020",
     "module": "commonjs"
+  },
+  "watchOptions": {
+    "fallbackPolling": "dynamicPriority",
+    "synchronousWatchDirectory": true,
+    "watchDirectory": "useFsEvents",
+    "watchFile": "useFsEvents"
   }
-  //   "watchOptions": {
-  //     "fallbackPolling": "dynamicPriority",
-  //     "synchronousWatchDirectory": true,
-  //     "watchDirectory": "useFsEvents",
-  //     "watchFile": "useFsEvents"
-  //   }
 }

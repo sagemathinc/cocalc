@@ -78,7 +78,7 @@ export async function cloneConfiguration({
   const server = servers[0] as ComputeServerUserInfo;
   if (!noChange) {
     let n = 1;
-    let title = `Clone of ${server.title}`;
+    let title = `Fork of ${server.title}`;
     const titles = new Set(servers.map((x) => x.title));
     if (titles.has(title)) {
       while (titles.has(title + ` (${n})`)) {
