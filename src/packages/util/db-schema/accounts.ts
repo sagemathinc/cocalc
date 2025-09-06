@@ -490,7 +490,7 @@ Table({
             confirm_close: false,
             mask_files: true,
             page_size: 500,
-            standby_timeout_m: 5,
+            standby_timeout_m: 15,
             default_file_sort: "name",
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             show_global_info2: null,
