@@ -1,6 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { secureRandomString } from "@cocalc/backend/misc";
-import passwordHash from "@cocalc/backend/auth/password-hash";
+import passwordHash, {
+  verifyPassword,
+} from "@cocalc/backend/auth/password-hash";
 
 const AUTH_COOKIE_NAME = "cocalc-lite-auth";
 const NINETY_DAYS_SECS = 90 * 24 * 60 * 60;
@@ -56,13 +58,21 @@ export async function initAuth({ app, AUTH_TOKEN, isHttps }) {
     if (!AUTH_TOKEN) return next(); // no auth enabled
 
     const cookies = parseCookies(req.headers.cookie);
-    const hasCookie = cookies[AUTH_COOKIE_NAME] === AUTH_COOKIE_VALUE;
-
-    if (hasCookie) return next();
+    const hasCookie = verifyPassword(AUTH_TOKEN, cookies[AUTH_COOKIE_NAME]);
 
     // No cookie: check a one-time query token
     const u = new URL(req.url, "http://x"); // origin placeholder
     const token = u.searchParams.get("auth_token") || "";
+
+    if (hasCookie) {
+      if (token) {
+        const clean = stripAuthTokenFromUrlPath(req.url);
+        res.status(303).setHeader("Location", clean).end();
+        return;
+      } else {
+        return next();
+      }
+    }
 
     if (token && safeEqualStr(token, AUTH_TOKEN)) {
       // Good token → set cookie and redirect to clean URL (no query token)
