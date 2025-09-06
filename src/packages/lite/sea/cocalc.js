@@ -1,7 +1,7 @@
 // cocalc.js
 console.log("Starting CoCalc");
 
-const VERSION = "v0.1";
+const VERSION = "0.1.1";
 
 const { getRawAsset } = require("node:sea");
 const fs = require("node:fs");
