@@ -6,7 +6,6 @@
 import { Popconfirm, Popover } from "antd";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { AccountActions } from "@cocalc/frontend/account";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";

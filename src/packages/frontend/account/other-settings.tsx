@@ -47,6 +47,7 @@ import Messages from "./messages";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
+import { lite } from "@cocalc/frontend/lite";
 
 // See https://github.com/sagemathinc/cocalc/issues/5620
 // There are weird bugs with relying only on mathjax, whereas our
@@ -72,6 +73,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   const { locale } = useLocalizationCtx();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
+  const is_commercial = useTypedRedux("customize", "is_commercial");
 
   const [model, setModel] = useLanguageModelSetting();
 
@@ -167,7 +169,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   }
 
   function render_standby_timeout(): Rendered {
-    if (IS_TOUCH) {
+    if (IS_TOUCH || lite) {
       return;
     }
     return (
@@ -673,7 +675,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         <div style={{ height: "10px" }} />
         <Tours />
         <Messages />
-        <UseBalance style={{ marginTop: "10px" }} />
+        {is_commercial && <UseBalance style={{ marginTop: "10px" }} />}
       </Panel>
     </>
   );

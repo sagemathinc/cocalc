@@ -21,7 +21,6 @@ import {
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 import { Entries } from "type-fest";
-
 import { LanguageSelector } from "@cocalc/frontend/account/i18n-selector";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";

@@ -111,7 +111,6 @@ export const Page: React.FC = () => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const local_storage_warning = useTypedRedux("page", "local_storage_warning");
   const cookie_warning = useTypedRedux("page", "cookie_warning");
-
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
@@ -119,7 +118,6 @@ export const Page: React.FC = () => {
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
   const show_i18n = useShowI18NBanner();
-
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
 

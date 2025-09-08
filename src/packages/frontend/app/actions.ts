@@ -19,6 +19,8 @@ import { once } from "@cocalc/util/async-utils";
 import { PageState } from "./store";
 import { lite, project_id } from "@cocalc/frontend/lite";
 
+const LITE_TABS = new Set(["account", "admin"]);
+
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
@@ -141,9 +143,11 @@ export class PageActions extends Actions<PageState> {
     disconnect_from_project(project_id);
   }
 
-  async set_active_tab(key, change_history = true): Promise<void> {
+  set_active_tab = async (key, change_history = true): Promise<void> => {
     if (lite) {
-      key = project_id;
+      if (!LITE_TABS.has(key)) {
+        key = project_id;
+      }
     }
 
     const prev_key = this.redux.getStore("page").get("active_top_tab");
@@ -233,7 +237,7 @@ export class PageActions extends Actions<PageState> {
           set_window_title("");
         }
     }
-  }
+  };
 
   show_connection(show_connection) {
     this.setState({ show_connection });

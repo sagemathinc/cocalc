@@ -7,7 +7,6 @@ import { Alert as AntdAlert, Space } from "antd";
 import { List, Map } from "immutable";
 import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import {
   Alert,
   Button,
@@ -53,6 +52,7 @@ import { EmailAddressSetting } from "./email-address-setting";
 import { EmailVerification } from "./email-verification";
 import { PasswordSetting } from "./password-setting";
 import { TextSetting } from "./text-setting";
+import { lite } from "@cocalc/frontend/lite";
 
 type ImmutablePassportStrategy = TypedMap<PassportStrategyFrontend>;
 
@@ -250,7 +250,7 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_sign_out_error(): Rendered {
-    if (!props.sign_out_error) {
+    if (!props.sign_out_error || lite) {
       return;
     }
     return (
@@ -263,6 +263,9 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_sign_out_buttons(): Rendered {
+    if (lite) {
+      return;
+    }
     return (
       <Row
         style={{
@@ -289,7 +292,7 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_linked_external_accounts(): Rendered {
-    if (props.strategies == null || props.strategies.size <= 1) {
+    if (props.strategies == null || props.strategies.size <= 1 || lite) {
       // not configured by server
       return;
     }
@@ -324,7 +327,7 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_available_to_link(): Rendered {
-    if (props.strategies == null || props.strategies.size <= 1) {
+    if (props.strategies == null || props.strategies.size <= 1 || lite) {
       // not configured by server yet, or nothing but email
       return;
     }
@@ -390,7 +393,7 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_anonymous_warning(): Rendered {
-    if (!props.is_anonymous) {
+    if (!props.is_anonymous || lite) {
       return;
     }
     // makes no sense to delete an account that is anonymous; it'll
@@ -414,7 +417,7 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_delete_account(): Rendered {
-    if (props.is_anonymous) {
+    if (props.is_anonymous || lite) {
       return;
     }
     return (
@@ -434,7 +437,7 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_password(): Rendered {
-    if (!props.email_address) {
+    if (!props.email_address || lite) {
       // makes no sense to change password if don't have an email address
       return;
     }
@@ -442,7 +445,7 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_terms_of_service(): Rendered {
-    if (!props.is_anonymous) {
+    if (!props.is_anonymous || lite) {
       return;
     }
     const style: React.CSSProperties = { padding: "10px 20px" };
@@ -572,7 +575,7 @@ will no longer work (automatic redirects are not implemented), so change with ca
   }
 
   function render_email_address(): Rendered {
-    if (!props.account_id) {
+    if (!props.account_id || lite) {
       return; // makes no sense to change email if there is no account
     }
     return (
@@ -586,7 +589,7 @@ will no longer work (automatic redirects are not implemented), so change with ca
   }
 
   function render_unlisted(): Rendered {
-    if (!props.account_id) {
+    if (!props.account_id || lite) {
       return; // makes no sense to change unlisted status if there is no account
     }
     return (
