@@ -47,6 +47,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 import { lite, project_id } from "@cocalc/frontend/lite";
+import { AdminPage } from "@cocalc/frontend/admin";
 
 // give up on trying to load account info and redirect to landing page.
 // Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
@@ -97,6 +98,17 @@ export const AccountPage: React.FC = () => {
         ),
       },
     ];
+    if (lite) {
+      items.push({
+        key: "admin",
+        label: (
+          <span>
+            <Icon name="users" /> Admin
+          </span>
+        ),
+        children: active_page === "admin" && <AdminPage />,
+      });
+    }
     // adds a few conditional tabs
     if (is_anonymous) {
       // None of the rest make any sense for a temporary anonymous account.
