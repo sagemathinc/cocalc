@@ -6,18 +6,18 @@ export const SUBJECT = "changefeeds.*";
 // If the user refreshes their browser, it is still about a minute
 // before all the changefeeds they had open are free (due to the
 // SERVER_KEEPALIVE time below).
-export const MAX_PER_ACCOUNT = 500;
-export const MAX_GLOBAL = 10000;
+export const MAX_PER_ACCOUNT = 1_000;
+export const MAX_GLOBAL = 50_000;
 
 const DEBUG_DEVEL_MODE = false;
 
-export let CLIENT_KEEPALIVE = 90000;
-export let SERVER_KEEPALIVE = 45000;
-export let KEEPALIVE_TIMEOUT = 10000;
+export let CLIENT_KEEPALIVE = 90_000;
+export let SERVER_KEEPALIVE = 45_000;
+export let KEEPALIVE_TIMEOUT = 15_000;
 
 if (DEBUG_DEVEL_MODE) {
   console.log(
-    "*** WARNING: Using DEBUB_DEVEL_MODE changefeed parameters!! ***",
+    "*** WARNING: Using DEBUG_DEVEL_MODE changefeed parameters!! ***",
   );
   CLIENT_KEEPALIVE = 6000;
   SERVER_KEEPALIVE = 3000;
