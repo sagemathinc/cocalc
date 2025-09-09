@@ -18,6 +18,7 @@
     "ggplot",
     "ipython",
     "ipywidgets",
+    "jsonic",
     "katex",
     "knitr",
     "kucalc",
