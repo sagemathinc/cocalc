@@ -163,7 +163,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     icon: "microchip",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
-    noLite: true,
+    noLite: true,  // process monitor doesn't work at all yet for some reason
   },
   settings: {
     label: labels.settings,
@@ -174,7 +174,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
       id: "project.page.flyout.settings.title",
       defaultMessage: "Status and Settings",
     }),
-    noLite: true,
   },
 } as const;
 

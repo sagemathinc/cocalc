@@ -10,7 +10,6 @@ import { Icon, Title } from "@cocalc/frontend/components";
 import { SiteLicenses } from "../site-licenses/admin/component";
 import { RegistrationToken } from "./registration-token";
 import SiteSettings from "./site-settings";
-//import { UsageStatistics } from "./stats/page";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";

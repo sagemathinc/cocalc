@@ -28,6 +28,7 @@ import { useRunQuota } from "./run-quota/hooks";
 import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
+import { lite } from "@cocalc/frontend/lite";
 
 interface ReactProps {
   project_id: string;
@@ -86,6 +87,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
       </h1>
       <SavingProjectSettingsError project_id={project_id} />
       <Row>
+        {lite && <Col sm={3} />}
         <Col sm={6}>
           <AboutBox
             project_id={id}
@@ -95,13 +97,15 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             name={project.get("name")}
             actions={redux.getActions("projects")}
           />
-          <HideDeleteBox
-            key="hide-delete"
-            project={project}
-            actions={redux.getActions("projects")}
-          />
-          <Environment key="environment" project_id={project_id} />
-          {showDatastore && (
+          {!lite && (
+            <HideDeleteBox
+              key="hide-delete"
+              project={project}
+              actions={redux.getActions("projects")}
+            />
+          )}
+          {!lite && <Environment key="environment" project_id={project_id} />}
+          {!lite && showDatastore && (
             <Datastore key="datastore" project_id={project_id} />
           )}
           <ProjectCapabilities
@@ -110,18 +114,20 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             project_id={project_id}
           />
         </Col>
-        <Col sm={6}>
-          <ProjectControl key="control" project={project} />
-          {!student.disableSSH &&
-            (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (
-              <SSHPanel
-                key="ssh-keys"
-                project={project}
-                account_id={account_id}
-              />
-            )}
-          <ApiKeys project_id={project_id} />
-        </Col>
+        {!lite && (
+          <Col sm={6}>
+            <ProjectControl key="control" project={project} />
+            {!student.disableSSH &&
+              (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (
+                <SSHPanel
+                  key="ssh-keys"
+                  project={project}
+                  account_id={account_id}
+                />
+              )}
+            <ApiKeys project_id={project_id} />
+          </Col>
+        )}
       </Row>
     </div>
   );
