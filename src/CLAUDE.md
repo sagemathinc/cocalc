@@ -105,6 +105,90 @@ CoCalc is organized as a monorepo with key packages:
   5. **Authentication**: Each conat request includes account_id and is subject to permission checks at the hub level
   6. **Subjects**: Messages are routed using hierarchical subjects like `hub.account.{uuid}.{service}` or `project.{uuid}.{compute_server_id}.{service}`
 
+### Conat Message Patterns
+
+CoCalc's Conat messaging system uses hierarchical dot-separated subject patterns for routing messages between distributed services:
+
+#### User Account Messages
+```
+hub.account.{account_id}.{service}
+```
+- **account_id**: UUID v4 format (e.g., `123e4567-e89b-12d3-a456-426614174000`)
+- **service**: API service name (`api`, `projects`, `db`, `purchases`, `jupyter`, `sync`, `org`, `messages`)
+- **Examples**:
+  - `hub.account.123e4567-e89b-12d3-a456-426614174000.api` - Main API calls
+  - `hub.account.123e4567-e89b-12d3-a456-426614174000.projects` - Project operations
+  - `hub.account.123e4567-e89b-12d3-a456-426614174000.db` - Database operations
+
+#### Project Messages
+```
+project.{project_id}.{compute_server_id}.{service}.{path}
+```
+- **project_id**: UUID v4 format for the project
+- **compute_server_id**: Numeric ID or `-` for default/no specific server
+- **service**: Service name (`api`, `terminal`, `sync`, `jupyter`, etc.)
+- **path**: Base64-encoded file path or `-` for no path
+- **Examples**:
+  - `project.456e7890-e89b-12d3-a456-426614174001.1.api.-` - Project API (compute server 1)
+  - `project.456e7890-e89b-12d3-a456-426614174001.-.terminal.L2hvbWUvdXNlcg==` - Terminal service (path: `/home/user`)
+  - `project.456e7890-e89b-12d3-a456-426614174001.2.sync.-` - Sync service (compute server 2)
+
+#### Hub Project Messages
+```
+hub.project.{project_id}.{service}
+```
+- Used for hub-level project operations
+- **Examples**:
+  - `hub.project.456e7890-e89b-12d3-a456-426614174001.api` - Project API calls
+  - `hub.project.456e7890-e89b-12d3-a456-426614174001.sync` - Project sync operations
+
+#### Browser Session Messages
+```
+{sessionId}.account-{account_id}.{service}
+```
+- Used for browser-specific sessions
+- **sessionId**: Unique session identifier
+- **Examples**: `{session123}.account-123e4567-e89b-12d3-a456-426614174000.sync`
+
+#### Service-Specific Messages
+```
+{service}.account-{account_id}.api
+{service}.project-{project_id}.api
+```
+- Used by global services like time, LLM, etc.
+- **Examples**:
+  - `time.account-123e4567-e89b-12d3-a456-426614174000.api` - Time service
+  - `llm.project-456e7890-e89b-12d3-a456-426614174001.api` - LLM service
+
+#### Pattern Matching
+- `*` - Matches any single segment
+- `>` - Matches the rest of the subject (catch-all)
+- Used for subscribing to multiple related subjects
+
+#### Key Features
+- **Automatic Chunking**: Large messages are automatically split and reassembled
+- **Multiple Encodings**: MsgPack (compact) and JSON supported
+- **Interest Awareness**: Wait for subscribers before sending messages
+- **Delivery Confirmation**: Optional confirmation of message receipt
+- **Authentication**: Per-subject permission checking with account/project IDs
+
+#### Usage in Code
+```typescript
+// Account message
+const accountSubject = `hub.account.${accountId}.api`;
+
+// Project message using helper
+import { projectSubject } from "@cocalc/conat/names";
+const projectSub = projectSubject({
+  project_id: projectId,
+  compute_server_id: 1,
+  service: 'terminal',
+  path: '/home/user'
+});
+```
+
+These patterns ensure proper routing, authentication, and isolation between different users and projects in the distributed system. The hierarchical structure allows for efficient pattern matching and scalable message routing across the CoCalc platform.
+
 ### Key Technologies
 
 - **TypeScript**: Primary language for all new code

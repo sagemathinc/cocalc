@@ -8,8 +8,8 @@ type Index = { [pattern: string]: Index | string };
 const logger = getLogger("pattern");
 
 export class Patterns<T> extends EventEmitter {
-  private patterns: { [pattern: string]: T } = {};
-  private index: Index = {};
+  protected patterns: { [pattern: string]: T } = {};
+  protected index: Index = {};
 
   constructor() {
     super();
