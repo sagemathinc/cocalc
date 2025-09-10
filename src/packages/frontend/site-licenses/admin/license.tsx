@@ -7,7 +7,6 @@ import jsonic from "jsonic";
 import { DebounceInput } from "react-debounce-input";
 import { useIntl } from "react-intl";
 
-import { labels } from "@cocalc/frontend/i18n";
 import { Projects } from "@cocalc/frontend/admin/users/projects";
 import { Button, Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, Rendered, TypedMap } from "@cocalc/frontend/app-framework";
@@ -15,10 +14,11 @@ import {
   A,
   CopyToClipBoard,
   DateTimePicker,
-  Icon,
   Gap,
+  Icon,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   capitalize,
   days_ago,
@@ -35,7 +35,7 @@ import { actions } from "./actions";
 import { Managers } from "./managers";
 import Owner from "./owner";
 import { DisplayQuota, EditQuota } from "./quota";
-import { license_fields, license_field_type, ManagerInfo } from "./types";
+import { license_field_type, license_fields, ManagerInfo } from "./types";
 import {
   DisplayUpgrades,
   EditUpgrades,
@@ -142,6 +142,12 @@ export const License: React.FC<Props> = (props: Props) => {
     actions.set_edit(license.get("id"), field, new_val);
   }
 
+  function on_date_change(field, _date, dateString): void {
+    // For date fields, use the dateString instead of the Day.js object
+    // to ensure proper serialization for PostgreSQL
+    actions.set_edit(license.get("id"), field, dateString || null);
+  }
+
   function render_value_editing(
     type: license_field_type,
     field,
@@ -190,7 +196,9 @@ export const License: React.FC<Props> = (props: Props) => {
           x = (
             <DateTimePicker
               value={val}
-              onChange={onChange}
+              onChange={(date, dateString) =>
+                on_date_change(field, date, dateString)
+              }
               style={{ width: "100%", maxWidth: "40ex" }}
             />
           );
@@ -517,7 +525,7 @@ export const License: React.FC<Props> = (props: Props) => {
     return (
       <>
         <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
-        {intl.formatMessage(labels.cancel)}
+          {intl.formatMessage(labels.cancel)}
         </Button>
         <Gap />
         <Button
@@ -577,7 +585,7 @@ export const License: React.FC<Props> = (props: Props) => {
 
   // Show a message explaining whether -- with the current saved settings --
   // this license will upgrade any projects.  Only shown in view mode, to
-  // avoid potentional confusion in edit mode.
+  // avoid potential confusion in edit mode.
   function render_status(): Rendered {
     if (editing) {
       return (

@@ -279,6 +279,9 @@ export class OutputHandler extends EventEmitter {
     delete mesg.code;
     delete mesg.status;
     delete mesg.source;
+    // Colab sends non-standard messages like {"request":{"delayMillis":500}}
+    // Let's ignore them https://github.com/sagemathinc/cocalc/issues/8460
+    delete mesg.request;
     for (const k in mesg) {
       const v = mesg[k];
       if (is_object(v) && len(v) === 0) {
