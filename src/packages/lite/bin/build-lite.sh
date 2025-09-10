@@ -7,7 +7,11 @@
 
 set -ev
 
-NAME=cocalc-lite
+VERSION="$npm_package_version"
+MACHINE="$(uname -m)"
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+
+NAME=cocalc-lite-$VERSION-$MACHINE-$OS
 TMP=/tmp/$NAME
 rm -rf "$TMP"
 mkdir "$TMP"
@@ -103,6 +107,7 @@ rm -rf src
 rm -f backend/node_modules/.bin/rustic
 
 cd $TMP
-tar Jcvf $BIN/../$NAME.tar.xz $NAME
+mkdir -p $BIN/../build/lite
+tar Jcvf $BIN/../build/lite/$NAME.tar.xz $NAME
 
 rm -rf "$TARGET"

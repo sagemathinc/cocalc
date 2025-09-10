@@ -1,7 +1,7 @@
 // cocalc.js
 console.log("Starting CoCalc");
 
-const VERSION = "0.1.1";
+const VERSION = "${VERSION}";
 
 const { getRawAsset } = require("node:sea");
 const fs = require("node:fs");
@@ -25,10 +25,14 @@ if (!fs.existsSync(stamp)) {
 
   fs.mkdirSync(destDir, { recursive: true });
 
-  const child = spawnSync("tar", ["-Jxf", "-", "-C", destDir], {
-    input: buf,
-    stdio: ["pipe", "inherit", "inherit"],
-  });
+  const child = spawnSync(
+    "tar",
+    ["-Jxf", "-", "-C", destDir, "--strip-components=1"],
+    {
+      input: buf,
+      stdio: ["pipe", "inherit", "inherit"],
+    },
+  );
 
   if (child.error) {
     console.error("Failed to run tar:", r.error);
@@ -45,7 +49,7 @@ if (!fs.existsSync(stamp)) {
 
 const Module = require("node:module");
 
-const script = path.join(destDir, "cocalc-lite/lite/bin/start.js");
+const script = path.join(destDir, "lite/bin/start.js");
 
 if (!fs.existsSync(script)) {
   console.error("missing start.js at", script);

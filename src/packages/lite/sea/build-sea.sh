@@ -2,10 +2,15 @@
 set -Eeuo pipefail
 
 # --- config ---
+export VERSION="$npm_package_version"
 FUSE="NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"   # must match your sea-config.json
-TARGET="./cocalc"                                       # final single-file executable
+MACHINE="$(uname -m)"
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+
+# final single-file executable
+TARGET="./cocalc-lite-$VERSION-$MACHINE-$OS"
+
 NODE_BIN="$(command -v node)"
-OS="$(uname -s)"
 
 echo "Building SEA for $OS"
 
@@ -13,7 +18,8 @@ echo "Building SEA for $OS"
 cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"   # make sure it's writable even if copied from system paths
 
-cp ../cocalc-lite.tar.xz .
+cp ../build/lite/cocalc-lite-$VERSION-$MACHINE-$OS.tar.xz cocalc-lite.tar.xz
+envsubst < cocalc-template.js > cocalc.js
 
 # 2) Bundle app into a SEA blob
 #    This writes ./sea-prep.blob using your sea-config.json
@@ -21,7 +27,7 @@ node --experimental-sea-config sea-config.json
 
 # 3) Platform-specific injection and signing
 case "$OS" in
-  Darwin)
+  darwin)
     # Remove existing signature before mutation (ok if it fails on already-unsigned copy)
     codesign --remove-signature "$TARGET" || true
 
@@ -34,7 +40,7 @@ case "$OS" in
     codesign --force --sign - "$TARGET"
     ;;
 
-  Linux)
+  linux)
     # Inject into the ELF binary (no Mach-O segment flag on Linux)
     npx -y postject "$TARGET" NODE_SEA_BLOB ./sea-prep.blob \
       --sentinel-fuse "$FUSE"
@@ -46,6 +52,10 @@ case "$OS" in
     ;;
 esac
 
-rm cocalc-lite.tar.xz
+rm cocalc.js cocalc-lite.tar.xz
+
+mkdir -p ../build/sea
+mv $TARGET ../build/sea
+
 
 echo "Done. Built $TARGET"
