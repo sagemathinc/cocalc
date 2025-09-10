@@ -102,7 +102,10 @@ export function createTTLCache({
 //    -- list of all volumes defined in hyperstack
 //    -- hyperstack pricing data
 
-type GetFunction<T> = (opts?: { noCache?: boolean }) => Promise<T>;
+type GetFunction<T> = (opts?: {
+  noCache?: boolean;
+  account_id?: string;
+}) => Promise<T>;
 
 export function createDatabaseCachedResource<T>({
   cloud,
