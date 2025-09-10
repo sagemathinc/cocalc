@@ -1,15 +1,17 @@
-import { isEqual } from "lodash";
-import { getLogger } from "@cocalc/conat/client";
 import { EventEmitter } from "events";
+import { isEqual } from "lodash";
+
+import { getLogger } from "@cocalc/conat/client";
 import { hash_string } from "@cocalc/util/misc";
+import { splitSubject } from "./split-cache";
 
 type Index = { [pattern: string]: Index | string };
 
 const logger = getLogger("pattern");
 
 export class Patterns<T> extends EventEmitter {
-  protected patterns: { [pattern: string]: T } = {};
-  protected index: Index = {};
+  private patterns: { [pattern: string]: T } = {};
+  private index: Index = {};
 
   constructor() {
     super();
@@ -68,12 +70,12 @@ export class Patterns<T> extends EventEmitter {
   };
 
   matches = (subject: string): string[] => {
-    return matchUsingIndex(this.index, subject.split("."));
+    return matchUsingIndex(this.index, splitSubject(subject));
   };
 
   // return true if there is at least one match
   hasMatch = (subject: string): boolean => {
-    return matchUsingIndex(this.index, subject.split("."), true).length > 0;
+    return matchUsingIndex(this.index, splitSubject(subject), true).length > 0;
   };
 
   hasPattern = (pattern: string): boolean => {
@@ -113,13 +115,13 @@ export class Patterns<T> extends EventEmitter {
 
   set = (pattern: string, t: T) => {
     this.patterns[pattern] = t;
-    setIndex(this.index, pattern.split("."), pattern);
+    setIndex(this.index, splitSubject(pattern), pattern);
     this.emit("change");
   };
 
   delete = (pattern: string) => {
     delete this.patterns[pattern];
-    deleteIndex(this.index, pattern.split("."));
+    deleteIndex(this.index, splitSubject(pattern));
   };
 }
 
@@ -221,8 +223,8 @@ export function matchesSegment(pattern, subject): boolean {
 }
 
 export function matchesPattern(pattern, subject): boolean {
-  const subParts = subject.split(".");
-  const patParts = pattern.split(".");
+  const subParts = splitSubject(subject);
+  const patParts = splitSubject(pattern);
   let i = 0,
     j = 0;
   while (i < subParts.length && j < patParts.length) {

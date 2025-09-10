@@ -9,6 +9,7 @@ import { ServerSocket } from "./server-socket";
 import { delay } from "awaiting";
 import { type Headers } from "@cocalc/conat/core/client";
 import { getLogger } from "@cocalc/conat/client";
+import { splitSubject } from "../core/split-cache";
 
 const logger = getLogger("socket:server");
 
@@ -63,7 +64,7 @@ export class ConatSocketServer extends ConatSocketBase {
       return;
     }
     const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
-    const id = mesg.subject.split(".").slice(-1)[0];
+    const id = splitSubject(mesg.subject).slice(-1)[0];
     let socket = this.sockets[id];
 
     if (socket === undefined) {

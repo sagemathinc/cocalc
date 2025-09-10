@@ -72,10 +72,6 @@ import {
   RESOURCE,
 } from "./constants";
 import { Patterns } from "./patterns";
-import {
-  CacheStringSplitsPatterns,
-  SPLIT_CACHE_SIZE_DEFAULT,
-} from "./patterns-cached";
 import { forkedConatServer } from "./start-server";
 import { stickyChoice } from "./sticky";
 import { sysApi, sysApiSubject, type SysConatServer } from "./sys";
@@ -173,30 +169,14 @@ function createPatternMatcher<T>(): Patterns<T> {
   const algo = process.env.COCALC_CONAT_MATCHING_ALGO?.toLowerCase();
 
   switch (algo) {
-    case "minimal":
-      const cacheSize = parseInt(
-        process.env.COCALC_CONAT_SPLIT_CACHE_SIZE ||
-          `${SPLIT_CACHE_SIZE_DEFAULT}`,
-      );
-      console.log(
-        `ConatServer: Using CacheStringSplitsPatterns with ${cacheSize}-entry split cache`,
-      );
-      return new CacheStringSplitsPatterns({
-        splitCacheSize: cacheSize,
-      }) as any;
-
     case "original":
     case undefined:
     default:
-      if (algo && algo !== "original") {
-        console.warn(
-          `ConatServer: Unknown pattern matching algorithm '${algo}', using original`,
-        );
-      }
+      return new Patterns<T>();
+  }
       console.log("ConatServer: Using original Patterns class");
       return new Patterns();
   }
-}
 
 type State = "init" | "ready" | "closed";
 

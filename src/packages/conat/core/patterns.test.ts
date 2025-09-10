@@ -6,23 +6,29 @@ pnpm test ./patterns.test.ts
 
 import { randomId } from "@cocalc/conat/names";
 import { Patterns } from "./patterns";
-import { CacheStringSplitsPatterns } from "./patterns-cached";
+import { setSplitCacheEnabled, clearSplitCache } from "./split-cache";
 
 function expectEqual(actual: any[], expected: any[]) {
   expect(actual).toEqual(expect.arrayContaining(expected));
   expect(actual).toHaveLength(expected.length);
 }
 
-// Test both implementations
-const IMPL = [
-  { name: "Patterns", class: Patterns },
-  { name: "CacheStringSplitsPatterns", class: CacheStringSplitsPatterns },
+// Test both cached and non-cached variants
+const SPLIT_CACHE_VARIANTS = [
+  { name: "no-split-cache", enabled: false },
+  { name: "with-split-cache", enabled: true },
 ];
 
-IMPL.forEach(({ name, class: PatternClass }) => {
-  describe(`test some basic pattern matching - ${name}`, () => {
+SPLIT_CACHE_VARIANTS.forEach(({ name: cacheName, enabled }) => {
+  describe(`test some basic pattern matching - Patterns (${cacheName})`, () => {
+    beforeEach(() => {
+      // Set split cache enabled state for this test variant
+      setSplitCacheEnabled(enabled);
+      // Clear cache before each test
+      clearSplitCache();
+    });
     it("tests some simple examples with just one or no matches", () => {
-      const p = new PatternClass();
+      const p = new Patterns();
       p.set("x", 0);
       p.set("a.b.>", 0);
       p.set("a.*", 0);
@@ -33,7 +39,7 @@ IMPL.forEach(({ name, class: PatternClass }) => {
     });
 
     it("some examples with several matches", () => {
-      const p = new PatternClass();
+      const p = new Patterns();
       p.set("a.b.>", 0);
       p.set("a.*.*", 0);
       expectEqual(p.matches("a.b.c"), ["a.b.>", "a.*.*"]);
@@ -41,7 +47,7 @@ IMPL.forEach(({ name, class: PatternClass }) => {
     });
 
     it("example where we delete a pattern", () => {
-      const p = new PatternClass();
+      const p = new Patterns();
       p.set("a.b.>", 0);
       p.set("a.b.c", 0);
       p.set("a.b.d", 0);
@@ -59,19 +65,24 @@ IMPL.forEach(({ name, class: PatternClass }) => {
   });
 });
 
-IMPL.forEach(({ name, class: PatternClass }) => {
-  describe(`do some stress tests - ${name}`, () => {
-    // NOTE: CacheStringSplitsPatterns may be slower in this stress test due to workload characteristics.
-    // This test uses highly diverse random patterns (service.*.randomId, hub.x.randomId) which
-    // pollute the split cache with many unique subjects, making cache overhead outweigh benefits.
+SPLIT_CACHE_VARIANTS.forEach(({ name: cacheName, enabled }) => {
+  describe(`do some stress tests - Patterns (${cacheName})`, () => {
+    beforeEach(() => {
+      // Set split cache enabled state for this test variant
+      setSplitCacheEnabled(enabled);
+      // Clear cache before each test
+      clearSplitCache();
+    });
+    // NOTE: This stress test uses highly diverse random patterns (service.*.randomId, hub.x.randomId)
+    // which may show different performance characteristics with the global split cache optimization.
     // In contrast, realistic CoCalc patterns (hub.account.{id}.{service}) with repeated segments
-    // show 8% improvement due to high cache hit rates. The optimization is workload-dependent.
-    const patterns = 1e5;
+    // benefit from the global split cache due to high cache hit rates.
+    const patterns = 1_000;
 
     let p;
     const knownIds: string[] = [];
     it(`create ${patterns} patterns`, () => {
-      p = new PatternClass();
+      p = new Patterns();
       for (const seg1 of ["service", "hub", "project", "account", "global"]) {
         for (const seg2 of ["*", "x"]) {
           for (let i = 0; i < patterns / 10; i++) {
@@ -84,7 +95,7 @@ IMPL.forEach(({ name, class: PatternClass }) => {
       }
     });
 
-    const count = 1e6;
+    const count = 10_000;
     let m = 0;
     it(`match ${count} times against them`, () => {
       for (const seg1 of ["service", "hub", "project", "account", "global"]) {

@@ -22,7 +22,7 @@
     "clean": "rm -rf dist node_modules",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest",
-    "benchmark": "node dist/core/routing-benchmark.js",
+    "benchmark": "pnpm build && node dist/benchmark.js",
     "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
   },
   "files": [

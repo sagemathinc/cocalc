@@ -2,6 +2,7 @@ import jsonStableStringify from "json-stable-stringify";
 import { encode as encodeBase64, decode as decodeBase64 } from "js-base64";
 export { encodeBase64, decodeBase64 };
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { splitSubject } from "./core/split-cache";
 
 export function handleErrorMessage(mesg) {
   if (mesg?.error) {
@@ -22,8 +23,8 @@ export function matchesPattern({
   pattern: string;
   subject: string;
 }): boolean {
-  const subParts = subject.split(".");
-  const patParts = pattern.split(".");
+  const subParts = splitSubject(subject);
+  const patParts = splitSubject(pattern);
   let i = 0,
     j = 0;
   while (i < subParts.length && j < patParts.length) {
@@ -41,7 +42,7 @@ export function matchesPattern({
 export function isValidSubject(subject: string): boolean {
   if (typeof subject !== "string" || subject.length === 0) return false;
   if (subject.startsWith(".") || subject.endsWith(".")) return false;
-  const tokens = subject.split(".");
+  const tokens = splitSubject(subject);
   // No empty tokens
   if (tokens.some((t) => t.length === 0)) return false;
   for (let i = 0; i < tokens.length; ++i) {

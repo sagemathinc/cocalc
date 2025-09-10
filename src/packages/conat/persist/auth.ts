@@ -1,6 +1,7 @@
 import { SERVICE } from "./util";
 import { ConatError } from "@cocalc/conat/core/client";
 import { normalize } from "path";
+import { splitSubject } from "../core/split-cache";
 
 export const MAX_PATH_LENGTH = 4000;
 
@@ -58,7 +59,7 @@ export function assertHasWritePermission({
       { code: 403 },
     );
   }
-  const v = subject.split(".");
+  const v = splitSubject(subject);
   if (v[0] != service) {
     throw Error(
       `bug -- first segment of subject must be '${service}' -- subject='${subject}'`,
