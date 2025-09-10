@@ -101,7 +101,9 @@ export default async function exec({
     //console.log(`${cmd} ${args.join(" ")}`, { cwd, env });
     const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
-      env,
+      // env as any because otherwise pnpm build with nextjs says " Property 'NODE_ENV' is
+      // missing in type '{ [name: string]: string; }' but required in type 'ProcessEnv'"
+      env: env as any,
       cwd,
       ...userId,
     });
