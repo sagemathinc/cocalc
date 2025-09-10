@@ -26,8 +26,12 @@ export function projectApiClient({
   }
   const subject = projectSubject({ project_id, compute_server_id, service });
 
-  const isRunning = async () => {
+  const isReady = async () => {
     return await client.interest(subject);
+  };
+
+  const waitUntilReady = async ({ timeout }: { timeout?: number } = {}) => {
+    await client.waitForInterest(subject, { timeout });
   };
 
   const callProjectApi = async ({ name, args }) => {
@@ -39,7 +43,7 @@ export function projectApiClient({
       args,
     });
   };
-  return initProjectApi(callProjectApi, isRunning);
+  return initProjectApi({ callProjectApi, isReady, waitUntilReady });
 }
 
 async function callProject({

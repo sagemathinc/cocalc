@@ -10,7 +10,8 @@ export interface ProjectApi {
   editor: Editor;
   jupyter: Jupyter;
   sync: Sync;
-  isRunning: () => Promise<boolean>;
+  isReady: () => Promise<boolean>;
+  waitUntilReady: () => Promise<void>;
 }
 
 const ProjectApiStructure = {
@@ -20,7 +21,11 @@ const ProjectApiStructure = {
   sync,
 } as const;
 
-export function initProjectApi(callProjectApi, isRunning): ProjectApi {
+export function initProjectApi({
+  callProjectApi,
+  isReady,
+  waitUntilReady,
+}): ProjectApi {
   const projectApi: any = {};
   for (const group in ProjectApiStructure) {
     if (projectApi[group] == null) {
@@ -36,6 +41,7 @@ export function initProjectApi(callProjectApi, isRunning): ProjectApi {
         );
     }
   }
-  projectApi.isRunning = isRunning;
+  projectApi.isReady = isReady;
+  projectApi.waitUntilReady = waitUntilReady;
   return projectApi as ProjectApi;
 }
