@@ -10,7 +10,7 @@ import {
   ExecOpts,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
-import { IS_TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { isTimeoutCallingProject } from "@cocalc/util/consts/project";
 import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
@@ -177,7 +177,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
       set_job_info(output);
       return output;
     } catch (err) {
-      if (IS_TIMEOUT_CALLING_PROJECT(err)) {
+      if (isTimeoutCallingProject(err)) {
         // This will eventually be fine, hopefully. We continue trying to get a reply.
         await delay(100);
       } else {
