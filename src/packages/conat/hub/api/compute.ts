@@ -67,6 +67,14 @@ export interface Compute {
     action: Action;
   }) => Promise<void>;
 
+  // Get servers across potentially different projects by their global unique id.
+  // Use the fields parameter to restrict to a much smaller subset of information
+  // about each server (e.g., just the state field).  Caller must be a collaborator
+  // on each project containing the servers.
+  // If you give an id of a server that doesn't exist, it'll just be excluded in the result.
+  // Similarly, if you give a field that doesn't exist, it is excluded.
+  // The order of the returned servers and count probably will NOT match that in
+  // ids, so you should include 'id' in fields.
   getServersById: (opts: {
     account_id?: string;
     ids: number[];

@@ -185,7 +185,7 @@ export async function get({ name }: { name: string }) {
 
 // Throw error if the given dns name is currently set for any compute server's configuration.
 // TODO: we may someday need an index on the configuration jsonb?
-export async function isDnsAvailable(dns: string) {
+export async function isDnsAvailable(dns: string): Promise<boolean> {
   try {
     checkValidDomain(dns);
   } catch (_) {
