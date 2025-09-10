@@ -99,7 +99,7 @@ async function gatherJobInfo(
         return;
       }
       await delay(1000 * wait_s);
-      wait_s = Math.min(5, wait_s + 1);
+      wait_s = Math.min(3, wait_s + 0.5);
     }
   } catch {
     return;
