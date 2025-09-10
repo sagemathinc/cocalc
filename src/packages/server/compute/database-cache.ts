@@ -20,6 +20,7 @@ another level of namespacing.
 import { getPool } from "@cocalc/database";
 import json from "json-stable-stringify";
 import getLogger from "@cocalc/backend/logger";
+import isAdmin from "@cocalc/server/accounts/is-admin";
 
 const logger = getLogger("server:compute:database-cache");
 
@@ -119,7 +120,8 @@ export function createDatabaseCachedResource<T>({
   // Used by everything else in cocalc to get access to the cached data.
   const getData: GetFunction<T> = async ({
     noCache,
-  }: { noCache?: boolean } = {}): Promise<T> => {
+    account_id,
+  }: { noCache?: boolean; account_id?: string } = {}): Promise<T> => {
     logger.debug(cloud, key, "getData");
     const { rows } = await db.query(
       "SELECT value, expire FROM compute_servers_cache WHERE cloud=$1 AND key=$2",
@@ -129,7 +131,7 @@ export function createDatabaseCachedResource<T>({
       logger.debug(cloud, key, "data not in database at all, so we have fetch");
       return await fetchDataAndUpdateDatabase(true);
     }
-    if (noCache) {
+    if (noCache && (await isAdmin(account_id))) {
       return await fetchDataAndUpdateDatabase();
     }
     const { value, expire } = rows[0];

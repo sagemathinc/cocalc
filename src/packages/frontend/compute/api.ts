@@ -212,8 +212,8 @@ export async function getNetworkUsage(opts: {
 export async function getApiKey(opts: { id }): Promise<string> {
   return await api("compute/get-api-key", opts);
 }
-export async function deleteApiKey(opts: { id }): Promise<string> {
-  return await api("compute/delete-api-key", opts);
+export async function deleteApiKey(opts: { id }): Promise<void> {
+  await api("compute/delete-api-key", opts);
 }
 
 // Get the project log entries directly for just one compute server

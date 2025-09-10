@@ -5,7 +5,6 @@ Get all google cloud images.
 import getAccountId from "lib/account/get-account";
 import { getAllImages } from "@cocalc/server/compute/cloud/google-cloud/images";
 import getParams from "lib/api/get-params";
-import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
@@ -28,13 +27,7 @@ async function get(req) {
     throw Error("must be signed in");
   }
   let { noCache } = getParams(req);
-  if (noCache) {
-    // NOTE: only admins can specify noCache
-    if (!(await userIsInGroup(account_id, "admin"))) {
-      throw Error("only admin are allowed to specify noCache");
-    }
-  }
-  return await getAllImages({ noCache: !!noCache });
+  return await getAllImages({ noCache: !!noCache, account_id });
 }
 
 export default apiRoute({
