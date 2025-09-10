@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Flex, Modal, Row, Tag } from "antd";
+import { Col, Flex, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -372,30 +372,6 @@ export function FileTypeSelector({
   function renderSageWS() {
     if (!availableFeatures.sage) return;
 
-    function handleClick(ext) {
-      Modal.confirm({
-        icon: <Icon name="exclamation-circle" />,
-        title: intl.formatMessage({
-          id: "project.new.file-type-selector.sagews.modal.title",
-          defaultMessage: "SageMath Worksheets are Deprecated",
-        }),
-        content: intl.formatMessage({
-          id: "project.new.file-type-selector.sagews.modal.content",
-          defaultMessage:
-            "Consider creating a Jupyter Notebook and use a SageMath Kernel (use the 'SageMath Notebook' button). You can also convert existing SageMath Worksheets to Jupyter Notebooks by opening the worksheet and clicking 'Jupyter'.",
-        }),
-        okText: intl.formatMessage({
-          id: "project.new.file-type-selector.sagews.modal.ok",
-          defaultMessage: "Create SageMath Worksheet Anyways",
-        }),
-        onOk: (close) => {
-          create_file(ext);
-          close();
-        },
-        closable: true,
-      });
-    }
-
     return (
       <Col sm={sm} md={md}>
         <Tip
@@ -405,12 +381,12 @@ export function FileTypeSelector({
           tip={intl.formatMessage({
             id: "new.file-type-selector.sagews.tooltip",
             defaultMessage:
-              "Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.",
+              "Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do mathematics, draw plots, compute integrals, work with matrices, etc.",
           })}
         >
           <NewFileButton
             name={intl.formatMessage(labels.sagemath_worksheet)}
-            on_click={handleClick}
+            on_click={create_file}
             ext="sagews"
             size={btnSize}
             active={btnActive("sagews")}

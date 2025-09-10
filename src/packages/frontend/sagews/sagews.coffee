@@ -1261,23 +1261,41 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
 
         if mesg.stderr?
-            # This is entirely for the ChatGPT help button:
-            # TODO: don't show if chatgpt disabled.
-            if chatgpt.isEnabled(@project_id)
-                cur = output.data('stderr')
-                if not cur
-                    button = $("<div><span title='@ChatGPT, help fix this...' style='font-family:sans-serif;' class='btn btn-default'>Help me fix this...</span></div>")
-                    button.click () =>
+            # This is entirely for the ChatGPT help buttons:
+            cur = output.data('stderr')
+            if not cur
+                buttonsContainer = $("<div style='margin: 10px 0;'>")
+
+                # Add hint button if enabled
+                if chatgpt.isHintEnabled(@project_id)
+                    hintButton = $("<span title='Get a hint to help fix this...' style='font-family:sans-serif; margin-right: 5px;' class='btn btn-default'>Give me a hint...</span>")
+                    hintButton.click () =>
+                        chatgpt.giveMeAHint
+                            codemirror : @focused_codemirror()
+                            stderr     : output.data('stderr')
+                            uuid       : output.data('uuid')
+                            project_id : @project_id
+                            path       : @filename
+                    buttonsContainer.append(hintButton)
+
+                # Add solution button if enabled
+                if chatgpt.isEnabled(@project_id)
+                    solutionButton = $("<span title='Get help to fix this...' style='font-family:sans-serif;' class='btn btn-default'>Help me fix this...</span>")
+                    solutionButton.click () =>
                         chatgpt.helpMeFix
                             codemirror : @focused_codemirror()
                             stderr     : output.data('stderr')
                             uuid       : output.data('uuid')
                             project_id : @project_id
                             path       : @filename
-                    output.append(button);
+                    buttonsContainer.append(solutionButton)
+
+                # Only append container if it has buttons
+                if buttonsContainer.children().length > 0
+                    output.append(buttonsContainer)
                     output.data('stderr', mesg.stderr)
-                else
-                    output.data('stderr', cur + mesg.stderr)
+            else
+                output.data('stderr', cur + mesg.stderr)
 
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
