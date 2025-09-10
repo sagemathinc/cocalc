@@ -9,7 +9,7 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 
 import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import { Button, Flex, Tooltip } from "antd";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
@@ -52,6 +52,25 @@ export const Build: React.FC<Props> = React.memo((props) => {
     BUILD_SPECS.latex.label,
   );
   const [error_tab, set_error_tab] = useState<string | null>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  const [shownLog, setShownLog] = useState<string>("");
+
+  // Compute whether we have running jobs - this determines UI precedence
+  const hasRunningJobs = useMemo(() => {
+    return (
+      build_logs?.some((job) => {
+        const jobJS: BuildLog = job?.toJS();
+        return jobJS?.type === "async" && jobJS?.status === "running";
+      }) ?? false
+    );
+  }, [build_logs]);
+
+  // Auto-scroll to bottom when log updates
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [shownLog]);
 
   let no_errors = true;
 
@@ -179,7 +198,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
   }
 
   function render_logs(): Rendered {
-    if (status) return;
+    // Hide logs when jobs are running - show live output instead
+    if (hasRunningJobs) return;
 
     const items: AntdTabItem[] = [];
 
@@ -230,12 +250,17 @@ export const Build: React.FC<Props> = React.memo((props) => {
     const infos: React.JSX.Element[] = [];
     let isLongRunning = false;
     let logTail = "";
+
     build_logs.forEach((infoI, key) => {
       const info: ExecuteCodeOutput = infoI?.toJS();
       if (!info || info.type !== "async" || info.status !== "running") return;
       const stats_str = getResourceUsage(info.stats, "last");
       const start = info.start;
-      logTail = tail((info.stdout ?? "") + (info.stderr ?? ""), 6);
+      logTail = tail((info.stdout ?? "") + (info.stderr ?? ""), 100);
+      // Update state for auto-scrolling effect
+      if (logTail !== shownLog) {
+        setShownLog(logTail);
+      }
       isLongRunning ||=
         typeof start === "number" &&
         webapp_client.server_time() - start > WARN_LONG_RUNNING_S * 1000;
@@ -287,19 +312,36 @@ export const Build: React.FC<Props> = React.memo((props) => {
             </Tooltip>
           </Flex>
         </div>
-        <div style={logStyle}>
+        <div
+          style={{
+            ...logStyle,
+            maxHeight: "300px",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <div
             style={{
               fontWeight: "bold",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              flexShrink: 0,
             }}
           >
             {status}
             {"\n"}
           </div>
-          {logTail}
+          <div
+            ref={logContainerRef}
+            style={{
+              overflowY: "auto",
+              flexGrow: 1,
+            }}
+          >
+            <Ansi>{shownLog}</Ansi>
+          </div>
         </div>
       </>
     );
