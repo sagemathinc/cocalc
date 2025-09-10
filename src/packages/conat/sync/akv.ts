@@ -153,6 +153,15 @@ export class AKV<T = any> {
     });
   };
 
+  // WARNING/TODO: this getAll implementation is not at all clever!
+  //   getAll = async () => {
+  //     const v: { [key: string]: T } = {};
+  //     for (const key of await this.keys()) {
+  //       v[key] = await this.get(key);
+  //     }
+  //     return v;
+  //   };
+
   sqlite = async (
     statement: string,
     params?: any[],
