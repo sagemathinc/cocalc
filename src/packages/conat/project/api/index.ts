@@ -11,7 +11,7 @@ export interface ProjectApi {
   jupyter: Jupyter;
   sync: Sync;
   isReady: () => Promise<boolean>;
-  waitUntilReady: () => Promise<void>;
+  waitUntilReady: (opts?: { timeout?: number }) => Promise<void>;
 }
 
 const ProjectApiStructure = {
