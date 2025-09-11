@@ -101,12 +101,12 @@ export async function stop({ project_id }) {
   if (child != null && child.exitCode == null) {
     try {
       await podman([
-        "stop",
+        "rm",
+        "-f",
         "-t",
         `${GRACE_PERIOD / 1000}`,
         `project-${project_id}`,
       ]);
-      await podman(["rm", `project-${project_id}`]);
     } catch {}
     delete children[project_id];
   }
