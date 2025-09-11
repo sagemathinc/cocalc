@@ -170,6 +170,11 @@ Table({
       pg_type: "VARCHAR(39)",
       desc: "The username of this user.  This is optional but globally unique across all accoutns *and* organizations.  It can be between 1 and 39 characters from a-z A-Z 0-9 - and must not start with a dash.",
     },
+    org: {
+      type: "string",
+      prg_type: "VARCHAR(39)",
+      desc: "If this account is associated to an organization, then this is the *name* of the organization.  An account may be associated with at most one organization.",
+    },
     email_address: {
       type: "string",
       pg_type: "VARCHAR(254)", // see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
@@ -439,6 +444,7 @@ Table({
           // listed in frontend/account/table.ts
           account_id: null,
           email_address: null,
+          org: null,
           lti_id: null,
           stripe_checkout_session: null,
           email_address_verified: null,
@@ -484,7 +490,7 @@ Table({
             confirm_close: false,
             mask_files: true,
             page_size: 500,
-            standby_timeout_m: 5,
+            standby_timeout_m: 15,
             default_file_sort: "name",
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             show_global_info2: null,
