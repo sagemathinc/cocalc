@@ -27,17 +27,14 @@ BIN=`dirname "$(realpath $0)"`
 git clone --depth=1 $BIN/../../../.. $TARGET
 
 cd "$SRC"/packages
-rm -rf database hub next server file-server lite
+rm -rf database hub next server file-server lite frontend static assets cdn test
 
 cd "$SRC"
-./workspaces.py install --exclude=database,hub,next,server,file-server,lite
-./workspaces.py build --exclude=database,hub,next,server,file-server,lite
+./workspaces.py install --exclude=database,hub,next,server,file-server,lite,cdn,frontend,static,assets,test
+./workspaces.py build --exclude=database,hub,next,server,file-server,lite,cdn,frontend,static,assets,test
 
 cd "$SRC"/packages
 rm -rf node_modules && pnpm install --prod --package-import-method=copy
-
-rm -rf cdn frontend static assets
-rm -rf static/dist/*.map static/dist/embed-*.js
 
 cd node_modules/.pnpm
 rm -rf @next* next*

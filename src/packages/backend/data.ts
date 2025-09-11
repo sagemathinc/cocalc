@@ -34,7 +34,7 @@ import { FALLBACK_ACCOUNT_UUID } from "@cocalc/util/misc";
 import { packageDirectorySync } from "package-directory";
 
 function determineRoot(): string {
-  const pd = packageDirectorySync() ?? '/';
+  const pd = packageDirectorySync({ cwd: __dirname }) ?? "/";
   const root = resolve(pd, "..", "..");
   process.env.COCALC_ROOT = root;
   return root;

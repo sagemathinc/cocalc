@@ -16,14 +16,15 @@ import { arch, platform } from "os";
 import { execFileSync, execSync } from "child_process";
 import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
 import { join } from "path";
+import { packageDirectorySync } from "package-directory";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("files:sandbox:install");
 
-const i = __dirname.lastIndexOf("packages/backend");
 const binPath = join(
-  __dirname.slice(0, i + "packages/backend".length),
-  "node_modules/.bin",
+  packageDirectorySync({ cwd: __dirname }) ?? "",
+  "node_modules",
+  ".bin",
 );
 
 interface Spec {

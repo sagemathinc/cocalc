@@ -9,7 +9,7 @@ const logger = getLogger("project-runner:util");
 
 let root: string | undefined = undefined;
 export async function ensureConfFilesExists(HOME: string): Promise<void> {
-  root ??= await packageDirectory();
+  root ??= await packageDirectory({ cwd: __dirname });
   if (!root) {
     throw Error("unable to determine package root");
   }
