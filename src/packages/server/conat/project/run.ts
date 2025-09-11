@@ -12,7 +12,7 @@ Then start this in nodejs
 
 import {
   init as initProjectRunner,
-  killAllProjects,
+  close as killAllProjects,
 } from "@cocalc/project-runner/run";
 import { loadConatConfiguration } from "../configuration";
 import getLogger from "@cocalc/backend/logger";
@@ -21,10 +21,11 @@ const logger = getLogger("server:conat:project:run");
 
 const servers: any[] = [];
 export async function init(count: number = 1) {
-  logger.debug("init project runner(s)", { count });
+  const opts = { runtime: "nsjail" as "nsjail" };
+  logger.debug("init project runner(s)", { count, opts });
   await loadConatConfiguration();
   for (let i = 0; i < count; i++) {
-    const server = await initProjectRunner();
+    const server = await initProjectRunner(opts);
     servers.push(server);
   }
 }
