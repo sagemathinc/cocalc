@@ -11,6 +11,7 @@
     { "path": "../backend" },
     { "path": "../database" },
     { "path": "../conat" },
-    { "path": "../util" }
+    { "path": "../util" },
+    { "path": "../project-runner" }
   ]
 }

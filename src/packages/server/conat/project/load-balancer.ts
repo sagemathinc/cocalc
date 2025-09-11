@@ -1,15 +1,17 @@
 /*
-Project run server load balancer
+Project runner load balancer
+
+There should be exactly one of these running, and it needs access to the database
+of course. It decides where to run projects and proxied the actual requests.
 */
 
 import { conat } from "@cocalc/backend/conat";
 import { server as loadBalancer } from "@cocalc/conat/project/runner/load-balancer";
 import { loadConatConfiguration } from "../configuration";
 import getLogger from "@cocalc/backend/logger";
-import { setProjectState } from "./run";
 import getPool from "@cocalc/database/pool";
 import { getProject } from "@cocalc/server/projects/control";
-import { type Configuration } from "./types";
+import { type Configuration } from "@cocalc/project-runner/run";
 
 const logger = getLogger("server:conat:project:load-balancer");
 
@@ -43,11 +45,8 @@ async function getConfig({ project_id }): Promise<Configuration> {
   if (rows.length == 0) {
     throw Error(`no project ${project_id}`);
   }
-  const { settings, run_quota } = rows[0];
+  const { run_quota } = rows[0];
   const config = {} as Configuration;
-  if (settings?.admin || run_quota?.privileged) {
-    config.admin = true;
-  }
   config.cpu = `${(run_quota?.cpu_limit ?? 1) * 1000}m`;
   config.memory = `${run_quota?.memory ?? 1000}M`;
   config.pids = DEFAULT_PID_LIMIT;
@@ -57,4 +56,11 @@ async function getConfig({ project_id }): Promise<Configuration> {
   logger.debug("config", { project_id, run_quota, config });
 
   return config;
+}
+
+async function setProjectState({ project_id, state }) {
+  try {
+    const p = await getProject(project_id);
+    await p.saveStateToDatabase({ state });
+  } catch {}
 }

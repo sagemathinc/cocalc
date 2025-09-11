@@ -1,0 +1,34 @@
+{
+  "name": "@cocalc/project-runner",
+  "version": "0.1.0",
+  "description": "CoCalc Project Runner",
+  "exports": {
+    "./run": "./dist/run/index.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "pnpm exec tsc --build",
+    "tsc": "pnpm exec tsc  --pretty --preserveWatchOutput",
+    "depcheck": "pnpx depcheck",
+    "clean": "rm -rf node_modules dist"
+  },
+  "files": ["dist/**", "README.md", "package.json"],
+  "author": "SageMath, Inc.",
+  "keywords": ["utilities", "btrfs", "cocalc"],
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "package-directory": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^18.16.14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/project-runner"
+}

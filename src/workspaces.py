@@ -122,6 +122,7 @@ def all_packages() -> List[str]:
         'packages/frontend',  # static depends on frontend; frontend depends on assets
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/lite',
+        'packages/project-runner',
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
         'packages/file-server',
