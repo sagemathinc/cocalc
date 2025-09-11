@@ -17,10 +17,9 @@ import getCachedPool, { CacheTime } from "./cached";
 import dbPassword from "./password";
 import { types } from "pg";
 export * from "./util";
-
+import { patchPoolForUtc } from "./pg-utc-normalize";
 
 const L = getLogger("db:pool");
-
 
 let pool: Pool | undefined = undefined;
 
@@ -47,6 +46,9 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       ssl,
       options: "-c timezone=UTC", // ← make the session time zone UTC
     });
+
+    // make Dates always UTC ISO going in
+    patchPoolForUtc(pool);
 
     pool.on("error", (err: Error) => {
       L.debug("WARNING: Unexpected error on idle client in PG pool", {
@@ -114,6 +116,8 @@ export async function initEphemeralDatabase({
     ssl,
     options: "-c timezone=UTC", // ← make the session time zone UTC
   });
+  patchPoolForUtc(db);
+
   db.on("error", (err: Error) => {
     L.debug("WARNING: Unexpected error on idle client in PG pool", {
       err: err.message,
