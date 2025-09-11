@@ -17,7 +17,7 @@ import {
 import { loadConatConfiguration } from "../configuration";
 import getLogger from "@cocalc/backend/logger";
 
-const logger = getLogger("server:coant:project:run");
+const logger = getLogger("server:conat:project:run");
 
 const servers: any[] = [];
 export async function init(count: number = 1) {

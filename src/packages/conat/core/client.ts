@@ -607,7 +607,7 @@ export class Client extends EventEmitter {
         this.state != "connected" ||
         this.info?.user?.error
       ) {
-        throw Error("failed to sign in");
+        throw Error(`failed to sign in - ${this.info?.user?.error}`);
       }
     },
   );

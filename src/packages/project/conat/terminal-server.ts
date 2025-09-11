@@ -13,7 +13,7 @@ const logger = getLogger("project:conat:terminal-server");
 
 export function init(opts) {
   opts = getIdentity(opts);
-  logger.debug("init", opts);
+  logger.debug("init");
   terminalServer({
     ...opts,
     spawn,

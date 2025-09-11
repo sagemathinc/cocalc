@@ -12,6 +12,7 @@ import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getProject } from "@cocalc/server/projects/control";
 import { type Configuration } from "@cocalc/project-runner/run";
+import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 
 const logger = getLogger("server:conat:project:load-balancer");
 
@@ -46,12 +47,14 @@ async function getConfig({ project_id }): Promise<Configuration> {
     throw Error(`no project ${project_id}`);
   }
   const { run_quota } = rows[0];
-  const config = {} as Configuration;
-  config.cpu = `${(run_quota?.cpu_limit ?? 1) * 1000}m`;
-  config.memory = `${run_quota?.memory ?? 1000}M`;
-  config.pids = DEFAULT_PID_LIMIT;
-  config.swap = "16Gi"; // no clue
-  config.disk = `${run_quota?.disk_quota ?? 1000}M`;
+  const config = {
+    secret: await getProjectSecretToken(project_id),
+    cpu: `${(run_quota?.cpu_limit ?? 1) * 1000}m`,
+    memory: `${run_quota?.memory ?? 1000}M`,
+    pids: DEFAULT_PID_LIMIT,
+    swap: "16Gi", // no clue,
+    disk: `${run_quota?.disk_quota ?? 1000}M`,
+  } as Configuration;
 
   logger.debug("config", { project_id, run_quota, config });
 
