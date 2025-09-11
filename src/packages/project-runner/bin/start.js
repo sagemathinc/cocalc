@@ -4,6 +4,6 @@ const { init } = require("@cocalc/project-runner/run");
 
 (async () => {
   console.log("Starting...");
-  await init({runtime:'nsjail'});
+  await init();
   console.log("CoCalc Project Runner ready");
 })();

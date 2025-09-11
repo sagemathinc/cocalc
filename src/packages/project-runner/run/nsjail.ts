@@ -33,7 +33,7 @@ import { once } from "@cocalc/util/async-utils";
 import { getMounts } from "./mounts";
 import { mountHome, setQuota } from "./filesystem";
 
-// for development it may be useful to just disabling using nsjail namespaces
+// for development it may be useful to just disable using nsjail namespaces
 // entirely -- change this to true to do so.
 const DISABLE_NSJAIL = false;
 
@@ -63,7 +63,7 @@ export async function start({
   let uid, gid;
   if (userInfo().uid) {
     // server running as non-root user -- single user mode
-    uid = gid = userInfo().uid;
+    ({ uid, gid } = userInfo());
   } else {
     // server is running as root -- multiuser mode
     uid = gid = DEFAULT_UID;

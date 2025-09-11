@@ -27,17 +27,21 @@ export async function init() {
     }
     MOUNTS[type] = v;
   }
-  MOUNTS["-R"].push(`${dirname(root)}:/cocalc`);
-
-  // also if this node is install via nvm, we make exactly this
-  // version of node's install available
-  if (!process.execPath.startsWith("/usr/")) {
-    // not already in an obvious system-wide place we included above
-    // IMPORTANT: take care not to put the binary next to sensitive info!
-    MOUNTS["-R"].push(`${dirname(process.execPath)}:/cocalc/bin`);
-    nodePath = join("/cocalc/bin", basename(process.execPath));
+  const cocalcMounts = getCoCalcMounts();
+  for (const path in cocalcMounts) {
+    MOUNTS[path] = cocalcMounts[path];
   }
   logger.debug(MOUNTS);
+}
+
+export function getCoCalcMounts() {
+  nodePath = join("/cocalc/bin", basename(process.execPath));
+  // IMPORTANT: take care not to put the binary next to sensitive info due
+  // to mapping in process.execPath!
+  return {
+    [dirname(root)]: "/cocalc",
+    [dirname(process.execPath)]: "/cocalc/bin",
+  };
 }
 
 export async function getMounts() {

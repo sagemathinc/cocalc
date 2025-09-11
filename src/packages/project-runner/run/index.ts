@@ -14,6 +14,7 @@ export { type Configuration };
 import { init as initFilesystem } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
 import * as nsjail from "./nsjail";
+import * as podman from "./podman";
 import { init as initMounts } from "./mounts";
 
 const logger = getLogger("project-runner:run");
@@ -22,14 +23,18 @@ let client: ConatClient | null = null;
 export async function init(
   opts: { client?: ConatClient; runtime?: "nsjail" | "podman" } = {},
 ) {
-  logger.debug("init", opts.runtime);
+  const runtimeName = opts.runtime ?? "podman";
+  logger.debug("init", runtimeName);
   let runtime;
-  switch (opts.runtime) {
+  switch (runtimeName) {
     case "nsjail":
       runtime = nsjail;
       break;
+    case "podman":
+      runtime = podman;
+      break;
     default:
-      throw Error(`runtime '${opts.runtime}' not implemented`);
+      throw Error(`runtime '${runtimeName}' not implemented`);
   }
   client = opts.client ?? conat();
   initFilesystem({ client });

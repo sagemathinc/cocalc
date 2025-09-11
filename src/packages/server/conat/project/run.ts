@@ -21,11 +21,10 @@ const logger = getLogger("server:conat:project:run");
 
 const servers: any[] = [];
 export async function init(count: number = 1) {
-  const opts = { runtime: "nsjail" as "nsjail" };
-  logger.debug("init project runner(s)", { count, opts });
+  logger.debug("init project runner(s)", { count });
   await loadConatConfiguration();
   for (let i = 0; i < count; i++) {
-    const server = await initProjectRunner(opts);
+    const server = await initProjectRunner();
     servers.push(server);
   }
 }
