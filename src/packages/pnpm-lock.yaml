@@ -108,6 +108,9 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      package-directory:
+        specifier: ^8.1.0
+        version: 8.1.0
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2

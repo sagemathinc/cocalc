@@ -36,7 +36,7 @@ cd "$SRC"
 cd "$SRC"/packages
 rm -rf node_modules && pnpm install --prod --package-import-method=copy
 
-rm -rf cdn frontend
+rm -rf cdn frontend static assets
 rm -rf static/dist/*.map static/dist/embed-*.js
 
 cd node_modules/.pnpm

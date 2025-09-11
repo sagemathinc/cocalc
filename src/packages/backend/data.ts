@@ -31,12 +31,11 @@ import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { FALLBACK_ACCOUNT_UUID } from "@cocalc/util/misc";
+import { packageDirectorySync } from "package-directory";
 
-function determineRootFromPath(): string {
-  const cur = __dirname;
-  const search = "/src/";
-  const i = cur.lastIndexOf(search);
-  const root = resolve(cur.slice(0, i + search.length - 1));
+function determineRoot(): string {
+  const pd = packageDirectorySync() ?? '/';
+  const root = resolve(pd, "..", "..");
   process.env.COCALC_ROOT = root;
   return root;
 }
@@ -170,7 +169,7 @@ export function sslConfigToPsqlEnv(config: SSLConfig): PsqlSSLEnvConfig {
   return psqlArgs;
 }
 
-export const root: string = process.env.COCALC_ROOT ?? determineRootFromPath();
+export const root: string = process.env.COCALC_ROOT ?? determineRoot();
 export const data: string = process.env.DATA ?? join(root, "data");
 export const pguser: string = process.env.PGUSER ?? "smc";
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
