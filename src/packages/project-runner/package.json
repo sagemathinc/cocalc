@@ -10,7 +10,11 @@
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --pretty --preserveWatchOutput",
     "depcheck": "pnpx depcheck",
-    "clean": "rm -rf node_modules dist"
+    "clean": "rm -rf node_modules dist",
+    "start": "pnpm exec cocalc-project-runner"
+  },
+  "bin": {
+    "cocalc-project-runner": "./bin/start.js"
   },
   "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
@@ -20,6 +24,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@cocalc/project-runner": "workspace:*",
     "package-directory": "^8.1.0"
   },
   "devDependencies": {
