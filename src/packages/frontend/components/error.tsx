@@ -16,7 +16,9 @@ export default function ShowError({
   style,
   banner,
 }: Props) {
-  if (!error) return null;
+  // Check for falsy values including undefined, null, empty string
+  if (!error || error === "") return null;
+  
   const err = `${error}`.replace(/^Error:/, "").trim();
   return (
     <Alert

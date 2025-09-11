@@ -17,6 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventEmitter } from "node:stream";
 import shellEscape from "shell-escape";
+
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
@@ -33,9 +34,8 @@ import {
   type ExecuteCodeOptionsWithCallback,
   type ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
-import { Processes } from "@cocalc/util/types/project-info/types";
 import { envForSpawn } from "./misc";
-import { ProcessStats } from "./process-stats";
+import { ProcessStats, sumChildren } from "./process-stats";
 
 const log = getLogger("execute-code");
 
@@ -293,29 +293,6 @@ async function executeCodeNoAggregate(
   }
 }
 
-function sumChildren(
-  procs: Processes,
-  children: { [pid: number]: number[] },
-  pid: number,
-): { rss: number; pct_cpu: number; cpu_secs: number } | null {
-  const proc = procs[`${pid}`];
-  if (proc == null) {
-    log.debug(`sumChildren: no process ${pid} in proc`);
-    return null;
-  }
-  let rss = proc.stat.mem.rss;
-  let pct_cpu = proc.cpu.pct;
-  let cpu_secs = proc.cpu.secs;
-  for (const ch of children[pid] ?? []) {
-    const sc = sumChildren(procs, children, ch);
-    if (sc == null) return null;
-    rss += sc.rss;
-    pct_cpu += sc.pct_cpu;
-    cpu_secs += sc.cpu_secs;
-  }
-  return { rss, pct_cpu, cpu_secs };
-}
-
 function doSpawn(
   opts: ExecuteCodeOptions & {
     origCommand: string;
@@ -390,7 +367,7 @@ function doSpawn(
         // in any case, stop monitoring and do not update any data.
         return;
       }
-      const { rss, pct_cpu, cpu_secs } = sc;
+      const { rss, cpu_pct: pct_cpu, cpu_secs } = sc;
       // ?? fallback, in case the cache "forgot" about it
       const obj = asyncCache.get(job_id) ?? job_config;
       obj.pid = pid;

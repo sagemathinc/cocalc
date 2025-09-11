@@ -20,11 +20,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
-import type { TourProps } from "antd";
-import { delay } from "awaiting";
-import * as CodeMirror from "codemirror";
-import { List, Map, fromJS, Set as iSet } from "immutable";
-import { debounce } from "lodash";
+import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Actions as BaseActions,
   Rendered,
@@ -50,6 +46,8 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+import { log_opened_time } from "@cocalc/frontend/project/open-file";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
@@ -64,18 +62,23 @@ import {
   syntax2tool,
 } from "@cocalc/util/code-formatter";
 import {
-  isTimeoutCallingProject,
   TIMEOUT_CALLING_PROJECT_MSG,
+  isTimeoutCallingProject,
 } from "@cocalc/util/consts/project";
 import {
   aux_file,
   filename_extension,
   history_path,
   len,
-  uuid,
   path_split,
+  uuid,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { TourProps } from "antd";
+import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+import { List, Map, fromJS, Set as iSet } from "immutable";
+import { debounce } from "lodash";
 import { set_account_table } from "../../account/util";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
@@ -109,9 +112,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { log_opened_time } from "@cocalc/frontend/project/open-file";
-import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
-import { alert_message } from "@cocalc/frontend/alerts";
 
 interface gutterMarkerParams {
   line: number;

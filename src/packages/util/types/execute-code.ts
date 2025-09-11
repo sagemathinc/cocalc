@@ -12,6 +12,13 @@ export interface ExecuteCodeOutputBlocking extends ExecuteCodeBase {
   type: "blocking";
 }
 
+export type ExecuteCodeStats = {
+  timestamp: number;
+  mem_rss: number;
+  cpu_pct: number;
+  cpu_secs: number;
+}[];
+
 export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
   type: "async";
   start: number;
@@ -19,12 +26,7 @@ export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
   status: AsyncStatus | "killed"; // killed is only set by the frontend (latex)
   elapsed_s?: number; // how long it took, async execution
   pid?: number; // in case you want to kill it remotely, good to know the PID
-  stats?: {
-    timestamp: number;
-    mem_rss: number;
-    cpu_pct: number;
-    cpu_secs: number;
-  }[];
+  stats?: ExecuteCodeStats;
 }
 
 export type ExecuteCodeOutput =
