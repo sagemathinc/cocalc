@@ -34,7 +34,7 @@ import { mkdir } from "fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { spawn } from "node:child_process";
 import { type Configuration } from "./types";
-export { type Configuration};
+export { type Configuration };
 import { limits } from "./limits";
 import {
   client as createFileClient,
@@ -116,7 +116,7 @@ async function start({
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
   }
-  logger.debug("start", { project_id, config });
+  logger.debug("start", { project_id, config: { ...config, secret: "xxx" } });
   if (children[project_id] != null && children[project_id].exitCode == null) {
     logger.debug("start -- already running");
     return;
@@ -138,6 +138,7 @@ async function start({
     env: config?.env,
     HOME: home,
   });
+  env.PATH = dirname(process.argv[0]) + ":" + (env.PATH ?? "");
   await setupDataPath(home);
   if (config?.secret) {
     await writeSecretToken(home, config.secret);

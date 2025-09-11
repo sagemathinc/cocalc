@@ -3,7 +3,7 @@ import { join } from "node:path";
 import base_path from "@cocalc/backend/base-path";
 
 export function dataPath(HOME: string): string {
-  return join(HOME, ".cache", "cocalc");
+  return join(HOME, ".cache", "cocalc", "project");
 }
 
 // see also packages/project/secret-token.ts
@@ -91,6 +91,7 @@ export function getEnvironment({
       COCALC_USERNAME: USER,
       USER,
       COCALC_EXTRA_ENV: extra_env,
+      // probably want to be more careful with PATH
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
       CONAT_SERVER: conatServer,
       COCALC_SECRET_TOKEN: secretTokenPath(HOME),

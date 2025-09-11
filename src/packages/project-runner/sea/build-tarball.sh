@@ -90,10 +90,8 @@ rm -rf better-sqlite3@*/node_modules/better-sqlite3/deps/sqlite3
 
 cd "$SRC"/..
 rm -rf *.md .github .git docs
-mv src/packages/* .
-rm -rf src
 # remove rustic -- only needed for file server
-rm -f backend/node_modules/.bin/rustic
+rm -f src/packages/backend/node_modules/.bin/rustic
 
 cd $TMP
 mkdir -p $BIN/../build/tarball

@@ -184,3 +184,4 @@ g
 *.zip
 
 src/packages/lite/build
+src/packages/project-runner/build
