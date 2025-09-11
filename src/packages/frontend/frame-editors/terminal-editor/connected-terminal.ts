@@ -6,7 +6,7 @@
 /*
 Wrapper object around xterm.js's Terminal, which adds
 extra support for being connected to:
-  - a backend server pty via a sonat socket, which can be on a 
+  - a backend server pty via a sonat socket, which can be on a
     project or compute server
   - react/redux
   - frame-editor (via actions)
@@ -91,8 +91,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private render_buffer: string = "";
   private history: string = "";
-  private last_active: number = 0;
-  private touch_interval;
 
   public is_visible: boolean = false;
   public element: HTMLElement;
@@ -181,10 +179,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.update_settings();
     this.init_title();
     this.init_settings();
-    this.init_touch();
     this.set_connection_status("disconnected");
 
     const handleData = (data: string) => {
+      touch_project(this.project_id, this.compute_server_id);
       if (this.ptyExited) {
         this.ptyExited = false;
         this.connect();
@@ -289,7 +287,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.compute_server_id = null;
     this.set_connection_status("disconnected");
     this.state = "closed";
-    clearInterval(this.touch_interval);
     this.account_store.removeListener("change", this.update_settings);
     this.terminal.dispose();
     close(this);
@@ -564,23 +561,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
-  touch = async () => {
-    if (this.isClosed()) return;
-    if (Date.now() - this.last_active < 70000) {
-      if (
-        this.project_actions.isTabClosed() ||
-        this.compute_server_id == null
-      ) {
-        return;
-      }
-      touch_project(this.project_id, this.compute_server_id);
-    }
-  };
-
-  init_touch = (): void => {
-    this.touch_interval = setInterval(this.touch, 60000);
-  };
-
   initKeyHandler = (): void => {
     if (this.isClosed()) {
       return;
@@ -601,9 +581,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       //         shiftKey: event.shiftKey,
       //         key: event.key,
       //       });
-
-      // record that terminal is being actively used.
-      this.last_active = Date.now();
 
       if (this.is_paused) {
         this.pauseKeyCount += 1;

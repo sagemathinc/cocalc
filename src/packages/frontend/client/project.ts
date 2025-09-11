@@ -12,7 +12,6 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
-import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { API } from "@cocalc/frontend/project/websocket/api";
 import { connection_to_project } from "@cocalc/frontend/project/websocket/connect";
@@ -44,9 +43,10 @@ import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 import { type ProjectApi } from "@cocalc/conat/project/api";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 
+const TOUCH_THROTTLE = 30_000;
+
 export class ProjectClient {
   private client: WebappClient;
-  private touch_throttle: { [project_id: string]: number } = {};
 
   constructor(client: WebappClient) {
     this.client = client;
@@ -393,63 +393,39 @@ export class ProjectClient {
     },
   );
 
-  touch_project = async (
-    // project_id where activity occured
-    project_id: string,
-    // optional global id of a compute server (in the given project), in which case we also mark
-    // that compute server as active, which keeps it running in case it has idle timeout configured.
-    compute_server_id?: number,
-  ): Promise<void> => {
-    if (!is_valid_uuid_string(project_id)) {
-      console.warn("WARNING -- touch_project takes a project_id, but got ", {
-        project_id,
-      });
-    }
-    if (compute_server_id) {
-      // this is throttled, etc. and is independent of everything below.
-      touchComputeServer({
-        project_id,
-        compute_server_id,
-        client: this.client,
-      });
-      // that said, we do still touch the project, since if a user is actively
-      // using a compute server, the project should also be considered active.
-    }
-
-    const state = redux.getStore("projects")?.get_state(project_id);
-    if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
-      // not trying to view project as admin so do some checks
-      if (!(await allow_project_to_run(project_id))) return;
-      if (!this.client.is_signed_in()) {
-        // silently ignore if not signed in
+  touch_project = throttle(
+    async (
+      // project_id where activity occured
+      project_id: string,
+      // optional global id of a compute server (in the given project), in which case we also mark
+      // that compute server as active, which keeps it running in case it has idle timeout configured.
+      compute_server_id?: number | null,
+    ): Promise<void> => {
+      if (!is_valid_uuid_string(project_id)) {
+        console.warn("WARNING -- touch_project takes a project_id, but got ", {
+          project_id,
+        });
         return;
       }
-      if (state != "running") {
-        // not running so don't touch (user must explicitly start first)
-        return;
+      if (compute_server_id) {
+        // this is independent of everything below.
+        touchComputeServer({
+          project_id,
+          compute_server_id,
+          client: this.client,
+        });
+        // that said, we do still touch the project, since if a user is actively
+        // using a compute server, the project should also be considered active.
       }
-    }
 
-    // Throttle -- so if this function is called with the same project_id
-    // twice in 3s, it's ignored (to avoid unnecessary network traffic).
-    // Do not make the timeout long, since that can mess up
-    // getting the hub-websocket to connect to the project.
-    const last = this.touch_throttle[project_id];
-    if (last != null && Date.now() - last <= 3000) {
-      return;
-    }
-    this.touch_throttle[project_id] = Date.now();
-    try {
-      await this.client.conat_client.hub.db.touch({ project_id });
-    } catch (err) {
-      // silently ignore; this happens, e.g., if you touch too frequently,
-      // and shouldn't be fatal and break other things.
-      // NOTE: this is a bit ugly for now -- basically the
-      // hub returns an error regarding actually touching
-      // the project (updating the db), but it still *does*
-      // ensure there is a TCP connection to the project.
-    }
-  };
+      try {
+        await this.client.conat_client.hub.db.touch({ project_id });
+      } catch (err) {
+        console.log("WARNING: issue touching project", err);
+      }
+    },
+    TOUCH_THROTTLE,
+  );
 
   // Print sagews to pdf
   // The printed version of the file will be created in the same directory

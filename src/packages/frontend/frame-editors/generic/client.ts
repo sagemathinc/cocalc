@@ -15,12 +15,9 @@ import { FakeSyncstring } from "./syncstring-fake";
 import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
 export { type User };
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
-
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
-
 import * as schema from "@cocalc/util/schema";
-
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema";
 
 export function server_time(): Date {
@@ -73,7 +70,7 @@ export async function touch(project_id: string, path: string): Promise<void> {
 // Resets the idle timeout timer and makes it known we are using the project.
 export async function touch_project(
   project_id: string,
-  compute_server_id?: number,
+  compute_server_id?: number | null,
 ): Promise<void> {
   try {
     await webapp_client.project_client.touch_project(
