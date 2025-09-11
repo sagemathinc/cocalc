@@ -2,9 +2,10 @@
 
 # This does a clean build from source of a clone
 # of the cocalc repo where it is run from, deletes
-# a lot that isn't needed for cocalc-lite, then
+# a lot that isn't needed for cocalc-project-runner, then
 # tars it all up.
 #    **The result should be well under 50 MB.**
+# See similar script in lite/bin/build-lite.sh
 
 set -ev
 
@@ -12,7 +13,7 @@ VERSION="$npm_package_version"
 MACHINE="$(uname -m)"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
-NAME=cocalc-lite-$VERSION-$MACHINE-$OS
+NAME=cocalc-project-runner-$VERSION-$MACHINE-$OS
 TMP=/tmp/$NAME
 rm -rf "$TMP"
 mkdir "$TMP"
@@ -26,19 +27,16 @@ BIN=`dirname "$(realpath $0)"`
 git clone --depth=1 $BIN/../../../.. $TARGET
 
 cd "$SRC"/packages
-rm -rf database hub next server file-server project-runner
+rm -rf database hub next server file-server lite
 
 cd "$SRC"
-./workspaces.py install --exclude=database,hub,next,server,file-server,project-runner
-./workspaces.py build --exclude=database,hub,next,server,file-server,project-runner
+./workspaces.py install --exclude=database,hub,next,server,file-server,lite
+./workspaces.py build --exclude=database,hub,next,server,file-server,lite
 
-# Delete packages that were only needed for the build.
-# Deleting node_modules and installing is the recommended approach by pnpm.
 cd "$SRC"/packages
 rm -rf node_modules && pnpm install --prod --package-import-method=copy
 
 rm -rf cdn frontend
-
 rm -rf static/dist/*.map static/dist/embed-*.js
 
 cd node_modules/.pnpm
@@ -49,12 +47,8 @@ rm -rf @types*
 rm -rf @img*
 rm -rf @rspack*
 rm -rf rxjs*
-# @zxcvbn is password strength but cocalc-lite doesn't have account creation
 rm -rf @zxcvbn* zod*
-# jsdom -- used for testing and next
 rm -rf jsdom*
-# note: cytoscape-fcose is a mermaid dep so already bundled up
-# this is aa bunch of frontend only stuff
 rm -rf d3* @icons+material* katex* slate* react-highlight-words* codemirror* plotly* @plotly* mermaid* cytoscape-fcose* antd* pdfjs* maplibre* mapbox* three* @lumino* @mermaid* sass* webpack* @icons+material '@napi-rs+canvas'*
 rm -rf typescript* @tsd+typescript
 rm -rf @cocalc+gcloud-pricing-calculator
@@ -70,14 +64,11 @@ rm -rf uglify-js*
 rm -rf y-protocols*
 rm -rf @nteract*
 rm -rf dropzone@*
-
-# TODO: rewrite util/db-schema/crm.ts to NOT use @ant-design/colors at all?  This should be in the frontend only.
 mkdir x
 mv @ant-design* x
 mv x/@ant-design+colors* .
 rm -rf x
 
-# AI libraries in the server/ package -- this will all get proxied through a cocalc.com server via a subscription, so don't need it here:
 rm -rf js-tiktoken* gpt3-tokenizer* openai* @mistralai* @anthropic* @langchain*
 
 if [ `uname` == "Linux" ]; then
@@ -104,11 +95,11 @@ cd "$SRC"/..
 rm -rf *.md .github .git docs
 mv src/packages/* .
 rm -rf src
-# remove rustic for now, until we build a backup system for cocalc-lite based on it.
+# remove rustic -- only needed for file server
 rm -f backend/node_modules/.bin/rustic
 
 cd $TMP
-mkdir -p $BIN/../build/lite
-tar Jcvf $BIN/../build/lite/$NAME.tar.xz $NAME
+mkdir -p $BIN/../build/tarball
+tar Jcvf $BIN/../build/tarball/$NAME.tar.xz $NAME
 
 rm -rf "$TARGET"

@@ -11,7 +11,9 @@
     "tsc": "pnpm exec tsc  --pretty --preserveWatchOutput",
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist",
-    "start": "pnpm exec cocalc-project-runner"
+    "start": "pnpm exec cocalc-project-runner",
+    "build-tarball": "cd sea && ./build-tarball.sh",
+    "build-sea": "cd sea && ./build-sea.sh"
   },
   "bin": {
     "cocalc-project-runner": "./bin/start.js"
