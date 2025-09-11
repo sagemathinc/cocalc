@@ -26,7 +26,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { root } from "@cocalc/backend/data";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { userInfo } from "node:os";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
@@ -61,6 +61,7 @@ const MOUNTS = {
   "-B": ["/dev"],
 };
 
+let nodePath = process.execPath;
 async function initMounts() {
   for (const type in MOUNTS) {
     const v: string[] = [];
@@ -77,12 +78,9 @@ async function initMounts() {
   // version of node's install available
   if (!process.execPath.startsWith("/usr/")) {
     // not already in an obvious system-wide place we included above
-    if (process.execPath.includes("nvm/versions/node/")) {
-      const j = process.execPath.lastIndexOf("/bin/node");
-      if (j != -1) {
-        MOUNTS["-R"].push(process.execPath.slice(0, j));
-      }
-    }
+    // IMPORTANT: take care not to put the binary next to sensitive info!
+    MOUNTS["-R"].push(`${dirname(process.execPath)}:/cocalc/bin`);
+    nodePath = join("/cocalc/bin", basename(process.execPath));
   }
 }
 
@@ -138,7 +136,6 @@ async function start({
     env: config?.env,
     HOME: home,
   });
-  env.PATH = dirname(process.argv[0]) + ":" + (env.PATH ?? "");
   await setupDataPath(home);
   if (config?.secret) {
     await writeSecretToken(home, config.secret);
@@ -187,7 +184,7 @@ async function start({
     args.push("-B", `${home}:${env.HOME}`);
     args.push(...limits(config));
     args.push("--");
-    args.push(process.execPath);
+    args.push(nodePath);
     cmd = nsjail;
   }
 

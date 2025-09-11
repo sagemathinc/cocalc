@@ -91,7 +91,6 @@ export function getEnvironment({
       COCALC_USERNAME: USER,
       USER,
       COCALC_EXTRA_ENV: extra_env,
-      // probably want to be more careful with PATH
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
       CONAT_SERVER: conatServer,
       COCALC_SECRET_TOKEN: secretTokenPath(HOME),
