@@ -31,10 +31,11 @@ import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
 import { FALLBACK_ACCOUNT_UUID } from "@cocalc/util/misc";
-import { packageDirectorySync } from "package-directory";
+// using old version of pkg-dir because of nextjs :-(
+import { sync as packageDirectorySync } from "pkg-dir";
 
 function determineRoot(): string {
-  const pd = packageDirectorySync({ cwd: __dirname }) ?? "/";
+  const pd = packageDirectorySync(__dirname) ?? "/";
   const root = resolve(pd, "..", "..");
   process.env.COCALC_ROOT = root;
   return root;

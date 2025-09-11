@@ -16,13 +16,14 @@ import { arch, platform } from "os";
 import { execFileSync, execSync } from "child_process";
 import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
 import { join } from "path";
-import { packageDirectorySync } from "package-directory";
+// using old version of pkg-dir because of nextjs :-(
+import { sync as packageDirectorySync } from "pkg-dir";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("files:sandbox:install");
 
 const binPath = join(
-  packageDirectorySync({ cwd: __dirname }) ?? "",
+  packageDirectorySync(__dirname) ?? "",
   "node_modules",
   ".bin",
 );
