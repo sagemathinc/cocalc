@@ -10,11 +10,9 @@ import { replace_all } from "@cocalc/util/misc";
 const DEFAULT_IMAGE = "ubuntu:25.04";
 
 const IMAGE_CACHE =
-  process.env.COCALC_OVERLAY_IMAGE_CACHE ?? join(data, "overlay", "images");
-const OVERLAY_ROOTFS =
-  process.env.COCALC_OVERLAY_ROOTFS ?? join(data, "overlay", "rootfs");
-const OVERLAY_USER =
-  process.env.COCALC_OVERLAY_USER ?? join(data, "overlay", "user");
+  process.env.COCALC_IMAGE_CACHE ?? join(data, "cache", "images");
+const PROJECT_ROOTS =
+  process.env.COCALC_PROJECT_ROOTS ?? join(data, "cache", "project-roots");
 
 export const extractBaseImage = reuseInFlight(async (image: string) => {
   const baseImagePath = join(IMAGE_CACHE, image);
@@ -84,15 +82,15 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
 });
 
 function getMergedPath(project_id) {
-  return join(OVERLAY_ROOTFS, `project-${project_id}`);
+  return join(PROJECT_ROOTS, project_id);
 }
 
-function getPaths({ image, project_id }) {
-  const userOverlays = join(OVERLAY_USER, `project-${project_id}`, image);
-  const upper = join(userOverlays, "upper");
+function getPaths({ home, image, project_id }) {
+  const userOverlays = join(home, ".overlay", image);
+  const upperdir = join(userOverlays, "upperdir");
   const workdir = join(userOverlays, "workdir");
   const merged = getMergedPath(project_id);
-  return { upper, workdir, merged };
+  return { upperdir, workdir, merged };
 }
 
 function getImage(config) {
@@ -101,19 +99,21 @@ function getImage(config) {
 
 export async function mount({
   project_id,
+  home,
   config,
 }: {
   project_id: string;
+  home: string;
   config?: Configuration;
 }) {
   const image = getImage(config);
-  const lower = await extractBaseImage(image);
-  const { upper, workdir, merged } = getPaths({ image, project_id });
-  await mkdir(upper, { recursive: true });
+  const lowerdir = await extractBaseImage(image);
+  const { upperdir, workdir, merged } = getPaths({ home, image, project_id });
+  await mkdir(upperdir, { recursive: true });
   await mkdir(workdir, { recursive: true });
   await mkdir(merged, { recursive: true });
 
-  await mountOverlayFs({ lower, upper, workdir, merged });
+  await mountOverlayFs({ lowerdir, upperdir, workdir, merged });
 
   return merged;
 }
@@ -137,7 +137,7 @@ function escape(path) {
   return replace_all(path, ":", `\\:`);
 }
 
-async function mountOverlayFs({ upper, workdir, merged, lower }) {
+async function mountOverlayFs({ upperdir, workdir, merged, lowerdir }) {
   await executeCode({
     err_on_exit: true,
     command: "sudo",
@@ -147,7 +147,7 @@ async function mountOverlayFs({ upper, workdir, merged, lower }) {
       "overlay",
       "overlay",
       "-o",
-      `lowerdir=${escape(lower)},upperdir=${escape(upper)},workdir=${escape(workdir)},index=on,nfs_export=on,xino=auto,redirect_dir=on`,
+      `lowerdir=${escape(lowerdir)},upperdir=${escape(upperdir)},workdir=${escape(workdir)}`,
       merged,
     ],
   });
