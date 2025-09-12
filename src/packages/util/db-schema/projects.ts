@@ -93,6 +93,7 @@ Table({
           pay_as_you_go_quotas: null,
           snapshots: null,
           backups: null,
+          rootfs_image: null,
         },
       },
       set: {
@@ -110,6 +111,7 @@ Table({
           },
           action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
           compute_image: true,
+          rootfs_image: true,
           site_license: true,
           env: true,
           sandbox: true,
@@ -301,6 +303,10 @@ Table({
     compute_image: {
       type: "string",
       desc: "Specify the name of the underlying (kucalc) compute image.",
+    },
+    rootfs_image: {
+      type: "string",
+      desc: "The root filesystem image for this project. This can be an arbitrary Docker image. Prefix images from Dockerhub with docker.io/.",
     },
     addons: {
       type: "map",
