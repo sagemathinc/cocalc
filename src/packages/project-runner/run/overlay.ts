@@ -110,6 +110,10 @@ export async function mount({
   const image = getImage(config);
   const lowerdir = await extractBaseImage(image);
   const { upperdir, workdir, merged } = getPaths({ home, image, project_id });
+  try {
+    // workdir must be empty when mount happens -- it is scratch space
+    await rm(workdir, { recursive: true, force: true });
+  } catch {}
   await mkdir(upperdir, { recursive: true });
   await mkdir(workdir, { recursive: true });
   await mkdir(merged, { recursive: true });
@@ -131,7 +135,7 @@ export async function unmount(project_id: string) {
     verbose: true,
     err_on_exit: true,
     command: "sudo",
-    args: ["umount", mountpoint],
+    args: ["umount", "-l", mountpoint],
   });
 }
 

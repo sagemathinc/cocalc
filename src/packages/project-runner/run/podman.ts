@@ -1,5 +1,10 @@
 /*
 Runner based on podman.
+
+DEPENDENCIES:
+
+   sudo apt-get install rsync podman
+
 */
 
 import getLogger from "@cocalc/backend/logger";
@@ -107,7 +112,17 @@ export async function stop({ project_id }) {
   }
   logger.debug("stop", { project_id });
   const child = children[project_id];
+
   if (child != null && child.exitCode == null) {
+    // make it so filesystem gets unmounted as soon as no longer
+    // locked by podman
+    (async () => {
+      try {
+        await rootFilesystem.unmount(project_id);
+      } catch {}
+    })();
+
+    // now stop container and delete it.
     try {
       await podman([
         "rm",
@@ -118,7 +133,6 @@ export async function stop({ project_id }) {
       ]);
     } catch {}
     delete children[project_id];
-    await rootFilesystem.unmount(project_id);
   }
 }
 
