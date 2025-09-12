@@ -7,6 +7,11 @@
 Markdown Editor Actions
 */
 
+import { delay } from "awaiting";
+import { fromJS } from "immutable";
+import $ from "jquery";
+import { debounce } from "lodash";
+
 import {
   TableOfContentsEntry,
   TableOfContentsEntryList,
@@ -22,15 +27,11 @@ import {
 import { toggle_checkbox } from "@cocalc/frontend/editors/task-editor/desc-rendering";
 import { parseTableOfContents } from "@cocalc/frontend/markdown";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { delay } from "awaiting";
-import { fromJS } from "immutable";
-import $ from "jquery";
-import { debounce } from "lodash";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import {
   Actions as CodeEditorActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 

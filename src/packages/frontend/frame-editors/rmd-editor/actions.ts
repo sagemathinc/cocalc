@@ -160,9 +160,16 @@ export class Actions extends MarkdownActions {
 
   // This stops the current RMD build process and resets the state.
   async stop_build(_id: string): Promise<void> {
-    const job_info = this.store.get("job_info")?.toJS() as ExecuteCodeOutputAsync | undefined;
+    const job_info = this.store.get("job_info")?.toJS() as
+      | ExecuteCodeOutputAsync
+      | undefined;
 
-    if (job_info && job_info.type === "async" && job_info.status === "running" && typeof job_info.pid === "number") {
+    if (
+      job_info &&
+      job_info.type === "async" &&
+      job_info.status === "running" &&
+      typeof job_info.pid === "number"
+    ) {
       try {
         // Kill the process using the same approach as LaTeX editor
         await exec(
@@ -180,7 +187,10 @@ export class Actions extends MarkdownActions {
         // likely "No such process", we just ignore it
       } finally {
         // Update the job status to killed
-        const updated_job_info: ExecuteCodeOutputAsync = { ...job_info, status: "killed" };
+        const updated_job_info: ExecuteCodeOutputAsync = {
+          ...job_info,
+          status: "killed",
+        };
         this.setState({ job_info: updated_job_info });
       }
     }
@@ -239,9 +249,10 @@ export class Actions extends MarkdownActions {
   }
 
   private set_job_info(job_info: ExecuteCodeOutputAsync): void {
+    if (!job_info) return;
     this.setState({
-      build_log: job_info.stdout?.trim() || "",
-      build_err: job_info.stderr?.trim() || "",
+      build_log: job_info.stdout?.trim() ?? "",
+      build_err: job_info.stderr?.trim() ?? "",
       build_exit: job_info.exit_code,
       job_info,
     });
@@ -270,13 +281,13 @@ export class Actions extends MarkdownActions {
     try {
       const { frontmatter, html } = markdown_to_html_frontmatter(md);
       markdown = html;
-       output = await convert(
-         this.project_id,
-         this.path,
-         frontmatter,
-         hash || this._last_rmd_hash || Date.now(),
-         this.set_job_info.bind(this),
-       );
+      output = await convert(
+        this.project_id,
+        this.path,
+        frontmatter,
+        hash || this._last_rmd_hash || Date.now(),
+        this.set_job_info.bind(this),
+      );
       this.set_log(output);
       if (output == null || output.exit_code != 0) {
         this.set_error(
