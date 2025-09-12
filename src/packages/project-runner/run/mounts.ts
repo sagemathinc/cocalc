@@ -34,13 +34,19 @@ export async function init() {
   logger.debug(MOUNTS);
 }
 
+const COCALC_BIN = "/opt/cocalc/bin";
+export const COCALC_SRC = "/opt/cocalc/src";
 export function getCoCalcMounts() {
-  nodePath = join("/cocalc/bin", basename(process.execPath));
+  // NODEJS_SEA_PATH is where we mount the directory containing the nodejs SEA binary,
+  // which we *also* use for running the project itself.
+  nodePath = join(COCALC_BIN, basename(process.execPath));
   // IMPORTANT: take care not to put the binary next to sensitive info due
   // to mapping in process.execPath!
   return {
-    [dirname(root)]: "/cocalc",
-    [dirname(process.execPath)]: "/cocalc/bin",
+    // /cocalc is where the project Javascript code is located; this is hardcoded
+    // also in
+    [join(dirname(root), "src")]: COCALC_SRC,
+    [dirname(process.execPath)]: COCALC_BIN,
   };
 }
 

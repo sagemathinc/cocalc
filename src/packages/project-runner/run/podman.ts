@@ -11,9 +11,10 @@ import { mkdir } from "fs/promises";
 import { spawn } from "node:child_process";
 import { type Configuration } from "./types";
 export { type Configuration };
-import { getCoCalcMounts } from "./mounts";
+import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { mountHome, setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { join } from "path";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -60,7 +61,7 @@ export async function start({
 
   const args: string[] = ["run", "--rm", "--network=host", "--user=0:0"];
   const cmd = "podman";
-  const script = "/cocalc/src/packages/project/bin/cocalc-project.js";
+  const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
 
   args.push("--hostname", `project-${project_id}`);
   args.push("--name", `project-${project_id}`);
