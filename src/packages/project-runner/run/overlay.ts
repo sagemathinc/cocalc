@@ -10,9 +10,11 @@ import { replace_all } from "@cocalc/util/misc";
 const DEFAULT_IMAGE = "ubuntu:25.04";
 
 const IMAGE_CACHE =
-  process.env.COCALC_IMAGE_CACHE ?? join(data, "cache", "images");
-const PROJECT_ROOTS =
-  process.env.COCALC_PROJECT_ROOTS ?? join(data, "cache", "project-roots");
+  process.env.COCALC_OVERLAY_IMAGE_CACHE ?? join(data, "overlay", "images");
+const OVERLAY_ROOTFS =
+  process.env.COCALC_OVERLAY_ROOTFS ?? join(data, "overlay", "rootfs");
+const OVERLAY_USER =
+  process.env.COCALC_OVERLAY_USER ?? join(data, "overlay", "user");
 
 export const extractBaseImage = reuseInFlight(async (image: string) => {
   const baseImagePath = join(IMAGE_CACHE, image);
@@ -82,11 +84,11 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
 });
 
 function getMergedPath(project_id) {
-  return join(PROJECT_ROOTS, project_id);
+  return join(OVERLAY_ROOTFS, `project-${project_id}`);
 }
 
-function getPaths({ home, image, project_id }) {
-  const userOverlays = join(home, ".overlay", image);
+function getPaths({ image, project_id }) {
+  const userOverlays = join(OVERLAY_USER, `project-${project_id}`, image);
   const upper = join(userOverlays, "upper");
   const workdir = join(userOverlays, "workdir");
   const merged = getMergedPath(project_id);
@@ -99,16 +101,14 @@ function getImage(config) {
 
 export async function mount({
   project_id,
-  home,
   config,
 }: {
   project_id: string;
-  home: string;
   config?: Configuration;
 }) {
   const image = getImage(config);
   const lower = await extractBaseImage(image);
-  const { upper, workdir, merged } = getPaths({ home, image, project_id });
+  const { upper, workdir, merged } = getPaths({ image, project_id });
   await mkdir(upper, { recursive: true });
   await mkdir(workdir, { recursive: true });
   await mkdir(merged, { recursive: true });
@@ -147,7 +147,7 @@ async function mountOverlayFs({ upper, workdir, merged, lower }) {
       "overlay",
       "overlay",
       "-o",
-      `lowerdir=${escape(lower)},upperdir=${escape(upper)},workdir=${escape(workdir)}`,
+      `lowerdir=${escape(lower)},upperdir=${escape(upper)},workdir=${escape(workdir)},index=on,nfs_export=on,xino=auto,redirect_dir=on`,
       merged,
     ],
   });

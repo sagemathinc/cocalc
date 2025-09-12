@@ -39,7 +39,7 @@ export async function start({
   }
 
   const home = await mountHome(project_id);
-  const rootfs = await rootFilesystem.mount({ project_id, home, config });
+  const rootfs = await rootFilesystem.mount({ project_id, config });
   await mkdir(home, { recursive: true });
   await ensureConfFilesExists(home);
   const env = getEnvironment({
