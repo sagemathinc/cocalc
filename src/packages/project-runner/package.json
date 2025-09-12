@@ -12,6 +12,7 @@
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist",
     "start": "pnpm exec cocalc-project-runner",
+    "build-all": "pnpm build && pnpm build-tarball && pnpm build-sea",
     "build-tarball": "cd sea && ./build-tarball.sh",
     "build-sea": "cd sea && ./build-sea.sh"
   },

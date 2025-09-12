@@ -15,13 +15,12 @@ import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { mountHome, setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { join } from "path";
+import * as rootFilesystem from "./overlay";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
 
 const GRACE_PERIOD = 2000;
-
-const DEFAULT_IMAGE = "ubuntu:25.04";
 
 export async function start({
   project_id,
@@ -40,6 +39,7 @@ export async function start({
   }
 
   const home = await mountHome(project_id);
+  const rootfs = await rootFilesystem.mount({ project_id, home, config });
   await mkdir(home, { recursive: true });
   await ensureConfFilesExists(home);
   const env = getEnvironment({
@@ -60,6 +60,7 @@ export async function start({
   }
 
   const args: string[] = ["run", "--rm", "--network=host", "--user=0:0"];
+
   const cmd = "podman";
   const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
 
@@ -75,7 +76,7 @@ export async function start({
     args.push("-e", `${name}=${env[name]}`);
   }
 
-  args.push(config?.image ?? DEFAULT_IMAGE);
+  args.push("--rootfs", rootfs);
   args.push(nodePath);
   args.push(script, "--init", "project_init.sh");
 
@@ -110,6 +111,7 @@ export async function stop({ project_id }) {
       ]);
     } catch {}
     delete children[project_id];
+    await rootFilesystem.unmount(project_id);
   }
 }
 
