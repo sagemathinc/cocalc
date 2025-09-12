@@ -7,9 +7,11 @@
 Convert R Markdown file to hidden Markdown file, then read.
 */
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { path_split } from "@cocalc/util/misc";
-import { exec, ExecOutput } from "../generic/client";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { ExecOutput } from "../generic/client";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { runJob } from "./utils";
 
 export const convert = reuseInFlight(_convert);
 
@@ -18,6 +20,7 @@ async function _convert(
   path: string,
   frontmatter: string,
   hash,
+  set_job_info?: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<ExecOutput> {
   const x = path_split(path);
   const infile = x.tail;
@@ -35,18 +38,16 @@ async function _convert(
     cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE, output_options = list(self_contained = FALSE))`;
   }
 
-  return await exec(
-    {
-      timeout: 4 * 60,
-      bash: true, // so timeout is enforced by ulimit
-      command: "Rscript",
-      args: ["-e", cmd],
-      env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
-      project_id: project_id,
-      path: x.head,
-      err_on_exit: false,
-      aggregate: { value: hash },
-    },
-    path,
-  );
+  return await runJob({
+    aggregate: hash ? { value: hash } : undefined,
+    args: ["-e", cmd],
+    command: "Rscript",
+    env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
+    project_id: project_id,
+    runDir: x.head,
+    set_job_info,
+    timeout: 4 * 60,
+    path: path,
+    debug: `RMD conversion for: ${path}`,
+  });
 }

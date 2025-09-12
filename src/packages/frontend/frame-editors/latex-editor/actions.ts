@@ -1094,7 +1094,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       files2 = await api.canonical_paths(files1);
       this.setState({ includeError: "" });
     } catch (err) {
-      this.setState({ includeError: err.toString() });
+      // Safely convert error to string, handling undefined/null cases
+      const errorMessage = err ? String(err) : "Unknown error checking included files";
+      this.setState({ includeError: errorMessage });
       return;
     }
 

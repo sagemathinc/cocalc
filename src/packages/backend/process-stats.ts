@@ -29,7 +29,7 @@ const exec = promisify(cp_exec);
 
 // this is a hard limit on the number of processes we gather, just to
 // be on the safe side to avoid processing too much data.
-const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 256);
+const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 1024);
 
 interface ProcessStatsOpts {
   procLimit?: number;
@@ -179,4 +179,40 @@ export class ProcessStats {
     this.last = { timestamp, processes: procs };
     return { procs, uptime, boottime };
   }
+}
+
+export interface ProcessTreeStats {
+  rss: number;
+  cpu_secs: number;
+  cpu_pct: number;
+}
+
+/**
+ * Recursively sum process statistics for a process and all its children.
+ * This function aggregates CPU time, memory usage, and CPU percentage
+ * for a process tree starting from the given PID.
+ */
+export function sumChildren(
+  procs: Processes,
+  children: { [pid: number]: number[] },
+  pid: number,
+): ProcessTreeStats | null {
+  const proc = procs[`${pid}`];
+  if (proc == null) {
+    return null;
+  }
+
+  let rss = proc.stat.mem.rss;
+  let cpu_secs = proc.cpu.secs;
+  let cpu_pct = proc.cpu.pct;
+
+  for (const ch of children[pid] ?? []) {
+    const sc = sumChildren(procs, children, ch);
+    if (sc == null) return null;
+    rss += sc.rss;
+    cpu_secs += sc.cpu_secs;
+    cpu_pct += sc.cpu_pct;
+  }
+
+  return { rss, cpu_secs, cpu_pct };
 }

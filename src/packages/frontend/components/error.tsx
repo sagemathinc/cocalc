@@ -17,6 +17,7 @@ export default function ShowError({
   banner,
 }: Props) {
   if (!error) return null;
+
   const err = `${error}`.replace(/^Error:/, "").trim();
   return (
     <Alert
