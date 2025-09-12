@@ -6,10 +6,10 @@
 // data and functions specific to the latex editor.
 
 import { ExecOutput } from "@cocalc/frontend/frame-editors/generic/client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
 
 export function pdf_path(path: string): string {
@@ -143,7 +143,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
         };
         set_job_info(current_job_info);
       } else {
-        // Job info not ready yet, accumulate data  
+        // Job info not ready yet, accumulate data
         pending_stderr += data;
       }
     });

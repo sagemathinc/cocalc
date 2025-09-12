@@ -30,6 +30,7 @@ import {
   Actions as CodeEditorActions,
   CodeEditorState,
 } from "../code-editor/actions";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 
@@ -39,6 +40,7 @@ interface MarkdownEditorState extends CodeEditorState {
   build_log: string; // for Rmd
   build_err: string; // for Rmd
   build_exit: number; // for Rmd
+  job_info?: ExecuteCodeOutputAsync; // for Rmd streaming with stats
   contents?: TableOfContentsEntryList; // table of contents data.
 }
 
