@@ -88,6 +88,7 @@ const SPEC = {
     pathInArchive: "rustic",
   },
   nsjail: {
+    optional: true,
     nonFatal: true,
     platforms: ["linux"],
     VERSION: NSJAIL_VERSION,
@@ -126,7 +127,11 @@ async function alreadyInstalled(app: App) {
 export async function install(app?: App) {
   if (app == null) {
     // @ts-ignore
-    await Promise.all(Object.keys(SPEC).map(install));
+    await Promise.all(
+      Object.keys(SPEC)
+        .filter((x) => !SPEC[x].optional)
+        .map(install as any),
+    );
     return;
   }
 
