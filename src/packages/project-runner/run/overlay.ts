@@ -47,6 +47,7 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
   // extract the image
   try {
     await executeCode({
+      verbose: true,
       timeout: 60 * 60, // timeout in seconds
       err_on_exit: true,
       command: "podman",
@@ -127,6 +128,7 @@ This would go in sudo for the user to allow just this:
 export async function unmount(project_id: string) {
   const mountpoint = getMergedPath(project_id);
   await executeCode({
+    verbose: true,
     err_on_exit: true,
     command: "sudo",
     args: ["umount", mountpoint],
@@ -139,6 +141,7 @@ function escape(path) {
 
 async function mountOverlayFs({ upperdir, workdir, merged, lowerdir }) {
   await executeCode({
+    verbose: true,
     err_on_exit: true,
     command: "sudo",
     args: [

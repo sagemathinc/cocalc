@@ -39,17 +39,23 @@ export async function start({
   }
 
   const home = await mountHome(project_id);
+  logger.debug("start: got home", { project_id, home });
   const rootfs = await rootFilesystem.mount({ project_id, home, config });
+  logger.debug("start: got rootfs", { project_id, rootfs });
   await mkdir(home, { recursive: true });
+  logger.debug("start: created home", { project_id });
   await ensureConfFilesExists(home);
+  logger.debug("start: created conf files", { project_id });
   const env = getEnvironment({
     project_id,
     env: config?.env,
     HOME: "/home/user",
   });
   await setupDataPath(home);
+  logger.debug("start: setup data path", { project_id });
   if (config?.secret) {
     await writeSecretToken(home, config.secret);
+    logger.debug("start: wrote secret", { project_id });
   }
 
   if (config?.disk) {
@@ -57,6 +63,7 @@ export async function start({
     // to make startup time slightly faster (?) -- could also be incorporated
     // into mount.
     await setQuota(project_id, config.disk);
+    logger.debug("start: set disk quota", { project_id });
   }
 
   const args: string[] = ["run", "--rm", "--network=host", "--user=0:0"];
@@ -81,14 +88,14 @@ export async function start({
   args.push(script, "--init", "project_init.sh");
 
   console.log(`${cmd} ${args.join(" ")}`);
-  logger.debug(`${cmd} ${args.join(" ")}`);
+  logger.debug("start: launching container - ", `${cmd} ${args.join(" ")}`);
 
   const child = spawn(cmd, args);
   children[project_id] = child;
 
-  child.stdout.on("data", (chunk: Buffer) => {
-    logger.debug(`project_id=${project_id}.stdout: `, chunk.toString());
-  });
+  //   child.stdout.on("data", (chunk: Buffer) => {
+  //     logger.debug(`project_id=${project_id}.stdout: `, chunk.toString());
+  //   });
   child.stderr.on("data", (chunk: Buffer) => {
     logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
   });
