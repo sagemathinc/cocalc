@@ -10,7 +10,9 @@ const MOUNTS = {
   "-B": ["/dev"],
 };
 
+// default - it gets changed to something *inside* the container when getCocalcMounts() is called
 export let nodePath = process.execPath;
+
 let initialized = false;
 export async function init() {
   if (initialized) {
@@ -34,7 +36,7 @@ export async function init() {
   logger.debug(MOUNTS);
 }
 
-const COCALC_BIN = "/opt/cocalc/bin";
+export const COCALC_BIN = "/opt/cocalc/bin";
 export const COCALC_SRC = "/opt/cocalc/src";
 export function getCoCalcMounts() {
   // NODEJS_SEA_PATH is where we mount the directory containing the nodejs SEA binary,
@@ -43,8 +45,7 @@ export function getCoCalcMounts() {
   // IMPORTANT: take care not to put the binary next to sensitive info due
   // to mapping in process.execPath!
   return {
-    // /cocalc is where the project Javascript code is located; this is hardcoded
-    // also in
+    // /cocalc is where the project Javascript code is located
     [join(dirname(root), "src")]: COCALC_SRC,
     [dirname(process.execPath)]: COCALC_BIN,
   };

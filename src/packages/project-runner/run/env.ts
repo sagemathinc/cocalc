@@ -1,7 +1,7 @@
 import { conatServer } from "@cocalc/backend/data";
 import { join } from "node:path";
 import base_path from "@cocalc/backend/base-path";
-import { COCALC_SRC } from "./mounts";
+import { COCALC_SRC, COCALC_BIN } from "./mounts";
 import { executeCode } from "@cocalc/backend/execute-code";
 
 export function dataPath(HOME: string): string {
@@ -61,7 +61,7 @@ export async function getEnvironment({
 
   const USER = "root";
   const DATA = dataPath(HOME);
-  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_SRC}/packages/backend/node_modules/.bin:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`;
+  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_BIN}:${COCALC_SRC}/packages/backend/node_modules/.bin:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`;
   const already = new Set<string>();
   const w: string[] = [];
   for (const segment of PATH.split(":")) {
