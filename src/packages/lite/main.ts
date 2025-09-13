@@ -32,6 +32,7 @@ import { account_id } from "@cocalc/backend/data";
 import { init as initRemote } from "./remote";
 import { getAuthToken } from "./auth-token";
 import getLogger from "@cocalc/backend/logger";
+import compression from "compression";
 
 const logger = getLogger("lite:main");
 
@@ -72,6 +73,11 @@ export async function main(): Promise<number> {
   }
   logger.debug("conat address: ", conatServer.address());
   setConatServer(conatServer.address());
+
+  // CRITICAL: keep this *AFTER* the websocket Conat stuff or anything you do not
+  // want to have compressed to avoid massive performance problems.
+  // suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+  app.use(compression());
 
   logger.debug("create client");
   const conatClient = conat();
