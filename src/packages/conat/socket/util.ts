@@ -1,3 +1,5 @@
+import { splitSubject } from "../core/split-cache";
+
 export const SOCKET_HEADER_CMD = "CN-SocketCmd";
 export const SOCKET_HEADER_SEQ = "CN-SocketSeq";
 
@@ -69,7 +71,7 @@ export interface ConatSocketOptions extends SocketConfiguration {
 export const RECONNECT_DELAY = 500;
 
 export function clientSubject(subject: string) {
-  const segments = subject.split(".");
+  const segments = splitSubject(subject);
   segments[segments.length - 2] = "client";
   return segments.join(".");
 }

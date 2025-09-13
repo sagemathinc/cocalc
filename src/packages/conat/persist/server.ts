@@ -70,6 +70,7 @@ import { throttle } from "lodash";
 import { type SetOptions } from "./client";
 import { once } from "@cocalc/util/async-utils";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
+import { splitSubject } from "../core/split-cache";
 
 const logger = getLogger("persist:server");
 
@@ -139,7 +140,7 @@ export function server({
         storage = data.storage;
         changefeed = data.changefeed;
         try {
-          user = socket.subject.split(".")[1];
+          user = splitSubject(socket.subject)[1];
           usage.add(user);
           added = true;
           stream = await getStream({

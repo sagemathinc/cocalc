@@ -27,54 +27,55 @@ cd packages/server
 
 */
 
-import type { ConnectionStats, ServerInfo } from "./types";
+import { delay } from "awaiting";
+import { throttle } from "lodash";
+import { Server } from "socket.io";
+
+import { getLogger } from "@cocalc/conat/client";
+import { UsageMonitor } from "@cocalc/conat/monitor/usage";
+import { type ConatSocketServer } from "@cocalc/conat/socket";
 import {
   isValidSubject,
   isValidSubjectWithoutWildcards,
 } from "@cocalc/conat/util";
-import { Server } from "socket.io";
-import { delay } from "awaiting";
+import { once, until } from "@cocalc/util/async-utils";
+import { is_array } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { EventEmitter } from "events";
+import { Metrics } from "../types";
 import {
-  ConatError,
-  connect,
   Client,
   type ClientOptions,
+  ConatError,
+  connect,
   MAX_INTEREST_TIMEOUT,
   STICKY_QUEUE_GROUP,
 } from "./client";
-import {
-  RESOURCE,
-  MAX_CONNECTIONS_PER_USER,
-  MAX_CONNECTIONS,
-  MAX_PAYLOAD,
-  MAX_SUBSCRIPTIONS_PER_CLIENT,
-  MAX_SUBSCRIPTIONS_PER_HUB,
-} from "./constants";
-import { Patterns } from "./patterns";
-import { is_array } from "@cocalc/util/misc";
-import { UsageMonitor } from "@cocalc/conat/monitor/usage";
-import { once, until } from "@cocalc/util/async-utils";
 import {
   clusterLink,
   type ClusterLink,
   clusterStreams,
   type ClusterStreams,
-  trimClusterStreams,
   createClusterPersistServer,
-  Sticky,
-  Interest,
   hashInterest,
   hashSticky,
+  Interest,
+  Sticky,
+  trimClusterStreams,
 } from "./cluster";
-import { type ConatSocketServer } from "@cocalc/conat/socket";
-import { throttle } from "lodash";
-import { getLogger } from "@cocalc/conat/client";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
+import {
+  MAX_CONNECTIONS,
+  MAX_CONNECTIONS_PER_USER,
+  MAX_PAYLOAD,
+  MAX_SUBSCRIPTIONS_PER_CLIENT,
+  MAX_SUBSCRIPTIONS_PER_HUB,
+  RESOURCE,
+} from "./constants";
+import { Patterns } from "./patterns";
 import { forkedConatServer } from "./start-server";
 import { stickyChoice } from "./sticky";
-import { EventEmitter } from "events";
-import { Metrics } from "../types";
+import { sysApi, sysApiSubject, type SysConatServer } from "./sys";
+import type { ConnectionStats, ServerInfo } from "./types";
 
 const logger = getLogger("conat:core:server");
 
@@ -163,6 +164,20 @@ export interface Options {
   clusterIpAddress?: string;
 }
 
+// Pattern matching algorithm selection
+function createPatternMatcher<T>(): Patterns<T> {
+  const algo = process.env.COCALC_CONAT_MATCHING_ALGO?.toLowerCase();
+
+  switch (algo) {
+    case "original":
+    case undefined:
+    default:
+      return new Patterns<T>();
+  }
+      console.log("ConatServer: Using original Patterns class");
+      return new Patterns();
+  }
+
 type State = "init" | "ready" | "closed";
 
 export class ConatServer extends EventEmitter {
@@ -180,7 +195,7 @@ export class ConatServer extends EventEmitter {
   public state: State = "init";
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
-  public interest: Interest = new Patterns();
+  public interest: Interest = createPatternMatcher();
   // the target string is JSON.stringify({ id: string; subject: string }),
   // which is the socket.io room to send the messages to.
   public sticky: Sticky = {};
