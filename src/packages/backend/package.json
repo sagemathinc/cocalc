@@ -19,7 +19,7 @@
     "clean": "rm -rf dist node_modules",
     "install-sandbox-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install()' | node",
     "install-bin-tools": "./bin/install.sh",
-    "build": "pnpm exec tsc --build && pnpm install-sandbox-tools && pnpm install-bin-tool",
+    "build": "pnpm exec tsc --build && pnpm install-sandbox-tools && pnpm install-bin-tools",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",

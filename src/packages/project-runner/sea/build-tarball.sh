@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# This does a clean build from source of a clone
-# of the cocalc repo where it is run from, deletes
+# This does a clean build from source of a copy of your
+# current cocalc working codebase here, deletes
 # a lot that isn't needed for cocalc-project-runner, then
 # tars it all up.
 #    **The result should be well under 50 MB.**
@@ -24,7 +24,8 @@ echo "Creating $TARGET"
 
 BIN=`dirname "$(realpath $0)"`
 
-git clone --depth=1 $BIN/../../../.. $TARGET
+cd "$BIN/../../../.."
+(git ls-files -z | tar --null -T - -cf -) | (mkdir -p "$TARGET" && cd "$TARGET" && tar -xf -)
 
 cd "$SRC"/packages
 rm -rf database hub next server file-server lite frontend static assets cdn test
