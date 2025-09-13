@@ -71,7 +71,6 @@ export async function getEnvironment({
     }
   }
   PATH = w.join(":");
-  console.log({ already, w, PATH });
 
   return {
     ...imageEnv,

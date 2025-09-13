@@ -23,11 +23,12 @@ import { join } from "path";
 import * as rootFilesystem from "./overlay";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
+import { podmanLimits } from "./limits";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
 
-const GRACE_PERIOD = 2000;
+const GRACE_PERIOD = 3000;
 
 export async function start({
   project_id,
@@ -88,6 +89,9 @@ export async function start({
     args.push("-v", `${path}:${mounts[path]}:ro`);
   }
   args.push("-v", `${home}:${env.HOME}`);
+
+  args.push(...podmanLimits(config));
+
   for (const name in env) {
     args.push("-e", `${name}=${env[name]}`);
   }
@@ -110,7 +114,13 @@ export async function start({
   });
 }
 
-export async function stop({ project_id }) {
+export async function stop({
+  project_id,
+  force,
+}: {
+  project_id: string;
+  force?: boolean;
+}) {
   if (!isValidUUID(project_id)) {
     throw Error("stop: project_id must be valid");
   }
@@ -118,30 +128,33 @@ export async function stop({ project_id }) {
   const child = children[project_id];
 
   if (child != null && child.exitCode == null) {
-    // make it so filesystem gets unmounted as soon as no longer
-    // locked by podman
-    (async () => {
-      try {
-        await rootFilesystem.unmount(project_id);
-      } catch {}
-    })();
-
-    // now stop container and delete it.
-    try {
-      await podman([
+    const v: any[] = [];
+    v.push(
+      podman([
         "rm",
         "-f",
         "-t",
-        `${Math.ceil(GRACE_PERIOD / 1000)}`,
+        force ? "0" : `${GRACE_PERIOD / 1000}`,
         `project-${project_id}`,
-      ]);
-    } catch {}
+      ]),
+    );
+    v.push(rootFilesystem.unmount(project_id));
     delete children[project_id];
+    try {
+      await Promise.all(v);
+    } catch (err) {
+      logger.debug("stop", { err });
+    }
   }
 }
 
 async function podman(args: string[]) {
-  return await executeCode({ command: "podman", args, err_on_exit: true });
+  return await executeCode({
+    verbose: true,
+    command: "podman",
+    args,
+    err_on_exit: true,
+  });
 }
 
 async function state(project_id): Promise<ProjectState> {
@@ -168,7 +181,7 @@ export async function close() {
   const v: any[] = [];
   for (const project_id in children) {
     logger.debug(`killing project_id=${project_id}`);
-    v.push(stop({ project_id }));
+    v.push(stop({ project_id, force: true }));
     delete children[project_id];
   }
   await Promise.all(v);

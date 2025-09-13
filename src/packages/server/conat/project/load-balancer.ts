@@ -51,7 +51,7 @@ async function getConfig({ project_id }): Promise<Configuration> {
     image,
     secret: await getProjectSecretToken(project_id),
     cpu: `${(run_quota?.cpu_limit ?? 1) * 1000}m`,
-    memory: `${run_quota?.memory ?? 1000}M`,
+    memory: `${run_quota?.memory_limit ?? 1000}M`,
     pids: DEFAULT_PID_LIMIT,
     swap: "16Gi", // no clue,
     disk: `${run_quota?.disk_quota ?? 1000}M`,
