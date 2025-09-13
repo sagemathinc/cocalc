@@ -7,7 +7,8 @@
 
 import initPidFile from "./pid-file";
 import initAPIServer from "@cocalc/project/http-api/server";
-import initBrowserServer from "./browser/http-server";
+import initConat from "@cocalc/project/conat";
+
 import { getLogger } from "@cocalc/project/logger";
 const logger = getLogger("init-project-server");
 
@@ -15,5 +16,5 @@ export default async function init() {
   logger.info("Write pid file to disk.");
   await initPidFile();
   await initAPIServer();
-  await initBrowserServer();
+  await initConat();
 }
