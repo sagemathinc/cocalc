@@ -21,6 +21,7 @@ import { mountHome, setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { join } from "path";
 import * as rootFilesystem from "./overlay";
+import { type ProjectState } from "@cocalc/conat/project/runner/state";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -140,7 +141,7 @@ async function podman(args: string[]) {
   return await executeCode({ command: "podman", args, err_on_exit: true });
 }
 
-async function state(project_id) {
+async function state(project_id): Promise<ProjectState> {
   const { stdout } = await podman([
     "ps",
     "--filter",

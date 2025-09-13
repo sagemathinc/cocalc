@@ -1,6 +1,8 @@
 import { k8sCpuParser, k8sMemoryParser } from "@cocalc/util/misc";
 import { type Configuration } from "./types";
 
+// [ ] TODO: redo these with docker/podman args
+
 // I have not figured out how to use cgroups yet, or which cgroups to use.
 // See discussion here: https://github.com/google/nsjail/issues/196
 // TODO: cgroups are of course much better.
