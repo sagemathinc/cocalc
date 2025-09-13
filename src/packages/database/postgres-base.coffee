@@ -41,6 +41,8 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { quoteField } = require('./postgres/schema/util')
 { primaryKey, primaryKeys } = require('./postgres/schema/table')
 
+{ normalizeValues } = require('./pool/pg-utc-normalize')
+
 misc_node = require('@cocalc/backend/misc_node')
 { sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
 
@@ -818,7 +820,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 dbg("run query with specific postgres parameters in a transaction")
                 do_query_with_pg_params(client: client, query: opts.query, params: opts.params, pg_params:opts.pg_params, cb: query_cb)
             else
-                client.query(opts.query, opts.params, query_cb)
+                client.query(opts.query, normalizeValues(opts.params), query_cb)
 
         catch e
             # this should never ever happen

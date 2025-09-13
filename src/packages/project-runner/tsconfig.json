@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "lib": ["es7"],
+    "rootDir": "./",
+    "outDir": "dist"
+  },
+  "exclude": ["node_modules", "dist", "test"],
+  "references": [
+    { "path": "../util", "path": "../conat", "path": "../backend" }
+  ]
+}

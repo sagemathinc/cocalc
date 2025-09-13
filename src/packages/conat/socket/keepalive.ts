@@ -1,8 +1,5 @@
 import { delay } from "awaiting";
-import { getLogger } from "@cocalc/conat/client";
 import { type Role } from "./util";
-
-const logger = getLogger("socket:keepalive");
 
 export function keepAlive(opts: {
   role: Role;
@@ -21,6 +18,7 @@ export class KeepAlive {
     private ping: () => Promise<any>,
     private disconnect: () => void,
     private keepAlive: number,
+    // @ts-ignore
     private role: Role,
   ) {
     this.run();
@@ -29,10 +27,10 @@ export class KeepAlive {
   private run = async () => {
     while (this.state == "ready") {
       try {
-        logger.silly(this.role, "keepalive -- sending ping");
+        //console.log(this.role, "keepalive -- sending ping");
         await this.ping?.();
       } catch (err) {
-        logger.silly(this.role, "keepalive -- ping failed -- disconnecting");
+        //console.log(this.role, "keepalive -- ping failed -- disconnecting");
         this.disconnect?.();
         this.close();
         return;

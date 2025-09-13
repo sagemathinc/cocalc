@@ -6,10 +6,18 @@
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ALL_AVAIL } from "@cocalc/frontend/project_configuration";
 
+// ws: I fundamentally disagree with this. We should show what we support,
+// and make it easy to install support for things that aren't installed.
+const DISABLED = true;
+
 export function useAvailableFeatures(project_id: string) {
+  if (DISABLED) {
+    return ALL_AVAIL;
+  }
+
   const available_features = useTypedRedux(
     { project_id },
-    "available_features"
+    "available_features",
   );
 
   // If the configuration is not yet available, we default to the *most likely*

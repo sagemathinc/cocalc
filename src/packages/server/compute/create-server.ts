@@ -10,9 +10,7 @@ It's of course easy to make a compute serve that can't be started due to invalid
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import {
-  CLOUDS_BY_NAME,
-} from "@cocalc/util/db-schema/compute-servers";
+import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 import { isDnsAvailable } from "./dns";
 import { getAvailableVpnIp } from "./vpn";
 import { getProjectSpecificId } from "./project-specific-id";
@@ -28,7 +26,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 
 interface Options {
-  account_id: string;
+  account_id?: string;
   project_id: string;
   cloud?: Cloud;
   configuration?: Configuration;
@@ -38,7 +36,7 @@ interface Options {
   position?: number;
   notes?: string;
   course_project_id?: string;
-  course_server_id?: string;
+  course_server_id?: number;
 }
 
 const FIELDS =
@@ -49,7 +47,7 @@ const FIELDS =
 export default async function createServer(opts: Options): Promise<number> {
   logger.debug("createServer", opts);
   if (!isValidUUID(opts.account_id)) {
-    throw Error("created_by must be a valid uuid");
+    throw Error("account_id must be a valid uuid");
   }
   if (!isValidUUID(opts.project_id)) {
     throw Error("project_id must be a valid uuid");

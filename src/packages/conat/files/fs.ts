@@ -187,8 +187,7 @@ export interface Filesystem {
   listing?: (path: string) => Promise<Listing>;
 
   // fd is a rust rewrite of find that is extremely fast at finding
-  // files that match an expression, e.g.,
-  //   options: { type: "name", pattern:"^\.DS_Store$" }
+  // files that match an expression.
   fd: (path: string, options?: FdOptions) => Promise<ExecOutput>;
 
   // dust is an amazing disk space tool

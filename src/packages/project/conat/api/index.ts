@@ -154,6 +154,8 @@ export const projectApi: ProjectApi = {
   editor,
   jupyter,
   sync,
+  isReady: async () => true,
+  waitUntilReady: async () => {},
 };
 
 async function getResponse({ name, args }) {

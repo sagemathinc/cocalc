@@ -16,14 +16,16 @@ import { arch, platform } from "os";
 import { execFileSync, execSync } from "child_process";
 import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
 import { join } from "path";
+// using old version of pkg-dir because of nextjs :-(
+import { sync as packageDirectorySync } from "pkg-dir";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("files:sandbox:install");
 
-const i = __dirname.lastIndexOf("packages/backend");
 const binPath = join(
-  __dirname.slice(0, i + "packages/backend".length),
-  "node_modules/.bin",
+  packageDirectorySync(__dirname) ?? "",
+  "node_modules",
+  ".bin",
 );
 
 interface Spec {
@@ -86,6 +88,7 @@ const SPEC = {
     pathInArchive: "rustic",
   },
   nsjail: {
+    optional: true,
     nonFatal: true,
     platforms: ["linux"],
     VERSION: NSJAIL_VERSION,
@@ -124,7 +127,11 @@ async function alreadyInstalled(app: App) {
 export async function install(app?: App) {
   if (app == null) {
     // @ts-ignore
-    await Promise.all(Object.keys(SPEC).map(install));
+    await Promise.all(
+      Object.keys(SPEC)
+        .filter((x) => !SPEC[x].optional)
+        .map(install as any),
+    );
     return;
   }
 

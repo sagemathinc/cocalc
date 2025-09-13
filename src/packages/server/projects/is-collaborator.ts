@@ -2,8 +2,8 @@ import getPool from "@cocalc/database/pool";
 import { is_valid_uuid_string as isValid } from "@cocalc/util/misc";
 
 interface Options {
-  account_id: string;
-  project_id: string;
+  account_id?: string;
+  project_id?: string;
 }
 
 // Return true if account_id is a collaborator on project_ids.

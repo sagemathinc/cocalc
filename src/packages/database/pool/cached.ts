@@ -24,8 +24,7 @@ of multiple projects.
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
-import { Pool } from "pg";
-
+import { type Pool } from "pg";
 import getLogger from "@cocalc/backend/logger";
 import getPool from "./pool";
 

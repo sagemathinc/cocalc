@@ -3,11 +3,16 @@
 # This does a clean build from source of a clone
 # of the cocalc repo where it is run from, deletes
 # a lot that isn't needed for cocalc-lite, then
-# tars it all up.  The result should be about 150MB.
+# tars it all up.
+#    **The result should be well under 50 MB.**
 
 set -ev
 
-NAME=cocalc-lite
+VERSION="$npm_package_version"
+MACHINE="$(uname -m)"
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+
+NAME=cocalc-lite-$VERSION-$MACHINE-$OS
 TMP=/tmp/$NAME
 rm -rf "$TMP"
 mkdir "$TMP"
@@ -21,11 +26,11 @@ BIN=`dirname "$(realpath $0)"`
 git clone --depth=1 $BIN/../../../.. $TARGET
 
 cd "$SRC"/packages
-rm -rf database hub next server file-server
+rm -rf database hub next server file-server project-runner
 
 cd "$SRC"
-./workspaces.py install --exclude=database,hub,next,server,file-server
-./workspaces.py build --exclude=database,hub,next,server,file-server
+./workspaces.py install --exclude=database,hub,next,server,file-server,project-runner
+./workspaces.py build --exclude=database,hub,next,server,file-server,project-runner
 
 # Delete packages that were only needed for the build.
 # Deleting node_modules and installing is the recommended approach by pnpm.
@@ -48,7 +53,7 @@ rm -rf rxjs*
 rm -rf @zxcvbn* zod*
 # jsdom -- used for testing and next
 rm -rf jsdom*
-# note: cytoscape-fcose is a mermaid dep so alraedy bundled up
+# note: cytoscape-fcose is a mermaid dep so already bundled up
 # this is aa bunch of frontend only stuff
 rm -rf d3* @icons+material* katex* slate* react-highlight-words* codemirror* plotly* @plotly* mermaid* cytoscape-fcose* antd* pdfjs* maplibre* mapbox* three* @lumino* @mermaid* sass* webpack* @icons+material '@napi-rs+canvas'*
 rm -rf typescript* @tsd+typescript
@@ -103,6 +108,7 @@ rm -rf src
 rm -f backend/node_modules/.bin/rustic
 
 cd $TMP
-tar Jcvf $BIN/../$NAME.tar.xz $NAME
+mkdir -p $BIN/../build/lite
+tar Jcvf $BIN/../build/lite/$NAME.tar.xz $NAME
 
 rm -rf "$TARGET"

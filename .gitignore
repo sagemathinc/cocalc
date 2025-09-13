@@ -182,3 +182,6 @@ g
 **/cocalc-api/site/**
 *.pkg
 *.zip
+
+src/packages/lite/build
+src/packages/project-runner/build

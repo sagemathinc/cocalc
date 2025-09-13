@@ -1,23 +1,20 @@
 {
   "name": "@cocalc/lite",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "CoCalc Lite Standalone Server that Optional Syncs with an existing CoCalc instance",
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": [
-    "lite",
-    "cocalc"
-  ],
+  "keywords": ["lite", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf dist node_modules sea/cocalc cocalc-lite.tar.xz sea/cocalc-lite.tar.xz sea/sea-prep.blob",
+    "clean": "rm -rf build dist node_modules sea/sea-prep.blob",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "exit 0",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
     "build-lite": "./bin/build-lite.sh",
-    "build-sea": "cd sea && ./build.sh",
+    "build-sea": "cd sea && ./build-sea.sh",
     "app": "pnpm exec cocalc-lite",
     "app-electron": "pnpm electron-rebuild && electron ."
   },

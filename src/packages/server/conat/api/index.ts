@@ -40,6 +40,16 @@ pnpm conat-watch 'hub.*.*.api' --match-replies
 
 */
 
+import * as purchases from "./purchases";
+import * as db from "./db";
+import * as system from "./system";
+import * as projects from "./projects";
+import * as jupyter from "./jupyter";
+import * as sync from "./sync";
+import * as org from "./org";
+import * as messages from "./messages";
+import * as compute from "./compute";
+
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub/api";
 import { conat } from "@cocalc/backend/conat";
@@ -49,6 +59,18 @@ import { close as terminatePersistServer } from "@cocalc/backend/conat/persist";
 import { close as terminateProjectRunner } from "@cocalc/server/conat/project/run";
 import { close as terminateProjectRunnerLoadBalancer } from "@cocalc/server/conat/project/load-balancer";
 import { delay } from "awaiting";
+
+export const hubApi: HubApi = {
+  system,
+  projects,
+  db,
+  purchases,
+  jupyter,
+  sync,
+  org,
+  messages,
+  compute,
+};
 
 const logger = getLogger("server:conat:api");
 
@@ -173,26 +195,6 @@ async function handleApiRequest({ request, mesg }) {
     );
   }
 }
-
-import * as purchases from "./purchases";
-import * as db from "./db";
-import * as system from "./system";
-import * as projects from "./projects";
-import * as jupyter from "./jupyter";
-import * as sync from "./sync";
-import * as org from "./org";
-import * as messages from "./messages";
-
-export const hubApi: HubApi = {
-  system,
-  projects,
-  db,
-  purchases,
-  jupyter,
-  sync,
-  org,
-  messages,
-};
 
 async function getResponse({ name, args, account_id, project_id }) {
   const [group, functionName] = name.split(".");

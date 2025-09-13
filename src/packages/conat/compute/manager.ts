@@ -5,7 +5,7 @@ is used to edit a given file.
 
 Access this in the browser for the project you have open:
 
-> m = await cc.client.conat_client.computeServerManager({project_id:cc.current().project_id})
+m = cc.redux.getProjectActions(cc.current().project_id).computeServerManager
 
 */
 

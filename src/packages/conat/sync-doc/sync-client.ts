@@ -11,6 +11,7 @@ import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { type ConatSyncTable } from "@cocalc/conat/sync/synctable";
 import { projectApiClient } from "@cocalc/conat/project/api";
 import { base64ToBuffer } from "@cocalc/util/base64";
+import callHub from "@cocalc/conat/hub/call-hub";
 
 export class SyncClient extends EventEmitter implements Client0 {
   private client: ConatClient;
@@ -45,7 +46,18 @@ export class SyncClient extends EventEmitter implements Client0 {
     return this.client.isSignedIn();
   };
 
-  touch_project = (_): void => {};
+  touch_project = async (project_id): Promise<void> => {
+    try {
+      await callHub({
+        client: this.client,
+        account_id: this.client_id(),
+        name: "db.touch",
+        args: [{ project_id, account_id: this.client_id() }],
+      });
+    } catch (err) {
+      console.log("WARNING: issue touching project", { project_id });
+    }
+  };
 
   is_deleted = (_filename: string, _project_id?: string): boolean => {
     return false;

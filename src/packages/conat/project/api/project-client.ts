@@ -8,6 +8,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { type ProjectApi, initProjectApi } from "./index";
 
 const DEFAULT_TIMEOUT = 15000;
+const service = "api";
 
 export function projectApiClient({
   project_id,
@@ -23,38 +24,41 @@ export function projectApiClient({
   if (!isValidUUID(project_id)) {
     throw Error(`project_id = '${project_id}' must be a valid uuid`);
   }
+  const subject = projectSubject({ project_id, compute_server_id, service });
+
+  const isReady = async () => {
+    return await client.interest(subject);
+  };
+
+  const waitUntilReady = async ({ timeout }: { timeout?: number } = {}) => {
+    await client.waitForInterest(subject, { timeout });
+  };
+
   const callProjectApi = async ({ name, args }) => {
     return await callProject({
       client,
-      project_id,
-      compute_server_id,
+      subject,
       timeout,
-      service: "api",
       name,
       args,
     });
   };
-  return initProjectApi(callProjectApi);
+  return initProjectApi({ callProjectApi, isReady, waitUntilReady });
 }
 
 async function callProject({
   client,
-  service = "api",
-  project_id,
-  compute_server_id,
+  subject,
   name,
   args = [],
   timeout = DEFAULT_TIMEOUT,
 }: {
   client: Client;
-  service?: string;
-  project_id: string;
-  compute_server_id?: number;
+  subject: string;
   name: string;
   args: any[];
   timeout?: number;
 }) {
-  const subject = projectSubject({ project_id, compute_server_id, service });
   const resp = await client.request(
     subject,
     { name, args },

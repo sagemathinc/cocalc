@@ -7,13 +7,6 @@ server.  It does the following:
 
 - If id is as requested and is not the project, draw line in color of that compute server.
 
-- If not where we want to be, defines how close via a percentage
-
-- If compute server not running:
-    - if exists and you own it, prompts user to start it and also shows the
-      compute server's component so they can do so.
-    - if not exists (or deleted), say so
-    - if owned by somebody else, say so
 */
 
 import Inline from "./inline";
@@ -29,6 +22,7 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { DisplayImage } from "./select-image";
 import Menu from "./menu";
 import { SpendLimitStatus } from "./spend-limit";
+import useComputeServerApiState from "./use-compute-server-api-state";
 
 interface Props {
   project_id: string;
@@ -48,6 +42,11 @@ export function ComputeServerDocStatus({
   if (requestedId == null) {
     requestedId = id;
   }
+  const apiState = useComputeServerApiState({
+    project_id,
+    compute_server_id: requestedId,
+  });
+
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -210,11 +209,15 @@ export function ComputeServerDocStatus({
   const { progress, message, status } = getProgress(
     server,
     account_id,
-    id,
     requestedId,
+    apiState,
   );
   if (!showDetails) {
-    if (showDetails == null && progress < 100) {
+    if (
+      showDetails == null &&
+      progress < 100 &&
+      (apiState != null || status == "exception")
+    ) {
       setShowDetails(true);
     }
     return topBar(progress);
@@ -283,27 +286,19 @@ export function ComputeServerDocStatus({
   );
 }
 
-const ENABLED = true;
+// gets progress of starting the compute server with given id and
+// having it actively available to host this file.
 
-// gets progress of starting the compute server with given id and having it actively available to host this file.
 function getProgress(
   server: ComputeServerUserInfo | undefined,
   account_id,
-  id,
   requestedId,
+  apiState,
 ): {
   progress: number;
   message: string;
   status: "exception" | "active" | "normal" | "success";
 } {
-  if (ENABLED) {
-    return {
-      progress: 100,
-      message: "Compute server is fully connected!",
-      status: "success",
-    };
-  }
-
   if (requestedId == 0) {
     return {
       progress: 50,
@@ -311,6 +306,15 @@ function getProgress(
       status: "active",
     };
   }
+
+  if (apiState == "running") {
+    return {
+      progress: 100,
+      message: "Compute server is fully connected!",
+      status: "success",
+    };
+  }
+
   if (server == null) {
     return {
       progress: 0,
@@ -330,17 +334,26 @@ function getProgress(
   if (
     server.account_id != account_id &&
     server.state != "running" &&
-    server.state != "starting"
+    server.state != "starting" &&
+    !server.configuration?.allowCollaboratorControl
   ) {
     return {
       progress: 0,
       message:
-        "This is not your compute server, and it is not running. Only the owner of a compute server can start it.",
+        "This is not your compute server, and it is not running. Only the owner of this compute server can start it.",
       status: "exception",
     };
   }
 
-  // below here it isn't our server, it is running.
+  if (apiState != null) {
+    if (apiState == "starting") {
+      return {
+        progress: 75,
+        message: "Compute server is starting.",
+        status: "active",
+      };
+    }
+  }
 
   if (server.state == "deprovisioned") {
     return {
@@ -381,62 +394,20 @@ function getProgress(
     };
   }
 
-  // below it is running
-  const computeIsLive = server.detailed_state?.compute?.state == "ready";
-  if (computeIsLive) {
-    if (id == requestedId) {
-      return {
-        progress: 100,
-        message: "Compute server is fully connected!",
-        status: "success",
-      };
-    } else {
-      return {
-        progress: 90,
-        message:
-          "Compute server is connected and should attach to this file soon...",
-        status: "success",
-      };
-    }
-  }
-  const filesystemIsLive =
-    server.detailed_state?.["filesystem-sync"]?.state == "ready";
-  const computeIsRecent = isRecent(server.detailed_state?.compute?.time);
-  const filesystemIsRecent = isRecent(
-    server.detailed_state?.["filesystem-sync"]?.time,
-  );
-  if (filesystemIsRecent) {
-    return {
-      progress: 70,
-      message: "Waiting for filesystem to connect.",
-      status: "normal",
-    };
-  }
-  if (filesystemIsLive) {
-    if (computeIsRecent) {
-      return {
-        progress: 80,
-        message: "Waiting for compute to connect.",
-        status: "normal",
-      };
-    }
-  }
-
   return {
     progress: 50,
-    message:
-      "Compute server is running, but filesystem and compute components aren't connected. Waiting...",
+    message: "Compute server is starting...",
     status: "active",
   };
 }
 
 // This is useful elsewhere to give a sense of how the compute server
 // is doing as it progresses from running to really being fully available.
-function getRunningStatus(server) {
+function getRunningStatus(server, apiState) {
   if (server == null) {
     return { progress: 0, message: "Loading...", status: "exception" };
   }
-  return getProgress(server, webapp_client.account_id, server.id, server.id);
+  return getProgress(server, webapp_client.account_id, server.id, apiState);
 }
 
 export function RunningProgress({
@@ -446,8 +417,12 @@ export function RunningProgress({
   server: ComputeServerUserInfo | undefined;
   style?;
 }) {
+  const apiState = useComputeServerApiState({
+    project_id: server?.project_id,
+    compute_server_id: server?.id,
+  });
   const { progress, message } = useMemo(() => {
-    return getRunningStatus(server);
+    return getRunningStatus(server, apiState);
   }, [server]);
 
   return (
@@ -460,8 +435,4 @@ export function RunningProgress({
       />
     </Tooltip>
   );
-}
-
-function isRecent(expire = 0) {
-  return Date.now() - expire < 60 * 1000;
 }

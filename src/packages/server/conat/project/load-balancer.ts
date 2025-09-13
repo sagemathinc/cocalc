@@ -1,15 +1,18 @@
 /*
-Project run server load balancer
+Project runner load balancer
+
+There should be exactly one of these running, and it needs access to the database
+of course. It decides where to run projects and proxied the actual requests.
 */
 
 import { conat } from "@cocalc/backend/conat";
 import { server as loadBalancer } from "@cocalc/conat/project/runner/load-balancer";
 import { loadConatConfiguration } from "../configuration";
 import getLogger from "@cocalc/backend/logger";
-import { setProjectState } from "./run";
 import getPool from "@cocalc/database/pool";
 import { getProject } from "@cocalc/server/projects/control";
-import { type Configuration } from "./types";
+import { type Configuration } from "@cocalc/project-runner/run";
+import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 
 const logger = getLogger("server:conat:project:load-balancer");
 
@@ -37,24 +40,31 @@ async function getConfig({ project_id }): Promise<Configuration> {
   await project.computeQuota();
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT settings, run_quota FROM projects WHERE project_id=$1",
+    "SELECT run_quota, rootfs_image as image FROM projects WHERE project_id=$1",
     [project_id],
   );
   if (rows.length == 0) {
     throw Error(`no project ${project_id}`);
   }
-  const { settings, run_quota } = rows[0];
-  const config = {} as Configuration;
-  if (settings?.admin || run_quota?.privileged) {
-    config.admin = true;
-  }
-  config.cpu = `${(run_quota?.cpu_limit ?? 1) * 1000}m`;
-  config.memory = `${run_quota?.memory ?? 1000}M`;
-  config.pids = DEFAULT_PID_LIMIT;
-  config.swap = "16Gi"; // no clue
-  config.disk = `${run_quota?.disk_quota ?? 1000}M`;
+  const { run_quota, image } = rows[0];
+  const config = {
+    image,
+    secret: await getProjectSecretToken(project_id),
+    cpu: `${(run_quota?.cpu_limit ?? 1) * 1000}m`,
+    memory: `${run_quota?.memory_limit ?? 1000}M`,
+    pids: DEFAULT_PID_LIMIT,
+    swap: "16Gi", // no clue,
+    disk: `${run_quota?.disk_quota ?? 1000}M`,
+  } as Configuration;
 
   logger.debug("config", { project_id, run_quota, config });
 
   return config;
+}
+
+async function setProjectState({ project_id, state }) {
+  try {
+    const p = await getProject(project_id);
+    await p.saveStateToDatabase({ state });
+  } catch {}
 }

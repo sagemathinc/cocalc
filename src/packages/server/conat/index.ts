@@ -24,7 +24,10 @@ export async function initConatChangefeedServer() {
 }
 
 export async function initConatApi() {
-  logger.debug("initConatApi: the central api services", { conatApiCount });
+  logger.debug("initConatApi: the central api services", {
+    conatApiCount,
+    conatProjectRunnerCount,
+  });
   await loadConatConfiguration();
 
   // do not block on any of these!

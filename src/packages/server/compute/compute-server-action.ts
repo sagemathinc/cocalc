@@ -3,7 +3,7 @@ import { start, stop, suspend, resume, reboot, deprovision } from "./control";
 
 interface Options {
   id: number;
-  account_id: string;
+  account_id?: string;
   action: Action;
 }
 
@@ -12,6 +12,9 @@ export default async function computeServerAction({
   account_id,
   action,
 }: Options): Promise<void> {
+  if (!account_id) {
+    throw Error("must be signed in");
+  }
   switch (action) {
     case "start":
       return await start({ id, account_id });

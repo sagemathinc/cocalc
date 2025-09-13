@@ -14,9 +14,7 @@ import { openSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-
 import { isEmpty } from "lodash";
-
 import { getLogger } from "./logger";
 import { SSH_LOG, SSH_ERR } from "./data";
 
