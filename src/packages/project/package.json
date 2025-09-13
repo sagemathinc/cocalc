@@ -29,7 +29,6 @@
     "@cocalc/project": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
-    "@cocalc/sync-fs": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@lydell/node-pty": "^1.1.0",
     "@types/jest": "^30.0.0",
@@ -49,7 +48,6 @@
     "rimraf": "^5.0.5",
     "temp": "^0.9.4",
     "tmp": "0.2.4",
-    "websocket-sftp": "^0.8.4",
     "which": "^2.0.2",
     "ws": "^8.18.0"
   },

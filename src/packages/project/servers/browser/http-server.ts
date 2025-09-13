@@ -15,11 +15,8 @@ import express from "express";
 import { createServer } from "http";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-
 import basePath from "@cocalc/backend/base-path";
 import initWebsocket from "@cocalc/project/browser-websocket/server";
-import initWebsocketFs from "../websocketfs";
-import initSyncFs from "../sync-fs";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";
 import { getOptions } from "@cocalc/project/init-program";
@@ -51,9 +48,6 @@ export default async function init(): Promise<void> {
   // We have to explicitly also include the base as a parameter
   // to initWebsocket, since of course it makes deeper user of server.
   app.use(base, initWebsocket(server, base));
-  initWebsocketFs(server, base);
-  // This uses its own internal lz4 compression:
-  initSyncFs(server, base);
 
   // CRITICAL: keep this after the websocket stuff or anything you do not
   // want to have compressed.

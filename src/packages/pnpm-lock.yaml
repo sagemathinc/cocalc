@@ -1146,9 +1146,6 @@ importers:
       '@cocalc/sync-client':
         specifier: workspace:*
         version: link:../sync-client
-      '@cocalc/sync-fs':
-        specifier: workspace:*
-        version: link:../sync-fs
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
@@ -1206,9 +1203,6 @@ importers:
       tmp:
         specifier: 0.2.4
         version: 0.2.4
-      websocket-sftp:
-        specifier: ^0.8.4
-        version: 0.8.4(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       which:
         specifier: ^2.0.2
         version: 2.0.2
@@ -10074,9 +10068,6 @@ packages:
   polybooljs@1.2.2:
     resolution: {integrity: sha512-ziHW/02J0XuNuUtmidBc6GXE8YohYydp3DWPWXYsd7O721TjcmN+k6ezjdwkDqep+gnWnFY+yqZHvzElra2oCg==}
 
-  port-get@1.0.4:
-    resolution: {integrity: sha512-B8RcNfc8Ld+7C31DPaKIQz2aO9dqIs+4sUjhxJ2TSjEaidwyxu05WBbm08FJe+qkVvLiQqPbEAfNw1rB7JbjtA==}
-
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
@@ -12289,10 +12280,6 @@ packages:
   websocket-extensions@0.1.4:
     resolution: {integrity: sha512-OqedPIGOfsDlo31UNwYbCFMSaO9m9G/0faIHj5/dZFDMFqPTcx6UwqyOy3COEaEOg/9VsGIpdqn62W5KhoKSpg==}
     engines: {node: '>=0.8.0'}
-
-  websocket-sftp@0.8.4:
-    resolution: {integrity: sha512-2HaXu1ytAso3qDk6TsW5PtkYJUWdY5SdXVPavu8wyTETHlNUUVb0eFXmIGsfupuZc94p7lCquNdTw4Zo6ITepg==}
-    engines: {node: '>=0.16.0'}
 
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
@@ -22477,8 +22464,6 @@ snapshots:
 
   polybooljs@1.2.2: {}
 
-  port-get@1.0.4: {}
-
   possible-typed-array-names@1.1.0: {}
 
   postcss-modules-extract-imports@3.1.0(postcss@8.5.6):
@@ -25164,17 +25149,6 @@ snapshots:
       websocket-extensions: 0.1.4
 
   websocket-extensions@0.1.4: {}
-
-  websocket-sftp@0.8.4(bufferutil@4.0.9)(utf-8-validate@6.0.5):
-    dependencies:
-      awaiting: 3.0.0
-      debug: 4.4.1
-      port-get: 1.0.4
-      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
 
   whatwg-encoding@3.1.1:
     dependencies:
