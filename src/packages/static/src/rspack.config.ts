@@ -39,7 +39,6 @@ import type { WebpackPluginInstance } from "@rspack/core";
 import { ProvidePlugin } from "@rspack/core";
 import { execSync } from "child_process";
 import { resolve as path_resolve } from "path";
-
 import getLogger from "@cocalc/backend/logger";
 import { versions as CDN_VERSIONS } from "@cocalc/cdn";
 import { version as SMC_VERSION } from "@cocalc/util/smc-version";
@@ -77,7 +76,15 @@ interface Options {
  */
 export default function getConfig({ middleware }: Options = {}): Configuration {
   // Determine the git revision hash:
-  const COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
+  let COCALC_GIT_REVISION;
+  try {
+    COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
+  } catch {
+    // might not have the git repo during the build.
+    // We do NOT depend on this hash for anything; it's just nice to show users/devs.
+    // In lite mode we don't even have a git repo, so don't have this info.
+    COCALC_GIT_REVISION = "N/A";
+  }
   const COCALC_GITHUB_REPO = "https://github.com/sagemathinc/cocalc";
   const COCALC_LICENSE = "custom";
   const OUTPUT = process.env.COCALC_OUTPUT

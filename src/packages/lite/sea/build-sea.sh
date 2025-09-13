@@ -18,7 +18,7 @@ echo "Building SEA for $OS"
 cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"   # make sure it's writable even if copied from system paths
 
-cp ../build/lite/cocalc-lite-$VERSION-$MACHINE-$OS.tar.xz cocalc-lite.tar.xz
+cp ../build/tarball/cocalc-lite-$VERSION-$MACHINE-$OS.tar.xz cocalc-lite.tar.xz
 envsubst < cocalc-template.js > cocalc.js
 
 # 2) Bundle app into a SEA blob

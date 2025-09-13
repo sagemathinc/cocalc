@@ -29,9 +29,14 @@ cd "$BIN/../../../.."
 cd "$SRC"/packages
 rm -rf database hub next server file-server project-runner
 
+# Keepings things lite (also not a git repo):
+cd "$SRC"/packages/assets
+mkdir examples
+echo "{}" > examples/examples.json
+
 cd "$SRC"
 ./workspaces.py install --exclude=database,hub,next,server,file-server,project-runner
-./workspaces.py build --exclude=database,hub,next,server,file-server,project-runner
+./workspaces.py build --exclude=database,hub,next,server,file-server,project-runner,assets
 
 # Delete packages that were only needed for the build.
 # Deleting node_modules and installing is the recommended approach by pnpm.
@@ -109,7 +114,7 @@ rm -rf src
 rm -f backend/node_modules/.bin/rustic
 
 cd $TMP
-mkdir -p $BIN/../build/lite
-tar Jcvf $BIN/../build/lite/$NAME.tar.xz $NAME
+mkdir -p $BIN/../build/tarball
+tar Jcvf $BIN/../build/tarball/$NAME.tar.xz $NAME
 
 rm -rf "$TARGET"
