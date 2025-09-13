@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/lite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "CoCalc Lite Standalone Server that Optional Syncs with an existing CoCalc instance",
   "exports": {
     "./*": "./dist/*.js"
@@ -15,6 +15,7 @@
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
     "build-lite": "./bin/build-lite.sh",
     "build-sea": "cd sea && ./build-sea.sh",
+    "build-all": "pnpm build-lite && pnpm build-sea",
     "app": "pnpm exec cocalc-lite",
     "app-electron": "pnpm electron-rebuild && electron ."
   },
