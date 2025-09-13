@@ -40,14 +40,15 @@ async function getConfig({ project_id }): Promise<Configuration> {
   await project.computeQuota();
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT settings, run_quota FROM projects WHERE project_id=$1",
+    "SELECT run_quota, rootfs_image as image FROM projects WHERE project_id=$1",
     [project_id],
   );
   if (rows.length == 0) {
     throw Error(`no project ${project_id}`);
   }
-  const { run_quota } = rows[0];
+  const { run_quota, image } = rows[0];
   const config = {
+    image,
     secret: await getProjectSecretToken(project_id),
     cpu: `${(run_quota?.cpu_limit ?? 1) * 1000}m`,
     memory: `${run_quota?.memory ?? 1000}M`,
