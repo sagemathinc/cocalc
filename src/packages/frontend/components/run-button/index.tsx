@@ -137,68 +137,6 @@ export default function RunButton({
     ) {
       return;
     }
-    const { output: messages, kernel: usedKernel } = getFromCache({
-      input,
-      history,
-      info,
-      project_id,
-      path,
-    });
-    if (!info) {
-      setKernelName(undefined);
-    }
-    if (messages != null) {
-      setOutput({ messages });
-      setKernelName(usedKernel);
-    } else {
-      setOutput({ old: true });
-      // but we try to asynchronously get the output from the
-      // backend, if available
-      (async () => {
-        let kernel;
-        try {
-          kernel = await getKernel({ input, history, info, project_id });
-        } catch (err) {
-          // could fail, e.g., if user not signed in.  shouldn't be fatal.
-          console.warn(`WARNING: ${err}`);
-          return;
-        }
-        setKernelName(kernel);
-        if (!auto && outputMessagesRef.current == null) {
-          // we don't initially automatically check database since auto is false.
-          return;
-        }
-
-        const hash = computeHash({
-          input,
-          history,
-          kernel,
-          project_id,
-          path,
-        });
-        let x;
-        try {
-          x = await getFromDatabaseCache(hash);
-        } catch (err) {
-          console.warn(`WARNING: ${err}`);
-          return;
-        }
-        const { output: messages, created } = x;
-        if (messages != null) {
-          saveToCache({
-            input,
-            history,
-            info,
-            output: messages,
-            project_id,
-            path,
-            kernel,
-          });
-          setOutput({ messages });
-          setCreated(created);
-        }
-      })();
-    }
     setOutput({ old: true });
     (async () => {
       let kernel;
