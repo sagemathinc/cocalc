@@ -28,4 +28,9 @@ export const DEFAULT_COMPUTE_IMAGE = "ubuntu2404";
 // we switch over to 20.04, we will keep older projects on 18.04 (explicit upgrade)
 export const FALLBACK_COMPUTE_IMAGE = "default";
 
+export const DEFAULT_PROJECT_IMAGE = "ubuntu:25.04";
+
+// subdirectory of home directory that contains image modifications
+export const PROJECT_IMAGE_PATH = ".image";
+
 export const OTHER_SETTINGS_USERDEFINED_LLM = "userdefined_llm";

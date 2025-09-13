@@ -6,8 +6,10 @@ import { mkdir, rm, writeFile } from "fs/promises";
 import { type Configuration } from "./types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { replace_all } from "@cocalc/util/misc";
-
-const DEFAULT_IMAGE = "ubuntu:25.04";
+import {
+  DEFAULT_PROJECT_IMAGE,
+  PROJECT_IMAGE_PATH,
+} from "@cocalc/util/db-schema/defaults";
 
 const IMAGE_CACHE =
   process.env.COCALC_IMAGE_CACHE ?? join(data, "cache", "images");
@@ -87,7 +89,7 @@ function getMergedPath(project_id) {
 }
 
 function getPaths({ home, image, project_id }) {
-  const userOverlays = join(home, ".image", image);
+  const userOverlays = join(home, PROJECT_IMAGE_PATH, image);
   const upperdir = join(userOverlays, "upperdir");
   const workdir = join(userOverlays, "workdir");
   const merged = getMergedPath(project_id);
@@ -95,7 +97,8 @@ function getPaths({ home, image, project_id }) {
 }
 
 function getImage(config) {
-  return config?.image ?? DEFAULT_IMAGE;
+  const image = config?.image?.trim();
+  return image ? image : DEFAULT_PROJECT_IMAGE;
 }
 
 export async function mount({

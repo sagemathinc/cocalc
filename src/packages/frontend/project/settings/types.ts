@@ -48,6 +48,7 @@ export type Project = TypedMap<{
   status: ProjectStatus;
   settings: ProjectSettings;
   compute_image: string;
+  rootfs_image?: string;
   site_license?: SiteLicense;
 }>;
 

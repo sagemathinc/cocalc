@@ -1,6 +1,7 @@
 import { conatServer } from "@cocalc/backend/data";
 import { join } from "node:path";
 import base_path from "@cocalc/backend/base-path";
+import { COCALC_SRC } from "./mounts";
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".cache", "cocalc", "project");
@@ -91,7 +92,7 @@ export function getEnvironment({
       COCALC_USERNAME: USER,
       USER,
       COCALC_EXTRA_ENV: extra_env,
-      PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+      PATH: `${HOME}/bin:${HOME}/.local/bin:${COCALC_SRC}/packages/backend/node_modules/.bin:${process.env.PATH}`,
       CONAT_SERVER: conatServer,
       COCALC_SECRET_TOKEN: secretTokenPath(HOME),
       BASE_PATH: base_path,
