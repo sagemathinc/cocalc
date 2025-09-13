@@ -64,7 +64,7 @@ import {
   syntax2tool,
 } from "@cocalc/util/code-formatter";
 import {
-  IS_TIMEOUT_CALLING_PROJECT,
+  isTimeoutCallingProject,
   TIMEOUT_CALLING_PROJECT_MSG,
 } from "@cocalc/util/consts/project";
 import {
@@ -1921,7 +1921,7 @@ export class Actions<
     if (error === undefined) {
       return "";
     }
-    if (IS_TIMEOUT_CALLING_PROJECT(error)) {
+    if (isTimeoutCallingProject(error)) {
       return TIMEOUT_CALLING_PROJECT_MSG;
     }
     if (typeof error == "string") {
