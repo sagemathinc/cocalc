@@ -40,7 +40,10 @@ for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-
 
 import { conat } from "@cocalc/conat/client";
 import { projectSubject } from "@cocalc/conat/names";
-import { type Subscription } from "@cocalc/conat/core/client";
+import {
+  type Subscription,
+  type Client as ConatClient,
+} from "@cocalc/conat/core/client";
 import { delay } from "awaiting";
 import { getLogger } from "@cocalc/conat/client";
 
@@ -68,8 +71,15 @@ function getSubject({ project_id, compute_server_id, name = "" }) {
 export async function createServer({
   createReadStream,
   project_id,
-  compute_server_id,
+  compute_server_id = 0,
   name = "",
+  client = conat(),
+}: {
+  createReadStream;
+  project_id: string;
+  compute_server_id?: number;
+  name?: string;
+  client?: ConatClient;
 }) {
   const subject = getSubject({
     project_id,
@@ -77,8 +87,7 @@ export async function createServer({
     name,
   });
   logger.debug("createServer", { subject });
-  const cn = await conat();
-  const sub = await cn.subscribe(subject);
+  const sub = await client.subscribe(subject);
   subs[subject] = sub;
   listen({ sub, createReadStream });
 }
@@ -161,9 +170,11 @@ export interface ReadFileOptions {
   path: string;
   name?: string;
   maxWait?: number;
+  client?: ConatClient;
 }
 
 export async function* readFile({
+  client = conat(),
   project_id,
   compute_server_id = 0,
   path,
@@ -171,7 +182,6 @@ export async function* readFile({
   maxWait = 1000 * 60 * 10, // 10 minutes
 }: ReadFileOptions) {
   logger.debug("readFile", { project_id, compute_server_id, path });
-  const cn = await conat();
   const subject = getSubject({
     project_id,
     compute_server_id,
@@ -180,7 +190,7 @@ export async function* readFile({
   const v: any = [];
   let seq = 0;
   let bytes = 0;
-  for await (const resp of await cn.requestMany(
+  for await (const resp of await client.requestMany(
     subject,
     { path },
     {

@@ -131,11 +131,9 @@ function Config({
         template={template}
       />
     );
+  } else if (configuration == null) {
+    return <span>Not Configured</span>;
   } else {
-    return (
-      <span>
-        Configuration not implemented: {JSON.stringify(configuration)}
-      </span>
-    );
+    return <span>Unknown Cloud: '{JSON.stringify(configuration?.cloud)}'</span>;
   }
 }

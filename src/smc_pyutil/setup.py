@@ -65,16 +65,10 @@ if 'user' not in list(d.command_options.get("install", {}).keys()):
 # Then, we switched to "cc" as a shortcut for CoCalc, but it's similar to the C compiler.
 # Using "cocalc-*" is easier to discover and remember.
 
-cs = [
-    'open                 = smc_pyutil.smc_open:main',
-    'close                = smc_pyutil.smc_close:main',
-]
-
 for prefix in ['smc', 'cc', 'cocalc']:
     add = cs.append
     add('%s-sagews2pdf = smc_pyutil.sagews2pdf:main' % prefix)
     add('%s-sws2sagews = smc_pyutil.sws2sagews:main' % prefix)
-    add('%s-open       = smc_pyutil.smc_open:main' % prefix)
     add('%s-new-file   = smc_pyutil.new_file:main' % prefix)
     add('%s-status     = smc_pyutil.status:main' % prefix)
     add('%s-jupyter-no-output= smc_pyutil.jupyter_delete_output:main' % prefix)
@@ -88,7 +82,6 @@ for prefix in ['smc', 'cc', 'cocalc']:
     if prefix != 'smc':
         add('%s-first-steps  = smc_pyutil.first_steps:main' % prefix)
         add('%s-ipynb-to-pdf = smc_pyutil.ipynb_to_pdf:main' % prefix)
-        add('%s-close        = smc_pyutil.smc_close:main' % prefix)
         add('%s-jupyter-classic-open = smc_pyutil.jupyter_notebook:prepare_file_for_open'
             % prefix)
 

@@ -187,3 +187,11 @@ export class Client extends EventEmitter implements Client0 {
     console.log(`shell: opts=${JSON.stringify(opts)}`);
   }
 }
+
+class Filesystem {
+  readFile = () => "";
+  writeFile = () => {};
+  utimes = () => {};
+}
+
+export const fs = new Filesystem() as any;

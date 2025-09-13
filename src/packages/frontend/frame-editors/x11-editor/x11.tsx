@@ -374,7 +374,7 @@ export function X11({
 
   if (disabled) {
     const no_info = config_unknown
-      ? "There is no X11 configuration information available. You might have to restart this project"
+      ? "There is no X11 configuration information available. You might have to restart this project."
       : "";
     return (
       <div className="smc-vfill" style={{ padding: "100px auto auto auto" }}>

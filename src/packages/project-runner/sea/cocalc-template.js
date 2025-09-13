@@ -1,0 +1,79 @@
+const path = require("node:path");
+const fs = require("node:fs");
+
+function extractAssetsSync() {
+  const VERSION = "${VERSION}";
+  const { getRawAsset } = require("node:sea");
+  const os = require("node:os");
+  const { spawnSync } = require("node:child_process");
+
+  const destDir = path.join(
+    process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
+    "cocalc",
+    "project-runner",
+    VERSION,
+  );
+
+  const stamp = path.join(destDir, ".ok");
+  if (!fs.existsSync(stamp)) {
+    console.log("Unpacking...");
+    // Read the SEA asset into a Buffer
+    const ab = getRawAsset("cocalc-project-runner.tar.xz"); // ArrayBuffer (no copy)
+    const buf = Buffer.from(new Uint8Array(ab)); // turn into Node Buffer
+
+    fs.mkdirSync(destDir, { recursive: true });
+
+    const child = spawnSync(
+      "tar",
+      ["-Jxf", "-", "-C", destDir, "--strip-components=1"],
+      {
+        input: buf,
+        stdio: ["pipe", "inherit", "inherit"],
+      },
+    );
+
+    if (child.error) {
+      console.error("Failed to run tar:", child.error);
+      process.exit(1);
+    }
+    if (child.status !== 0) {
+      console.error(`tar exited with code ${child.status}`);
+      process.exit(child.status);
+    }
+
+    console.log("Assets ready at:", destDir);
+    fs.writeFileSync(stamp, "");
+  }
+  return destDir;
+}
+
+const Module = require("node:module");
+const looksLikeScript = process.argv[2] && !process.argv[2].startsWith("-");
+
+if (looksLikeScript) {
+  process.argv = [process.execPath, ...process.argv.slice(2)];
+} else {
+  const destDir = extractAssetsSync();
+  console.log("Starting CoCalc Project Runner");
+
+  const script = path.join(destDir, "src/packages/project-runner/bin/start.js");
+
+  if (!fs.existsSync(script)) {
+    console.error("missing start.js at", script);
+    process.exit(1);
+  }
+
+  // set up argv and cwd as if launched directly
+  process.chdir(path.dirname(script));
+  process.argv = [process.execPath, script, ...process.argv.slice(2)];
+
+  // make sure PATH (and any other env) includes your extracted tools
+  process.env.PATH =
+    path.join(destDir, "src/packages/project-runner/bin/") +
+    path.delimiter +
+    process.env.PATH;
+
+  process.env.AUTH_TOKEN = "random";
+}
+
+Module.runMain();

@@ -86,6 +86,7 @@ const cm: EditorDescription = {
     "format",
     "sync",
     "settings",
+    "terminal",
   ]),
   buttons: set([
     "decrease_font_size",

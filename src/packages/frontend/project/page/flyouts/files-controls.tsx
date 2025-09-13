@@ -6,7 +6,6 @@
 import { Button, Descriptions, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { useIntl } from "react-intl";
-
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import {
@@ -15,7 +14,7 @@ import {
   ACTION_BUTTONS_MULTI,
   isDisabledSnapshots,
 } from "@cocalc/frontend/project/explorer/action-bar";
-import {
+import type {
   DirectoryListing,
   DirectoryListingEntry,
 } from "@cocalc/frontend/project/explorer/types";
@@ -24,6 +23,7 @@ import { human_readable_size, path_split, plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PANEL_STYLE_BOTTOM, PANEL_STYLE_TOP } from "./consts";
 import { useSingleFile } from "./utils";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 interface FilesSelectedControlsProps {
   checked_files: immutable.Set<string>;
@@ -38,6 +38,7 @@ interface FilesSelectedControlsProps {
     skip?: boolean,
   ) => void;
   activeFile: DirectoryListingEntry | null;
+  publicFiles: Set<string>;
 }
 
 export function FilesSelectedControls({
@@ -49,6 +50,7 @@ export function FilesSelectedControls({
   project_id,
   showFileSharingDialog,
   activeFile,
+  publicFiles,
 }: FilesSelectedControlsProps) {
   const intl = useIntl();
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -68,7 +70,7 @@ export function FilesSelectedControls({
       const basename = path_split(file).tail;
       const index = directoryFiles.findIndex((f) => f.name === basename);
       // skipping directories, because it makes no sense to flip through them rapidly
-      if (skipDirs && getFile(file)?.isdir) {
+      if (skipDirs && getFile(file)?.isDir) {
         open(e, index, true);
         continue;
       }
@@ -83,7 +85,7 @@ export function FilesSelectedControls({
 
     let [nFiles, nDirs] = [0, 0];
     for (const f of directoryFiles) {
-      if (f.isdir) {
+      if (f.isDir) {
         nDirs++;
       } else {
         nFiles++;
@@ -100,8 +102,8 @@ export function FilesSelectedControls({
 
   function renderFileInfoBottom() {
     if (singleFile != null) {
-      const { size, mtime, isdir } = singleFile;
-      const age = typeof mtime === "number" ? 1000 * mtime : null;
+      const { size, mtime, isDir } = singleFile;
+      const age = typeof mtime === "number" ? mtime : null;
       return (
         <Descriptions size="small" layout="horizontal" column={1}>
           {age ? (
@@ -109,7 +111,7 @@ export function FilesSelectedControls({
               <TimeAgo date={new Date(age)} />
             </Descriptions.Item>
           ) : undefined}
-          {isdir ? (
+          {isDir ? (
             <Descriptions.Item label="Contains">
               {size} {plural(size, "item")}
             </Descriptions.Item>
@@ -118,7 +120,7 @@ export function FilesSelectedControls({
               {human_readable_size(size)}
             </Descriptions.Item>
           )}
-          {singleFile.is_public ? (
+          {publicFiles.has(singleFile.name) ? (
             <Descriptions.Item label="Published">
               <Button
                 size="small"
@@ -141,10 +143,10 @@ export function FilesSelectedControls({
         for (const f of checked_files) {
           const file = getFile(f);
           if (file == null) continue;
-          const { size = 0, mtime, isdir } = file;
-          totSize += isdir ? 0 : size;
+          const { size = 0, mtime, isDir } = file;
+          totSize += isDir ? 0 : size;
           if (typeof mtime === "number") {
-            const dt = new Date(1000 * mtime);
+            const dt = new Date(mtime);
             if (startDT.getTime() === 0 || dt < startDT) startDT = dt;
             if (endDT.getTime() === 0 || dt > endDT) endDT = dt;
           }
@@ -204,7 +206,7 @@ export function FilesSelectedControls({
           {names.map((name) => {
             const disabled =
               isDisabledSnapshots(name) &&
-              (current_path?.startsWith(".snapshots") ?? false);
+              (current_path?.startsWith(SNAPSHOTS) ?? false);
 
             const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
             const title = intl.formatMessage(actionName);
@@ -238,12 +240,12 @@ export function FilesSelectedControls({
       style={mode === "top" ? PANEL_STYLE_TOP : PANEL_STYLE_BOTTOM}
     >
       {singleFile
-        ? singleFile.isdir
+        ? singleFile.isDir
           ? renderButtons(ACTION_BUTTONS_DIR)
           : renderButtons(ACTION_BUTTONS_FILE.filter((n) => n !== "download"))
         : checked_files.size > 1
-        ? renderButtons(ACTION_BUTTONS_MULTI)
-        : undefined}
+          ? renderButtons(ACTION_BUTTONS_MULTI)
+          : undefined}
       {renderFileInfo()}
     </Space>
   );

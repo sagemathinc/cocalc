@@ -1,0 +1,9 @@
+{
+  "main": "cocalc.js",
+  "output": "sea-prep.blob",
+  "disableExperimentalSEAWarning": true,
+  "useSnapshot": false,
+  "assets": {
+    "cocalc-project-runner.tar.xz": "cocalc-project-runner.tar.xz"
+  }
+}

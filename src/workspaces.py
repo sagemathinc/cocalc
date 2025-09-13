@@ -111,7 +111,6 @@ def all_packages() -> List[str]:
         'packages/util',
         'packages/sync',
         'packages/sync-client',
-        'packages/sync-fs',
         'packages/conat',
         'packages/backend',
         'packages/api-client',
@@ -121,11 +120,14 @@ def all_packages() -> List[str]:
         'packages/assets',
         'packages/frontend',  # static depends on frontend; frontend depends on assets
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
+        'packages/lite',
+        'packages/project-runner',
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
         'packages/file-server',
         'packages/next',
         'packages/hub',  # hub won't build if next isn't already built
+        'packages/test'
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
@@ -282,9 +284,16 @@ def test(args) -> None:
     flaky = []
     fails = []
     success = []
+    start = time.time()
 
     def status():
-        print("Status: ", {"flaky": flaky, "fails": fails, "success": success})
+        print(
+            "Status: ", {
+                "fails": fails,
+                "flaky": flaky,
+                "success": success,
+                "time": (time.time() - start) / 60.0
+            })
 
     v = packages(args)
     v.sort()
@@ -294,6 +303,7 @@ def test(args) -> None:
         package_path = os.path.join(CUR, path)
         if package_path.endswith('packages/'):
             continue
+        package_json = open(os.path.join(package_path, 'package.json')).read()
 
         def f():
             print("\n" * 3)
@@ -303,9 +313,14 @@ def test(args) -> None:
             print(f"TESTING {n}/{len(v)}: {path}")
             print("*")
             print("*" * 40)
-            test_cmd = "pnpm run --if-present test"
+            if args.test_github_ci and 'test-github-ci' in package_json:
+                test_cmd = "pnpm run test-github-ci"
+            else:
+                test_cmd = "pnpm run --if-present test"
             if args.report:
                 test_cmd += " --reporters=default --reporters=jest-junit"
+            if args.max_workers:
+                test_cmd += f' --maxWorkers={args.max_workers} '
             cmd(test_cmd, package_path)
             success.append(path)
 
@@ -355,6 +370,10 @@ def build(args) -> None:
                 # clear dist/ dir
                 shutil.rmtree(dist, ignore_errors=True)
         package_path = os.path.join(CUR, path)
+        if not os.path.exists(package_path):
+            # e.g., in some cases we delete packages entirely to speed
+            # up the build
+            return
         if args.dev and '"build-dev"' in open(
                 os.path.join(CUR, path, 'package.json')).read():
             cmd("pnpm run build-dev", package_path)
@@ -364,6 +383,24 @@ def build(args) -> None:
         # to indicate this, so we won't build again
         # until something is newer than this file
         cmd("touch " + SUCCESSFUL_BUILD, package_path)
+
+    if args.parallel:
+        thread_map(f, v)
+    else:
+        thread_map(f, v, 1)
+
+
+def tsc(args) -> None:
+    v = packages(args)
+    CUR = os.path.abspath('.')
+
+    def f(path: str) -> None:
+        if (path.endswith('packages/') or path.endswith('/next')):
+            return
+        package_path = os.path.join(CUR, path)
+        if not os.path.exists(os.path.join(package_path, 'tsconfig.json')):
+            return
+        cmd("pnpm exec tsc", package_path)
 
     if args.parallel:
         thread_map(f, v)
@@ -533,6 +570,11 @@ def main() -> None:
     subparser.set_defaults(func=build)
 
     subparser = subparsers.add_parser(
+        'tsc', help='run typescript once on all packages')
+    packages_arg(subparser)
+    subparser.set_defaults(func=tsc)
+
+    subparser = subparsers.add_parser(
         'clean', help='delete dist and node_modules folders')
     packages_arg(subparser)
     subparser.add_argument('--dist-only',
@@ -581,10 +623,22 @@ def main() -> None:
         help=
         "how many times to retry a failed test suite before giving up; set to 0 to NOT retry"
     )
+    subparser.add_argument(
+        '--test-github-ci',
+        const=True,
+        action="store_const",
+        help="run 'pnpm test-github-ci' if available instead of 'pnpm test'")
     subparser.add_argument('--report',
                            action="store_const",
                            const=True,
                            help='if given, generate test reports')
+    subparser.add_argument(
+        '--max-workers',
+        type=str,
+        default='',
+        help=
+        'optional maxWorkers argument to be passed to all all calls to pnpm test.  This can be helpful to prevent overly optimistic hyperthreading.'
+    )
     packages_arg(subparser)
     subparser.set_defaults(func=test)
 

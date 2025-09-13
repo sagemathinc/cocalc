@@ -47,6 +47,7 @@ import Messages from "./messages";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
+import { lite } from "@cocalc/frontend/lite";
 
 // See https://github.com/sagemathinc/cocalc/issues/5620
 // There are weird bugs with relying only on mathjax, whereas our
@@ -72,6 +73,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   const { locale } = useLocalizationCtx();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
+  const is_commercial = useTypedRedux("customize", "is_commercial");
 
   const [model, setModel] = useLanguageModelSetting();
 
@@ -167,7 +169,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   }
 
   function render_standby_timeout(): Rendered {
-    if (IS_TOUCH) {
+    if (IS_TOUCH || lite) {
       return;
     }
     return (
@@ -263,32 +265,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function render_default_file_sort(): Rendered {
-    return (
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.other-settings.default_file_sort.label",
-          defaultMessage: "Default file sort",
-        })}
-      >
-        <SelectorInput
-          selected={props.other_settings.get("default_file_sort")}
-          options={{
-            time: intl.formatMessage({
-              id: "account.other-settings.default_file_sort.by_time",
-              defaultMessage: "Sort by time",
-            }),
-            name: intl.formatMessage({
-              id: "account.other-settings.default_file_sort.by_name",
-              defaultMessage: "Sort by name",
-            }),
-          }}
-          on_change={(value) => on_change("default_file_sort", value)}
-        />
-      </LabeledRow>
-    );
-  }
-
   function render_new_filenames(): Rendered {
     const selected =
       props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
@@ -316,24 +292,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
             })}
           </Paragraph>
         </div>
-      </LabeledRow>
-    );
-  }
-
-  function render_page_size(): Rendered {
-    return (
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.other-settings._page_size.label",
-          defaultMessage: "Number of files per page",
-        })}
-      >
-        <NumberInput
-          on_change={(n) => on_change("page_size", n)}
-          min={1}
-          max={10000}
-          number={props.other_settings.get("page_size")}
-        />
       </LabeledRow>
     );
   }
@@ -713,13 +671,11 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {render_i18n_selector()}
         {render_vertical_fixed_bar_options()}
         {render_new_filenames()}
-        {render_default_file_sort()}
-        {render_page_size()}
         {render_standby_timeout()}
         <div style={{ height: "10px" }} />
         <Tours />
         <Messages />
-        <UseBalance style={{ marginTop: "10px" }} />
+        {is_commercial && <UseBalance style={{ marginTop: "10px" }} />}
       </Panel>
     </>
   );

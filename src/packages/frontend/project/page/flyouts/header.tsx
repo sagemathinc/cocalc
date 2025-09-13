@@ -6,7 +6,6 @@
 import { Button, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { TourName } from "@cocalc/frontend/account/tours";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";

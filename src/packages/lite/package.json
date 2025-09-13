@@ -1,0 +1,55 @@
+{
+  "name": "@cocalc/lite",
+  "version": "0.2.1",
+  "description": "CoCalc Lite Standalone Server that Optional Syncs with an existing CoCalc instance",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "keywords": ["lite", "cocalc"],
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf build dist node_modules sea/sea-prep.blob",
+    "build": "pnpm exec tsc --build",
+    "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
+    "test": "exit 0",
+    "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
+    "build-lite": "./bin/build-lite.sh",
+    "build-sea": "cd sea && ./build-sea.sh",
+    "build-all": "pnpm build-lite && pnpm build-sea",
+    "app": "pnpm exec cocalc-lite",
+    "app-electron": "pnpm electron-rebuild && electron ."
+  },
+  "bin": {
+    "cocalc-lite": "./bin/start.js"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/assets": "workspace:*",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
+    "@cocalc/lite": "workspace:*",
+    "@cocalc/project": "workspace:*",
+    "@cocalc/static": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@types/compression": "^1.8.1",
+    "@types/express": "^4.17.23",
+    "@types/lodash": "^4.17.20",
+    "compression": "^1.8.1",
+    "express": "^4.21.2",
+    "formidable": "^3.5.4",
+    "http-proxy-3": "^1.20.10",
+    "lodash": "^4.17.21",
+    "selfsigned": "^3.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/test",
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
+    "@types/node": "^18.16.14",
+    "electron": "^37.3.1"
+  }
+}

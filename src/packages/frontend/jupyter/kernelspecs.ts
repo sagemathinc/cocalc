@@ -38,7 +38,7 @@ const getKernelSpec = reuseInFlight(
       compute_server_id,
       timeout: 7500,
     });
-    const spec = await api.editor.jupyterKernels();
+    const spec = await api.jupyter.kernels();
     cache.set(key, spec);
     return spec;
   },

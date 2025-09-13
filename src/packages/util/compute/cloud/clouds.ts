@@ -42,7 +42,7 @@ export const GOOGLE_CLOUD_DEFAULTS = {
     machineType: "n2d-highmem-2",
     spot: GCLOUD_SPOT_DEFAULT,
     diskSizeGb: 10,
-    diskType: "pd-standard",
+    diskType: "pd-balanced",
     externalIp: true,
     excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
   },

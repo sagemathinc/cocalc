@@ -15,6 +15,8 @@ the upstream Virtuoso project:  https://github.com/petyosi/react-virtuoso/blob/m
 import LRU from "lru-cache";
 import { useCallback, useMemo, useRef } from "react";
 
+const DEFAULT_VIEWPORT = 1000;
+
 export interface ScrollState {
   index: number;
   offset: number;
@@ -46,7 +48,7 @@ export default function useVirtuosoScrollHook({
   }, []);
   if (disabled) return {};
   const lastScrollRef = useRef<ScrollState>(
-    initialState ?? { index: 0, offset: 0 }
+    initialState ?? { index: 0, offset: 0 },
   );
   const recordScrollState = useMemo(() => {
     return (state: ScrollState) => {
@@ -64,8 +66,9 @@ export default function useVirtuosoScrollHook({
   }, [onScroll, cacheId]);
 
   return {
+    increaseViewportBy: DEFAULT_VIEWPORT,
     initialTopMostItemIndex:
-      (cacheId ? cache.get(cacheId) ?? initialState : initialState) ?? 0,
+      (cacheId ? (cache.get(cacheId) ?? initialState) : initialState) ?? 0,
     scrollerRef: handleScrollerRef,
     onScroll: () => {
       const scrollTop = scrollerRef.current?.scrollTop;

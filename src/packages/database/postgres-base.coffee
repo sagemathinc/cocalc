@@ -41,6 +41,8 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { quoteField } = require('./postgres/schema/util')
 { primaryKey, primaryKeys } = require('./postgres/schema/table')
 
+{ normalizeValues } = require('./pool/pg-utc-normalize')
+
 misc_node = require('@cocalc/backend/misc_node')
 { sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
 
@@ -271,6 +273,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         password         : @_password
                         database         : @_database
                         ssl              : @_ssl
+                        options          : "-c timezone=UTC" # make the session time zone UTC
                         statement_timeout: DEFAULT_STATEMENT_TIMEOUT_MS # we set a statement_timeout, to avoid queries locking up PG
                     if @_notification?
                         client.on('notification', @_notification)
@@ -817,7 +820,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 dbg("run query with specific postgres parameters in a transaction")
                 do_query_with_pg_params(client: client, query: opts.query, params: opts.params, pg_params:opts.pg_params, cb: query_cb)
             else
-                client.query(opts.query, opts.params, query_cb)
+                client.query(opts.query, normalizeValues(opts.params), query_cb)
 
         catch e
             # this should never ever happen

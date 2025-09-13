@@ -91,8 +91,8 @@ export class ConatSocketClient extends ConatSocketBase {
     });
   }
 
-  waitUntilDrain = async () => {
-    await this.tcp?.send.waitUntilDrain();
+  drain = async () => {
+    await this.tcp?.send.drain();
   };
 
   private sendCommandToServer = async (
@@ -220,12 +220,16 @@ export class ConatSocketClient extends ConatSocketBase {
   };
 
   request = async (data, options?) => {
-    await this.waitUntilReady(options?.timeout);
+    try {
+      await this.waitUntilReady(options?.timeout);
+    } catch {
+      throw Error("request timed out");
+    }
     const subject = `${this.subject}.server.${this.id}`;
     if (this.state == "closed") {
       throw Error("closed");
     }
-    // console.log("sending request from client ", { subject, data, options });
+    //console.log("sending request from client ", { subject, data, options });
     return await this.client.request(subject, data, options);
   };
 
