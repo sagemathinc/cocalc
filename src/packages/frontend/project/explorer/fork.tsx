@@ -4,6 +4,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
+import { setRootFilesystemImage } from "@cocalc/frontend/project/settings/root-filesystem-image";
 
 interface Props {
   project_id: string;
@@ -16,7 +17,7 @@ export default function ForkProject({ project_id, flyout }: Props) {
     <Popconfirm
       title={
         <div style={{ maxWidth: "450px" }}>
-          Create a new fork of <ProjectTitle project_id={project_id} noClick />
+          Create a fork of <ProjectTitle project_id={project_id} noClick />
         </div>
       }
       description={() => (
@@ -33,6 +34,12 @@ export default function ForkProject({ project_id, flyout }: Props) {
           src_project_id: project_id,
           image: project?.compute_image,
         });
+        if (project?.rootfs_image) {
+          await setRootFilesystemImage({
+            project_id: new_project_id,
+            image: project.rootfs_image,
+          });
+        }
         redux
           .getActions("projects")
           .open_project({ project_id: new_project_id });

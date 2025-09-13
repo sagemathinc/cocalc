@@ -22,6 +22,7 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { join } from "path";
 import * as rootFilesystem from "./overlay";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
+import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -52,10 +53,12 @@ export async function start({
   logger.debug("start: created home", { project_id });
   await ensureConfFilesExists(home);
   logger.debug("start: created conf files", { project_id });
-  const env = getEnvironment({
+  const image = getImage(config);
+  const env = await getEnvironment({
     project_id,
     env: config?.env,
     HOME: "/home/user",
+    image,
   });
   await setupDataPath(home);
   logger.debug("start: setup data path", { project_id });
@@ -129,7 +132,7 @@ export async function stop({ project_id }) {
         "rm",
         "-f",
         "-t",
-        `${GRACE_PERIOD / 1000}`,
+        `${Math.ceil(GRACE_PERIOD / 1000)}`,
         `project-${project_id}`,
       ]);
     } catch {}
@@ -169,6 +172,11 @@ export async function close() {
     delete children[project_id];
   }
   await Promise.all(v);
+}
+
+export function getImage(config?: Configuration): string {
+  const image = config?.image?.trim();
+  return image ? image : DEFAULT_PROJECT_IMAGE;
 }
 
 // important because it kills all

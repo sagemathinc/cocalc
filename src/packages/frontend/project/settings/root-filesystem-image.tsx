@@ -79,15 +79,9 @@ export default function RootFilesystemImage() {
             try {
               setSaving(true);
               const project_id = project.get("project_id");
-              await webapp_client.query({
-                query: {
-                  projects: {
-                    project_id,
-                    rootfs_image: value?.trim()
-                      ? value.trim()
-                      : DEFAULT_PROJECT_IMAGE,
-                  },
-                },
+              await setRootFilesystemImage({
+                project_id,
+                image: value?.trim() ? value.trim() : DEFAULT_PROJECT_IMAGE,
               });
               if (project.getIn(["state", "state"]) == "running") {
                 redux.getActions("projects").restart_project(project_id);
@@ -203,4 +197,21 @@ async function getImages(project_id: string) {
     w.push(y);
   }
   return w;
+}
+
+export async function setRootFilesystemImage({
+  project_id,
+  image,
+}: {
+  project_id: string;
+  image: string;
+}) {
+  await webapp_client.query({
+    query: {
+      projects: {
+        project_id,
+        rootfs_image: image,
+      },
+    },
+  });
 }

@@ -6,10 +6,8 @@ import { mkdir, rm, writeFile } from "fs/promises";
 import { type Configuration } from "./types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { replace_all } from "@cocalc/util/misc";
-import {
-  DEFAULT_PROJECT_IMAGE,
-  PROJECT_IMAGE_PATH,
-} from "@cocalc/util/db-schema/defaults";
+import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
+import { getImage } from "./podman";
 
 const IMAGE_CACHE =
   process.env.COCALC_IMAGE_CACHE ?? join(data, "cache", "images");
@@ -94,11 +92,6 @@ function getPaths({ home, image, project_id }) {
   const workdir = join(userOverlays, "workdir");
   const merged = getMergedPath(project_id);
   return { upperdir, workdir, merged };
-}
-
-function getImage(config) {
-  const image = config?.image?.trim();
-  return image ? image : DEFAULT_PROJECT_IMAGE;
 }
 
 export async function mount({
