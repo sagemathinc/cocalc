@@ -1821,40 +1821,6 @@ importers:
         specifier: ^7.3.9
         version: 7.3.9
 
-  sync-fs:
-    dependencies:
-      '@cocalc/api-client':
-        specifier: workspace:*
-        version: link:../api-client
-      '@cocalc/backend':
-        specifier: workspace:*
-        version: link:../backend
-      '@cocalc/comm':
-        specifier: workspace:*
-        version: link:../comm
-      '@cocalc/conat':
-        specifier: workspace:*
-        version: link:../conat
-      '@cocalc/sync-client':
-        specifier: workspace:*
-        version: link:../sync-client
-      '@cocalc/util':
-        specifier: workspace:*
-        version: link:../util
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
-      lz4-napi:
-        specifier: ^2.8.0
-        version: 2.9.0
-      mkdirp:
-        specifier: ^1.0.4
-        version: 1.0.4
-    devDependencies:
-      '@types/node':
-        specifier: ^18.16.14
-        version: 18.19.123
-
   test:
     dependencies:
       '@cocalc/backend':

@@ -15,7 +15,6 @@
     { "path": "../conat" },
     { "path": "../sync" },
     { "path": "../sync-client" },
-    { "path": "../sync-fs" },
     { "path": "../util" }
   ]
 }

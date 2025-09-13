@@ -111,7 +111,6 @@ def all_packages() -> List[str]:
         'packages/util',
         'packages/sync',
         'packages/sync-client',
-        'packages/sync-fs',
         'packages/conat',
         'packages/backend',
         'packages/api-client',
