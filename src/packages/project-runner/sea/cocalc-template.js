@@ -32,7 +32,7 @@ function extractAssetsSync() {
   if (!fs.existsSync(stamp)) {
     console.log("Unpacking...");
     // Read the SEA asset into a Buffer
-    const ab = getRawAsset("cocalc-project-runner.tar.xz"); // ArrayBuffer (no copy)
+    const ab = getRawAsset("cocalc.tar.xz"); // ArrayBuffer (no copy)
     const buf = Buffer.from(new Uint8Array(ab)); // turn into Node Buffer
 
     fs.mkdirSync(destDir, { recursive: true });
@@ -110,7 +110,7 @@ if (path.basename(process.argv[1]) == "node") {
     path.delimiter +
     process.env.PATH;
 
-  process.env.AUTH_TOKEN = "random";
+  process.env.AUTH_TOKEN ??= "random";
 }
 
 Module.runMain();

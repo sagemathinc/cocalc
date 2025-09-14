@@ -19,7 +19,7 @@ echo "Building CoCalc Project Runner SEA for $OS"
 cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"
 
-cp ../build/tarball/$NAME-$VERSION-$MACHINE-$OS.tar.xz $NAME.tar.xz
+cp ../build/tarball/$NAME-$VERSION-$MACHINE-$OS.tar.xz cocalc.tar.xz
 
 # This envsubst replaces ${NAME} and ${VERSION} and ${MAIN} in the template:
 envsubst < cocalc-template.js > cocalc.js
@@ -55,7 +55,7 @@ case "$OS" in
     ;;
 esac
 
-rm $NAME.tar.xz sea-prep.blob cocalc.js
+rm cocalc.tar.xz sea-prep.blob cocalc.js
 
 
 mv $TARGET $NAME

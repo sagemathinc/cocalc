@@ -4,6 +4,6 @@
   "disableExperimentalSEAWarning": true,
   "useSnapshot": false,
   "assets": {
-    "cocalc-project-runner.tar.xz": "cocalc-project-runner.tar.xz"
+    "cocalc.tar.xz": "cocalc.tar.xz"
   }
 }
