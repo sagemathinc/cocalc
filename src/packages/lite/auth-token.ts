@@ -100,7 +100,9 @@ export async function initAuth({ app, AUTH_TOKEN, isHttps }) {
 export async function getAuthToken() {
   const { AUTH_TOKEN } = process.env;
   delete process.env.AUTH_TOKEN; // don't want it to look to user
-  if (AUTH_TOKEN == null) {
+  if (!AUTH_TOKEN) {
+    // no token; note this also works to disable token by setting
+    // AUTH_TOKEN=''
     return;
   }
   if (AUTH_TOKEN.length <= 6) {

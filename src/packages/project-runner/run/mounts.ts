@@ -1,5 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { root } from "@cocalc/backend/data";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 
@@ -41,7 +41,9 @@ export const COCALC_SRC = "/opt/cocalc/src";
 export function getCoCalcMounts() {
   // NODEJS_SEA_PATH is where we mount the directory containing the nodejs SEA binary,
   // which we *also* use for running the project itself.
-  nodePath = join(COCALC_BIN, basename(process.execPath));
+  // Also, we assume that there is "node" here, e.g., this could be a symlink to
+  // the cocalc-project-runner binary, or it could just be the normal node binary.
+  nodePath = join(COCALC_BIN, "node");
   // IMPORTANT: take care not to put the binary next to sensitive info due
   // to mapping in process.execPath!
   return {

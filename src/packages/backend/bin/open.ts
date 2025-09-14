@@ -20,7 +20,7 @@ const MAX_FILES = 15 as const;
 const ROOT_SYMLINK = ".smc/root" as const; // relative to $HOME
 
 function usage(): void {
-  console.error("Usage: cocalc-open [path names] ...");
+  console.error(`Usage: ${path.basename(process.argv[1])} [path names] ...`);
 }
 
 function hasGlobChars(p: string): boolean {
