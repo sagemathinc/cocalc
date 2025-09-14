@@ -1,8 +1,22 @@
+/*
+This is run when starting the SEA executable.
+This same template is used both here *AND* for the packages/lite/sea,
+so if you change this you have to do so in a way that is sufficiently
+generic.  That's why name and mainScript are set via a template.
+*/
+
 const path = require("node:path");
 const fs = require("node:fs");
+const repl = require("node:repl");
+const os = require("node:os");
+
+// DO NOT use dollar{} anywhere in this file, because it is processed
+// using envsubst!
+const version = "${VERSION}";
+const name = "${NAME}";
+const mainScript = "${MAIN}";
 
 function extractAssetsSync() {
-  const VERSION = "${VERSION}";
   const { getRawAsset } = require("node:sea");
   const os = require("node:os");
   const { spawnSync } = require("node:child_process");
@@ -11,7 +25,7 @@ function extractAssetsSync() {
     process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
     "cocalc",
     "project-runner",
-    VERSION,
+    version,
   );
 
   const stamp = path.join(destDir, ".ok");
@@ -37,7 +51,7 @@ function extractAssetsSync() {
       process.exit(1);
     }
     if (child.status !== 0) {
-      console.error(`tar exited with code ${child.status}`);
+      console.error("tar exited with code", child.status);
       process.exit(child.status);
     }
 
@@ -48,15 +62,38 @@ function extractAssetsSync() {
 }
 
 const Module = require("node:module");
-const looksLikeScript = process.argv[2] && !process.argv[2].startsWith("-");
 
-if (looksLikeScript) {
+if (path.basename(process.argv[1]) == "node") {
+  // Emulate `node` with no script: start a REPL.
+  const noUserScript =
+    process.argv.length === 2 ||
+    (process.argv.length === 3 &&
+      (process.argv[2] === "-i" || process.argv[2] === "--interactive"));
+
+  if (noUserScript) {
+    const historyFile = path.join(os.homedir(), ".node_repl_history");
+    const r = repl.start({
+      prompt: "> ",
+      useGlobal: true,
+      ignoreUndefined: false,
+    });
+    // Persist history like the real CLI
+    r.setupHistory(historyFile, (err) => {
+      if (err) console.error("REPL history error:", err);
+    });
+    // Do NOT call Module.runMain() here.
+    return;
+  }
+
   process.argv = [process.execPath, ...process.argv.slice(2)];
+} else if (process.argv[2] == "-v" || process.argv[2] == "--version") {
+  console.log(version);
+  process.exit(0);
 } else {
   const destDir = extractAssetsSync();
-  console.log("Starting CoCalc Project Runner");
+  console.log("CoCalc Project Runner (v" + version + ")");
 
-  const script = path.join(destDir, "src/packages/project-runner/bin/start.js");
+  const script = path.join(destDir, mainScript);
 
   if (!fs.existsSync(script)) {
     console.error("missing start.js at", script);

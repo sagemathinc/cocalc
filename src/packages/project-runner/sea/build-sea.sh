@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-NAME="cocalc-project-runner"
-
+export NAME="cocalc-project-runner"
+export MAIN="src/packages/project-runner/bin/start.js"
 export VERSION="$npm_package_version"
+
 FUSE="NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"   # must match your sea-config.json
 MACHINE="$(uname -m)"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -19,6 +20,8 @@ cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"
 
 cp ../build/tarball/$NAME-$VERSION-$MACHINE-$OS.tar.xz $NAME.tar.xz
+
+# This envsubst replaces ${NAME} and ${VERSION} and ${MAIN} in the template:
 envsubst < cocalc-template.js > cocalc.js
 
 # 2) Bundle app into a SEA blob
@@ -52,12 +55,15 @@ case "$OS" in
     ;;
 esac
 
-rm cocalc.js $NAME.tar.xz sea-prep.blob
+rm $NAME.tar.xz sea-prep.blob cocalc.js
 
 
 mv $TARGET $NAME
 mkdir $TARGET
 mv $NAME $TARGET
+cd $TARGET
+ln -s $NAME node
+cd ..
 tar Jcvf $TARGET.tar.xz $TARGET
 rm -rf $TARGET
 
