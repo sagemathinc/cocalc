@@ -54,7 +54,7 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
     "build": "tsc && coffee -m -c -o dist/ .",
-    "hub-project-dev-nobuild": "unset DATA COCALC_ROOT && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=`realpath $INIT_CWD/../../data/postgres/socket`}  && PGUSER='smc'  NODE_ENV=${NODE_ENV:=development} NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps --inspect' cocalc-hub-server --mode=single-user --all --hostname=localhost",
+    "hub-project-dev-nobuild": "unset DATA COCALC_ROOT && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=`realpath $INIT_CWD/../../data/postgres/socket`}  && PGUSER='smc'  NODE_ENV=${NODE_ENV:=development} NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps --inspect' cocalc-hub-server --mode=single-user --all --hostname=${HOST:=localhost}",
     "hub-personal": "unset DATA COCALC_ROOT && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=`realpath $INIT_CWD/../../data/postgres/socket`} && PGUSER='smc'  NODE_ENV=${NODE_ENV:=development} NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps --inspect' cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0 --personal",
     "hub-project-dev": "pnpm build && NODE_OPTIONS='--inspect' pnpm hub-project-dev-nobuild",
     "hub-project-prod-nobuild": "unset DATA COCALC_ROOT && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=`realpath $INIT_CWD/../../data/postgres/socket`} &&   PGUSER='smc' NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",

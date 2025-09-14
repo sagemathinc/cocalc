@@ -97,6 +97,11 @@ const SPEC = {
     fix: "sudo apt-get update && sudo apt-get install -y autoconf bison flex gcc g++ git libprotobuf-dev libnl-route-3-dev libtool make pkg-config protobuf-compiler libseccomp-dev",
     script: `cd /tmp && rm -rf /tmp/nsjail && git clone --branch ${NSJAIL_VERSION} --depth 1 --single-branch https://github.com/google/nsjail.git  && cd nsjail && make -j8 && strip nsjail && cp nsjail ${join(binPath, "nsjail")} && rm -rf /tmp/nsjail`,
   },
+  dropbear: {
+    optional: true,
+    nonFatal: true,
+    platforms: ["linux"],
+  },
 };
 
 export const ripgrep = SPEC.ripgrep.path;

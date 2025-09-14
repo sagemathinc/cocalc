@@ -58,7 +58,7 @@ export async function start({
   const env = await getEnvironment({
     project_id,
     env: config?.env,
-    HOME: "/home/user",
+    HOME: "/root",
     image,
   });
   await setupDataPath(home);
@@ -76,7 +76,11 @@ export async function start({
     logger.debug("start: set disk quota", { project_id });
   }
 
-  const args: string[] = ["run", "--rm", "--network=host", "--user=0:0"];
+  const args: string[] = [];
+  args.push("run");
+  args.push("--rm");
+  args.push("--network=pasta");
+  args.push("--user=0:0");
 
   const cmd = "podman";
   const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");

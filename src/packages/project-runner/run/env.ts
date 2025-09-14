@@ -86,7 +86,9 @@ export async function getEnvironment({
     USER,
     COCALC_EXTRA_ENV: extra_env,
     PATH,
-    CONAT_SERVER: conatServer,
+    // For the address, see https://blog.podman.io/2024/10/podman-5-3-changes-for-improved-networking-experience-with-pasta/
+    //   "Starting with Podman 5.3 we will use this by default: the address 169.254.1.2 will be mapped to the host. please do not hardcode the IP and use host.containers.internal instead."
+    CONAT_SERVER: conatServer.replace("localhost", "host.containers.internal"),
     COCALC_SECRET_TOKEN: secretTokenPath(HOME),
     BASE_PATH: base_path,
   };
