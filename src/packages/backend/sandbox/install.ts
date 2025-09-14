@@ -22,11 +22,9 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("files:sandbox:install");
 
-const binPath = join(
-  packageDirectorySync(__dirname) ?? "",
-  "node_modules",
-  ".bin",
-);
+const pkgDir = packageDirectorySync(__dirname) ?? "";
+
+const binPath = join(pkgDir, "node_modules", ".bin");
 
 interface Spec {
   nonFatal?: boolean; // true if failure to install is non-fatal
@@ -40,6 +38,7 @@ interface Spec {
   script?: string;
   platforms?: string[];
   fix?: string;
+  url?: { [os: string]: string };
 }
 
 const NSJAIL_VERSION = "3.4";
@@ -98,9 +97,13 @@ const SPEC = {
     script: `cd /tmp && rm -rf /tmp/nsjail && git clone --branch ${NSJAIL_VERSION} --depth 1 --single-branch https://github.com/google/nsjail.git  && cd nsjail && make -j8 && strip nsjail && cp nsjail ${join(binPath, "nsjail")} && rm -rf /tmp/nsjail`,
   },
   dropbear: {
-    optional: true,
-    nonFatal: true,
+    desc: "Dropbear SSH Server",
     platforms: ["linux"],
+    VERSION: "main",
+    path: join(binPath, "dropbear"),
+    // we grab just the dropbear binary out of the release; we don't
+    // need any of the others:
+    script: `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
   },
 };
 
@@ -110,6 +113,8 @@ export const dust = SPEC.dust.path;
 export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
 export const nsjail = SPEC.nsjail.path;
+export const dropbear = SPEC.dropbear.path;
+export const dropbearkey = SPEC.dropbear.path + "key";
 
 type App = keyof typeof SPEC;
 
@@ -153,6 +158,7 @@ export async function install(app?: App) {
   const { script } = spec;
   try {
     if (script) {
+      console.log(script);
       try {
         execSync(script);
       } catch (err) {
@@ -275,8 +281,11 @@ async function downloadFromGithub(url: string) {
 }
 
 function getUrl(app: App) {
-  const { BASE, VERSION, skip } = SPEC[app] as Spec;
+  const { BASE, VERSION, skip, url } = SPEC[app] as Spec;
   const os = getOS();
+  if (url?.[os]) {
+    return url?.[os];
+  }
   if (skip?.includes(os)) {
     return "";
   }
