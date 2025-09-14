@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# --- config ---
 NAME="cocalc-project-runner"
 
 export VERSION="$npm_package_version"
@@ -55,8 +54,19 @@ esac
 
 rm cocalc.js $NAME.tar.xz sea-prep.blob
 
+
+mv $TARGET $NAME
+mkdir $TARGET
+mv $NAME $TARGET
+tar Jcvf $TARGET.tar.xz $TARGET
+rm -rf $TARGET
+
 mkdir -p ../build/sea
-mv $TARGET ../build/sea
+mv $TARGET.tar.xz ../build/sea
 
+cd ../build/sea
 
-echo "Done. Built $TARGET"
+ls -lh $TARGET.tar.xz
+
+echo "Built `pwd`/$TARGET.tar.xz"
+

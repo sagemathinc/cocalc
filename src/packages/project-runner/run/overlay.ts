@@ -1,3 +1,10 @@
+/*
+
+
+Privileges: This uses sudo to do an overlayfs mount, which is important for 
+
+*/
+
 import { join } from "path";
 import { data } from "@cocalc/backend/data";
 import { exists } from "@cocalc/backend/misc/async-utils-node";

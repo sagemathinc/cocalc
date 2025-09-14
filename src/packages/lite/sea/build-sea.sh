@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# --- config ---
+NAME="cocalc-lite"
+
 export VERSION="$npm_package_version"
 FUSE="NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"   # must match your sea-config.json
 MACHINE="$(uname -m)"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
 # final single-file executable
-TARGET="./cocalc-lite-$VERSION-$MACHINE-$OS"
+TARGET="./$NAME-$VERSION-$MACHINE-$OS"
 
 NODE_BIN="$(command -v node)"
 
@@ -18,7 +19,7 @@ echo "Building SEA for $OS"
 cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"   # make sure it's writable even if copied from system paths
 
-cp ../build/tarball/cocalc-lite-$VERSION-$MACHINE-$OS.tar.xz cocalc-lite.tar.xz
+cp ../build/tarball/$NAME-$VERSION-$MACHINE-$OS.tar.xz $NAME.tar.xz
 envsubst < cocalc-template.js > cocalc.js
 
 # 2) Bundle app into a SEA blob
@@ -52,10 +53,19 @@ case "$OS" in
     ;;
 esac
 
-rm cocalc.js cocalc-lite.tar.xz sea-prep.blob
+rm cocalc.js $NAME.tar.xz sea-prep.blob
+
+mv $TARGET $NAME
+mkdir $TARGET
+mv $NAME $TARGET
+tar Jcvf $TARGET.tar.xz $TARGET
+rm -rf $TARGET
 
 mkdir -p ../build/sea
-mv $TARGET ../build/sea
+mv $TARGET.tar.xz ../build/sea
 
+cd ../build/sea
 
-echo "Done. Built $TARGET"
+ls -lh $TARGET.tar.xz
+
+echo "Built `pwd`/$TARGET.tar.xz"
