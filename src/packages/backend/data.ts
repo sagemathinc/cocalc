@@ -41,6 +41,11 @@ function determineRoot(): string {
   return root;
 }
 
+// Path to where our special binaries are, e.g., working with the 
+// filesystem and also the "open" command.  This is used, e.g., 
+// by cocalc-lite to know what to add to the PATH.
+export const bin = join(packageDirectorySync(__dirname) ?? "/", 'node_modules', '.bin');
+
 // Each field value in this interface is to be treated as though it originated from a raw
 // environment variable. These environment variables are used to configure CoCalc's SSL connection
 // to the database.
