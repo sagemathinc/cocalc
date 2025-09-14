@@ -96,6 +96,9 @@ export async function start({
     args.push("-e", `${name}=${env[name]}`);
   }
 
+  // --init = have podman inject a tiny built in init script so we don't get zombies.
+  args.push("--init");
+
   args.push("--rootfs", rootfs);
   args.push(nodePath);
   args.push(script, "--init", "project_init.sh");
@@ -187,9 +190,26 @@ export async function close() {
   await Promise.all(v);
 }
 
+/**
+ * If the image name is unqualified, prepend "docker.io/".
+ * Otherwise, return it unchanged.  We do this so that we
+ * don't have to modify the configuration of podman at all,
+ * and ALSO to keep things as canonical as possible.
+ */
+function isQualified(name) {
+  const firstSlash = name.indexOf("/");
+  if (firstSlash === -1) return false; // no slash => unqualified
+  const first = name.slice(0, firstSlash);
+  return first === "localhost" || first.includes(".") || first.includes(":");
+}
+
+function normalizeImageName(name) {
+  return isQualified(name) ? name : `docker.io/${name}`;
+}
+
 export function getImage(config?: Configuration): string {
   const image = config?.image?.trim();
-  return image ? image : DEFAULT_PROJECT_IMAGE;
+  return normalizeImageName(image ? image : DEFAULT_PROJECT_IMAGE);
 }
 
 // important because it kills all

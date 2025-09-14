@@ -30,7 +30,7 @@ export const FALLBACK_COMPUTE_IMAGE = "default";
 
 export const DEFAULT_PROJECT_IMAGE = "ubuntu:25.04";
 
-// subdirectory of home directory that contains image modifications
-export const PROJECT_IMAGE_PATH = ".image";
+// directory that contains overlay modifications to the root filesystem image.
+export const PROJECT_IMAGE_PATH = ".local/share/overlay";
 
 export const OTHER_SETTINGS_USERDEFINED_LLM = "userdefined_llm";

@@ -10,6 +10,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { redux } from "@cocalc/frontend/app-framework";
 import { dirname } from "path";
 import { A, Icon } from "@cocalc/frontend/components";
+import { split } from "@cocalc/util/misc";
 
 export default function RootFilesystemImage() {
   const { project } = useProjectContext();
@@ -79,9 +80,14 @@ export default function RootFilesystemImage() {
             try {
               setSaving(true);
               const project_id = project.get("project_id");
+              const v = split(
+                value?.trim() ? value.trim() : DEFAULT_PROJECT_IMAGE,
+              );
+              // just take last part, so if they type "docker pull imagename" it still works.
+              let image = v.slice(-1)[0];
               await setRootFilesystemImage({
                 project_id,
-                image: value?.trim() ? value.trim() : DEFAULT_PROJECT_IMAGE,
+                image,
               });
               if (project.getIn(["state", "state"]) == "running") {
                 redux.getActions("projects").restart_project(project_id);
@@ -98,29 +104,27 @@ export default function RootFilesystemImage() {
           {help && (
             <div style={{ color: "#666", marginBottom: "8px" }}>
               <p>
-                You can try to run your project using any container image.
-                Prefix images from{" "}
-                <A href="https://hub.docker.com/search">
-                  DockerHub with "docker.io/"
-                </A>
-                . You can change the image at any time.
+                You can try to run your project using{" "}
+                <A href="https://hub.docker.com/search">any container image</A>.
+                You can change the image at any time.
               </p>
               <p>
-                If you install software into the root filesystem those changes{" "}
-                <b>are saved</b>, but when you modify the image, the changes are
-                no longer <b>visible</b>. You will see them if you change the
-                image back. The changes are stored in{" "}
-                <code>$HOME/{PROJECT_IMAGE_PATH}</code>. If you will be making
-                changes it's best to specify an explicit tag for your image, so
-                that your changes don't become invalid.
+                If you install software or otherwise modify files in the root
+                filesystem, then those changes <b>are saved</b>. If you change
+                the root image namebelow, the changes you made to the previous
+                root filesystem are no longer <b>visible</b>. You will see the
+                changes if you change the image back. The changes are stored in{" "}
+                <code>$HOME/{PROJECT_IMAGE_PATH}</code>. It's best to specify an
+                explicit tag for your image, so that your changes don't become
+                invalid.
               </p>
               <p>
                 Using a large image can make project startup slower, especially
-                the first time. Also, images can contain anything, so of course
-                some images will be incompatible with CoCalc. If you try one and
-                it doesn't work for you, just switch back -- it's safe.
-                Selecting an image determines the root filesystem and also
-                impacts environment variables. For example,
+                the first time. Also, images can contain literally anything, so
+                there is no guarantee they will work. If you try one and it
+                doesn't work for you, just switch back -- it's safe. Selecting
+                an image determines the root filesystem and also impacts
+                environment variables. For example,{" "}
                 <A href="https://hub.docker.com/_/julia">
                   the official Julia image
                 </A>{" "}
@@ -130,7 +134,10 @@ export default function RootFilesystemImage() {
                 If you fork a project, any changes that you make to the root
                 image are also immediately visible in the fork. Thus you can
                 install whatever you want anywhere in your project, then fork it
-                to get an exact copy with everything preserved.
+                to get an exact copy with everything preserved. You can of
+                course also create your own images and publish them to any
+                container registry, then your or anybody else can use them on
+                CoCalc.
               </p>
             </div>
           )}

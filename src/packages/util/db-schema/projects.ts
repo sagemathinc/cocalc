@@ -306,7 +306,7 @@ Table({
     },
     rootfs_image: {
       type: "string",
-      desc: "The root filesystem image for this project. This can be an arbitrary Docker image. Prefix images from Dockerhub with docker.io/.",
+      desc: "The root filesystem image for this project. This can be an arbitrary Docker image.",
     },
     addons: {
       type: "map",
