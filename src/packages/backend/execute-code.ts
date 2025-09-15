@@ -66,7 +66,7 @@ const updates = new EventEmitter();
 const eventKey = (type: AsyncAwait, job_id: string): string =>
   `${type}-${job_id}`;
 
-const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
+export const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
   ttl: 1000 * ASYNC_CACHE_TTL_S,
   updateAgeOnGet: true,
@@ -346,7 +346,6 @@ function doSpawn(
     const { job_id, job_config } = opts;
     if (job_id == null || pid == null || job_config == null) return;
     const monitor = ProcessStats.getInstance();
-    await monitor.init();
     await delay(1000);
     if (callback_done) return;
 
@@ -372,14 +371,19 @@ function doSpawn(
       const obj = asyncCache.get(job_id) ?? job_config;
       obj.pid = pid;
       obj.stats ??= [];
-      obj.stats.push({
+      const statEntry = {
         timestamp: Date.now(),
         mem_rss: rss,
         cpu_pct: pct_cpu,
         cpu_secs,
-      });
+      };
+      obj.stats.push(statEntry);
       truncStats(obj);
       asyncCache.set(job_id, obj);
+      // Stream stats update if callback provided
+      if (opts.streamCB) {
+        opts.streamCB({ type: "stats", data: statEntry });
+      }
 
       // initially, we record more frequently, but then we space it out up until the interval (probably 1 minute)
       const elapsed_s = (Date.now() - job_config.start) / 1000;
@@ -396,14 +400,25 @@ function doSpawn(
       // The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
       // suggest that r.stdout and r.stderr are always defined.  However, this is
       // definitely NOT the case in edge cases, as we have observed.
-      cb?.("error creating child process -- couldn't spawn child process");
+      const errorMsg =
+        "error creating child process -- couldn't spawn child process";
+      // For streaming, also send error event
+      if (opts.streamCB && opts.async_call) {
+        opts.streamCB({ type: "error", data: errorMsg });
+      }
+      cb?.(errorMsg);
       return;
     }
   } catch (error) {
     // Yes, spawn can cause this error if there is no memory, and there's no
     // event! --  Error: spawn ENOMEM
     ran_code = false;
-    cb?.(`error ${error}`);
+    const errorMsg = `error ${error}`;
+    // For streaming, also send error event
+    if (opts.streamCB && opts.async_call) {
+      opts.streamCB({ type: "error", data: errorMsg });
+    }
+    cb?.(errorMsg);
     return;
   }
 
@@ -436,24 +451,44 @@ function doSpawn(
 
   child.stdout.on("data", (data) => {
     data = data.toString();
+    const prevLength = stdout.length;
     if (opts.max_output != null) {
       if (stdout.length < opts.max_output) {
-        stdout += data.slice(0, opts.max_output - stdout.length);
+        const newData = data.slice(0, opts.max_output - stdout.length);
+        stdout += newData;
+        // Stream only the new portion
+        if (opts.streamCB && stdout.length > prevLength) {
+          opts.streamCB({ type: "stdout", data: newData });
+        }
       }
     } else {
       stdout += data;
+      // Stream the new data
+      if (opts.streamCB) {
+        opts.streamCB({ type: "stdout", data });
+      }
     }
     update_async(opts.job_id, "stdout", stdout);
   });
 
   child.stderr.on("data", (data) => {
     data = data.toString();
+    const prevLength = stderr.length;
     if (opts.max_output != null) {
       if (stderr.length < opts.max_output) {
-        stderr += data.slice(0, opts.max_output - stderr.length);
+        const newData = data.slice(0, opts.max_output - stderr.length);
+        stderr += newData;
+        // Stream only the new portion
+        if (opts.streamCB && stderr.length > prevLength) {
+          opts.streamCB({ type: "stderr", data: newData });
+        }
       }
     } else {
       stderr += data;
+      // Stream the new data
+      if (opts.streamCB) {
+        opts.streamCB({ type: "stderr", data });
+      }
     }
     update_async(opts.job_id, "stderr", stderr);
   });
@@ -489,6 +524,22 @@ function doSpawn(
     stderr += to_json(err);
     // a fundamental issue, we were not running some code
     ran_code = false;
+    // For streaming, send error event immediately
+    if (opts.streamCB && opts.async_call && opts.job_id) {
+      const errorResult: ExecuteCodeOutputAsync = {
+        type: "async",
+        job_id: opts.job_id,
+        stdout,
+        stderr,
+        exit_code: exit_code ?? 1,
+        status: "error",
+        elapsed_s: walltime(start_time),
+        start: opts.job_config?.start ?? Date.now(),
+        pid: child.pid,
+        stats: opts.job_config?.stats,
+      };
+      opts.streamCB({ type: "done", data: errorResult });
+    }
     finish();
   });
 
@@ -506,6 +557,23 @@ function doSpawn(
     }
     if (callback_done) {
       // we already finished up.
+      return;
+    }
+
+    // Safety check: if we're using streaming and the process has exited but streams aren't done,
+    // force completion after a short delay to prevent hanging
+    if (
+      opts.streamCB &&
+      exit_code != null &&
+      (!stdout_is_done || !stderr_is_done)
+    ) {
+      setTimeout(() => {
+        if (!callback_done) {
+          stdout_is_done = true;
+          stderr_is_done = true;
+          finish(err);
+        }
+      }, 1000); // Wait 1 second for streams to complete
       return;
     }
     // finally finish up – this will also terminate the monitor
@@ -538,7 +606,26 @@ function doSpawn(
         ? opts.origCommand
         : `'${opts.command}' (args=${opts.args?.join(" ")})`;
       if (opts.job_id) {
-        cb?.(stderr);
+        // For async with streaming, send error in done event
+        if (opts.streamCB) {
+          const errorResult: ExecuteCodeOutputAsync = {
+            type: "async",
+            job_id: opts.job_id,
+            stdout,
+            stderr,
+            exit_code: exit_code ?? 1,
+            status: "error",
+            elapsed_s: walltime(start_time),
+            start: opts.job_config?.start ?? Date.now(),
+            pid: child.pid,
+            stats: opts.job_config?.stats,
+          };
+          opts.streamCB({ type: "done", data: errorResult });
+        }
+        // For streaming, don't call cb with error - let the stream handle it
+        if (!opts.streamCB) {
+          cb?.(stderr);
+        }
       } else {
         // sync behavor, like it was before
         cb?.(
@@ -569,7 +656,24 @@ function doSpawn(
         // if exit-code not set, may have been SIGKILL so we set it to 1
         exit_code = 1;
       }
-      cb?.(undefined, { type: "blocking", stdout, stderr, exit_code });
+      const result = { type: "blocking" as const, stdout, stderr, exit_code };
+      // For async with streaming, send the final done event
+      if (opts.streamCB && opts.async_call) {
+        const finalResult: ExecuteCodeOutputAsync = {
+          type: "async",
+          job_id: opts.job_id!,
+          stdout,
+          stderr,
+          exit_code: exit_code ?? 0,
+          status: "completed",
+          elapsed_s: walltime(start_time),
+          start: opts.job_config?.start ?? Date.now(),
+          pid: child.pid,
+          stats: opts.job_config?.stats,
+        };
+        opts.streamCB({ type: "done", data: finalResult });
+      }
+      cb?.(undefined, result);
     }
   };
 

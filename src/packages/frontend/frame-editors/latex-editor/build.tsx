@@ -18,9 +18,7 @@ import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split, tail } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import {
-  ExecuteCodeOutput
-} from "@cocalc/util/types/execute-code";
+import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
 import { getResourceUsage } from "../rmd-editor/utils";
 import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
@@ -277,7 +275,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
         <div
           style={{
             ...logStyle,
-            maxHeight: "300px",
+            height: "100%",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",

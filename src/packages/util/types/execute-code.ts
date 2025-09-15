@@ -33,6 +33,11 @@ export type ExecuteCodeOutput =
   | ExecuteCodeOutputBlocking
   | ExecuteCodeOutputAsync;
 
+export interface ExecuteCodeStreamEvent {
+  type: "stdout" | "stderr" | "done" | "stats" | "error";
+  data?: string | ExecuteCodeOutputAsync | ExecuteCodeStats[0];
+}
+
 export interface ExecuteCodeOptions {
   command: string;
   args?: string[];
@@ -55,6 +60,8 @@ export interface ExecuteCodeOptions {
   compute_server_id?: number;
   // in the filesystem container of a compute server
   filesystem?: boolean;
+  // streaming callback for real-time updates (only used with async_call)
+  streamCB?: (event: ExecuteCodeStreamEvent) => void;
 }
 
 export interface ExecuteCodeOptionsAsyncGet {
