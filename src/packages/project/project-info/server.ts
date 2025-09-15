@@ -567,7 +567,7 @@ export class ProjectInfoServer extends EventEmitter {
     // Initialize tmpfs detection once at startup
     this.tmpIsMemoryBased = await isTmpMemoryBased();
     this.running = true;
-    this.processStats = new ProcessStats({
+    this.processStats = ProcessStats.getInstance({
       testing: this.testing,
       dbg: this.dbg,
     });

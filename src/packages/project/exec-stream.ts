@@ -156,13 +156,10 @@ async function executeStream(options) {
     let stats: ExecuteCodeStats = [];
 
     // Start process stats monitoring if we have a PID
-    let statsMonitor: ProcessStats | undefined;
     if (job.pid != null) {
       logger.debug(
         `executeStream: starting stats monitoring for PID ${job.pid}`,
       );
-      statsMonitor = new ProcessStats();
-      await statsMonitor.init();
       startStatsMonitoring(job.pid, job.start, stats, stream, () => done);
     } else {
       logger.debug(`executeStream: no PID available for stats monitoring`);
@@ -268,7 +265,7 @@ async function startStatsMonitoring(
   logger.debug(
     `startStatsMonitoring: beginning stats monitoring for PID ${pid}`,
   );
-  const monitor = new ProcessStats();
+  const monitor = ProcessStats.getInstance();
   await monitor.init();
   await delay(1000); // Initial delay
   if (isDone()) {

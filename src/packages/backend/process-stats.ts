@@ -38,6 +38,8 @@ interface ProcessStatsOpts {
 }
 
 export class ProcessStats {
+  private static instance: ProcessStats;
+
   private readonly testing: boolean;
   private readonly procLimit: number;
   private readonly dbg: Function;
@@ -49,6 +51,13 @@ export class ProcessStats {
     this.procLimit = opts?.procLimit ?? LIMIT;
     this.dbg = opts?.dbg ?? getLogger("process-stats").debug;
     this.init();
+  }
+
+  public static getInstance(opts?: ProcessStatsOpts): ProcessStats {
+    if (!ProcessStats.instance) {
+      ProcessStats.instance = new ProcessStats(opts);
+    }
+    return ProcessStats.instance;
   }
 
   // this grabs some kernel configuration values we need. they won't change

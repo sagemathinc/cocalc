@@ -345,7 +345,7 @@ function doSpawn(
     const pid = child.pid;
     const { job_id, job_config } = opts;
     if (job_id == null || pid == null || job_config == null) return;
-    const monitor = new ProcessStats();
+    const monitor = ProcessStats.getInstance();
     await monitor.init();
     await delay(1000);
     if (callback_done) return;
