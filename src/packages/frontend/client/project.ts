@@ -421,7 +421,11 @@ export class ProjectClient {
       try {
         await this.client.conat_client.hub.db.touch({ project_id });
       } catch (err) {
-        console.log("WARNING: issue touching project", err);
+        // 503 would just mean the hub isn't listening yet, so expected
+        // sometimes.
+        if (err.code == 503) {
+          console.log("WARNING: issue touching project", err);
+        }
       }
     },
     TOUCH_THROTTLE,
