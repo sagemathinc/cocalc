@@ -47,7 +47,7 @@ export class ProcessStats {
   private pagesize: number;
   private last?: { timestamp: number; processes: Processes };
 
-  constructor(opts?: ProcessStatsOpts) {
+  private constructor(opts?: ProcessStatsOpts) {
     this.procLimit = opts?.procLimit ?? LIMIT;
     this.dbg = opts?.dbg ?? getLogger("process-stats").debug;
     this.init();
