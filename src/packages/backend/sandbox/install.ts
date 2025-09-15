@@ -41,8 +41,6 @@ interface Spec {
   url?: (spec: Spec) => string;
 }
 
-const NSJAIL_VERSION = "3.4";
-
 const SPEC = {
   ripgrep: {
     // See https://github.com/BurntSushi/ripgrep/releases
@@ -90,16 +88,6 @@ const SPEC = {
     stripComponents: 0,
     pathInArchive: "rustic",
   },
-  nsjail: {
-    optional: true,
-    nonFatal: true,
-    platforms: ["linux"],
-    VERSION: NSJAIL_VERSION,
-    BASE: "https://github.com/google/nsjail/releases",
-    path: join(binPath, "nsjail"),
-    fix: "sudo apt-get update && sudo apt-get install -y autoconf bison flex gcc g++ git libprotobuf-dev libnl-route-3-dev libtool make pkg-config protobuf-compiler libseccomp-dev",
-    script: `cd /tmp && rm -rf /tmp/nsjail && git clone --branch ${NSJAIL_VERSION} --depth 1 --single-branch https://github.com/google/nsjail.git  && cd nsjail && make -j8 && strip nsjail && cp nsjail ${join(binPath, "nsjail")} && rm -rf /tmp/nsjail`,
-  },
   dropbear: {
     optional: true,
     desc: "Dropbear SSH Server",
@@ -143,7 +131,6 @@ export const fd = SPEC.fd.path;
 export const dust = SPEC.dust.path;
 export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
-export const nsjail = SPEC.nsjail.path;
 export const dropbear = SPEC.dropbear.path;
 export const sshpiper = SPEC.sshpiper.path;
 

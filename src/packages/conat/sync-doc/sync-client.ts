@@ -55,7 +55,9 @@ export class SyncClient extends EventEmitter implements Client0 {
         args: [{ project_id, account_id: this.client_id() }],
       });
     } catch (err) {
-      console.log("WARNING: issue touching project", { project_id });
+      if (err.code != 503) { // 503 when hub not running yet
+        console.log("WARNING: issue touching project", { project_id }, err);
+      }
     }
   };
 

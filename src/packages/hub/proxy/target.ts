@@ -181,9 +181,6 @@ async function _namedServerPort(
   if (p) {
     return p;
   }
-  // TODO: to use nsjail instead of k8s to run projects in a scalable way,
-  // we are going to have also get the host ip address a port mapping
-  // right here.
   const api = projectApiClient({ project_id });
   const { port } = await api.system.startNamedServer(name);
   return port;

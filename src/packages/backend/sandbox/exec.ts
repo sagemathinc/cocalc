@@ -3,7 +3,6 @@ import { arch } from "node:os";
 import { type ExecOutput } from "@cocalc/conat/files/fs";
 export { type ExecOutput };
 import getLogger from "@cocalc/backend/logger";
-import { nsjail as nsjailPath } from "./install";
 
 const logger = getLogger("files:sandbox:exec");
 
@@ -45,10 +44,6 @@ export interface Options {
   // user instead.
   username?: string;
 
-  // run command under nsjail with these options, which are not sanitized
-  // in any way.
-  nsjail?: string[];
-
   // by default the environment is EMPTY, which is usually what we want for fairly
   // locked down execution.  Use this to add something nontrivial to the default empty.
   env?: { [name: string]: string };
@@ -69,7 +64,6 @@ export default async function exec({
   whitelist = {},
   cwd,
   username,
-  nsjail,
   env = {},
 }: Options): Promise<ExecOutput> {
   if (arch() == "darwin") {
@@ -93,10 +87,6 @@ export default async function exec({
     }
 
     logger.debug({ cmd, args });
-    if (nsjail) {
-      args = [...nsjail, "--", cmd, ...args];
-      cmd = nsjailPath;
-    }
 
     //console.log(`${cmd} ${args.join(" ")}`, { cwd, env });
     const child = spawn(cmd, args, {

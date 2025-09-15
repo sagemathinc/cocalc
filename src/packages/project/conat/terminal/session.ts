@@ -75,23 +75,18 @@ export class Session {
     [browser_id: string]: { rows: number; cols: number; time: number };
   } = {};
   public pid: number;
-  private nsjail?: boolean;
   private messageSpool?: SpoolWatcher;
   private spoolDirectory?: string;
 
   constructor({
     termPath,
     options,
-    nsjail = false,
   }: {
     termPath: string;
     options: CreateTerminalOptions;
-    // nsjail -- just a proof of concept for experimentation
-    nsjail?: boolean;
   }) {
     logger.debug("create session ", { termPath, options });
     this.termPath = termPath;
-    this.nsjail = nsjail;
     this.browserApi = createBrowserClient({ project_id, termPath });
     this.options = options;
     this.streamName = `terminal-${termPath}`;
@@ -236,19 +231,6 @@ export class Session {
     }
     const cwd = getCWD(head, this.options.cwd);
     logger.debug("creating pty");
-    if (this.nsjail) {
-      // just a proof of concept to see what it is like!
-      const lib64 = await exists("/lib64");
-      args = [
-        ...split(
-          `-q -B /dev -R /var --disable_clone_newnet -E TERM=screen -E HOME=/home/user --cwd=/home/user -Mo -m none:/tmp:tmpfs:size=100000000 -R /etc -R /bin ${lib64 ? "-R /lib64" : ""} -R /lib -R /dev/urandom -R /usr --keep_caps --skip_setsid  --disable_rlimits  -B ${process.env.HOME}:/home/user `,
-        ),
-        "--",
-        command,
-        ...args,
-      ];
-      command = "nsjail";
-    }
     this.pty = spawn(command, args, {
       cwd,
       env,
