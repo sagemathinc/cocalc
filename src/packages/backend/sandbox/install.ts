@@ -35,10 +35,10 @@ interface Spec {
   stripComponents?: number;
   pathInArchive?: string;
   skip?: string[];
-  script?: string;
+  script?: (spec: Spec) => string;
   platforms?: string[];
   fix?: string;
-  url?: { [os: string]: string };
+  url?: (spec: Spec) => string;
 }
 
 const NSJAIL_VERSION = "3.4";
@@ -76,6 +76,10 @@ const SPEC = {
     // See https://github.com/ouch-org/ouch/issues/45; note that ouch is in home brew
     // for this platform.
     skip: ["aarch64-apple-darwin"],
+    url: ({ BASE, VERSION }) => {
+      const os = getOS();
+      return `${BASE}/${VERSION}/ouch-${os}.tar.gz`;
+    },
   },
   rustic: {
     // See https://github.com/rustic-rs/rustic/releases
@@ -97,13 +101,40 @@ const SPEC = {
     script: `cd /tmp && rm -rf /tmp/nsjail && git clone --branch ${NSJAIL_VERSION} --depth 1 --single-branch https://github.com/google/nsjail.git  && cd nsjail && make -j8 && strip nsjail && cp nsjail ${join(binPath, "nsjail")} && rm -rf /tmp/nsjail`,
   },
   dropbear: {
+    optional: true,
     desc: "Dropbear SSH Server",
     platforms: ["linux"],
     VERSION: "main",
     path: join(binPath, "dropbear"),
     // we grab just the dropbear binary out of the release; we don't
     // need any of the others:
-    script: `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
+    script: () =>
+      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
+  },
+  // See https://github.com/sagemathinc/sshpiper-binaries/releases
+  sshpiper: {
+    optional: true,
+    desc: "sshpiper reverse proxy for sshd",
+    path: join(binPath, "sshpiperd"),
+    VERSION: "v1.5.0",
+    script: ({ VERSION }) => {
+      const a = arch() == "x64" ? "amd64" : arch();
+      return `curl -L https://github.com/sagemathinc/sshpiper-binaries/releases/download/${VERSION}/sshpiper-${VERSION}-${platform()}-${a}.tar.xz | tar -xJ -C ${binPath} --strip-components=1`;
+    },
+    url: () => {
+      const VERSION = "v1.5.0";
+      // https://github.com/sagemathinc/sshpiper-binaries/releases/download/v1.5.0/sshpiper-v1.5.0-darwin-amd64.tar.xz
+      /*
+sshpiper-v1.5.0-darwin-amd64.tar.xz
+sshpiper-v1.5.0-darwin-arm64.tar.xz
+sshpiper-v1.5.0-linux-amd64.tar.xz
+sshpiper-v1.5.0-linux-arm64.tar.xz
+sshpiper-v1.5.0-windows-amd64.tar.xz
+sshpiper-v1.5.0-windows-arm64.tar.xz
+*/
+      return `sshpiper-${VERSION}-${arch() == "x64" ? "amd64" : arch()}.tar.xz`;
+    },
+    BASE: "https://github.com/sagemathinc/sshpiper-binaries/releases",
   },
 };
 
@@ -114,7 +145,7 @@ export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
 export const nsjail = SPEC.nsjail.path;
 export const dropbear = SPEC.dropbear.path;
-export const dropbearkey = SPEC.dropbear.path + "key";
+export const sshpiper = SPEC.sshpiper.path;
 
 type App = keyof typeof SPEC;
 
@@ -157,10 +188,11 @@ export async function install(app?: App) {
 
   const { script } = spec;
   try {
-    if (script) {
-      console.log(script);
+    if (script != null) {
+      const s = script(spec);
+      console.log(s);
       try {
-        execSync(script);
+        execSync(s);
       } catch (err) {
         if (spec.fix) {
           console.warn(`BUILD OF ${app} FAILED: Suggested fix -- ${spec.fix}`);
@@ -218,7 +250,7 @@ export async function install(app?: App) {
         pathInArchive,
       ]);
 
-      // - 3. Make the file rg executable
+      // - 3. Make the file executable
       await chmod(path, 0o755);
     } finally {
       try {
@@ -281,19 +313,17 @@ async function downloadFromGithub(url: string) {
 }
 
 function getUrl(app: App) {
-  const { BASE, VERSION, skip, url } = SPEC[app] as Spec;
-  const os = getOS();
-  if (url?.[os]) {
-    return url?.[os];
+  const spec = SPEC[app] as Spec;
+  if (spec.url != null) {
+    return spec.url(spec);
   }
+  const { BASE, VERSION, skip } = spec;
+  const os = getOS();
   if (skip?.includes(os)) {
     return "";
   }
-  if (app == "ouch") {
-    return `${BASE}/${VERSION}/${app}-${os}.tar.gz`;
-  } else {
-    return `${BASE}/${VERSION}/${app}-${VERSION}-${os}.tar.gz`;
-  }
+  // very common pattern with rust cli tools:
+  return `${BASE}/${VERSION}/${app}-${VERSION}-${os}.tar.gz`;
 }
 
 function getOS() {
