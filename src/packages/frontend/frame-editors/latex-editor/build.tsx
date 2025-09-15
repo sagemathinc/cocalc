@@ -16,17 +16,16 @@ import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, r_join } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { path_split, tail, unreachable } from "@cocalc/util/misc";
+import { path_split, tail } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import {
-  ExecuteCodeOutput,
-  ExecuteCodeOutputAsync,
+  ExecuteCodeOutput
 } from "@cocalc/util/types/execute-code";
+import { getResourceUsage } from "../rmd-editor/utils";
 import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
 import { use_build_logs } from "./hooks";
 import { BUILD_SPECS, BuildLog, BuildLogs, BuildSpecName } from "./types";
-import { getResourceUsage } from "../rmd-editor/utils";
 
 // after that many seconds, warn visibly about a long running task and e.g. highlight the stop button
 const WARN_LONG_RUNNING_S = 15;
