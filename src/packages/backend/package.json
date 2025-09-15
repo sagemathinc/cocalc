@@ -18,6 +18,7 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "install-sandbox-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install()' | node",
+    "install-all-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install(null,{optional:true})' | node",
     "install-bin-tools": "./bin/install.sh",
     "build": "pnpm exec tsc --build && pnpm install-sandbox-tools && pnpm install-bin-tools",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",

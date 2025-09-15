@@ -152,13 +152,16 @@ async function alreadyInstalled(app: App) {
   return await exists(SPEC[app].path);
 }
 
-export async function install(app?: App) {
+export async function install(
+  app?: App,
+  { optional }: { optional?: boolean } = {},
+) {
   if (app == null) {
     // @ts-ignore
     await Promise.all(
       Object.keys(SPEC)
-        .filter((x) => !SPEC[x].optional)
-        .map(install as any),
+        .filter((x) => optional || !SPEC[x].optional)
+        .map((x) => install(x as App, { optional })),
     );
     return;
   }
