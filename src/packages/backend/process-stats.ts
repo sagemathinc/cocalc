@@ -19,6 +19,8 @@ import {
 import { getLogger } from "./logger";
 import { envToInt } from "./misc/env-to-number";
 
+const dbg = getLogger("process-stats").debug;
+
 const exec = promisify(cp_exec);
 
 /**
@@ -31,33 +33,30 @@ const exec = promisify(cp_exec);
 // be on the safe side to avoid processing too much data.
 const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 1024);
 
-interface ProcessStatsOpts {
-  procLimit?: number;
-  testing?: boolean;
-  dbg?: Function;
-}
-
 export class ProcessStats {
   private static instance: ProcessStats;
 
-  private readonly testing: boolean;
   private readonly procLimit: number;
-  private readonly dbg: Function;
+
+  private testing: boolean;
   private ticks: number;
   private pagesize: number;
   private last?: { timestamp: number; processes: Processes };
 
-  private constructor(opts?: ProcessStatsOpts) {
-    this.procLimit = opts?.procLimit ?? LIMIT;
-    this.dbg = opts?.dbg ?? getLogger("process-stats").debug;
+  private constructor() {
+    this.procLimit = LIMIT;
     this.init();
   }
 
-  public static getInstance(opts?: ProcessStatsOpts): ProcessStats {
+  public static getInstance(): ProcessStats {
     if (!ProcessStats.instance) {
-      ProcessStats.instance = new ProcessStats(opts);
+      ProcessStats.instance = new ProcessStats();
     }
     return ProcessStats.instance;
+  }
+
+  public setTesting(testing: boolean): void {
+    this.testing = testing;
   }
 
   // this grabs some kernel configuration values we need. they won't change
@@ -175,11 +174,11 @@ export class ProcessStats {
         procs[proc.pid] = proc;
       } catch (err) {
         if (this.testing)
-          this.dbg(`process ${pid} likely vanished – could happen – ${err}`);
+          dbg(`process ${pid} likely vanished – could happen – ${err}`);
       }
       // we avoid processing and sending too much data
       if (n > this.procLimit) {
-        this.dbg(`too many processes – limit of ${this.procLimit} reached!`);
+        dbg(`too many processes – limit of ${this.procLimit} reached!`);
         break;
       } else {
         n += 1;
