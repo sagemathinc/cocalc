@@ -4,7 +4,7 @@
  */
 
 import Anser from "anser";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
@@ -43,14 +43,26 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
     : build_log_out;
   const build_err = have_err ? build_err_out : "";
 
-  const [showStdout, setShowStdout] = React.useState(false);
+  const [showStdout, setShowStdout] = useState(false);
+  const [shownLog, setShownLog] = useState("");
+  const logContainerRef = useRef<HTMLDivElement>(null);
 
   // Reset showStdout when a new build starts
-  React.useEffect(() => {
+  useEffect(() => {
     if (status) {
       setShowStdout(false);
     }
   }, [status]);
+
+  // Auto-scroll to bottom when log updates during build
+  useEffect(() => {
+    if (status && build_log !== shownLog) {
+      setShownLog(build_log);
+      if (logContainerRef.current) {
+        logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+      }
+    }
+  }, [build_log, status, shownLog]);
 
   function style(type: "log" | "err") {
     const style = type == "log" ? STYLE_LOG : STYLE_ERR;
@@ -157,7 +169,7 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
 
   if (status) {
     return (
-      <div style={STYLE_OUTER}>
+      <div ref={logContainerRef} style={STYLE_OUTER}>
         <div
           style={{
             margin: "10px",

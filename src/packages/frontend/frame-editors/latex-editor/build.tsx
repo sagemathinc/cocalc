@@ -51,6 +51,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   );
   const [error_tab, set_error_tab] = useState<string | null>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const stderrContainerRef = useRef<HTMLDivElement>(null);
   const [shownLog, setShownLog] = useState<string>("");
 
   // Compute whether we have running jobs - this determines UI precedence
@@ -67,6 +68,9 @@ export const Build: React.FC<Props> = React.memo((props) => {
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+    if (stderrContainerRef.current) {
+      stderrContainerRef.current.scrollTop = stderrContainerRef.current.scrollHeight;
     }
   }, [shownLog]);
 
@@ -86,12 +90,19 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   function render_tab_item(
     title: string,
-    value: string,
+    stdout: string,
+    stderr: string,
     error?: boolean,
     job_info_str?: string,
   ): AntdTabItem {
     const err_style = error ? { background: COLORS.ANTD_BG_RED_L } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
+
+    // Determine if stderr is informational (not actual errors)
+    const hasStdout = stdout.trim().length > 0;
+    const hasStderr = stderr.trim().length > 0;
+    const stderrIsInformational = hasStderr && !error;
+
     return Tab({
       key: title,
       eventKey: title,
@@ -110,7 +121,75 @@ export const Build: React.FC<Props> = React.memo((props) => {
               {job_info_str}
             </div>
           ) : undefined}
-          <Ansi>{value}</Ansi>
+          <div
+            style={{ display: "flex", flexDirection: "column", height: "100%" }}
+          >
+            {hasStdout && (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  marginBottom: hasStderr ? "10px" : "0",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: COLORS.GRAY_M,
+                    borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                  }}
+                >
+                  Standard output
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: COLORS.GRAY_LLL,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stdout}</Ansi>
+                </div>
+              </div>
+            )}
+            {hasStderr && (
+              <div
+                style={{ flex: 1, display: "flex", flexDirection: "column" }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: error ? COLORS.ANTD_RED : COLORS.GRAY_M,
+                    borderBottom: `1px solid ${
+                      error ? COLORS.ANTD_RED_WARN : COLORS.GRAY_LL
+                    }`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                  }}
+                >
+                  {stderrIsInformational ? "Output messages" : "Error output"}
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: error ? COLORS.ANTD_BG_RED_L : COLORS.GRAY_LLL,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stderr}</Ansi>
+                </div>
+              </div>
+            )}
+          </div>
         </>
       ),
     });
@@ -122,8 +201,9 @@ export const Build: React.FC<Props> = React.memo((props) => {
     // const y: ExecOutput | undefined = job_infos.get(stage)?.toJS();
 
     if (!x) return;
-    const value = (x.stdout ?? "") + (x.stderr ?? "");
-    if (!value) return;
+    const stdout = x.stdout ?? "";
+    const stderr = x.stderr ?? "";
+    if (!stdout && !stderr) return;
     // const time: number | undefined = x.get("time");
     // const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
     let job_info_str = "";
@@ -147,14 +227,14 @@ export const Build: React.FC<Props> = React.memo((props) => {
         set_error_tab(title);
       }
     }
-    return render_tab_item(title, value, error, job_info_str);
+    return render_tab_item(title, stdout, stderr, error, job_info_str);
   }
 
   function render_clean(): AntdTabItem | undefined {
     const value = build_logs?.getIn(["clean", "output"]) as any;
     if (!value) return;
     const title = "Clean Auxiliary Files";
-    return render_tab_item(title, value);
+    return render_tab_item(title, value, "", false);
   }
 
   function render_logs(): Rendered {
@@ -209,17 +289,22 @@ export const Build: React.FC<Props> = React.memo((props) => {
     if (!build_logs) return;
     const infos: React.JSX.Element[] = [];
     let isLongRunning = false;
-    let logTail = "";
+    let stdoutTail = "";
+    let stderrTail = "";
 
     build_logs.forEach((infoI, key) => {
       const info: ExecuteCodeOutput = infoI?.toJS();
       if (!info || info.type !== "async" || info.status !== "running") return;
       const stats_str = getResourceUsage(info.stats, "last");
       const start = info.start;
-      logTail = tail((info.stdout ?? "") + (info.stderr ?? ""), 100);
-      // Update state for auto-scrolling effect
-      if (logTail !== shownLog) {
-        setShownLog(logTail);
+      stdoutTail = tail(info.stdout ?? "", 100);
+      stderrTail = tail(info.stderr ?? "", 100);
+      // Update state for auto-scrolling effect - combine for backward compatibility
+      const combinedLog =
+        stdoutTail +
+        (stderrTail ? "\n--- Error Output ---\n" + stderrTail : "");
+      if (combinedLog !== shownLog) {
+        setShownLog(combinedLog);
       }
       isLongRunning ||=
         typeof start === "number" &&
@@ -244,6 +329,9 @@ export const Build: React.FC<Props> = React.memo((props) => {
     });
 
     if (infos.length === 0) return;
+
+    const hasStdout = stdoutTail.trim().length > 0;
+    const hasStderr = stderrTail.trim().length > 0;
 
     return (
       <>
@@ -293,14 +381,85 @@ export const Build: React.FC<Props> = React.memo((props) => {
             {status}
             {"\n"}
           </div>
-          <div
-            ref={logContainerRef}
-            style={{
-              overflowY: "auto",
-              flexGrow: 1,
-            }}
-          >
-            <Ansi>{shownLog}</Ansi>
+          <div style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: hasStdout && hasStderr ? "10px" : "0",
+            overflow: "hidden"
+          }}>
+            {hasStdout && (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: COLORS.GRAY_M,
+                    borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                    flexShrink: 0,
+                  }}
+                >
+                  Standard output (stdout)
+                </div>
+                <div
+                  ref={logContainerRef}
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: COLORS.GRAY_LLL,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stdoutTail}</Ansi>
+                </div>
+              </div>
+            )}
+            {hasStderr && (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: COLORS.GRAY_M,
+                    borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                    flexShrink: 0,
+                  }}
+                >
+                  Error output (stderr)
+                </div>
+                <div
+                  ref={stderrContainerRef}
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: COLORS.GRAY_LLL,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stderrTail}</Ansi>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </>
