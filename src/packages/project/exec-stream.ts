@@ -3,13 +3,16 @@ Project-side exec-stream service that handles streaming execution requests.
 Similar to how the project API service works, but specifically for streaming exec.
 */
 
-import { executeStream as backendExecuteStream } from "@cocalc/backend/exec-stream";
+import { executeStream, StreamEvent  } from "@cocalc/backend/exec-stream";
+import { Message, Subscription } from "@cocalc/conat/core/client";
 import { projectSubject } from "@cocalc/conat/names";
 import { connectToConat } from "@cocalc/project/conat/connection";
 import { project_id } from "@cocalc/project/data";
 import { getLogger } from "@cocalc/project/logger";
 
 const logger = getLogger("project:exec-stream");
+
+
 
 export function init() {
   serve();
@@ -24,31 +27,26 @@ async function serve() {
     service: "exec-stream",
   });
 
-  logger.debug(`serve: creating exec-stream service for project ${project_id}`);
+  logger.debug(
+    `serve: creating exec-stream service for project ${project_id} and subject='${subject}'`,
+  );
   const api = await cn.subscribe(subject, { queue: "q" });
-  logger.debug(`serve: subscribed to subject='${subject}'`);
   await listen(api, subject);
 }
 
-async function listen(api, _subject) {
+async function listen(api: Subscription, subject: string) {
+  logger.debug(`Listening on subject='${subject}'`);
+
   for await (const mesg of api) {
     handleMessage(mesg);
   }
 }
 
-async function handleMessage(mesg) {
+async function handleMessage(mesg: Message) {
   const options = mesg.data;
 
   let seq = 0;
-  const respond = ({
-    type,
-    data,
-    error,
-  }: {
-    type?: string;
-    data?: any;
-    error?: string;
-  }) => {
+  const respond = ({ type, data, error }: StreamEvent) => {
     mesg.respondSync({ type, data, error, seq });
     seq += 1;
   };
@@ -61,7 +59,7 @@ async function handleMessage(mesg) {
     mesg.respondSync(null);
   };
 
-  const stream = (event?) => {
+  const stream = (event: StreamEvent) => {
     if (done) return;
     if (event != null) {
       respond(event);
@@ -80,7 +78,7 @@ async function handleMessage(mesg) {
     const { stream: _, project_id: reqProjectId, ...opts } = options;
 
     // Call the backend executeStream function
-    await backendExecuteStream({
+    await executeStream({
       ...opts,
       project_id: reqProjectId,
       stream,

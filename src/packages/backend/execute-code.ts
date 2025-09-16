@@ -23,7 +23,13 @@ import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
-import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
+import {
+  to_json,
+  trunc,
+  trunc_middle,
+  uuid,
+  walltime,
+} from "@cocalc/util/misc";
 import {
   ExecuteCodeOutputAsync,
   ExecuteCodeOutputBlocking,
@@ -239,7 +245,15 @@ async function executeCodeNoAggregate(
       const child = doSpawn(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
-          log.debug("async/doSpawn returned", { err, result });
+          log.debug("async/doSpawn returned", {
+            err,
+            result: {
+              type: result?.type,
+              stdout: trunc_middle(result?.stdout),
+              stderr: trunc_middle(result?.stderr),
+              exit_code: result?.exit_code,
+            },
+          });
           try {
             const info: Omit<
               ExecuteCodeOutputAsync,
@@ -428,6 +442,45 @@ function doSpawn(
     log.debug("listening for stdout, stderr and exit_code...");
   }
 
+  // Batching mechanism for streaming to reduce message frequency -- otherwise there could be 100msg/s to process
+  let streamBatchTimer: NodeJS.Timeout | undefined;
+  const streamBuffer = { stdout: "", stderr: "" };
+
+  // Send batched stream data
+  const sendBatchedStream = () => {
+    if (!opts.streamCB) return;
+
+    const hasStdout = streamBuffer.stdout.length > 0;
+    const hasStderr = streamBuffer.stderr.length > 0;
+
+    if (hasStdout || hasStderr) {
+      // Send stdout if available
+      if (hasStdout) {
+        opts.streamCB({ type: "stdout", data: streamBuffer.stdout });
+        streamBuffer.stdout = "";
+      }
+      // Send stderr if available
+      if (hasStderr) {
+        opts.streamCB({ type: "stderr", data: streamBuffer.stderr });
+        streamBuffer.stderr = "";
+      }
+    }
+  };
+
+  // Flush any remaining buffered data and cleanup
+  const flushStreamBuffer = () => {
+    if (streamBatchTimer) {
+      clearInterval(streamBatchTimer);
+      streamBatchTimer = undefined;
+    }
+    sendBatchedStream();
+  };
+
+  // Start batch timer if streaming is enabled, every 100ms
+  if (opts.streamCB) {
+    streamBatchTimer = setInterval(sendBatchedStream, 100);
+  }
+
   function update_async(
     job_id: string | undefined,
     aspect: "stdout" | "stderr" | "pid",
@@ -456,16 +509,16 @@ function doSpawn(
       if (stdout.length < opts.max_output) {
         const newData = data.slice(0, opts.max_output - stdout.length);
         stdout += newData;
-        // Stream only the new portion
+        // Buffer the new portion for batched streaming
         if (opts.streamCB && stdout.length > prevLength) {
-          opts.streamCB({ type: "stdout", data: newData });
+          streamBuffer.stdout += newData;
         }
       }
     } else {
       stdout += data;
-      // Stream the new data
+      // Buffer the new data for batched streaming
       if (opts.streamCB) {
-        opts.streamCB({ type: "stdout", data });
+        streamBuffer.stdout += data;
       }
     }
     update_async(opts.job_id, "stdout", stdout);
@@ -478,16 +531,16 @@ function doSpawn(
       if (stderr.length < opts.max_output) {
         const newData = data.slice(0, opts.max_output - stderr.length);
         stderr += newData;
-        // Stream only the new portion
+        // Buffer the new portion for batched streaming
         if (opts.streamCB && stderr.length > prevLength) {
-          opts.streamCB({ type: "stderr", data: newData });
+          streamBuffer.stderr += newData;
         }
       }
     } else {
       stderr += data;
-      // Stream the new data
+      // Buffer the new data for batched streaming
       if (opts.streamCB) {
-        opts.streamCB({ type: "stderr", data });
+        streamBuffer.stderr += data;
       }
     }
     update_async(opts.job_id, "stderr", stderr);
@@ -524,8 +577,9 @@ function doSpawn(
     stderr += to_json(err);
     // a fundamental issue, we were not running some code
     ran_code = false;
-    // For streaming, send error event immediately
+    // For streaming, flush buffer and send error event
     if (opts.streamCB && opts.async_call && opts.job_id) {
+      flushStreamBuffer(); // Flush any buffered data first
       const errorResult: ExecuteCodeOutputAsync = {
         type: "async",
         job_id: opts.job_id,
@@ -578,6 +632,11 @@ function doSpawn(
     }
     // finally finish up – this will also terminate the monitor
     callback_done = true;
+
+    // Flush any remaining buffered stream data before finishing
+    if (opts.streamCB) {
+      flushStreamBuffer();
+    }
 
     if (timer != null) {
       clearTimeout(timer);

@@ -3,14 +3,21 @@
  * Core streaming logic that can be used by different services.
  */
 
-import { executeCode, asyncCache } from "./execute-code";
-import { abspath } from "./misc_node";
-import getLogger from "./logger";
+import { unreachable } from "@cocalc/util/misc";
 import {
   ExecuteCodeOutputAsync,
   ExecuteCodeStats,
   ExecuteCodeStreamEvent,
 } from "@cocalc/util/types/execute-code";
+import { asyncCache, executeCode } from "./execute-code";
+import getLogger from "./logger";
+import { abspath } from "./misc_node";
+
+export type StreamEvent = {
+  type?: "job" | ExecuteCodeStreamEvent["type"];
+  data?: ExecuteCodeStreamEvent["data"];
+  error?: string;
+};
 
 const logger = getLogger("backend:exec-stream");
 
@@ -32,11 +39,11 @@ export interface ExecuteStreamOptions {
   verbose?: boolean;
   project_id?: string;
   debug?: string;
-  stream: (event: any) => void;
+  stream: (event: StreamEvent | null) => void;
 }
 
 export async function executeStream(options: ExecuteStreamOptions) {
-  const { stream, debug, project_id: reqProjectId, ...opts } = options;
+  const { stream, debug, project_id, ...opts } = options;
 
   // Log debug message for debugging purposes
   if (debug) {
@@ -47,7 +54,7 @@ export async function executeStream(options: ExecuteStreamOptions) {
     let done = false;
     let stats: ExecuteCodeStats = [];
 
-    // Create streaming callback
+    // Create streaming callback, passed into execute-code::executeCode call
     const streamCB = (event: ExecuteCodeStreamEvent) => {
       if (done) {
         logger.debug(
@@ -65,12 +72,14 @@ export async function executeStream(options: ExecuteStreamOptions) {
             data: event.data,
           });
           break;
+
         case "stderr":
           stream({
             type: "stderr",
             data: event.data,
           });
           break;
+
         case "stats":
           // Stats are accumulated in the stats array for the final result
           if (
@@ -89,6 +98,7 @@ export async function executeStream(options: ExecuteStreamOptions) {
             });
           }
           break;
+
         case "done":
           logger.debug(`executeStream: processing done event`);
           const result = event.data as ExecuteCodeOutputAsync;
@@ -101,12 +111,16 @@ export async function executeStream(options: ExecuteStreamOptions) {
           done = true;
           stream(null); // End the stream
           break;
+
         case "error":
           logger.debug(`executeStream: processing error event`);
           stream({ error: event.data as string });
           done = true;
           stream(null);
           break;
+
+        default:
+          unreachable(event.type);
       }
     };
 
@@ -161,8 +175,8 @@ export async function executeStream(options: ExecuteStreamOptions) {
 
     // Stats monitoring is now handled by execute-code.ts via streamCB
     // No need for duplicate monitoring here
-   } catch (err) {
-     stream({ error: `${err}` });
-     stream(null); // End the stream
-   }
+  } catch (err) {
+    stream({ error: `${err}` });
+    stream(null); // End the stream
+  }
 }
