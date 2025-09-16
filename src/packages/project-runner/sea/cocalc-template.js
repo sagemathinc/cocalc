@@ -24,7 +24,7 @@ function extractAssetsSync() {
   const destDir = path.join(
     process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
     "cocalc",
-    "project-runner",
+    name,
     version,
   );
 
@@ -106,7 +106,7 @@ if (path.basename(process.argv[1]) == "node") {
 
   // make sure PATH (and any other env) includes your extracted tools
   process.env.PATH =
-    path.join(destDir, "src/packages/project-runner/bin/") +
+    path.join(destDir, `src/packages/${name}/bin/`) +
     path.delimiter +
     process.env.PATH;
 
