@@ -34,6 +34,9 @@ export const system = {
   // named servers like jupyterlab, vscode, etc.
   startNamedServer: true,
   statusOfNamedServer: true,
+
+  // ssh support
+  sshPublicKey: true,
 };
 
 export interface System {
@@ -80,4 +83,7 @@ export interface System {
   ) => Promise<
     { state: "running"; port: number; url: string } | { state: "stopped" }
   >;
+
+  // return ssh public key of this project/compute server.
+  sshPublicKey: () => Promise<string>;
 }

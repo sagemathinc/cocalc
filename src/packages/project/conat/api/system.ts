@@ -104,3 +104,23 @@ import {
   status as statusOfNamedServer,
 } from "@cocalc/project/named-servers/control";
 export { startNamedServer, statusOfNamedServer };
+
+import { project_id, compute_server_id } from "@cocalc/project/data";
+import ssh from "micro-key-producer/ssh.js";
+import { randomBytes } from "micro-key-producer/utils.js";
+
+export const sshKey = { fingerprint: "", publicKey: "", privateKey: "" };
+export function initSshKey() {
+  if (!sshKey.publicKey) {
+    const seed = randomBytes(32);
+    const key = ssh(seed, `project-${project_id}-${compute_server_id}`);
+    for (const k in key) {
+      if (k == "publicKeyBytes") continue;
+      sshKey[k] = key[k];
+    }
+  }
+}
+export async function sshPublicKey(): Promise<string> {
+  initSshKey();
+  return sshKey.publicKey;
+}
