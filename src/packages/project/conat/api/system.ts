@@ -108,16 +108,29 @@ export { startNamedServer, statusOfNamedServer };
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import ssh from "micro-key-producer/ssh.js";
 import { randomBytes } from "micro-key-producer/utils.js";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 
-export const sshKey = { fingerprint: "", publicKey: "", privateKey: "" };
+export const sshKey = { publicKey: "", privateKey: "" };
 export function initSshKey() {
-  if (!sshKey.publicKey) {
+  if (sshKey.publicKey) {
+    return;
+  }
+  const privateFile = join(process.env.HOME ?? "", ".ssh", "id_ed25519");
+  const publicFile = privateFile + ".pub";
+  try {
+    sshKey.privateKey = readFileSync(privateFile, "utf8");
+    sshKey.publicKey = readFileSync(publicFile, "utf8");
+  } catch {
     const seed = randomBytes(32);
     const key = ssh(seed, `project-${project_id}-${compute_server_id}`);
     for (const k in key) {
       if (k == "publicKeyBytes") continue;
       sshKey[k] = key[k];
     }
+    mkdirSync(dirname(privateFile), { recursive: true, mode: 0o777 });
+    writeFileSync(privateFile, key.privateKey);
+    writeFileSync(publicFile, key.publicKey);
   }
 }
 export async function sshPublicKey(): Promise<string> {

@@ -1,5 +1,5 @@
 /*
-File server - managers where projects are stored.
+File server - manages where projects are stored.
 
 This is a conat service that runs directly on the btrfs file server.
 Only admin processes (hubs) can talk directly to it, not normal users.
