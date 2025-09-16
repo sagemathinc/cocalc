@@ -19,9 +19,6 @@ import { type JSX, type MouseEvent } from "react";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import Snapshots from "@cocalc/frontend/project/snapshots";
 import { lite } from "@cocalc/frontend/lite";
-
-const SHOW_SERVER_LAUNCHERS = false;
-
 import TourButton from "./tour/button";
 import ForkProject from "./fork";
 
@@ -136,7 +133,7 @@ export function MiscSideButtons() {
     // we make sure the url ends with a slash, without messing up the full URL
     const s = base.slice(base.length - 1) === "/" ? "" : "/";
     const url = `${base}${s}${current_path ? "lab/tree/" + current_path : ""}`;
-    const values = { name: SPEC.code.longName };
+    const values = { name: SPEC.jupyterlab.longName };
     const tooltip = intl.formatMessage(OPEN_MSG, values);
     const description = intl.formatMessage(SPEC.jupyterlab.description, values);
     return (
@@ -168,12 +165,10 @@ export function MiscSideButtons() {
     <Space className="pull-right">
       {(current_path == SNAPSHOTS ||
         current_path.startsWith(SNAPSHOTS + "/")) && <Snapshots />}
-      {SHOW_SERVER_LAUNCHERS && (
-        <Space.Compact>
-          {render_jupyterlab_button()}
-          {render_vscode_button()}
-        </Space.Compact>
-      )}
+      <Space.Compact>
+        {render_jupyterlab_button()}
+        {render_vscode_button()}
+      </Space.Compact>
       <Space.Compact>
         {render_upload_button()}
         {!lite && render_library_button()}

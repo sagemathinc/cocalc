@@ -3,9 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space } from "antd";
+import { Space, Tooltip } from "antd";
 import * as immutable from "immutable";
-import React, { useRef } from "react";
+import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Gap, Icon } from "@cocalc/frontend/components";
@@ -22,7 +22,6 @@ import {
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { VisibleMDLG } from "@cocalc/frontend/components";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const ROW_INFO_STYLE = {
@@ -57,7 +56,6 @@ export function ActionBar({
   project_is_running,
 }: Props) {
   const intl = useIntl();
-  const buttonRef = useRef<HTMLDivElement>(null);
   const student_project_functionality = useStudentProjectFunctionality(
     actions.project_id,
   );
@@ -180,10 +178,12 @@ export function ActionBar({
     };
 
     return (
-      <Button onClick={handle_click} key={name}>
-        <Icon name={obj.icon} />{" "}
-        <VisibleMDLG>{`${intl.formatMessage(obj.name)}...`}</VisibleMDLG>
-      </Button>
+      <Tooltip title={intl.formatMessage(obj.name)}>
+        <Button onClick={handle_click} key={name}>
+          <Icon name={obj.icon} />
+        </Button>
+        &nbsp;
+      </Tooltip>
     );
   }
 
@@ -259,7 +259,7 @@ export function ActionBar({
   }
   return (
     <div style={{ flex: "1 0 auto" }}>
-      <div ref={buttonRef} style={{ flex: "1 0 auto" }}>
+      <div style={{ flex: "1 0 auto" }}>
         <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
           <Space.Compact>{render_check_all_button()}</Space.Compact>
           {render_button_area()}
@@ -300,11 +300,7 @@ export const ACTION_BUTTONS_MULTI = [
   "copy",
 ] as const;
 
-const DISABLED_SNAPSHOT_ACTIONS = new Set([
-  "move",
-  "compress",
-  "share",
-]);
+const DISABLED_SNAPSHOT_ACTIONS = new Set(["move", "compress", "share"]);
 
 export function isDisabledSnapshots(name: string) {
   return DISABLED_SNAPSHOT_ACTIONS.has(name);
