@@ -1,11 +1,11 @@
 import express from "express";
-import fs from "node:fs";
 import ssh from "micro-key-producer/ssh.js";
 import { randomBytes } from "micro-key-producer/utils.js";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { once } from "node:events";
 import getLogger from "@cocalc/backend/logger";
 import { projectApiClient } from "@cocalc/conat/project/api/project-client";
+import { conat } from "@cocalc/backend/conat";
 
 const logger = getLogger("file-server:ssh:auth");
 
@@ -17,10 +17,12 @@ export async function init({
 }: {
   port?: number;
   client?: ConatClient;
-}) {
+} = {}) {
+  logger.debug("init");
+  client ??= conat();
   logger.debug("init: generating ssh key...");
   const seed = randomBytes(32);
-  export const sshKey = ssh(seed, "server");
+  const sshKey = ssh(seed, "server");
   logger.debug("init: public key", sshKey.publicKey);
 
   logger.debug("init: starting ssh server...");
@@ -28,9 +30,11 @@ export async function init({
   app.use(express.json());
 
   app.get("/auth/:user", async (req, res) => {
-    const { user } = req.params;
     try {
-      const { user, host, publicKey } = await handleRequest(user, client);
+      const { user, host, publicKey } = await handleRequest(
+        req.params.user,
+        client,
+      );
       res.json({
         privateKey: sshKey.privateKey,
         user,
@@ -47,13 +51,14 @@ export async function init({
   const mesg = `sshpiper auth @ http://127.0.0.1:${port}/auth/:user`;
   console.log(mesg);
   logger.debug("init: ", mesg);
+  return { server, app };
 }
 
 async function handleRequest(
-  user: string,
+  user: string | undefined,
   client: ConatClient,
 ): Promise<{ user: string; host: string; publicKey: string }> {
-  if (user.startsWith("project-")) {
+  if (user?.startsWith("project-")) {
     const project_id = user.slice("project-".length, "project-".length + 36);
     const id = user.slice("project-".length + 37);
     const compute_server_id = parseInt(id ? id : "0");

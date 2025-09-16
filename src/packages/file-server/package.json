@@ -5,6 +5,7 @@
   "exports": {
     "./btrfs": "./dist/btrfs/index.js",
     "./btrfs/*": "./dist/btrfs/*.js",
+    "./ssh/*": "./dist/ssh/*.js",
     "./conat/*": "./dist/conat/*.js",
     "./fs/*": "./dist/fs/*.js"
   },
@@ -16,17 +17,9 @@
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "btrfs",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "btrfs", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
