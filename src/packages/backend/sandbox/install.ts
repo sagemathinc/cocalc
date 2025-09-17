@@ -94,10 +94,8 @@ const SPEC = {
     platforms: ["linux"],
     VERSION: "main",
     path: join(binPath, "dropbear"),
-    // we grab just the dropbear binary out of the release; we don't
-    // need any of the others:
     script: () =>
-      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
+      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C "${binPath}" --strip-components=1 dropbear-$(uname -m)-linux-musl && rm "${binPath}/dropbearkey" "${binPath}/scp"`,
   },
   // See https://github.com/sagemathinc/sshpiper-binaries/releases
   sshpiper: {
@@ -107,7 +105,7 @@ const SPEC = {
     VERSION: "v1.5.0",
     script: ({ VERSION }) => {
       const a = arch() == "x64" ? "amd64" : arch();
-      return `curl -L https://github.com/sagemathinc/sshpiper-binaries/releases/download/${VERSION}/sshpiper-${VERSION}-${platform()}-${a}.tar.xz | tar -xJ -C ${binPath} --strip-components=1`;
+      return `curl -L https://github.com/sagemathinc/sshpiper-binaries/releases/download/${VERSION}/sshpiper-${VERSION}-${platform()}-${a}.tar.xz | tar -xJ -C "${binPath}" --strip-components=1`;
     },
     url: () => {
       const VERSION = "v1.5.0";
