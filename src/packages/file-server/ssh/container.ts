@@ -1,9 +1,8 @@
 /*
 Manager container that is the target of ssh.
-
 */
 
-import { execFile as execFile0 } from "node:child_process";
+import { spawn, execFile as execFile0 } from "node:child_process";
 import { promisify } from "node:util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
@@ -23,6 +22,8 @@ function containerName(volume: string): string {
   return `file-server-ssh-${volume}`;
 }
 
+const children: { [volume: string]: any } = {};
+
 export const start = reuseInFlight(
   async ({
     volume,
@@ -39,6 +40,11 @@ export const start = reuseInFlight(
     memory?: string;
     pids?: number;
   }) => {
+    if (children[volume] != null && children[volume].exitCode == null) {
+      // already running
+      return;
+    }
+
     // make sure our ssh image is available
     await build({ name: IMAGE, Dockerfile });
 
@@ -76,7 +82,6 @@ export const start = reuseInFlight(
     args.push("--read-only");
     args.push(`--pids-limit=${pids}`);
     args.push(`--memory=${memory}`);
-    args.push("--detach");
     args.push("-e", `PUBLIC_KEY=${publicKey}`);
     args.push("-p", "22");
     if (ports) {
@@ -95,8 +100,9 @@ export const start = reuseInFlight(
     );
     const sh = `${cmd} ${args.join(" ")}`;
     logger.debug(sh);
-    const { stdout, stderr } = await execFile(cmd, args);
-    logger.debug("started ssh container", { volume, stdout, stderr });
+    const child = spawn(cmd, args);
+    children[volume] = child;
+    logger.debug("started ssh container", { volume, pid: child.pid });
   },
 );
 
@@ -115,5 +121,34 @@ export async function getPorts({ volume }: { volume: string }) {
 }
 
 export async function stop({ volume }: { volume: string }) {
-  await execFile("podman", ["rm", "-f", "-t", "0", containerName(volume)]);
+  const child = children[volume];
+  if (child == null) return;
+
+  delete children[volume];
+  if (child.exitCode == null) {
+    try {
+      logger.debug("stopping", { volume });
+      await execFile("podman", ["rm", "-f", "-t", "0", containerName(volume)]);
+    } catch (err) {
+      logger.debug("stop", { volume, err });
+    }
+  }
 }
+
+export async function close() {
+  const v: any[] = [];
+  for (const volume in children) {
+    logger.debug("stopping", { volume });
+    v.push(stop({ volume }));
+  }
+  await Promise.all(v);
+}
+
+// important because it kills all
+// the processes that were spawned
+process.once("exit", close);
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    process.exit();
+  });
+});
