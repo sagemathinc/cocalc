@@ -5,6 +5,14 @@ DEPENDENCIES:
 
    sudo apt-get install rsync podman
 
+- podman -- to run projects
+- rsync - to setup the rootfs
+
+TODO: obviously, we will very likely change things below
+so that pods are subprocesses so this server can be
+restarted without restarting all projects it manages.
+Maybe.  Perhaps we'll have two modes.
+
 */
 
 import getLogger from "@cocalc/backend/logger";
@@ -46,6 +54,9 @@ export async function start({
     return;
   }
 
+  const pod = `project-${project_id}`;
+  await podman(["pod", "create", "--name", pod, "--network=pasta"]);
+
   const home = await mountHome(project_id);
   logger.debug("start: got home", { project_id, home });
   const rootfs = await rootFilesystem.mount({ project_id, home, config });
@@ -79,8 +90,8 @@ export async function start({
   const args: string[] = [];
   args.push("run");
   args.push("--rm");
-  args.push("--network=pasta");
   args.push("--user=0:0");
+  args.push("--pod", pod);
 
   const cmd = "podman";
   const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
@@ -93,12 +104,11 @@ export async function start({
     args.push("-v", `${path}:${mounts[path]}:ro`);
   }
   args.push("-v", `${home}:${env.HOME}`);
-
-  args.push(...podmanLimits(config));
-
   for (const name in env) {
     args.push("-e", `${name}=${env[name]}`);
   }
+
+  args.push(...podmanLimits(config));
 
   // --init = have podman inject a tiny built in init script so we don't get zombies.
   args.push("--init");
@@ -119,6 +129,25 @@ export async function start({
   child.stderr.on("data", (chunk: Buffer) => {
     logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
   });
+
+  const args2 = [
+    "run",
+    `--name=sync-${project_id}`,
+    "--detach",
+    "--rm",
+    "--pod",
+    pod,
+    "--init",
+  ];
+  for (const path in mounts) {
+    args2.push("-v", `${path}:${mounts[path]}:ro`);
+  }
+  args2.push("-v", `${home}:${env.HOME}`);
+  for (const name in env) {
+    args2.push("-e", `${name}=${env[name]}`);
+  }
+  args2.push("ubuntu:25.04", "sleep", "infinity");
+  await podman(args2);
 }
 
 export async function stop({
@@ -138,11 +167,30 @@ export async function stop({
     const v: any[] = [];
     v.push(
       podman([
+        "pod",
         "rm",
         "-f",
         "-t",
         force ? "0" : `${GRACE_PERIOD / 1000}`,
         `project-${project_id}`,
+      ]),
+    );
+    v.push(
+      podman([
+        "rm",
+        "-f",
+        "-t",
+        force ? "0" : `${GRACE_PERIOD / 1000}`,
+        `project-${project_id}`,
+      ]),
+    );
+    v.push(
+      podman([
+        "rm",
+        "-f",
+        "-t",
+        force ? "0" : `${GRACE_PERIOD / 1000}`,
+        `sync-${project_id}`,
       ]),
     );
     v.push(rootFilesystem.unmount(project_id));
@@ -156,6 +204,7 @@ export async function stop({
 }
 
 async function podman(args: string[]) {
+  logger.debug("podman ", args.join(" "));
   return await executeCode({
     verbose: true,
     command: "podman",
