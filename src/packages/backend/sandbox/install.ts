@@ -89,7 +89,7 @@ const SPEC = {
     pathInArchive: "rustic",
   },
   dropbear: {
-    optional: true,
+    optional: false,
     desc: "Dropbear SSH Server",
     platforms: ["linux"],
     VERSION: "main",
