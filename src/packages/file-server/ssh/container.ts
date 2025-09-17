@@ -8,6 +8,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { build } from "./build-container";
 import { getMutagenAgent } from "./mutagen";
+import { getDropbearServer } from "./dropbear";
 
 const logger = getLogger("file-server:ssh:container");
 const execFile = promisify(execFile0);
@@ -71,10 +72,8 @@ export const start = reuseInFlight(
       "-v",
       `${mutagen.path}:/root/.mutagen-dev/agents/${mutagen.version}:ro`,
     );
-    args.push(
-      "-v",
-      "/home/wstein/build/cocalc-lite/src/packages/file-server/ssh/ssh:/root/.ssh:ro",
-    );
+    const dropbear = await getDropbearServer({ publicKey });
+    args.push("-v", `${dropbear}:/root/.ssh:ro`);
     args.push(
       "--mount",
       "type=tmpfs,tmpfs-size=2m,tmpfs-mode=0700,destination=/etc/dropbear,noexec",
