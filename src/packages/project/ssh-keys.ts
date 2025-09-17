@@ -22,7 +22,7 @@ export async function initSshKey() {
   await writeFile(
     join(process.env.HOME ?? "", ".ssh", "config"),
     `
-Host sync
+Host cocalc-core
   User project-${project_id}-${compute_server_id}
   HostName ${hostName}
   Port ${port}

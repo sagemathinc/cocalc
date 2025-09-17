@@ -46,8 +46,8 @@ export async function init({
   client?: ConatClient;
 } = {}) {
   logger.debug("init", { port });
-  // ensure sshpiper is installed
-  await install("sshpiper");
+  // ensure sshpiper and dropbear are installed
+  await Promise.all([install("sshpiper"), install("dropbear")]);
   const { url } = await initAuth({ client });
   const hostKey = join(secrets, "sshpiperd", "host_key");
   await mkdir(dirname(hostKey), { recursive: true });

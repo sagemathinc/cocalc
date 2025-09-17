@@ -37,6 +37,7 @@ export const build = reuseInFlight(
     if (await hasImage(name)) {
       return;
     }
+    logger.debug("Building image", { Dockerfile, name });
     let path: string | undefined = undefined;
     try {
       path = await mkdtemp(join(tmpdir(), "cocalc"));

@@ -88,15 +88,19 @@ const SPEC = {
     stripComponents: 0,
     pathInArchive: "rustic",
   },
+  // used by the core server
   dropbear: {
-    optional: false,
+    optional: true,
     desc: "Dropbear SSH Server",
     platforms: ["linux"],
     VERSION: "main",
     path: join(binPath, "dropbear"),
+    // we grab just the dropbear binary out of the release; we don't
+    // need any of the others:
     script: () =>
-      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C "${binPath}" --strip-components=1 dropbear-$(uname -m)-linux-musl && rm "${binPath}/dropbearkey" "${binPath}/scp"`,
+      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
   },
+  // sshpiper -- used by the core
   // See https://github.com/sagemathinc/sshpiper-binaries/releases
   sshpiper: {
     optional: true,

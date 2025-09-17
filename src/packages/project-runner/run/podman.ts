@@ -32,6 +32,7 @@ import * as rootFilesystem from "./overlay";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { podmanLimits } from "./limits";
+import { init as initSidecar, sidecarImageName } from "./sidecar";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -54,8 +55,15 @@ export async function start({
     return;
   }
 
+  await initSidecar();
   const pod = `project-${project_id}`;
-  await podman(["pod", "create", "--name", pod, "--network=pasta"]);
+  try {
+    await podman(["pod", "create", "--name", pod, "--network=pasta"]);
+  } catch (err) {
+    if (!`${err}`.includes("exists")) {
+      throw err;
+    }
+  }
 
   const home = await mountHome(project_id);
   logger.debug("start: got home", { project_id, home });
@@ -132,7 +140,7 @@ export async function start({
 
   const args2 = [
     "run",
-    `--name=sync-${project_id}`,
+    `--name=sidecar-${project_id}`,
     "--detach",
     "--rm",
     "--pod",
@@ -146,7 +154,7 @@ export async function start({
   for (const name in env) {
     args2.push("-e", `${name}=${env[name]}`);
   }
-  args2.push("ubuntu:25.04", "sleep", "infinity");
+  args2.push(sidecarImageName, "sleep", "infinity");
   await podman(args2);
 }
 
@@ -190,7 +198,7 @@ export async function stop({
         "-f",
         "-t",
         force ? "0" : `${GRACE_PERIOD / 1000}`,
-        `sync-${project_id}`,
+        `sidecar-${project_id}`,
       ]),
     );
     v.push(rootFilesystem.unmount(project_id));

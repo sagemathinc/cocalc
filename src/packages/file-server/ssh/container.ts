@@ -6,7 +6,7 @@ import { spawn, execFile as execFile0 } from "node:child_process";
 import { promisify } from "node:util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
-import { build } from "./build-container";
+import { build } from "@cocalc/backend/podman/build-container";
 import { getMutagenAgent } from "./mutagen";
 import { getDropbearServer } from "./dropbear";
 import { until } from "@cocalc/util/async-utils";
@@ -20,10 +20,10 @@ const Dockerfile = `
 FROM docker.io/alpine:latest
 RUN apk update && apk add --no-cache rsync
 `;
-const IMAGE = "localhost/file-server-ssh:v1";
+const IMAGE = "localhost/core:v1";
 
 function containerName(volume: string): string {
-  return `file-server-ssh-${volume}`;
+  return `core-${volume}`;
 }
 
 const children: { [volume: string]: any } = {};
