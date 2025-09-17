@@ -56,7 +56,11 @@ export async function init({
         volume,
         publicKey: sshKey.publicKey,
         path,
+        ports: "2000-2004",
       });
+      if (!sshPort) {
+        throw Error(`failed to start -- ${volume}`);
+      }
 
       const resp = {
         privateKey: sshKey.privateKey,
@@ -69,6 +73,7 @@ export async function init({
 
       res.json(resp);
     } catch (err) {
+      logger.debug("ERROR", err);
       // res.status(403).json({ error: `${err}` });
       res.json({ privateKey: "", user: "", host: "", authorizedKeys: "" });
     }
@@ -118,7 +123,7 @@ function getFsClient(client) {
   return fsclient;
 }
 
-async function getHome(client:ConatClient, project_id: string) {
+async function getHome(client: ConatClient, project_id: string) {
   const c = getFsClient(client);
   const { path } = await c.mount({ project_id });
   return path;

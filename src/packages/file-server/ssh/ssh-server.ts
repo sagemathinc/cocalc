@@ -37,6 +37,7 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:ssh:ssh-server");
 
+const children: any[] = [];
 export async function init({
   port = 2222,
   client,
@@ -62,6 +63,7 @@ export async function init({
   ];
   logger.debug(`${sshpiper} ${args.join(" ")}`);
   const child = spawn(sshpiper, args);
+  children.push(child);
   child.stdout.on("data", (chunk: Buffer) => {
     logger.debug(chunk.toString());
   });
@@ -70,3 +72,20 @@ export async function init({
   });
   return child;
 }
+
+function close() {
+  for (const child of children) {
+    if (child.exitCode == null) {
+      child.kill("SIGKILL");
+    }
+  }
+}
+
+// important because it kills all
+// the processes that were spawned
+process.once("exit", close);
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    process.exit();
+  });
+});

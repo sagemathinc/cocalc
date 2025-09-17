@@ -61,19 +61,6 @@ export const start = reuseInFlight(
     // Since user can write arbitrary files here, this is noexec, so they
     // can't somehow run them.
     args.push("-v", `${path}:/root:noexec`);
-    // /root/.mutagen-dev is mutagen's scratch space; it's an
-    // in-memory tmpfs where you can't run executables.
-    // [ ] TODO: what about big files!?
-    // CRITICAL: what it does by default is just runs out of space
-    // in the staging directory
-    // and retries over and over, burning network.
-    args.push(
-      "--mount",
-      "type=tmpfs,tmpfs-size=1G,tmpfs-mode=0700,destination=/root/.mutagen-dev,noexec",
-    );
-    // The actual mutagen agent is preinstalled here and DOES have to
-    // be executable, but VERY importantly it can't be changed from
-    // within the container.
     const mutagen = await getMutagenAgent();
     args.push(
       "-v",
@@ -83,12 +70,11 @@ export const start = reuseInFlight(
     args.push("-v", `${dropbear}:/root/.ssh:ro`);
     args.push(
       "--mount",
-      "type=tmpfs,tmpfs-size=2m,tmpfs-mode=0700,destination=/etc/dropbear,noexec",
+      "type=tmpfs,tmpfs-size=1m,tmpfs-mode=0700,destination=/etc/dropbear,noexec",
     );
     args.push("--read-only");
     args.push(`--pids-limit=${pids}`);
     args.push(`--memory=${memory}`);
-    args.push("-e", `PUBLIC_KEY=${publicKey}`);
     args.push("-p", "22");
     if (ports) {
       args.push("-p", ports);
