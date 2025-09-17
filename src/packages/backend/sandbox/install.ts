@@ -112,17 +112,24 @@ const SPEC = {
     url: () => {
       const VERSION = "v1.5.0";
       // https://github.com/sagemathinc/sshpiper-binaries/releases/download/v1.5.0/sshpiper-v1.5.0-darwin-amd64.tar.xz
-      /*
-sshpiper-v1.5.0-darwin-amd64.tar.xz
-sshpiper-v1.5.0-darwin-arm64.tar.xz
-sshpiper-v1.5.0-linux-amd64.tar.xz
-sshpiper-v1.5.0-linux-arm64.tar.xz
-sshpiper-v1.5.0-windows-amd64.tar.xz
-sshpiper-v1.5.0-windows-arm64.tar.xz
-*/
       return `sshpiper-${VERSION}-${arch() == "x64" ? "amd64" : arch()}.tar.xz`;
     },
     BASE: "https://github.com/sagemathinc/sshpiper-binaries/releases",
+  },
+
+  // See https://github.com/sagemathinc/mutagen-open-source/releases
+  mutagen: {
+    // Mutagen seems to be critical for everything, so not optional.
+    // Below we also remove the windows agents and x86 darwin, since
+    // old macs are very rare now.
+    optional: false,
+    desc: "Fast file synchronization and network forwarding for remote development",
+    path: join(binPath, "mutagen"),
+    VERSION: "0.19.0-dev",
+    script: ({ VERSION }) => {
+      const a = arch() == "x64" ? "amd64" : arch();
+      return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -xz -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
+    },
   },
 };
 
@@ -133,6 +140,7 @@ export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
 export const dropbear = SPEC.dropbear.path;
 export const sshpiper = SPEC.sshpiper.path;
+export const mutagen = SPEC.mutagen.path;
 
 type App = keyof typeof SPEC;
 
