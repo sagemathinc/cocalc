@@ -44,7 +44,8 @@ export const start = reuseInFlight(
     memory?: string;
     pids?: number;
   }): Promise<{ sshPort: number }> => {
-    if (children[volume] != null && children[volume].exitCode == null) {
+    let child = children[volume];
+    if (child != null && child.exitCode == null) {
       // already running
       return { sshPort: children[volume].sshPort };
     }
@@ -92,8 +93,10 @@ export const start = reuseInFlight(
     );
     const sh = `${cmd} ${args.join(" ")}`;
     logger.debug(sh);
-    const child = spawn(cmd, args);
+    child = spawn(cmd, args);
     children[volume] = child;
+    // @ts-ignore
+    child.publicKey = publicKey;
     logger.debug("started ssh container", { volume, pid: child.pid });
     // there will be output when ssh server starts
     //await once(child.stderr, "data", 3000);

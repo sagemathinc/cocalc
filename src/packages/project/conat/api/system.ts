@@ -110,6 +110,7 @@ import ssh from "micro-key-producer/ssh.js";
 import { randomBytes } from "micro-key-producer/utils.js";
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import { execFileSync } from "node:child_process";
 
 export const sshKey = { publicKey: "", privateKey: "" };
 export function initSshKey() {
@@ -131,6 +132,11 @@ export function initSshKey() {
     mkdirSync(dirname(privateFile), { recursive: true, mode: 0o700 });
     writeFileSync(privateFile, key.privateKey, { mode: 0o700 });
     writeFileSync(publicFile, key.publicKey, { mode: 0o700 });
+    execFileSync(
+      "dropbearconvert",
+      ["openssh", "dropbear", "id_ed25519", "id_dropbear"],
+      { cwd: join(process.env.HOME ?? "", ".ssh") },
+    );
   }
 }
 export async function sshPublicKey(): Promise<string> {

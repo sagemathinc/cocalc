@@ -11,3 +11,6 @@ chmod +x node_modules/.bin/sync-mtime-ssh
 mkdir -p node_modules/.bin/mutagen.bin
 cp "`pwd`/bin/dbclient-wrapper.sh" node_modules/.bin/mutagen.bin/ssh
 chmod +x  node_modules/.bin/mutagen.bin/ssh
+
+cp "`pwd`/bin/dropbear-mutagen.sh" node_modules/.bin/
+chmod +x  node_modules/.bin/dropbear-mutagen.sh
