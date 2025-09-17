@@ -3,16 +3,14 @@ Project-side exec-stream service that handles streaming execution requests.
 Similar to how the project API service works, but specifically for streaming exec.
 */
 
-import { executeStream, StreamEvent  } from "@cocalc/backend/exec-stream";
+import { executeStream, StreamEvent } from "@cocalc/backend/exec-stream";
 import { Message, Subscription } from "@cocalc/conat/core/client";
-import { projectSubject } from "@cocalc/conat/names";
+import { projectSubject, EXEC_STREAM_SERVICE } from "@cocalc/conat/names";
 import { connectToConat } from "@cocalc/project/conat/connection";
 import { project_id } from "@cocalc/project/data";
 import { getLogger } from "@cocalc/project/logger";
 
 const logger = getLogger("project:exec-stream");
-
-
 
 export function init() {
   serve();
@@ -23,8 +21,8 @@ async function serve() {
   const cn = connectToConat();
   const subject = projectSubject({
     project_id,
-    compute_server_id: 0, // This is the project service, always 0
-    service: "exec-stream",
+    compute_server_id: 0, // This is the project home base, always 0
+    service: EXEC_STREAM_SERVICE,
   });
 
   logger.debug(

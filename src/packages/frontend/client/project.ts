@@ -7,9 +7,12 @@
 Functionality that mainly involves working with a specific project.
 */
 
+import { throttle } from "lodash";
+import { join } from "path";
+
 import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
-import { projectSubject } from "@cocalc/conat/names";
+import { projectSubject, EXEC_STREAM_SERVICE } from "@cocalc/conat/names";
 import { redux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs } from "@cocalc/frontend/i18n";
@@ -40,8 +43,6 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { throttle } from "lodash";
-import { join } from "path";
 import { WebappClient } from "./client";
 import { ExecStream } from "./types";
 
@@ -214,13 +215,12 @@ export class ProjectClient {
     */
   execStream = (
     opts: ExecOptsBlocking & {
-      execStream?: ExecStream;
       startStreamExplicitly?: boolean;
       debug?: string;
     },
     startExplicitly = false,
   ): ExecStream => {
-    const execStream = opts.execStream ?? new ExecStream();
+    const execStream = new ExecStream();
     (async () => {
       try {
         await this.execStreamAsync({ ...opts, execStream });
@@ -277,7 +277,7 @@ export class ProjectClient {
       const subject = projectSubject({
         project_id: opts.project_id,
         compute_server_id: opts.compute_server_id ?? 0,
-        service: "exec-stream",
+        service: EXEC_STREAM_SERVICE,
       });
 
       let lastSeq = -1;
