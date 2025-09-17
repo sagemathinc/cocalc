@@ -128,9 +128,9 @@ export function initSshKey() {
       if (k == "publicKeyBytes") continue;
       sshKey[k] = key[k];
     }
-    mkdirSync(dirname(privateFile), { recursive: true, mode: 0o777 });
-    writeFileSync(privateFile, key.privateKey);
-    writeFileSync(publicFile, key.publicKey);
+    mkdirSync(dirname(privateFile), { recursive: true, mode: 0o700 });
+    writeFileSync(privateFile, key.privateKey, { mode: 0o700 });
+    writeFileSync(publicFile, key.publicKey, { mode: 0o700 });
   }
 }
 export async function sshPublicKey(): Promise<string> {

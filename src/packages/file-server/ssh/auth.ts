@@ -6,6 +6,7 @@ import { once } from "node:events";
 import getLogger from "@cocalc/backend/logger";
 import { projectApiClient } from "@cocalc/conat/project/api/project-client";
 import { conat } from "@cocalc/backend/conat";
+import * as container from "./container";
 
 const logger = getLogger("file-server:ssh:auth");
 
@@ -31,16 +32,30 @@ export async function init({
 
   app.get("/auth/:user", async (req, res) => {
     try {
-      const { user, host, publicKey } = await handleRequest(
+      console.log("got request", req.params);
+      const { volume, publicKey } = await handleRequest(
         req.params.user,
         client,
       );
-      res.json({
-        privateKey: sshKey.privateKey,
-        user,
-        host,
-        authorizedKeys: publicKey,
+
+      // the project is actually running, so we ensure ssh target container
+      // is available locally:
+      const { sshPort } = await container.start({
+        volume,
+        publicKey: sshKey.publicKey,
+        path: "/tmp/y",
       });
+
+      const resp = {
+        privateKey: sshKey.privateKey,
+        user: "root",
+        host: `localhost:${sshPort}`,
+        authorizedKeys: publicKey,
+      };
+
+      console.log("sending", resp);
+
+      res.json(resp);
     } catch (err) {
       res.status(403).json({ error: `${err}` });
     }
@@ -57,9 +72,10 @@ export async function init({
 async function handleRequest(
   user: string | undefined,
   client: ConatClient,
-): Promise<{ user: string; host: string; publicKey: string }> {
+): Promise<{ publicKey: string; volume: string }> {
   if (user?.startsWith("project-")) {
     const project_id = user.slice("project-".length, "project-".length + 36);
+    const volume = `project-${project_id}`;
     const id = user.slice("project-".length + 37);
     const compute_server_id = parseInt(id ? id : "0");
     const api = projectApiClient({
@@ -70,7 +86,7 @@ async function handleRequest(
     });
     const publicKey = await api.system.sshPublicKey();
 
-    return { user: "wstein", host: "localhost", publicKey };
+    return { publicKey, volume };
   } else {
     throw Error("uknown user");
   }

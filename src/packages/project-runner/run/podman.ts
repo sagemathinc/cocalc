@@ -165,14 +165,26 @@ async function podman(args: string[]) {
 }
 
 async function state(project_id): Promise<ProjectState> {
+  if (children[project_id] != null && children[project_id].exitCode == null) {
+    return "running";
+  }
+  const name = `project-${project_id}`;
   const { stdout } = await podman([
     "ps",
     "--filter",
-    `name=project-${project_id}`,
+    `name=${name}`,
     "--format",
-    "{{.State}}",
+    "{{.Names}} {{.State}}",
   ]);
-  return stdout.trim() == "running" ? "running" : "opened";
+  let status = "";
+  for (const x of stdout.split("\n")) {
+    const v = x.split(" ");
+    if (v[0] == name) {
+      status = v[1].trim();
+      break;
+    }
+  }
+  return status == "running" ? "running" : "opened";
 }
 
 export async function status({ project_id }) {

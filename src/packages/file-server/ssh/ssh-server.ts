@@ -14,6 +14,12 @@ This is a service that runs directly on the btrfs file server.  It:
 - if user is valid, it creates container (if necessary) and connects
   them to it via ssh.
 
+
+./sshpiperd \
+  -i server_host_key \
+  --server-key-generate-mode notexist \
+  ./sshpiperd-rest --url http://127.0.0.1:8443/auth
+
 */
 
 

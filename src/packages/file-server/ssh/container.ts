@@ -9,6 +9,9 @@ import getLogger from "@cocalc/backend/logger";
 import { build } from "./build-container";
 import { getMutagenAgent } from "./mutagen";
 import { getDropbearServer } from "./dropbear";
+import { until } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
+//import { once } from "@cocalc/util/async-utils";
 
 const logger = getLogger("file-server:ssh:container");
 const execFile = promisify(execFile0);
@@ -40,10 +43,10 @@ export const start = reuseInFlight(
     ports?: string;
     memory?: string;
     pids?: number;
-  }) => {
+  }): Promise<{ sshPort: number }> => {
     if (children[volume] != null && children[volume].exitCode == null) {
       // already running
-      return;
+      return { sshPort: children[volume].sshPort };
     }
 
     // make sure our ssh image is available
@@ -102,6 +105,35 @@ export const start = reuseInFlight(
     const child = spawn(cmd, args);
     children[volume] = child;
     logger.debug("started ssh container", { volume, pid: child.pid });
+    // there will be output when ssh server starts
+    //await once(child.stderr, "data", 3000);
+    await delay(50);
+    const start = Date.now();
+    await until(
+      async () => {
+        if (Date.now() - start >= 5000) {
+          throw Error("unable to determine port");
+        }
+        try {
+          if (children[volume] == null || children[volume].exitCode != null) {
+            return true;
+          }
+          const ports = await getPorts({ volume });
+          console.log("got ports", ports);
+          if (ports[22]) {
+            // @ts-ignore
+            child.sshPort = ports[22];
+            return true;
+          }
+        } catch {
+          console.log("got ports error");
+        }
+        return false;
+      },
+      { min: 100 },
+    );
+    // @ts-ignore
+    return { sshPort: child.sshPort };
   },
 );
 

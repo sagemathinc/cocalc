@@ -70,6 +70,9 @@ export async function init(opts?) {
   logger.debug(`serve: creating api service ${name}`);
   const api = await client.subscribe(subject);
   logger.debug(`serve: subscribed to subject='${subject}'`);
+
+  // initialize project ssh keys
+  system.initSshKey();
   listen(api, subject);
 }
 
