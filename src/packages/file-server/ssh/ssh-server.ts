@@ -20,7 +20,53 @@ This is a service that runs directly on the btrfs file server.  It:
   --server-key-generate-mode notexist \
   ./sshpiperd-rest --url http://127.0.0.1:8443/auth
 
+
+Security NOTE / TODO: It would be more secure to modify sshpiperd-rest
+to support a UDP socket and use that instead, since we're running
+the REST server on localhost.
 */
 
+import { init as initAuth } from "./auth";
+import { install, sshpiper } from "@cocalc/backend/sandbox/install";
+import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { secrets } from "@cocalc/backend/data";
+import { dirname, join } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import getLogger from "@cocalc/backend/logger";
 
+const logger = getLogger("file-server:ssh:ssh-server");
 
+export async function init({
+  port = 2222,
+  client,
+}: {
+  port?: number;
+  client?: ConatClient;
+} = {}) {
+  logger.debug("init", { port });
+  // ensure sshpiper is installed
+  await install("sshpiper");
+  const { url } = await initAuth({ client });
+  const hostKey = join(secrets, "sshpiperd", "host_key");
+  await mkdir(dirname(hostKey), { recursive: true });
+  const args = [
+    "-i",
+    hostKey,
+    `--port=${port}`,
+    "--server-key-generate-mode",
+    "notexist",
+    sshpiper + "-rest",
+    "--url",
+    url,
+  ];
+  logger.debug(`${sshpiper} ${args.join(" ")}`);
+  const child = spawn(sshpiper, args);
+  child.stdout.on("data", (chunk: Buffer) => {
+    logger.debug(chunk.toString());
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    logger.debug(chunk.toString());
+  });
+  return child;
+}

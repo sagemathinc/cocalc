@@ -34,8 +34,8 @@ export const start = reuseInFlight(
     path,
     publicKey,
     ports,
-    pids = 100,
-    memory = "1G",
+    pids = 200,
+    memory = "2G",
   }: {
     volume: string;
     path: string;
@@ -63,9 +63,13 @@ export const start = reuseInFlight(
     args.push("-v", `${path}:/root:noexec`);
     // /root/.mutagen-dev is mutagen's scratch space; it's an
     // in-memory tmpfs where you can't run executables.
+    // [ ] TODO: what about big files!?
+    // CRITICAL: what it does by default is just runs out of space
+    // in the staging directory
+    // and retries over and over, burning network.
     args.push(
       "--mount",
-      "type=tmpfs,tmpfs-size=16m,tmpfs-mode=0700,destination=/root/.mutagen-dev,noexec",
+      "type=tmpfs,tmpfs-size=1G,tmpfs-mode=0700,destination=/root/.mutagen-dev,noexec",
     );
     // The actual mutagen agent is preinstalled here and DOES have to
     // be executable, but VERY importantly it can't be changed from

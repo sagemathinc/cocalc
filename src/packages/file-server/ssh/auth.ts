@@ -3,23 +3,31 @@ import ssh from "micro-key-producer/ssh.js";
 import { randomBytes } from "micro-key-producer/utils.js";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { once } from "node:events";
-import getLogger from "@cocalc/backend/logger";
 import { projectApiClient } from "@cocalc/conat/project/api/project-client";
 import { conat } from "@cocalc/backend/conat";
 import * as container from "./container";
+import { secureRandomString } from "@cocalc/backend/misc";
+import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:ssh:auth");
 
-export const DEFAULT_PORT = 8443;
+const SECRET_TOKEN_LENGTH = 32;
 
 export async function init({
-  port = DEFAULT_PORT,
+  base_url,
+  port,
   client,
 }: {
+  // as an extra level of security, it is recommended to
+  // make the base_url a secure random string.
+  base_url?: string;
   port?: number;
   client?: ConatClient;
 } = {}) {
   logger.debug("init");
+  base_url ??= encodeURIComponent(
+    await secureRandomString(SECRET_TOKEN_LENGTH),
+  );
   client ??= conat();
   logger.debug("init: generating ssh key...");
   const seed = randomBytes(32);
@@ -30,7 +38,7 @@ export async function init({
   const app = express();
   app.use(express.json());
 
-  app.get("/auth/:user", async (req, res) => {
+  app.get(`/${base_url}/:user`, async (req, res) => {
     try {
       console.log("got request", req.params);
       const { volume, publicKey } = await handleRequest(
@@ -57,16 +65,18 @@ export async function init({
 
       res.json(resp);
     } catch (err) {
-      res.status(403).json({ error: `${err}` });
+      // res.status(403).json({ error: `${err}` });
+      res.json({ privateKey: "", user: "", host: "", authorizedKeys: "" });
     }
   });
 
-  const server = app.listen(8443);
+  const server = app.listen(port);
   await once(server, "listening");
-  const mesg = `sshpiper auth @ http://127.0.0.1:${port}/auth/:user`;
-  console.log(mesg);
+  port = server.address().port;
+  const url = `http://127.0.0.1:${port}/${base_url}`;
+  const mesg = `sshpiper auth @ http://127.0.0.1:${port}/[...secret...]/:user`;
   logger.debug("init: ", mesg);
-  return { server, app };
+  return { server, app, url };
 }
 
 async function handleRequest(
