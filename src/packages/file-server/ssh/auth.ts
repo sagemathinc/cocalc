@@ -8,6 +8,10 @@ import { conat } from "@cocalc/backend/conat";
 import * as container from "./container";
 import { secureRandomString } from "@cocalc/backend/misc";
 import getLogger from "@cocalc/backend/logger";
+import {
+  client as createFileClient,
+  type Fileserver,
+} from "@cocalc/conat/files/file-server";
 
 const logger = getLogger("file-server:ssh:auth");
 
@@ -41,7 +45,7 @@ export async function init({
   app.get(`/${base_url}/:user`, async (req, res) => {
     try {
       console.log("got request", req.params);
-      const { volume, publicKey } = await handleRequest(
+      const { volume, publicKey, path } = await handleRequest(
         req.params.user,
         client,
       );
@@ -51,7 +55,7 @@ export async function init({
       const { sshPort } = await container.start({
         volume,
         publicKey: sshKey.publicKey,
-        path: "/tmp/y",
+        path,
       });
 
       const resp = {
@@ -82,7 +86,7 @@ export async function init({
 async function handleRequest(
   user: string | undefined,
   client: ConatClient,
-): Promise<{ publicKey: string; volume: string }> {
+): Promise<{ publicKey: string; volume: string; path: string }> {
   if (user?.startsWith("project-")) {
     const project_id = user.slice("project-".length, "project-".length + 36);
     const volume = `project-${project_id}`;
@@ -96,8 +100,26 @@ async function handleRequest(
     });
     const publicKey = await api.system.sshPublicKey();
 
-    return { publicKey, volume };
+    // NOTE/TODO: we could have a special username that maps to a
+    // specific path in a project, which would change this path here,
+    // and require a different auth dance above.  This could be for safely
+    // sharing folders instead of all files in a project.
+    const path = await getHome(client, project_id);
+
+    return { publicKey, volume, path };
   } else {
     throw Error("uknown user");
   }
+}
+
+let fsclient: Fileserver | null = null;
+function getFsClient(client) {
+  fsclient ??= createFileClient({ client });
+  return fsclient;
+}
+
+async function getHome(client:ConatClient, project_id: string) {
+  const c = getFsClient(client);
+  const { path } = await c.mount({ project_id });
+  return path;
 }
