@@ -94,6 +94,7 @@ export const start = reuseInFlight(
     if (ports) {
       args.push("-p", ports);
     }
+    // dropbear -m -F -E -R -g -a
     args.push(
       "--rm",
       IMAGE,

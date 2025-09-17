@@ -154,8 +154,12 @@ export async function start({
   for (const name in env) {
     args2.push("-e", `${name}=${env[name]}`);
   }
-  args2.push(sidecarImageName, "sleep", "infinity");
-  await podman(args2);
+  args2.push(sidecarImageName, "mutagen", "daemon", "run");
+  // TODO: we don't block the startup for this, but we do
+  // need to check and provide info to the user about what happened.
+  (async () => {
+    await podman(args2);
+  })();
 }
 
 export async function stop({

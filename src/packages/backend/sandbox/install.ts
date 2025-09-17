@@ -90,7 +90,6 @@ const SPEC = {
   },
   // used by the core server
   dropbear: {
-    optional: true,
     desc: "Dropbear SSH Server",
     platforms: ["linux"],
     VERSION: "main",
@@ -124,7 +123,6 @@ const SPEC = {
     // Mutagen seems to be critical for everything, so not optional.
     // Below we also remove the windows agents and x86 darwin, since
     // old macs are very rare now.
-    optional: false,
     desc: "Fast file synchronization and network forwarding for remote development",
     path: join(binPath, "mutagen"),
     VERSION: "0.19.0-dev",
