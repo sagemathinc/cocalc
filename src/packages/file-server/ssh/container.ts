@@ -33,6 +33,7 @@ export const start = reuseInFlight(
     volume,
     path,
     publicKey,
+    authorizedKeys,
     ports,
     pids = 200,
     memory = "2G",
@@ -40,14 +41,27 @@ export const start = reuseInFlight(
     volume: string;
     path: string;
     publicKey: string;
+    authorizedKeys: string;
     ports?: string;
     memory?: string;
     pids?: number;
   }): Promise<{ sshPort: number }> => {
     let child = children[volume];
     if (child != null && child.exitCode == null) {
+      console.log("already running", {
+        publicKey,
+        curPublicKey: child.publicKey,
+      });
       // already running
-      return { sshPort: children[volume].sshPort };
+      if (
+        child.publicKey != publicKey ||
+        child.authorizedKeys != authorizedKeys
+      ) {
+        // rebuild if for some reason they project's key is changed
+        await stop({ volume });
+      } else {
+        return { sshPort: children[volume].sshPort };
+      }
     }
 
     // make sure our ssh image is available
@@ -97,6 +111,7 @@ export const start = reuseInFlight(
     children[volume] = child;
     // @ts-ignore
     child.publicKey = publicKey;
+    child.authorizedKeys = authorizedKeys;
     logger.debug("started ssh container", { volume, pid: child.pid });
     // there will be output when ssh server starts
     //await once(child.stderr, "data", 3000);

@@ -45,7 +45,7 @@ export async function init({
   app.get(`/${base_url}/:user`, async (req, res) => {
     try {
       console.log("got request", req.params);
-      const { volume, publicKey, path } = await handleRequest(
+      const { volume, authorizedKeys, path } = await handleRequest(
         req.params.user,
         client,
       );
@@ -55,6 +55,7 @@ export async function init({
       const { sshPort } = await container.start({
         volume,
         publicKey: sshKey.publicKey,
+        authorizedKeys,
         path,
         ports: "2000-2004",
       });
@@ -66,7 +67,7 @@ export async function init({
         privateKey: sshKey.privateKey,
         user: "root",
         host: `localhost:${sshPort}`,
-        authorizedKeys: publicKey,
+        authorizedKeys,
       };
 
       console.log("sending", resp);
@@ -91,7 +92,7 @@ export async function init({
 async function handleRequest(
   user: string | undefined,
   client: ConatClient,
-): Promise<{ publicKey: string; volume: string; path: string }> {
+): Promise<{ authorizedKeys: string; volume: string; path: string }> {
   if (user?.startsWith("project-")) {
     const project_id = user.slice("project-".length, "project-".length + 36);
     const volume = `project-${project_id}`;
@@ -103,7 +104,7 @@ async function handleRequest(
       client,
       timeout: 5000,
     });
-    const publicKey = await api.system.sshPublicKey();
+    const authorizedKeys = await api.system.sshPublicKey();
 
     // NOTE/TODO: we could have a special username that maps to a
     // specific path in a project, which would change this path here,
@@ -111,7 +112,7 @@ async function handleRequest(
     // sharing folders instead of all files in a project.
     const path = await getHome(client, project_id);
 
-    return { publicKey, volume, path };
+    return { authorizedKeys, volume, path };
   } else {
     throw Error("uknown user");
   }

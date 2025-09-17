@@ -105,41 +105,4 @@ import {
 } from "@cocalc/project/named-servers/control";
 export { startNamedServer, statusOfNamedServer };
 
-import { project_id, compute_server_id } from "@cocalc/project/data";
-import ssh from "micro-key-producer/ssh.js";
-import { randomBytes } from "micro-key-producer/utils.js";
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
-import { execFileSync } from "node:child_process";
-
-export const sshKey = { publicKey: "", privateKey: "" };
-export function initSshKey() {
-  if (sshKey.publicKey) {
-    return;
-  }
-  const privateFile = join(process.env.HOME ?? "", ".ssh", "id_ed25519");
-  const publicFile = privateFile + ".pub";
-  try {
-    sshKey.privateKey = readFileSync(privateFile, "utf8");
-    sshKey.publicKey = readFileSync(publicFile, "utf8");
-  } catch {
-    const seed = randomBytes(32);
-    const key = ssh(seed, `project-${project_id}-${compute_server_id}`);
-    for (const k in key) {
-      if (k == "publicKeyBytes") continue;
-      sshKey[k] = key[k];
-    }
-    mkdirSync(dirname(privateFile), { recursive: true, mode: 0o700 });
-    writeFileSync(privateFile, key.privateKey, { mode: 0o700 });
-    writeFileSync(publicFile, key.publicKey, { mode: 0o700 });
-    execFileSync(
-      "dropbearconvert",
-      ["openssh", "dropbear", "id_ed25519", "id_dropbear"],
-      { cwd: join(process.env.HOME ?? "", ".ssh") },
-    );
-  }
-}
-export async function sshPublicKey(): Promise<string> {
-  initSshKey();
-  return sshKey.publicKey;
-}
+export { sshPublicKey } from "@cocalc/project/ssh-keys";
