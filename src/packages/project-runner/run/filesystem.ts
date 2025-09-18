@@ -3,6 +3,7 @@ import {
   type Fileserver,
 } from "@cocalc/conat/files/file-server";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { sshServer as defaultSshServer } from "@cocalc/backend/data";
 
 //import getLogger from "@cocalc/backend/logger";
 
@@ -27,8 +28,26 @@ export async function setQuota(project_id: string, size: number | string) {
   await c.setQuota({ project_id, size });
 }
 
-export async function mountHome(project_id: string): Promise<string> {
+// default localPath if you don't specify something explicitly when calling
+// init in project-runner/run/index.ts
+// This is where the fileserver is storing files, and works if projects are
+// running on the same compute as the file server, e.g., dev mode.
+export async function localPath({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<{ path: string; sync: boolean }> {
   const c = getFsClient();
   const { path } = await c.mount({ project_id });
-  return path;
+  return { path, sync: false };
+}
+
+// default sshServer if you don't specify something explicitly when calling
+// init in project-runner/run/index.ts
+// This is what gets configured with defaults or via the COCALC_SSH_SERVER
+// env variable in backend/data.  Again, this is what would work in dev
+// mode when everything is on the same computer.
+export async function sshServer({ project_id }: { project_id: string }) {
+  const { host, port } = defaultSshServer;
+  return { host, port, user: `project-${project_id}` };
 }

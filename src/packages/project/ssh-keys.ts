@@ -5,6 +5,7 @@ import { randomBytes } from "micro-key-producer/utils.js";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "path";
 import { existsSync } from "node:fs";
+import { COCALC_FILE_SERVER } from "@cocalc/conat/project/runner/run";
 
 const privateFile = join(process.env.HOME ?? "", ".ssh", "id_ed25519");
 const publicFile = privateFile + ".pub";
@@ -21,10 +22,13 @@ export async function initSshKey() {
     await writeFile(publicFile, publicKey, { mode: 0o700 });
   }
 
+  const user =
+    process.env.COCALC_SSH_USER ?? `project-${project_id}-${compute_server_id}`;
+
   const hostConfig = `
 # Added by CoCalc
-Host file-server
-  User project-${project_id}-${compute_server_id}
+Host ${COCALC_FILE_SERVER}
+  User ${user}
   HostName ${sshServer.host}
   Port ${sshServer.port}
   StrictHostKeyChecking no

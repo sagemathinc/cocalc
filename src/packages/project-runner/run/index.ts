@@ -11,7 +11,7 @@ import { server as projectRunnerServer } from "@cocalc/conat/project/runner/run"
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type Configuration } from "./types";
 export { type Configuration };
-import { init as initFilesystem } from "./filesystem";
+import { init as initFilesystem, localPath, sshServer } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
 import { start, stop, status, close } from "./podman";
 export { close };
@@ -32,5 +32,7 @@ export async function init(
     start: reuseInFlight(start),
     stop: reuseInFlight(stop),
     status: reuseInFlight(status),
+    localPath: opts.localPath ?? localPath,
+    sshServer: opts.sshServer ?? sshServer,
   });
 }

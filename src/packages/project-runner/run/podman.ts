@@ -25,7 +25,7 @@ import { spawn } from "node:child_process";
 import { type Configuration } from "./types";
 export { type Configuration };
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
-import { mountHome, setQuota } from "./filesystem";
+import { setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { join } from "path";
 import * as rootFilesystem from "./overlay";
@@ -33,6 +33,11 @@ import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { podmanLimits } from "./limits";
 import { init as initSidecar, sidecarImageName } from "./sidecar";
+import {
+  type SshServerFunction,
+  type LocalPathFunction,
+} from "@cocalc/conat/project/runner/run";
+import { writeMutagenConfig } from "./mutagen";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -42,9 +47,13 @@ const GRACE_PERIOD = 3000;
 export async function start({
   project_id,
   config,
+  sshServer,
+  localPath,
 }: {
   project_id: string;
   config?: Configuration;
+  sshServer: SshServerFunction;
+  localPath: LocalPathFunction;
 }) {
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
@@ -65,7 +74,7 @@ export async function start({
     }
   }
 
-  const home = await mountHome(project_id);
+  const home = await localPath({ project_id });
   logger.debug("start: got home", { project_id, home });
   const rootfs = await rootFilesystem.mount({ project_id, home, config });
   logger.debug("start: got rootfs", { project_id, rootfs });
@@ -74,11 +83,14 @@ export async function start({
   await ensureConfFilesExists(home);
   logger.debug("start: created conf files", { project_id });
   const image = getImage(config);
+  const ssh = await sshServer({ project_id });
+  await writeMutagenConfig({ home, sync: ssh.sync, forward: ssh.forward });
   const env = await getEnvironment({
     project_id,
     env: config?.env,
     HOME: "/root",
     image,
+    ssh,
   });
   await setupDataPath(home);
   logger.debug("start: setup data path", { project_id });
