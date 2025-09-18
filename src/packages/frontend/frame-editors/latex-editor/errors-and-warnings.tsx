@@ -109,7 +109,8 @@ const Item: React.FC<ItemProps> = React.memo(
       }
       if (!path) return;
       actions.goto_line_in_file(line, path);
-      actions.synctex_tex_to_pdf(line, 0, path);
+      // Note: We don't call synctex_tex_to_pdf here because clicking on errors
+      // should only jump to source, not trigger PDF sync
     }
 
     function render_location(): React.ReactElement<any> | undefined {

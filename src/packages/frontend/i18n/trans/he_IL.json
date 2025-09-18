@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "מקור",
   "editor.latex.command.print.label": "הדפס מקור LaTeX",
   "editor.latex.command.print.tooltip": "הדפס את קוד המקור של מסמך זה. השתמש באפשרות הדפסה ממסגרת תצוגה מקדימה של PDF כדי להדפיס את המסמך המעובד.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "סנכרון אוטומטי בין מקור ל-PDF: תנועת הסמן עוקבת אחרי גלילת ה-PDF, ה-PDF גולל למיקום הסמן",
   "editor.latex.pdf_embed.title": "PDF - ילידי",
   "editor.latex.pdf_embed.title.short": "PDF (מקורי)",
   "editor.latex.source_code.name": "קוד מקור LaTeX",

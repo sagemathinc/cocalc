@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "ソース",
   "editor.latex.command.print.label": "LaTeXソースを印刷",
   "editor.latex.command.print.tooltip": "このドキュメントのソースコードを印刷します。レンダリングされたドキュメントを印刷するには、PDFプレビュー フレームの印刷を使用します。",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "ソースとPDF間の自動同期: カーソル移動がPDFスクロールに追従し、PDFがカーソル位置にスクロール",
   "editor.latex.pdf_embed.title": "PDF - ネイティブ",
   "editor.latex.pdf_embed.title.short": "PDF（ネイティブ）",
   "editor.latex.source_code.name": "LaTeX ソースコード",

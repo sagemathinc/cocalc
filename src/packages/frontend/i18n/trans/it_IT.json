@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Fonte",
   "editor.latex.command.print.label": "Stampa sorgente LaTeX",
   "editor.latex.command.print.tooltip": "Stampa il codice sorgente di questo documento. Usa Stampa dall'anteprima PDF per stampare il documento renderizzato.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Sincronizzazione automatica tra sorgente e PDF: i movimenti del cursore seguono lo scorrimento del PDF, il PDF scorre fino alla posizione del cursore",
   "editor.latex.pdf_embed.title": "PDF - Nativo",
   "editor.latex.pdf_embed.title.short": "PDF (nativo)",
   "editor.latex.source_code.name": "Codice sorgente LaTeX",

@@ -19,6 +19,7 @@ import { time_travel } from "../time-travel-editor/editor";
 import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { LatexWordCount } from "./latex-word-count";
+import { Output } from "./output";
 import { PDFEmbed } from "./pdf-embed";
 import { PDFJS } from "./pdfjs";
 
@@ -177,11 +178,42 @@ const pdf_embed: EditorDescription = {
   component: PDFEmbed,
 } as const;
 
+const output: EditorDescription = {
+  type: "latex-output",
+  short: "Output",
+  name: "Output",
+  icon: "file-alt",
+  component: Output,
+  commands: {
+    build: true,
+    force_build: true,
+    clean: true,
+    stop_build: true,
+    download: false,
+    download_pdf: true,
+  },
+  buttons: set([
+    "build",
+    "force_build",
+    "clean",
+    "stop_build",
+    "sync",
+    "decrease_font_size",
+    "increase_font_size",
+    "zoom_page_width",
+    "zoom_page_height",
+    "set_zoom",
+    "print",
+    "download_pdf",
+  ]),
+} as const;
+
 const EDITOR_SPEC = {
   cm,
   pdfjs_canvas,
   error,
   build,
+  output,
   latex_table_of_contents,
   word_count,
   terminal,

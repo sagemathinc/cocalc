@@ -635,6 +635,8 @@ const IconSpec = {
   "merge-cells-outlined": MergeCellsOutlined,
   "fork-outlined": ForkOutlined,
   "to-top-outlined": ToTopOutlined,
+  "column-width": ColumnWidthOutlined,
+  "column-height": ColumnHeightOutlined,
 } as const;
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us

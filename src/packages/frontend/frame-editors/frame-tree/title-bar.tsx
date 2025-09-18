@@ -1212,11 +1212,17 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (
       props.page == null ||
       props.pages == null ||
-      manageCommands.isExplicitlyHidden("page")
+      manageCommands.isExplicitlyHidden("page") ||
+      props.id.endsWith("-pdf") ||
+      props.type === "output"
     ) {
       // do not render anything unless both page and pages are set
+      // also don't render for PDF frames that are part of output panels (they have their own page controls)
+      // also don't render for output panels themselves (they have their own page controls)
+      // but DO render for standalone pdfjs viewers
       return;
     }
+
     let content;
     if (typeof props.pages == "number") {
       // pages contains the number of pages and page must also be a number

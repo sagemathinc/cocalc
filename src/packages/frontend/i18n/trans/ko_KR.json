@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "소스",
   "editor.latex.command.print.label": "LaTeX 소스 출력",
   "editor.latex.command.print.tooltip": "이 문서의 소스 코드를 인쇄합니다. 렌더링된 문서를 인쇄하려면 PDF 미리보기 프레임에서 인쇄를 사용하세요.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "소스와 PDF 간 자동 동기화: PDF 스크롤링에 따라 커서 이동, 커서 위치로 PDF 스크롤",
   "editor.latex.pdf_embed.title": "PDF - 본래",
   "editor.latex.pdf_embed.title.short": "PDF (네이티브)",
   "editor.latex.source_code.name": "LaTeX 소스 코드",

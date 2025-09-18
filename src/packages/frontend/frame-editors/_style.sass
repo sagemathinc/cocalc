@@ -31,3 +31,32 @@
     .ant-tabs-tabpane
       display: flex
       flex-direction: column
+
+// latex editor, output panel - full height tabs with outline
+.cocalc-latex-output-tabs
+  height: 100% !important
+  display: flex !important
+  flex-direction: column !important
+
+  // Ensure content fills remaining space
+  .ant-tabs-content-holder
+    flex: 1 !important
+    display: flex !important
+    min-height: 0 !important
+    border-radius: 0 !important
+
+  .ant-tabs-content
+    height: 100% !important
+    display: flex !important
+    flex-direction: column !important
+    border: none !important
+
+  .ant-tabs-tabpane
+    height: 100% !important
+    flex-direction: column !important
+    min-height: 0 !important
+    padding: 0 !important
+
+    // Only apply flex display to active tab pane
+    &:not(.ant-tabs-tabpane-hidden)
+      display: flex !important

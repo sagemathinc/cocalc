@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Forrás",
   "editor.latex.command.print.label": "Nyomtatás LaTeX forrás",
   "editor.latex.command.print.tooltip": "Nyomtassa ki ennek a dokumentumnak a forráskódját. Használja a Nyomtatás funkciót a PDF Előnézet keretből a renderelt dokumentum nyomtatásához.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Automatikus szinkronizálás a forrás és a PDF között: a kurzor mozgása követi a PDF görgetését, a PDF a kurzor pozíciójára görget",
   "editor.latex.pdf_embed.title": "PDF - Natív",
   "editor.latex.pdf_embed.title.short": "PDF (natív)",
   "editor.latex.source_code.name": "LaTeX Forráskód",

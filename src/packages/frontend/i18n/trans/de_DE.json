@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Quellcode",
   "editor.latex.command.print.label": "LaTeX-Code drucken",
   "editor.latex.command.print.tooltip": "Drucken Sie den Quellcode dieses Dokuments. Verwenden Sie Drucken aus dem PDF-Vorschau-Fenster, um das gerenderte Dokument zu drucken.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Automatische Synchronisation zwischen Quelle und PDF: Der Cursor bewegt sich beim Scrollen im PDF, das PDF scrollt zur Cursorposition",
   "editor.latex.pdf_embed.title": "PDF - Native",
   "editor.latex.pdf_embed.title.short": "PDF (nativ)",
   "editor.latex.source_code.name": "LaTeX-Quellcode",

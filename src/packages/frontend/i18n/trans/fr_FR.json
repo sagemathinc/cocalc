@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Source",
   "editor.latex.command.print.label": "Imprimer la source LaTeX",
   "editor.latex.command.print.tooltip": "Imprimer le code source de ce document. Utilisez Imprimer depuis le cadre d'aperçu PDF pour imprimer le document rendu.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Synchronisation automatique entre la source et le PDF : le déplacement du curseur suit le défilement du PDF, le PDF défile jusqu'à la position du curseur",
   "editor.latex.pdf_embed.title": "PDF - Natif",
   "editor.latex.pdf_embed.title.short": "PDF (natif)",
   "editor.latex.source_code.name": "Code source LaTeX",

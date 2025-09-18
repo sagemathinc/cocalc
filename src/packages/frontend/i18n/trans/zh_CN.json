@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "源",
   "editor.latex.command.print.label": "打印 LaTeX 源码",
   "editor.latex.command.print.tooltip": "打印此文档的源代码。使用 PDF 预览框架中的打印功能来打印渲染的文档。",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "源代码和PDF之间的自动同步：光标移动跟随PDF滚动，PDF滚动到光标位置",
   "editor.latex.pdf_embed.title": "PDF - 原生",
   "editor.latex.pdf_embed.title.short": "PDF（原生）",
   "editor.latex.source_code.name": "LaTeX源码",

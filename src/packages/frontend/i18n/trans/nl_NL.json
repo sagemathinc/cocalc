@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Bron",
   "editor.latex.command.print.label": "LaTeX-bron afdrukken",
   "editor.latex.command.print.tooltip": "Print de broncode van dit document. Gebruik Afdrukken vanuit het PDF-voorbeeldframe om het gerenderde document af te drukken.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Auto-sync tussen bron en PDF: cursors bewegen mee met PDF-scrollen, PDF scrolt naar cursorpositie",
   "editor.latex.pdf_embed.title": "PDF - Native",
   "editor.latex.pdf_embed.title.short": "PDF (native)",
   "editor.latex.source_code.name": "LaTeX-broncode",

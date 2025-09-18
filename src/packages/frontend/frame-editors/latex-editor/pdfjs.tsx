@@ -13,6 +13,7 @@ import type { Set as iSet } from "immutable";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack.mjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import {
   redux,
   useActions,
@@ -26,6 +27,7 @@ import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-z
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Actions } from "./actions";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
@@ -34,7 +36,7 @@ import Page, { BG_COL, PAGE_GAP } from "./pdfjs-page";
 interface PDFJSProps {
   id: string;
   name: string;
-  actions: any;
+  actions: Actions;
   editor_state: EditorState;
   is_fullscreen: boolean;
   project_id: string;
@@ -44,6 +46,9 @@ interface PDFJSProps {
   is_current: boolean;
   is_visible: boolean;
   status: string;
+  initialPage?: number;
+  onPageInfo?: (currentPage: number, totalPages: number) => void;
+  onViewportInfo?: (page: number, x: number, y: number) => void;
 }
 
 export function PDFJS({
@@ -58,6 +63,9 @@ export function PDFJS({
   is_current,
   is_visible,
   status,
+  initialPage,
+  onPageInfo,
+  onViewportInfo,
 }: PDFJSProps) {
   const { desc } = useFrameContext();
   const isMounted = useIsMountedRef();
@@ -70,6 +78,7 @@ export function PDFJS({
   const mode: undefined | "rmd" = useRedux(name, "mode");
   const derived_file_types: iSet<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
+  const syncInProgress = useRedux(name, "sync_in_progress") ?? false;
 
   const [loaded, setLoaded] = useState<boolean>(false);
   const [pages, setPages] = useState<PDFPageProxy[]>([]);
@@ -83,6 +92,15 @@ export function PDFJS({
   useEffect(() => {
     loadDoc(reload ?? 0);
   }, [reload]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (debouncedViewportInfoRef.current) {
+        clearTimeout(debouncedViewportInfoRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (zoom_page_height == id) doZoomPageHeight();
@@ -263,7 +281,29 @@ export function PDFJS({
         }
       }
       actions.setPages(id, pages0 ?? doc.numPages);
-      actions.setPage(id, desc.get("page") ?? (pages0 == null ? 1 : "1"));
+      const pageToSet =
+        initialPage ?? desc.get("page") ?? (pages0 == null ? 1 : "1");
+      actions.setPage(id, pageToSet);
+
+      // Initial call to set totalPages for PDFControls
+      if (onPageInfo) {
+        const totalPages = doc.numPages;
+        const currentPageNum =
+          typeof pageToSet === "string" ? parseInt(pageToSet) || 1 : pageToSet;
+        onPageInfo(currentPageNum, totalPages);
+      }
+
+      // Ensure initial page scroll happens after a brief delay to allow virtuoso to be ready
+      if (initialPage && initialPage > 1) {
+        setTimeout(() => {
+          const index =
+            (typeof pageToSet === "string" ? parseInt(pageToSet) : pageToSet) -
+            1;
+          if (virtuosoRef.current && index >= 0) {
+            virtuosoRef.current.scrollToIndex({ index, align: "center" });
+          }
+        }, 100);
+      }
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
       console.log(`WARNING: error loading PDF -- ${err}`);
@@ -316,9 +356,17 @@ export function PDFJS({
       offset: y * getScale() + PAGE_GAP - height / 2,
     });
 
-    // Wait a little before clearing the scroll_pdf_into_view field,
-    // so the yellow highlight bar gets rendered as the page is rendered.
-    await delay(100);
+    // Wait before clearing the scroll_pdf_into_view field,
+    // so the yellow highlight bar gets rendered and viewport tracking stays disabled
+    // during the scroll animation and debounce delay
+    await delay(1000);
+
+    // Clear any pending debounced viewport info timeouts
+    if (debouncedViewportInfoRef.current) {
+      clearTimeout(debouncedViewportInfoRef.current);
+      debouncedViewportInfoRef.current = null;
+    }
+
     actions.setState({ scroll_pdf_into_view: undefined });
   }
 
@@ -387,8 +435,31 @@ export function PDFJS({
   const curPagePosRef = useRef<
     { topOfPage: number; bottomOfPage: number; middle: number } | undefined
   >(undefined);
+
+  // Track last viewport position to avoid unnecessary sync operations
+  const lastViewportRef = useRef<{ page: number; x: number; y: number } | null>(
+    null,
+  );
+
+  // Debounce viewport info reporting to prevent constant triggering during scrolling
+  const debouncedViewportInfoRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Simple viewport info callback
+  const handleViewportInfo = useCallback(
+    (page: number, x: number, y: number) => {
+      if (onViewportInfo) {
+        onViewportInfo(page, x, y);
+      }
+    },
+    [onViewportInfo],
+  );
+
   const updateCurrentPage = useCallback(
     ({ index, offset }) => {
+      // Don't update viewport info if we're currently doing a programmatic scroll for this viewer
+      const isProgrammaticScroll =
+        scroll_pdf_into_view != null && scroll_pdf_into_view.id === id;
+
       // We *define* the current page to be whatever page intersects
       // the exact middle of divRef.  This might not be perfect, but
       // at least it is a definition.
@@ -418,8 +489,83 @@ export function PDFJS({
       setCurPageIndex(index);
       curPagePosRef.current = { topOfPage, bottomOfPage, middle };
       actions.setPage(id, index + 1);
+
+      // Notify parent component about page change
+      if (onPageInfo && doc) {
+        onPageInfo(index + 1, doc.numPages);
+      }
+
+      // Calculate and report viewport middle position for sync
+      // Only if we're not currently doing a programmatic scroll
+      if (onViewportInfo && doc && !isProgrammaticScroll) {
+        // Calculate the PDF coordinates for the middle of the viewport
+        // Use the same coordinate system as double-click handling in pdfjs-page.tsx
+        const pageNum = index + 1;
+        const scale = getScale();
+        const viewport = pages[index]?.getViewport({ scale });
+        if (viewport) {
+          // Calculate coordinates exactly like double-click handler does:
+          // offsetX/offsetY are relative to the page div, then divided by scale
+
+          // Middle of the page width in viewer coordinates
+          const offsetX = viewport.width / 2;
+          // Position within the page in viewer coordinates
+          const viewerMiddleY = middle - topOfPage;
+          const offsetY = viewerMiddleY;
+
+          // Convert to PDF coordinates (same as double-click handler)
+          const x = offsetX / scale;
+          const y = offsetY / scale;
+
+          // Debounce viewport info reporting to prevent constant triggering during scrolling
+          const roundedX = Math.round(x);
+          const roundedY = Math.round(y);
+
+          // Clear any existing timeout
+          if (debouncedViewportInfoRef.current) {
+            clearTimeout(debouncedViewportInfoRef.current);
+          }
+
+          // Set new timeout to report viewport info after scrolling stops
+          debouncedViewportInfoRef.current = setTimeout(() => {
+            // Don't trigger sync if already in progress
+            if (syncInProgress) {
+              debouncedViewportInfoRef.current = null;
+              return;
+            }
+
+            const lastViewport = lastViewportRef.current;
+
+            // Only send if coordinates changed significantly (>10px) or page changed
+            if (
+              !lastViewport ||
+              lastViewport.page !== pageNum ||
+              Math.abs(lastViewport.x - roundedX) > 10 ||
+              Math.abs(lastViewport.y - roundedY) > 10
+            ) {
+              lastViewportRef.current = {
+                page: pageNum,
+                x: roundedX,
+                y: roundedY,
+              };
+              // Send viewport info for sync
+              handleViewportInfo(pageNum, roundedX, roundedY);
+            }
+            debouncedViewportInfoRef.current = null;
+          }, 300); // 300ms delay after scrolling stops
+        }
+      }
     },
-    [id, pages, font_size],
+    [
+      id,
+      pages,
+      font_size,
+      onPageInfo,
+      doc,
+      handleViewportInfo,
+      syncInProgress,
+      scroll_pdf_into_view,
+    ],
   );
 
   const getPageIndex = useCallback(() => {

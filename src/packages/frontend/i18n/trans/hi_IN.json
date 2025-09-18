@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "स्रोत",
   "editor.latex.command.print.label": "LaTeX स्रोत प्रिंट करें",
   "editor.latex.command.print.tooltip": "इस दस्तावेज़ के स्रोत कोड को प्रिंट करें। रेंडर्ड दस्तावेज़ को प्रिंट करने के लिए PDF प्रीव्यू फ्रेम से प्रिंट का उपयोग करें।",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "स्रोत और PDF के बीच स्वतः समन्वय: कर्सर की गतिविधियां PDF स्क्रॉलिंग का अनुसरण करती हैं, PDF कर्सर की स्थिति पर स्क्रॉल करता है",
   "editor.latex.pdf_embed.title": "PDF - नेटिव",
   "editor.latex.pdf_embed.title.short": "पीडीएफ (मूल)",
   "editor.latex.source_code.name": "LaTeX स्रोत कोड",

@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Iturria",
   "editor.latex.command.print.label": "Inprimatu LaTeX Iturria",
   "editor.latex.command.print.tooltip": "Inprimatu dokumentu honen jatorrizko kodea. Erabili PDF Aurrebista markotik Inprimatu dokumentua errendatua inprimatzeko.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Iturburuaren eta PDFaren arteko automatikoki sinkronizazioa: kurtsorearen mugimenduak PDFaren korritzearekin jarraitzen dute, PDFa kurtsorearen posiziora korritzen da",
   "editor.latex.pdf_embed.title": "PDF - Natifoa",
   "editor.latex.pdf_embed.title.short": "PDF (natiboa)",
   "editor.latex.source_code.name": "LaTeX Iturburu Kodea",

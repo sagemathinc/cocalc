@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Источник",
   "editor.latex.command.print.label": "Печать исходного кода LaTeX",
   "editor.latex.command.print.tooltip": "Распечатать исходный код этого документа. Используйте Печать из окна предварительного просмотра PDF для печати отрендеренного документа.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Автосинхронизация между исходным текстом и PDF: курсор перемещается при прокрутке PDF, PDF прокручивается к позиции курсора",
   "editor.latex.pdf_embed.title": "PDF - Оригинал",
   "editor.latex.pdf_embed.title.short": "PDF (родной)",
   "editor.latex.source_code.name": "Исходный код LaTeX",

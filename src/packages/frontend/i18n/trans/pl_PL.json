@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Źródło",
   "editor.latex.command.print.label": "Drukuj LaTeX Source",
   "editor.latex.command.print.tooltip": "Wydrukuj kod źródłowy tego dokumentu. Użyj opcji Drukuj z ramki podglądu PDF, aby wydrukować renderowany dokument.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Automatyczna synchronizacja między źródłem a PDF: ruchy kursora podążają za przewijaniem PDF, PDF przewija się do pozycji kursora",
   "editor.latex.pdf_embed.title": "PDF - Rodzimy",
   "editor.latex.pdf_embed.title.short": "PDF (rodzimy)",
   "editor.latex.source_code.name": "Kod źródłowy LaTeX",

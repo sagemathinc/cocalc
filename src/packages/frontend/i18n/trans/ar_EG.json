@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "المصدر",
   "editor.latex.command.print.label": "طباعة مصدر LaTeX",
   "editor.latex.command.print.tooltip": "اطبع الشيفرة المصدرية لهذا المستند. استخدم الطباعة من إطار معاينة PDF لطباعة المستند المُعرض.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "المزامنة التلقائية بين المصدر وPDF: يتحرك المؤشر مع تمرير PDF، يتم تمرير PDF إلى موضع المؤشر",
   "editor.latex.pdf_embed.title": "PDF - أصلي",
   "editor.latex.pdf_embed.title.short": "PDF (native)",
   "editor.latex.source_code.name": "مصدر كود LaTeX",

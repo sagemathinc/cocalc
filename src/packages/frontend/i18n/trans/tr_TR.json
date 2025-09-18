@@ -582,6 +582,7 @@
   "editor.latex.cm.title.short": "Kaynak",
   "editor.latex.command.print.label": "LaTeX Kaynağını Yazdır",
   "editor.latex.command.print.tooltip": "Bu belgenin kaynak kodunu yazdırın. İşlenmiş belgeyi yazdırmak için PDF Önizleme çerçevesindeki Yazdır seçeneğini kullanın.",
+  "editor.latex.pdf_controls.auto_sync.tooltip": "Kaynak ve PDF arasında otomatik senkronizasyon: imleç hareketleri PDF kaydırmasını takip eder, PDF imleç konumuna kayar",
   "editor.latex.pdf_embed.title": "PDF - Yerel",
   "editor.latex.pdf_embed.title.short": "PDF (yerel)",
   "editor.latex.source_code.name": "LaTeX Kaynak Kodu",
