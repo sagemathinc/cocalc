@@ -41,10 +41,14 @@ function determineRoot(): string {
   return root;
 }
 
-// Path to where our special binaries are, e.g., working with the 
-// filesystem and also the "open" command.  This is used, e.g., 
+// Path to where our special binaries are, e.g., working with the
+// filesystem and also the "open" command.  This is used, e.g.,
 // by cocalc-lite to know what to add to the PATH.
-export const bin = join(packageDirectorySync(__dirname) ?? "/", 'node_modules', '.bin');
+export const bin = join(
+  packageDirectorySync(__dirname) ?? "/",
+  "node_modules",
+  ".bin",
+);
 
 // Each field value in this interface is to be treated as though it originated from a raw
 // environment variable. These environment variables are used to configure CoCalc's SSL connection
@@ -277,6 +281,17 @@ export let conatClusterHealthPort = parseInt(
 );
 
 export const conatClusterName = process.env.CONAT_CLUSTER_NAME;
+
+// SSH server -- {host, port}:
+export const sshServer: { host: string; port: number } = (() => {
+  const [host, port = "2222"] = (
+    process.env.COCALC_SSH_SERVER ?? "host.containers.internal"
+  ).split(":");
+  return {
+    host: host ? host : "host.containers.internal",
+    port: parseInt(port),
+  };
+})();
 
 // API keys
 

@@ -11,7 +11,7 @@ import { getMutagenAgent } from "./mutagen";
 import { getDropbearServer } from "./dropbear";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
-//import { once } from "@cocalc/util/async-utils";
+import { k8sCpuParser } from "@cocalc/util/misc";
 
 const logger = getLogger("file-server:ssh:container");
 const execFile = promisify(execFile0);
@@ -23,7 +23,7 @@ RUN apk update && apk add --no-cache rsync
 const IMAGE = "localhost/core:v1";
 
 function containerName(volume: string): string {
-  return `core-${volume}`;
+  return `file-server-${volume}`;
 }
 
 const children: { [volume: string]: any } = {};
@@ -34,16 +34,18 @@ export const start = reuseInFlight(
     path,
     publicKey,
     authorizedKeys,
-    ports,
-    pids = 200,
-    memory = "2G",
+    //ports,
+    pids = 100,
+    memory = "500m",
+    cpu = "1000m",
   }: {
     volume: string;
     path: string;
     publicKey: string;
     authorizedKeys: string;
-    ports?: string;
+    //ports?: string;
     memory?: string;
+    cpu?: string;
     pids?: number;
   }): Promise<{ sshPort: number }> => {
     let child = children[volume];
@@ -90,10 +92,8 @@ export const start = reuseInFlight(
     args.push("--read-only");
     args.push(`--pids-limit=${pids}`);
     args.push(`--memory=${memory}`);
+    args.push(`--cpus=${k8sCpuParser(cpu)}`);
     args.push("-p", "22");
-    if (ports) {
-      args.push("-p", ports);
-    }
     // dropbear -m -F -E -R -g -a
     args.push(
       "--rm",

@@ -29,7 +29,7 @@ the REST server on localhost.
 import { init as initAuth } from "./auth";
 import { install, sshpiper } from "@cocalc/backend/sandbox/install";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
-import { secrets } from "@cocalc/backend/data";
+import { secrets, sshServer } from "@cocalc/backend/data";
 import { dirname, join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
@@ -39,7 +39,7 @@ const logger = getLogger("file-server:ssh:ssh-server");
 
 const children: any[] = [];
 export async function init({
-  port = 2222,
+  port = sshServer.port,
   client,
 }: {
   port?: number;
@@ -73,12 +73,13 @@ export async function init({
   return child;
 }
 
-function close() {
+export function close() {
   for (const child of children) {
     if (child.exitCode == null) {
       child.kill("SIGKILL");
     }
   }
+  children.length = 0;
 }
 
 // important because it kills all

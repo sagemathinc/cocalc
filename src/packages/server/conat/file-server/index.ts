@@ -28,6 +28,7 @@ import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import * as rustic from "./rustic";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
+import { init as initSshServer } from "@cocalc/file-server/ssh/ssh-server";
 
 const logger = getLogger("server:conat:file-server");
 
@@ -175,9 +176,9 @@ async function updateSnapshots({
   await vol.snapshots.update(counts, { limit });
 }
 
-let server: any = null;
+let servers: null | { ssh: any; file: any } = null;
 export async function init(_fs?) {
-  if (server != null) {
+  if (servers != null) {
     return;
   }
   await loadConatConfiguration();
@@ -199,8 +200,9 @@ export async function init(_fs?) {
       rustic: rusticRepo,
     }));
 
-  server = await createFileServer({
-    client: conat(),
+  const client = conat();
+  const file = await createFileServer({
+    client,
     mount: reuseInFlight(mount),
     clone,
     getUsage: reuseInFlight(getUsage),
@@ -220,11 +222,20 @@ export async function init(_fs?) {
     deleteSnapshot,
     updateSnapshots,
   });
+
+  const ssh = await initSshServer({ client });
+
+  servers = { file, ssh };
 }
 
 export function close() {
-  server?.close();
-  server = null;
+  if (servers == null) {
+    return;
+  }
+  const { file, ssh } = servers;
+  servers = null;
+  file.close();
+  ssh.kill("SIGKILL");
 }
 
 let cachedClient: null | Fileserver = null;

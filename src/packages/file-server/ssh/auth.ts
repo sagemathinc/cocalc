@@ -57,7 +57,6 @@ export async function init({
         publicKey: sshKey.publicKey,
         authorizedKeys,
         path,
-        ports: "2000-2004",
       });
       if (!sshPort) {
         throw Error(`failed to start -- ${volume}`);
@@ -70,11 +69,13 @@ export async function init({
         authorizedKeys,
       };
 
-      console.log("sending", resp);
+      // HIGHLY SENSITVE!!!
+      // console.log("sending", resp);
 
       res.json(resp);
     } catch (err) {
       logger.debug("ERROR", err);
+      // Doing this crashes the ssh server, so instead we respond with '' values.
       // res.status(403).json({ error: `${err}` });
       res.json({ privateKey: "", user: "", host: "", authorizedKeys: "" });
     }
