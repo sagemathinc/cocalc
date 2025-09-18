@@ -5,6 +5,7 @@
 
 import { unreachable } from "@cocalc/util/misc";
 import {
+  ExecuteCodeOutput,
   ExecuteCodeOutputAsync,
   ExecuteCodeStats,
   ExecuteCodeStreamEvent,
@@ -40,15 +41,20 @@ export interface ExecuteStreamOptions {
   project_id?: string;
   debug?: string;
   stream: (event: StreamEvent | null) => void;
+  waitForCompletion?: boolean;
 }
 
-export async function executeStream(options: ExecuteStreamOptions) {
-  const { stream, debug, project_id, ...opts } = options;
+export async function executeStream(
+  options: ExecuteStreamOptions,
+): Promise<ExecuteCodeOutput | undefined> {
+  const { stream, debug, project_id, waitForCompletion, ...opts } = options;
 
   // Log debug message for debugging purposes
   if (debug) {
     logger.debug(`executeStream: ${debug}`);
   }
+
+  let job: ExecuteCodeOutput | undefined;
 
   try {
     let done = false;
@@ -104,19 +110,19 @@ export async function executeStream(options: ExecuteStreamOptions) {
           const result = event.data as ExecuteCodeOutputAsync;
           // Include accumulated stats in final result
           result.stats = truncStats(stats);
-          stream({
-            type: "done",
-            data: result,
-          });
-          done = true;
-          stream(null); // End the stream
+           stream({
+             type: "done",
+             data: result,
+           });
+           done = true;
+           stream(null); // End the stream
           break;
 
         case "error":
           logger.debug(`executeStream: processing error event`);
-          stream({ error: event.data as string });
-          done = true;
-          stream(null);
+           stream({ error: event.data as string });
+           done = true;
+           stream(null);
           break;
 
         default:
@@ -125,7 +131,7 @@ export async function executeStream(options: ExecuteStreamOptions) {
     };
 
     // Start an async execution job with streaming callback
-    const job = await executeCode({
+    job = await executeCode({
       command: opts.command || "",
       path: !!opts.compute_server_id ? opts.path : abspath(opts.path ?? ""),
       ...opts,
@@ -136,7 +142,7 @@ export async function executeStream(options: ExecuteStreamOptions) {
     if (job?.type !== "async") {
       stream({ error: "Failed to create async job for streaming" });
       stream(null);
-      return;
+      return undefined;
     }
 
     // Send initial job info with full async structure
@@ -170,7 +176,7 @@ export async function executeStream(options: ExecuteStreamOptions) {
       });
       done = true;
       stream(null);
-      return;
+      return currentJob;
     }
 
     // Stats monitoring is now handled by execute-code.ts via streamCB
@@ -178,5 +184,9 @@ export async function executeStream(options: ExecuteStreamOptions) {
   } catch (err) {
     stream({ error: `${err}` });
     stream(null); // End the stream
+    return undefined;
   }
+
+  // Return the job object so caller can wait for completion if desired
+  return job;
 }

@@ -658,7 +658,35 @@ function doSpawn(
       });
     }
 
-    if (err) {
+    // Handle timeout case first - this takes precedence over other error conditions
+    if (err && killed) {
+      // Process was killed due to timeout
+      if (opts.job_id) {
+        // For async with streaming, send timeout error in done event
+        if (opts.streamCB) {
+          const errorResult: ExecuteCodeOutputAsync = {
+            type: "async",
+            job_id: opts.job_id,
+            stdout,
+            stderr,
+            exit_code: 1, // Timeout is always an error
+            status: "error",
+            elapsed_s: walltime(start_time),
+            start: opts.job_config?.start ?? Date.now(),
+            pid: child.pid,
+            stats: opts.job_config?.stats,
+          };
+          opts.streamCB({ type: "done", data: errorResult });
+        }
+        // For streaming, don't call cb with error - let the stream handle it
+        if (!opts.streamCB) {
+          cb?.(err);
+        }
+      } else {
+        // sync behavior, like it was before
+        cb?.(err);
+      }
+    } else if (err) {
       cb?.(err);
     } else if (opts.err_on_exit && exit_code != 0) {
       const x = opts.origCommand
