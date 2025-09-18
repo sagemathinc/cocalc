@@ -48,6 +48,8 @@ const cm: EditorDescription = {
     "redo",
     "format",
     "build",
+    "force_build",
+    "stop_build",
     "build_on_save",
     "settings",
   ]),
@@ -56,6 +58,7 @@ const cm: EditorDescription = {
     "decrease_font_size",
     "increase_font_size",
     "build",
+    "force_build",
     "build_on_save",
   ]),
 } as const;
@@ -78,8 +81,16 @@ const iframe: EditorDescription = {
     "decrease_font_size",
     "increase_font_size",
     "build",
+    "force_build",
+    "stop_build",
   ]),
-  buttons: set(["reload", "decrease_font_size", "increase_font_size", "build"]),
+  buttons: set([
+    "reload",
+    "decrease_font_size",
+    "increase_font_size",
+    "build",
+    "force_build",
+  ]),
 } as const;
 
 // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
@@ -99,6 +110,7 @@ const pdfjs_canvas: EditorDescription = {
     "zoom_page_height",
     "set_zoom",
     "build",
+    "force_build",
   ]),
   renderer: "canvas",
   path(path) {
@@ -119,8 +131,16 @@ const markdown: EditorDescription = {
     "increase_font_size",
     "reload",
     "build",
+    "force_build",
+    "stop_build",
   ]),
-  buttons: set(["decrease_font_size", "increase_font_size", "reload", "build"]),
+  buttons: set([
+    "decrease_font_size",
+    "increase_font_size",
+    "reload",
+    "build",
+    "force_build",
+  ]),
 } as const;
 
 const build: EditorDescription = {
@@ -129,8 +149,14 @@ const build: EditorDescription = {
   name: "Build Log",
   icon: "gears",
   component: BuildLog,
-  commands: set(["build", "decrease_font_size", "increase_font_size"]),
-  buttons: set(["build"]),
+  commands: set([
+    "build",
+    "force_build",
+    "stop_build",
+    "decrease_font_size",
+    "increase_font_size",
+  ]),
+  buttons: set(["build", "force_build", "stop_build"]),
 } as const;
 
 const EDITOR_SPEC = {

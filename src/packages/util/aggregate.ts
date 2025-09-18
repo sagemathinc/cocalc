@@ -105,7 +105,7 @@ export function aggregate(options, f?: any) {
 
   const state = {}; // in the closure, so scope is that of this function we are making below.
   const done = {};
-  const omitted_fields = ["cb", "aggregate"];
+  const omitted_fields = ["cb", "aggregate", "streamCB"];
   if (options != null && options.omit) {
     for (let field of options.omit) {
       omitted_fields.push(field);
@@ -127,6 +127,7 @@ export function aggregate(options, f?: any) {
     const recent = done[key];
     if (recent != null && leq(opts.aggregate, recent.aggregate)) {
       // result is known from a previous call.
+      // Let the normal callback flow handle streaming events - don't bypass executeStream's logic
       opts.cb(...recent.args);
       return;
     }
