@@ -19,6 +19,7 @@ import {
   STYLE_PRE,
 } from "../rmd-editor/styles";
 import { getResourceUsage } from "../rmd-editor/utils";
+import { COLORS } from "@cocalc/util/theme";
 
 interface BuildLogProps {
   name: string;
@@ -59,7 +60,8 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
     if (status && build_log !== shownLog) {
       setShownLog(build_log);
       if (logContainerRef.current) {
-        logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        logContainerRef.current.scrollTop =
+          logContainerRef.current.scrollHeight;
       }
     }
   }, [build_log, status, shownLog]);
@@ -169,12 +171,20 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
 
   if (status) {
     return (
-      <div ref={logContainerRef} style={STYLE_OUTER}>
+      <div
+        style={{
+          ...STYLE_OUTER,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+        }}
+      >
         <div
           style={{
             margin: "10px",
             fontWeight: "bold",
             fontSize: `${font_size}px`,
+            flexShrink: 0,
           }}
         >
           Running Quarto ...
@@ -184,7 +194,16 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
               "last",
             )}
         </div>
-        {body()}
+        <div
+          ref={logContainerRef}
+          style={{
+            flex: 1,
+            overflow: "auto",
+            minHeight: 0,
+          }}
+        >
+          {body()}
+        </div>
       </div>
     );
   } else if (!build_log && !build_err) {
@@ -198,7 +217,31 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
       </div>
     );
   } else {
-    return <div style={STYLE_OUTER}>{body()}</div>;
+    // Execution completed - show peak resource usage if available
+    const peakResourceUsage = job_info_raw
+      ? getResourceUsage(
+          (job_info_raw?.toJS ? job_info_raw.toJS() : job_info_raw).stats,
+          "peak",
+        )
+      : "";
+
+    return (
+      <div style={STYLE_OUTER}>
+        {peakResourceUsage && (
+          <div
+            style={{
+              margin: "10px",
+              fontWeight: "bold",
+              fontSize: `${font_size}px`,
+              color: COLORS.GRAY_M,
+            }}
+          >
+            Build completed.{peakResourceUsage}
+          </div>
+        )}
+        {body()}
+      </div>
+    );
   }
 });
 

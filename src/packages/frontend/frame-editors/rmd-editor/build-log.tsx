@@ -54,7 +54,8 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo(
       if (status && build_log !== shownLog) {
         setShownLog(build_log);
         if (logContainerRef.current) {
-          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+          logContainerRef.current.scrollTop =
+            logContainerRef.current.scrollHeight;
         }
       }
     }, [build_log, status, shownLog]);
@@ -173,24 +174,62 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo(
         </div>
       );
     } else {
-      return (
-        <div ref={status ? logContainerRef : undefined} style={STYLE_OUTER}>
-          {status && (
+      if (status) {
+        return (
+          <div
+            style={{
+              ...STYLE_OUTER,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+            }}
+          >
             <div
               style={{
                 margin: "10px",
                 fontWeight: "bold",
                 fontSize: `${font_size}px`,
+                flexShrink: 0,
               }}
             >
               Running rmarkdown::render ...
               <br />
               {stats && getResourceUsage(stats, "last")}
             </div>
-          )}
-          {body()}
-        </div>
-      );
+            <div
+              ref={logContainerRef}
+              style={{
+                flex: 1,
+                overflow: "auto",
+                minHeight: 0,
+              }}
+            >
+              {body()}
+            </div>
+          </div>
+        );
+      } else {
+        // Execution completed - show peak resource usage if available
+        const peakResourceUsage = stats ? getResourceUsage(stats, "peak") : "";
+
+        return (
+          <div style={STYLE_OUTER}>
+            {peakResourceUsage && (
+              <div
+                style={{
+                  margin: "10px",
+                  fontWeight: "bold",
+                  fontSize: `${font_size}px`,
+                  color: "#666",
+                }}
+              >
+                Build completed.{peakResourceUsage}
+              </div>
+            )}
+            {body()}
+          </div>
+        );
+      }
     }
   },
 );
