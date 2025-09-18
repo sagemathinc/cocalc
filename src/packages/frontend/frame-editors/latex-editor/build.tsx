@@ -70,7 +70,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
     if (stderrContainerRef.current) {
-      stderrContainerRef.current.scrollTop = stderrContainerRef.current.scrollHeight;
+      stderrContainerRef.current.scrollTop =
+        stderrContainerRef.current.scrollHeight;
     }
   }, [shownLog]);
 
@@ -207,13 +208,17 @@ export const Build: React.FC<Props> = React.memo((props) => {
     // const time: number | undefined = x.get("time");
     // const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
     let job_info_str = "";
-    // if (y != null && y.type === "async") {
+    // Show build time and resource usage if available for async jobs
     if (x.type === "async") {
-      const { elapsed_s, stats } = x; // y
+      const { elapsed_s, stats } = x;
       if (typeof elapsed_s === "number" && elapsed_s > 0) {
         job_info_str = `Build time: ${elapsed_s.toFixed(1)} seconds.`;
       }
-      job_info_str += getResourceUsage(stats, "peak");
+
+      // try to show peak resource usage if stats are available
+      if (stats) {
+        job_info_str += getResourceUsage(stats, "peak");
+      }
     }
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
@@ -381,13 +386,15 @@ export const Build: React.FC<Props> = React.memo((props) => {
             {status}
             {"\n"}
           </div>
-          <div style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: hasStdout && hasStderr ? "10px" : "0",
-            overflow: "hidden"
-          }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: hasStdout && hasStderr ? "10px" : "0",
+              overflow: "hidden",
+            }}
+          >
             {hasStdout && (
               <div
                 style={{
