@@ -20,7 +20,9 @@ import { init as initMounts } from "./mounts";
 const logger = getLogger("project-runner:run");
 
 let client: ConatClient | null = null;
-export async function init(opts: { client?: ConatClient } = {}) {
+export async function init(
+  opts: { client?: ConatClient; localPath?; sshServer? } = {},
+) {
   logger.debug("init");
   client = opts.client ?? conat();
   initFilesystem({ client });
