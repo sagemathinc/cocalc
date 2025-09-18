@@ -47,14 +47,11 @@ export async function getEnvironment({
   project_id,
   env: extra,
   image,
-  ssh,
 }: {
   HOME: string;
   project_id: string;
   env?: { [key: string]: string };
   image: string;
-  // the user and target for ssh to cocalc for file/port forwards/etc
-  ssh: { host: string; port: number; user: string };
 }): Promise<{ [key: string]: string }> {
   const extra_env: string = Buffer.from(JSON.stringify(extra ?? {})).toString(
     "base64",
@@ -94,7 +91,5 @@ export async function getEnvironment({
     CONAT_SERVER: conatServer.replace("localhost", "host.containers.internal"),
     COCALC_SECRET_TOKEN: secretTokenPath(HOME),
     BASE_PATH: base_path,
-    COCALC_SSH_SERVER: `${ssh.host}:${ssh.port}`,
-    COCALC_SSH_USER: `${ssh.user}`,
   };
 }

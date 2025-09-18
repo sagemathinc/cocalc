@@ -2,7 +2,7 @@
  * Assumes cgroup v2 (Ubuntu 25.04 default) and rootless-compatible flags.
  **/
 import { k8sCpuParser } from "@cocalc/util/misc";
-import { type Configuration } from "./types";
+import { type Configuration } from "@cocalc/conat/project/runner/types";
 
 export function podmanLimits(config?: Configuration): string[] {
   const args: string[] = [];

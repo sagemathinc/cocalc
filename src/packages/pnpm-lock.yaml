@@ -108,6 +108,9 @@ importers:
       lru-cache:
         specifier: ^7.18.3
         version: 7.18.3
+      micro-key-producer:
+        specifier: ^0.8.1
+        version: 0.8.1
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -1191,9 +1194,6 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
-      micro-key-producer:
-        specifier: ^0.8.1
-        version: 0.8.1
       prettier:
         specifier: ^3.6.2
         version: 3.6.2

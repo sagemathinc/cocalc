@@ -11,10 +11,10 @@ import { type Client } from "@cocalc/conat/core/client";
 import { randomChoice } from "@cocalc/conat/core/server";
 import { conat } from "@cocalc/conat/client";
 import { client as projectRunnerClient, UPDATE_INTERVAL } from "./run";
-import { getLogger } from "@cocalc/conat/client";
 import state, { type ProjectStatus, type ProjectState } from "./state";
 import { field_cmp } from "@cocalc/util/misc";
 import { delay } from "awaiting";
+import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:project:runner:load-balancer");
 
@@ -111,6 +111,7 @@ export async function server({
   const sub = await client.service<API>(subject, {
     async start() {
       const project_id = getProjectId(this);
+      logger.debug("start", project_id);
       const config = await getConfig?.({ project_id });
       const cur = projects.get(project_id);
       if (cur?.state == "starting" || cur?.state == "running") {
@@ -124,6 +125,7 @@ export async function server({
 
     async stop() {
       const project_id = getProjectId(this);
+      logger.debug("stop", project_id);
       const runClient = await getClient(project_id);
       try {
         await runClient.stop({ project_id });
@@ -139,6 +141,7 @@ export async function server({
 
     async status() {
       const project_id = getProjectId(this);
+      logger.debug("start", project_id);
       const runClient = await getClient(project_id);
       for (let i = 0; i < MAX_STATUS_TRIES; i++) {
         try {

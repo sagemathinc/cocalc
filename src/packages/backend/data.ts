@@ -283,11 +283,12 @@ export let conatClusterHealthPort = parseInt(
 export const conatClusterName = process.env.CONAT_CLUSTER_NAME;
 
 // SSH server -- {host, port}:
-export const sshServer: { host: string; port: number } = (() => {
+export const sshServer: { name: string; host: string; port: number } = (() => {
   const [host, port = "2222"] = (
     process.env.COCALC_SSH_SERVER ?? "host.containers.internal"
   ).split(":");
   return {
+    name: "cocalc-core",
     host: host ? host : "host.containers.internal",
     port: parseInt(port),
   };

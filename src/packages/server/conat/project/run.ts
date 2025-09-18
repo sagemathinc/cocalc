@@ -15,6 +15,7 @@ import {
   close as killAllProjects,
 } from "@cocalc/project-runner/run";
 import { loadConatConfiguration } from "../configuration";
+import { conat } from "@cocalc/backend/conat";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:conat:project:run");
@@ -23,8 +24,9 @@ const servers: any[] = [];
 export async function init(count: number = 1) {
   logger.debug("init project runner(s)", { count });
   await loadConatConfiguration();
+  const client = conat();
   for (let i = 0; i < count; i++) {
-    const server = await initProjectRunner();
+    const server = await initProjectRunner({ client, id: `${i}` });
     servers.push(server);
   }
 }

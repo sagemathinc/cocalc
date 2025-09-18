@@ -44,7 +44,6 @@ export async function init({
 
   app.get(`/${base_url}/:user`, async (req, res) => {
     try {
-      console.log("got request", req.params);
       const { volume, authorizedKeys, path } = await handleRequest(
         req.params.user,
         client,

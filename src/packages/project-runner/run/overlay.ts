@@ -1,7 +1,7 @@
 /*
 
 
-Privileges: This uses sudo to do an overlayfs mount, which is important for 
+Privileges: This uses sudo to do an overlayfs mount, which is important for
 
 */
 
@@ -10,7 +10,7 @@ import { data } from "@cocalc/backend/data";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { mkdir, rm, writeFile } from "fs/promises";
-import { type Configuration } from "./types";
+import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { replace_all } from "@cocalc/util/misc";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";

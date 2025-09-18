@@ -12,38 +12,16 @@ import { conat } from "@cocalc/conat/client";
 import { randomId } from "@cocalc/conat/names";
 import state, { type ProjectStatus } from "./state";
 import { until } from "@cocalc/util/async-utils";
+import type {
+  LocalPathFunction,
+  SshServersFunction,
+  Configuration,
+} from "./types";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("conat:project:runner:run");
 
 export const UPDATE_INTERVAL = 10_000;
-
-export const COCALC_FILE_SERVER = "cocalc.file-server";
-
-export type LocalPathFunction = (opts: {
-  project_id: string;
-}) => Promise<string>;
-
-// Sync is exactly what mutagen takes.  Use the variable
-// COCALC_FILE_SERVER defined above to refer to the remote server
-// that you are syncing with.
-export interface Sync {
-  alpha: string;
-  beta: string;
-  flags?: string[];
-}
-
-// Forward is exactly what mutagen takes
-export interface Forward {
-  source: string;
-  destination: string;
-  flags?: string[];
-}
-
-export type SshServerFunction = (opts: { project_id: string }) => Promise<{
-  host: string;
-  port: number;
-  user: string;
-  sync?: Sync[];
-  forward?: Forward[];
-}>;
 
 export interface Options {
   // client -- Client for the Conat cluster. State of this project runner gets saved here, and it
@@ -56,9 +34,9 @@ export interface Options {
   // typically determines memory, disk spaces, the root filesystem image, etc.
   start: (opts: {
     project_id: string;
-    config?: any;
+    config?: Configuration;
     localPath: LocalPathFunction;
-    sshServer: SshServerFunction;
+    sshServers?: SshServersFunction;
   }) => Promise<void>;
   // ensure a specific project is not running on this runner
   stop: (opts: { project_id: string }) => Promise<void>;
@@ -72,7 +50,7 @@ export interface Options {
   // too (e.g,. as a btrfs volume).
   localPath: LocalPathFunction;
 
-  // sshServer -- when the project runs it connects over ssh to a server to expose
+  // sshServers -- when the project runs it connects over ssh to a server to expose
   // ports and sync files.  The sshServer function locates this server and provides
   // the initial file sync and port forward configuration.
   //    - host, port - identifies the server from the point of view of the pod, e.g.,
@@ -85,11 +63,14 @@ export interface Options {
   //      when project run on a different machine than the file server.  For a compute
   //      server it would be the list of directories to sync on startup.
   //    - forward - initial port forward configuration.
-  sshServer: SshServerFunction;
+  sshServers?: SshServersFunction;
 }
 
 export interface API {
-  start: (opts: { project_id: string; config?: any }) => Promise<ProjectStatus>;
+  start: (opts: {
+    project_id: string;
+    config?: Configuration;
+  }) => Promise<ProjectStatus>;
   stop: (opts: { project_id: string }) => Promise<ProjectStatus>;
   status: (opts: { project_id: string }) => Promise<ProjectStatus>;
 }
@@ -114,14 +95,20 @@ export async function server(options: Options) {
   );
 
   const sub = await client.service<API>(`project-runner.${id}`, {
-    async start(opts: { project_id: string; config?: any }) {
+    async start(opts: { project_id: string; config?: Configuration }) {
+      logger.debug("start", opts.project_id);
       projects.set(opts.project_id, { server: id, state: "starting" } as const);
-      await start({ ...opts, ...options });
+      await start({
+        ...opts,
+        localPath: options.localPath,
+        sshServers: options.sshServers,
+      });
       const s = { server: id, state: "running" } as const;
       projects.set(opts.project_id, s);
       return s;
     },
     async stop(opts: { project_id: string }) {
+      logger.debug("stop", opts.project_id);
       projects.set(opts.project_id, { server: id, state: "stopping" } as const);
       await stop(opts);
       const s = { server: id, state: "opened" } as const;
@@ -129,6 +116,7 @@ export async function server(options: Options) {
       return s;
     },
     async status(opts: { project_id: string }) {
+      logger.debug("status", opts.project_id);
       const s = { ...(await status(opts)), server: id };
       projects.set(opts.project_id, s);
       return s;

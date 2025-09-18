@@ -36,10 +36,10 @@ export async function localPath({
   project_id,
 }: {
   project_id: string;
-}): Promise<{ path: string; sync: boolean }> {
+}): Promise<string> {
   const c = getFsClient();
   const { path } = await c.mount({ project_id });
-  return { path, sync: false };
+  return path;
 }
 
 // default sshServer if you don't specify something explicitly when calling
@@ -47,7 +47,7 @@ export async function localPath({
 // This is what gets configured with defaults or via the COCALC_SSH_SERVER
 // env variable in backend/data.  Again, this is what would work in dev
 // mode when everything is on the same computer.
-export async function sshServer({ project_id }: { project_id: string }) {
-  const { host, port } = defaultSshServer;
-  return { host, port, user: `project-${project_id}` };
+export async function sshServers({ project_id }: { project_id: string }) {
+  const { name, host, port } = defaultSshServer;
+  return [{ name, host, port, user: `project-${project_id}` }];
 }

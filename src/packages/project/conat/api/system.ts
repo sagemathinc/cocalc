@@ -105,4 +105,4 @@ import {
 } from "@cocalc/project/named-servers/control";
 export { startNamedServer, statusOfNamedServer };
 
-export { sshPublicKey } from "@cocalc/project/ssh-keys";
+export { sshPublicKey } from "@cocalc/backend/mutagen/ssh-keys";
