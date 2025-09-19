@@ -484,6 +484,7 @@ export class ProjectClient {
     project_id: string;
     path: string;
   }): Promise<boolean> => {
+    // [ ] TODO: rewrite to use new fs.stat!
     const { stdout, exit_code } = await this.exec({
       project_id,
       command: "file",
