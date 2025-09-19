@@ -20,7 +20,7 @@ import { nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
@@ -36,8 +36,8 @@ import {
   type SshServersFunction,
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
-import { write as writeMutagenConfig } from "@cocalc/backend/mutagen/config";
 import { initSshKeys } from "@cocalc/backend/mutagen/ssh-keys";
+import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -78,7 +78,8 @@ export async function start({
   logger.debug("start: got home", { project_id, home });
   const mounts = getCoCalcMounts();
   const image = getImage(config);
-  await initSshKeys({ home, sshServers: await sshServers?.({ project_id }) });
+  const servers = await sshServers?.({ project_id });
+  await initSshKeys({ home, sshServers: servers });
 
   const env = await getEnvironment({
     project_id,
@@ -86,7 +87,15 @@ export async function start({
     HOME: "/root",
     image,
   });
-  await startSidecar({ project_id, home, mounts, env, pod });
+  const initMutagen = await startSidecar({
+    image,
+    project_id,
+    home,
+    mounts,
+    env,
+    pod,
+    servers,
+  });
 
   const rootfs = await rootFilesystem.mount({ project_id, home, config });
   logger.debug("start: got rootfs", { project_id, rootfs });
@@ -95,11 +104,11 @@ export async function start({
   await ensureConfFilesExists(home);
   logger.debug("start: created conf files", { project_id });
 
-  await writeMutagenConfig({
-    home,
-    sync: config?.sync,
-    forward: config?.forward,
-  });
+  //   await writeMutagenConfig({
+  //     home,
+  //     sync: config?.sync,
+  //     forward: config?.forward,
+  //   });
 
   await setupDataPath(home);
   logger.debug("start: setup data path", { project_id });
@@ -119,6 +128,7 @@ export async function start({
   const args: string[] = [];
   args.push("run");
   args.push("--rm");
+  args.push("--replace");
   args.push("--user=0:0");
   args.push("--pod", pod);
 
@@ -157,9 +167,19 @@ export async function start({
   child.stderr.on("data", (chunk: Buffer) => {
     logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
   });
+
+  await initMutagen?.();
 }
 
-async function startSidecar({ project_id, mounts, env, pod, home }) {
+async function startSidecar({
+  image,
+  project_id,
+  mounts,
+  env,
+  pod,
+  home,
+  servers,
+}) {
   // sidecar: refactor
   const sidecarPodName = `sidecar-${project_id}`;
   const args2 = [
@@ -167,6 +187,7 @@ async function startSidecar({ project_id, mounts, env, pod, home }) {
     `--name=${sidecarPodName}`,
     "--detach",
     "--rm",
+    "--replace",
     "--pod",
     pod,
     "--init",
@@ -178,22 +199,72 @@ async function startSidecar({ project_id, mounts, env, pod, home }) {
   for (const name in env) {
     args2.push("-e", `${name}=${env[name]}`);
   }
+
   args2.push(sidecarImageName, "mutagen", "daemon", "run");
+
+  // always start with fresh .mutagen
+  await rm(join(home, ".mutagen-dev"), { force: true, recursive: true });
+
   await podman(args2);
+
+  if (servers.length == 0) {
+    return;
+  }
+
+  const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
   try {
-    await podman([
-      "exec",
-      sidecarPodName,
-      "rsync",
-      "-axH",
-      "--exclude=.mutagen",
-      "--delete",
-      "file-server:/root/",
-      "/root/",
-    ]);
+    await podman(
+      [
+        "exec",
+        sidecarPodName,
+        "rsync",
+        "--relative",
+        "-axH",
+        `${servers[0].name}:${upperdir}/`,
+        "/root/",
+      ],
+      10 * 60,
+    );
   } catch (err) {
     console.log(err);
   }
+
+  return async () => {
+    await podman([
+      "exec",
+      sidecarPodName,
+      "mutagen",
+      "sync",
+      "create",
+      "--name=upperdir",
+      "--mode=one-way-replica",
+      "--symlink-mode=posix-raw",
+      join("/root", upperdir),
+      `${servers[0].name}:${upperdir}`,
+    ]);
+
+    await podman([
+      "exec",
+      sidecarPodName,
+      "mutagen",
+      "sync",
+      "create",
+      "--name=root",
+      "--symlink-mode=posix-raw",
+      "--ignore",
+      ".local/share/overlay/**",
+      "--ignore",
+      ".cache/cocalc/**",
+      "--ignore",
+      ".mutagen-dev/**",
+      "--ignore",
+      ".ssh/**",
+      "--ignore",
+      ".snapshots/**",
+      "/root",
+      `${servers[0].name}:/root`,
+    ]);
+  };
 }
 
 export async function stop({
@@ -249,13 +320,14 @@ export async function stop({
   }
 }
 
-async function podman(args: string[]) {
+async function podman(args: string[], timeout?) {
   logger.debug("podman ", args.join(" "));
   return await executeCode({
     verbose: true,
     command: "podman",
     args,
     err_on_exit: true,
+    timeout,
   });
 }
 

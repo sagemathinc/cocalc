@@ -91,5 +91,6 @@ export async function getEnvironment({
     CONAT_SERVER: conatServer.replace("localhost", "host.containers.internal"),
     COCALC_SECRET_TOKEN: secretTokenPath(HOME),
     BASE_PATH: base_path,
+    DEBIAN_FRONTEND: "noninteractive",
   };
 }

@@ -69,8 +69,7 @@ export async function init({
         authorizedKeys,
       };
 
-      // HIGHLY SENSITVE!!!
-      // console.log("sending", resp);
+      //console.log("USING", { ...resp, privateKey: "xxx" });
 
       res.json(resp);
     } catch (err) {

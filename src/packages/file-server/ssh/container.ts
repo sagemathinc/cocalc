@@ -50,10 +50,6 @@ export const start = reuseInFlight(
   }): Promise<{ sshPort: number }> => {
     let child = children[volume];
     if (child != null && child.exitCode == null) {
-      console.log("already running", {
-        publicKey,
-        curPublicKey: child.publicKey,
-      });
       // already running
       if (
         child.publicKey != publicKey ||
@@ -128,14 +124,13 @@ export const start = reuseInFlight(
             return true;
           }
           const ports = await getPorts({ volume });
-          console.log("got ports", ports);
           if (ports[22]) {
             // @ts-ignore
             child.sshPort = ports[22];
             return true;
           }
-        } catch {
-          console.log("got ports error");
+        } catch (err) {
+          console.log("got ports error", err);
         }
         return false;
       },

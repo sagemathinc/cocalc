@@ -93,7 +93,7 @@ function getMergedPath(project_id) {
   return join(PROJECT_ROOTS, project_id);
 }
 
-function getPaths({ home, image, project_id }) {
+export function getPaths({ home, image, project_id }) {
   const userOverlays = join(home, PROJECT_IMAGE_PATH, image);
   const upperdir = join(userOverlays, "upperdir");
   const workdir = join(userOverlays, "workdir");
