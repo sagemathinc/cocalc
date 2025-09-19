@@ -217,7 +217,8 @@ async function startSidecar({
       "exec",
       sidecarPodName,
       "rsync",
-      "--relative",
+      "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
+      "--relative", // so don't have to create the directories locally
       "-axH",
       `${servers[0].name}:${upperdir}/`,
       "/root/",
@@ -257,6 +258,7 @@ async function startSidecar({
       "--name=upperdir",
       "--mode=one-way-replica",
       "--symlink-mode=posix-raw",
+      "--compression=deflate",
       join("/root", upperdir),
       `${servers[0].name}:${upperdir}`,
     ]);
@@ -270,6 +272,7 @@ async function startSidecar({
       "--name=root",
       "--mode=two-way-resolved",
       "--symlink-mode=posix-raw",
+      "--compression=deflate",
       "--ignore",
       ".local/share/overlay/**",
       "--ignore",

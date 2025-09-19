@@ -15,6 +15,9 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { replace_all } from "@cocalc/util/misc";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { getImage } from "./podman";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("project-runner:overlay");
 
 const IMAGE_CACHE =
   process.env.COCALC_IMAGE_CACHE ?? join(data, "cache", "images");
@@ -22,6 +25,7 @@ const PROJECT_ROOTS =
   process.env.COCALC_PROJECT_ROOTS ?? join(data, "cache", "project-roots");
 
 export const extractBaseImage = reuseInFlight(async (image: string) => {
+  logger.debug("extractBaseImage", { image });
   const baseImagePath = join(IMAGE_CACHE, image);
   const okFile = baseImagePath + ".ok";
   if (await exists(okFile)) {

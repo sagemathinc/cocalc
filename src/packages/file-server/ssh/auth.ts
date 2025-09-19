@@ -13,6 +13,9 @@ import {
   type Fileserver,
 } from "@cocalc/conat/files/file-server";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
+import { secretsPath } from "./ssh-server";
+import { join } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 
 const logger = getLogger("file-server:ssh:auth");
 
@@ -34,10 +37,25 @@ export async function init({
     await secureRandomString(SECRET_TOKEN_LENGTH),
   );
   client ??= conat();
-  logger.debug("init: generating ssh key...");
-  const seed = randomBytes(32);
-  const sshKey = ssh(seed, "server");
-  logger.debug("init: public key", sshKey.publicKey);
+  let sshKey;
+  const privKeyPath = join(secretsPath(), "id_ed25519");
+  const pubKeyPath = join(secretsPath(), "id_ed25519.pub");
+
+  try {
+    sshKey = {
+      privateKey: await readFile(privKeyPath, "utf8"),
+      publicKey: await readFile(pubKeyPath, "utf8"),
+    };
+    logger.debug(`init: loaded ssh key from ${secretsPath}...`);
+  } catch {
+    logger.debug("init: generating ssh key...");
+    const seed = randomBytes(32);
+    sshKey = ssh(seed, "server");
+    // persist to disk so stable between runs, so we can restart server without having to restart all the pods.
+    await writeFile(privKeyPath, sshKey.privateKey);
+    await writeFile(pubKeyPath, sshKey.publicKey);
+    logger.debug("init: public key", sshKey.publicKey);
+  }
 
   logger.debug("init: starting ssh server...");
   const app = express();

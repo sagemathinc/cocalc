@@ -3,6 +3,9 @@ import { join } from "node:path";
 import base_path from "@cocalc/backend/base-path";
 import { COCALC_SRC, COCALC_BIN } from "./mounts";
 import { executeCode } from "@cocalc/backend/execute-code";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("project-runner:run:env");
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".cache", "cocalc", "project");
@@ -14,32 +17,56 @@ export function secretTokenPath(HOME: string) {
   return join(data, "secret-token");
 }
 
-export async function getImageEnv(image): Promise<{ [key: string]: string }> {
+async function getImageEnv0(image): Promise<{ [key: string]: string }> {
+  const { stdout } = await executeCode({
+    err_on_exit: true,
+    verbose: true,
+    command: "podman",
+    args: [
+      "image",
+      "inspect",
+      image,
+      "--format",
+      "{{range .Config.Env}}{{println .}}{{end}}",
+    ],
+  });
+  const env: { [key: string]: string } = {};
+  for (const line of stdout.split("\n")) {
+    const i = line.indexOf("=");
+    if (i == -1) continue;
+    const key = line.slice(0, i);
+    const value = line.slice(i + 1);
+    env[key] = value;
+  }
+  return env;
+}
+
+// cache since answer doesn't change and every project startup
+// does this, so we save about 50ms-100ms easily, which is very
+// significant.
+const imageEnvCache: { [image: string]: { [key: string]: string } } = {};
+export async function getImageEnv(
+  image: string,
+): Promise<{ [key: string]: string }> {
+  if (imageEnvCache[image] != null) {
+    return imageEnvCache[image];
+  }
+  let e;
   try {
-    const { stdout } = await executeCode({
+    e = await getImageEnv0(image);
+  } catch {
+    logger.debug("pull and try again");
+    await executeCode({
       err_on_exit: true,
       verbose: true,
       command: "podman",
-      args: [
-        "image",
-        "inspect",
-        image,
-        "--format",
-        "{{range .Config.Env}}{{println .}}{{end}}",
-      ],
+      args: ["pull", image],
+      timeout: 5 * 60, // 5 minutes
     });
-    const env: { [key: string]: string } = {};
-    for (const line of stdout.split("\n")) {
-      const i = line.indexOf("=");
-      if (i == -1) continue;
-      const key = line.slice(0, i);
-      const value = line.slice(i + 1);
-      env[key] = value;
-    }
-    return env;
-  } catch {
-    return {};
+    e = await getImageEnv0(image);
   }
+  imageEnvCache[image] = e;
+  return e;
 }
 
 export async function getEnvironment({

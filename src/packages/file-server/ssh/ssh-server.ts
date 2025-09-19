@@ -37,6 +37,10 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:ssh:ssh-server");
 
+export function secretsPath() {
+  return join(secrets, "sshpiperd");
+}
+
 const children: any[] = [];
 export async function init({
   port = sshServer.port,
@@ -49,7 +53,7 @@ export async function init({
   // ensure sshpiper and dropbear are installed
   await Promise.all([install("sshpiper"), install("dropbear")]);
   const { url } = await initAuth({ client });
-  const hostKey = join(secrets, "sshpiperd", "host_key");
+  const hostKey = join(secretsPath(), "host_key");
   await mkdir(dirname(hostKey), { recursive: true });
   const args = [
     "-i",
