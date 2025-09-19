@@ -10,7 +10,7 @@ export type ProjectState = "running" | "opened" | "stopping" | "starting";
 export interface ProjectStatus {
   server?: string;
   state: ProjectState;
-  ip?: string; // the ip address when running
+  publicKey?: string; // ed25519 ssh public key
 }
 
 export default async function state({ client }) {

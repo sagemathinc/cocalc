@@ -32,10 +32,10 @@ import { build } from "@cocalc/backend/podman/build-container";
 
 const Dockerfile = `
 FROM docker.io/alpine:latest
-RUN apk update && apk add --no-cache openssh-client
+RUN apk update && apk add --no-cache openssh-client rsync
 `;
 
-export const sidecarImageName = "localhost/sidecar:0.2";
+export const sidecarImageName = "localhost/sidecar:0.3";
 
 export async function init() {
   await build({ name: sidecarImageName, Dockerfile });

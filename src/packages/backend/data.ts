@@ -288,7 +288,7 @@ export const sshServer: { name: string; host: string; port: number } = (() => {
     process.env.COCALC_SSH_SERVER ?? "host.containers.internal"
   ).split(":");
   return {
-    name: "cocalc-core",
+    name: "file-server",
     host: host ? host : "host.containers.internal",
     port: parseInt(port),
   };

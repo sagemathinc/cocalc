@@ -473,7 +473,7 @@ export class ConatClient extends EventEmitter {
 
   projectRunner = (project_id: string) => {
     return projectRunnerClient({
-      subject: `project.${project_id}.run`,
+      project_id,
       client: this.conat(),
     });
   };

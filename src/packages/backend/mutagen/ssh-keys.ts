@@ -48,7 +48,7 @@ Host ${name}
     }
     if (!config.includes(hostConfig)) {
       // put at front since only the first with a given name is used by ssh
-      await writeFile(configPath, hostConfig + "\n" + config);
+      await writeFile(configPath, hostConfig + "\n" + config, { mode: 0o700 });
     }
   }
 }

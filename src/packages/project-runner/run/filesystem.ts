@@ -4,6 +4,8 @@ import {
 } from "@cocalc/conat/files/file-server";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { sshServer as defaultSshServer } from "@cocalc/backend/data";
+import { join } from "node:path";
+import { mkdir } from "node:fs/promises";
 
 //import getLogger from "@cocalc/backend/logger";
 
@@ -37,6 +39,11 @@ export async function localPath({
 }: {
   project_id: string;
 }): Promise<string> {
+  if (process.env.COCALC_PROJECT_PATH) {
+    const path = join(process.env.COCALC_PROJECT_PATH, project_id);
+    await mkdir(path, { recursive: true });
+    return path;
+  }
   const c = getFsClient();
   const { path } = await c.mount({ project_id });
   return path;

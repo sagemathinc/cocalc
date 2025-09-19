@@ -135,7 +135,7 @@ export class BaseProject extends EventEmitter {
 
   private projectRunner = () => {
     return projectRunnerClient({
-      subject: `project.${this.project_id}.run`,
+      project_id: this.project_id,
       client: conat(),
     });
   };

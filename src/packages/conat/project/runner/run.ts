@@ -39,10 +39,18 @@ export interface Options {
     sshServers?: SshServersFunction;
   }) => Promise<void>;
   // ensure a specific project is not running on this runner
-  stop: (opts: { project_id: string }) => Promise<void>;
+  stop: (opts: {
+    project_id: string;
+    localPath: LocalPathFunction;
+    sshServers?: SshServersFunction;
+  }) => Promise<void>;
   // get the status of a project here.
 
-  status: (opts: { project_id: string }) => Promise<ProjectStatus>;
+  status: (opts: {
+    project_id: string;
+    localPath: LocalPathFunction;
+    sshServers?: SshServersFunction;
+  }) => Promise<ProjectStatus>;
   // local -- the absolute path on the filesystem where the home directory of this
   // project is hosted.  In case of a single server setup it could be the exact
   // same path as the remote files and no sync is involved.
@@ -110,14 +118,25 @@ export async function server(options: Options) {
     async stop(opts: { project_id: string }) {
       logger.debug("stop", opts.project_id);
       projects.set(opts.project_id, { server: id, state: "stopping" } as const);
-      await stop(opts);
+      await stop({
+        ...opts,
+        localPath: options.localPath,
+        sshServers: options.sshServers,
+      });
       const s = { server: id, state: "opened" } as const;
       projects.set(opts.project_id, s);
       return s;
     },
     async status(opts: { project_id: string }) {
       logger.debug("status", opts.project_id);
-      const s = { ...(await status(opts)), server: id };
+      const s = {
+        ...(await status({
+          ...opts,
+          localPath: options.localPath,
+          sshServers: options.sshServers,
+        })),
+        server: id,
+      };
       projects.set(opts.project_id, s);
       return s;
     },
@@ -134,11 +153,18 @@ export async function server(options: Options) {
 
 export function client({
   client,
+  project_id,
   subject,
+  timeout,
+  waitForInterest = true,
 }: {
   client?: Client;
-  subject: string;
+  project_id?: string;
+  subject?: string;
+  timeout?: number;
+  waitForInterest?: boolean;
 }): API {
+  subject ??= `project.${project_id}.run`;
   client ??= conat();
-  return client.call<API>(subject, { waitForInterest: true });
+  return client.call<API>(subject, { waitForInterest, timeout });
 }

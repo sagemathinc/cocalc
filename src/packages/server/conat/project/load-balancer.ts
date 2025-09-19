@@ -11,7 +11,7 @@ import { loadConatConfiguration } from "../configuration";
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getProject } from "@cocalc/server/projects/control";
-import { type Configuration } from "@cocalc/project-runner/run";
+import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 
 const logger = getLogger("server:conat:project:load-balancer");

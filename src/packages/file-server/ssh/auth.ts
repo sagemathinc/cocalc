@@ -12,6 +12,7 @@ import {
   client as createFileClient,
   type Fileserver,
 } from "@cocalc/conat/files/file-server";
+import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 
 const logger = getLogger("file-server:ssh:auth");
 
@@ -98,13 +99,28 @@ async function handleRequest(
     const volume = `project-${project_id}`;
     const id = user.slice("project-".length + 37);
     const compute_server_id = parseInt(id ? id : "0");
-    const api = projectApiClient({
-      project_id,
-      compute_server_id,
-      client,
-      timeout: 5000,
-    });
-    const authorizedKeys = await api.system.sshPublicKey();
+    let authorizedKeys;
+    if (!compute_server_id) {
+      const runner = projectRunnerClient({
+        client,
+        project_id,
+        timeout: 5000,
+        waitForInterest: false,
+      });
+      const s = await runner.status({ project_id });
+      authorizedKeys = s.publicKey;
+      if (!authorizedKeys) {
+        throw Error("no ssh key known");
+      }
+    } else {
+      const api = projectApiClient({
+        project_id,
+        compute_server_id,
+        client,
+        timeout: 5000,
+      });
+      authorizedKeys = await api.system.sshPublicKey();
+    }
 
     // NOTE/TODO: we could have a special username that maps to a
     // specific path in a project, which would change this path here,

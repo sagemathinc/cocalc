@@ -20,7 +20,7 @@ import { nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
-import { mkdir } from "fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
@@ -76,19 +76,8 @@ export async function start({
 
   const home = await localPath({ project_id });
   logger.debug("start: got home", { project_id, home });
-  const rootfs = await rootFilesystem.mount({ project_id, home, config });
-  logger.debug("start: got rootfs", { project_id, rootfs });
-  await mkdir(home, { recursive: true });
-  logger.debug("start: created home", { project_id });
-  await ensureConfFilesExists(home);
-  logger.debug("start: created conf files", { project_id });
+  const mounts = getCoCalcMounts();
   const image = getImage(config);
-
-  await writeMutagenConfig({
-    home,
-    sync: config?.sync,
-    forward: config?.forward,
-  });
   await initSshKeys({ home, sshServers: await sshServers?.({ project_id }) });
 
   const env = await getEnvironment({
@@ -97,6 +86,21 @@ export async function start({
     HOME: "/root",
     image,
   });
+  await startSidecar({ project_id, home, mounts, env, pod });
+
+  const rootfs = await rootFilesystem.mount({ project_id, home, config });
+  logger.debug("start: got rootfs", { project_id, rootfs });
+  await mkdir(home, { recursive: true });
+  logger.debug("start: created home", { project_id });
+  await ensureConfFilesExists(home);
+  logger.debug("start: created conf files", { project_id });
+
+  await writeMutagenConfig({
+    home,
+    sync: config?.sync,
+    forward: config?.forward,
+  });
+
   await setupDataPath(home);
   logger.debug("start: setup data path", { project_id });
   if (config?.secret) {
@@ -124,7 +128,6 @@ export async function start({
   args.push("--hostname", `project-${project_id}`);
   args.push("--name", `project-${project_id}`);
 
-  const mounts = getCoCalcMounts();
   for (const path in mounts) {
     args.push("-v", `${path}:${mounts[path]}:ro`);
   }
@@ -154,10 +157,14 @@ export async function start({
   child.stderr.on("data", (chunk: Buffer) => {
     logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
   });
+}
 
+async function startSidecar({ project_id, mounts, env, pod, home }) {
+  // sidecar: refactor
+  const sidecarPodName = `sidecar-${project_id}`;
   const args2 = [
     "run",
-    `--name=sidecar-${project_id}`,
+    `--name=${sidecarPodName}`,
     "--detach",
     "--rm",
     "--pod",
@@ -172,11 +179,21 @@ export async function start({
     args2.push("-e", `${name}=${env[name]}`);
   }
   args2.push(sidecarImageName, "mutagen", "daemon", "run");
-  // TODO: we don't block the startup for this, but we do
-  // need to check and provide info to the user about what happened.
-  (async () => {
-    await podman(args2);
-  })();
+  await podman(args2);
+  try {
+    await podman([
+      "exec",
+      sidecarPodName,
+      "rsync",
+      "-axH",
+      "--exclude=.mutagen",
+      "--delete",
+      "file-server:/root/",
+      "/root/",
+    ]);
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 export async function stop({
@@ -265,13 +282,18 @@ async function state(project_id): Promise<ProjectState> {
   return status == "running" ? "running" : "opened";
 }
 
-export async function status({ project_id }) {
+export async function status({ project_id, localPath }) {
   if (!isValidUUID(project_id)) {
     throw Error("status: project_id must be valid");
   }
   logger.debug("status", { project_id });
-  // TODO
-  return { state: await state(project_id), ip: "127.0.0.1" };
+  const s = await state(project_id);
+  let publicKey: string | undefined = undefined;
+  const home = await localPath({ project_id });
+  try {
+    publicKey = await readFile(join(home, ".ssh", "id_ed25519.pub"), "utf8");
+  } catch {}
+  return { state: s, ip: "127.0.0.1", publicKey };
 }
 
 export async function close() {
