@@ -59,18 +59,23 @@ export async function start({
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
   }
-  logger.debug("start", { project_id, config: { ...config, secret: "xxx" } });
+  const log = (...args) => {
+    logger.debug("start", { project_id }, ...args);
+  };
+  log({ config: { ...config, secret: "xxx" } });
   if (children[project_id] != null && children[project_id].exitCode == null) {
-    logger.debug("start -- already running");
+    log("already running");
     return;
   }
 
   const home = await localPath({ project_id });
-  logger.debug("start: got home", { project_id, home });
+  log("got home", { home });
   const mounts = getCoCalcMounts();
   const image = getImage(config);
   const servers = await sshServers?.({ project_id });
+  log("got ssh config");
   await initSshKeys({ home, sshServers: servers });
+  log("configured ~/.ssh");
 
   const env = await getEnvironment({
     project_id,
@@ -78,6 +83,7 @@ export async function start({
     HOME: "/root",
     image,
   });
+  log("got environment");
 
   let pod;
   if (SIDECAR) {
@@ -103,11 +109,11 @@ export async function start({
   }
 
   const rootfs = await rootFilesystem.mount({ project_id, home, config });
-  logger.debug("start: got rootfs", { project_id, rootfs });
+  log("got rootfs", { rootfs });
   await mkdir(home, { recursive: true });
-  logger.debug("start: created home", { project_id });
+  log("created home");
   await ensureConfFilesExists(home);
-  logger.debug("start: created conf files", { project_id });
+  log("created conf files");
 
   //   await writeMutagenConfig({
   //     home,
@@ -116,10 +122,10 @@ export async function start({
   //   });
 
   await setupDataPath(home);
-  logger.debug("start: setup data path", { project_id });
+  log("setup data path");
   if (config?.secret) {
     await writeSecretToken(home, config.secret);
-    logger.debug("start: wrote secret", { project_id });
+    log("wrote secret");
   }
 
   if (config?.disk) {
@@ -127,7 +133,7 @@ export async function start({
     // to make startup time slightly faster (?) -- could also be incorporated
     // into mount.
     await setQuota(project_id, config.disk);
-    logger.debug("start: set disk quota", { project_id });
+    log("set disk quota");
   }
 
   const args: string[] = [];
@@ -163,7 +169,7 @@ export async function start({
   args.push(script, "--init", "project_init.sh");
 
   console.log(`${cmd} ${args.join(" ")}`);
-  logger.debug("start: launching container - ", `${cmd} ${args.join(" ")}`);
+  log("launching container - ", `${cmd} ${args.join(" ")}`);
 
   const child = spawn(cmd, args);
   children[project_id] = child;

@@ -52,6 +52,7 @@ export async function localPathFileserver({
       } catch {}
       return p;
     } else {
+      // temporary!
       const fsclient = createFileClient({ client });
       return (await fsclient.mount({ project_id: project_id2 })).path;
     }

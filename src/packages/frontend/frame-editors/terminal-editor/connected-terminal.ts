@@ -452,7 +452,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         touchPath(this.project_id, this.path); // no need to await
       }
     } catch (err) {
-      console.log("error spawning pty", err);
+      // This will happen regularly, of course, when the project
+      // is not running or offline.
+      //      console.log("error spawning pty", err);
       setTimeout(this.connect, 2000);
     } finally {
       if (this.isClosed()) {

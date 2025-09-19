@@ -15,31 +15,27 @@ export function secretTokenPath(HOME: string) {
 }
 
 export async function getImageEnv(image): Promise<{ [key: string]: string }> {
-  try {
-    const { stdout } = await executeCode({
-      err_on_exit: true,
-      verbose: true,
-      command: "podman",
-      args: [
-        "image",
-        "inspect",
-        image,
-        "--format",
-        "{{range .Config.Env}}{{println .}}{{end}}",
-      ],
-    });
-    const env: { [key: string]: string } = {};
-    for (const line of stdout.split("\n")) {
-      const i = line.indexOf("=");
-      if (i == -1) continue;
-      const key = line.slice(0, i);
-      const value = line.slice(i + 1);
-      env[key] = value;
-    }
-    return env;
-  } catch {
-    return {};
+  const { stdout } = await executeCode({
+    err_on_exit: true,
+    verbose: true,
+    command: "podman",
+    args: [
+      "image",
+      "inspect",
+      image,
+      "--format",
+      "{{range .Config.Env}}{{println .}}{{end}}",
+    ],
+  });
+  const env: { [key: string]: string } = {};
+  for (const line of stdout.split("\n")) {
+    const i = line.indexOf("=");
+    if (i == -1) continue;
+    const key = line.slice(0, i);
+    const value = line.slice(i + 1);
+    env[key] = value;
   }
+  return env;
 }
 
 export async function getEnvironment({

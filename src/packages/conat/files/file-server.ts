@@ -1,8 +1,8 @@
 /*
-File server - manages where projects are stored.
+File server - manages where project files are hosted.
 
-This is a conat service that runs directly on the btrfs file server.
-Only admin processes (hubs) can talk directly to it, not normal users.
+This is a conat service that runs manages a btrfs filesystem.
+
 It handles:
 
 Core Functionality:
@@ -10,7 +10,8 @@ Core Functionality:
   - creating volume where a project's files are stored
      - from scratch, and as a zero-cost clone of an existing project
   - copy files between distinct volumes (with btrfs this is done via
-    highly efficient dedup'd cloning).
+    highly efficient dedup'd cloning on the same file server)
+  - copy files to another file server
 
 Additional functionality:
   - set a quota on project volume
@@ -27,7 +28,9 @@ import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "./fs";
 export { type CopyOptions };
 
-const SUBJECT = "file-server";
+function getSubject({ name }) {
+  return `file-server.${name}`;
+}
 
 export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
@@ -126,12 +129,13 @@ export interface Fileserver {
 
 export interface Options extends Fileserver {
   client?: Client;
+  name?: string;
 }
 
-export async function server({ client, ...impl }: Options) {
+export async function server({ client, name = "default", ...impl }: Options) {
   client ??= conat();
 
-  const sub = await client.service<Fileserver>(SUBJECT, impl);
+  const sub = await client.service<Fileserver>(getSubject({ name }), impl);
 
   return {
     close: () => {
@@ -140,7 +144,13 @@ export async function server({ client, ...impl }: Options) {
   };
 }
 
-export function client({ client }: { client?: Client } = {}): Fileserver {
+export function client({
+  name = "default",
+  client,
+}: {
+  name?: string;
+  client?: Client;
+} = {}): Fileserver {
   client ??= conat();
-  return client.call<Fileserver>(SUBJECT);
+  return client.call<Fileserver>(getSubject({ name }));
 }
