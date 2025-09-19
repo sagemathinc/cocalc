@@ -15,7 +15,6 @@ Maybe.  Perhaps we'll have two modes.
 
 */
 
-import getLogger from "@cocalc/backend/logger";
 import { nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
@@ -38,6 +37,7 @@ import {
 } from "@cocalc/conat/project/runner/types";
 import { initSshKeys } from "@cocalc/backend/ssh-keys";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
+import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
