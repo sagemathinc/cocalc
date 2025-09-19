@@ -262,6 +262,11 @@ export async function stop({
   const child = children[project_id];
 
   if (child != null && child.exitCode == null) {
+    bootlog({
+      project_id,
+      type: "stop",
+      progress: 0,
+    });
     const v: any[] = [];
     v.push(
       podman([
@@ -295,8 +300,19 @@ export async function stop({
     delete children[project_id];
     try {
       await Promise.all(v);
+      bootlog({
+        project_id,
+        type: "stop",
+        progress: 100,
+        desc: "Fully stopped",
+      });
     } catch (err) {
       logger.debug("stop", { err });
+      bootlog({
+        project_id,
+        type: "stop",
+        error: err,
+      });
     }
   }
 }

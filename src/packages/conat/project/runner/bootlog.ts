@@ -18,6 +18,8 @@ export interface Event {
   error?;
   desc?: string;
   elapsed?: number;
+  speed?: string;
+  eta?: number;
 }
 
 export interface Options extends Event {

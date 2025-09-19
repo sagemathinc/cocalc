@@ -28,12 +28,15 @@ or remote server, where ssh is highly likely to be installed anyways (otherwise,
 how did they get to that server).
 */
 
+import { split } from "@cocalc/util/misc";
 import { build } from "@cocalc/backend/podman/build-container";
 import { podman } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import { rm } from "node:fs/promises";
 import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
+import { spawn } from "node:child_process";
+import { once } from "events";
 
 const Dockerfile = `
 FROM docker.io/alpine:latest
@@ -127,27 +130,77 @@ export async function startSidecar({
     desc: "updated rootfs",
   });
 
-  await podman(
-    [
-      "exec",
-      sidecarPodName,
-      "rsync",
-      "-axH",
-      "--exclude",
-      ".local/share/overlay/**",
-      "--exclude",
-      ".cache/cocalc/**",
-      "--exclude",
-      ".mutagen-dev/**",
-      "--exclude",
-      ".ssh/**",
-      "--exclude",
-      ".snapshots/**",
-      `${servers[0].name}:/root/`,
-      "/root/",
-    ],
-    10 * 60,
-  );
+  bootlog({
+    project_id,
+    type: "copy-home",
+    progress: 0,
+    desc: "copy home directory to project runner",
+  });
+  const child = spawn("podman", [
+    "exec",
+    sidecarPodName,
+    "rsync",
+    "-axH",
+    "--outbuf=L",
+    "--no-inc-recursive",
+    "--info=progress2",
+    "--no-human-readable",
+    "--exclude",
+    ".local/share/overlay/**",
+    "--exclude",
+    ".cache/cocalc/**",
+    "--exclude",
+    ".mutagen-dev/**",
+    "--exclude",
+    ".ssh/**",
+    "--exclude",
+    ".snapshots/**",
+    `${servers[0].name}:/root/`,
+    "/root/",
+  ]);
+
+  let stderr = "";
+  child.stderr.on("data", (data) => {
+    stderr += data.toString();
+  });
+  let last = 0;
+  let lastTime = Date.now();
+  child.stdout.on("data", (data) => {
+    let time = Date.now();
+    if (time - lastTime <= 1000) {
+      return;
+    }
+    const v = split(data.toString());
+    if (v[1]?.endsWith("%")) {
+      const p = parseInt(v[1].slice(0, -1));
+      if (isFinite(p) && p > last) {
+        bootlog({
+          project_id,
+          type: "copy-home",
+          progress: last,
+          speed: v[2],
+          eta: parseEta(v[3]),
+        });
+        last = p;
+        lastTime = time;
+      }
+    }
+  });
+  await once(child, "close");
+  if (child.exitCode) {
+    bootlog({
+      project_id,
+      type: "copy-home",
+      error: `there were errors -- ${stderr.slice(0, 512)}`,
+    });
+    throw Error(`error syncing home directory -- ${stderr.slice(0, 512)}`);
+  } else {
+    bootlog({
+      project_id,
+      type: "copy-home",
+      progress: 100,
+    });
+  }
 
   bootlog({
     project_id,
@@ -198,4 +251,18 @@ export async function startSidecar({
     ]);
     bootlog({ project_id, type: "mutagen-init", progress: 100 });
   };
+}
+
+function parseEta(s?: string) {
+  if (s == null) {
+    return;
+  }
+  const i = s?.indexOf(":");
+  if (i == -1) return;
+  const j = s?.lastIndexOf(":");
+  return (
+    parseInt(s.slice(0, i)) * 1000 * 60 * 60 +
+    parseInt(s.slice(i + 1, j)) * 1000 * 60 +
+    parseInt(s.slice(j + 1)) * 1000
+  );
 }
