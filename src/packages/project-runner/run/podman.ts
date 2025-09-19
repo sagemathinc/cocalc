@@ -20,7 +20,7 @@ import { nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
-import { mkdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
@@ -31,13 +31,13 @@ import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { podmanLimits } from "./limits";
-import { init as initSidecar, sidecarImageName } from "./sidecar";
+import { init as initSidecar, startSidecar } from "./sidecar";
 import {
   type SshServersFunction,
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
 import { initSshKeys } from "@cocalc/backend/ssh-keys";
-import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
+import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -46,7 +46,7 @@ const GRACE_PERIOD = 3000;
 
 export async function start({
   project_id,
-  config,
+  config = {},
   sshServers,
   localPath,
 }: {
@@ -59,12 +59,29 @@ export async function start({
     throw Error("start: project_id must be valid");
   }
   logger.debug("start", { project_id, config: { ...config, secret: "xxx" } });
+
   if (children[project_id] != null && children[project_id].exitCode == null) {
     logger.debug("start -- already running");
     return;
   }
 
-  await initSidecar();
+  bootlog({ project_id, type: "start", progress: 0 });
+
+  try {
+    bootlog({ project_id, type: "init-sidecar", progress: 0 });
+    await initSidecar();
+    bootlog({ project_id, type: "init-sidecar", progress: 100 });
+  } catch (err) {
+    bootlog({ project_id, type: "init-sidecar", error: err });
+    throw err;
+  }
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 5,
+    desc: "initialized sidecar",
+  });
+
   const pod = `project-${project_id}`;
   try {
     await podman(["pod", "create", "--name", pod, "--network=pasta"]);
@@ -73,19 +90,39 @@ export async function start({
       throw err;
     }
   }
+  bootlog({ project_id, type: "start", progress: 10, desc: "created pod" });
 
   const home = await localPath({ project_id });
   logger.debug("start: got home", { project_id, home });
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 10,
+    desc: "got home directory",
+  });
   const mounts = getCoCalcMounts();
   const image = getImage(config);
   const servers = await sshServers?.({ project_id });
   await initSshKeys({ home, sshServers: servers });
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 15,
+    desc: "initialized ssh keys",
+  });
 
   const env = await getEnvironment({
     project_id,
     env: config?.env,
     HOME: "/root",
     image,
+  });
+
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 20,
+    desc: "got env variables",
   });
   const initMutagen = await startSidecar({
     image,
@@ -96,8 +133,19 @@ export async function start({
     pod,
     servers,
   });
-
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 25,
+    desc: "started sync sidecar",
+  });
   const rootfs = await rootFilesystem.mount({ project_id, home, config });
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 30,
+    desc: "mounted rootfs",
+  });
   logger.debug("start: got rootfs", { project_id, rootfs });
   await mkdir(home, { recursive: true });
   logger.debug("start: created home", { project_id });
@@ -111,20 +159,33 @@ export async function start({
   //   });
 
   await setupDataPath(home);
+
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 35,
+    desc: "setup project directories",
+  });
+
   logger.debug("start: setup data path", { project_id });
-  if (config?.secret) {
-    await writeSecretToken(home, config.secret);
+  if (config.secret) {
+    await writeSecretToken(home, config.secret!);
     logger.debug("start: wrote secret", { project_id });
   }
 
-  if (config?.disk) {
+  if (config.disk) {
     // TODO: maybe this should be done in parallel with other things
     // to make startup time slightly faster (?) -- could also be incorporated
     // into mount.
-    await setQuota(project_id, config.disk);
+    await setQuota(project_id, config.disk!);
     logger.debug("start: set disk quota", { project_id });
   }
-
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 40,
+    desc: "configured quotas",
+  });
   const args: string[] = [];
   args.push("run");
   args.push("--rm");
@@ -160,6 +221,12 @@ export async function start({
 
   const child = spawn(cmd, args);
   children[project_id] = child;
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 50,
+    desc: "created project container",
+  });
 
   //   child.stdout.on("data", (chunk: Buffer) => {
   //     logger.debug(`project_id=${project_id}.stdout: `, chunk.toString());
@@ -168,125 +235,17 @@ export async function start({
     logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
   });
 
-  await initMutagen?.();
-}
+  bootlog({
+    project_id,
+    type: "start",
+    progress: 100,
+    desc: "started!",
+  });
 
-async function startSidecar({
-  image,
-  project_id,
-  mounts,
-  env,
-  pod,
-  home,
-  servers,
-}) {
-  // sidecar: refactor
-  const sidecarPodName = `sidecar-${project_id}`;
-  const args2 = [
-    "run",
-    `--name=${sidecarPodName}`,
-    "--detach",
-    "--rm",
-    "--replace",
-    "--pod",
-    pod,
-    "--init",
-  ];
-  for (const path in mounts) {
-    args2.push("-v", `${path}:${mounts[path]}:ro`);
-  }
-  args2.push("-v", `${home}:${env.HOME}`);
-  for (const name in env) {
-    args2.push("-e", `${name}=${env[name]}`);
-  }
-
-  args2.push(sidecarImageName, "mutagen", "daemon", "run");
-
-  // always start with fresh .mutagen
-  await rm(join(home, ".mutagen-dev"), { force: true, recursive: true });
-
-  await podman(args2);
-
-  if (servers.length == 0) {
-    return;
-  }
-
-  const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
-  await podman(
-    [
-      "exec",
-      sidecarPodName,
-      "rsync",
-      "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
-      "--relative", // so don't have to create the directories locally
-      "-axH",
-      `${servers[0].name}:${upperdir}/`,
-      "/root/",
-    ],
-    10 * 60,
-  );
-
-  await podman(
-    [
-      "exec",
-      sidecarPodName,
-      "rsync",
-      "-axH",
-      "--exclude",
-      ".local/share/overlay/**",
-      "--exclude",
-      ".cache/cocalc/**",
-      "--exclude",
-      ".mutagen-dev/**",
-      "--exclude",
-      ".ssh/**",
-      "--exclude",
-      ".snapshots/**",
-      `${servers[0].name}:/root/`,
-      "/root/",
-    ],
-    10 * 60,
-  );
-
-  return async () => {
-    await podman([
-      "exec",
-      sidecarPodName,
-      "mutagen",
-      "sync",
-      "create",
-      "--name=upperdir",
-      "--mode=one-way-replica",
-      "--symlink-mode=posix-raw",
-      "--compression=deflate",
-      join("/root", upperdir),
-      `${servers[0].name}:${upperdir}`,
-    ]);
-
-    await podman([
-      "exec",
-      sidecarPodName,
-      "mutagen",
-      "sync",
-      "create",
-      "--name=root",
-      "--mode=two-way-resolved",
-      "--symlink-mode=posix-raw",
-      "--compression=deflate",
-      "--ignore",
-      ".local/share/overlay/**",
-      "--ignore",
-      ".cache/cocalc/**",
-      "--ignore",
-      ".mutagen-dev/**",
-      "--ignore",
-      ".ssh/**",
-      "--ignore",
-      ".snapshots/**",
-      "/root",
-      `${servers[0].name}:/root`,
-    ]);
-  };
+  // non-blocking on start since it's a background process
+  (async () => {
+    await initMutagen?.();
+  })();
 }
 
 export async function stop({
@@ -342,7 +301,7 @@ export async function stop({
   }
 }
 
-async function podman(args: string[], timeout?) {
+export async function podman(args: string[], timeout?) {
   logger.debug("podman ", args.join(" "));
   return await executeCode({
     verbose: true,

@@ -46,6 +46,7 @@ import {
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
+import { get as getBootlog } from "@cocalc/conat/project/runner/bootlog";
 import { terminalClient } from "@cocalc/conat/project/terminal";
 import { lite } from "@cocalc/frontend/lite";
 
@@ -476,6 +477,13 @@ export class ConatClient extends EventEmitter {
       project_id,
       client: this.conat(),
     });
+  };
+
+  projectBootlog = (opts: {
+    project_id: string;
+    compute_server_id?: number;
+  }) => {
+    return getBootlog({ ...opts, client: this.conat() });
   };
 
   terminalClient = (opts: {

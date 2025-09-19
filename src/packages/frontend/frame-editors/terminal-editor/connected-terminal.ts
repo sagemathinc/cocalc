@@ -881,7 +881,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     try {
       await this.pty.resize(geom);
     } catch (err) {
-      console.log("WARNING: unable to resize pty", err);
+      //console.log("WARNING: unable to resize pty", err);
       return;
     }
     if (this.isClosed()) return;

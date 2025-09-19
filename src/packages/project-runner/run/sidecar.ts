@@ -29,6 +29,11 @@ how did they get to that server).
 */
 
 import { build } from "@cocalc/backend/podman/build-container";
+import { podman } from "./podman";
+import { bootlog } from "@cocalc/conat/project/runner/bootlog";
+import { rm } from "node:fs/promises";
+import { join } from "path";
+import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 
 const Dockerfile = `
 FROM docker.io/alpine:latest
@@ -39,4 +44,158 @@ export const sidecarImageName = "localhost/sidecar:0.3";
 
 export async function init() {
   await build({ name: sidecarImageName, Dockerfile });
+}
+
+export async function startSidecar({
+  image,
+  project_id,
+  mounts,
+  env,
+  pod,
+  home,
+  servers,
+}) {
+  bootlog({ project_id, type: "start-sidecar", progress: 0 });
+  // sidecar: refactor
+  const sidecarPodName = `sidecar-${project_id}`;
+  const args2 = [
+    "run",
+    `--name=${sidecarPodName}`,
+    "--detach",
+    "--rm",
+    "--replace",
+    "--pod",
+    pod,
+    "--init",
+  ];
+  for (const path in mounts) {
+    args2.push("-v", `${path}:${mounts[path]}:ro`);
+  }
+  args2.push("-v", `${home}:${env.HOME}`);
+  for (const name in env) {
+    args2.push("-e", `${name}=${env[name]}`);
+  }
+
+  args2.push(sidecarImageName, "mutagen", "daemon", "run");
+
+  // always start with fresh .mutagen
+  await rm(join(home, ".mutagen-dev"), { force: true, recursive: true });
+  bootlog({
+    project_id,
+    type: "start-sidecar",
+    progress: 5,
+    desc: "reset sync state",
+  });
+
+  await podman(args2);
+  bootlog({
+    project_id,
+    type: "start-sidecar",
+    progress: 25,
+    desc: "started pod",
+  });
+
+  if (servers.length == 0) {
+    // shouldn't happen
+    bootlog({
+      project_id,
+      type: "start-sidecar",
+      progress: 100,
+    });
+    return;
+  }
+
+  const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
+  await podman(
+    [
+      "exec",
+      sidecarPodName,
+      "rsync",
+      "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
+      "--relative", // so don't have to create the directories locally
+      "-axH",
+      `${servers[0].name}:${upperdir}/`,
+      "/root/",
+    ],
+    10 * 60,
+  );
+
+  bootlog({
+    project_id,
+    type: "start-sidecar",
+    progress: 50,
+    desc: "updated rootfs",
+  });
+
+  await podman(
+    [
+      "exec",
+      sidecarPodName,
+      "rsync",
+      "-axH",
+      "--exclude",
+      ".local/share/overlay/**",
+      "--exclude",
+      ".cache/cocalc/**",
+      "--exclude",
+      ".mutagen-dev/**",
+      "--exclude",
+      ".ssh/**",
+      "--exclude",
+      ".snapshots/**",
+      `${servers[0].name}:/root/`,
+      "/root/",
+    ],
+    10 * 60,
+  );
+
+  bootlog({
+    project_id,
+    type: "start-sidecar",
+    progress: 100,
+    desc: "updated home directory",
+  });
+
+  return async () => {
+    bootlog({ project_id, type: "mutagen-init", progress: 0 });
+    await podman([
+      "exec",
+      sidecarPodName,
+      "mutagen",
+      "sync",
+      "create",
+      "--name=upperdir",
+      "--mode=one-way-replica",
+      "--symlink-mode=posix-raw",
+      "--compression=deflate",
+      join("/root", upperdir),
+      `${servers[0].name}:${upperdir}`,
+    ]);
+    bootlog({ project_id, type: "mutagen-init", progress: 50 });
+
+    await podman([
+      "exec",
+      sidecarPodName,
+      "mutagen",
+      "sync",
+      "create",
+      "--name=root",
+      "--mode=two-way-resolved",
+      "--symlink-mode=posix-raw",
+      "--compression=deflate",
+      "--ignore",
+      ".local/share/overlay/**",
+      "--ignore",
+      ".cache/cocalc/**",
+      "--ignore",
+      ".mutagen-dev/**",
+      "--ignore",
+      ".ssh/**",
+      "--ignore",
+      ".snapshots/**",
+      "/root",
+      `${servers[0].name}:/root`,
+    ]);
+    bootlog({ project_id, type: "mutagen-init", progress: 100 });
+  };
 }
