@@ -106,26 +106,36 @@ export async function startSidecar({
     return;
   }
 
+  bootlog({
+    project_id,
+    type: "copy-rootfs",
+    progress: 0,
+    desc: "copy rootfs to project runner",
+  });
   const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
-  await podman(
-    [
-      "exec",
-      sidecarPodName,
-      "rsync",
+  await rsyncProgress({
+    pod: sidecarPodName,
+    args: [
+      "-axH",
       "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
       "--relative", // so don't have to create the directories locally
-      "-axH",
       `${servers[0].name}:${upperdir}/`,
       "/root/",
     ],
-    10 * 60,
-  );
+    progress: (event) => {
+      bootlog({
+        project_id,
+        type: "copy-rootfs",
+        ...event,
+      });
+    },
+  });
 
   bootlog({
     project_id,
     type: "start-sidecar",
     progress: 50,
-    desc: "updated rootfs",
+    desc: "finished copying rootfs",
   });
 
   bootlog({
