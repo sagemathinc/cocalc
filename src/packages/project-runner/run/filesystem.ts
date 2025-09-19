@@ -4,8 +4,6 @@ import {
 } from "@cocalc/conat/files/file-server";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { sshServer as defaultSshServer } from "@cocalc/backend/data";
-import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
 
 //import getLogger from "@cocalc/backend/logger";
 
@@ -30,20 +28,12 @@ export async function setQuota(project_id: string, size: number | string) {
   await c.setQuota({ project_id, size });
 }
 
-// default localPath if you don't specify something explicitly when calling
-// init in project-runner/run/index.ts
-// This is where the fileserver is storing files, and works if projects are
-// running on the same compute as the file server, e.g., dev mode.
+// where files are stored
 export async function localPath({
   project_id,
 }: {
   project_id: string;
 }): Promise<string> {
-  if (process.env.COCALC_PROJECT_PATH) {
-    const path = join(process.env.COCALC_PROJECT_PATH, project_id);
-    await mkdir(path, { recursive: true });
-    return path;
-  }
   const c = getFsClient();
   const { path } = await c.mount({ project_id });
   return path;

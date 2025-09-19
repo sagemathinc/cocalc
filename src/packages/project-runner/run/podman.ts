@@ -37,7 +37,8 @@ import {
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
 import { initSshKeys } from "@cocalc/backend/ssh-keys";
-import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
+
+const SIDECAR = false;
 
 const logger = getLogger("project-runner:podman");
 const children: { [project_id: string]: any } = {};
@@ -64,16 +65,6 @@ export async function start({
     return;
   }
 
-  await initSidecar();
-  const pod = `project-${project_id}`;
-  try {
-    await podman(["pod", "create", "--name", pod, "--network=pasta"]);
-  } catch (err) {
-    if (!`${err}`.includes("exists")) {
-      throw err;
-    }
-  }
-
   const home = await localPath({ project_id });
   logger.debug("start: got home", { project_id, home });
   const mounts = getCoCalcMounts();
@@ -87,15 +78,29 @@ export async function start({
     HOME: "/root",
     image,
   });
-  const initMutagen = await startSidecar({
-    image,
-    project_id,
-    home,
-    mounts,
-    env,
-    pod,
-    servers,
-  });
+
+  let pod;
+  if (SIDECAR) {
+    // disable for now -- we might not need it
+    await initSidecar();
+
+    pod = `project-${project_id}`;
+    try {
+      await podman(["pod", "create", "--name", pod, "--network=pasta"]);
+    } catch (err) {
+      if (!`${err}`.includes("exists")) {
+        throw err;
+      }
+    }
+
+    await startSidecar({
+      project_id,
+      home,
+      mounts,
+      env,
+      pod,
+    });
+  }
 
   const rootfs = await rootFilesystem.mount({ project_id, home, config });
   logger.debug("start: got rootfs", { project_id, rootfs });
@@ -130,7 +135,9 @@ export async function start({
   args.push("--rm");
   args.push("--replace");
   args.push("--user=0:0");
-  args.push("--pod", pod);
+  if (SIDECAR) {
+    args.push("--pod", pod);
+  }
 
   const cmd = "podman";
   const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
@@ -167,19 +174,9 @@ export async function start({
   child.stderr.on("data", (chunk: Buffer) => {
     logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
   });
-
-  await initMutagen?.();
 }
 
-async function startSidecar({
-  image,
-  project_id,
-  mounts,
-  env,
-  pod,
-  home,
-  servers,
-}) {
+async function startSidecar({ project_id, mounts, env, pod, home }) {
   // sidecar: refactor
   const sidecarPodName = `sidecar-${project_id}`;
   const args2 = [
@@ -202,88 +199,10 @@ async function startSidecar({
 
   args2.push(sidecarImageName, "mutagen", "daemon", "run");
 
-  // always start with fresh .mutagen
+  // always start with fresh mutagen state
   await rm(join(home, ".mutagen-dev"), { force: true, recursive: true });
 
   await podman(args2);
-
-  if (servers.length == 0) {
-    return;
-  }
-
-  const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
-  await podman(
-    [
-      "exec",
-      sidecarPodName,
-      "rsync",
-      "--relative",
-      "-axH",
-      `${servers[0].name}:${upperdir}/`,
-      "/root/",
-    ],
-    10 * 60,
-  );
-
-  await podman(
-    [
-      "exec",
-      sidecarPodName,
-      "rsync",
-      "-axH",
-      "--exclude",
-      ".local/share/overlay/**",
-      "--exclude",
-      ".cache/cocalc/**",
-      "--exclude",
-      ".mutagen-dev/**",
-      "--exclude",
-      ".ssh/**",
-      "--exclude",
-      ".snapshots/**",
-      `${servers[0].name}:/root/`,
-      "/root/",
-    ],
-    10 * 60,
-  );
-
-  return async () => {
-    await podman([
-      "exec",
-      sidecarPodName,
-      "mutagen",
-      "sync",
-      "create",
-      "--name=upperdir",
-      "--mode=one-way-replica",
-      "--symlink-mode=posix-raw",
-      join("/root", upperdir),
-      `${servers[0].name}:${upperdir}`,
-    ]);
-
-    await podman([
-      "exec",
-      sidecarPodName,
-      "mutagen",
-      "sync",
-      "create",
-      "--name=root",
-      "--mode=two-way-resolved",
-      "--symlink-mode=posix-raw",
-      "--ignore",
-      ".local/share/overlay/**",
-      "--ignore",
-      ".cache/cocalc/**",
-      "--ignore",
-      ".mutagen-dev/**",
-      "--ignore",
-      ".ssh/**",
-      "--ignore",
-      ".snapshots/**",
-      "/root",
-      `${servers[0].name}:/root`,
-    ]);
-  };
 }
 
 export async function stop({
@@ -301,16 +220,18 @@ export async function stop({
 
   if (child != null && child.exitCode == null) {
     const v: any[] = [];
-    v.push(
-      podman([
-        "pod",
-        "rm",
-        "-f",
-        "-t",
-        force ? "0" : `${GRACE_PERIOD / 1000}`,
-        `project-${project_id}`,
-      ]),
-    );
+    if (SIDECAR) {
+      v.push(
+        podman([
+          "pod",
+          "rm",
+          "-f",
+          "-t",
+          force ? "0" : `${GRACE_PERIOD / 1000}`,
+          `project-${project_id}`,
+        ]),
+      );
+    }
     v.push(
       podman([
         "rm",
