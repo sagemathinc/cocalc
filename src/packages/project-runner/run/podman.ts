@@ -36,7 +36,7 @@ import {
   type SshServersFunction,
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
-import { initSshKeys } from "@cocalc/backend/mutagen/ssh-keys";
+import { initSshKeys } from "@cocalc/backend/ssh-keys";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 
 const logger = getLogger("project-runner:podman");
@@ -212,22 +212,40 @@ async function startSidecar({
   }
 
   const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
-  try {
-    await podman(
-      [
-        "exec",
-        sidecarPodName,
-        "rsync",
-        "--relative",
-        "-axH",
-        `${servers[0].name}:${upperdir}/`,
-        "/root/",
-      ],
-      10 * 60,
-    );
-  } catch (err) {
-    console.log(err);
-  }
+  await podman(
+    [
+      "exec",
+      sidecarPodName,
+      "rsync",
+      "--relative",
+      "-axH",
+      `${servers[0].name}:${upperdir}/`,
+      "/root/",
+    ],
+    10 * 60,
+  );
+
+  await podman(
+    [
+      "exec",
+      sidecarPodName,
+      "rsync",
+      "-axH",
+      "--exclude",
+      ".local/share/overlay/**",
+      "--exclude",
+      ".cache/cocalc/**",
+      "--exclude",
+      ".mutagen-dev/**",
+      "--exclude",
+      ".ssh/**",
+      "--exclude",
+      ".snapshots/**",
+      `${servers[0].name}:/root/`,
+      "/root/",
+    ],
+    10 * 60,
+  );
 
   return async () => {
     await podman([
@@ -250,6 +268,7 @@ async function startSidecar({
       "sync",
       "create",
       "--name=root",
+      "--mode=two-way-resolved",
       "--symlink-mode=posix-raw",
       "--ignore",
       ".local/share/overlay/**",
