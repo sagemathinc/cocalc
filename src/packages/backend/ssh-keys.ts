@@ -31,6 +31,9 @@ export async function initSshKeys({
   for (const { name, host, port, user } of sshServers) {
     // TODO: Regarding "StrictHostKeyChecking no", maybe we can actually
     // add host keys properly instead.
+    // We need "UpdateHostKeys no" because otherwise we see
+    //    client_global_hostkeys_prove_confirm: server gave bad signature for RSA key 0: incorrect signature"
+    // due to our sshpiperd proxy.
     const hostConfig = `
 # Added by CoCalc
 Host ${name}
@@ -38,6 +41,7 @@ Host ${name}
   HostName ${host}
   Port ${port}
   StrictHostKeyChecking no
+  UpdateHostKeys no
 `;
     const configPath = join(home!, ".ssh", "config");
     let config;

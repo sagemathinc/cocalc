@@ -179,6 +179,12 @@ export async function startSidecar({
 
   return async () => {
     bootlog({ project_id, type: "mutagen-init", progress: 0 });
+
+    // NOTES:
+    //   Do NOT use --max-staging-file-size=500M say, since
+    //   if you do then any time there is a file over that size,
+    //   mutagen gets stuck in an infinite loop trying repeatedly
+    //   to resend it!  NOT good.
     await podman([
       "exec",
       sidecarPodName,
@@ -200,6 +206,11 @@ export async function startSidecar({
       "mutagen",
       "sync",
       "create",
+      // interval on project side (this is the default actually)
+      "--watch-polling-interval-alpha=10",
+      // polling interval on the file-server side, where
+      // reducing load matters the most:
+      "--watch-polling-interval-beta=15",
       "--name=root",
       "--mode=two-way-resolved",
       "--symlink-mode=posix-raw",
