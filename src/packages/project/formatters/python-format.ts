@@ -7,6 +7,7 @@ import { writeFile, readFile, unlink } from "fs";
 import { file } from "tmp";
 import { callback } from "awaiting";
 import { spawn } from "child_process";
+import which from "which";
 
 interface ParserOptions {
   parser?: string;
@@ -19,16 +20,28 @@ function close(proc, cb): void {
   proc.on("close", (code) => cb(undefined, code));
 }
 
-// TODO: diversify this via options to support autopep8, black (requires python 3.6), and others...
+async function getPath(v: string[]): Promise<string> {
+  for (const path of v) {
+    try {
+      return await which(path);
+    } catch {}
+  }
+  throw Error(`one of ${v.join(" ")} must be installed`);
+}
 
-function yapf(input_path) {
-  return spawn("yapf", ["-i", input_path]);
+// Switch to ruff -- it claims to be 100x faster than all the others and has many other
+// more advanced features (like LSP).
+let yapfPath: string | undefined = undefined;
+async function yapf(input_path) {
+  // it's yapf on some Ubuntu versions and yapf3 on newer ones
+  yapfPath ??= await getPath(["yapf", "yapf3"]);
+  return spawn(yapfPath!, ["-i", input_path]);
 }
 
 export async function python_format(
   input: string,
   options: ParserOptions,
-  logger: any
+  logger: any,
 ): Promise<string> {
   // create input temp file
   const input_path: string = await callback(file);
@@ -40,16 +53,16 @@ export async function python_format(
 
     if (util !== "yapf") {
       throw new Error(
-        "This project only supports 'yapf' for formatting Python"
+        "This project only supports 'yapf' for formatting Python",
       );
     }
 
-    const py_formatter = yapf(input_path);
+    const py_formatter = await yapf(input_path);
 
     py_formatter.on("error", (err) => {
       // ATTN do not throw an error here, because this is triggered by the subprocess!
       logger.debug(
-        `Formatting utility exited with error no ${(err as any).errno}`
+        `Formatting utility exited with error no ${(err as any).errno}`,
       );
     });
 

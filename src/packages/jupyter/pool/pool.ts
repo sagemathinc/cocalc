@@ -267,8 +267,8 @@ export async function killKernel(kernel: SpawnedKernel) {
       log.debug("killKernel pid=", kernel.spawn.pid);
       try {
         process.kill(-kernel.spawn.pid, "SIGTERM");
-      } catch (error) {
-        log.error("Failed to send SIGTERM to Jupyter kernel", error);
+      } catch {
+        //log.error("Failed to send SIGTERM to Jupyter kernel", error);
       }
     }
     kernel.spawn?.close?.();

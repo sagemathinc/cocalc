@@ -27,6 +27,8 @@ import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { DOC_TRIAL } from "./project-banner";
+import { lite } from "@cocalc/frontend/lite";
+import Bootlog from "./bootlog";
 
 const STYLE: CSSProperties = {
   fontSize: "40px",
@@ -81,7 +83,9 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
     return true;
   }, [project_map]);
 
-  if (state?.get("state") === "running") {
+  // in lite mode cocalc *is* being served directly from the project so it makes no sense
+  // to start or stop the project.
+  if (lite || state?.get("state") === "running") {
     return null;
   }
 
@@ -163,6 +167,11 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
           <div>
             <ProjectState state={state} show_desc={allowed} />
             {render_not_allowed()}
+            {starting && (
+              <div style={{ background: "white" }}>
+                <Bootlog />
+              </div>
+            )}
           </div>
         }
       >

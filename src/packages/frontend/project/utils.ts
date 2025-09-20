@@ -78,7 +78,7 @@ export class NewFilenames {
   // generate a new filename, by optionally avoiding the keys in the dictionary
   public gen(
     type?: NewFilenameTypes,
-    avoid?: { [name: string]: boolean },
+    avoid?: { [name: string]: any } | null,
   ): string {
     type = this.sanitize_type(type);
     // reset the enumeration if type changes

@@ -10,10 +10,8 @@ Handling of output messages.
 import Anser from "anser";
 import type { Map } from "immutable";
 import React from "react";
-
 import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { Input } from "./input";
 import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
 import { MoreOutput } from "./more-output";
@@ -37,12 +35,8 @@ function messageComponent(message: Map<string, any>): any {
   if (message.get("name") === "stderr") {
     return Stderr;
   }
-  if (message.get("name") === "input") {
-    if (message.get("value") != null) {
-      return InputDone;
-    } else {
-      return Input;
-    }
+  if (message.get("name") === "input" && message.get("value") != null) {
+    return InputDone;
   }
   if (message.get("data") != null) {
     return Data;
@@ -130,8 +124,10 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       const mesg = obj[n];
       if (mesg != null) {
         if (mesg.get("traceback")) {
-          hasError = true;
-          traceback += mesg.get("traceback").join("\n") + "\n";
+          const t = mesg.get("traceback").join("\n");
+          // if user clicks "Stop" there is a traceback, but it's not an error to fix with AI.
+          hasError = !t.includes("KeyboardInterrupt");
+          traceback += t + "\n";
         }
         if (scrolled && !hasIframes && mesg.getIn(["data", "iframe"])) {
           hasIframes = true;

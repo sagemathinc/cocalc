@@ -6,16 +6,13 @@
 import getBalance from "./get-balance";
 import createPurchase from "./create-purchase";
 import { uuid } from "@cocalc/util/misc";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import dayjs from "dayjs";
+import { before, after } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase();
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("test computing balance under various conditions", () => {
   const account_id = uuid();

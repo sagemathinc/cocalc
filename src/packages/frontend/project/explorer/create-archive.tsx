@@ -1,4 +1,4 @@
-import { Button, Card, Input, Space, Spin } from "antd";
+import { Button, Card, Input, Select, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { default_filename } from "@cocalc/frontend/account";
@@ -8,8 +8,15 @@ import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { path_split, plural } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
+import { join } from "path";
+import { OUCH_FORMATS } from "@cocalc/conat/files/fs";
 
-export default function CreateArchive({}) {
+export const defaultFormat = OUCH_FORMATS.includes("tar.gz")
+  ? "tar.gz"
+  : OUCH_FORMATS[0];
+
+export default function CreateArchive({ clear }) {
+  const [format, setFormat] = useState<string>("");
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -41,21 +48,14 @@ export default function CreateArchive({}) {
       setLoading(true);
       const files = checked_files.toArray();
       const path = store.get("current_path");
-      await actions.zip_files({
-        src: path ? files.map((x) => x.slice(path.length + 1)) : files,
-        dest: target + ".zip",
-        path,
-      });
-      await actions.fetch_directory_listing({ path });
+      await createArchive({ path, files, target, format, actions });
+      clear();
     } catch (err) {
       setLoading(false);
       setError(err);
     } finally {
       setLoading(false);
     }
-
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
   };
 
   if (actions == null) {
@@ -65,8 +65,8 @@ export default function CreateArchive({}) {
   return (
     <Card
       title=<>
-        Create a zip file from the following {checked_files?.size} selected{" "}
-        {plural(checked_files?.size, "item")}
+        Create a downloadable {format} archive from the following{" "}
+        {checked_files?.size} selected {plural(checked_files?.size, "item")}
       </>
     >
       <CheckedFiles />
@@ -76,9 +76,9 @@ export default function CreateArchive({}) {
           autoFocus
           onChange={(e) => setTarget(e.target.value)}
           value={target}
-          placeholder="Name of zip archive..."
+          placeholder="Name of archive..."
           onPressEnter={doCompress}
-          suffix=".zip"
+          suffix={"." + format}
         />
         <div style={{ marginLeft: "5px" }} />
         <Button
@@ -92,8 +92,51 @@ export default function CreateArchive({}) {
           Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}
           {loading && <Spin />}
         </Button>
+        <SelectFormat format={format} setFormat={setFormat} />
       </Space>
-      <ShowError setError={setError} error={error} />
+      <ShowError
+        setError={setError}
+        error={error}
+        style={{ marginTop: "15px" }}
+      />
     </Card>
+  );
+}
+
+export async function createArchive({ path, files, target, format, actions }) {
+  const fs = actions.fs();
+  const { code, stderr } = await fs.ouch([
+    "compress",
+    ...files,
+    join(path, target + "." + format),
+  ]);
+  if (code) {
+    throw Error(Buffer.from(stderr).toString());
+  }
+}
+
+export function SelectFormat({ format, setFormat }) {
+  useEffect(() => {
+    if (!OUCH_FORMATS.includes(format)) {
+      if (OUCH_FORMATS.includes(localStorage.defaultCompressionFormat)) {
+        setFormat(localStorage.defaultCompressionFormat);
+      } else {
+        setFormat(defaultFormat);
+      }
+    }
+  }, [format]);
+
+  return (
+    <Select
+      value={format}
+      style={{ width: "150px" }}
+      options={OUCH_FORMATS.map((value) => {
+        return { value };
+      })}
+      onChange={(format) => {
+        setFormat(format);
+        localStorage.defaultCompressionFormat = format;
+      }}
+    />
   );
 }

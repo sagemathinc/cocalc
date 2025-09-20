@@ -50,7 +50,7 @@ export function useReduxNamedStore(path: string[]) {
   });
 
   useEffect(() => {
-    if (path[0] == "") {
+    if (!path[0]) {
       // Special case -- we allow passing "" for the name of the store and get out undefined.
       // This is useful when using the useRedux hook but when the name of the store isn't known initially.
       return undefined;

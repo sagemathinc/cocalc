@@ -3,6 +3,32 @@ import { encode as encodeBase64, decode as decodeBase64 } from "js-base64";
 export { encodeBase64, decodeBase64 };
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
+export class ConatError extends Error {
+  code?: string | number;
+  subject?: string;
+  constructor(
+    mesg: string,
+    { code, subject }: { code?: string | number; subject?: string } = {},
+  ) {
+    super(mesg);
+    this.code = code;
+    this.subject = subject;
+  }
+}
+
+export function headerToError(headers): ConatError {
+  const err = Error(headers.error);
+  if (headers.error_attrs) {
+    for (const field in headers.error_attrs) {
+      err[field] = headers.error_attrs[field];
+    }
+  }
+  if (err["code"] === undefined && headers.code) {
+    err["code"] = headers.code;
+  }
+  return err;
+}
+
 export function handleErrorMessage(mesg) {
   if (mesg?.error) {
     if (mesg.error.startsWith("Error: ")) {

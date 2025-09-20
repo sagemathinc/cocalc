@@ -11,10 +11,7 @@ import { callback2 } from "@cocalc/util/async-utils";
 import { database } from "../database";
 const { save_blob } = require("@cocalc/hub/blobs");
 import { getLogger } from "@cocalc/hub/logger";
-import {
-  MAX_BLOB_SIZE,
-  //MAX_BLOB_SIZE_PER_PROJECT_PER_DAY,
-} from "@cocalc/util/db-schema/blobs";
+import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import getAccount from "@cocalc/server/auth/get-account";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import formidable from "formidable";
@@ -34,7 +31,7 @@ export default function init(router: Router) {
       return;
     }
     const { project_id, ttl } = req.query;
-    if (typeof project_id == 'string' && project_id) {
+    if (typeof project_id == "string" && project_id) {
       if (!(await isCollaborator({ account_id, project_id }))) {
         res.status(500).send("user must be collaborator on project");
         return;

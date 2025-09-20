@@ -72,7 +72,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
         <Button
           style={{ color: "#333" }}
           onClick={() => {
-            redux.getProjectActions(project_id).show_file_action_panel({
+            redux.getProjectActions(project_id).showFileActionPanel({
               path,
               action: "share",
             });

@@ -8,7 +8,7 @@ Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
 
-import { delay, map } from "awaiting";
+import { map } from "awaiting";
 import { Map } from "immutable";
 import { debounce } from "lodash";
 import { join } from "path";
@@ -39,7 +39,6 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
-import { COPY_TIMEOUT_MS } from "../consts";
 import { export_assignment } from "../export/export-assignment";
 import { export_student_file_use_times } from "../export/file-use-times";
 import { grading_state } from "../nbgrader/util";
@@ -456,15 +455,13 @@ export class AssignmentsActions {
       desc: `Copying assignment from ${student_name}`,
     });
     try {
-      await webapp_client.project_client.copy_path_between_projects({
-        src_project_id: student_project_id,
-        src_path: assignment.get("target_path"),
-        target_project_id: store.get("course_project_id"),
-        target_path,
-        overwrite_newer: true,
-        backup: true,
-        delete_missing: false,
-        timeout: COPY_TIMEOUT_MS,
+      await webapp_client.project_client.copyPathBetweenProjects({
+        src: {
+          project_id: student_project_id,
+          path: assignment.get("target_path"),
+        },
+        dest: { project_id: store.get("course_project_id"), path: target_path },
+        options: { recursive: true },
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -615,17 +612,25 @@ ${details}
         path: src_path + "/GRADE.md",
         content,
       });
-      await webapp_client.project_client.copy_path_between_projects({
-        src_project_id: store.get("course_project_id"),
-        src_path,
-        target_project_id: student_project_id,
-        target_path: assignment.get("graded_path"),
-        overwrite_newer: true,
-        backup: true,
-        delete_missing: false,
-        exclude: peer_graded ? ["*GRADER*.txt"] : undefined,
-        timeout: COPY_TIMEOUT_MS,
+      await webapp_client.project_client.copyPathBetweenProjects({
+        src: { project_id: store.get("course_project_id"), path: src_path },
+        dest: {
+          project_id: student_project_id,
+          path: assignment.get("graded_path"),
+        },
+        options: {
+          recursive: true,
+        },
       });
+      if (peer_graded) {
+        const actions = redux.getProjectActions(student_project_id);
+        await actions.deleteMatchingFiles({
+          path: assignment.get("graded_path"),
+          recursive: true,
+          compute_server_id: 0,
+          filter: (p) => p.includes("GRADER"),
+        });
+      }
       finish("");
     } catch (err) {
       finish(err);
@@ -853,21 +858,19 @@ ${details}
         desc: `Copying files to ${student_name}'s project`,
       });
       const opts = {
-        src_project_id: store.get("course_project_id"),
+        src: { project_id: store.get("course_project_id"), path: src_path },
+        dest: {
+          project_id: student_project_id,
+          path: assignment.get("target_path"),
+        },
+        options: { recursive: true, force: !!overwrite },
+      };
+      await webapp_client.project_client.copyPathBetweenProjects(opts);
+      await this.course_actions.compute.setComputeServerAssociations({
+        student_id,
         src_path,
         target_project_id: student_project_id,
         target_path: assignment.get("target_path"),
-        overwrite_newer: !!overwrite, // default is "false"
-        delete_missing: !!overwrite, // default is "false"
-        backup: !!!overwrite, // default is "true"
-        timeout: COPY_TIMEOUT_MS,
-      };
-      await webapp_client.project_client.copy_path_between_projects(opts);
-      await this.course_actions.compute.setComputeServerAssociations({
-        student_id,
-        src_path: opts.src_path,
-        target_project_id: opts.target_project_id,
-        target_path: opts.target_path,
         unit_id: assignment_id,
       });
 
@@ -1007,28 +1010,6 @@ ${details}
     });
   };
 
-  private start_all_for_peer_grading = async (): Promise<void> => {
-    // On cocalc.com, if the student projects get started specifically
-    // for the purposes of copying files to/from them, then they stop
-    // around a minute later.  This is very bad for peer grading, since
-    // so much copying occurs, and we end up with conflicts between
-    // projects starting to peer grade, then stop, then needing to be
-    // started again all at once.  We thus request that they all start,
-    // wait a few seconds for that "reason" for them to be running to
-    // take effect, and then do the copy.  This way the projects aren't
-    // automatically stopped after the copies happen.
-    const id = this.course_actions.set_activity({
-      desc: "Warming up all student projects for peer grading...",
-    });
-    this.course_actions.student_projects.action_all_student_projects("start");
-    // We request to start all projects simultaneously, and the system
-    // will start doing that.  I think it's not so much important that
-    // the projects are actually running, but that they were started
-    // before the copy operations started.
-    await delay(5 * 1000);
-    this.course_actions.clear_activity(id);
-  };
-
   async peer_copy_to_all_students(
     assignment_id: string,
     new_only: boolean,
@@ -1049,7 +1030,6 @@ ${details}
       this.course_actions.set_error(`${short_desc} -- ${err}`);
       return;
     }
-    await this.start_all_for_peer_grading();
     // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students({
       assignment_id,
@@ -1070,7 +1050,6 @@ ${details}
       desc += " from whom we have not already copied it";
     }
     const short_desc = "copy peer grading from students";
-    await this.start_all_for_peer_grading();
     await this.assignment_action_all_students({
       assignment_id,
       new_only,
@@ -1370,15 +1349,19 @@ ${details}
       // peer grading is anonymous; also, remove original
       // due date to avoid confusion.
       // copy the files to be peer graded into place for this student
-      await webapp_client.project_client.copy_path_between_projects({
-        src_project_id: store.get("course_project_id"),
-        src_path,
-        target_project_id: student_project_id,
-        target_path,
-        overwrite_newer: false,
-        delete_missing: false,
-        exclude: ["*STUDENT*.txt", "*" + DUE_DATE_FILENAME + "*"],
-        timeout: COPY_TIMEOUT_MS,
+      await webapp_client.project_client.copyPathBetweenProjects({
+        src: { project_id: store.get("course_project_id"), path: src_path },
+        dest: { project_id: student_project_id, path: target_path },
+        options: { recursive: true, force: false },
+      });
+
+      const actions = redux.getProjectActions(student_project_id);
+      await actions.deleteMatchingFiles({
+        path: target_path,
+        recursive: true,
+        compute_server_id: 0,
+        filter: (path) =>
+          path.includes("STUDENT") || path.includes(DUE_DATE_FILENAME),
       });
     };
 
@@ -1454,14 +1437,10 @@ ${details}
       }
 
       // copy the files over from the student who did the peer grading
-      await webapp_client.project_client.copy_path_between_projects({
-        src_project_id,
-        src_path,
-        target_project_id: store.get("course_project_id"),
-        target_path,
-        overwrite_newer: false,
-        delete_missing: false,
-        timeout: COPY_TIMEOUT_MS,
+      await webapp_client.project_client.copyPathBetweenProjects({
+        src: { project_id: src_project_id, path: src_path },
+        dest: { project_id: store.get("course_project_id"), path: target_path },
+        options: { force: false, recursive: true },
       });
 
       // write local file identifying the grader
@@ -1598,7 +1577,7 @@ ${details}
 
     let has_student_subdir: boolean = false;
     for (const entry of listing) {
-      if (entry.isdir && entry.name == STUDENT_SUBDIR) {
+      if (entry.isDir && entry.name == STUDENT_SUBDIR) {
         has_student_subdir = true;
         break;
       }
@@ -1641,10 +1620,8 @@ ${details}
     const project_id = store.get("course_project_id");
     let files;
     try {
-      files = await redux
-        .getProjectStore(project_id)
-        .get_listings()
-        .getListingDirectly(path);
+      const { fs } = this.course_actions.syncdb;
+      files = await fs.readdir(path, { withFileTypes: true });
     } catch (err) {
       // This happens, e.g., if the instructor moves the directory
       // that contains their version of the ipynb file.
@@ -1658,7 +1635,7 @@ ${details}
     if (this.course_actions.is_closed()) return result;
 
     const to_read = files
-      .filter((entry) => !entry.isdir && endswith(entry.name, ".ipynb"))
+      .filter((entry) => entry.isFile() && endswith(entry.name, ".ipynb"))
       .map((entry) => entry.name);
 
     const f: (file: string) => Promise<void> = async (file) => {
@@ -2008,15 +1985,10 @@ ${details}
             // This is necessary because grading the assignment may depend on
             // data files that are sent as part of the assignment.  Also,
             // student's might have some code in text files next to the ipynb.
-            await webapp_client.project_client.copy_path_between_projects({
-              src_project_id: course_project_id,
-              src_path: student_path,
-              target_project_id: grade_project_id,
-              target_path: student_path,
-              overwrite_newer: true,
-              delete_missing: true,
-              backup: false,
-              timeout: COPY_TIMEOUT_MS,
+            await webapp_client.project_client.copyPathBetweenProjects({
+              src: { project_id: course_project_id, path: student_path },
+              dest: { project_id: grade_project_id, path: student_path },
+              options: { recursive: true },
             });
           } else {
             ephemeralGradePath = false;

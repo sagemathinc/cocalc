@@ -12,7 +12,7 @@ and configuration.
 
 // cSpell:ignore payg
 
-import { Flex, Menu, Space } from "antd";
+import { Button, Flex, Menu, Space } from "antd";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
 import { SignOut } from "@cocalc/frontend/account/sign-out";
@@ -46,6 +46,8 @@ import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import { lite, project_id } from "@cocalc/frontend/lite";
+import { AdminPage } from "@cocalc/frontend/admin";
 
 // give up on trying to load account info and redirect to landing page.
 // Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
@@ -96,6 +98,17 @@ export const AccountPage: React.FC = () => {
         ),
       },
     ];
+    if (lite) {
+      items.push({
+        key: "admin",
+        label: (
+          <span>
+            <Icon name="users" /> Admin
+          </span>
+        ),
+        children: active_page === "admin" && <AdminPage />,
+      });
+    }
     // adds a few conditional tabs
     if (is_anonymous) {
       // None of the rest make any sense for a temporary anonymous account.
@@ -185,16 +198,18 @@ export const AccountPage: React.FC = () => {
       items.push({ type: "divider" });
     }
 
-    items.push({
-      key: "public-files",
-      label: (
-        <span>
-          <Icon name="share-square" />{" "}
-          {intl.formatMessage(labels.published_files)}
-        </span>
-      ),
-      children: active_page === "public-files" && <PublicPaths />,
-    });
+    if (!lite) {
+      items.push({
+        key: "public-files",
+        label: (
+          <span>
+            <Icon name="share-square" />{" "}
+            {intl.formatMessage(labels.published_files)}
+          </span>
+        ),
+        children: active_page === "public-files" && <PublicPaths />,
+      });
+    }
     if (cloudFilesystemsEnabled()) {
       items.push({
         key: "cloud-filesystems",
@@ -236,7 +251,9 @@ export const AccountPage: React.FC = () => {
       <Space>
         {is_commercial ? <BalanceButton /> : undefined}
         <I18NSelector isWide={isWide} />
-        <SignOut everywhere={false} highlight={true} narrow={!isWide} />
+        {!lite && (
+          <SignOut everywhere={false} highlight={true} narrow={!isWide} />
+        )}
       </Space>
     );
   }
@@ -288,15 +305,35 @@ export const AccountPage: React.FC = () => {
             borderRight: "1px solid rgba(5, 5, 5, 0.06)",
           }}
         >
-          <div
-            style={{
-              textAlign: "center",
-              margin: "15px 0",
-              fontSize: "11pt",
-            }}
-          >
-            <b>Account Configuration</b>
-          </div>
+          {!lite && (
+            <div
+              style={{
+                textAlign: "center",
+                margin: "15px 0",
+                fontSize: "11pt",
+              }}
+            >
+              <b>Account Configuration</b>
+            </div>
+          )}
+          {lite && (
+            <div
+              style={{
+                textAlign: "center",
+                margin: "15px 0",
+              }}
+            >
+              <Button
+                size="large"
+                style={{ width: "80%" }}
+                onClick={() => {
+                  redux.getActions("page").set_active_tab(project_id);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          )}
           <Menu
             onClick={(e) => {
               handle_select(e.key);

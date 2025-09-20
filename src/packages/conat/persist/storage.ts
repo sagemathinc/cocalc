@@ -491,10 +491,11 @@ export class PersistentStream extends EventEmitter {
     | StoredMessage
     | undefined => {
     let x;
+    const ttl = this.conf.allow_msg_ttl ? ", ttl" : "";
     if (seq) {
       x = this.db
         .prepare(
-          "SELECT seq, key, time, compress, encoding, raw, headers FROM messages WHERE seq=?",
+          `SELECT seq, key, time, compress, encoding, raw, headers${ttl} FROM messages WHERE seq=?`,
         )
         .get(seq);
     } else if (key != null) {
@@ -502,7 +503,7 @@ export class PersistentStream extends EventEmitter {
       // row with a given key.  Also there's a unique constraint.
       x = this.db
         .prepare(
-          "SELECT seq, key, time, compress, encoding, raw, headers FROM messages WHERE key=?",
+          `SELECT seq, key, time, compress, encoding, raw, headers${ttl} FROM messages WHERE key=?`,
         )
         .get(key);
     } else {
@@ -847,11 +848,21 @@ function dbToMessage(
         encoding: DataEncoding;
         raw: Buffer;
         headers?: string;
+        ttl?: number;
       }
     | undefined,
 ): StoredMessage | undefined {
   if (x === undefined) {
     return x;
+  }
+  if (x.ttl && Date.now() - 1000 * x.time >= x.ttl) {
+    // the actual record will get cleared eventually from the
+    // database when enforceLimits is called.  For now we
+    // just returned undefined.  The check here makes it so
+    // ttl fully works as claimed, rather than "eventually", i.e.,
+    // it can be used for a short-term lock, rather than just
+    // being something for saving space longterm.
+    return undefined;
   }
   return {
     seq: x.seq,

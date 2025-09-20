@@ -1,25 +1,21 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "@cocalc/server/compute/create-server";
 import { getServer } from "@cocalc/server/compute/get-servers";
 import { setPurchaseId } from "./util";
+import { before, after } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase();
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("creates compute server then sets the purchase id and confirms it", () => {
   const account_id = uuid();
   let project_id;
 
-  let server_id;
-  it("creates compute server", async () => {
+  it("create user", async () => {
     await createAccount({
       email: "",
       password: "xyz",
@@ -27,11 +23,18 @@ describe("creates compute server then sets the purchase id and confirms it", () 
       lastName: "One",
       account_id,
     });
+  });
+
+  it("create project", async () => {
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
     });
+  });
+
+  let server_id;
+  it("creates compute server", async () => {
     const s = {
       title: "myserver",
       idle_timeout: 15,

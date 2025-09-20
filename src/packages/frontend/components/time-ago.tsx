@@ -166,6 +166,9 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   }
 
   const d = is_date(date) ? (date as Date) : new Date(date);
+  if (!d.valueOf()) {
+    return null;
+  }
   try {
     d.toISOString();
   } catch (error) {
@@ -203,7 +206,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   }: TimeAgoElementProps) => {
     const { timeAgoAbsolute } = useAppContext();
 
-    if (date == null) {
+    if (!date?.valueOf()) {
       return <></>;
     }
 

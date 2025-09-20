@@ -226,13 +226,16 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
   function render_register() {
     return (
       <>
-        <div>
-          {NAME} detected that the file's content has the MIME code{" "}
-          <Text strong>
-            <Text code>{mime}</Text>
-          </Text>
-          . {explanation}
-        </div>
+        {mime && (
+          <div>
+            {NAME} detected that the file's content has the MIME code{" "}
+            <Text strong>
+              <Text code>{mime}</Text>
+            </Text>
+            . {explanation}
+          </div>
+        )}
+        {!mime && <div>{NAME} was not able to detect the file's type.</div>}
         <div>The following editors are available:</div>
         <ul>
           <li>
@@ -266,7 +269,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
   }
 
   function render() {
-    if (!mime) {
+    if (!mime && !err) {
       return <Loading theme={"medium"} />;
     }
     return (
@@ -283,11 +286,10 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
   return (
     <div style={{ overflow: "auto" }}>
       <div style={STYLE}>
-        {err ? (
+        {err && (
           <Alert type="error" message="Error" showIcon description={err} />
-        ) : (
-          <Row gutter={[24, 24]}>{render()}</Row>
         )}
+        <Row gutter={[24, 24]}>{render()}</Row>
       </div>
     </div>
   );

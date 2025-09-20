@@ -100,9 +100,11 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     if (action == "add") {
       actions.set_active_tab("files");
     } else {
-      const path = keyToPath(key);
-      // close given file
-      actions.close_tab(path);
+      if (key) {
+        const path = keyToPath(key);
+        // close given file
+        actions.close_tab(path);
+      }
     }
   };
 
@@ -135,11 +137,14 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   function onDragStart(event) {
     if (actions == null) return;
     if (event?.active?.id != activeKey) {
-      actions.set_active_tab(path_to_tab(keyToPath(event?.active?.id)), {
-        // noFocus -- critical to not focus when dragging or codemirror focus breaks on end of drag.
-        // See  https://github.com/sagemathinc/cocalc/issues/7029
-        noFocus: true,
-      });
+      const key = event?.active?.id;
+      if (key) {
+        actions.set_active_tab(path_to_tab(keyToPath(key)), {
+          // noFocus -- critical to not focus when dragging or codemirror focus breaks on end of drag.
+          // See  https://github.com/sagemathinc/cocalc/issues/7029
+          noFocus: true,
+        });
+      }
     }
   }
 
@@ -160,7 +165,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
         activeKey={activeKey}
         type={"editable-card"}
         onChange={(key) => {
-          if (actions == null) return;
+          if (actions == null || !key) return;
           actions.set_active_tab(path_to_tab(keyToPath(key)));
         }}
         popupClassName={"cocalc-files-tabs-more"}

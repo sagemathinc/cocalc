@@ -1,16 +1,13 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import getSpendRate from "./get-spend-rate";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createPurchase from "./create-purchase";
+import { before, after, getPool } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase({});
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("get the spend rate of a user under various circumstances", () => {
   const account_id = uuid();

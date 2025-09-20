@@ -18,7 +18,6 @@ import { Map } from "immutable";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import Draggable from "react-draggable";
-
 import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";

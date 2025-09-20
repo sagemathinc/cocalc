@@ -20,6 +20,7 @@ import { HiddenXS } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import track from "@cocalc/frontend/user-tracking";
 import { labels } from "../i18n";
+import { lite } from "@cocalc/frontend/lite";
 
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
@@ -51,14 +52,15 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
   };
-
   return (
     <div style={style}>
-      <UsersViewing
-        project_id={project_id}
-        path={path}
-        style={USERS_VIEWING_STYLE}
-      />
+      {!lite && (
+        <UsersViewing
+          project_id={project_id}
+          path={path}
+          style={USERS_VIEWING_STYLE}
+        />
+      )}
       <ChatButton project_id={project_id} path={path} chatState={chatState} />
     </div>
   );

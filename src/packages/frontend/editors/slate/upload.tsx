@@ -76,8 +76,9 @@ export default function useUpload(
           return;
         }
         let node;
-        const { dataURL, height, upload } = file;
-        if (!height && !dataURL?.startsWith("data:image")) {
+        const { height, upload } = file;
+        const type = upload.chunks[0]?.file.type;
+        if (!height && !type?.startsWith("image")) {
           node = {
             type: "link",
             isInline: true,
