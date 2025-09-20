@@ -36,12 +36,13 @@ import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import rsyncProgress from "./rsync-progress";
 
+
 const Dockerfile = `
-FROM docker.io/alpine:latest
-RUN apk update && apk add --no-cache openssh-client rsync
+FROM docker.io/ubuntu:25.04
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client rsync
 `;
 
-export const sidecarImageName = "localhost/sidecar:0.3";
+export const sidecarImageName = "localhost/sidecar:0.4";
 
 export async function init() {
   await build({ name: sidecarImageName, Dockerfile });
