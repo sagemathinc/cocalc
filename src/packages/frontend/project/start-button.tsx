@@ -28,6 +28,7 @@ import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { DOC_TRIAL } from "./project-banner";
 import { lite } from "@cocalc/frontend/lite";
+import Bootlog from "./bootlog";
 
 const STYLE: CSSProperties = {
   fontSize: "40px",
@@ -166,6 +167,11 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
           <div>
             <ProjectState state={state} show_desc={allowed} />
             {render_not_allowed()}
+            {starting && (
+              <div style={{ background: "white" }}>
+                <Bootlog />
+              </div>
+            )}
           </div>
         }
       >

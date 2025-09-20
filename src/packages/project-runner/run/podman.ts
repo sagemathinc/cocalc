@@ -36,7 +36,7 @@ import {
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
 import { initSshKeys } from "@cocalc/backend/ssh-keys";
-import { bootlog } from "@cocalc/conat/project/runner/bootlog";
+import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:podman");
@@ -74,6 +74,7 @@ export async function start({
 
   try {
     starting.add(project_id);
+    resetBootlog({ project_id });
     bootlog({ project_id, type: "start", progress: 0 });
 
     try {

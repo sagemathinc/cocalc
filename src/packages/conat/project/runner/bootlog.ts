@@ -33,6 +33,26 @@ function getName({ compute_server_id = 0 }: { compute_server_id: number }) {
   return `bootlog.${compute_server_id}`;
 }
 
+export async function resetBootlog({
+  project_id,
+  compute_server_id = 0,
+  client = conat(),
+}) {
+  const stream = client.sync.astream<Event>({
+    project_id,
+    name: getName({ compute_server_id }),
+  });
+  try {
+    await stream.delete({ all: true });
+  } catch (err) {
+    logger.debug("ERROR reseting log", {
+      project_id,
+      compute_server_id,
+      err,
+    });
+  }
+}
+
 // publishing is not fatal
 // should be a TTL cache ([ ] todo)
 const start: { [key: string]: number } = {};
