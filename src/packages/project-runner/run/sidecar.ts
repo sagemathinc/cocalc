@@ -36,7 +36,6 @@ import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import rsyncProgress from "./rsync-progress";
 
-
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client rsync
@@ -107,76 +106,91 @@ export async function startSidecar({
     return;
   }
 
-  bootlog({
-    project_id,
-    type: "copy-rootfs",
-    progress: 0,
-    desc: "copy rootfs to project runner",
-  });
   const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
-  await rsyncProgress({
-    pod: sidecarPodName,
-    args: [
-      "-axH",
-      "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
-      "--relative", // so don't have to create the directories locally
-      `${servers[0].name}:${upperdir}/`,
-      "/root/",
-    ],
-    progress: (event) => {
-      bootlog({
-        project_id,
-        type: "copy-rootfs",
-        ...event,
-      });
-    },
-  });
+  const copyRootfs = async () => {
+    bootlog({
+      project_id,
+      type: "copy-rootfs",
+      progress: 0,
+      desc: "copy rootfs to project runner",
+    });
+    await rsyncProgress({
+      pod: sidecarPodName,
+      args: [
+        "-axH",
+        // using aes128 seems a LOT faster/better given the hop through sshpiperd
+        "-e",
+        "ssh -o Compression=no -c aes128-gcm@openssh.com",
+        "--compress",
+        "--compress-choice=lz4",
+        "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
+        "--relative", // so don't have to create the directories locally
+        `${servers[0].name}:${upperdir}/`,
+        "/root/",
+      ],
+      progress: (event) => {
+        bootlog({
+          project_id,
+          type: "copy-rootfs",
+          ...event,
+        });
+      },
+    });
 
-  bootlog({
-    project_id,
-    type: "start-sidecar",
-    progress: 50,
-    desc: "finished copying rootfs",
-  });
+    bootlog({
+      project_id,
+      type: "start-sidecar",
+      progress: 50,
+      desc: "finished copying rootfs",
+    });
+  };
 
-  bootlog({
-    project_id,
-    type: "copy-home",
-    progress: 0,
-    desc: "copy home directory to project runner",
-  });
-  await rsyncProgress({
-    pod: sidecarPodName,
-    args: [
-      "-axH",
-      "--exclude",
-      ".local/share/overlay/**",
-      "--exclude",
-      ".cache/cocalc/**",
-      "--exclude",
-      ".mutagen-dev/**",
-      "--exclude",
-      ".ssh/**",
-      "--exclude",
-      ".snapshots/**",
-      `${servers[0].name}:/root/`,
-      "/root/",
-    ],
-    progress: (event) => {
-      bootlog({
-        project_id,
-        type: "copy-home",
-        ...event,
-      });
-    },
-  });
+  const copyHome = async () => {
+    bootlog({
+      project_id,
+      type: "copy-home",
+      progress: 0,
+      desc: "copy home directory to project runner",
+    });
+    await rsyncProgress({
+      pod: sidecarPodName,
+      args: [
+        "-axH",
+        "-e",
+        "ssh -o Compression=no -c aes128-gcm@openssh.com",
+        "--compress",
+        "--compress-choice=lz4",
+        "--exclude",
+        ".local/share/overlay/**",
+        "--exclude",
+        ".cache/cocalc/**",
+        "--exclude",
+        ".mutagen-dev/**",
+        "--exclude",
+        ".ssh/**",
+        "--exclude",
+        ".snapshots/**",
+        `${servers[0].name}:/root/`,
+        "/root/",
+      ],
+      progress: (event) => {
+        bootlog({
+          project_id,
+          type: "copy-home",
+          ...event,
+        });
+      },
+    });
 
-  bootlog({
-    project_id,
-    type: "start-sidecar",
-    progress: 100,
-    desc: "updated home directory",
-  });
+    bootlog({
+      project_id,
+      type: "start-sidecar",
+      progress: 100,
+      desc: "updated home directory",
+    });
+  };
+
+  await Promise.all([copyRootfs(), copyHome()]);
 
   return async () => {
     bootlog({ project_id, type: "mutagen-init", progress: 0 });
