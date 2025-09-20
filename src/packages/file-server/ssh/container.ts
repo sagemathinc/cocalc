@@ -1,25 +1,30 @@
 /*
 Manager container that is the target of ssh.
+*/
 
+import { spawn, execFile as execFile0 } from "node:child_process";
+import { promisify } from "node:util";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import getLogger from "@cocalc/backend/logger";
+import { build } from "@cocalc/backend/podman/build-container";
+import { getMutagenAgent } from "./mutagen";
+import { k8sCpuParser } from "@cocalc/util/misc";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { until } from "@cocalc/util/async-utils";
+import { delay } from "awaiting";
 
-[ ] TODO: lock this down as follows (in user space) to block outgoing connections:
+const logger = getLogger("file-server:ssh:container");
+const execFile = promisify(execFile0);
 
-set -v
+const Dockerfile = `
+FROM docker.io/ubuntu:25.04
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
+`;
 
-podman rm -t 0 -f sshbox
+const IMAGE = "localhost/core:0.1.0";
 
-podman run -d --name sshbox   -p 127.0.0.1:36309:22/tcp  \
-    --cap-drop ALL \
-   --cap-add NET_BIND_SERVICE \
-  --cap-add SYS_CHROOT \
-  --cap-add SETGID \
-  --cap-add SETUID \
-  --security-opt seccomp=`pwd`/deny-connect.json \
-  -v /home/wstein/scratch/projects/09144672-b427-448a-8ea3-8ec88b495443:/root \
-  localhost/ssh sleep infinity
-
-#
-
+const seccomp_json = `
 {
   "defaultAction": "SCMP_ACT_ALLOW",
   "archMap": [
@@ -34,34 +39,11 @@ podman run -d --name sshbox   -p 127.0.0.1:36309:22/tcp  \
   ],
   "syscalls": [{ "names": ["connect"], "action": "SCMP_ACT_ERRNO" }]
 }
-
-
-*/
-
-import { spawn, execFile as execFile0 } from "node:child_process";
-import { promisify } from "node:util";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import getLogger from "@cocalc/backend/logger";
-import { build } from "@cocalc/backend/podman/build-container";
-import { getMutagenAgent } from "./mutagen";
-import { until } from "@cocalc/util/async-utils";
-import { delay } from "awaiting";
-import { k8sCpuParser } from "@cocalc/util/misc";
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-
-const logger = getLogger("file-server:ssh:container");
-const execFile = promisify(execFile0);
-
-const Dockerfile = `
-FROM docker.io/ubuntu:25.04
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
 `;
 
-const IMAGE = "localhost/core:0.1.0";
-
+const PORT = 2222;
 const sshd_conf = `
-Port 22
+Port ${PORT}
 PasswordAuthentication no
 ChallengeResponseAuthentication no
 UsePAM no
@@ -125,7 +107,6 @@ export const start = reuseInFlight(
     await build({
       name: IMAGE,
       Dockerfile,
-      files: { ["sshd.conf"]: sshd_conf },
     });
 
     const cmd = "podman";
@@ -145,8 +126,27 @@ export const start = reuseInFlight(
       mode: 0o700,
     });
     await writeFile(join(sshPath, "sshd.conf"), sshd_conf, { mode: 0o700 });
+    // this secomp is here just because it needs to be somewhere...
+    const secompPath = join(sshPath, "seccomp.json");
+    await writeFile(secompPath, seccomp_json, {
+      mode: 0o700,
+    });
+
+    args.push("-p", `${PORT}`);
 
     if (lockdown) {
+      args.push(
+        "--cap-drop",
+        "ALL",
+        "--cap-add",
+        "SYS_CHROOT",
+        "--cap-add",
+        "SETGID",
+        "--cap-add",
+        "SETUID",
+      );
+      args.push("--security-opt", `seccomp=${secompPath}`);
+
       // Limits
       if (pids) {
         args.push(`--pids-limit=${pids}`);
@@ -185,7 +185,6 @@ export const start = reuseInFlight(
     );
 
     // openssh server
-    args.push("-p", "22");
     //  /usr/sbin/sshd -D -e -f /root/.ssh/file-server/sshd.conf
     args.push(
       "--rm",
@@ -206,10 +205,6 @@ export const start = reuseInFlight(
     child.publicKey = publicKey;
     child.authorizedKeys = authorizedKeys;
     logger.debug("started ssh container", { volume, pid: child.pid });
-    // [ ] TODO: it would be more efficient to just assign ports ourself, given
-    // we control the fileserver.
-    // there will be output when ssh server starts
-    //await once(child.stderr, "data", 3000);
     await delay(50);
     const start = Date.now();
     await until(
@@ -222,9 +217,9 @@ export const start = reuseInFlight(
             return true;
           }
           const ports = await getPorts({ volume });
-          if (ports[22]) {
+          if (ports[PORT]) {
             // @ts-ignore
-            child.sshPort = ports[22];
+            child.sshPort = ports[PORT];
             return true;
           }
         } catch (err) {
