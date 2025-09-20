@@ -44,6 +44,9 @@ const children: { [project_id: string]: any } = {};
 
 const GRACE_PERIOD = 3000;
 
+// projects we are definitely starting right now
+const starting = new Set<string>();
+
 export async function start({
   project_id,
   config = {},
@@ -60,194 +63,205 @@ export async function start({
   }
   logger.debug("start", { project_id, config: { ...config, secret: "xxx" } });
 
-  if (children[project_id] != null && children[project_id].exitCode == null) {
-    logger.debug("start -- already running");
+  if (
+    starting.has(project_id) ||
+    stopping.has(project_id) ||
+    (children[project_id] != null && children[project_id].exitCode == null)
+  ) {
+    logger.debug("starting/stopping/running -- already running");
     return;
   }
 
-  bootlog({ project_id, type: "start", progress: 0 });
-
   try {
-    bootlog({ project_id, type: "init-sidecar", progress: 0 });
-    await initSidecar();
-    bootlog({ project_id, type: "init-sidecar", progress: 100 });
-  } catch (err) {
-    bootlog({ project_id, type: "init-sidecar", error: err });
-    throw err;
-  }
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 5,
-    desc: "initialized sidecar",
-  });
+    starting.add(project_id);
+    bootlog({ project_id, type: "start", progress: 0 });
 
-  const pod = `project-${project_id}`;
-  try {
-    await podman(["pod", "create", "--name", pod, "--network=pasta"]);
-  } catch (err) {
-    if (!`${err}`.includes("exists")) {
+    try {
+      bootlog({ project_id, type: "init-sidecar", progress: 0 });
+      await initSidecar();
+      bootlog({ project_id, type: "init-sidecar", progress: 100 });
+    } catch (err) {
+      bootlog({ project_id, type: "init-sidecar", error: err });
       throw err;
     }
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 5,
+      desc: "initialized sidecar",
+    });
+
+    const pod = `project-${project_id}`;
+    try {
+      await podman(["pod", "create", "--name", pod, "--network=pasta"]);
+    } catch (err) {
+      if (!`${err}`.includes("exists")) {
+        throw err;
+      }
+    }
+    bootlog({ project_id, type: "start", progress: 10, desc: "created pod" });
+
+    const home = await localPath({ project_id });
+    logger.debug("start: got home", { project_id, home });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 10,
+      desc: "got home directory",
+    });
+    const mounts = getCoCalcMounts();
+    const image = getImage(config);
+    const servers = await sshServers?.({ project_id });
+    await initSshKeys({ home, sshServers: servers });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 15,
+      desc: "initialized ssh keys",
+    });
+
+    const env = await getEnvironment({
+      project_id,
+      env: config?.env,
+      HOME: "/root",
+      image,
+    });
+
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 20,
+      desc: "got env variables",
+    });
+    const initMutagen = await startSidecar({
+      image,
+      project_id,
+      home,
+      mounts,
+      env,
+      pod,
+      servers,
+    });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 25,
+      desc: "started sync sidecar",
+    });
+    const rootfs = await rootFilesystem.mount({ project_id, home, config });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 30,
+      desc: "mounted rootfs",
+    });
+    logger.debug("start: got rootfs", { project_id, rootfs });
+    await mkdir(home, { recursive: true });
+    logger.debug("start: created home", { project_id });
+    await ensureConfFilesExists(home);
+    logger.debug("start: created conf files", { project_id });
+
+    //   await writeMutagenConfig({
+    //     home,
+    //     sync: config?.sync,
+    //     forward: config?.forward,
+    //   });
+
+    await setupDataPath(home);
+
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 35,
+      desc: "setup project directories",
+    });
+
+    logger.debug("start: setup data path", { project_id });
+    if (config.secret) {
+      await writeSecretToken(home, config.secret!);
+      logger.debug("start: wrote secret", { project_id });
+    }
+
+    if (config.disk) {
+      // TODO: maybe this should be done in parallel with other things
+      // to make startup time slightly faster (?) -- could also be incorporated
+      // into mount.
+      await setQuota(project_id, config.disk!);
+      logger.debug("start: set disk quota", { project_id });
+    }
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 40,
+      desc: "configured quotas",
+    });
+    const args: string[] = [];
+    args.push("run");
+    args.push("--rm");
+    args.push("--replace");
+    args.push("--user=0:0");
+    args.push("--pod", pod);
+
+    const cmd = "podman";
+    const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
+
+    args.push("--hostname", `project-${project_id}`);
+    args.push("--name", `project-${project_id}`);
+
+    for (const path in mounts) {
+      args.push("-v", `${path}:${mounts[path]}:ro`);
+    }
+    args.push("-v", `${home}:${env.HOME}`);
+    for (const name in env) {
+      args.push("-e", `${name}=${env[name]}`);
+    }
+
+    args.push(...podmanLimits(config));
+
+    // --init = have podman inject a tiny built in init script so we don't get zombies.
+    args.push("--init");
+
+    args.push("--rootfs", rootfs);
+    args.push(nodePath);
+    args.push(script, "--init", "project_init.sh");
+
+    console.log(`${cmd} ${args.join(" ")}`);
+    logger.debug("start: launching container - ", `${cmd} ${args.join(" ")}`);
+
+    const child = spawn(cmd, args);
+    children[project_id] = child;
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 50,
+      desc: "created project container",
+    });
+
+    //   child.stdout.on("data", (chunk: Buffer) => {
+    //     logger.debug(`project_id=${project_id}.stdout: `, chunk.toString());
+    //   });
+    child.stderr.on("data", (chunk: Buffer) => {
+      logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
+    });
+
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 100,
+      desc: "started!",
+    });
+
+    // non-blocking on start since it's a background process
+    (async () => {
+      await initMutagen?.();
+    })();
+  } finally {
+    starting.delete(project_id);
   }
-  bootlog({ project_id, type: "start", progress: 10, desc: "created pod" });
-
-  const home = await localPath({ project_id });
-  logger.debug("start: got home", { project_id, home });
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 10,
-    desc: "got home directory",
-  });
-  const mounts = getCoCalcMounts();
-  const image = getImage(config);
-  const servers = await sshServers?.({ project_id });
-  await initSshKeys({ home, sshServers: servers });
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 15,
-    desc: "initialized ssh keys",
-  });
-
-  const env = await getEnvironment({
-    project_id,
-    env: config?.env,
-    HOME: "/root",
-    image,
-  });
-
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 20,
-    desc: "got env variables",
-  });
-  const initMutagen = await startSidecar({
-    image,
-    project_id,
-    home,
-    mounts,
-    env,
-    pod,
-    servers,
-  });
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 25,
-    desc: "started sync sidecar",
-  });
-  const rootfs = await rootFilesystem.mount({ project_id, home, config });
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 30,
-    desc: "mounted rootfs",
-  });
-  logger.debug("start: got rootfs", { project_id, rootfs });
-  await mkdir(home, { recursive: true });
-  logger.debug("start: created home", { project_id });
-  await ensureConfFilesExists(home);
-  logger.debug("start: created conf files", { project_id });
-
-  //   await writeMutagenConfig({
-  //     home,
-  //     sync: config?.sync,
-  //     forward: config?.forward,
-  //   });
-
-  await setupDataPath(home);
-
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 35,
-    desc: "setup project directories",
-  });
-
-  logger.debug("start: setup data path", { project_id });
-  if (config.secret) {
-    await writeSecretToken(home, config.secret!);
-    logger.debug("start: wrote secret", { project_id });
-  }
-
-  if (config.disk) {
-    // TODO: maybe this should be done in parallel with other things
-    // to make startup time slightly faster (?) -- could also be incorporated
-    // into mount.
-    await setQuota(project_id, config.disk!);
-    logger.debug("start: set disk quota", { project_id });
-  }
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 40,
-    desc: "configured quotas",
-  });
-  const args: string[] = [];
-  args.push("run");
-  args.push("--rm");
-  args.push("--replace");
-  args.push("--user=0:0");
-  args.push("--pod", pod);
-
-  const cmd = "podman";
-  const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
-
-  args.push("--hostname", `project-${project_id}`);
-  args.push("--name", `project-${project_id}`);
-
-  for (const path in mounts) {
-    args.push("-v", `${path}:${mounts[path]}:ro`);
-  }
-  args.push("-v", `${home}:${env.HOME}`);
-  for (const name in env) {
-    args.push("-e", `${name}=${env[name]}`);
-  }
-
-  args.push(...podmanLimits(config));
-
-  // --init = have podman inject a tiny built in init script so we don't get zombies.
-  args.push("--init");
-
-  args.push("--rootfs", rootfs);
-  args.push(nodePath);
-  args.push(script, "--init", "project_init.sh");
-
-  console.log(`${cmd} ${args.join(" ")}`);
-  logger.debug("start: launching container - ", `${cmd} ${args.join(" ")}`);
-
-  const child = spawn(cmd, args);
-  children[project_id] = child;
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 50,
-    desc: "created project container",
-  });
-
-  //   child.stdout.on("data", (chunk: Buffer) => {
-  //     logger.debug(`project_id=${project_id}.stdout: `, chunk.toString());
-  //   });
-  child.stderr.on("data", (chunk: Buffer) => {
-    logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
-  });
-
-  bootlog({
-    project_id,
-    type: "start",
-    progress: 100,
-    desc: "started!",
-  });
-
-  // non-blocking on start since it's a background process
-  (async () => {
-    await initMutagen?.();
-  })();
 }
 
+// projects we are definitely stopping right now
+const stopping = new Set<string>();
 export async function stop({
   project_id,
   force,
@@ -259,9 +273,11 @@ export async function stop({
     throw Error("stop: project_id must be valid");
   }
   logger.debug("stop", { project_id });
-  const child = children[project_id];
-
-  if (child != null && child.exitCode == null) {
+  if (stopping.has(project_id) || starting.has(project_id)) {
+    return;
+  }
+  try {
+    stopping.add(project_id);
     bootlog({
       project_id,
       type: "stop",
@@ -314,6 +330,8 @@ export async function stop({
         error: err,
       });
     }
+  } finally {
+    stopping.delete(project_id);
   }
 }
 
@@ -329,6 +347,12 @@ export async function podman(args: string[], timeout?) {
 }
 
 async function state(project_id): Promise<ProjectState> {
+  if (starting.has(project_id)) {
+    return "starting";
+  }
+  if (stopping.has(project_id)) {
+    return "stopping";
+  }
   if (children[project_id] != null && children[project_id].exitCode == null) {
     return "running";
   }
