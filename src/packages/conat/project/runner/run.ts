@@ -38,9 +38,11 @@ export interface Options {
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
   }) => Promise<void>;
-  // ensure a specific project is not running on this runner
+
+  // ensure a specific project is not running on this runner, or
+  // if project_id not given, stop all projects
   stop: (opts: {
-    project_id: string;
+    project_id?: string;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
   }) => Promise<void>;

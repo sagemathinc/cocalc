@@ -20,7 +20,9 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
 import { mkdir, readFile } from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { execFile as execFile0 } from "node:child_process";
+import { promisify } from "node:util";
+const execFile = promisify(execFile0);
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
@@ -40,7 +42,6 @@ import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:podman");
-const children: { [project_id: string]: any } = {};
 
 const GRACE_PERIOD = 3000;
 
@@ -63,12 +64,8 @@ export async function start({
   }
   logger.debug("start", { project_id, config: { ...config, secret: "xxx" } });
 
-  if (
-    starting.has(project_id) ||
-    stopping.has(project_id) ||
-    (children[project_id] != null && children[project_id].exitCode == null)
-  ) {
-    logger.debug("starting/stopping/running -- already running");
+  if (starting.has(project_id) || stopping.has(project_id)) {
+    logger.debug("starting/stopping -- already running");
     return;
   }
 
@@ -146,14 +143,15 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 25,
+      progress: 30,
       desc: "started sync sidecar",
     });
+
     const rootfs = await rootFilesystem.mount({ project_id, home, config });
     bootlog({
       project_id,
       type: "start",
-      progress: 30,
+      progress: 40,
       desc: "mounted rootfs",
     });
     logger.debug("start: got rootfs", { project_id, rootfs });
@@ -173,7 +171,7 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 35,
+      progress: 50,
       desc: "setup project directories",
     });
 
@@ -193,11 +191,12 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 40,
+      progress: 80,
       desc: "configured quotas",
     });
     const args: string[] = [];
     args.push("run");
+    args.push("--detach");
     args.push("--rm");
     args.push("--replace");
     args.push("--user=0:0");
@@ -229,21 +228,7 @@ export async function start({
     console.log(`${cmd} ${args.join(" ")}`);
     logger.debug("start: launching container - ", `${cmd} ${args.join(" ")}`);
 
-    const child = spawn(cmd, args);
-    children[project_id] = child;
-    bootlog({
-      project_id,
-      type: "start",
-      progress: 50,
-      desc: "created project container",
-    });
-
-    //   child.stdout.on("data", (chunk: Buffer) => {
-    //     logger.debug(`project_id=${project_id}.stdout: `, chunk.toString());
-    //   });
-    child.stderr.on("data", (chunk: Buffer) => {
-      logger.debug(`project_id=${project_id}.stderr: `, chunk.toString());
-    });
+    await execFile(cmd, args);
 
     bootlog({
       project_id,
@@ -256,6 +241,9 @@ export async function start({
     (async () => {
       await initMutagen?.();
     })();
+  } catch (err) {
+    bootlog({ project_id, type: "start", error: err });
+    throw err;
   } finally {
     starting.delete(project_id);
   }
@@ -267,11 +255,15 @@ export async function stop({
   project_id,
   force,
 }: {
-  project_id: string;
+  project_id?: string;
   force?: boolean;
 }) {
+  if (!project_id) {
+    await stopAll(force);
+    return;
+  }
   if (!isValidUUID(project_id)) {
-    throw Error("stop: project_id must be valid");
+    throw Error(`stop: project_id '${project_id}' must be a uuid`);
   }
   logger.debug("stop", { project_id });
   if (stopping.has(project_id) || starting.has(project_id)) {
@@ -314,7 +306,6 @@ export async function stop({
       ]),
     );
     v.push(rootFilesystem.unmount(project_id));
-    delete children[project_id];
     try {
       await Promise.all(v);
       bootlog({
@@ -354,9 +345,6 @@ async function state(project_id): Promise<ProjectState> {
   if (stopping.has(project_id)) {
     return "stopping";
   }
-  if (children[project_id] != null && children[project_id].exitCode == null) {
-    return "running";
-  }
   const name = `project-${project_id}`;
   const { stdout } = await podman([
     "ps",
@@ -390,12 +378,27 @@ export async function status({ project_id, localPath }) {
   return { state: s, ip: "127.0.0.1", publicKey };
 }
 
-export async function close() {
+export async function getAll(): Promise<string[]> {
+  const { stdout } = await podman([
+    "ps",
+    "--filter",
+    `name=project-`,
+    "--format",
+    "{{.Names}}",
+  ]);
+  return stdout
+    .split("\n")
+    .filter(
+      (x) => x.startsWith("project-") && x.length == 36 + "project-".length,
+    )
+    .map((x) => x.slice("project-".length));
+}
+
+async function stopAll(force) {
   const v: any[] = [];
-  for (const project_id in children) {
+  for (const project_id of await getAll()) {
     logger.debug(`killing project_id=${project_id}`);
-    v.push(stop({ project_id, force: true }));
-    delete children[project_id];
+    v.push(stop({ project_id, force }));
   }
   await Promise.all(v);
 }
@@ -421,12 +424,3 @@ export function getImage(config?: Configuration): string {
   const image = config?.image?.trim();
   return normalizeImageName(image ? image : DEFAULT_PROJECT_IMAGE);
 }
-
-// important because it kills all
-// the processes that were spawned
-process.once("exit", close);
-["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
-  process.once(sig, () => {
-    process.exit();
-  });
-});

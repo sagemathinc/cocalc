@@ -544,8 +544,8 @@ function doSpawn(
         "finished exec of",
         opts.command,
         "took",
-        walltime(start_time),
-        "seconds",
+        1000 * walltime(start_time),
+        "ms",
       );
       log.debug({
         stdout: trunc(stdout, 512),

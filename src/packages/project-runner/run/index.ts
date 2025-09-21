@@ -11,8 +11,7 @@ import { server as projectRunnerServer } from "@cocalc/conat/project/runner/run"
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { init as initFilesystem, localPath, sshServers } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
-import { start, stop, status, close } from "./podman";
-export { close };
+import { start, stop, status } from "./podman";
 
 const logger = getLogger("project-runner:run");
 
