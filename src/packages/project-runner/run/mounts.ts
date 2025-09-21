@@ -12,6 +12,7 @@ export function getCoCalcMounts() {
   // Also, we assume that there is "node" here, e.g., this could be a symlink to
   // the cocalc-project-runner binary, or it could just be the normal node binary.
   nodePath = join(COCALC_BIN, "node");
+  
   // IMPORTANT: take care not to put the binary next to sensitive info due
   // to mapping in process.execPath!
   return {

@@ -1,7 +1,7 @@
 import { execFile as execFile0 } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { basename, join } from "node:path";
 import { tmpdir } from "node:os";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
@@ -33,15 +33,26 @@ async function hasImage(name: string): Promise<boolean> {
 
 // builds image if it does not exist
 export const build = reuseInFlight(
-  async ({ Dockerfile, name }: { Dockerfile: string; name: string }) => {
+  async ({
+    Dockerfile,
+    name,
+    files,
+  }: {
+    Dockerfile: string;
+    name: string;
+    files?: string[];
+  }) => {
     if (await hasImage(name)) {
       return;
     }
     logger.debug("Building image", { Dockerfile, name });
     let path: string | undefined = undefined;
     try {
-      path = await mkdtemp(join(tmpdir(), "cocalc"));
+      path = await mkdtemp(join(tmpdir(), "-cocalc"));
       logger.debug("Created temp dir:", path);
+      if (files != null) {
+        await Promise.all(files.map((x) => cp(x, join(path!, basename(x)))));
+      }
       await writeFile(join(path, "Dockerfile"), Dockerfile, "utf8");
       const { stderr } = await execFile("podman", ["build", "-t", name, "."], {
         cwd: path,

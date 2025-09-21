@@ -13,16 +13,19 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import * as sandbox from "@cocalc/backend/sandbox/install";
 
 const logger = getLogger("file-server:ssh:container");
 const execFile = promisify(execFile0);
 
+const APPS = ["ripgrep", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
+COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const IMAGE = "localhost/core:0.1.0";
+const IMAGE = "localhost/core:0.2";
 
 const seccomp_json = `
 {
@@ -113,11 +116,7 @@ export const start = reuseInFlight(
       }
     }
 
-    // make sure our ssh image is available
-    await build({
-      name: IMAGE,
-      Dockerfile,
-    });
+    await buildContainerImage();
 
     const cmd = "podman";
     const args = ["run"];
@@ -284,6 +283,22 @@ export async function stop({ volume }: { volume: string }) {
     delete dotMutagens[volume];
   }
 }
+
+export const buildContainerImage = reuseInFlight(async () => {
+  // make sure apps are installed
+  const v: any[] = [];
+  for (const app of APPS) {
+    v.push(sandbox.install(app));
+  }
+  await Promise.all(v);
+
+  // make sure our ssh image is available
+  await build({
+    name: IMAGE,
+    Dockerfile,
+    files: APPS.map((name) => sandbox[name]),
+  });
+});
 
 export async function close() {
   const v: any[] = [];

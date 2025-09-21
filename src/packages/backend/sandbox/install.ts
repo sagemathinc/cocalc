@@ -41,7 +41,7 @@ interface Spec {
   url?: (spec: Spec) => string;
 }
 
-const SPEC = {
+export const SPEC = {
   ripgrep: {
     // See https://github.com/BurntSushi/ripgrep/releases
     VERSION: "14.1.1",
