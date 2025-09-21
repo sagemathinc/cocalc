@@ -64,6 +64,8 @@ export async function startSidecar({
     "--detach",
     "--label",
     `project_id=${project_id}`,
+    "--label",
+    `role=project`,
     "--rm",
     "--memory=2G",
     "--cpus=1",

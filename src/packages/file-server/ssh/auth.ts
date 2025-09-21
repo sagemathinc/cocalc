@@ -35,6 +35,9 @@ export async function init({
   scratch: string;
 }) {
   logger.debug("init");
+
+  container.init();
+
   base_url ??= encodeURIComponent(
     await secureRandomString(SECRET_TOKEN_LENGTH),
   );

@@ -8,15 +8,18 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { build } from "@cocalc/backend/podman/build-container";
 import { getMutagenAgent } from "./mutagen";
-import { k8sCpuParser } from "@cocalc/util/misc";
+import { k8sCpuParser, split } from "@cocalc/util/misc";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 
-const logger = getLogger("file-server:ssh:container");
 const execFile = promisify(execFile0);
+
+const IDLE_CHECK_INTERVAL = 30_000;
+
+const logger = getLogger("file-server:ssh:container");
 
 const APPS = ["btm", "ripgrep", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
@@ -124,12 +127,12 @@ export const start = reuseInFlight(
     const name = containerName(volume);
     args.push("--name", name);
     args.push("--hostname", "file-server");
-    args.push("--label", `volume=${volume}`);
+    args.push("--label", `volume=${volume}`, "--label", `role=file-server`);
 
     // mount the volume contents to the directory /root in the container.
     // Since user can write arbitrary files here, this is noexec, so they
     // can't somehow run them.
-    args.push("-v", `${path}:/root:noexec`);
+    args.push("-v", `${path}:/root:noexec,rbind,nodev,nosuid`);
 
     const sshPath = join(path, ".ssh", "file-server");
     await mkdir(sshPath, { recursive: true, mode: 0o700 });
@@ -300,7 +303,85 @@ export const buildContainerImage = reuseInFlight(async () => {
   });
 });
 
+export async function getProcesses(name) {
+  try {
+    const { stdout } = await execFile("podman", [
+      "exec",
+      name,
+      "ps",
+      "-o",
+      "ucmd",
+      "--no-headers",
+    ]);
+    return split(stdout.toString());
+  } catch {
+    return [];
+  }
+}
+
+export async function terminateIfIdle(name): Promise<boolean> {
+  if ((await getProcesses(name)).includes("sshd-session")) {
+    // has an open ssh session
+    return false;
+  }
+  await execFile("podman", ["rm", "-f", "-t", "0", name]);
+  return true;
+}
+
+export async function terminateAllIdle({
+  minAge = 15_000,
+}: { minAge?: number } = {}) {
+  const { stdout } = await execFile("podman", [
+    "ps",
+    "-a",
+    "--filter=label=role=file-server",
+    "--format",
+    "{{.Names}} {{.StartedAt}}",
+  ]);
+  const tasks: any[] = [];
+  const now = Date.now();
+  let killed = 0;
+  const f = async (name) => {
+    if (await terminateIfIdle(name)) {
+      killed += 1;
+    }
+  };
+  let total = 0;
+  for (const x of stdout.toString().trim().split("\n")) {
+    const w = split(x);
+    if (w.length == 2) {
+      total++;
+      const [name, startedAt] = w;
+      if (now - parseInt(startedAt) * 1000 >= minAge) {
+        tasks.push(f(name));
+      }
+    }
+  }
+  await Promise.all(tasks);
+  return { killed, total };
+}
+
+let monitoring = false;
+export async function init() {
+  if (monitoring) return;
+  monitoring = true;
+  while (monitoring) {
+    try {
+      logger.debug(`scanning for idle file-system containers...`);
+      const { killed, total } = await terminateAllIdle();
+      logger.debug(`file-system container idle check`, { total, killed });
+    } catch (err) {
+      logger.debug(
+        "WARNING -- issue terminating idle file-system containers",
+        err,
+      );
+    }
+    await delay(IDLE_CHECK_INTERVAL);
+  }
+}
+
 export async function close() {
+  monitoring = false;
   const v: any[] = [];
   for (const volume in children) {
     logger.debug("stopping", { volume });

@@ -103,21 +103,18 @@ export async function start({
     });
 
     const pod = projectPodName(project_id);
-    try {
-      await podman([
-        "pod",
-        "create",
-        "--name",
-        pod,
-        "--label",
-        `project_id=${project_id}`,
-        "--network=pasta",
-      ]);
-    } catch (err) {
-      if (!`${err}`.includes("exists")) {
-        throw err;
-      }
-    }
+    await podman([
+      "pod",
+      "create",
+      "--replace",
+      "--name",
+      pod,
+      "--label",
+      `project_id=${project_id}`,
+      "--label",
+      `role=project`,
+      "--network=pasta",
+    ]);
     bootlog({ project_id, type: "start", progress: 10, desc: "created pod" });
 
     const home = await localPath({ project_id });
@@ -218,7 +215,7 @@ export async function start({
     const args: string[] = [];
     args.push("run");
     args.push("--detach");
-    args.push("--label", `project_id=${project_id}`);
+    args.push("--label", `project_id=${project_id}`, "--label", `role=project`);
     args.push("--rm");
     args.push("--replace");
     args.push("--user=0:0");
@@ -381,6 +378,8 @@ async function state(project_id): Promise<ProjectState> {
     output[v[0]] = v[1].trim();
   }
   if (
+    // 3 to account for infrastructure container
+    Object.keys(output).length == 3 &&
     output[projectContainerName(project_id)] == "running" &&
     output[sidecarContainerName(project_id)] == "running"
   ) {
