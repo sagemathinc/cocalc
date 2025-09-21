@@ -264,6 +264,14 @@ export class ConatClient extends EventEmitter {
   // if there is a connection, resume it
   resume = () => {
     this.connect();
+    // sometimes due to a race (?) the above connect fails or
+    // is disconnected immedaitely. So we call connect more times,
+    // which are no-ops once connected.
+    for (const delay of [3_500, 10_000, 20_000]) {
+      setTimeout(() => {
+        this.connect();
+      }, delay);
+    }
   };
 
   // keep trying until connected.
