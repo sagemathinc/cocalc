@@ -36,7 +36,13 @@ describe("create runner and load balancer with getConfig function", () => {
         running[project_id] = { ...config };
       },
       stop: async ({ project_id }) => {
-        delete running[project_id];
+        if (project_id) {
+          delete running[project_id];
+        } else {
+          Object.keys(running).forEach(
+            (project_id) => delete running[project_id],
+          );
+        }
       },
       status: async ({ project_id }) => {
         return running[project_id] != null

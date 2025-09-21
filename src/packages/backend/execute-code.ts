@@ -541,11 +541,11 @@ function doSpawn(
 
     if (opts.verbose && log.isEnabled("debug")) {
       log.debug(
-        "finished exec of",
+        "exec",
         opts.command,
         "took",
-        1000 * walltime(start_time),
-        "ms",
+        Math.ceil(1000 * walltime(start_time)),
+        "milliseconds",
       );
       log.debug({
         stdout: trunc(stdout, 512),

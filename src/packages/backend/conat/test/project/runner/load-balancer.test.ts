@@ -35,7 +35,11 @@ describe("create basic mocked project runner service and test", () => {
         running.add(project_id);
       },
       stop: async ({ project_id }) => {
-        running.delete(project_id);
+        if (project_id) {
+          running.delete(project_id);
+        } else {
+          running.clear();
+        }
       },
       status: async ({ project_id }) => {
         return running.has(project_id)
