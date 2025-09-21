@@ -35,7 +35,7 @@ interface Spec {
   stripComponents?: number;
   pathInArchive?: string;
   skip?: string[];
-  script?: (spec: Spec) => string;
+  script?: () => string;
   platforms?: string[];
   fix?: string;
   url?: (spec: Spec) => string;
@@ -100,7 +100,7 @@ export const SPEC = {
       return `curl -L https://github.com/sagemathinc/sshpiper-binaries/releases/download/${VERSION}/sshpiper-${VERSION}-${platform()}-${a}.tar.xz | tar -xJ -C "${binPath}" --strip-components=1`;
     },
     url: () => {
-      const VERSION = "v1.5.0";
+      const VERSION = SPEC.sshpiper.VERSION;
       // https://github.com/sagemathinc/sshpiper-binaries/releases/download/v1.5.0/sshpiper-v1.5.0-darwin-amd64.tar.xz
       return `sshpiper-${VERSION}-${arch() == "x64" ? "amd64" : arch()}.tar.xz`;
     },
@@ -115,10 +115,24 @@ export const SPEC = {
     desc: "Fast file synchronization and network forwarding for remote development",
     path: join(binPath, "mutagen"),
     VERSION: "0.19.0-dev",
-    script: ({ VERSION }) => {
+    script: () => {
+      const VERSION = SPEC.mutagen.VERSION;
       const a = arch() == "x64" ? "amd64" : arch();
       return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -xz -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
     },
+  },
+
+  btm: {
+    // See https://github.com/ClementTsang/bottom/releases
+    VERSION: "0.11.1",
+    BASE: "https://github.com/ClementTsang/bottom/releases/download",
+    binary: "btm",
+    script: () => {
+      const VERSION = SPEC.btm.VERSION;
+      const url = `${SPEC.btm.BASE}/${VERSION}/bottom_${getOS()}.tar.gz`;
+      return `curl -L ${url} | tar -xz -C ${binPath} btm`;
+    },
+    path: join(binPath, "btm"),
   },
 };
 
@@ -129,6 +143,7 @@ export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
 export const sshpiper = SPEC.sshpiper.path;
 export const mutagen = SPEC.mutagen.path;
+export const btm = SPEC.btm.path;
 
 type App = keyof typeof SPEC;
 
@@ -175,7 +190,7 @@ export async function install(
   const { script } = spec;
   try {
     if (script != null) {
-      const s = script(spec);
+      const s = script();
       console.log(s);
       try {
         execSync(s);

@@ -18,14 +18,14 @@ import * as sandbox from "@cocalc/backend/sandbox/install";
 const logger = getLogger("file-server:ssh:container");
 const execFile = promisify(execFile0);
 
-const APPS = ["ripgrep", "fd", "dust", "rustic", "ouch"] as const;
+const APPS = ["btm", "ripgrep", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const IMAGE = "localhost/core:0.2";
+const IMAGE = "localhost/core:0.2.1";
 
 const seccomp_json = `
 {
