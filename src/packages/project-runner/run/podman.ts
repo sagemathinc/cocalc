@@ -32,7 +32,11 @@ import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { podmanLimits } from "./limits";
-import { init as initSidecar, startSidecar } from "./sidecar";
+import {
+  init as initSidecar,
+  startSidecar,
+  sidecarContainerName,
+} from "./sidecar";
 import {
   type SshServersFunction,
   type LocalPathFunction,
@@ -47,6 +51,15 @@ const GRACE_PERIOD = 3000;
 
 // projects we are definitely starting right now
 const starting = new Set<string>();
+
+// pod name format assumed in getAll below also
+function projectPodName(project_id) {
+  return `project-${project_id}`;
+}
+
+function projectContainerName(project_id) {
+  return `project-${project_id}`;
+}
 
 export async function start({
   project_id,
@@ -89,9 +102,17 @@ export async function start({
       desc: "initialized sidecar",
     });
 
-    const pod = `project-${project_id}`;
+    const pod = projectPodName(project_id);
     try {
-      await podman(["pod", "create", "--name", pod, "--network=pasta"]);
+      await podman([
+        "pod",
+        "create",
+        "--name",
+        pod,
+        "--label",
+        `project_id=${project_id}`,
+        "--network=pasta",
+      ]);
     } catch (err) {
       if (!`${err}`.includes("exists")) {
         throw err;
@@ -197,6 +218,7 @@ export async function start({
     const args: string[] = [];
     args.push("run");
     args.push("--detach");
+    args.push("--label", `project_id=${project_id}`);
     args.push("--rm");
     args.push("--replace");
     args.push("--user=0:0");
@@ -205,8 +227,7 @@ export async function start({
     const cmd = "podman";
     const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
 
-    args.push("--hostname", `project-${project_id}`);
-    args.push("--name", `project-${project_id}`);
+    args.push("--name", projectContainerName(project_id));
 
     for (const path in mounts) {
       args.push("-v", `${path}:${mounts[path]}:ro`);
@@ -284,7 +305,7 @@ export async function stop({
         "-f",
         "-t",
         force ? "0" : `${GRACE_PERIOD / 1000}`,
-        `project-${project_id}`,
+        projectPodName(project_id),
       ]),
     );
     v.push(
@@ -293,7 +314,7 @@ export async function stop({
         "-f",
         "-t",
         force ? "0" : `${GRACE_PERIOD / 1000}`,
-        `project-${project_id}`,
+        projectContainerName(project_id),
       ]),
     );
     v.push(
@@ -302,7 +323,7 @@ export async function stop({
         "-f",
         "-t",
         force ? "0" : `${GRACE_PERIOD / 1000}`,
-        `sidecar-${project_id}`,
+        sidecarContainerName(project_id),
       ]),
     );
     v.push(rootFilesystem.unmount(project_id));
@@ -345,23 +366,31 @@ async function state(project_id): Promise<ProjectState> {
   if (stopping.has(project_id)) {
     return "stopping";
   }
-  const name = `project-${project_id}`;
   const { stdout } = await podman([
     "ps",
+    "--pod",
     "--filter",
-    `name=${name}`,
+    `pod=${projectPodName(project_id)}`,
     "--format",
     "{{.Names}} {{.State}}",
   ]);
-  let status = "";
-  for (const x of stdout.split("\n")) {
+  const output: { [name: string]: string } = {};
+  for (const x of stdout.trim().split("\n")) {
     const v = x.split(" ");
-    if (v[0] == name) {
-      status = v[1].trim();
-      break;
-    }
+    if (v.length < 2) continue;
+    output[v[0]] = v[1].trim();
   }
-  return status == "running" ? "running" : "opened";
+  if (
+    output[projectContainerName(project_id)] == "running" &&
+    output[sidecarContainerName(project_id)] == "running"
+  ) {
+    return "running";
+  }
+  if (Object.keys(output).length > 0) {
+    // broken half-way state -- stop it asap
+    await stop({ project_id, force: true });
+  }
+  return "opened";
 }
 
 export async function status({ project_id, localPath }) {
@@ -371,20 +400,29 @@ export async function status({ project_id, localPath }) {
   logger.debug("status", { project_id });
   const s = await state(project_id);
   let publicKey: string | undefined = undefined;
-  const home = await localPath({ project_id });
+  let error: string | undefined = undefined;
   try {
+    const home = await localPath({ project_id });
     publicKey = await readFile(join(home, ".ssh", "id_ed25519.pub"), "utf8");
-  } catch {}
-  return { state: s, ip: "127.0.0.1", publicKey };
+  } catch (err) {
+    if (s != "opened") {
+      error = `unable to read ssh public key of project -- ${err}`;
+    }
+  }
+  if (error) {
+    logger.debug("WARNING ", { project_id, error });
+  }
+  return { state: s, ip: "127.0.0.1", publicKey, error };
 }
 
 export async function getAll(): Promise<string[]> {
   const { stdout } = await podman([
+    "pod",
     "ps",
     "--filter",
     `name=project-`,
     "--format",
-    "{{.Names}}",
+    "{{.Name}}",
   ]);
   return stdout
     .split("\n")

@@ -42,6 +42,10 @@ export async function init() {
   await build({ name: sidecarImageName, Dockerfile });
 }
 
+export function sidecarContainerName(project_id) {
+  return `sidecar-project-${project_id}`;
+}
+
 export async function startSidecar({
   image,
   project_id,
@@ -53,11 +57,13 @@ export async function startSidecar({
 }) {
   bootlog({ project_id, type: "start-sidecar", progress: 0 });
   // sidecar: refactor
-  const sidecarPodName = `sidecar-${project_id}`;
+  const name = sidecarContainerName(project_id);
   const args2 = [
     "run",
-    `--name=${sidecarPodName}`,
+    `--name=${name}`,
     "--detach",
+    "--label",
+    `project_id=${project_id}`,
     "--rm",
     "--replace",
     "--pod",
@@ -110,7 +116,7 @@ export async function startSidecar({
       desc: "copy rootfs to project runner",
     });
     await rsyncProgress({
-      pod: sidecarPodName,
+      name,
       args: [
         "-axH",
         // using aes128 seems a LOT faster/better given the hop through sshpiperd
@@ -148,7 +154,7 @@ export async function startSidecar({
       desc: "copy home directory to project runner",
     });
     await rsyncProgress({
-      pod: sidecarPodName,
+      name,
       args: [
         "-axH",
         "-e",
@@ -201,7 +207,7 @@ export async function startSidecar({
     //  root parent directory: no such file or directory
     await podman([
       "exec",
-      sidecarPodName,
+      name,
       "ssh",
       servers[0].name,
       "mkdir",
@@ -222,7 +228,7 @@ export async function startSidecar({
     //   to resend it!  NOT good.
     await podman([
       "exec",
-      sidecarPodName,
+      name,
       "mutagen",
       "sync",
       "create",
@@ -242,7 +248,7 @@ export async function startSidecar({
 
     await podman([
       "exec",
-      sidecarPodName,
+      name,
       "mutagen",
       "sync",
       "create",

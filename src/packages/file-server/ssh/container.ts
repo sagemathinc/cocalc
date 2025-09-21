@@ -124,6 +124,8 @@ export const start = reuseInFlight(
     // the container is named in a way that is determined by the volume name:
     const name = containerName(volume);
     args.push("--name", name);
+    args.push("--hostname", "file-server");
+    args.push("--label", `volume=${volume}`);
 
     // mount the volume contents to the directory /root in the container.
     // Since user can write arbitrary files here, this is noexec, so they
@@ -234,7 +236,7 @@ export const start = reuseInFlight(
             return true;
           }
         } catch (err) {
-          console.log("got ports error", err);
+          logger.debug("WARNING: got ports error", err);
         }
         return false;
       },

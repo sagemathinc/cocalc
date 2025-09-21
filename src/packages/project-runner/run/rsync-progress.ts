@@ -6,20 +6,22 @@ import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-runner:run:rsync-progress");
 
 export default async function rsyncProgress({
-  pod,
+  name,
   args,
   progress,
 }: {
-  pod?: string;
+  // if name is given, run in the podman container with given
+  // name; otherwise runs rsync directly.
+  name?: string;
   args: string[];
   progress: (event) => void;
 }) {
   progress({ progress: 0 });
   const args1: string[] = [];
   let command;
-  if (pod) {
+  if (name) {
     command = "podman";
-    args1.push("exec", pod, "rsync");
+    args1.push("exec", name, "rsync");
   } else {
     command = "rsync";
   }
