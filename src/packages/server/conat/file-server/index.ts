@@ -222,8 +222,8 @@ export async function init(_fs?) {
     deleteSnapshot,
     updateSnapshots,
   });
-
-  const ssh = await initSshServer({ client });
+  const { path: scratch } = await getVolume("mutagen-scratch");
+  const ssh = await initSshServer({ client, scratch });
 
   servers = { file, ssh };
 }

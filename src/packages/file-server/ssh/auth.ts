@@ -25,13 +25,15 @@ export async function init({
   base_url,
   port,
   client,
+  scratch,
 }: {
   // as an extra level of security, it is recommended to
   // make the base_url a secure random string.
   base_url?: string;
   port?: number;
   client?: ConatClient;
-} = {}) {
+  scratch: string;
+}) {
   logger.debug("init");
   base_url ??= encodeURIComponent(
     await secureRandomString(SECRET_TOKEN_LENGTH),
@@ -72,6 +74,7 @@ export async function init({
       // is available locally:
       const { sshPort } = await container.start({
         volume,
+        scratch,
         publicKey: sshKey.publicKey,
         authorizedKeys,
         path,

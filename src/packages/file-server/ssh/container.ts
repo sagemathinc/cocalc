@@ -70,6 +70,12 @@ export const start = reuseInFlight(
     path,
     publicKey,
     authorizedKeys,
+    // path in which to put directory for mutagen's state, which includes
+    // it's potentially large staging area.  This should be on the same
+    // btrfs filesystem as projects for optimal performance.  It MUST BE SET, because
+    // without this when the user's quota is hit, the sync just restarts, causing an infinite
+    // loop wasting resources.  It should also obviously be big.
+    scratch,
     // TODO: think about limits once I've benchmarked
     pids = 100,
     // reality: mutagen potentially uses a lot of RAM of you have
@@ -83,12 +89,16 @@ export const start = reuseInFlight(
     path: string;
     publicKey: string;
     authorizedKeys: string;
+    scratch: string;
     memory?: string;
     cpu?: string;
     pids?: number;
     // can be nice to disable for dev and debugging
     lockdown?: boolean;
   }): Promise<{ sshPort: number }> => {
+    if (!scratch) {
+      throw Error("scratch directory must be set");
+    }
     let child = children[volume];
     if (child != null && child.exitCode == null) {
       // already running
@@ -170,12 +180,13 @@ export const start = reuseInFlight(
     //       "--mount",
     //       "type=tmpfs,tmpfs-size=2G,destination=/root/.mutagen-dev",
     //     );
-    const scratch = `/home/wstein/build/cocalc-lite/src/data/btrfs/mnt/scratch/${volume}`;
+    const dotMutagen = join(scratch, volume);
+    dotMutagens[volume] = dotMutagen;
     try {
-      await rm(scratch, { force: true, recursive: true });
+      await rm(dotMutagen, { force: true, recursive: true });
     } catch {}
-    await mkdir(scratch, { recursive: true });
-    args.push("-v", `${scratch}:/root/.mutagen-dev`);
+    await mkdir(dotMutagen, { recursive: true });
+    args.push("-v", `${dotMutagen}:/root/.mutagen-dev`);
     // Mutagen with agent pre-installed (alternatively: we could
     // build this into the image)
     const mutagen = await getMutagenAgent();
@@ -248,6 +259,8 @@ export async function getPorts({ volume }: { volume: string }) {
   return ports;
 }
 
+const dotMutagens: { [volume: string]: string } = {};
+
 export async function stop({ volume }: { volume: string }) {
   const child = children[volume];
   if (child == null) return;
@@ -260,6 +273,13 @@ export async function stop({ volume }: { volume: string }) {
     } catch (err) {
       logger.debug("stop", { volume, err });
     }
+  }
+  const dotMutagen = dotMutagens[volume];
+  if (dotMutagen) {
+    try {
+      await rm(dotMutagen, { force: true, recursive: true });
+    } catch {}
+    delete dotMutagens[volume];
   }
 }
 

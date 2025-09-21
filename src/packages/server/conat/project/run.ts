@@ -10,10 +10,7 @@ Then start this in nodejs
    require('@cocalc/project-runner/conat/project/run').init()
 */
 
-import {
-  init as initProjectRunner,
-  close as killAllProjects,
-} from "@cocalc/project-runner/run";
+import { init as initProjectRunner } from "@cocalc/project-runner/run";
 import { loadConatConfiguration } from "../configuration";
 import { conat } from "@cocalc/backend/conat";
 import getLogger from "@cocalc/backend/logger";
@@ -32,7 +29,6 @@ export async function init(count: number = 1) {
 }
 
 export function close() {
-  killAllProjects();
   for (const server of servers) {
     server.close();
   }
