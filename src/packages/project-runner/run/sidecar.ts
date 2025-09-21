@@ -15,11 +15,6 @@ all the mutagen commands in the main pod suddenly "just work", because
 they all use the daemon!  There's one caveat -- if you don't have ssh installed
 and you stop/start the daemon, then of course things break. Deal with it.
 
-FAILED APPROACH: I used dropbear to build a small static ssh client that was
-wrapped in a script to make it behave like openssh-client. This
-somewhat worked but was really flaky and it was quite difficult to get it
-to work.  It was really painful.  So I deleted that.
-
 COCALC-LITE?
 The same problem will come up for cocalc-lite, where we aren't running
 any containers.  But in that case, I think it is reasonable to require

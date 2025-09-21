@@ -52,8 +52,8 @@ export async function init({
   scratch: string;
 }) {
   logger.debug("init", { port });
-  // ensure sshpiper and dropbear are installed
-  await Promise.all([install("sshpiper"), install("dropbear")]);
+  // ensure sshpiper is installed
+  await install("sshpiper");
   const { url } = await initAuth({ client, scratch });
   const hostKey = join(secretsPath(), "host_key");
   await mkdir(dirname(hostKey), { recursive: true });
