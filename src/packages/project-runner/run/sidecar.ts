@@ -188,7 +188,32 @@ export async function startSidecar({
   await Promise.all([copyRootfs(), copyHome()]);
 
   return async () => {
-    bootlog({ project_id, type: "mutagen-init", progress: 0 });
+    bootlog({
+      project_id,
+      type: "mutagen-init",
+      progress: 0,
+      desc: "initializing file sync",
+    });
+
+    // It's critical to make this directory if it does not exist.  Otherwise,
+    // mutagen refuses to proceed with the error (by design):
+    //  <root>: unable to walk to transition root parent: unable to open synchronization
+    //  root parent directory: no such file or directory
+    await podman([
+      "exec",
+      sidecarPodName,
+      "ssh",
+      servers[0].name,
+      "mkdir",
+      "-p",
+      upperdir,
+    ]);
+    bootlog({
+      project_id,
+      type: "mutagen-init",
+      progress: 20,
+      desc: "created rootfs path",
+    });
 
     // NOTES:
     //   Do NOT use --max-staging-file-size=500M say, since
@@ -201,14 +226,19 @@ export async function startSidecar({
       "mutagen",
       "sync",
       "create",
-      "--name=upperdir",
+      "--name=rootfs",
       "--mode=one-way-replica",
       "--symlink-mode=posix-raw",
       "--compression=deflate",
       join("/root", upperdir),
       `${servers[0].name}:${upperdir}`,
     ]);
-    bootlog({ project_id, type: "mutagen-init", progress: 50 });
+    bootlog({
+      project_id,
+      type: "mutagen-init",
+      progress: 60,
+      desc: "initialized rootfs sync",
+    });
 
     await podman([
       "exec",
@@ -221,7 +251,7 @@ export async function startSidecar({
       // polling interval on the file-server side, where
       // reducing load matters the most:
       "--watch-polling-interval-beta=15",
-      "--name=root",
+      "--name=home",
       "--mode=two-way-resolved",
       "--symlink-mode=posix-raw",
       "--compression=deflate",
@@ -238,6 +268,11 @@ export async function startSidecar({
       "/root",
       `${servers[0].name}:/root`,
     ]);
-    bootlog({ project_id, type: "mutagen-init", progress: 100 });
+    bootlog({
+      project_id,
+      type: "mutagen-init",
+      progress: 100,
+      desc: "initialized home directory sync",
+    });
   };
 }
