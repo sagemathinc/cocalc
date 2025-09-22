@@ -95,7 +95,8 @@ export const SPEC = {
     desc: "sshpiper reverse proxy for sshd",
     path: join(binPath, "sshpiperd"),
     VERSION: "v1.5.0",
-    script: ({ VERSION }) => {
+    script: () => {
+      const VERSION = SPEC.sshpiper.VERSION;
       const a = arch() == "x64" ? "amd64" : arch();
       return `curl -L https://github.com/sagemathinc/sshpiper-binaries/releases/download/${VERSION}/sshpiper-${VERSION}-${platform()}-${a}.tar.xz | tar -xJ -C "${binPath}" --strip-components=1`;
     },
