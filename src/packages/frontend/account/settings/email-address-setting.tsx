@@ -3,15 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { FormattedMessage, useIntl } from "react-intl";
-import { alert_message } from "@cocalc/frontend/alerts";
 import { Button, Card, Input, Space } from "antd";
 import { useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { alert_message } from "@cocalc/frontend/alerts";
 import { ErrorDisplay, LabeledRow, Saving } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 interface Props {
   email_address?: string;
@@ -47,9 +49,9 @@ export const EmailAddressSetting = ({
   }
 
   async function save_editing(): Promise<void> {
-    if (password.length < 6) {
+    if (password.length < MIN_PASSWORD_LENGTH) {
       setState("edit");
-      setError("Password must be at least 6 characters long.");
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
       return;
     }
     setState("saving");

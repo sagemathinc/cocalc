@@ -9,8 +9,9 @@ import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import {
   CONTACT_TAG,
   CONTACT_THESE_TAGS,
@@ -137,7 +138,7 @@ function SignUp0({
     email &&
     isValidEmailAddress(email) &&
     password &&
-    password.length >= 6 &&
+    password.length >= MIN_PASSWORD_LENGTH &&
     firstName?.trim() &&
     lastName?.trim() &&
     !needsTags
@@ -422,8 +423,8 @@ function SignUp0({
             ? "Enter a valid email address above"
             : requiredSSO != null
             ? "You must sign up via SSO"
-            : !password || password.length < 6
-            ? "Choose password with at least 6 characters"
+            : !password || password.length < MIN_PASSWORD_LENGTH
+            ? `Choose password with at least ${MIN_PASSWORD_LENGTH} characters`
             : !firstName?.trim()
             ? "Enter your first name above"
             : !lastName?.trim()
