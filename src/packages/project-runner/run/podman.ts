@@ -138,6 +138,7 @@ export async function start({
     const env = await getEnvironment({
       project_id,
       env: config?.env,
+      //HOME: "/home/ubuntu",
       HOME: "/root",
       image,
     });
@@ -212,11 +213,12 @@ export async function start({
     });
     const args: string[] = [];
     args.push("run");
+    //args.push("--user", "1000:1000");
+    args.push("--user", "0:0");
     args.push("--detach");
     args.push("--label", `project_id=${project_id}`, "--label", `role=project`);
     args.push("--rm");
     args.push("--replace");
-    args.push("--user=0:0");
     args.push("--pod", pod);
 
     const cmd = "podman";
@@ -245,6 +247,14 @@ export async function start({
     logger.debug("start: launching container - ", `${cmd} ${args.join(" ")}`);
 
     await execFile(cmd, args);
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 90,
+      desc: "launched project container",
+    });
+
+    await initMutagen();
 
     bootlog({
       project_id,
@@ -252,11 +262,6 @@ export async function start({
       progress: 100,
       desc: "started!",
     });
-
-    // non-blocking on start since it's a background process
-    (async () => {
-      await initMutagen?.();
-    })();
   } catch (err) {
     bootlog({ project_id, type: "start", error: err });
     throw err;

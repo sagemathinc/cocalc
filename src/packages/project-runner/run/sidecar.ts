@@ -198,7 +198,7 @@ export async function startSidecar({
   return async () => {
     bootlog({
       project_id,
-      type: "mutagen-init",
+      type: "start-file-sync",
       progress: 0,
       desc: "initializing file sync",
     });
@@ -210,7 +210,7 @@ export async function startSidecar({
     await podman(["exec", name, "ssh", "file-server", "mkdir", "-p", upperdir]);
     bootlog({
       project_id,
-      type: "mutagen-init",
+      type: "start-file-sync",
       progress: 20,
       desc: "created rootfs path",
     });
@@ -237,7 +237,7 @@ export async function startSidecar({
     }
     bootlog({
       project_id,
-      type: "mutagen-init",
+      type: "start-file-sync",
       progress: 60,
       desc: "initialized rootfs sync",
     });
@@ -274,7 +274,7 @@ export async function startSidecar({
     }
     bootlog({
       project_id,
-      type: "mutagen-init",
+      type: "start-file-sync",
       progress: 100,
       desc: "initialized home directory sync",
     });
