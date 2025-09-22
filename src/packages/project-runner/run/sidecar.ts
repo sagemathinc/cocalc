@@ -26,7 +26,7 @@ how did they get to that server).
 import { build } from "@cocalc/backend/podman/build-container";
 import { podman } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
-import { rm } from "node:fs/promises";
+//import { rm } from "node:fs/promises";
 import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import rsyncProgress from "./rsync-progress";
@@ -84,8 +84,6 @@ export async function startSidecar({
 
   args2.push(sidecarImageName, "mutagen", "daemon", "run");
 
-  // always start with fresh .mutagen
-  await rm(join(home, ".mutagen-dev"), { force: true, recursive: true });
   bootlog({
     project_id,
     type: "start-sidecar",
@@ -101,8 +99,13 @@ export async function startSidecar({
     desc: "started pod",
   });
 
+  const knownMutagenSessions = await getMutagenSessions(name);
+
   const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
   const copyRootfs = async () => {
+    if (knownMutagenSessions.has("rootfs")) {
+      return;
+    }
     bootlog({
       project_id,
       type: "copy-rootfs",
@@ -142,6 +145,9 @@ export async function startSidecar({
   };
 
   const copyHome = async () => {
+    if (knownMutagenSessions.has("home")) {
+      return;
+    }
     bootlog({
       project_id,
       type: "copy-home",
@@ -214,19 +220,21 @@ export async function startSidecar({
     //   if you do then any time there is a file over that size,
     //   mutagen gets stuck in an infinite loop trying repeatedly
     //   to resend it!  NOT good.
-    await podman([
-      "exec",
-      name,
-      "mutagen",
-      "sync",
-      "create",
-      "--name=rootfs",
-      "--mode=one-way-replica",
-      "--symlink-mode=posix-raw",
-      "--compression=deflate",
-      join("/root", upperdir),
-      `file-server:/root/${upperdir}`,
-    ]);
+    if (!knownMutagenSessions.has("rootfs")) {
+      await podman([
+        "exec",
+        name,
+        "mutagen",
+        "sync",
+        "create",
+        "--name=rootfs",
+        "--mode=one-way-replica",
+        "--symlink-mode=posix-raw",
+        "--compression=deflate",
+        join("/root", upperdir),
+        `file-server:/root/${upperdir}`,
+      ]);
+    }
     bootlog({
       project_id,
       type: "mutagen-init",
@@ -234,34 +242,36 @@ export async function startSidecar({
       desc: "initialized rootfs sync",
     });
 
-    await podman([
-      "exec",
-      name,
-      "mutagen",
-      "sync",
-      "create",
-      // interval on project side (this is the default actually)
-      "--watch-polling-interval-alpha=10",
-      // polling interval on the file-server side, where
-      // reducing load matters the most:
-      "--watch-polling-interval-beta=15",
-      "--name=home",
-      "--mode=two-way-resolved",
-      "--symlink-mode=posix-raw",
-      "--compression=deflate",
-      "--ignore",
-      ".local/share/overlay/**",
-      "--ignore",
-      ".cache/cocalc/**",
-      "--ignore",
-      ".mutagen-dev/**",
-      "--ignore",
-      ".ssh/**",
-      "--ignore",
-      ".snapshots/**",
-      "/root",
-      `file-server:/root`,
-    ]);
+    if (!knownMutagenSessions.has("home")) {
+      await podman([
+        "exec",
+        name,
+        "mutagen",
+        "sync",
+        "create",
+        // interval on project side (this is the default actually)
+        "--watch-polling-interval-alpha=10",
+        // polling interval on the file-server side, where
+        // reducing load matters the most:
+        "--watch-polling-interval-beta=15",
+        "--name=home",
+        "--mode=two-way-safe",
+        "--symlink-mode=posix-raw",
+        "--compression=deflate",
+        "--ignore",
+        ".local/share/overlay/**",
+        "--ignore",
+        ".cache/cocalc/**",
+        "--ignore",
+        ".mutagen-dev/**",
+        "--ignore",
+        ".ssh/**",
+        "--ignore",
+        ".snapshots/**",
+        "/root",
+        `file-server:/root`,
+      ]);
+    }
     bootlog({
       project_id,
       type: "mutagen-init",
@@ -274,14 +284,14 @@ export async function startSidecar({
 export async function flushMutagen({ project_id }) {
   const name = sidecarContainerName(project_id);
 
-  // terminate mutagen
+  // flush mutagen sync so we do not loose any work
   bootlog({
     project_id,
     type: "mutagen",
     progress: 0,
     desc: "flushing sync",
   });
-  // run for up to an hour
+  // long timeout (60*60 SECONDS)
   await podman(["exec", name, "mutagen", "sync", "flush", "--all"], 60 * 60);
   bootlog({
     project_id,
@@ -289,4 +299,18 @@ export async function flushMutagen({ project_id }) {
     progress: 100,
     desc: "sync flushed",
   });
+}
+
+async function getMutagenSessions(name: string) {
+  const { stdout } = await podman([
+    "exec",
+    name,
+    "mutagen",
+    "sync",
+    "list",
+    "--template",
+    "{{json .}}",
+  ]);
+  const v = JSON.parse(stdout);
+  return new Set(v.filter((item) => item.name).map((item) => item.name));
 }
