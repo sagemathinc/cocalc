@@ -62,7 +62,7 @@ export default async function rsyncProgress({
   if (child.exitCode) {
     logger.debug("rsyncProgress errors", trunc_middle(stderr));
     progress({ error: `there were errors -- ${trunc_middle(stderr)}` });
-    throw Error(`error syncing home directory -- ${trunc_middle(stderr)}`);
+    throw Error(`error syncing files -- ${trunc_middle(stderr)}`);
   } else {
     progress({ progress: 100 });
   }

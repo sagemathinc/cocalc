@@ -53,7 +53,6 @@ export async function startSidecar({
   env,
   pod,
   home,
-  servers,
 }) {
   bootlog({ project_id, type: "start-sidecar", progress: 0 });
   // sidecar: refactor
@@ -102,16 +101,6 @@ export async function startSidecar({
     desc: "started pod",
   });
 
-  if (servers.length == 0) {
-    // shouldn't happen
-    bootlog({
-      project_id,
-      type: "start-sidecar",
-      progress: 100,
-    });
-    return;
-  }
-
   const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
   const copyRootfs = async () => {
     bootlog({
@@ -124,6 +113,7 @@ export async function startSidecar({
       name,
       args: [
         "-axH",
+        "--update",
         // using aes128 seems a LOT faster/better given the hop through sshpiperd
         "-e",
         "ssh -o Compression=no -c aes128-gcm@openssh.com",
@@ -131,7 +121,7 @@ export async function startSidecar({
         "--compress-choice=lz4",
         "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
         "--relative", // so don't have to create the directories locally
-        `${servers[0].name}:${upperdir}/`,
+        `file-server:${upperdir}/`,
         "/root/",
       ],
       progress: (event) => {
@@ -162,6 +152,7 @@ export async function startSidecar({
       name,
       args: [
         "-axH",
+        "--sparse",
         "-e",
         "ssh -o Compression=no -c aes128-gcm@openssh.com",
         "--compress",
@@ -176,7 +167,7 @@ export async function startSidecar({
         ".ssh/**",
         "--exclude",
         ".snapshots/**",
-        `${servers[0].name}:/root/`,
+        `file-server:/root/`,
         "/root/",
       ],
       progress: (event) => {
@@ -210,15 +201,7 @@ export async function startSidecar({
     // mutagen refuses to proceed with the error (by design):
     //  <root>: unable to walk to transition root parent: unable to open synchronization
     //  root parent directory: no such file or directory
-    await podman([
-      "exec",
-      name,
-      "ssh",
-      servers[0].name,
-      "mkdir",
-      "-p",
-      upperdir,
-    ]);
+    await podman(["exec", name, "ssh", "file-server", "mkdir", "-p", upperdir]);
     bootlog({
       project_id,
       type: "mutagen-init",
@@ -242,7 +225,7 @@ export async function startSidecar({
       "--symlink-mode=posix-raw",
       "--compression=deflate",
       join("/root", upperdir),
-      `${servers[0].name}:${upperdir}`,
+      `file-server:/root/${upperdir}`,
     ]);
     bootlog({
       project_id,
@@ -277,7 +260,7 @@ export async function startSidecar({
       "--ignore",
       ".snapshots/**",
       "/root",
-      `${servers[0].name}:/root`,
+      `file-server:/root`,
     ]);
     bootlog({
       project_id,
@@ -286,4 +269,24 @@ export async function startSidecar({
       desc: "initialized home directory sync",
     });
   };
+}
+
+export async function flushMutagen({ project_id }) {
+  const name = sidecarContainerName(project_id);
+
+  // terminate mutagen
+  bootlog({
+    project_id,
+    type: "mutagen",
+    progress: 0,
+    desc: "flushing sync",
+  });
+  // run for up to an hour
+  await podman(["exec", name, "mutagen", "sync", "flush", "--all"], 60 * 60);
+  bootlog({
+    project_id,
+    type: "mutagen",
+    progress: 100,
+    desc: "sync flushed",
+  });
 }

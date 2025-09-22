@@ -36,6 +36,7 @@ import {
   init as initSidecar,
   startSidecar,
   sidecarContainerName,
+  flushMutagen,
 } from "./sidecar";
 import {
   type SshServersFunction,
@@ -46,8 +47,6 @@ import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:podman");
-
-const GRACE_PERIOD = 3000;
 
 // projects we are definitely starting right now
 const starting = new Set<string>();
@@ -156,7 +155,6 @@ export async function start({
       mounts,
       env,
       pod,
-      servers,
     });
     bootlog({
       project_id,
@@ -294,38 +292,65 @@ export async function stop({
       type: "stop",
       progress: 0,
     });
+
     const v: any[] = [];
-    v.push(
-      podman([
-        "pod",
-        "rm",
-        "-f",
-        "-t",
-        force ? "0" : `${GRACE_PERIOD / 1000}`,
-        projectPodName(project_id),
-      ]),
-    );
-    v.push(
-      podman([
-        "rm",
-        "-f",
-        "-t",
-        force ? "0" : `${GRACE_PERIOD / 1000}`,
-        projectContainerName(project_id),
-      ]),
-    );
-    v.push(
-      podman([
-        "rm",
-        "-f",
-        "-t",
-        force ? "0" : `${GRACE_PERIOD / 1000}`,
-        sidecarContainerName(project_id),
-      ]),
-    );
-    v.push(rootFilesystem.unmount(project_id));
+    let progress = 50;
+    let errors: string[] = [];
+    const f = async (desc, promise) => {
+      try {
+        await promise;
+      } catch (err) {
+        errors.push(`${err}`);
+        throw err;
+      }
+      progress += 10;
+      bootlog({
+        project_id,
+        type: "stop",
+        progress,
+        desc,
+      });
+    };
+
     try {
+      if (!force) {
+        // graceful shutdown so flush first -- this could take
+        // arbitrarily long in theory, or fail
+        await flushMutagen({ project_id });
+        bootlog({
+          project_id,
+          type: "stop",
+          progress: 50,
+          desc: "saved files",
+        });
+      }
+
+      // now do all the removing/unmounting in parallel:
+      v.push(
+        f(
+          "deleted pod",
+          podman(["pod", "rm", "-f", "-t", "0", projectPodName(project_id)]),
+        ),
+      );
+      v.push(
+        f(
+          "stoped project container",
+          podman(["rm", "-f", "-t", "0", projectContainerName(project_id)]),
+        ),
+      );
+      v.push(
+        f(
+          "stopped sidecar container",
+          podman(["rm", "-f", "-t", "0", sidecarContainerName(project_id)]),
+        ),
+      );
+      v.push(
+        f("unmounted root filesystem", rootFilesystem.unmount(project_id)),
+      );
       await Promise.all(v);
+      if (errors.length > 0) {
+        throw Error(errors.join("; "));
+      }
       bootlog({
         project_id,
         type: "stop",
