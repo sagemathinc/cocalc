@@ -89,6 +89,10 @@ export const Build: React.FC<Props> = React.memo((props) => {
     margin: "0",
   } as const;
 
+  function renderErrorHeader(errorIsInformational: boolean): string {
+    return errorIsInformational ? "Output messages" : "Error output";
+  }
+
   function render_tab_item(
     title: string,
     stdout: string,
@@ -175,13 +179,15 @@ export const Build: React.FC<Props> = React.memo((props) => {
                     fontSize: `${font_size * 0.9}px`,
                   }}
                 >
-                  {stderrIsInformational ? "Output messages" : "Error output"}
+                  {renderErrorHeader(stderrIsInformational)}
                 </div>
                 <div
                   style={{
                     flex: 1,
                     overflowY: "auto",
-                    background: error ? COLORS.ANTD_BG_RED_L : COLORS.GRAY_LLL,
+                    background: stderrIsInformational
+                      ? COLORS.GRAY_LLL
+                      : COLORS.ANTD_BG_RED_L,
                     padding: "5px",
                     borderRadius: "3px",
                   }}
@@ -296,6 +302,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     let isLongRunning = false;
     let stdoutTail = "";
     let stderrTail = "";
+    let errorIsInformational = false;
 
     build_logs.forEach((infoI, key) => {
       const info: ExecuteCodeOutput = infoI?.toJS();
@@ -304,13 +311,16 @@ export const Build: React.FC<Props> = React.memo((props) => {
       const start = info.start;
       stdoutTail = tail(info.stdout ?? "", 100);
       stderrTail = tail(info.stderr ?? "", 100);
-      // Update state for auto-scrolling effect - combine for backward compatibility
+      // Update state for auto-scrolling effect
       const combinedLog =
         stdoutTail +
-        (stderrTail ? "\n--- Error Output ---\n" + stderrTail : "");
+        (stderrTail
+          ? `\n--- ${renderErrorHeader(!info.exit_code)} ---\n` + stderrTail
+          : "");
       if (combinedLog !== shownLog) {
         setShownLog(combinedLog);
       }
+      errorIsInformational = !info.exit_code;
       isLongRunning ||=
         typeof start === "number" &&
         webapp_client.server_time() - start > WARN_LONG_RUNNING_S * 1000;
@@ -451,7 +461,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                     flexShrink: 0,
                   }}
                 >
-                  Error output (stderr)
+                  {renderErrorHeader(errorIsInformational)} (stderr)
                 </div>
                 <div
                   ref={stderrContainerRef}
