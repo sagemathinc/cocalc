@@ -7,9 +7,7 @@
 Functionality that mainly involves working with a specific project.
 */
 
-import { throttle } from "lodash";
 import { join } from "path";
-
 import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
 import { projectSubject, EXEC_STREAM_SERVICE } from "@cocalc/conat/names";
@@ -44,13 +42,11 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { WebappClient } from "./client";
 import { throttle } from "lodash";
-import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
-import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 import { type ProjectApi } from "@cocalc/conat/project/api";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
-import { ExecStream } from "./types";
 
 const TOUCH_THROTTLE = 30_000;
+import { ExecStream } from "./types";
 
 export class ProjectClient {
   private client: WebappClient;

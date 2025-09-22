@@ -111,9 +111,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { log_opened_time } from "@cocalc/frontend/project/open-file";
-import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
-import { alert_message } from "@cocalc/frontend/alerts";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { lite } from "@cocalc/frontend/lite";
 

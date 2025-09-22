@@ -161,7 +161,7 @@ export class ProcessStats {
   }
 
   // this is where we gather information about all running processes
-  private lastWarn : number = 0;
+  private lastWarn: number = 0;
   public async processes(
     timestamp?: number,
   ): Promise<{ procs: Processes; uptime: number; boottime: Date }> {
@@ -180,10 +180,11 @@ export class ProcessStats {
           dbg(`process ${pid} likely vanished – could happen – ${err}`);
       }
       // we avoid processing and sending too much data
-      if (n > this.procLimit) { // only log this once in while, otherwise it totally spams the logs
-        if(this.lastWarn <= Date.now() - MIN_WARN_INTERVAL) {
+      if (n > this.procLimit) {
+        // only log this once in while, otherwise it totally spams the logs
+        if (this.lastWarn <= Date.now() - MIN_WARN_INTERVAL) {
           this.lastWarn = Date.now();
-          this.dbg(`too many processes – limit of ${this.procLimit} reached!`);
+          dbg(`too many processes – limit of ${this.procLimit} reached!`);
         }
         break;
       } else {
