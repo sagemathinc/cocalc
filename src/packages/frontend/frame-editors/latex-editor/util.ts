@@ -5,18 +5,15 @@
 
 // data and functions specific to the latex editor.
 
-import { Modal } from "antd";
-
-import { redux } from "@cocalc/frontend/app-framework";
-import { ExecOutput } from "@cocalc/frontend/frame-editors/generic/client";
+import {
+  ExecOutput,
+  showProjectRestartDialog,
+} from "@cocalc/frontend/frame-editors/generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
-
-// Track which projects have already shown the restart dialog
-const shownRestartDialogs = new Set<string>();
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562
@@ -186,36 +183,5 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
         );
       }
     });
-  });
-}
-
-function showProjectRestartDialog(project_id: string): void {
-  // Only show the dialog once per project
-  if (shownRestartDialogs.has(project_id)) {
-    return;
-  }
-
-  shownRestartDialogs.add(project_id);
-
-  const actions = redux.getActions("projects");
-
-  Modal.confirm({
-    title: "Project Needs Update",
-    content: `This project needs to be restarted to support the new streaming compilation feature.
-    Your work is automatically saved and will not be lost.`,
-    okText: "Restart Project",
-    cancelText: "Not Now",
-    width: 500,
-    onOk: () => {
-      if (actions) {
-        actions.restart_project(project_id);
-      }
-      // Clear the tracking when user clicks OK
-      shownRestartDialogs.delete(project_id);
-    },
-    onCancel: () => {
-      // Clear the tracking when user dismisses the dialog
-      shownRestartDialogs.delete(project_id);
-    },
   });
 }

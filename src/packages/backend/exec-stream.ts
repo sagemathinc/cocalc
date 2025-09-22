@@ -180,7 +180,6 @@ export async function executeStream(
     }
 
     // Stats monitoring is now handled by execute-code.ts via streamCB
-    // No need for duplicate monitoring here
   } catch (err) {
     stream({ error: `${err}` });
     stream(null); // End the stream
