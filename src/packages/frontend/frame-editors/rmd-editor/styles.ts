@@ -14,6 +14,7 @@ export const STYLE_HEADER: React.CSSProperties = {
   margin: "1rem 1rem 0 1rem",
   borderBottom: `1px solid ${COLORS.GRAY}`,
   color: COLORS.GRAY,
+  fontSize: "inherit",
 } as const;
 
 export const STYLE_OUTER: React.CSSProperties = {
@@ -24,7 +25,8 @@ export const STYLE_OUTER: React.CSSProperties = {
 } as const;
 
 export const STYLE_LOG: React.CSSProperties = {
-  flex: "1 1 auto",
+  alignSelf: "flex-start",
+  width: "100%",
 } as const;
 
 export const STYLE_PRE: React.CSSProperties = {
@@ -33,6 +35,7 @@ export const STYLE_PRE: React.CSSProperties = {
   borderRadius: "0",
   border: "0",
   backgroundColor: "inherit",
+  fontSize: "inherit",
 } as const;
 
 export const STYLE_ERR: React.CSSProperties = {

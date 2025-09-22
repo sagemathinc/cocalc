@@ -14,6 +14,7 @@ import { init as initJupyter } from "./jupyter";
 import { init as initTerminalServer } from "./terminal-server";
 import { getIdentity } from "./connection";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { init as initExecStream } from "@cocalc/project/exec-stream";
 
 const logger = getLogger("project:conat:index");
 
@@ -37,4 +38,5 @@ export default async function init(opts?: {
   await initWrite(opts);
   initProjectStatus(opts);
   initUsageInfo(opts);
+  initExecStream();
 }

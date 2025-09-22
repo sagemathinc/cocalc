@@ -19,6 +19,8 @@ import {
 import { getLogger } from "./logger";
 import { envToInt } from "./misc/env-to-number";
 
+const dbg = getLogger("process-stats").debug;
+
 const exec = promisify(cp_exec);
 
 export const MIN_WARN_INTERVAL = 30_000;
@@ -33,24 +35,30 @@ export const MIN_WARN_INTERVAL = 30_000;
 // be on the safe side to avoid processing too much data.
 const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 1024);
 
-interface ProcessStatsOpts {
-  procLimit?: number;
-  testing?: boolean;
-  dbg?: Function;
-}
-
 export class ProcessStats {
-  private readonly testing: boolean;
+  private static instance: ProcessStats;
+
   private readonly procLimit: number;
-  private readonly dbg: Function;
+
+  private testing: boolean;
   private ticks: number;
   private pagesize: number;
   private last?: { timestamp: number; processes: Processes };
 
-  constructor(opts?: ProcessStatsOpts) {
-    this.procLimit = opts?.procLimit ?? LIMIT;
-    this.dbg = opts?.dbg ?? getLogger("process-stats").debug;
+  private constructor() {
+    this.procLimit = LIMIT;
     this.init();
+  }
+
+  public static getInstance(): ProcessStats {
+    if (!ProcessStats.instance) {
+      ProcessStats.instance = new ProcessStats();
+    }
+    return ProcessStats.instance;
+  }
+
+  public setTesting(testing: boolean): void {
+    this.testing = testing;
   }
 
   // this grabs some kernel configuration values we need. they won't change
@@ -169,7 +177,7 @@ export class ProcessStats {
         procs[proc.pid] = proc;
       } catch (err) {
         if (this.testing)
-          this.dbg(`process ${pid} likely vanished – could happen – ${err}`);
+          dbg(`process ${pid} likely vanished – could happen – ${err}`);
       }
       // we avoid processing and sending too much data
       if (n > this.procLimit) { // only log this once in while, otherwise it totally spams the logs
@@ -185,4 +193,40 @@ export class ProcessStats {
     this.last = { timestamp, processes: procs };
     return { procs, uptime, boottime };
   }
+}
+
+export interface ProcessTreeStats {
+  rss: number;
+  cpu_secs: number;
+  cpu_pct: number;
+}
+
+/**
+ * Recursively sum process statistics for a process and all its children.
+ * This function aggregates CPU time, memory usage, and CPU percentage
+ * for a process tree starting from the given PID.
+ */
+export function sumChildren(
+  procs: Processes,
+  children: { [pid: number]: number[] },
+  pid: number,
+): ProcessTreeStats | null {
+  const proc = procs[`${pid}`];
+  if (proc == null) {
+    return null;
+  }
+
+  let rss = proc.stat.mem.rss;
+  let cpu_secs = proc.cpu.secs;
+  let cpu_pct = proc.cpu.pct;
+
+  for (const ch of children[pid] ?? []) {
+    const sc = sumChildren(procs, children, ch);
+    if (sc == null) return null;
+    rss += sc.rss;
+    cpu_secs += sc.cpu_secs;
+    cpu_pct += sc.cpu_pct;
+  }
+
+  return { rss, cpu_secs, cpu_pct };
 }

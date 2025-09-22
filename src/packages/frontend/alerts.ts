@@ -42,7 +42,9 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     block: undefined,
     timeout: undefined, // time in seconds
   });
+
   if (opts.type == null) throw Error("bug"); // make typescript happy.
+
   if (opts.timeout == null) {
     let t: number | undefined = default_timeout[opts.type];
     if (t == null) {
@@ -52,7 +54,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   }
 
   // Don't show the exact same alert message more than once per 5s.
-  // This prevents a screenful of identical useless messages, which
+  // This prevents a screen full of identical useless messages, which
   // is just annoying and useless.
   if (opts.message instanceof Error) {
     opts.message = `${opts.message}`;
@@ -70,6 +72,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     alert(`BUG: Unknown alert_message type ${opts.type}.`);
     return;
   }
+
   f({
     message: opts.title != null ? opts.title : "",
     description: stripExcessiveError(opts.message),
