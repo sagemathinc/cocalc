@@ -19,10 +19,16 @@ With build controls at the top (build, force build, clean, etc.)
 import type { TabsProps } from "antd";
 import { Spin, Tabs } from "antd";
 import { useCallback, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 
-import { React, useRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { React, useEffect, useRedux } from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  TableOfContents,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { editor } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
 import { Build } from "./build";
@@ -47,7 +53,7 @@ interface OutputProps {
   status: string;
 }
 
-type TabType = "pdf" | "build" | "errors";
+type TabType = "pdf" | "contents" | "build" | "errors";
 
 export function Output(props: OutputProps) {
   const {
@@ -64,6 +70,8 @@ export function Output(props: OutputProps) {
     is_visible,
     status,
   } = props;
+
+  const intl = useIntl();
 
   // Get stored tab from local view state, default to "pdf"
   const storedTab =
@@ -103,6 +111,22 @@ export function Output(props: OutputProps) {
   React.useEffect(() => {
     setDisableViewportTracking(syncInProgress);
   }, [syncInProgress]);
+
+  // Table of contents data
+  const contents: TableOfContentsEntryList | undefined = useRedux([
+    name,
+    "contents",
+  ]);
+
+  // Update table of contents when component mounts
+  useEffect(() => {
+    // We have to do this update
+    // in the NEXT render loop so that the contents useRedux thing above
+    // immediately fires again causing a re-render.  If we don't do this,
+    // the first change doesn't get caught and it seems like the contents
+    // takes a while to load.
+    setTimeout(() => actions.updateTableOfContents(true));
+  }, []);
 
   // Also disable viewport tracking during PDF scrolling operations
   const scrollIntoView = useRedux([name, "scroll_pdf_into_view"]);
@@ -162,8 +186,8 @@ export function Output(props: OutputProps) {
   const hasErrorsOrWarnings = useMemo(() => {
     if (!build_logs) return false;
 
-    const tools = ["latex", "sagetex", "knitr", "pythontex"];
-    const groups = ["errors", "warnings", "typesetting"];
+    const tools = ["latex", "sagetex", "knitr", "pythontex"] as const;
+    const groups = ["errors", "warnings", "typesetting"] as const;
 
     for (const tool of tools) {
       if (tool === "knitr" && !knitr) continue;
@@ -183,7 +207,10 @@ export function Output(props: OutputProps) {
     let newTab: TabType | null = null;
     if (hasErrorsOrWarnings && activeTab !== "errors") {
       newTab = "errors";
-    } else if (!hasErrorsOrWarnings && activeTab !== "pdf") {
+    } else if (
+      !hasErrorsOrWarnings &&
+      !["pdf", "contents"].includes(activeTab)
+    ) {
       newTab = "pdf";
     }
 
@@ -255,11 +282,29 @@ export function Output(props: OutputProps) {
         ),
       },
       {
+        key: "contents",
+        label: (
+          <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+            <Icon name="align-right" />
+            {intl.formatMessage(editor.table_of_contents_short)}
+          </span>
+        ),
+        children: (
+          <div className="smc-vfill">
+            <TableOfContents
+              contents={contents}
+              fontSize={font_size}
+              scrollTo={actions.scrollToHeading.bind(actions)}
+            />
+          </div>
+        ),
+      },
+      {
         key: "build",
         label: (
           <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
             <Icon name="terminal" />
-            Build Log
+            {intl.formatMessage(editor.build_control_and_log_title_short)}
             {hasRunningJobs && <Spin size="small" />}
           </span>
         ),
@@ -280,7 +325,7 @@ export function Output(props: OutputProps) {
         label: (
           <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
             <Icon name="bug" />
-            Errors & Warnings
+            {intl.formatMessage(editor.errors_and_warnings_title_short)}
             {hasErrorsOrWarnings && (
               <Icon
                 name="exclamation-circle"

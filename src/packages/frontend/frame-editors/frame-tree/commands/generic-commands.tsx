@@ -30,6 +30,33 @@ import { filename_extension } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
 import { SEARCH_COMMANDS } from "./const";
 
+// Predefined zoom percentages for consistent zoom options across the application
+export const ZOOM_PERCENTAGES = [50, 85, 100, 115, 125, 150, 200, 400] as const;
+
+// Export zoom-related messages for use in other components
+export const ZOOM_MESSAGES = {
+  zoomPageWidth: {
+    title: defineMessage({
+      id: "command.generic.zoom_page_width.title",
+      defaultMessage: "Zoom to page width",
+    }),
+    label: defineMessage({
+      id: "command.generic.zoom_page_width.label",
+      defaultMessage: "Zoom to Width",
+    }),
+  },
+  zoomPageHeight: {
+    title: defineMessage({
+      id: "command.generic.zoom_page_height.title",
+      defaultMessage: "Zoom to page height",
+    }),
+    label: defineMessage({
+      id: "command.generic.zoom_page_height.label",
+      defaultMessage: "Zoom to Height",
+    }),
+  },
+};
+
 addCommands({
   "split-row": {
     group: "frame-control",
@@ -254,27 +281,15 @@ addCommands({
   zoom_page_width: {
     pos: 3,
     group: "zoom",
-    title: defineMessage({
-      id: "command.generic.zoom_page_width.title",
-      defaultMessage: "Zoom to page width",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_width.label",
-      defaultMessage: "Zoom to Width",
-    }),
+    title: ZOOM_MESSAGES.zoomPageWidth.title,
+    label: ZOOM_MESSAGES.zoomPageWidth.label,
     icon: "ColumnWidthOutlined",
   },
   zoom_page_height: {
     pos: 4,
     group: "zoom",
-    title: defineMessage({
-      id: "command.generic.zoom_page_height.title",
-      defaultMessage: "Zoom to page height",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_height.label",
-      defaultMessage: "Zoom to Height",
-    }),
+    title: ZOOM_MESSAGES.zoomPageHeight.title,
+    label: ZOOM_MESSAGES.zoomPageHeight.label,
     icon: "ColumnHeightOutlined",
   },
   set_zoom: {
@@ -293,7 +308,7 @@ addCommands({
     ),
     onClick: () => {},
     icon: "percentage",
-    children: [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
+    children: ZOOM_PERCENTAGES.map((zoom) => {
       return {
         stayOpenOnClick: true,
         label: `${zoom}%`,

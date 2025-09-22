@@ -1727,9 +1727,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     if (
       !force &&
-      !this.get_matching_frame({ type: "latex_table_of_contents" })
+      !this.get_matching_frame({ type: "latex_table_of_contents" }) &&
+      !this.get_matching_frame({ type: "output" })
     ) {
-      // There is no table of contents frame so don't update that info.
+      // There is no table of contents frame or output frame so don't update that info.
       return;
     }
     const contents = fromJS(

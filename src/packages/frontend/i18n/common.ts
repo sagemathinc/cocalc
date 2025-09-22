@@ -307,6 +307,24 @@ export const labels = defineMessages({
     id: "labels.zoom_out",
     defaultMessage: "Zoom out",
   },
+  zoom_in_short: {
+    id: "labels.zoom_in_short",
+    defaultMessage: "In",
+    description: "Short label on a button for zooming in",
+  },
+  zoom_out_short: {
+    id: "labels.zoom_out_short",
+    defaultMessage: "Out",
+    description: "Short label on a button for zooming out",
+  },
+  width: {
+    id: "labels.width",
+    defaultMessage: "Width",
+  },
+  height: {
+    id: "labels.height",
+    defaultMessage: "Height",
+  },
   reload: {
     id: "labels.reload",
     defaultMessage: "Reload",

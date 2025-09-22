@@ -16,26 +16,29 @@ import { defineMessage, useIntl } from "react-intl";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COMMANDS } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import {
+  ZOOM_MESSAGES,
+  ZOOM_PERCENTAGES,
+} from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
 import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
 
 const CONTROL_STYLE = {
-  padding: "8px 16px",
+  padding: "5px 10px",
   borderBottom: `1px solid ${COLORS.GRAY_L}`,
   background: COLORS.GRAY_LL,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   flexWrap: "wrap" as const,
-  gap: "12px",
+  gap: "10px",
 } as const;
 
 const CONTROL_PAGE_STYLE = {
   display: "flex",
   alignItems: "center",
-  gap: "8px",
+  gap: "5px",
   fontSize: "13px",
   color: COLORS.GRAY_M,
 } as const;
@@ -158,6 +161,16 @@ export function PDFControls({
     actions.zoom_page_height(id);
   };
 
+  const handleZoomPercentage = (percentage: number) => {
+    // Convert percentage to font size (assuming 14 is the default font size at 100%)
+    const defaultFontSize = 14;
+    const newFontSize = Math.round((defaultFontSize * percentage) / 100);
+    actions.set_font_size(id, newFontSize);
+  };
+
+  // Calculate current zoom percentage based on font size
+  const currentZoomPercentage = Math.round((currentFontSize * 100) / 14);
+
   const flipPage = (direction: 1 | -1) => {
     const newPage =
       direction === 1
@@ -232,10 +245,60 @@ export function PDFControls({
     },
   ];
 
+  const zoomMenuItems: MenuProps["items"] = [
+    {
+      key: "custom-zoom",
+      label: (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <InputNumber
+            size="small"
+            style={{ width: "80px" }}
+            value={currentZoomPercentage}
+            min={10}
+            max={500}
+            formatter={(value) => `${value}%`}
+            parser={(value) => value?.replace("%", "") as any}
+            onChange={(value) => {
+              if (value) {
+                handleZoomPercentage(value);
+              }
+            }}
+          />
+        </div>
+      ),
+      onClick: (e) => {
+        e.domEvent.stopPropagation();
+      },
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "fit-width",
+      label: intl.formatMessage(ZOOM_MESSAGES.zoomPageWidth.title),
+      icon: <Icon name="column-width" />,
+      onClick: handleZoomWidth,
+    },
+    {
+      key: "fit-height",
+      label: intl.formatMessage(ZOOM_MESSAGES.zoomPageHeight.title),
+      icon: <Icon name="column-height" />,
+      onClick: handleZoomHeight,
+    },
+    {
+      type: "divider",
+    },
+    ...ZOOM_PERCENTAGES.map((percentage) => ({
+      key: `zoom-${percentage}`,
+      label: `${percentage}%`,
+      onClick: () => handleZoomPercentage(percentage),
+    })),
+  ];
+
   return (
     <div style={CONTROL_STYLE}>
       {/* Left side controls */}
-      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
         {/* Build Controls */}
         <Dropdown.Button
           type="primary"
@@ -261,51 +324,6 @@ export function PDFControls({
             <span style={{ fontSize: "13px" }}>Sync</span>
           </div>
         </Tooltip>
-
-        {/* Zoom Controls */}
-        <Space.Compact>
-          <Tooltip title={intl.formatMessage(labels.zoom_in)}>
-            <Button
-              size="small"
-              icon={<Icon name="search-plus" />}
-              onClick={handleZoomIn}
-            >
-              {intl.formatMessage(labels.zoom_in)}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title={intl.formatMessage(labels.zoom_out)}>
-            <Button
-              size="small"
-              icon={<Icon name="search-minus" />}
-              onClick={handleZoomOut}
-            >
-              {intl.formatMessage(labels.zoom_out)}
-            </Button>
-          </Tooltip>
-        </Space.Compact>
-
-        <Space.Compact>
-          <Tooltip title={intl.formatMessage(COMMANDS.zoom_page_width.title)}>
-            <Button
-              size="small"
-              icon={<Icon name="column-width" />}
-              onClick={handleZoomWidth}
-            >
-              {intl.formatMessage(COMMANDS.zoom_page_width.label)}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title={intl.formatMessage(COMMANDS.zoom_page_height.title)}>
-            <Button
-              size="small"
-              icon={<Icon name="column-height" />}
-              onClick={handleZoomHeight}
-            >
-              {intl.formatMessage(COMMANDS.zoom_page_height.label)}
-            </Button>
-          </Tooltip>
-        </Space.Compact>
       </div>
 
       {/* Right side page navigation */}
@@ -365,6 +383,42 @@ export function PDFControls({
           </Space.Compact>
         </div>
       )}
+
+      {/* Zoom Controls - Overleaf Style */}
+      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <Space.Compact>
+          <Tooltip title={intl.formatMessage(labels.zoom_in)}>
+            <Button
+              size="small"
+              icon={<Icon name="search-plus" />}
+              onClick={handleZoomIn}
+            >
+              {intl.formatMessage(labels.zoom_in_short)}
+            </Button>
+          </Tooltip>
+
+          <Tooltip title={intl.formatMessage(labels.zoom_out)}>
+            <Button
+              size="small"
+              icon={<Icon name="search-minus" />}
+              onClick={handleZoomOut}
+            >
+              {intl.formatMessage(labels.zoom_out_short)}
+            </Button>
+          </Tooltip>
+
+          <Dropdown
+            menu={{ items: zoomMenuItems }}
+            trigger={["click"]}
+            placement="bottomRight"
+          >
+            <Button size="small">
+              {currentZoomPercentage}%
+              <Icon name="caret-down" />
+            </Button>
+          </Dropdown>
+        </Space.Compact>
+      </div>
     </div>
   );
 }
