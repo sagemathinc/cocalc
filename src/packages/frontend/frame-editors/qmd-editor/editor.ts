@@ -125,8 +125,20 @@ const build: EditorDescription = {
   name: "Build Log",
   icon: "gears",
   component: BuildLog,
-  commands: set(["build", "decrease_font_size", "increase_font_size"]),
-  buttons: set(["build"]),
+  commands: set([
+    "build",
+    "force_build",
+    "stop_build",
+    "decrease_font_size",
+    "increase_font_size",
+  ]),
+  buttons: set([
+    "build",
+    "force_build",
+    "stop_build",
+    "decrease_font_size",
+    "increase_font_size",
+  ]),
 } as const;
 
 const EDITOR_SPEC = {
