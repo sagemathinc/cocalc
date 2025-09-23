@@ -12,7 +12,7 @@ export function getCoCalcMounts() {
   // Also, we assume that there is "node" here, e.g., this could be a symlink to
   // the cocalc-project-runner binary, or it could just be the normal node binary.
   nodePath = join(COCALC_BIN, "node");
-  
+
   // IMPORTANT: take care not to put the binary next to sensitive info due
   // to mapping in process.execPath!
   return {
@@ -20,4 +20,18 @@ export function getCoCalcMounts() {
     [join(dirname(root), "src")]: COCALC_SRC,
     [dirname(process.execPath)]: COCALC_BIN,
   };
+}
+
+export function mountArg({
+  source,
+  target,
+  type = "bind",
+  options = "rw",
+}: {
+  source: string;
+  target: string;
+  type?: "bind";
+  options?: "ro" | "rw";
+}) {
+  return `--mount=type=${type},source=${source},target=${target},${options}`;
 }

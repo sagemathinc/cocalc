@@ -97,12 +97,18 @@ function getMergedPath(project_id) {
   return join(PROJECT_ROOTS, project_id);
 }
 
-export function getPaths({ home, image, project_id }) {
+export function getPaths({ home, image, project_id }): {
+  lowerdir: string;
+  upperdir: string;
+  workdir: string;
+  merged: string;
+} {
   const userOverlays = join(home, PROJECT_IMAGE_PATH, image);
   const upperdir = join(userOverlays, "upperdir");
   const workdir = join(userOverlays, "workdir");
   const merged = getMergedPath(project_id);
-  return { upperdir, workdir, merged };
+  const lowerdir = join(IMAGE_CACHE, image);
+  return { lowerdir, upperdir, workdir, merged };
 }
 
 export async function mount({
@@ -146,7 +152,7 @@ export async function unmount(project_id: string) {
   });
 }
 
-function escape(path) {
+export function escape(path) {
   return replace_all(path, ":", `\\:`);
 }
 

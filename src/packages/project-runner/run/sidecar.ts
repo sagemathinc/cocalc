@@ -29,7 +29,9 @@ import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 //import { rm } from "node:fs/promises";
 import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
+import { getPaths as getOverlayPaths } from "./overlay";
 import rsyncProgress from "./rsync-progress";
+import { mountArg } from "./mounts";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -78,6 +80,15 @@ export async function startSidecar({
     args2.push("-v", `${path}:${mounts[path]}:ro`);
   }
   args2.push("-v", `${home}:${env.HOME}`);
+  const { lowerdir } = getOverlayPaths({ image, project_id, home });
+  args2.push(
+    mountArg({
+      source: lowerdir,
+      target: join(env.HOME, ".local/share/overlay/", image, "lowerdir"),
+      options: "ro",
+    }),
+  );
+
   for (const name in env) {
     args2.push("-e", `${name}=${env[name]}`);
   }
@@ -195,7 +206,7 @@ export async function startSidecar({
 
   await Promise.all([copyRootfs(), copyHome()]);
 
-  return async () => {
+  const initFileSync = async () => {
     bootlog({
       project_id,
       type: "start-file-sync",
@@ -289,6 +300,8 @@ export async function startSidecar({
       desc: "initialized home directory sync",
     });
   };
+
+  return initFileSync;
 }
 
 export async function flushMutagen({ project_id }) {

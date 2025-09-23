@@ -149,7 +149,7 @@ export async function start({
       progress: 20,
       desc: "got env variables",
     });
-    const initMutagen = await startSidecar({
+    const initFileSync = await startSidecar({
       image,
       project_id,
       home,
@@ -254,7 +254,7 @@ export async function start({
       desc: "launched project container",
     });
 
-    await initMutagen();
+    await initFileSync();
 
     bootlog({
       project_id,
