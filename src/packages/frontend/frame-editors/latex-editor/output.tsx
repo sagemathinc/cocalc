@@ -199,30 +199,8 @@ export function Output(props: OutputProps) {
     return false;
   }, [build_logs, knitr]);
 
-  // Auto-switch to errors when there are errors, PDF when everything is good
-  // Only auto-switch if user hasn't manually selected a tab
-  React.useEffect(() => {
-    if (userSelectedTab) return; // Don't auto-switch if user manually selected
-
-    let newTab: TabType | null = null;
-    if (hasErrorsOrWarnings && activeTab !== "errors") {
-      newTab = "errors";
-    } else if (
-      !hasErrorsOrWarnings &&
-      !["pdf", "contents"].includes(activeTab)
-    ) {
-      newTab = "pdf";
-    }
-
-    if (newTab) {
-      setActiveTab(newTab);
-      // Save auto-switch to local view state
-      const local_view_state = actions.store.get("local_view_state");
-      actions.setState({
-        local_view_state: local_view_state.setIn([id, "activeTab"], newTab),
-      });
-    }
-  }, [hasErrorsOrWarnings, activeTab, userSelectedTab, actions, id]);
+  // No automatic tab switching - let user control tabs manually
+  // Errors are indicated with red exclamation icon only
 
   const renderTabs = () => {
     const tabItems: NonNullable<TabsProps["items"]> = [

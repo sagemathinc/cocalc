@@ -20,7 +20,8 @@ const MINIMAL = `\\documentclass{article}
 
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
-const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build", "latex-output"] as const;
+// NOTE: These names are the keys in EDITOR_SPEC in editor.ts, not the type field
+const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build", "output"] as const;
 
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
