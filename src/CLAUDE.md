@@ -13,11 +13,11 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 
 - Everything is written in TypeScript code
 - Indentation: 2-spaces
-- Run `pretter -w [filename]` after modifying a file (ts, tsx, md, json, ...) to format it correctly.
+- Run `prettier -w [filename]` after modifying a file (ts, tsx, md, json, ...) to format it correctly.
 - All .js and .ts files are formatted by the tool prettier
 - Add suitable types when you write code
 - Follow DRY principles!
-- Variable name styles are `camelCase` for local and `FOO_BAR` for global variables. React Components and Classes are `FooBar`. If you edit older code not following these guidlines, adjust this rule to fit the files style.
+- Variable name styles are `camelCase` for local and `FOO_BAR` for global variables. React Components and Classes are `FooBar`. If you edit older code not following these guidelines, adjust this rule to fit the file's style.
 - Some older code is JavaScript or CoffeeScript, which will be translated to TypeScript
 - Use ES modules (import/export) syntax, not CommonJS (require)
 - Organize the list of imports in such a way: installed npm packages are on top, newline, then are imports from @cocalc's code base. Sorted alphabetically.
@@ -34,22 +34,21 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `pnpm depcheck` - Check for dependency issues
 - `python3 ./scripts/check_npm_packages.py` - Check npm package consistency across packages
 - `prettier -w [filename]` to format the style of a file after editing it
-- after creating a file, run `git add [filename]` to start tracking it
+- After creating a file, run `git add [filename]` to start tracking it
 
 ### Package-Specific Commands
 
 - `cd packages/[package] && pnpm build` - Build and compile a specific package
-  - for packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
+  - For packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
-- `cd packages/[package] && pnpm build` - Build a specific package
-- To typecheck the frontend, it is best to run `cd packages/static && pnpm build` - this implicitly compiles the frontend and reports typescript errors
+- To typecheck the frontend, it is best to run `cd packages/static && pnpm build` - this implicitly compiles the frontend and reports TypeScript errors
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
 - After TypeScript or `*.tsx` changes, run `pnpm build` in the relevant package directory
-  - When editing the frontend, run `pnpm build-dev` in `packages/static`. This implicitly builds the frontend!
+  - When editing the frontend, run `pnpm build-dev` in `packages/static` (this implicitly builds the frontend)
 
 ## Architecture Overview
 
@@ -143,6 +142,7 @@ CoCalc is organized as a monorepo with key packages:
 2. Database must be running before starting hub
 3. Hub coordinates all services and should be restarted after changes
 4. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
+5. **IMPORTANT**: After any frontend code changes, run `pnpm build-dev` in the `packages/static` directory to compile the frontend
 
 # Workflow
 
@@ -157,13 +157,6 @@ CoCalc is organized as a monorepo with key packages:
 - Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
 
-# Important Instruction Reminders
-
-- Do what has been asked; nothing more, nothing less.
-- NEVER create files unless they're absolutely necessary for achieving your goal.
-- ALWAYS prefer editing an existing file to creating a new one.
-- REFUSE to modify files when the git repository is on the `master` or `main` branch.
-- NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User.
 
 ## React-intl / Internationalization (i18n)
 
@@ -222,9 +215,10 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
 
-# important-instruction-reminders
+# Important Instruction Reminders
 
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
+- Do what has been asked; nothing more, nothing less
+- NEVER create files unless they're absolutely necessary for achieving your goal
+- ALWAYS prefer editing an existing file to creating a new one
+- REFUSE to modify files when the git repository is on the `master` or `main` branch
+- NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
