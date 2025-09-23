@@ -35,12 +35,12 @@ interface Spec {
   binary?: string;
   path: string;
   stripComponents?: number;
-  pathInArchive?: string;
+  pathInArchive?: () => string;
   skip?: string[];
   script?: () => string;
   platforms?: string[];
   fix?: string;
-  url?: (spec: Spec) => string;
+  url?: () => string;
   // if given, a bash shell line to run whose LAST output
   // (split by whitespace) is the version
   getVersion: string;
@@ -54,6 +54,10 @@ export const SPEC = {
     binary: "rg",
     path: join(binPath, "rg"),
     getVersion: "rg --version | head -n 1 | awk '{ print $2 }'",
+    url: () =>
+      `${SPEC.rg.BASE}/${SPEC.rg.VERSION}/ripgrep-${SPEC.rg.VERSION}-${getOS()}.tar.gz`,
+    pathInArchive: () =>
+      `ripgrep-${SPEC.rg.VERSION}-${getOS()}/${SPEC.rg.binary}`,
   },
   fd: {
     // See https://github.com/sharkdp/fd/releases
@@ -83,10 +87,11 @@ export const SPEC = {
     // See https://github.com/ouch-org/ouch/issues/45; note that ouch is in home brew
     // for this platform.
     skip: ["aarch64-apple-darwin"],
-    url: ({ BASE, VERSION }) => {
+    url: () => {
       const os = getOS();
-      return `${BASE}/${VERSION}/ouch-${os}.tar.gz`;
+      return `${SPEC.ouch.BASE}/${SPEC.ouch.VERSION}/ouch-${os}.tar.gz`;
     },
+    pathInArchive: () => `ouch-${getOS()}/${SPEC.ouch.binary}`,
   },
   rustic: {
     // See https://github.com/rustic-rs/rustic/releases
@@ -96,7 +101,7 @@ export const SPEC = {
     binary: "rustic",
     path: join(binPath, "rustic"),
     stripComponents: 0,
-    pathInArchive: "rustic",
+    pathInArchive: () => "rustic",
   },
   // sshpiper -- used by the core
   // See https://github.com/sagemathinc/sshpiper-binaries/releases
@@ -104,10 +109,12 @@ export const SPEC = {
     optional: true,
     desc: "sshpiper reverse proxy for sshd",
     path: join(binPath, "sshpiperd"),
+    // this is what --version outputs and is the sha hash of HEAD:
     VERSION: "7fdd88982",
     getVersion: "sshpiperd --version | awk '{print $4}' | cut -c 1-9",
     script: () => {
-      const VERSION = SPEC.sshpiper.VERSION;
+      // this is the actual version in our release page
+      const VERSION = "v1.5.0";
       const a = arch() == "x64" ? "amd64" : arch();
       return `curl -L https://github.com/sagemathinc/sshpiper-binaries/releases/download/${VERSION}/sshpiper-${VERSION}-${platform()}-${a}.tar.xz | tar -xJ -C "${binPath}" --strip-components=1`;
     },
@@ -217,6 +224,9 @@ export async function install(
   { optional }: { optional?: boolean } = {},
 ) {
   if (app == null) {
+    if (!(await exists(binPath))) {
+      await mkdir(binPath, { recursive: true });
+    }
     // @ts-ignore
     await Promise.all(
       Object.keys(SPEC)
@@ -255,6 +265,10 @@ export async function install(
       return;
     }
 
+    if (!(await exists(binPath))) {
+      await mkdir(binPath, { recursive: true });
+    }
+
     const url = getUrl(app);
     if (!url) {
       logger.debug("install: skipping ", app);
@@ -272,23 +286,13 @@ export async function install(
     //    ...
     //    ripgrep-14.1.1-x86_64-unknown-linux-musl/rg
 
-    const {
-      VERSION,
-      binary,
-      path,
-      stripComponents = 1,
-      pathInArchive = app == "ouch"
-        ? `${app}-${getOS()}/${binary}`
-        : `${app}-${VERSION}-${getOS()}/${binary}`,
-    } = spec;
+    const { VERSION, binary, path, stripComponents = 1, pathInArchive } = spec;
+
+    const archivePath =
+      pathInArchive?.() ?? `${app}-${VERSION}-${getOS()}/${binary}`;
 
     const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
     try {
-      try {
-        if (!(await exists(binPath))) {
-          await mkdir(binPath);
-        }
-      } catch {}
       await writeFile(tmpFile, tarballBuffer);
       // sync is fine since this is run at *build time*.
       execFileSync("tar", [
@@ -297,7 +301,7 @@ export async function install(
         `--strip-components=${stripComponents}`,
         `-C`,
         binPath,
-        pathInArchive,
+        archivePath,
       ]);
 
       // - 3. Make the file executable
@@ -365,7 +369,7 @@ async function downloadFromGithub(url: string) {
 function getUrl(app: App) {
   const spec = SPEC[app] as Spec;
   if (spec.url != null) {
-    return spec.url(spec);
+    return spec.url();
   }
   const { BASE, VERSION, skip } = spec;
   const os = getOS();
