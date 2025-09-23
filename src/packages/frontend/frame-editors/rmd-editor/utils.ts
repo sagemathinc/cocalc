@@ -4,11 +4,10 @@
  */
 
 import { join } from "path";
-
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { change_filename_extension, path_split } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
-import { ExecOutput, showProjectRestartDialog } from "../generic/client";
+import { ExecOutput } from "../generic/client";
 
 // something in the rmarkdown source code replaces all spaces by dashes
 // [hsy] I think this is because of calling pandoc.
@@ -158,13 +157,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     });
 
     stream.on("error", (err) => {
-      // Check if this is a 503 error (exec-stream service not available in old project)
-      if (err?.code === 503) {
-        showProjectRestartDialog(project_id);
-        reject(err);
-      } else {
-        reject(err);
-      }
+      reject(err);
     });
   });
 }

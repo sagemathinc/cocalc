@@ -279,7 +279,6 @@ export class ProjectClient {
         compute_server_id: opts.compute_server_id ?? 0,
         service: EXEC_STREAM_SERVICE,
       });
-
       let lastSeq = -1;
 
       const req = cn.requestMany(
@@ -287,6 +286,7 @@ export class ProjectClient {
         { ...opts, debug },
         {
           maxWait: (opts.timeout ?? 300) * 1000,
+          waitForInterest: true,
         },
       );
       for await (const resp of await req) {
