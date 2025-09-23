@@ -21,6 +21,8 @@ import { Spin, Tabs } from "antd";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
+import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+
 import { React, useEffect, useRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -80,8 +82,6 @@ export function Output(props: OutputProps) {
     useRedux([name, "local_view_state", id, "userSelectedTab"]) || false;
 
   const [activeTab, setActiveTab] = useState<TabType>(storedTab);
-  const [userSelectedTab, setUserSelectedTab] =
-    useState<boolean>(storedUserSelected);
 
   const [totalPages, setTotalPages] = useState<number>(0);
 
@@ -141,7 +141,6 @@ export function Output(props: OutputProps) {
   // Sync state with stored values when they change
   React.useEffect(() => {
     setActiveTab(storedTab);
-    setUserSelectedTab(storedUserSelected);
     setCurrentPage(storedPageToRestore);
   }, [storedTab, storedUserSelected, storedPageToRestore]);
 
@@ -150,7 +149,6 @@ export function Output(props: OutputProps) {
   React.useEffect(() => {
     if (switchToPdfTab) {
       setActiveTab("pdf");
-      setUserSelectedTab(true); // Prevent auto-switching from overriding this
       // Save to local view state
       const local_view_state = actions.store.get("local_view_state");
       actions.setState({
@@ -167,6 +165,21 @@ export function Output(props: OutputProps) {
   // Get font size for PDF viewer
   const pdfFontSize =
     useRedux([name, "local_view_state", id, "font_size"]) || font_size;
+
+  // Get PDF zoom level (separate from font size)
+  const pdfZoom = useRedux([name, "local_view_state", id, "pdf_zoom"]) || 1.0;
+
+  // Handle zoom changes from pinch-to-zoom or wheel gestures
+  const handleZoomChange = useCallback((data: Data) => {
+    // Convert fontSize to zoom scale (fontSize 14 = 1.0 zoom)
+    const newZoom = data.fontSize / 14;
+    const local_view_state = actions.store.get("local_view_state");
+    actions.setState({
+      local_view_state: local_view_state.setIn([id, "pdf_zoom"], newZoom),
+    });
+    // Also trigger save to localStorage
+    actions.save_local_view_state();
+  }, [actions, id]);
 
   // Check if there are any running builds
   const hasRunningJobs = useMemo(() => {
@@ -236,6 +249,8 @@ export function Output(props: OutputProps) {
               is_visible={is_visible}
               status={status}
               initialPage={storedPageToRestore}
+              zoom={pdfZoom}
+              onZoom={handleZoomChange}
               onPageInfo={(currentPage, totalPages) => {
                 setCurrentPage(currentPage);
                 setTotalPages(totalPages);
@@ -345,7 +360,6 @@ export function Output(props: OutputProps) {
           activeKey={activeTab}
           onChange={(key) => {
             const newTab = key as TabType;
-            setUserSelectedTab(true);
             setActiveTab(newTab);
             // Save to local view state
             const local_view_state = actions.store.get("local_view_state");

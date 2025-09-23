@@ -74,9 +74,9 @@ export function PDFControls({
 }: PDFControlsProps) {
   const intl = useIntl();
 
-  // Get current font size for zoom controls
-  const currentFontSize =
-    useRedux([actions.name, "local_view_state", id, "font_size"]) || 14;
+  // Get current PDF zoom level (separate from font size)
+  const currentPdfZoom =
+    useRedux([actions.name, "local_view_state", id, "pdf_zoom"]) || 1.0;
 
   // Get stored current page from local view state, fallback to prop
   const storedCurrentPage =
@@ -89,7 +89,8 @@ export function PDFControls({
 
   // Auto-sync state (stored in local view state)
   const storedAutoSyncEnabled =
-    useRedux([actions.name, "local_view_state", id, "autoSyncEnabled"]) ?? true; // Default to true
+    useRedux([actions.name, "local_view_state", id, "autoSyncEnabled"]) ??
+    false; // Default to false
   const [localAutoSyncEnabled, setLocalAutoSyncEnabled] = useState(
     storedAutoSyncEnabled,
   );
@@ -145,12 +146,47 @@ export function PDFControls({
   // Note: Page initialization is handled by the output component through actions.setPage
   // and page updates from PDF scrolling are handled through onPageInfo callback
 
+  // Helper function to snap zoom to common levels if close, then clamp to bounds
+  function snapAndClampZoom(zoomLevel: number): number {
+    const snapTargets = [0.5, 1.0, 2.0];
+    const snapThreshold = 0.05;
+
+    // Check for snapping to common zoom levels
+    for (const target of snapTargets) {
+      if (Math.abs(zoomLevel - target) <= snapThreshold) {
+        return target;
+      }
+    }
+
+    // Otherwise clamp to reasonable bounds
+    return Math.max(0.1, Math.min(10.0, zoomLevel));
+  }
+
+  // Helper method to set PDF zoom level
+  const setPdfZoom = useCallback(
+    (zoomLevel: number) => {
+      const local_view_state = actions.store.get("local_view_state");
+      actions.setState({
+        local_view_state: local_view_state.setIn([id, "pdf_zoom"], zoomLevel),
+      });
+      // Trigger save to localStorage
+      actions.save_local_view_state();
+    },
+    [actions, id],
+  );
+
   const handleZoomIn = () => {
-    actions.set_font_size(id, currentFontSize + 1);
+    // Increase PDF zoom by 10% increments with snapping to 100%
+    const proposedZoom = currentPdfZoom * 1.1;
+    const finalZoom = snapAndClampZoom(proposedZoom);
+    setPdfZoom(finalZoom);
   };
 
   const handleZoomOut = () => {
-    actions.set_font_size(id, currentFontSize - 1);
+    // Decrease PDF zoom by 10% decrements with snapping to 100%
+    const proposedZoom = currentPdfZoom / 1.1;
+    const finalZoom = snapAndClampZoom(proposedZoom);
+    setPdfZoom(finalZoom);
   };
 
   const handleZoomWidth = () => {
@@ -162,14 +198,13 @@ export function PDFControls({
   };
 
   const handleZoomPercentage = (percentage: number) => {
-    // Convert percentage to font size (assuming 14 is the default font size at 100%)
-    const defaultFontSize = 14;
-    const newFontSize = Math.round((defaultFontSize * percentage) / 100);
-    actions.set_font_size(id, newFontSize);
+    // Convert percentage to zoom level (100% = 1.0 zoom)
+    const newZoom = percentage / 100;
+    setPdfZoom(newZoom);
   };
 
-  // Calculate current zoom percentage based on font size
-  const currentZoomPercentage = Math.round((currentFontSize * 100) / 14);
+  // Calculate current zoom percentage based on PDF zoom level
+  const currentZoomPercentage = Math.round(currentPdfZoom * 100);
 
   const flipPage = (direction: 1 | -1) => {
     const newPage =
@@ -254,13 +289,22 @@ export function PDFControls({
             style={{ width: "80px" }}
             value={currentZoomPercentage}
             min={10}
-            max={500}
+            max={1000}
             formatter={(value) => `${value}%`}
             parser={(value) => value?.replace("%", "") as any}
             onChange={(value) => {
               if (value) {
                 handleZoomPercentage(value);
               }
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            onFocus={(e) => {
+              e.stopPropagation();
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
             }}
           />
         </div>

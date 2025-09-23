@@ -23,7 +23,7 @@ import {
 import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import usePinchToZoom, { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -49,6 +49,8 @@ interface PDFJSProps {
   initialPage?: number;
   onPageInfo?: (currentPage: number, totalPages: number) => void;
   onViewportInfo?: (page: number, x: number, y: number) => void;
+  zoom?: number; // Optional zoom override (when provided, overrides font_size-based zoom)
+  onZoom?: (data: Data) => void; // Called when zoom changes via pinch/wheel gestures
 }
 
 export function PDFJS({
@@ -66,6 +68,8 @@ export function PDFJS({
   initialPage,
   onPageInfo,
   onViewportInfo,
+  zoom,
+  onZoom,
 }: PDFJSProps) {
   const { desc } = useFrameContext();
   const isMounted = useIsMountedRef();
@@ -87,7 +91,24 @@ export function PDFJS({
   const [cursor, setCursor] = useState<"grabbing" | "grab">("grab");
 
   const divRef = useRef<HTMLDivElement>(null);
-  usePinchToZoom({ target: divRef });
+
+  // When zoom prop is provided, use onZoom callback to handle pinch gestures
+  // Otherwise, let usePinchToZoom handle font_size directly
+  const pinchToZoomConfig = zoom !== undefined && onZoom ? {
+    target: divRef,
+    onZoom: (data) => {
+      // Pass the pinch-to-zoom data directly to parent
+      onZoom(data);
+    },
+    getFontSize: () => {
+      // Convert current zoom back to fontSize for pinch calculations
+      return zoom * 14;
+    }
+  } : {
+    target: divRef
+  };
+
+  usePinchToZoom(pinchToZoomConfig);
 
   useEffect(() => {
     loadDoc(reload ?? 0);
@@ -384,7 +405,14 @@ export function PDFJS({
     const width = $(divRef.current).width();
     if (width === undefined) return;
     const scale = (width - 10) / page.view[2];
-    actions.set_font_size(id, getFontSize(scale));
+
+    // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
+    if (onZoom) {
+      const fontSize = getFontSize(scale);
+      onZoom({ fontSize });
+    } else {
+      actions.set_font_size(id, getFontSize(scale));
+    }
   }
 
   async function doZoomPageHeight(): Promise<void> {
@@ -401,7 +429,14 @@ export function PDFJS({
     const height = $(divRef.current).height();
     if (height === undefined) return;
     const scale = (height - 10) / page.view[3];
-    actions.set_font_size(id, getFontSize(scale));
+
+    // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
+    if (onZoom) {
+      const fontSize = getFontSize(scale);
+      onZoom({ fontSize });
+    } else {
+      actions.set_font_size(id, getFontSize(scale));
+    }
   }
 
   function doSync(): void {
@@ -609,7 +644,7 @@ export function PDFJS({
     const offset = -height / 2 + heightOfPage * percent;
     const x = { index, offset };
     virtuosoRef.current?.scrollToIndex(x);
-  }, [font_size]);
+  }, [zoom, font_size]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: name + id,
@@ -670,8 +705,12 @@ export function PDFJS({
   }
 
   const getScale = useCallback(() => {
+    // If zoom prop is provided, use it directly; otherwise use font_size-based zoom
+    if (zoom !== undefined) {
+      return zoom;
+    }
     return font_size / (redux.getStore("account").get("font_size") ?? 14);
-  }, [font_size]);
+  }, [zoom, font_size]);
 
   function getFontSize(scale: number): number {
     return (redux.getStore("account").get("font_size") ?? 14) * scale;

@@ -135,7 +135,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   private canonical_paths: { [path: string]: string } = {};
   private parsed_output_log?: IProcessedLatexLog;
 
-  // Flag to prevent infinite sync loops - now stored in state for proper synchronization
+  // Flag to prevent infinite sync loops - use local variable for immediate sync control
+  private _sync_in_progress = false;
+  private _last_sync_time = 0;
 
   // Auto-sync function for cursor position changes (forward sync: source → PDF)
   private async handle_cursor_sync_to_pdf(
@@ -143,17 +145,19 @@ export class Actions extends BaseActions<LatexEditorState> {
     column: number,
     filename: string,
   ): Promise<void> {
-    if (this.is_sync_in_progress()) {
+    if (this._sync_in_progress) {
       return; // Prevent sync loops
     }
 
-    this.set_sync_in_progress(true);
+    this._sync_in_progress = true;
+    this.set_sync_in_progress(true); // Also update state for UI
     try {
       await this.synctex_tex_to_pdf(line, column, filename);
     } catch (error) {
       console.warn("Auto-sync forward search failed:", error);
     } finally {
-      this.set_sync_in_progress(false);
+      this._sync_in_progress = false;
+      this.set_sync_in_progress(false); // Also update state for UI
     }
   }
 
@@ -1365,7 +1369,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     return false;
   }
 
-  // Set sync in progress flag
+  // Set sync in progress flag in state (for UI components)
   private set_sync_in_progress(inProgress: boolean): void {
     // Defer state update to avoid React rendering conflicts
     setTimeout(() => {
@@ -1375,7 +1379,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // Check if sync is currently in progress
   private is_sync_in_progress(): boolean {
-    return this.store.get("sync_in_progress") ?? false;
+    return this._sync_in_progress;
   }
 
   // Handle cursor movement - called by BaseActions.set_cursor_locs
@@ -1384,6 +1388,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     // Prevent duplicate sync operations
     if (this.is_sync_in_progress()) return;
+
+    // Throttle sync operations to prevent excessive calls (max once every 500ms)
+    const now = Date.now();
+    if (now - this._last_sync_time < 500) return;
+    this._last_sync_time = now;
 
     // Get the primary cursor position (first in the array)
     const cursor = locs[0];
@@ -1419,7 +1428,29 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _get_most_recent_output_panel(): string | undefined {
     let result = this._get_most_recent_active_frame_id_of_type("latex-output");
+    console.log("LaTeX: _get_most_recent_output_panel() via active history returning", result);
+
+    // If no recently active output panel found, look for any output panel
+    if (!result) {
+      result = this._get_any_frame_id_of_type("latex-output");
+      console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
+    }
+
     return result;
+  }
+
+  // Helper method to find any frame of the given type, regardless of activity history
+  _get_any_frame_id_of_type(type: string): string | undefined {
+    const tree = this._get_tree();
+    const leaf_ids = tree_ops.get_leaf_ids(tree);
+
+    for (const id of leaf_ids) {
+      const node = tree_ops.get_node(tree, id);
+      if (node && node.get("type") === type) {
+        return id;
+      }
+    }
+    return undefined;
   }
 
   // Switch output panel to PDF tab for SyncTeX
@@ -1469,15 +1500,20 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._get_most_recent_output_panel();
     let pdfjs_id: string | undefined;
 
+    console.log("LaTeX forward sync: output_panel_id =", output_panel_id);
+
     if (output_panel_id) {
       // There's an output panel - switch it to PDF tab and use it
+      console.log("LaTeX forward sync: Using output panel", output_panel_id);
       this._switch_output_panel_to_pdf(output_panel_id);
       pdfjs_id = output_panel_id;
     } else {
       // No output panel, look for standalone PDF viewer
+      console.log("LaTeX forward sync: No output panel found, looking for standalone PDFJS");
       pdfjs_id = this._get_most_recent_pdfjs();
       if (!pdfjs_id) {
         // no pdfjs preview, so make one
+        console.log("LaTeX forward sync: Creating new PDFJS panel");
         this.split_frame("col", this._get_active_id(), "pdfjs_canvas");
         pdfjs_id = this._get_most_recent_pdfjs();
         if (!pdfjs_id) {
@@ -1508,6 +1544,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     const frame = this._get_frame_node(id);
     const frameType = frame?.get("type");
     return frameType === "latex-output";
+  }
+
+  // Public method to save local view state (delegates to parent's debounced method)
+  save_local_view_state(): void {
+    (this as any)._save_local_view_state();
   }
 
   private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
