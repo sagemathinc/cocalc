@@ -1523,7 +1523,7 @@ export class Actions<
         await delay(1);
         if (this.isClosed()) return;
       }
-      this.programmatical_goto_line(opts.line, opts.cursor);
+      this.programmatically_goto_line(opts.line, opts.cursor);
     }
 
     if (opts.focus) {
@@ -1779,7 +1779,7 @@ export class Actions<
   // If cursor is given, moves the cursor to the line too.
   // *NOTE: This function can be called before
   // the syncstring is initialized and will still work fine!*
-  async programmatical_goto_line(
+  async programmatically_goto_line(
     line: string | number,
     cursor?: boolean,
     focus?: boolean,
@@ -3152,7 +3152,7 @@ export class Actions<
 
     if (fragmentId.line) {
       if (this.isClosed()) return;
-      this.programmatical_goto_line?.(fragmentId.line, true);
+      this.programmatically_goto_line?.(fragmentId.line, true);
     }
 
     if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {

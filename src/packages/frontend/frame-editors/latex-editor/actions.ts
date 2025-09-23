@@ -7,6 +7,9 @@
 LaTeX Editor Actions.
 */
 
+
+// cSpell:ignore rtex cmdl ramdisk maketitle documentclass outdirflag latexer rescan
+
 const MINIMAL = `\\documentclass{article}
 \\title{Title}
 \\author{Author}
@@ -17,7 +20,7 @@ const MINIMAL = `\\documentclass{article}
 
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
-const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
+const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build", "latex-output"] as const;
 
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
@@ -999,7 +1002,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       ignoreDuplicates: true,
     }).parse();
     this.set_build_logs({ latex: output });
-    // TODO: knitr complicates multifile a lot, so we do
+    // TODO: knitr complicates multi-file a lot, so we do
     // not support it yet.
     if (!this.knitr && this.parsed_output_log.deps != null) {
       this.set_switch_to_files(this.parsed_output_log.deps);
@@ -1135,9 +1138,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       const canon_path = files2[i];
       if (!canon_path.startsWith("/")) {
         switch_to_files.push(canon_path);
-        const relnorm_path = path_normalize(files[i]);
-        this.relative_paths[canon_path] = relnorm_path;
-        this.canonical_paths[relnorm_path] = canon_path;
+        const norm_path = path_normalize(files[i]);
+        this.relative_paths[canon_path] = norm_path;
+        this.canonical_paths[norm_path] = canon_path;
       }
     }
     // sort and make unique.
@@ -1218,12 +1221,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (output.stderr.indexOf("sagetex.VersionError") != -1) {
         // See https://github.com/sagemathinc/cocalc/issues/4432
         throw Error(
-          "SageTex in CoCalc currently only works with the default verison of Sage.  Delete ~/bin/sage and try again.",
+          "SageTex in CoCalc currently only works with the default version of Sage.  Delete ~/bin/sage and try again.",
         );
       }
-      // Now Run LaTeX, since we had to run sagetex, which changes
-      // the sage output. This +1 forces re-running latex... but still dedups
-      // it in case of multiple users.
+      // Now Run LaTeX, since we had to run sagetex, which changes the sage output.
+      // This +1 forces re-running latex... but still deduplicates it in case of multiple users.
       await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
@@ -1261,9 +1263,8 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.get_output_directory(),
         set_job_info,
       );
-      // Now run latex again, since we had to run pythontex, which changes
-      // the inserted snippets. This +2 forces re-running latex... but still dedups
-      // it in case of multiple users. (+1 is for sagetex)
+      // Now run latex again, since we had to run pythontex, which changes the inserted snippets.
+      // This +2 forces re-running latex... but still deduplicates it in case of multiple users. (+1 is for sagetex)
       await this.run_latex(time + 2, force);
     } catch (err) {
       this.set_error(err);
@@ -1327,8 +1328,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       path = await (await project_api(this.project_id)).canonical_path(path);
     }
     if (this.knitr) {
-      // #v0 will not support multifile knitr.
-      this.programmatical_goto_line(line, true, true);
+      // #v0 will not support multi-file knitr.
+      this.programmatically_goto_line(line, true, true);
       return;
     }
     // Focus a cm frame so that we split a code editor below.
@@ -1340,7 +1341,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (actions == null) {
       throw Error(`actions for "${path}" must be defined`);
     }
-    (actions as BaseActions).programmatical_goto_line(line, true, true, id);
+    (actions as BaseActions).programmatically_goto_line(line, true, true, id);
   }
 
   // Check if auto-sync is enabled for any output panel
@@ -1349,7 +1350,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!local_view_state) return false;
 
     // Check all output panels for auto-sync enabled
-    for (const [key, value] of local_view_state.entrySeq()) {
+    for (const [, value] of local_view_state.entrySeq()) {
       if (value?.get("autoSyncEnabled")) {
         return true;
       }
@@ -1366,7 +1367,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   // Check if sync is currently in progress
-  public is_sync_in_progress(): boolean {
+  private is_sync_in_progress(): boolean {
     return this.store.get("sync_in_progress") ?? false;
   }
 
@@ -1735,7 +1736,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
     const id = this.show_focused_frame_of_type("cm");
     if (id == null) return;
-    this.programmatical_goto_line(parseInt(entry.id), true, true, id);
+    this.programmatically_goto_line(parseInt(entry.id), true, true, id);
   }
 
   languageModelExtraFileInfo() {
