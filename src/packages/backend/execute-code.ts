@@ -17,12 +17,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventEmitter } from "node:stream";
 import shellEscape from "shell-escape";
+
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
-import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
+import {
+  to_json,
+  trunc,
+  trunc_middle,
+  uuid,
+  walltime,
+} from "@cocalc/util/misc";
 import {
   ExecuteCodeOutputAsync,
   ExecuteCodeOutputBlocking,
@@ -33,9 +40,8 @@ import {
   type ExecuteCodeOptionsWithCallback,
   type ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
-import { Processes } from "@cocalc/util/types/project-info/types";
 import { envForSpawn } from "./misc";
-import { ProcessStats } from "./process-stats";
+import { ProcessStats, sumChildren } from "./process-stats";
 
 const log = getLogger("execute-code");
 
@@ -66,7 +72,7 @@ const updates = new EventEmitter();
 const eventKey = (type: AsyncAwait, job_id: string): string =>
   `${type}-${job_id}`;
 
-const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
+export const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
   ttl: 1000 * ASYNC_CACHE_TTL_S,
   updateAgeOnGet: true,
@@ -239,7 +245,15 @@ async function executeCodeNoAggregate(
       const child = doSpawn(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
-          log.debug("async/doSpawn returned", { err, result });
+          log.debug("async/doSpawn returned", {
+            err,
+            result: {
+              type: result?.type,
+              stdout: trunc_middle(result?.stdout),
+              stderr: trunc_middle(result?.stderr),
+              exit_code: result?.exit_code,
+            },
+          });
           try {
             const info: Omit<
               ExecuteCodeOutputAsync,
@@ -291,29 +305,6 @@ async function executeCodeNoAggregate(
       await cleanUpTempDir(tempDir);
     }
   }
-}
-
-function sumChildren(
-  procs: Processes,
-  children: { [pid: number]: number[] },
-  pid: number,
-): { rss: number; pct_cpu: number; cpu_secs: number } | null {
-  const proc = procs[`${pid}`];
-  if (proc == null) {
-    log.debug(`sumChildren: no process ${pid} in proc`);
-    return null;
-  }
-  let rss = proc.stat.mem.rss;
-  let pct_cpu = proc.cpu.pct;
-  let cpu_secs = proc.cpu.secs;
-  for (const ch of children[pid] ?? []) {
-    const sc = sumChildren(procs, children, ch);
-    if (sc == null) return null;
-    rss += sc.rss;
-    pct_cpu += sc.pct_cpu;
-    cpu_secs += sc.cpu_secs;
-  }
-  return { rss, pct_cpu, cpu_secs };
 }
 
 function doSpawn(
@@ -368,8 +359,7 @@ function doSpawn(
     const pid = child.pid;
     const { job_id, job_config } = opts;
     if (job_id == null || pid == null || job_config == null) return;
-    const monitor = new ProcessStats();
-    await monitor.init();
+    const monitor = ProcessStats.getInstance();
     await delay(1000);
     if (callback_done) return;
 
@@ -390,19 +380,24 @@ function doSpawn(
         // in any case, stop monitoring and do not update any data.
         return;
       }
-      const { rss, pct_cpu, cpu_secs } = sc;
+      const { rss, cpu_pct: pct_cpu, cpu_secs } = sc;
       // ?? fallback, in case the cache "forgot" about it
       const obj = asyncCache.get(job_id) ?? job_config;
       obj.pid = pid;
       obj.stats ??= [];
-      obj.stats.push({
+      const statEntry = {
         timestamp: Date.now(),
         mem_rss: rss,
         cpu_pct: pct_cpu,
         cpu_secs,
-      });
+      };
+      obj.stats.push(statEntry);
       truncStats(obj);
       asyncCache.set(job_id, obj);
+      // Stream stats update if callback provided
+      if (opts.streamCB) {
+        opts.streamCB({ type: "stats", data: statEntry });
+      }
 
       // initially, we record more frequently, but then we space it out up until the interval (probably 1 minute)
       const elapsed_s = (Date.now() - job_config.start) / 1000;
@@ -419,14 +414,25 @@ function doSpawn(
       // The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
       // suggest that r.stdout and r.stderr are always defined.  However, this is
       // definitely NOT the case in edge cases, as we have observed.
-      cb?.("error creating child process -- couldn't spawn child process");
+      const errorMsg =
+        "error creating child process -- couldn't spawn child process";
+      // For streaming, also send error event
+      if (opts.streamCB && opts.async_call) {
+        opts.streamCB({ type: "error", data: errorMsg });
+      }
+      cb?.(errorMsg);
       return;
     }
   } catch (error) {
     // Yes, spawn can cause this error if there is no memory, and there's no
     // event! --  Error: spawn ENOMEM
     ran_code = false;
-    cb?.(`error ${error}`);
+    const errorMsg = `error ${error}`;
+    // For streaming, also send error event
+    if (opts.streamCB && opts.async_call) {
+      opts.streamCB({ type: "error", data: errorMsg });
+    }
+    cb?.(errorMsg);
     return;
   }
 
@@ -434,6 +440,45 @@ function doSpawn(
 
   if (opts.verbose) {
     log.debug("listening for stdout, stderr and exit_code...");
+  }
+
+  // Batching mechanism for streaming to reduce message frequency -- otherwise there could be 100msg/s to process
+  let streamBatchTimer: NodeJS.Timeout | undefined;
+  const streamBuffer = { stdout: "", stderr: "" };
+
+  // Send batched stream data
+  const sendBatchedStream = () => {
+    if (!opts.streamCB) return;
+
+    const hasStdout = streamBuffer.stdout.length > 0;
+    const hasStderr = streamBuffer.stderr.length > 0;
+
+    if (hasStdout || hasStderr) {
+      // Send stdout if available
+      if (hasStdout) {
+        opts.streamCB({ type: "stdout", data: streamBuffer.stdout });
+        streamBuffer.stdout = "";
+      }
+      // Send stderr if available
+      if (hasStderr) {
+        opts.streamCB({ type: "stderr", data: streamBuffer.stderr });
+        streamBuffer.stderr = "";
+      }
+    }
+  };
+
+  // Flush any remaining buffered data and cleanup
+  const flushStreamBuffer = () => {
+    if (streamBatchTimer) {
+      clearInterval(streamBatchTimer);
+      streamBatchTimer = undefined;
+    }
+    sendBatchedStream();
+  };
+
+  // Start batch timer if streaming is enabled, every 100ms
+  if (opts.streamCB) {
+    streamBatchTimer = setInterval(sendBatchedStream, 100);
   }
 
   function update_async(
@@ -459,24 +504,44 @@ function doSpawn(
 
   child.stdout.on("data", (data) => {
     data = data.toString();
+    const prevLength = stdout.length;
     if (opts.max_output != null) {
       if (stdout.length < opts.max_output) {
-        stdout += data.slice(0, opts.max_output - stdout.length);
+        const newData = data.slice(0, opts.max_output - stdout.length);
+        stdout += newData;
+        // Buffer the new portion for batched streaming
+        if (opts.streamCB && stdout.length > prevLength) {
+          streamBuffer.stdout += newData;
+        }
       }
     } else {
       stdout += data;
+      // Buffer the new data for batched streaming
+      if (opts.streamCB) {
+        streamBuffer.stdout += data;
+      }
     }
     update_async(opts.job_id, "stdout", stdout);
   });
 
   child.stderr.on("data", (data) => {
     data = data.toString();
+    const prevLength = stderr.length;
     if (opts.max_output != null) {
       if (stderr.length < opts.max_output) {
-        stderr += data.slice(0, opts.max_output - stderr.length);
+        const newData = data.slice(0, opts.max_output - stderr.length);
+        stderr += newData;
+        // Buffer the new portion for batched streaming
+        if (opts.streamCB && stderr.length > prevLength) {
+          streamBuffer.stderr += newData;
+        }
       }
     } else {
       stderr += data;
+      // Buffer the new data for batched streaming
+      if (opts.streamCB) {
+        streamBuffer.stderr += data;
+      }
     }
     update_async(opts.job_id, "stderr", stderr);
   });
@@ -512,6 +577,23 @@ function doSpawn(
     stderr += to_json(err);
     // a fundamental issue, we were not running some code
     ran_code = false;
+    // For streaming, flush buffer and send error event
+    if (opts.streamCB && opts.async_call && opts.job_id) {
+      flushStreamBuffer(); // Flush any buffered data first
+      const errorResult: ExecuteCodeOutputAsync = {
+        type: "async",
+        job_id: opts.job_id,
+        stdout,
+        stderr,
+        exit_code: exit_code ?? 1,
+        status: "error",
+        elapsed_s: walltime(start_time),
+        start: opts.job_config?.start ?? Date.now(),
+        pid: child.pid,
+        stats: opts.job_config?.stats,
+      };
+      opts.streamCB({ type: "done", data: errorResult });
+    }
     finish();
   });
 
@@ -531,8 +613,30 @@ function doSpawn(
       // we already finished up.
       return;
     }
+
+    // Safety check: if we're using streaming and the process has exited but streams aren't done,
+    // force completion after a short delay to prevent hanging
+    if (
+      opts.streamCB &&
+      exit_code != null &&
+      (!stdout_is_done || !stderr_is_done)
+    ) {
+      setTimeout(() => {
+        if (!callback_done) {
+          stdout_is_done = true;
+          stderr_is_done = true;
+          finish(err);
+        }
+      }, 1000); // Wait 1 second for streams to complete
+      return;
+    }
     // finally finish up – this will also terminate the monitor
     callback_done = true;
+
+    // Flush any remaining buffered stream data before finishing
+    if (opts.streamCB) {
+      flushStreamBuffer();
+    }
 
     if (timer != null) {
       clearTimeout(timer);
@@ -554,14 +658,61 @@ function doSpawn(
       });
     }
 
-    if (err) {
+    // Handle timeout case first - this takes precedence over other error conditions
+    if (err && killed) {
+      // Process was killed due to timeout
+      if (opts.job_id) {
+        // For async with streaming, send timeout error in done event
+        if (opts.streamCB) {
+          const errorResult: ExecuteCodeOutputAsync = {
+            type: "async",
+            job_id: opts.job_id,
+            stdout,
+            stderr,
+            exit_code: 1, // Timeout is always an error
+            status: "error",
+            elapsed_s: walltime(start_time),
+            start: opts.job_config?.start ?? Date.now(),
+            pid: child.pid,
+            stats: opts.job_config?.stats,
+          };
+          opts.streamCB({ type: "done", data: errorResult });
+        }
+        // For streaming, don't call cb with error - let the stream handle it
+        if (!opts.streamCB) {
+          cb?.(err);
+        }
+      } else {
+        // sync behavior, like it was before
+        cb?.(err);
+      }
+    } else if (err) {
       cb?.(err);
     } else if (opts.err_on_exit && exit_code != 0) {
       const x = opts.origCommand
         ? opts.origCommand
         : `'${opts.command}' (args=${opts.args?.join(" ")})`;
       if (opts.job_id) {
-        cb?.(stderr);
+        // For async with streaming, send error in done event
+        if (opts.streamCB) {
+          const errorResult: ExecuteCodeOutputAsync = {
+            type: "async",
+            job_id: opts.job_id,
+            stdout,
+            stderr,
+            exit_code: exit_code ?? 1,
+            status: "error",
+            elapsed_s: walltime(start_time),
+            start: opts.job_config?.start ?? Date.now(),
+            pid: child.pid,
+            stats: opts.job_config?.stats,
+          };
+          opts.streamCB({ type: "done", data: errorResult });
+        }
+        // For streaming, don't call cb with error - let the stream handle it
+        if (!opts.streamCB) {
+          cb?.(stderr);
+        }
       } else {
         // sync behavor, like it was before
         cb?.(
@@ -592,7 +743,24 @@ function doSpawn(
         // if exit-code not set, may have been SIGKILL so we set it to 1
         exit_code = 1;
       }
-      cb?.(undefined, { type: "blocking", stdout, stderr, exit_code });
+      const result = { type: "blocking" as const, stdout, stderr, exit_code };
+      // For async with streaming, send the final done event
+      if (opts.streamCB && opts.async_call) {
+        const finalResult: ExecuteCodeOutputAsync = {
+          type: "async",
+          job_id: opts.job_id!,
+          stdout,
+          stderr,
+          exit_code: exit_code ?? 0,
+          status: "completed",
+          elapsed_s: walltime(start_time),
+          start: opts.job_config?.start ?? Date.now(),
+          pid: child.pid,
+          stats: opts.job_config?.stats,
+        };
+        opts.streamCB({ type: "done", data: finalResult });
+      }
+      cb?.(undefined, result);
     }
   };
 
