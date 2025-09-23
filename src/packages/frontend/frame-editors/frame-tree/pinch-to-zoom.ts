@@ -41,7 +41,7 @@ document.addEventListener("gesturestart", handler);
 document.addEventListener("gesturechange", handler);
 document.addEventListener("gestureend", handler);
 
-interface Data {
+export interface Data {
   fontSize: number;
 }
 
@@ -60,7 +60,7 @@ export default function usePinchToZoom({
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
   max?: number;
-  onZoom?: (Data) => void; // if given, then font size is NOT set via actions.
+  onZoom?: (data: Data) => void; // if given, then font size is NOT set via actions.
   throttleMs?: number;
   smooth?: number;
   disabled?: boolean;
@@ -70,12 +70,9 @@ export default function usePinchToZoom({
 
   const saveThrottled = useMemo(() => {
     if (disabled) return () => {};
-    return throttle((fontSize, first) => {
+    return throttle((fontSize, _first) => {
       if (onZoom != null) {
-        onZoom({
-          fontSize,
-          first,
-        });
+        onZoom({ fontSize });
         return;
       }
       actions.set_font_size(id, fontSize);
@@ -108,7 +105,7 @@ export default function usePinchToZoom({
       eventOptions: { passive: false, capture: true },
       bounds: { top: 0, bottom: (max - min) * smooth },
       disabled,
-    }
+    },
   );
 
   const lastOffsetRef = useRef<number>(100);
@@ -145,7 +142,7 @@ export default function usePinchToZoom({
         return [lastOffsetRef.current, 0];
       },
       disabled,
-    }
+    },
   );
 
   return isZoomingRef;
