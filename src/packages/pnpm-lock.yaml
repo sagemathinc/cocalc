@@ -18,7 +18,8 @@ overrides:
   tar-fs@3.0.8: 3.0.9
   '@types/request@2.48.12': 2.48.13
   '@types/node-fetch@2.6.12': 2.6.13
-  axios@1.10.0: ^1.12.0
+  axios@<1.12.0: ^1.12.0
+  tmp@<0.2.4: ^0.2.4
 
 importers:
 
@@ -5038,9 +5039,6 @@ packages:
   awaiting@3.0.0:
     resolution: {integrity: sha512-19i4G7Hjxj9idgMlAM0BTRII8HfvsOdlr4D9cf3Dm1MZhvcKjBpzY8AMNEyIKyi+L9TIK15xZatmdcPG003yww==}
     engines: {node: '>=7.6.x'}
-
-  axios@1.11.0:
-    resolution: {integrity: sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==}
 
   axios@1.12.2:
     resolution: {integrity: sha512-vMJzPewAlRyOgxV2dU0Cuz2O8zzzx9VYtbJOaBgXFeLc4IV/Eg50n4LowmehOOR61S8ZMpc2K5Sa7g6A4jfkUw==}
@@ -10895,10 +10893,6 @@ packages:
   tmp-promise@3.0.3:
     resolution: {integrity: sha512-RwM7MoPojPxsOBYnyd2hy0bxtIlVrihNs9pj5SUvY8Zz1sQcQG2tG1hSr8PDxfgEB8RNKDhqbIlroIarSNDNsQ==}
 
-  tmp@0.2.3:
-    resolution: {integrity: sha512-nZD7m9iCPC5g0pYmcaxogYKggSfLsdxl8of3Q/oIbqCqLLIO9IAF0GWjX1z9NZRHPiXv8Wex4yDCaZsgEw0Y8w==}
-    engines: {node: '>=14.14'}
-
   tmp@0.2.4:
     resolution: {integrity: sha512-UdiSoX6ypifLmrfQ/XfiawN6hkjSBpCjhKxxZcWlUUmoXLaCKQU0bx4HF/tdDK2uzRuchf1txGvrWBzYREssoQ==}
     engines: {node: '>=14.14'}
@@ -13510,10 +13504,10 @@ snapshots:
       '@tybys/wasm-util': 0.10.0
     optional: true
 
-  '@nestjs/axios@4.0.1(@nestjs/common@11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.11.0)(rxjs@7.8.2)':
+  '@nestjs/axios@4.0.1(@nestjs/common@11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.12.2)(rxjs@7.8.2)':
     dependencies:
       '@nestjs/common': 11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      axios: 1.11.0
+      axios: 1.12.2
       rxjs: 7.8.2
 
   '@nestjs/common@11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2)':
@@ -13657,11 +13651,11 @@ snapshots:
 
   '@openapitools/openapi-generator-cli@2.22.0(@types/node@18.19.122)(encoding@0.1.13)':
     dependencies:
-      '@nestjs/axios': 4.0.1(@nestjs/common@11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.11.0)(rxjs@7.8.2)
+      '@nestjs/axios': 4.0.1(@nestjs/common@11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2))(axios@1.12.2)(rxjs@7.8.2)
       '@nestjs/common': 11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.6(@nestjs/common@11.1.6(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nuxtjs/opencollective': 0.3.2(encoding@0.1.13)
-      axios: 1.11.0
+      axios: 1.12.2
       chalk: 4.1.2
       commander: 8.3.0
       compare-versions: 4.1.4
@@ -15391,14 +15385,6 @@ snapshots:
       bl: 4.1.0
 
   awaiting@3.0.0: {}
-
-  axios@1.11.0:
-    dependencies:
-      follow-redirects: 1.15.11
-      form-data: 4.0.4
-      proxy-from-env: 1.1.0
-    transitivePeerDependencies:
-      - debug
 
   axios@1.12.2:
     dependencies:
@@ -22492,9 +22478,7 @@ snapshots:
 
   tmp-promise@3.0.3:
     dependencies:
-      tmp: 0.2.3
-
-  tmp@0.2.3: {}
+      tmp: 0.2.4
 
   tmp@0.2.4: {}
 
