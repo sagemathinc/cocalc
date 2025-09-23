@@ -1,6 +1,7 @@
 import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
 import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
 import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
+import { MIN_PASSWORD_STRENGTH } from "@cocalc/util/auth";
 
 zxcvbnOptions.setOptions({
   translations: zxcvbnEnPackage.translations,
@@ -16,7 +17,7 @@ See https://zxcvbn-ts.github.io/zxcvbn/guide/getting-started/#output
 
 This returns a score that is 0, 1, 2, 3, or 4.  A safe password has a score of 3 or 4.  A score of 2 is not good.
 A score of 0 or 1 is attrocious.
-For scores of at most 2, a warning and suggestion is also provided.
+For scores of at most MIN_PASSWORD_STRENGTH, a warning and suggestion is also provided.
 */
 
 export default function passwordStrength(password: string): {
@@ -27,7 +28,7 @@ export default function passwordStrength(password: string): {
   return {
     score,
     help:
-      score <= 2
+      score <= MIN_PASSWORD_STRENGTH
         ? `Password is too weak. ${feedback?.warning ?? ""}\n ${
             feedback?.suggestions ? feedback?.suggestions.join("\n ") : ""
           }`
