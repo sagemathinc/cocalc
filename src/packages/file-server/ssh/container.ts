@@ -15,6 +15,8 @@ import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 
+const FAIR_CPU_MODE = true;
+
 const execFile = promisify(execFile0);
 
 const IDLE_CHECK_INTERVAL = 30_000;
@@ -168,7 +170,9 @@ export const start = reuseInFlight(
       if (memory) {
         args.push(`--memory=${memory}`);
       }
-      if (cpu) {
+      if (FAIR_CPU_MODE) {
+        args.push("--cpu-shares=128");
+      } else if (cpu) {
         args.push(`--cpus=${k8sCpuParser(cpu)}`);
       }
       // make root filesystem readonly so can't install new software or waste space

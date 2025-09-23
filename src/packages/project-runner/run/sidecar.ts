@@ -67,7 +67,7 @@ export async function startSidecar({
     `role=project`,
     "--rm",
     "--memory=2G",
-    "--cpus=1",
+    "--cpu-shares=256",
     "--pids-limit=200",
     "--replace",
     "--pod",

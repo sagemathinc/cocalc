@@ -4,6 +4,8 @@
 import { k8sCpuParser } from "@cocalc/util/misc";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
 
+const FAIR_CPU_MODE = true;
+
 export function podmanLimits(config?: Configuration): string[] {
   const args: string[] = [];
 
@@ -12,7 +14,11 @@ export function podmanLimits(config?: Configuration): string[] {
   }
 
   // CPU
-  if (config.cpu != null) {
+  if (FAIR_CPU_MODE) {
+    // When the CPUs are busy they’ll split fairly; when they’re not, any container
+    // can burst to 100% with no cap.
+    args.push("--cpu-shares=1024");
+  } else if (config.cpu != null) {
     const cpu = k8sCpuParser(config.cpu); // accepts "500m", "2", etc.
     if (!isFinite(cpu) || cpu <= 0) {
       throw Error(`invalid cpu limit: '${cpu}'`);
