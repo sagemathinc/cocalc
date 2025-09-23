@@ -21,7 +21,7 @@ const IDLE_CHECK_INTERVAL = 30_000;
 
 const logger = getLogger("file-server:ssh:container");
 
-const APPS = ["btm", "ripgrep", "fd", "dust", "rustic", "ouch"] as const;
+const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync

@@ -1,7 +1,7 @@
 import exec, { type ExecOutput, validate } from "./exec";
 import type { RipgrepOptions } from "@cocalc/conat/files/fs";
 export type { RipgrepOptions };
-import { ripgrep as ripgrepPath } from "./install";
+import { rg as ripgrepPath } from "./install";
 
 export default async function ripgrep(
   path: string,

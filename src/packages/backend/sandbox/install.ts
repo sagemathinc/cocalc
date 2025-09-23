@@ -13,7 +13,9 @@ e.g.,
 */
 
 import { arch, platform } from "os";
+import { split } from "@cocalc/util/misc";
 import { execFileSync, execSync } from "child_process";
+import { executeCode } from "@cocalc/backend/execute-code";
 import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 // using old version of pkg-dir because of nextjs :-(
@@ -39,19 +41,24 @@ interface Spec {
   platforms?: string[];
   fix?: string;
   url?: (spec: Spec) => string;
+  // if given, a bash shell line to run whose LAST output
+  // (split by whitespace) is the version
+  getVersion: string;
 }
 
 export const SPEC = {
-  ripgrep: {
+  rg: {
     // See https://github.com/BurntSushi/ripgrep/releases
     VERSION: "14.1.1",
     BASE: "https://github.com/BurntSushi/ripgrep/releases/download",
     binary: "rg",
     path: join(binPath, "rg"),
+    getVersion: "rg --version | head -n 1 | awk '{ print $2 }'",
   },
   fd: {
     // See https://github.com/sharkdp/fd/releases
     VERSION: "v10.2.0",
+    getVersion: `fd --version | awk '{print "v"$2}'`,
     BASE: "https://github.com/sharkdp/fd/releases/download",
     binary: "fd",
     path: join(binPath, "fd"),
@@ -59,6 +66,7 @@ export const SPEC = {
   dust: {
     // See https://github.com/bootandy/dust/releases
     VERSION: "v1.2.3",
+    getVersion: `dust --version | awk '{print "v"$2}'`,
     BASE: "https://github.com/bootandy/dust/releases/download",
     binary: "dust",
     path: join(binPath, "dust"),
@@ -68,6 +76,7 @@ export const SPEC = {
   ouch: {
     // See https://github.com/ouch-org/ouch/releases
     VERSION: "0.6.1",
+    getVersion: "ouch --version",
     BASE: "https://github.com/ouch-org/ouch/releases/download",
     binary: "ouch",
     path: join(binPath, "ouch"),
@@ -81,7 +90,8 @@ export const SPEC = {
   },
   rustic: {
     // See https://github.com/rustic-rs/rustic/releases
-    VERSION: "v0.9.5",
+    VERSION: "v0.10.0",
+    getVersion: "rustic --version",
     BASE: "https://github.com/rustic-rs/rustic/releases/download",
     binary: "rustic",
     path: join(binPath, "rustic"),
@@ -94,7 +104,8 @@ export const SPEC = {
     optional: true,
     desc: "sshpiper reverse proxy for sshd",
     path: join(binPath, "sshpiperd"),
-    VERSION: "v1.5.0",
+    VERSION: "7fdd88982",
+    getVersion: "sshpiperd --version | awk '{print $4}' | cut -c 1-9",
     script: () => {
       const VERSION = SPEC.sshpiper.VERSION;
       const a = arch() == "x64" ? "amd64" : arch();
@@ -116,6 +127,7 @@ export const SPEC = {
     desc: "Fast file synchronization and network forwarding for remote development",
     path: join(binPath, "mutagen"),
     VERSION: "0.19.0-dev",
+    getVersion: "mutagen --version",
     script: () => {
       const VERSION = SPEC.mutagen.VERSION;
       const a = arch() == "x64" ? "amd64" : arch();
@@ -126,6 +138,7 @@ export const SPEC = {
   btm: {
     // See https://github.com/ClementTsang/bottom/releases
     VERSION: "0.11.1",
+    getVersion: "btm --version",
     BASE: "https://github.com/ClementTsang/bottom/releases/download",
     binary: "btm",
     script: () => {
@@ -137,7 +150,7 @@ export const SPEC = {
   },
 };
 
-export const ripgrep = SPEC.ripgrep.path;
+export const rg = SPEC.rg.path;
 export const fd = SPEC.fd.path;
 export const dust = SPEC.dust.path;
 export const rustic = SPEC.rustic.path;
@@ -160,8 +173,43 @@ export async function exists(path: string) {
   }
 }
 
-async function alreadyInstalled(app: App) {
-  return await exists(SPEC[app].path);
+export async function installedVersion(app: App): Promise<string | undefined> {
+  const { path, getVersion } = SPEC[app] as Spec;
+  if (!(await exists(path))) {
+    return;
+  }
+  if (!getVersion) {
+    return;
+  }
+  try {
+    const { stdout } = await executeCode({
+      command: getVersion,
+      env: { ...process.env, PATH: binPath + ":/usr/bin" },
+    });
+    const v = split(stdout).slice(-1)[0];
+    return v;
+  } catch (err) {
+    logger.debug("WARNING: issue getting version", { path, getVersion, err });
+  }
+  return;
+}
+
+export async function versions() {
+  const v: { [app: string]: string | undefined } = {};
+  await Promise.all(
+    Object.keys(SPEC).map(async (app) => {
+      v[app] = await installedVersion(app as App);
+    }),
+  );
+  return v;
+}
+
+export async function alreadyInstalled(app: App) {
+  const { path, VERSION } = SPEC[app] as Spec;
+  if (!(await exists(path))) {
+    return false;
+  }
+  return (await installedVersion(app)) == VERSION;
 }
 
 export async function install(
