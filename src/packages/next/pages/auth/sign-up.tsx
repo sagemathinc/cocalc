@@ -6,6 +6,7 @@
 import { Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
+
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
 import { gtag_id, sign_up_id } from "@cocalc/util/theme";
 import SignUp from "components/auth/sign-up";
