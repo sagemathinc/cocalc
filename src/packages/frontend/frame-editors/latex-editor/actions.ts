@@ -1350,9 +1350,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!local_view_state) return false;
 
     // Check all output panels for auto-sync enabled
-    for (const [, value] of local_view_state.entrySeq()) {
-      if (value?.get("autoSyncEnabled")) {
-        return true;
+    for (const [key, value] of local_view_state.entrySeq()) {
+      // Only check output panels
+      if (this._is_output_panel(key) && value) {
+        const autoSyncEnabled = typeof value.get === 'function'
+          ? value.get("autoSyncEnabled")
+          : value.autoSyncEnabled;
+        if (autoSyncEnabled) {
+          return true;
+        }
       }
     }
     return false;
