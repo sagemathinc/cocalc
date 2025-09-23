@@ -12,6 +12,7 @@ import { fixRange } from "@cocalc/util/licenses/purchase/purchase-info";
 import type { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 import { decimalMultiply } from "@cocalc/util/stripe/calc";
+import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
 function computeCashVoucherPrice(props: ComputeCostProps) {
   if (props.type != "cash-voucher") {
@@ -64,13 +65,13 @@ export function computeCost(
         period,
         range,
         ram,
-        cpu,
         disk,
         always_running,
         member,
         uptime,
         boost = false, // if true, allow "all zero" values and start at 0 USD
       } = props;
+      const cpu = FAIR_CPU_MODE ? 1 : props.cpu;
 
       if (period == "range" && range?.[1] == null) {
         return undefined;

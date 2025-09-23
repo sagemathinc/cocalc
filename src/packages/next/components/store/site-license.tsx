@@ -10,7 +10,6 @@ import { Form, Input } from "antd";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod, User } from "@cocalc/util/licenses/purchase/types";

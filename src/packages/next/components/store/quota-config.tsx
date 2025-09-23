@@ -29,7 +29,6 @@ import {
   REGULAR,
 } from "@cocalc/util/upgrades/consts";
 import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
-
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { CSS, Paragraph } from "components/misc";
 import A from "components/misc/A";
@@ -41,6 +40,7 @@ import {
   Preset,
   PresetConfig,
 } from "./quota-config-presets";
+import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
 const { Text } = Typography;
 
@@ -263,6 +263,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   }
 
   function cpu() {
+    if (FAIR_CPU_MODE) {
+      return null;
+    }
     return (
       <Form.Item
         label="Shared CPUs"
@@ -445,10 +448,12 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       const basic = (
         <>
           Each student project will be outfitted with up to{" "}
-          <Text strong>
-            {cpu} {plural(cpu, "vCPU")}
-          </Text>
-          , <Text strong>{ram} GB memory</Text>, and{" "}
+          {!FAIR_CPU_MODE && (
+            <Text strong>
+              {cpu} {plural(cpu, "vCPU")},
+            </Text>
+          )}{" "}
+          <Text strong>{ram} GB memory</Text>, and{" "}
           <Text strong>{disk} GB disk space</Text> with an{" "}
           <Text strong>
             {renderIdleTimeoutWithHelp()} of {displaySiteLicense(uptime)}
@@ -573,7 +578,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               <strong>{name}</strong> {descr}.
             </Paragraph>
             <Divider />
-            <Line amount={cpu} desc={"CPU"} indent={false} />
+            {!FAIR_CPU_MODE && (
+              <Line amount={cpu} desc={"CPU"} indent={false} />
+            )}
             <Line amount={ram} desc={"RAM"} indent={false} />
             <Line amount={disk} desc={"Disk space"} indent={false} />
             <Line
