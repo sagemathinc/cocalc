@@ -52,6 +52,7 @@
     "simplelocalize",
     "sklearn",
     "SocketIO",
+    "splitlines",
     "statsmodels",
     "syncdb",
     "syncdoc",
@@ -63,9 +64,9 @@
     "tidyverse",
     "tikz",
     "timetravel",
+    "tolerations",
     "xelatex",
     "xetex",
-    "tolerations",
     "undelete",
     "undeleting"
   ],

@@ -184,8 +184,7 @@ export function PDFControls({
         local_view_state: local_view_state.setIn([id, "currentPage"], newPage),
       });
       // Also call setPage on parent frame
-      const parentId = id.endsWith("-pdf") ? id.slice(0, -4) : id;
-      actions.setPage(parentId, newPage);
+      actions.setPage(id, newPage);
     }
   };
 
@@ -357,8 +356,7 @@ export function PDFControls({
               });
 
               // Also call setPage on parent frame for any other components that need it
-              const parentId = id.endsWith("-pdf") ? id.slice(0, -4) : id;
-              actions.setPage(parentId, page);
+              actions.setPage(id, page);
             }}
           />{" "}
           / {totalPages}

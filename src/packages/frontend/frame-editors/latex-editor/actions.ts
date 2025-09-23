@@ -825,7 +825,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this._has_frame_of_type("word_count")) {
       run_word_count = this.word_count(time, force);
     }
-    // update_pdf=false, because it is defered until the end
+    // update_pdf=false, because it is deferred until the end
     await this.run_latex(time, force, false);
     // ... and then patch the synctex file to align the source line numberings
     if (this.knitr) {
@@ -1123,7 +1123,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.setState({ includeError: "" });
     } catch (err) {
       // Safely convert error to string, handling undefined/null cases
-      const errorMessage = err ? String(err) : "Unknown error checking included files";
+      const errorMessage = err
+        ? String(err)
+        : "Unknown error checking included files";
       this.setState({ includeError: errorMessage });
       return;
     }
@@ -1348,7 +1350,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     // Check all output panels for auto-sync enabled
     for (const [key, value] of local_view_state.entrySeq()) {
-      if (key.includes("-pdf") && value?.get("autoSyncEnabled")) {
+      if (value?.get("autoSyncEnabled")) {
         return true;
       }
     }
@@ -1408,11 +1410,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   _get_most_recent_output_panel(): string | undefined {
-    // Try both "latex-output" and "output" since there seems to be some inconsistency
     let result = this._get_most_recent_active_frame_id_of_type("latex-output");
-    if (!result) {
-      result = this._get_most_recent_active_frame_id_of_type("output");
-    }
     return result;
   }
 
@@ -1492,15 +1490,8 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // Scroll the pdf preview frame with given id into view.
   scroll_pdf_into_view(page: number, y: number, id: string): void {
-    // If the target is an output panel, we need to modify the ID to match the PDFJS component within it
-    const targetId = this._is_output_panel(id) ? `${id}-pdf` : id;
-
     this.setState({
-      scroll_pdf_into_view: new ScrollIntoViewRecord({
-        page: page,
-        y: y,
-        id: targetId,
-      }),
+      scroll_pdf_into_view: new ScrollIntoViewRecord({ page, y, id }),
     });
   }
 
@@ -1508,7 +1499,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   _is_output_panel(id: string): boolean {
     const frame = this._get_frame_node(id);
     const frameType = frame?.get("type");
-    return frameType === "latex-output" || frameType === "output";
+    return frameType === "latex-output";
   }
 
   private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
@@ -1730,7 +1721,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (
       !force &&
       !this.get_matching_frame({ type: "latex_table_of_contents" }) &&
-      !this.get_matching_frame({ type: "output" })
+      !this.get_matching_frame({ type: "latex-output" })
     ) {
       // There is no table of contents frame or output frame so don't update that info.
       return;
@@ -1756,8 +1747,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   set_font_size(id: string, font_size: number): void {
-    if (id.endsWith("-pdf")) {
-      // This is for the PDF viewer, not a frame.
+    if (this._is_output_panel(id)) {
+      // This is for the PDF viewer in output panel, not a regular frame.
       // We store its font size in the local_view_state.
       const local_view_state = this.store.get("local_view_state");
       this.setState({
@@ -1770,7 +1761,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   increase_font_size(id: string): void {
-    if (id.endsWith("-pdf")) {
+    if (this._is_output_panel(id)) {
       const font_size = this.store.getIn(
         ["local_view_state", id, "font_size"],
         14,
@@ -1782,7 +1773,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   decrease_font_size(id: string): void {
-    if (id.endsWith("-pdf")) {
+    if (this._is_output_panel(id)) {
       const font_size = this.store.getIn(
         ["local_view_state", id, "font_size"],
         14,

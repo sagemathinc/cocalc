@@ -87,7 +87,7 @@ export function Output(props: OutputProps) {
 
   // Get the stored page that we want to restore to
   const storedPageToRestore: number =
-    useRedux([name, "local_view_state", `${id}-pdf`, "currentPage"]) || 1;
+    useRedux([name, "local_view_state", id, "currentPage"]) || 1;
 
   const [currentPage, setCurrentPage] = useState<number>(1);
 
@@ -166,7 +166,7 @@ export function Output(props: OutputProps) {
 
   // Get font size for PDF viewer
   const pdfFontSize =
-    useRedux([name, "local_view_state", `${id}-pdf`, "font_size"]) || font_size;
+    useRedux([name, "local_view_state", id, "font_size"]) || font_size;
 
   // Check if there are any running builds
   const hasRunningJobs = useMemo(() => {
@@ -238,14 +238,14 @@ export function Output(props: OutputProps) {
           <div className="smc-vfill">
             <PDFControls
               actions={actions}
-              id={`${id}-pdf`}
+              id={id}
               totalPages={totalPages}
               currentPage={currentPage}
               viewportInfo={viewportInfo}
               onClearViewportInfo={clearViewportInfo}
             />
             <PDFJS
-              id={`${id}-pdf`}
+              id={id}
               name={name}
               actions={actions}
               editor_state={editor_state}
@@ -265,7 +265,7 @@ export function Output(props: OutputProps) {
                 const local_view_state = actions.store.get("local_view_state");
                 actions.setState({
                   local_view_state: local_view_state.setIn(
-                    [`${id}-pdf`, "currentPage"],
+                    [id, "currentPage"],
                     currentPage,
                   ),
                 });

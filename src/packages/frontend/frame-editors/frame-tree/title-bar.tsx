@@ -723,8 +723,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
@@ -1213,12 +1213,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       props.page == null ||
       props.pages == null ||
       manageCommands.isExplicitlyHidden("page") ||
-      props.id.endsWith("-pdf") ||
-      props.type === "output"
+      props.type === "latex-output"
     ) {
       // do not render anything unless both page and pages are set
-      // also don't render for PDF frames that are part of output panels (they have their own page controls)
-      // also don't render for output panels themselves (they have their own page controls)
+      // also don't render for latex output panels (they have their own page controls)
       // but DO render for standalone pdfjs viewers
       return;
     }
