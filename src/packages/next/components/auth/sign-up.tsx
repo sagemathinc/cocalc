@@ -4,14 +4,21 @@
  */
 
 import { Alert, Button, Checkbox, Divider, Input } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+import { debounce } from "lodash";
+
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  MIN_PASSWORD_STRENGTH,
+} from "@cocalc/util/auth";
 import {
   CONTACT_TAG,
   CONTACT_THESE_TAGS,
@@ -88,6 +95,11 @@ function SignUp0({
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [signingUp, setSigningUp] = useState<boolean>(false);
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    help?: string;
+  }>({ score: 0 });
+  const [checkingPassword, setCheckingPassword] = useState<boolean>(false);
   const [issues, setIssues] = useState<{
     email?: string;
     password?: string;
@@ -120,6 +132,23 @@ function SignUp0({
     }
   }, []);
 
+  // Debounced password strength checking with reuse-in-flight protection
+  const debouncedCheckPassword = useCallback(
+    debounce((password: string) => {
+      checkPasswordStrengthReuseInFlight(password);
+    }, 100),
+    [],
+  );
+
+  useEffect(() => {
+    if (!password) {
+      setPasswordStrength({ score: 0 });
+      return;
+    }
+
+    debouncedCheckPassword(password);
+  }, [password, debouncedCheckPassword]);
+
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
   const requiredSSO = useRequiredSSO(strategies, email);
 
@@ -139,6 +168,7 @@ function SignUp0({
     isValidEmailAddress(email) &&
     password &&
     password.length >= MIN_PASSWORD_LENGTH &&
+    passwordStrength.score > MIN_PASSWORD_STRENGTH &&
     firstName?.trim() &&
     lastName?.trim() &&
     !needsTags
@@ -181,6 +211,31 @@ function SignUp0({
       setSigningUp(false);
     }
   }
+
+  async function checkPasswordStrength(password: string) {
+    if (!password || password.length < MIN_PASSWORD_LENGTH) {
+      setPasswordStrength({ score: 0 });
+      return;
+    }
+
+    setCheckingPassword(true);
+    try {
+      const result = await apiPost("/auth/password-strength", { password });
+      setPasswordStrength(result);
+    } catch (err) {
+      // If the API fails, fall back to basic length check
+      setPasswordStrength({
+        score: password.length >= MIN_PASSWORD_LENGTH ? 1 : 0,
+      });
+    } finally {
+      setCheckingPassword(false);
+    }
+  }
+
+  // Wrap the function to prevent concurrent calls
+  const checkPasswordStrengthReuseInFlight = reuseInFlight(
+    checkPasswordStrength,
+  );
 
   if (!emailSignup && strategies.length == 0) {
     return (
@@ -364,6 +419,15 @@ function SignUp0({
               onPressEnter={signUp}
               maxLength={MAX_PASSWORD_LENGTH}
             />
+            {password && password.length >= MIN_PASSWORD_LENGTH && (
+              <div style={{ marginTop: "8px" }}>
+                <PasswordStrengthIndicator
+                  score={passwordStrength.score}
+                  help={passwordStrength.help}
+                  checking={checkingPassword}
+                />
+              </div>
+            )}
           </div>
         )}
         {issues.password && (
@@ -425,6 +489,10 @@ function SignUp0({
             ? "You must sign up via SSO"
             : !password || password.length < MIN_PASSWORD_LENGTH
             ? `Choose password with at least ${MIN_PASSWORD_LENGTH} characters`
+            : password &&
+              password.length >= MIN_PASSWORD_LENGTH &&
+              passwordStrength.score <= MIN_PASSWORD_STRENGTH
+            ? "Make your password more complex"
             : !firstName?.trim()
             ? "Enter your first name above"
             : !lastName?.trim()
@@ -526,5 +594,117 @@ export function TermsCheckbox({
       </A>
       .
     </Checkbox>
+  );
+}
+
+interface PasswordStrengthIndicatorProps {
+  score: number;
+  help?: string;
+  checking: boolean;
+}
+
+function PasswordStrengthIndicator({
+  score,
+  help,
+  checking,
+}: PasswordStrengthIndicatorProps) {
+  if (checking) {
+    return (
+      <div style={{ fontSize: "12px", color: COLORS.GRAY_M }}>
+        Checking password strength...
+      </div>
+    );
+  }
+
+  const getStrengthColor = (score: number): string => {
+    switch (score) {
+      case 0:
+      case 1:
+        return COLORS.ANTD_RED_WARN;
+      case 2:
+        return COLORS.ORANGE_WARN;
+      case 3:
+        return COLORS.ANTD_YELL_M;
+      case 4:
+        return COLORS.BS_GREEN;
+      default:
+        return COLORS.GRAY_M;
+    }
+  };
+
+  const getStrengthLabel = (score: number): string => {
+    switch (score) {
+      case 0:
+        return "Very weak";
+      case 1:
+        return "Weak";
+      case 2:
+        return "Fair";
+      case 3:
+        return "Good";
+      case 4:
+        return "Strong";
+      default:
+        return "Unknown";
+    }
+  };
+
+  const getStrengthWidth = (score: number): string => {
+    return `${Math.max(10, (score + 1) * 20)}%`;
+  };
+
+  return (
+    <div style={{ fontSize: "12px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginBottom: "4px",
+        }}
+      >
+        <span style={{ marginRight: "8px", minWidth: "80px" }}>
+          Password strength:{" "}
+        </span>
+        <div
+          style={{
+            flex: 1,
+            height: "6px",
+            backgroundColor: COLORS.GRAY_LL,
+            borderRadius: "3px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: getStrengthWidth(score),
+              backgroundColor: getStrengthColor(score),
+              transition: "width 0.3s ease, background-color 0.3s ease",
+            }}
+          />
+        </div>
+        <span
+          style={{
+            marginLeft: "8px",
+            color: getStrengthColor(score),
+            fontWeight: "500",
+            minWidth: "60px",
+          }}
+        >
+          {getStrengthLabel(score)}
+        </span>
+      </div>
+      {help && (
+        <div
+          style={{
+            color: COLORS.GRAY_D,
+            fontSize: "11px",
+            marginTop: "2px",
+          }}
+        >
+          {help}
+        </div>
+      )}
+    </div>
   );
 }
