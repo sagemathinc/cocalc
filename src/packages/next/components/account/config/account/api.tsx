@@ -96,17 +96,17 @@ register({
               style={{ maxWidth: "50ex" }}
               placeholder="Enter your password..."
               onChange={(e) => setPassword(e.target.value)}
-               onPressEnter={() => {
-                 if (password.length >= MIN_PASSWORD_LENGTH) {
-                   submitPassword(password);
-                 }
-               }}
+              onPressEnter={() => {
+                if (password.length >= MIN_PASSWORD_LENGTH) {
+                  submitPassword(password);
+                }
+              }}
             />
-             <Button
-               style={{ marginLeft: "15px" }}
-               disabled={password.length < MIN_PASSWORD_LENGTH}
-               onClick={() => submitPassword(password)}
-             >
+            <Button
+              style={{ marginLeft: "15px" }}
+              disabled={password.length < MIN_PASSWORD_LENGTH}
+              onClick={() => submitPassword(password)}
+            >
               Show Older Legacy API Key
             </Button>
           </div>

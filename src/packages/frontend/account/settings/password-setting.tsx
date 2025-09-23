@@ -68,7 +68,8 @@ export const PasswordSetting: React.FC = () => {
       if (!is_mounted.current) return;
     } catch (err) {
       if (!is_mounted.current) return;
-      set_state("edit"), set_error(`Error changing password -- ${err}`);
+      set_state("edit");
+      set_error(`Error changing password -- ${err}`);
       return;
     }
     reset();
@@ -138,8 +139,10 @@ export const PasswordSetting: React.FC = () => {
               onChange={(e) => set_old_password(e.target.value)}
             />
           </Form.Item>
-           New password
-           {new_password.length < MIN_PASSWORD_LENGTH ? ` (at least ${MIN_PASSWORD_LENGTH} characters)` : undefined}
+          New password
+          {new_password.length < MIN_PASSWORD_LENGTH
+            ? ` (at least ${MIN_PASSWORD_LENGTH} characters)`
+            : undefined}
           {new_password.length >= 6 && new_password == old_password
             ? " (different than old password)"
             : undefined}

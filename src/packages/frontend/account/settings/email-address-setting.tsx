@@ -51,7 +51,9 @@ export const EmailAddressSetting = ({
   async function save_editing(): Promise<void> {
     if (password.length < MIN_PASSWORD_LENGTH) {
       setState("edit");
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
+      setError(
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`,
+      );
       return;
     }
     setState("saving");

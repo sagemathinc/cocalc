@@ -5,14 +5,12 @@
 
 // TODO: below we need to get the strategies!
 // and also requiresToken for SignUp!
-
-import { Divider } from "antd";
-import { useRouter } from "next/router";
-import { CSSProperties, ReactNode, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Divider } from "antd";
 import SignInAuth from "components/auth/sign-in";
 import SignUpAuth from "components/auth/sign-up";
+import { useRouter } from "next/router";
+import { CSSProperties, ReactNode, useState } from "react";
 
 import { AUTH_WRAPPER_STYLE } from "./shared";
 

@@ -56,7 +56,11 @@ import {
 } from "lib/api/schema/accounts/sign-up";
 import { SignUpIssues } from "lib/types/sign-up";
 import { getAccount, signUserIn } from "./sign-in";
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, MIN_PASSWORD_STRENGTH } from "@cocalc/util/auth";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  MIN_PASSWORD_STRENGTH,
+} from "@cocalc/util/auth";
 
 export async function signUp(req, res) {
   let {
