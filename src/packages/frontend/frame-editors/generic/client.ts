@@ -7,54 +7,18 @@
 Typescript async/await rewrite of @cocalc/util/client.coffee...
 */
 
-import { Modal } from "antd";
 import { Map } from "immutable";
-
 import { redux } from "@cocalc/frontend/app-framework";
-import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { callback2 } from "@cocalc/util/async-utils";
-import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
 import { FakeSyncstring } from "./syncstring-fake";
+import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
 export { type User };
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
 import * as schema from "@cocalc/util/schema";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema";
-
-// Track which projects have already shown the restart dialog
-const shownRestartDialogs = new Set<string>();
-
-export function showProjectRestartDialog(project_id: string): void {
-  // Only show the dialog once per project
-  if (shownRestartDialogs.has(project_id)) {
-    return;
-  }
-
-  shownRestartDialogs.add(project_id);
-
-  const actions = redux.getActions("projects");
-
-  Modal.confirm({
-    title: "Project Needs Update",
-    content: `This project needs to be restarted to support the new streaming compilation feature.
-    Your work is automatically saved and will not be lost.`,
-    okText: "Restart Project",
-    cancelText: "Not Now",
-    width: 500,
-    onOk: () => {
-      if (actions) {
-        actions.restart_project(project_id);
-      }
-      // Clear the tracking when user clicks OK
-      shownRestartDialogs.delete(project_id);
-    },
-    onCancel: () => {
-      // Clear the tracking when user dismisses the dialog
-      shownRestartDialogs.delete(project_id);
-    },
-  });
-}
 
 export function server_time(): Date {
   return webapp_client.time_client.server_time();
