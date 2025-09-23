@@ -229,6 +229,16 @@ export async function startSidecar({
         "create",
         "--name=rootfs",
         "--mode=one-way-replica",
+        // these two mode lines make it so the rootfs is saved by mutagen to be maximally permissive,
+        // so it is possible to fully use a different user (not root) in the container, since
+        // sometimes that is important (e.g., sage won't build as root due to bugs).  They basically
+        // make it so roots files are visible to all users in the container, which is fine given
+        // the main user is root anyways.  Without this, if you were to restore the files suddenly
+        // everything is broken for any non-root user.   The other option would be two create a manifest
+        // of all permissions on shutdown and restore on checkout, which is more complexity.  Given
+        // that, e.g., "read only" is barely in the cocalc UI, not having it seems fine.
+        "--default-file-mode-beta=0666",
+        "--default-directory-mode-beta=0777",
         "--symlink-mode=posix-raw",
         "--compression=deflate",
         join("/root", upperdir),
