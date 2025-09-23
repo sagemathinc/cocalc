@@ -19,6 +19,7 @@ export {
   upgrades as PROJECT_UPGRADES,
   DEFAULT_QUOTAS,
   CURRENT_DATE as UPGRADES_CURRENT_DATE,
+  FAIR_CPU_MODE,
 } from "./upgrade-spec";
 
 // This is for user querying using relative_time, i.e., {'field':{'>=':{relative_time:30,unit:'seconds'}}}

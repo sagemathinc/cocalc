@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+export const FAIR_CPU_MODE = true;
+
 // IMPORTANT: If you change this file, also update this date, which
 // appears in packages/landing/policies/pricing.pug
 

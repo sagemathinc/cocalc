@@ -3,8 +3,7 @@
  **/
 import { k8sCpuParser } from "@cocalc/util/misc";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
-
-const FAIR_CPU_MODE = true;
+import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
 export function podmanLimits(config?: Configuration): string[] {
   const args: string[] = [];

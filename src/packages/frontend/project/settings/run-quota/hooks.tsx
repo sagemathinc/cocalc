@@ -4,10 +4,8 @@
  */
 
 // cSpell: ignore dval
-
 import { List, Map } from "immutable";
 import { fromPairs, isEqual } from "lodash";
-
 import { ProjectStatus } from "@cocalc/comm/project-status/types";
 import {
   TypedMap,
@@ -22,7 +20,7 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { round1, seconds2hms, server_time } from "@cocalc/util/misc";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { PROJECT_UPGRADES, FAIR_CPU_MODE } from "@cocalc/util/schema";
 import { GPU } from "@cocalc/util/types/site-licenses";
 import {
   Upgrades,
@@ -283,6 +281,9 @@ export function useDisplayedFields(): string[] {
     }
 
     return fields.filter((key: keyof Upgrades) => {
+      if (FAIR_CPU_MODE && (key.startsWith("cpu") || key == "cores")) {
+        return false;
+      }
       // don't show these, because we collect dedicated quotas in the overall limit
       if (key === "cpu_shares" || key === "memory_request") return false;
 
