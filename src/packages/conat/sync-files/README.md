@@ -1,1 +1,0 @@
-# Bidirection Synchronization of Files

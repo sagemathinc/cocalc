@@ -1,23 +1,11 @@
-import { type Client } from "@cocalc/conat/core/client";
 import { type ProjectApi, projectApiClient } from "@cocalc/conat/project/api";
 import { refCacheSync } from "@cocalc/util/refcache";
+import { type Selector, type Options } from "./forward";
 
 // a minutes -- some commands (e.g., flush) could take a long time.
 const DEFAULT_TIMEOUT = 1000 * 60;
 
-interface Options {
-  project_id: string;
-  compute_server_id: number;
-  client: Client;
-}
-
-interface Selector {
-  sessions?: string[];
-  labelSelector?: string;
-  all?: boolean;
-}
-
-export class SyncFiles {
+export class MutagenSync {
   private api: ProjectApi;
 
   constructor(private opts: Options) {
@@ -48,14 +36,14 @@ export class SyncFiles {
     opts: Selector,
     extraArgs?: string[],
   ) => {
-    const { sessions = [], labelSelector, all } = opts;
+    const { sessions = [], labelSelector, all, name } = opts;
     const args = [action, ...sessions];
     if (all) {
       args.push("--all");
-    } else {
-      if (labelSelector) {
-        args.push("--label-selector", labelSelector);
-      }
+    } else if (labelSelector) {
+      args.push("--label-selector", labelSelector);
+    } else if (name) {
+      args.push(name);
     }
     if (extraArgs) {
       args.push(...extraArgs);
@@ -65,79 +53,56 @@ export class SyncFiles {
 
   close = () => {};
 
-  private parseRemote = async (remote: string) => {
-    if (remote.startsWith("cocalc:")) {
-      // cocalc:project_id/path
-      const project_id = remote.slice("cocalc:".length, "cocalc:".length + 36);
-      const path = remote.slice("cocalc:".length + 37);
-      return `/home/wstein/build/cocalc-lite/src/data/btrfs/mnt/project-${project_id}/${path}`;
-    } else {
-      // arbitrary mutagen target
-      return remote;
-    }
-  };
-
   // Sync path between us and path on the remote.  Here remote
   // is a connection with user = {project_id:...} that we get
   // using a project specific api key.
-  create = async ({
-    remote,
+  create = async (
+    alpha,
+    beta,
+    {
+      name,
 
-    path,
+      paused,
+      label = {},
 
-    paused,
-    label = {},
-    resolve = "manual",
+      ignore,
+      ignoreVcs,
+      noIgnoreVcs,
 
-    ignore,
-    ignoreVcs,
-    noIgnoreVcs,
+      symlinkMode = "posix-raw", // different default since usually what *WE* want.
+      maxFileSize,
+      options,
+    }: {
+      name?: string;
 
-    maxFileSize,
-  }: {
-    path: string;
-    remote: string;
+      paused?: boolean;
+      label?: { [key: string]: string };
+      // resolve =
+      //    - local -- all conflicts resolve to local
+      //    - remote -- conflicts always resolve to remote
+      //    - manual (default) -- conflicts must be manually resolved.
+      resolve?: "local" | "remote" | "manual";
 
-    paused?: boolean;
-    label?: { [key: string]: string };
-    // resolve =
-    //    - local -- all conflicts resolve to local
-    //    - remote -- conflicts always resolve to remote
-    //    - manual (default) -- conflicts must be manually resolved.
-    resolve?: "local" | "remote" | "manual";
+      ignore?: string[];
+      ignoreVcs?: boolean;
+      noIgnoreVcs?: boolean;
 
-    ignore?: string[];
-    ignoreVcs?: boolean;
-    noIgnoreVcs?: boolean;
+      symlinkMode?: string;
+      maxFileSize?: string;
 
-    maxFileSize?: string;
-  }) => {
-    if (!path) {
-      throw Error("path must be specified and not be ''");
+      options?: string[];
+    } = {},
+  ) => {
+    if (!alpha) {
+      throw Error("alpha must be specified");
     }
-    if (!remote) {
-      throw Error("remote must be specified and not be ''");
+    if (!beta) {
+      throw Error("beta must be specified");
     }
-    const beta = await this.parseRemote(remote);
-    console.log({ path, beta });
-    // - create the sync rule using mutagen
-    const args = ["create"];
-    switch (resolve) {
-      case "local":
-        args.push(path, beta);
-        args.push("--mode", "two-way-resolved");
-        break;
-      case "remote":
-        args.push(beta, path);
-        args.push("--mode", "two-way-resolved");
-        break;
-      case "manual":
-        args.push(path, beta);
-        break;
-      default:
-        throw new Error("resolve must be 'local', 'remote', or 'manual'");
+    const args = [alpha, beta];
+    if (symlinkMode) {
+      args.push("--symlink-mode", symlinkMode);
     }
-    args.push("--symlink-mode", "posix-raw");
     if (ignore) {
       for (const x of ignore) {
         args.push("--ignore", x);
@@ -157,10 +122,13 @@ export class SyncFiles {
     if (paused) {
       args.push("--paused");
     }
+    if (name) {
+      args.push("--name", name);
+    }
     for (const key in label) {
       args.push("--label", `${key}=${label[key]}`);
     }
-    return await this.mutagen(args);
+    return await this.mutagen(args.concat(options ?? []));
   };
 
   list = async ({
@@ -196,14 +164,14 @@ export class SyncFiles {
     await this.mutagenAction("terminate", opts);
 }
 
-export const syncFiles = refCacheSync<
+export const mutagenSync = refCacheSync<
   Options & { noCache?: boolean },
-  SyncFiles
+  MutagenSync
 >({
-  name: "sync-files",
+  name: "mutagen-sync",
   createKey: ({ project_id, compute_server_id, client }: Options) =>
     JSON.stringify([project_id, compute_server_id, client.id]),
   createObject: (opts: Options & { noCache?: boolean }) => {
-    return new SyncFiles(opts);
+    return new MutagenSync(opts);
   },
 });

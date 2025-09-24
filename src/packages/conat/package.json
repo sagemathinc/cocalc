@@ -17,6 +17,7 @@
     "./sync-files": "./dist/sync-files/index.js",
     "./service": "./dist/service/index.js",
     "./project/api": "./dist/project/api/index.js",
+    "./project/mutagen": "./dist/project/mutagen/index.js",
     "./project/terminal": "./dist/project/terminal/index.js",
     "./browser-api": "./dist/browser-api/index.js",
     "./*": "./dist/*.js"
