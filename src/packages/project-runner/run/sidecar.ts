@@ -49,7 +49,7 @@ const logger = getLogger("project-runner:sidecar");
 
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
-export const sidecarImageName = "localhost/sidecar:0.5.4";
+export const sidecarImageName = "localhost/sidecar:0.5.7";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -65,6 +65,8 @@ RUN chmod a+x /usr/local/bin/*
 const BACKUP_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
+
+mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
 cd /root
 rsync -Hax --delete --numeric-ids \
@@ -83,7 +85,7 @@ const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
 
-ssh file-server mkdir -p ${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
+ssh file-server mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
 rsync -Hax --numeric-ids \
       "-e" \
