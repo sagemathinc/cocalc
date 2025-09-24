@@ -20,15 +20,23 @@
   "bin": {
     "cocalc-project-runner": "./bin/start.js"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "btrfs", "cocalc"],
+  "keywords": [
+    "utilities",
+    "btrfs",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
-    "@cocalc/util": "workspace:*",
     "@cocalc/project-runner": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "package-directory": "^8.1.0"
   },
   "devDependencies": {

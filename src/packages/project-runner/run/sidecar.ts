@@ -42,7 +42,7 @@ anyways (otherwise, how did they get to that server).
 */
 
 import { build } from "@cocalc/backend/podman/build-container";
-import { podman } from "./podman";
+import { podman, starting } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 //import { rm } from "node:fs/promises";
 import { join } from "path";
@@ -51,6 +51,10 @@ import { getPaths as getOverlayPaths } from "./overlay";
 import rsyncProgress, { rsyncProgressRunner } from "./rsync-progress";
 import { mountArg } from "./mounts";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("project-runner:sidecar");
 
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
@@ -100,7 +104,11 @@ rsync -Hax --numeric-ids \
 node /usr/local/bin/delete-extra.js
 `;
 
+// run backups of all running projects, then wait this long, then do it again, etc.
+const BACKUP_ROOTFS_INTERVAL = 30_000;
+
 export async function init() {
+  logger.debug("init");
   await build({
     name: sidecarImageName,
     Dockerfile,
@@ -110,6 +118,8 @@ export async function init() {
       "restore-rootfs.sh": RESTORE_ROOTFS_SH,
     },
   });
+
+  backupRootfsLoop();
 }
 
 export function sidecarContainerName(project_id) {
@@ -124,6 +134,7 @@ export async function startSidecar({
   pod,
   home,
 }) {
+  logger.debug("startSidecar", { image, project_id });
   bootlog({ project_id, type: "start-sidecar", progress: 0 });
   const name = sidecarContainerName(project_id);
   const args2 = [
@@ -343,6 +354,84 @@ export async function startSidecar({
   };
 
   return initFileSync;
+}
+
+export async function backupRootfs({ project_id }) {
+  const name = sidecarContainerName(project_id);
+  const t = Date.now();
+  logger.debug("backupRootfs: STARTED", { project_id });
+  bootlog({
+    project_id,
+    type: "save-rootfs",
+    progress: 0,
+    desc: "backing up rootfs",
+  });
+  // NOTE: very important to *not* do a backup while project is initially opening/loading, which
+  // is why we have to check that the project is running.
+  if (starting.has(project_id)) {
+    logger.debug("backupRootfs: skipping since currently starting");
+    return;
+  }
+  try {
+    await rsyncProgressRunner({
+      command: "podman",
+      args: ["exec", name, "/bin/bash", "/usr/local/bin/backup-rootfs.sh"],
+      progress: (event) => {
+        bootlog({
+          project_id,
+          type: "save-rootfs",
+          ...event,
+        });
+      },
+    });
+  } catch (err) {
+    if (`${err}`.includes("no container with name")) {
+      // it was deleted.
+      return;
+    } else {
+      throw err;
+    }
+  }
+  logger.debug("backupRootfs: DONE", { project_id, ms: Date.now() - t });
+}
+
+// we back up each one in serial rather than parallel, to
+// avoid too much of a load spike.  Also reuseInFlight ensures
+// we don't run this on top of itself.
+export const backupAllRootFs = reuseInFlight(async () => {
+  logger.debug("backupAllRootFs: START");
+  const t = Date.now();
+  const { stdout } = await podman([
+    "ps",
+    "--filter",
+    `name=sidecar-project-`,
+    "--filter",
+    "label=role=project",
+    "--format",
+    '{{ index .Labels "project_id" }}',
+  ]);
+  for (const project_id of stdout.split("\n").filter((x) => x.length == 36)) {
+    try {
+      await backupRootfs({ project_id });
+    } catch (err) {
+      // this should maybe message admins (?)
+      // but obviously not fatal, since we want to backup all of them.
+      logger.debug("backupAllRootFs: WARNING -- error creating backup", err);
+    }
+  }
+  logger.debug("backupAllRootFs: DONE", { ms: Date.now() - t });
+});
+
+let initialized = false;
+async function backupRootfsLoop() {
+  if (initialized) {
+    return;
+  }
+  initialized = true;
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, BACKUP_ROOTFS_INTERVAL));
+    await backupAllRootFs();
+  }
 }
 
 export async function flushMutagen({ project_id }) {

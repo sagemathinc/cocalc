@@ -37,6 +37,7 @@ import {
   startSidecar,
   sidecarContainerName,
   flushMutagen,
+  backupRootfs,
 } from "./sidecar";
 import {
   type SshServersFunction,
@@ -49,7 +50,7 @@ import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-runner:podman");
 
 // projects we are definitely starting right now
-const starting = new Set<string>();
+export const starting = new Set<string>();
 
 // pod name format assumed in getAll below also
 function projectPodName(project_id) {
@@ -332,7 +333,12 @@ export async function stop({
       if (!force) {
         // graceful shutdown so flush first -- this could take
         // arbitrarily long in theory, or fail
-        await flushMutagen({ project_id });
+        const tasks = [
+          backupRootfs({ project_id }),
+          flushMutagen({ project_id }),
+        ];
+        await Promise.all(tasks);
+
         bootlog({
           project_id,
           type: "stop",
@@ -494,14 +500,9 @@ export async function getAll(): Promise<string[]> {
     "--filter",
     `name=project-`,
     "--format",
-    "{{.Name}}",
+    '{{ index .Labels "project_id" }}',
   ]);
-  return stdout
-    .split("\n")
-    .filter(
-      (x) => x.startsWith("project-") && x.length == 36 + "project-".length,
-    )
-    .map((x) => x.slice("project-".length));
+  return stdout.split("\n").filter((x) => x.length == 36);
 }
 
 async function stopAll(force) {
