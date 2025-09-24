@@ -8,6 +8,8 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+// cSpell:ignore rescan subframe
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
 import type { MenuProps } from "antd/lib";

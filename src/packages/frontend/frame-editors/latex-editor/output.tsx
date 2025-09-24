@@ -17,7 +17,8 @@ With build controls at the top (build, force build, clean, etc.)
 */
 
 import type { TabsProps } from "antd";
-import { Spin, Tabs } from "antd";
+import { Spin, Tabs, Tag } from "antd";
+import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -55,7 +56,7 @@ interface OutputProps {
   status: string;
 }
 
-type TabType = "pdf" | "contents" | "build" | "errors";
+type TabType = "pdf" | "contents" | "files" | "build" | "errors";
 
 export function Output(props: OutputProps) {
   const {
@@ -78,8 +79,6 @@ export function Output(props: OutputProps) {
   // Get stored tab from local view state, default to "pdf"
   const storedTab =
     useRedux([name, "local_view_state", id, "activeTab"]) || "pdf";
-  const storedUserSelected =
-    useRedux([name, "local_view_state", id, "userSelectedTab"]) || false;
 
   const [activeTab, setActiveTab] = useState<TabType>(storedTab);
 
@@ -118,6 +117,9 @@ export function Output(props: OutputProps) {
     "contents",
   ]);
 
+  // List of LaTeX files in the project
+  const switch_to_files: List<string> = useRedux([name, "switch_to_files"]);
+
   // Update table of contents when component mounts
   useEffect(() => {
     // We have to do this update
@@ -142,7 +144,7 @@ export function Output(props: OutputProps) {
   React.useEffect(() => {
     setActiveTab(storedTab);
     setCurrentPage(storedPageToRestore);
-  }, [storedTab, storedUserSelected, storedPageToRestore]);
+  }, [storedTab, storedPageToRestore]);
 
   // Handle SyncTeX requests to switch to PDF tab
   const switchToPdfTab = useRedux([name, "switch_output_to_pdf_tab"]);
@@ -159,6 +161,7 @@ export function Output(props: OutputProps) {
       });
     }
   }, [switchToPdfTab, actions, id]);
+
   const build_logs: BuildLogs = use_build_logs(name);
   const knitr: boolean = useRedux([name, "knitr"]);
 
@@ -170,16 +173,19 @@ export function Output(props: OutputProps) {
   const pdfZoom = useRedux([name, "local_view_state", id, "pdf_zoom"]) || 1.0;
 
   // Handle zoom changes from pinch-to-zoom or wheel gestures
-  const handleZoomChange = useCallback((data: Data) => {
-    // Convert fontSize to zoom scale (fontSize 14 = 1.0 zoom)
-    const newZoom = data.fontSize / 14;
-    const local_view_state = actions.store.get("local_view_state");
-    actions.setState({
-      local_view_state: local_view_state.setIn([id, "pdf_zoom"], newZoom),
-    });
-    // Also trigger save to localStorage
-    actions.save_local_view_state();
-  }, [actions, id]);
+  const handleZoomChange = useCallback(
+    (data: Data) => {
+      // Convert fontSize to zoom scale (fontSize 14 = 1.0 zoom)
+      const newZoom = data.fontSize / 14;
+      const local_view_state = actions.store.get("local_view_state");
+      actions.setState({
+        local_view_state: local_view_state.setIn([id, "pdf_zoom"], newZoom),
+      });
+      // Also trigger save to localStorage
+      actions.save_local_view_state();
+    },
+    [actions, id],
+  );
 
   // Check if there are any running builds
   const hasRunningJobs = useMemo(() => {
@@ -195,154 +201,227 @@ export function Output(props: OutputProps) {
     );
   }, [build_logs]);
 
-  // Check if there are any errors or warnings
-  const hasErrorsOrWarnings = useMemo(() => {
-    if (!build_logs) return false;
+  // Get counts for errors, warnings, and typesetting problems
+  const errorCounts = useMemo(() => {
+    if (!build_logs) return { errors: 0, warnings: 0, typesetting: 0 };
 
     const tools = ["latex", "sagetex", "knitr", "pythontex"] as const;
-    const groups = ["errors", "warnings", "typesetting"] as const;
+    let errors = 0;
+    let warnings = 0;
+    let typesetting = 0;
 
     for (const tool of tools) {
       if (tool === "knitr" && !knitr) continue;
-      for (const group of groups) {
-        const content = build_logs.getIn([tool, "parse", group]) as any;
-        if (content && content.size > 0) return true;
-      }
+      const errorContent = build_logs.getIn([tool, "parse", "errors"]) as any;
+      const warningContent = build_logs.getIn([
+        tool,
+        "parse",
+        "warnings",
+      ]) as any;
+      const typesettingContent = build_logs.getIn([
+        tool,
+        "parse",
+        "typesetting",
+      ]) as any;
+
+      if (errorContent) errors += errorContent.size;
+      if (warningContent) warnings += warningContent.size;
+      if (typesettingContent) typesetting += typesettingContent.size;
     }
-    return false;
+
+    return { errors, warnings, typesetting };
   }, [build_logs, knitr]);
 
   // No automatic tab switching - let user control tabs manually
   // Errors are indicated with red exclamation icon only
 
-  const renderTabs = () => {
+  function renderPdfTab() {
+    return {
+      key: "pdf",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <Icon name="file-pdf" />
+          PDF
+        </span>
+      ),
+      children: (
+        <div className="smc-vfill">
+          <PDFControls
+            actions={actions}
+            id={id}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            viewportInfo={viewportInfo}
+            onClearViewportInfo={clearViewportInfo}
+          />
+          <PDFJS
+            id={id}
+            name={name}
+            actions={actions}
+            editor_state={editor_state}
+            is_fullscreen={is_fullscreen}
+            project_id={project_id}
+            path={path}
+            reload={reload}
+            font_size={pdfFontSize}
+            is_current={is_current}
+            is_visible={is_visible}
+            status={status}
+            initialPage={storedPageToRestore}
+            zoom={pdfZoom}
+            onZoom={handleZoomChange}
+            onPageInfo={(currentPage, totalPages) => {
+              setCurrentPage(currentPage);
+              setTotalPages(totalPages);
+              // Save current page to local view state using the same key as PDFControls
+              const local_view_state = actions.store.get("local_view_state");
+              actions.setState({
+                local_view_state: local_view_state.setIn(
+                  [id, "currentPage"],
+                  currentPage,
+                ),
+              });
+              // Trigger save to localStorage
+              (actions as any)._save_local_view_state?.();
+            }}
+            onViewportInfo={(page, x, y) => {
+              if (!disableViewportTracking) {
+                setViewportInfo({ page, x, y });
+              }
+            }}
+          />
+        </div>
+      ),
+    };
+  }
+
+  function renderContentsTab() {
+    return {
+      key: "contents",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <Icon name="align-right" />
+          {intl.formatMessage(editor.table_of_contents_short)}
+        </span>
+      ),
+      children: (
+        <div className="smc-vfill">
+          <TableOfContents
+            contents={contents}
+            fontSize={font_size}
+            scrollTo={actions.scrollToHeading.bind(actions)}
+          />
+        </div>
+      ),
+    };
+  }
+
+  function renderFilesTab() {
+    // Sort files so main file appears first
+    const sortedFiles = switch_to_files.sort((a, b) => {
+      if (a === path) return -1;
+      if (b === path) return 1;
+      return a.localeCompare(b);
+    });
+
+    return {
+      key: "files",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <Icon name="file" />
+          Files
+        </span>
+      ),
+      children: (
+        <div className="smc-vfill" style={{ padding: "10px" }}>
+          {sortedFiles.map((filePath) => (
+            <div
+              key={filePath}
+              style={{
+                padding: "8px",
+                cursor: "pointer",
+                borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+                fontFamily: "monospace",
+                fontSize: "12px",
+              }}
+              onClick={() => actions.switch_to_file(filePath)}
+            >
+              {path === filePath ? <b>{filePath} (main)</b> : filePath}
+            </div>
+          ))}
+        </div>
+      ),
+    };
+  }
+
+  function renderBuildTab() {
+    return {
+      key: "build",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <Icon name="terminal" />
+          {intl.formatMessage(editor.build_control_and_log_title_short)}
+          {hasRunningJobs && <Spin size="small" />}
+        </span>
+      ),
+      children: (
+        <div className="smc-vfill">
+          <Build
+            name={name}
+            actions={actions}
+            path={path}
+            font_size={font_size}
+            status={status}
+          />
+        </div>
+      ),
+    };
+  }
+
+  function renderErrorsTab() {
+    const { errors, warnings, typesetting } = errorCounts;
+    const hasAnyIssues = errors > 0 || warnings > 0 || typesetting > 0;
+
+    return {
+      key: "errors",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <Icon name="bug" />
+          {intl.formatMessage(editor.errors_and_warnings_title_short)}
+          {hasAnyIssues && (
+            <span style={{ display: "flex", gap: "2px" }}>
+              {errors > 0 && <Tag color="red">{errors}</Tag>}
+              {warnings > 0 && <Tag color="orange">{warnings}</Tag>}
+              {typesetting > 0 && <Tag color="blue">{typesetting}</Tag>}
+            </span>
+          )}
+        </span>
+      ),
+      children: (
+        <div className="smc-vfill">
+          <ErrorsAndWarnings
+            id={id}
+            name={name}
+            actions={actions}
+            editor_state={editor_state}
+            is_fullscreen={is_fullscreen}
+            project_id={project_id}
+            path={path}
+            reload={reload}
+            font_size={font_size}
+          />
+        </div>
+      ),
+    };
+  }
+
+  function renderTabs() {
     const tabItems: NonNullable<TabsProps["items"]> = [
-      {
-        key: "pdf",
-        label: (
-          <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            <Icon name="file-pdf" />
-            PDF
-          </span>
-        ),
-        children: (
-          <div className="smc-vfill">
-            <PDFControls
-              actions={actions}
-              id={id}
-              totalPages={totalPages}
-              currentPage={currentPage}
-              viewportInfo={viewportInfo}
-              onClearViewportInfo={clearViewportInfo}
-            />
-            <PDFJS
-              id={id}
-              name={name}
-              actions={actions}
-              editor_state={editor_state}
-              is_fullscreen={is_fullscreen}
-              project_id={project_id}
-              path={path}
-              reload={reload}
-              font_size={pdfFontSize}
-              is_current={is_current}
-              is_visible={is_visible}
-              status={status}
-              initialPage={storedPageToRestore}
-              zoom={pdfZoom}
-              onZoom={handleZoomChange}
-              onPageInfo={(currentPage, totalPages) => {
-                setCurrentPage(currentPage);
-                setTotalPages(totalPages);
-                // Save current page to local view state using the same key as PDFControls
-                const local_view_state = actions.store.get("local_view_state");
-                actions.setState({
-                  local_view_state: local_view_state.setIn(
-                    [id, "currentPage"],
-                    currentPage,
-                  ),
-                });
-                // Trigger save to localStorage
-                (actions as any)._save_local_view_state?.();
-              }}
-              onViewportInfo={(page, x, y) => {
-                if (!disableViewportTracking) {
-                  setViewportInfo({ page, x, y });
-                }
-              }}
-            />
-          </div>
-        ),
-      },
-      {
-        key: "contents",
-        label: (
-          <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            <Icon name="align-right" />
-            {intl.formatMessage(editor.table_of_contents_short)}
-          </span>
-        ),
-        children: (
-          <div className="smc-vfill">
-            <TableOfContents
-              contents={contents}
-              fontSize={font_size}
-              scrollTo={actions.scrollToHeading.bind(actions)}
-            />
-          </div>
-        ),
-      },
-      {
-        key: "build",
-        label: (
-          <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            <Icon name="terminal" />
-            {intl.formatMessage(editor.build_control_and_log_title_short)}
-            {hasRunningJobs && <Spin size="small" />}
-          </span>
-        ),
-        children: (
-          <div className="smc-vfill">
-            <Build
-              name={name}
-              actions={actions}
-              path={path}
-              font_size={font_size}
-              status={status}
-            />
-          </div>
-        ),
-      },
-      {
-        key: "errors",
-        label: (
-          <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            <Icon name="bug" />
-            {intl.formatMessage(editor.errors_and_warnings_title_short)}
-            {hasErrorsOrWarnings && (
-              <Icon
-                name="exclamation-circle"
-                style={{ color: COLORS.ANTD_RED_WARN }}
-              />
-            )}
-          </span>
-        ),
-        children: (
-          <div className="smc-vfill">
-            <ErrorsAndWarnings
-              id={id}
-              name={name}
-              actions={actions}
-              editor_state={editor_state}
-              is_fullscreen={is_fullscreen}
-              project_id={project_id}
-              path={path}
-              reload={reload}
-              font_size={font_size}
-            />
-          </div>
-        ),
-      },
+      renderPdfTab(),
+      renderContentsTab(),
+      ...(switch_to_files?.size > 1 ? [renderFilesTab()] : []),
+      renderBuildTab(),
+      renderErrorsTab(),
     ];
 
     return (
@@ -385,7 +464,7 @@ export function Output(props: OutputProps) {
         />
       </div>
     );
-  };
+  }
 
   return (
     <div className="smc-vfill" style={{ position: "relative" }}>
