@@ -33,10 +33,12 @@ export function mountArg({
   source,
   target,
   readOnly = false,
+  options = "",
 }: {
   source: string;
   target: string;
   readOnly?: boolean;
+  options?: string;
 }) {
-  return `--mount=type=bind,source=${escapeMountPath(source)},target=${escapeMountPath(target)},${readOnly ? "ro" : "rw"}`;
+  return `--mount=type=bind,source=${escapeMountPath(source)},target=${escapeMountPath(target)},${readOnly ? "ro" : "rw"}${options ? "," + options : ""}`;
 }

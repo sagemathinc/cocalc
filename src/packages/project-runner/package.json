@@ -3,7 +3,8 @@
   "version": "0.1.5",
   "description": "CoCalc Project Runner",
   "exports": {
-    "./run": "./dist/run/index.js"
+    "./run": "./dist/run/index.js",
+    "./run/*": "./dist/run/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",

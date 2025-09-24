@@ -13,6 +13,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import { mountArg } from "@cocalc/project-runner/run/mounts";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 
 const FAIR_CPU_MODE = true;
@@ -134,7 +135,13 @@ export const start = reuseInFlight(
     // mount the volume contents to the directory /root in the container.
     // Since user can write arbitrary files here, this is noexec, so they
     // can't somehow run them.
-    args.push("-v", `${path}:/root:noexec,rbind,nodev,nosuid`);
+    args.push(
+      mountArg({
+        source: path,
+        target: "/root",
+        options: "noexec,nodev,nosuid",
+      }),
+    );
 
     const sshPath = join(path, ".ssh", "file-server");
     await mkdir(sshPath, { recursive: true, mode: 0o700 });
@@ -194,13 +201,16 @@ export const start = reuseInFlight(
       await rm(dotMutagen, { force: true, recursive: true });
     } catch {}
     await mkdir(dotMutagen, { recursive: true });
-    args.push("-v", `${dotMutagen}:/root/.mutagen-dev`);
+    args.push(mountArg({ source: dotMutagen, target: "/root/.mutagen-dev" }));
     // Mutagen with agent pre-installed (alternatively: we could
     // build this into the image)
     const mutagen = await getMutagenAgent();
     args.push(
-      "-v",
-      `${mutagen.path}:/root/.mutagen-dev/agents/${mutagen.version}:ro`,
+      mountArg({
+        source: mutagen.path,
+        target: `/root/.mutagen-dev/agents/${mutagen.version}`,
+        readOnly: true,
+      }),
     );
 
     // openssh server

@@ -236,7 +236,7 @@ export async function startSidecar({
     //   if you do then any time there is a file over that size,
     //   mutagen gets stuck in an infinite loop trying repeatedly
     //   to resend it!  NOT good.
-    if (!knownMutagenSessions.has("rootfs")) {
+    if (false && !knownMutagenSessions.has("rootfs")) {
       await podman([
         "exec",
         name,

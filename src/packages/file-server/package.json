@@ -25,6 +25,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
+    "@cocalc/project-runner": "workspace:*",
     "@cocalc/util": "workspace:*",
     "awaiting": "^3.0.0",
     "express": "^4.21.2",
