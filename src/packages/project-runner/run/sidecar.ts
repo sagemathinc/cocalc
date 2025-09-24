@@ -9,18 +9,36 @@ include ssh. Mutagen fundamentally requires that we have an ssh client.
 
 SOLUTION:  Instead of running mutagen only under the main root filesystem where
 ssh might not be present (and might even be complicated to install), we
-instead create a tiny alpine linux sidecar, which does have ssh installed.
+instead create a Linux sidecar, which does have ssh installed.
 It starts the mutagen daemon on startup.  Because it's in the same pod,
 all the mutagen commands in the main pod suddenly "just work", because
 they all use the daemon!  There's one caveat -- if you don't have ssh installed
 and you stop/start the daemon, then of course things break. Deal with it.
 
+ROOTFS AND OVERLAYFS: This code also implements scripts that do backup/restore for rootfs over
+rsync AND preserve uid/gid/etc., all safely entirely rootless and allowing for
+a large base image.
+  - it's amazing this is possible!
+  - the code isn't very long but took a lot of work to figure out.
+This code assumes that we use overlayfs (which requires sudo to mount), but
+it would be possible to do everything without that if necessary, just at the
+cost of wasted disk space.
+I think in fact we could do EXACTLY the same without using overlayfs and
+instead use a COW filesystem (e.g., btrfs) and do "cp --reflink" to
+make a lightweight copy of the base root image.  We still keep the original
+image and use rsync as in the scripts below, using the marvelous --compare-dest
+option, so we only backup to the main file-server the work installed on
+top of the base image.  Since we will use btrfs anyways with quotas, we
+can switch to this.
+
 COCALC-LITE?
-The same problem will come up for cocalc-lite, where we aren't running
-any containers.  But in that case, I think it is reasonable to require
-the user to install ssh, since they will be running usually on a laptop
-or remote server, where ssh is highly likely to be installed anyways (otherwise,
-how did they get to that server).
+
+The same problem will come up for cocalc-lite and compute servers, where we
+aren't necessarily running any containers. But in that case, I think it is
+reasonable to require the user to install ssh, since they will be running
+usually on a laptop or remote server, where ssh is highly likely to be installed
+anyways (otherwise, how did they get to that server).
+
 */
 
 import { build } from "@cocalc/backend/podman/build-container";
@@ -30,12 +48,13 @@ import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { getPaths as getOverlayPaths } from "./overlay";
-import rsyncProgress from "./rsync-progress";
+import rsyncProgress, { rsyncProgressRunner } from "./rsync-progress";
 import { mountArg } from "./mounts";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
-export const sidecarImageName = "localhost/sidecar:0.4.4";
+export const sidecarImageName = "localhost/sidecar:0.4.11";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -58,6 +77,10 @@ comm -z -23 /tmp/lower.nul /tmp/merged.nul > /rootfs/merged/root/deleted.nul
 ssh file-server mkdir -p /root/.local/share/overlay/$ROOTFS_IMAGE/
 
 rsync -Hax --delete --numeric-ids \
+      "-e" \
+      "ssh -o Compression=no -c aes128-gcm@openssh.com" \
+      "--compress" \
+      "--compress-choice=lz4" \
       --no-inc-recursive --info=progress2 --no-human-readable \
       --compare-dest=/rootfs/lowerdir /rootfs/merged/ file-server:/root/.local/share/overlay/$ROOTFS_IMAGE/
 `;
@@ -67,6 +90,10 @@ const RESTORE_ROOTFS_SH = `
 set -euo pipefail
 
 rsync -Hax --numeric-ids \
+      "-e" \
+      "ssh -o Compression=no -c aes128-gcm@openssh.com" \
+      "--compress" \
+      "--compress-choice=lz4" \
       --no-inc-recursive --info=progress2 --no-human-readable \
       file-server:/root/.local/share/overlay/$ROOTFS_IMAGE/ /rootfs/merged/
 
@@ -98,7 +125,6 @@ export async function startSidecar({
   home,
 }) {
   bootlog({ project_id, type: "start-sidecar", progress: 0 });
-  // sidecar: refactor
   const name = sidecarContainerName(project_id);
   const args2 = [
     "run",
@@ -123,7 +149,11 @@ export async function startSidecar({
     );
   }
   args2.push(mountArg({ source: home, target: env.HOME }));
-  const { lowerdir, merged } = getOverlayPaths({ image, project_id, home });
+  const { upperdir, lowerdir, merged } = getOverlayPaths({
+    image,
+    project_id,
+    home,
+  });
   args2.push(
     mountArg({
       source: lowerdir,
@@ -160,41 +190,28 @@ export async function startSidecar({
 
   const knownMutagenSessions = await getMutagenSessions(name);
 
-  const upperdir = join(PROJECT_IMAGE_PATH, image, "upperdir");
   const copyRootfs = async () => {
-    if (knownMutagenSessions.has("rootfs")) {
-      return;
-    }
-    bootlog({
-      project_id,
-      type: "copy-rootfs",
-      progress: 0,
-      desc: "copy rootfs to project runner",
-    });
-    await rsyncProgress({
-      name,
-      args: [
-        "-axH",
-        "--update",
-        // using aes128 seems a LOT faster/better given the hop through sshpiperd
-        "-e",
-        "ssh -o Compression=no -c aes128-gcm@openssh.com",
-        "--compress",
-        "--compress-choice=lz4",
-        "--ignore-missing-args", // so works even if remote upperdir does not exist yet (a common case!)
-        "--relative", // so don't have to create the directories locally
-        `file-server:${upperdir}/`,
-        "/root/",
-      ],
-      progress: (event) => {
-        bootlog({
-          project_id,
-          type: "copy-rootfs",
-          ...event,
-        });
-      },
-    });
+    if (!(await exists(join(upperdir, "root", "deleted.nul")))) {
+      // we have never grabbed the rootfs, so grab it from the file-server:
+      bootlog({
+        project_id,
+        type: "copy-rootfs",
+        progress: 0,
+        desc: "copy rootfs to project runner",
+      });
 
+      await rsyncProgressRunner({
+        command: "podman",
+        args: ["exec", name, "/bin/bash", "/usr/local/bin/restore-rootfs.sh"],
+        progress: (event) => {
+          bootlog({
+            project_id,
+            type: "copy-rootfs",
+            ...event,
+          });
+        },
+      });
+    }
     bootlog({
       project_id,
       type: "start-sidecar",
@@ -243,16 +260,16 @@ export async function startSidecar({
         });
       },
     });
-
-    bootlog({
-      project_id,
-      type: "start-sidecar",
-      progress: 100,
-      desc: "updated home directory",
-    });
   };
 
   await Promise.all([copyRootfs(), copyHome()]);
+
+  bootlog({
+    project_id,
+    type: "start-sidecar",
+    progress: 100,
+    desc: "updated rootfs and home directory",
+  });
 
   const initFileSync = async () => {
     bootlog({
@@ -287,38 +304,6 @@ export async function startSidecar({
     //   if you do then any time there is a file over that size,
     //   mutagen gets stuck in an infinite loop trying repeatedly
     //   to resend it!  NOT good.
-    if (false && !knownMutagenSessions.has("rootfs")) {
-      await podman([
-        "exec",
-        name,
-        "mutagen",
-        "sync",
-        "create",
-        "--name=rootfs",
-        "--mode=one-way-replica",
-        // these two mode lines make it so the rootfs is saved by mutagen to be maximally permissive,
-        // so it is possible to fully use a different user (not root) in the container, since
-        // sometimes that is important (e.g., sage won't build as root due to bugs).  They basically
-        // make it so roots files are visible to all users in the container, which is fine given
-        // the main user is root anyways.  Without this, if you were to restore the files suddenly
-        // everything is broken for any non-root user.   The other option would be two create a manifest
-        // of all permissions on shutdown and restore on checkout, which is more complexity.  Given
-        // that, e.g., "read only" is barely in the cocalc UI, not having it seems fine.
-        "--default-file-mode-beta=0666",
-        "--default-directory-mode-beta=0777",
-        "--symlink-mode=posix-raw",
-        "--compression=deflate",
-        join("/root", upperdir),
-        `file-server:/root/${upperdir}`,
-      ]);
-    }
-    bootlog({
-      project_id,
-      type: "start-file-sync",
-      progress: 60,
-      desc: "initialized rootfs sync",
-    });
-
     if (!knownMutagenSessions.has("home")) {
       await podman([
         "exec",

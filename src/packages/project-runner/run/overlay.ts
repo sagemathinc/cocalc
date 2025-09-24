@@ -1,7 +1,15 @@
 /*
 
 
-Privileges: This uses sudo to do an overlayfs mount, which is important for
+Privileges: This uses sudo to do an overlayfs mount.
+
+NOTE: by instead using btrfs with copy on write, we can do exactly
+the same without sudo using "cp --reflink" on the base image instead,
+See the comment in sidecar.ts under "ROOTFS AND OVERLAYFS".
+
+The one exception to this would be if the lowerdir were a filesystem
+served only over NFS. That would still work fine using overlayfs.
+This might be exactly what we do for the "huge image" option on cocalc.
 
 */
 

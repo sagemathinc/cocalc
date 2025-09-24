@@ -2,7 +2,7 @@
 The Snapshots button pops up a model that:
 
  - lets you create a new snapshot
- - 
+ -
 
 */
 
@@ -60,7 +60,7 @@ export default function CreateSnapshot() {
   return (
     <>
       <Button disabled={open} onClick={() => setOpen(!open)}>
-        <Icon name="disk-snapshot" /> New Snapshot
+        <Icon name="disk-snapshot" /> Create Snapshot
       </Button>
       {open && (
         <Modal

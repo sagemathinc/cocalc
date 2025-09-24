@@ -86,6 +86,15 @@ export async function start({
     resetBootlog({ project_id });
     bootlog({ project_id, type: "start", progress: 0 });
 
+    const home = await localPath({ project_id });
+    logger.debug("start: got home", { project_id, home });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 5,
+      desc: "got home directory",
+    });
+
     try {
       bootlog({ project_id, type: "init-sidecar", progress: 0 });
       await initSidecar();
@@ -97,7 +106,7 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 5,
+      progress: 15,
       desc: "initialized sidecar",
     });
 
@@ -119,25 +128,9 @@ export async function start({
       "--network=pasta",
     ]);
     rootfsImageCache[project_id] = image;
-    bootlog({ project_id, type: "start", progress: 10, desc: "created pod" });
+    bootlog({ project_id, type: "start", progress: 20, desc: "created pod" });
 
-    const home = await localPath({ project_id });
-    logger.debug("start: got home", { project_id, home });
-    bootlog({
-      project_id,
-      type: "start",
-      progress: 10,
-      desc: "got home directory",
-    });
     const mounts = getCoCalcMounts();
-    const servers = await sshServers?.({ project_id });
-    await initSshKeys({ home, sshServers: servers });
-    bootlog({
-      project_id,
-      type: "start",
-      progress: 15,
-      desc: "initialized ssh keys",
-    });
 
     const env = await getEnvironment({
       project_id,
@@ -163,6 +156,15 @@ export async function start({
     });
     logger.debug("start: got rootfs", { project_id, rootfs });
 
+    const servers = await sshServers?.({ project_id });
+    await initSshKeys({ home, sshServers: servers });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 35,
+      desc: "initialized ssh keys",
+    });
+
     const initFileSync = await startSidecar({
       image,
       project_id,
@@ -174,7 +176,7 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 40,
+      progress: 45,
       desc: "started sync sidecar",
     });
 

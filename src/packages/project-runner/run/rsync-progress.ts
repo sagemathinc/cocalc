@@ -35,7 +35,13 @@ export default async function rsyncProgress({
     "rsyncProgress:",
     `"${command} ${args1.concat(args).join(" ")}"`,
   );
-  const child = spawn(command, args1.concat(args));
+  await rsyncProgressRunner({ command, args: args1.concat(args), progress });
+}
+
+// we also use this for other commands that have the exact rsync output when they run...
+export async function rsyncProgressRunner({ command, args, progress }) {
+  logger.debug(`${command} ${args.join(" ")}`);
+  const child = spawn(command, args);
 
   let stderr = "";
   child.stderr.on("data", (data) => {
