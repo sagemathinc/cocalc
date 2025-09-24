@@ -1473,12 +1473,12 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   _get_most_recent_output_panel(): string | undefined {
-    let result = this._get_most_recent_active_frame_id_of_type("latex-output");
+    let result = this._get_most_recent_active_frame_id_of_type("output");
     console.log("LaTeX: _get_most_recent_output_panel() via active history returning", result);
 
     // If no recently active output panel found, look for any output panel
     if (!result) {
-      result = this._get_any_frame_id_of_type("latex-output");
+      result = this._get_any_frame_id_of_type("output");
       console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
     }
 
@@ -1589,7 +1589,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   _is_output_panel(id: string): boolean {
     const frame = this._get_frame_node(id);
     const frameType = frame?.get("type");
-    return frameType === "latex-output";
+    return frameType === "output";
   }
 
   // Public method to save local view state (delegates to parent's debounced method)

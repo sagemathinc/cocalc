@@ -17,7 +17,7 @@ With build controls at the top (build, force build, clean, etc.)
 */
 
 import type { TabsProps } from "antd";
-import { Spin, Tabs, Tag } from "antd";
+import { List as AntdList, Spin, Tabs, Tag } from "antd";
 import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -57,6 +57,12 @@ interface OutputProps {
 }
 
 type TabType = "pdf" | "contents" | "files" | "build" | "errors";
+
+interface FileListItem {
+  path: string;
+  isMain: boolean;
+  summary: string;
+}
 
 export function Output(props: OutputProps) {
   const {
@@ -119,6 +125,13 @@ export function Output(props: OutputProps) {
 
   // List of LaTeX files in the project
   const switch_to_files: List<string> = useRedux([name, "switch_to_files"]);
+
+  // File summaries state with caching (1 minute max)
+  const [fileSummaries, setFileSummaries] = useState<Record<string, string>>(
+    {},
+  );
+  const [lastSummariesFetch, setLastSummariesFetch] = useState<number>(0);
+  const [summariesLoading, setSummariesLoading] = useState<boolean>(false);
 
   // Update table of contents when component mounts
   useEffect(() => {
@@ -232,6 +245,37 @@ export function Output(props: OutputProps) {
     return { errors, warnings, typesetting };
   }, [build_logs, knitr]);
 
+  // Function to generate basic file summaries (placeholder for future implementation)
+  const generateFileSummaries = useCallback(() => {
+    if (!switch_to_files || switch_to_files.size === 0) return;
+
+    const now = Date.now();
+    const oneMinute = 60 * 1000;
+
+    // Only update if it's been more than 1 minute since last fetch
+    if (now - lastSummariesFetch < oneMinute) return;
+
+    setSummariesLoading(true);
+
+    // Generate basic summaries - this is scaffolding for future implementation
+    const summaries: Record<string, string> = {};
+    switch_to_files.forEach((filePath) => {
+      // Basic placeholder - can be enhanced with actual file content analysis
+      summaries[filePath] = "LaTeX document";
+    });
+
+    setFileSummaries(summaries);
+    setLastSummariesFetch(now);
+    setSummariesLoading(false);
+  }, [switch_to_files, lastSummariesFetch]);
+
+  // Generate file summaries when files change
+  React.useEffect(() => {
+    if (switch_to_files && switch_to_files.size > 1) {
+      generateFileSummaries();
+    }
+  }, [switch_to_files, generateFileSummaries]);
+
   // No automatic tab switching - let user control tabs manually
   // Errors are indicated with red exclamation icon only
 
@@ -324,31 +368,59 @@ export function Output(props: OutputProps) {
       return a.localeCompare(b);
     });
 
+    const listData = sortedFiles.toJS().map((filePath: string) => ({
+      path: filePath,
+      isMain: filePath === path,
+      summary: fileSummaries[filePath] || "Loading...",
+    }));
+
     return {
       key: "files",
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
           <Icon name="file" />
           Files
+          {summariesLoading && <Spin size="small" />}
         </span>
       ),
       children: (
-        <div className="smc-vfill" style={{ padding: "10px" }}>
-          {sortedFiles.map((filePath) => (
-            <div
-              key={filePath}
-              style={{
-                padding: "8px",
-                cursor: "pointer",
-                borderBottom: `1px solid ${COLORS.GRAY_LL}`,
-                fontFamily: "monospace",
-                fontSize: "12px",
-              }}
-              onClick={() => actions.switch_to_file(filePath)}
-            >
-              {path === filePath ? <b>{filePath} (main)</b> : filePath}
-            </div>
-          ))}
+        <div
+          className="smc-vfill"
+          style={{ padding: "10px", overflowY: "auto" }}
+        >
+          <AntdList
+            size="small"
+            dataSource={listData}
+            renderItem={(item: FileListItem) => (
+              <AntdList.Item
+                style={{
+                  cursor: "pointer",
+                  padding: "12px 8px",
+                }}
+                onClick={() => actions.switch_to_file(item.path)}
+              >
+                <AntdList.Item.Meta
+                  title={
+                    <div style={{ fontFamily: "monospace", fontSize: "13px" }}>
+                      {item.isMain ? <b>{item.path} (main)</b> : item.path}
+                    </div>
+                  }
+                  description={
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: COLORS.GRAY_D,
+                        marginTop: "4px",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {item.summary}
+                    </div>
+                  }
+                />
+              </AntdList.Item>
+            )}
+          />
         </div>
       ),
     };
