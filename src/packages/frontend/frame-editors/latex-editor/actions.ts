@@ -1843,12 +1843,14 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   set_font_size(id: string, font_size: number): void {
     if (this._is_output_panel(id)) {
-      // This is for the PDF viewer in output panel, not a regular frame.
+      // This is for the output panel UI, not a regular frame.
       // We store its font size in the local_view_state.
       const local_view_state = this.store.get("local_view_state");
       this.setState({
         local_view_state: local_view_state.setIn([id, "font_size"], font_size),
       });
+      // Save the state change
+      this.save_local_view_state();
     } else {
       super.set_font_size(id, font_size);
       this.update_gutters_soon();

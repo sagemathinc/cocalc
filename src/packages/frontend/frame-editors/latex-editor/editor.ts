@@ -191,6 +191,8 @@ const output: EditorDescription = {
     stop_build: true,
     download: false,
     download_pdf: true,
+    decrease_font_size: true,
+    increase_font_size: true,
   },
   buttons: set([
     "build",

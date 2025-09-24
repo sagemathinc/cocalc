@@ -1215,7 +1215,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       props.page == null ||
       props.pages == null ||
       manageCommands.isExplicitlyHidden("page") ||
-      props.type === "latex-output"
+      props.type === "output"
     ) {
       // do not render anything unless both page and pages are set
       // also don't render for latex output panels (they have their own page controls)

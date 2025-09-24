@@ -23,7 +23,9 @@ import {
 import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import usePinchToZoom, { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import usePinchToZoom, {
+  Data,
+} from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -95,16 +97,20 @@ export function PDFJS({
   // Configure pinch-to-zoom with appropriate settings
   const pinchToZoomConfig = {
     target: divRef,
-    onZoom: onZoom || ((data) => {
-      // Default behavior: set font size directly when no parent callback provided
-      actions.set_font_size(id, data.fontSize);
-    }),
-    ...(zoom !== undefined ? {
-      getFontSize: () => {
-        // Convert current zoom back to fontSize for pinch calculations
-        return zoom * 14;
-      }
-    } : {})
+    onZoom:
+      onZoom ||
+      ((data) => {
+        // Default behavior: set font size directly when no parent callback provided
+        actions.set_font_size(id, data.fontSize);
+      }),
+    ...(zoom !== undefined
+      ? {
+          getFontSize: () => {
+            // Convert current zoom back to fontSize for pinch calculations
+            return zoom * 14;
+          },
+        }
+      : {}),
   };
 
   usePinchToZoom(pinchToZoomConfig);
@@ -313,8 +319,11 @@ export function PDFJS({
         onPageInfo(currentPageNum, totalPages);
       }
 
-      // Ensure initial page scroll happens after a brief delay to allow virtuoso to be ready
-      if (initialPage && initialPage > 1) {
+      // Restore scroll position after PDF loads, but let Virtuoso scroll hook handle it
+      // if we have saved scroll state, otherwise scroll to initial page
+      const savedScrollState = editor_state.get("scrollState")?.toJS();
+      if (initialPage && initialPage > 1 && !savedScrollState) {
+        // Only use initialPage if we don't have saved scroll state
         setTimeout(() => {
           const index =
             (typeof pageToSet === "string" ? parseInt(pageToSet) : pageToSet) -
@@ -490,10 +499,6 @@ export function PDFJS({
 
   const updateCurrentPage = useCallback(
     ({ index, offset }) => {
-      // Don't update viewport info if we're currently doing a programmatic scroll for this viewer
-      const isProgrammaticScroll =
-        scroll_pdf_into_view != null && scroll_pdf_into_view.id === id;
-
       // We *define* the current page to be whatever page intersects
       // the exact middle of divRef.  This might not be perfect, but
       // at least it is a definition.
@@ -528,6 +533,10 @@ export function PDFJS({
       if (onPageInfo && doc) {
         onPageInfo(index + 1, doc.numPages);
       }
+
+      // Don't update viewport info if we're currently doing a programmatic scroll for this viewer
+      const isProgrammaticScroll =
+        scroll_pdf_into_view != null && scroll_pdf_into_view.id === id;
 
       // Calculate and report viewport middle position for sync
       // Only if we're not currently doing a programmatic scroll
