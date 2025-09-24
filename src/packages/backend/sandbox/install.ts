@@ -155,6 +155,18 @@ export const SPEC = {
     },
     path: join(binPath, "btm"),
   },
+
+  dropbear: {
+    desc: "Dropbear Statically Linked SSH Server ",
+    platforms: ["linux"],
+    VERSION: "v2025.88",
+    getVersion: "dropbear -V",
+    path: join(binPath, "dropbear"),
+    // we grab just the dropbear binary out of the release; we don't
+    // need any of the others:
+    script: () =>
+      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
+  },
 };
 
 export const rg = SPEC.rg.path;
@@ -165,6 +177,7 @@ export const ouch = SPEC.ouch.path;
 export const sshpiper = SPEC.sshpiper.path;
 export const mutagen = SPEC.mutagen.path;
 export const btm = SPEC.btm.path;
+export const dropbear = SPEC.dropbear.path;
 
 type App = keyof typeof SPEC;
 
@@ -189,11 +202,12 @@ export async function installedVersion(app: App): Promise<string | undefined> {
     return;
   }
   try {
-    const { stdout } = await executeCode({
+    const { stdout, stderr } = await executeCode({
+      verbose: true,
       command: getVersion,
       env: { ...process.env, PATH: binPath + ":/usr/bin" },
     });
-    const v = split(stdout).slice(-1)[0];
+    const v = split(stdout + stderr).slice(-1)[0];
     return v;
   } catch (err) {
     logger.debug("WARNING: issue getting version", { path, getVersion, err });
