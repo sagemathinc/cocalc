@@ -49,7 +49,7 @@ const logger = getLogger("project-runner:sidecar");
 
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
-export const sidecarImageName = "localhost/sidecar:0.5.2";
+export const sidecarImageName = "localhost/sidecar:0.5.4";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -75,15 +75,15 @@ rsync -Hax --delete --numeric-ids \
       --no-inc-recursive --info=progress2 --no-human-readable \
       --delete \
       --relative \
-      .local/share/overlay/$ROOTFS_IMAGE/upperdir/ \
+      ${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
       file-server:/root/
-`;
+`.trim();
 
 const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
 
-ssh file-server mkdir -p .local/share/overlay/$ROOTFS_IMAGE/upperdir/
+ssh file-server mkdir -p ${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
 rsync -Hax --numeric-ids \
       "-e" \
@@ -93,10 +93,10 @@ rsync -Hax --numeric-ids \
       --no-inc-recursive --info=progress2 --no-human-readable \
       --delete \
       --relative \
-      file-server:.local/share/overlay/$ROOTFS_IMAGE/upperdir/   \
+      file-server:${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/   \
       /root/
 
-`;
+`.trim();
 
 // run backups of all running projects, then wait this long, then do it again, etc.
 const BACKUP_ROOTFS_INTERVAL = 30_000;
@@ -236,7 +236,7 @@ export async function startSidecar({
         "--compress",
         "--compress-choice=lz4",
         "--exclude",
-        ".local/share/overlay/**",
+        `${PROJECT_IMAGE_PATH}/**`,
         "--exclude",
         ".cache/cocalc/**",
         "--exclude",
@@ -317,7 +317,7 @@ export async function startSidecar({
         "--symlink-mode=posix-raw",
         "--compression=deflate",
         "--ignore",
-        ".local/share/overlay/**",
+        `${PROJECT_IMAGE_PATH}/**`,
         "--ignore",
         ".cache/cocalc/**",
         "--ignore",

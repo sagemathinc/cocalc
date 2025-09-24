@@ -100,13 +100,18 @@ function getMergedPath(project_id) {
   return join(PROJECT_ROOTS, project_id);
 }
 
-export function getPaths({ home, image, project_id }): {
+export function getPaths({ home, image, project_id, compute_server_id = 0 }): {
   lowerdir: string;
   upperdir: string;
   workdir: string;
   merged: string;
 } {
-  const userOverlays = join(home, PROJECT_IMAGE_PATH, image);
+  const userOverlays = join(
+    home,
+    PROJECT_IMAGE_PATH,
+    `${compute_server_id}`,
+    image,
+  );
   const upperdir = join(userOverlays, "upperdir");
   const workdir = join(userOverlays, "workdir");
   const merged = getMergedPath(project_id);
