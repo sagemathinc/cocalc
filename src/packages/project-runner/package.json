@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project-runner",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "CoCalc Project Runner",
   "exports": {
     "./run": "./dist/run/index.js",

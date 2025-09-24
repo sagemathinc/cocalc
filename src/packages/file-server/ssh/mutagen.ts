@@ -25,7 +25,7 @@ export const getMutagenAgent = reuseInFlight(
 
     logger.debug("getMutagenAgent: extracting...");
 
-    const tmp = await mkdtemp(join(tmpdir(), "cocalc"));
+    const tmp = await mkdtemp(join(tmpdir(), "cocalc-mutagen-"));
     const agentTarball = mutagen + "-agents.tar.gz";
 
     await execFile(

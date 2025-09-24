@@ -27,28 +27,11 @@ const logger = getLogger("file-server:ssh:container");
 const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync telnet
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const IMAGE = "localhost/core:0.2.1";
-
-const seccomp_json = `
-{
-  "defaultAction": "SCMP_ACT_ALLOW",
-  "archMap": [
-    {
-      "architecture": "SCMP_ARCH_X86_64",
-      "subArchitectures": ["SCMP_ARCH_X86", "SCMP_ARCH_X32"]
-    },
-    {
-      "architecture": "SCMP_ARCH_AARCH64",
-      "subArchitectures": ["SCMP_ARCH_ARM"]
-    }
-  ],
-  "syscalls": [{ "names": ["connect"], "action": "SCMP_ACT_ERRNO" }]
-}
-`;
+const IMAGE = "localhost/file-server-project:0.2.2";
 
 const PORT = 2222;
 const sshd_conf = `
@@ -59,7 +42,7 @@ UsePAM no
 PermitRootLogin yes
 PubkeyAuthentication yes
 AuthorizedKeysFile .ssh/file-server/authorized_keys
-AllowTcpForwarding no
+AllowTcpForwarding yes
 GatewayPorts no
 X11Forwarding no
 X11UseLocalhost no
@@ -149,11 +132,6 @@ export const start = reuseInFlight(
       mode: 0o700,
     });
     await writeFile(join(sshPath, "sshd.conf"), sshd_conf, { mode: 0o700 });
-    // this secomp is here just because it needs to be somewhere...
-    const secompPath = join(sshPath, "seccomp.json");
-    await writeFile(secompPath, seccomp_json, {
-      mode: 0o700,
-    });
 
     args.push("-p", `${PORT}`);
 
@@ -183,7 +161,6 @@ export const start = reuseInFlight(
         "--cap-add",
         "DAC_OVERRIDE",
       );
-      args.push("--security-opt", `seccomp=${secompPath}`);
 
       // Limits
       if (pids) {
