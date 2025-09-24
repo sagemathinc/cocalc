@@ -92,20 +92,19 @@ export function PDFJS({
 
   const divRef = useRef<HTMLDivElement>(null);
 
-  // When zoom prop is provided, use onZoom callback to handle pinch gestures
-  // Otherwise, let usePinchToZoom handle font_size directly
-  const pinchToZoomConfig = zoom !== undefined && onZoom ? {
+  // Configure pinch-to-zoom with appropriate settings
+  const pinchToZoomConfig = {
     target: divRef,
-    onZoom: (data) => {
-      // Pass the pinch-to-zoom data directly to parent
-      onZoom(data);
-    },
-    getFontSize: () => {
-      // Convert current zoom back to fontSize for pinch calculations
-      return zoom * 14;
-    }
-  } : {
-    target: divRef
+    onZoom: onZoom || ((data) => {
+      // Default behavior: set font size directly when no parent callback provided
+      actions.set_font_size(id, data.fontSize);
+    }),
+    ...(zoom !== undefined ? {
+      getFontSize: () => {
+        // Convert current zoom back to fontSize for pinch calculations
+        return zoom * 14;
+      }
+    } : {})
   };
 
   usePinchToZoom(pinchToZoomConfig);
@@ -803,6 +802,14 @@ export function PDFJS({
         cursor,
         textAlign: "center",
         backgroundColor: !loaded ? "white" : BG_COL,
+        // Disable browser's native touch behaviors to allow our pinch-to-zoom to work
+        touchAction: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+        KhtmlUserSelect: "none",
+        MozUserSelect: "none",
+        msUserSelect: "none",
+        userSelect: "none",
       }}
       ref={divRef}
       onMouseDown={onMouseDown}
