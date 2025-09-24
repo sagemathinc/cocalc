@@ -128,7 +128,6 @@ export async function start({
       `rootfs_image=${image}`,
       "--network=pasta",
     ]);
-    rootfsImageCache[project_id] = image;
     bootlog({ project_id, type: "start", progress: 20, desc: "created pod" });
 
     const mounts = getCoCalcMounts();
@@ -147,15 +146,6 @@ export async function start({
       progress: 20,
       desc: "got env variables",
     });
-
-    const rootfs = await rootFilesystem.mount({ project_id, home, config });
-    bootlog({
-      project_id,
-      type: "start",
-      progress: 30,
-      desc: "mounted rootfs",
-    });
-    logger.debug("start: got rootfs", { project_id, rootfs });
 
     const servers = await sshServers?.({ project_id });
     await initSshKeys({ home, sshServers: servers });
@@ -178,7 +168,7 @@ export async function start({
       project_id,
       type: "start",
       progress: 45,
-      desc: "started sync sidecar",
+      desc: "started file sync sidecar",
     });
 
     await mkdir(home, { recursive: true });
@@ -186,11 +176,14 @@ export async function start({
     await ensureConfFilesExists(home);
     logger.debug("start: created conf files", { project_id });
 
-    //   await writeMutagenConfig({
-    //     home,
-    //     sync: config?.sync,
-    //     forward: config?.forward,
-    //   });
+    const rootfs = await rootFilesystem.mount({ project_id, home, config });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 30,
+      desc: "mounted rootfs",
+    });
+    logger.debug("start: got rootfs", { project_id, rootfs });
 
     await setupDataPath(home);
 
@@ -439,32 +432,6 @@ async function state(project_id): Promise<ProjectState> {
   return "opened";
 }
 
-const rootfsImageCache: { [project_id: string]: string } = {};
-async function getRootfsImage(project_id: string) {
-  if (rootfsImageCache[project_id]) {
-    return rootfsImageCache[project_id];
-  }
-  //podman inspect --type pod mypod --format '{{ index .Labels "project_id" }}'
-  try {
-    const { stdout } = await podman([
-      "inspect",
-      "--type",
-      "pod",
-      projectPodName(project_id),
-      "--format",
-      '{{ index .Labels "rootfs_image" }}',
-    ]);
-    const rootfsImage = stdout;
-    rootfsImageCache[project_id] = rootfsImage;
-    return rootfsImage;
-  } catch (err) {
-    if (`${err}`.includes("no such pod")) {
-      return;
-    }
-    throw err;
-  }
-}
-
 export async function status({ project_id, localPath }) {
   if (!isValidUUID(project_id)) {
     throw Error("status: project_id must be valid");
@@ -489,7 +456,6 @@ export async function status({ project_id, localPath }) {
     ip: "127.0.0.1",
     publicKey,
     error,
-    rootfsImage: s != "opened" ? await getRootfsImage(project_id) : undefined,
   };
 }
 

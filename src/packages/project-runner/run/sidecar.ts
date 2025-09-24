@@ -15,21 +15,12 @@ all the mutagen commands in the main pod suddenly "just work", because
 they all use the daemon!  There's one caveat -- if you don't have ssh installed
 and you stop/start the daemon, then of course things break. Deal with it.
 
-ROOTFS AND OVERLAYFS: This code also implements scripts that do backup/restore for rootfs over
-rsync AND preserve uid/gid/etc., all safely entirely rootless and allowing for
-a large base image.
-  - it's amazing this is possible!
+ROOTFS AND OVERLAYFS: This code also implements scripts that do backup/restore
+for rootfs over rsync AND preserve uid/gid/etc., all safely entirely rootless
+and allowing for a large base image which doesn't slow it down:
+
+  - it's cool that this is possible!
   - the code isn't very long but took a lot of work to figure out.
-This code assumes that we use overlayfs (which requires sudo to mount), but
-it would be possible to do everything without that if necessary, just at the
-cost of wasted disk space.
-I think in fact we could do EXACTLY the same without using overlayfs and
-instead use a COW filesystem (e.g., btrfs) and do "cp --reflink" to
-make a lightweight copy of the base root image.  We still keep the original
-image and use rsync as in the scripts below, using the marvelous --compare-dest
-option, so we only backup to the main file-server the work installed on
-top of the base image.  Since we will use btrfs anyways with quotas, we
-can switch to this.
 
 COCALC-LITE?
 
@@ -58,40 +49,41 @@ const logger = getLogger("project-runner:sidecar");
 
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
-export const sidecarImageName = "localhost/sidecar:0.4.11";
+export const sidecarImageName = "localhost/sidecar:0.5.2";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client rsync
 
-COPY delete-extra.js /usr/local/bin/delete-extra.js
 COPY backup-rootfs.sh /usr/local/bin/backup-rootfs.sh
 COPY restore-rootfs.sh /usr/local/bin/restore-rootfs.sh
 RUN chmod a+x /usr/local/bin/*
 `;
 
+// The backup and restore scripts assume overlayfs was mounted using:
+//     xino=off,metacopy=off,redirect_dir=off
 const BACKUP_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
 
-(cd /rootfs/lowerdir && find . -print0 | sort -z) > /tmp/lower.nul
-(cd /rootfs/merged   && find . -print0 | sort -z) > /tmp/merged.nul
-comm -z -23 /tmp/lower.nul /tmp/merged.nul > /rootfs/merged/root/deleted.nul
-
-ssh file-server mkdir -p /root/.local/share/overlay/$ROOTFS_IMAGE/
-
+cd /root
 rsync -Hax --delete --numeric-ids \
       "-e" \
       "ssh -o Compression=no -c aes128-gcm@openssh.com" \
       "--compress" \
       "--compress-choice=lz4" \
       --no-inc-recursive --info=progress2 --no-human-readable \
-      --compare-dest=/rootfs/lowerdir /rootfs/merged/ file-server:/root/.local/share/overlay/$ROOTFS_IMAGE/
+      --delete \
+      --relative \
+      .local/share/overlay/$ROOTFS_IMAGE/upperdir/ \
+      file-server:/root/
 `;
 
 const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
+
+ssh file-server mkdir -p .local/share/overlay/$ROOTFS_IMAGE/upperdir/
 
 rsync -Hax --numeric-ids \
       "-e" \
@@ -99,9 +91,11 @@ rsync -Hax --numeric-ids \
       "--compress" \
       "--compress-choice=lz4" \
       --no-inc-recursive --info=progress2 --no-human-readable \
-      file-server:/root/.local/share/overlay/$ROOTFS_IMAGE/ /rootfs/merged/
+      --delete \
+      --relative \
+      file-server:.local/share/overlay/$ROOTFS_IMAGE/upperdir/   \
+      /root/
 
-node /usr/local/bin/delete-extra.js
 `;
 
 // run backups of all running projects, then wait this long, then do it again, etc.
@@ -112,7 +106,6 @@ export async function init() {
   await build({
     name: sidecarImageName,
     Dockerfile,
-    files: [join(__dirname, "delete-extra.js")],
     fileContents: {
       "backup-rootfs.sh": BACKUP_ROOTFS_SH,
       "restore-rootfs.sh": RESTORE_ROOTFS_SH,
@@ -160,21 +153,6 @@ export async function startSidecar({
     );
   }
   args2.push(mountArg({ source: home, target: env.HOME }));
-  const { upperdir, lowerdir, merged } = getOverlayPaths({
-    image,
-    project_id,
-    home,
-  });
-  args2.push(
-    mountArg({
-      source: lowerdir,
-      target: "/rootfs/lowerdir",
-      readOnly: true,
-    }),
-  );
-  args2.push(
-    mountArg({ source: merged, target: "/rootfs/merged", readOnly: false }),
-  );
 
   for (const name in env) {
     args2.push("-e", `${name}=${env[name]}`);
@@ -202,7 +180,13 @@ export async function startSidecar({
   const knownMutagenSessions = await getMutagenSessions(name);
 
   const copyRootfs = async () => {
-    if (!(await exists(join(upperdir, "root", "deleted.nul")))) {
+    const { upperdir } = getOverlayPaths({
+      image,
+      project_id,
+      home,
+    });
+
+    if (!(await exists(upperdir))) {
       // we have never grabbed the rootfs, so grab it from the file-server:
       bootlog({
         project_id,
@@ -223,6 +207,7 @@ export async function startSidecar({
         },
       });
     }
+
     bootlog({
       project_id,
       type: "start-sidecar",

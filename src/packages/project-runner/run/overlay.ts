@@ -3,14 +3,9 @@
 
 Privileges: This uses sudo to do an overlayfs mount.
 
-NOTE: by instead using btrfs with copy on write, we can do exactly
-the same without sudo using "cp --reflink" on the base image instead,
-See the comment in sidecar.ts under "ROOTFS AND OVERLAYFS".
+    wstein ALL=(ALL) NOPASSWD: /bin/mount -t overlay *, /bin/umount *
 
-The one exception to this would be if the lowerdir were a filesystem
-served only over NFS. That would still work fine using overlayfs.
-This might be exactly what we do for the "huge image" option on cocalc.
-
+where obviously wstein is replaced by the user running this server.
 */
 
 import { join } from "path";
@@ -175,7 +170,12 @@ async function mountOverlayFs({ upperdir, workdir, merged, lowerdir }) {
       "overlay",
       "overlay",
       "-o",
-      `lowerdir=${escape(lowerdir)},upperdir=${escape(upperdir)},workdir=${escape(workdir)}`,
+      // CRITICAL: using xino=off,metacopy=off,redirect_dir=off disables all use of xattrs,
+      // so we can rsync rootfs in a purely rootless context.  It is much LESS efficient
+      // if users are modifying big base layer file metadata or deleting a lot of base
+      // image directories... but that's not at all the likely use case of our overlay filesystem.
+      // Much more likely is that users place data and new software installs in the rootfs.
+      `lowerdir=${escape(lowerdir)},upperdir=${escape(upperdir)},workdir=${escape(workdir)},xino=off,metacopy=off,redirect_dir=off`,
       merged,
     ],
   });

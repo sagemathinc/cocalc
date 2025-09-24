@@ -68,7 +68,7 @@ export async function init({
 
   app.get(`/${base_url}/:user`, async (req, res) => {
     try {
-      const { volume, authorizedKeys, path, rootfsImage } = await handleRequest(
+      const { volume, authorizedKeys, path } = await handleRequest(
         req.params.user,
         client,
       );
@@ -77,7 +77,6 @@ export async function init({
       // is available locally:
       const { sshPort } = await container.start({
         volume,
-        rootfsImage,
         scratch,
         publicKey: sshKey.publicKey,
         authorizedKeys,
@@ -121,15 +120,13 @@ async function handleRequest(
   authorizedKeys: string;
   volume: string;
   path: string;
-  rootfsImage?: string;
 }> {
   if (user?.startsWith("project-")) {
     const project_id = user.slice("project-".length, "project-".length + 36);
     const volume = `project-${project_id}`;
     const id = user.slice("project-".length + 37);
     const compute_server_id = parseInt(id ? id : "0");
-    let authorizedKeys,
-      rootfsImage: undefined | string = undefined;
+    let authorizedKeys;
     if (!compute_server_id) {
       const runner = projectRunnerClient({
         client,
@@ -139,7 +136,6 @@ async function handleRequest(
       });
       const s = await runner.status({ project_id });
       authorizedKeys = s.publicKey;
-      rootfsImage = s.rootfsImage;
       if (!authorizedKeys) {
         throw Error("no ssh key known");
       }
@@ -159,7 +155,7 @@ async function handleRequest(
     // sharing folders instead of all files in a project.
     const path = await getHome(client, project_id);
 
-    return { authorizedKeys, volume, path, rootfsImage };
+    return { authorizedKeys, volume, path };
   } else {
     throw Error("uknown user");
   }

@@ -11,8 +11,6 @@ export interface ProjectStatus {
   server?: string;
   state: ProjectState;
   publicKey?: string; // ed25519 ssh public key
-  // the OCI root base image
-  rootfsImage?: string;
 }
 
 export default async function state({ client }) {
