@@ -77,16 +77,21 @@ export async function startSidecar({
     "--init",
   ];
   for (const path in mounts) {
-    args2.push("-v", `${path}:${mounts[path]}:ro`);
+    args2.push(
+      mountArg({ source: path, target: mounts[path], readOnly: true }),
+    );
   }
-  args2.push("-v", `${home}:${env.HOME}`);
-  const { lowerdir } = getOverlayPaths({ image, project_id, home });
+  args2.push(mountArg({ source: home, target: env.HOME }));
+  const { lowerdir, merged } = getOverlayPaths({ image, project_id, home });
   args2.push(
     mountArg({
       source: lowerdir,
-      target: join(env.HOME, ".local/share/overlay/", image, "lowerdir"),
-      options: "ro",
+      target: "/rootfs/lowerdir",
+      readOnly: true,
     }),
+  );
+  args2.push(
+    mountArg({ source: merged, target: "/rootfs/merged", readOnly: false }),
   );
 
   for (const name in env) {

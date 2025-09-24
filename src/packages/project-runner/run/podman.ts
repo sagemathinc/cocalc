@@ -15,7 +15,7 @@ Maybe.  Perhaps we'll have two modes.
 
 */
 
-import { nodePath } from "./mounts";
+import { mountArg, nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
@@ -149,6 +149,16 @@ export async function start({
       progress: 20,
       desc: "got env variables",
     });
+
+    const rootfs = await rootFilesystem.mount({ project_id, home, config });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 30,
+      desc: "mounted rootfs",
+    });
+    logger.debug("start: got rootfs", { project_id, rootfs });
+
     const initFileSync = await startSidecar({
       image,
       project_id,
@@ -160,18 +170,10 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 30,
+      progress: 40,
       desc: "started sync sidecar",
     });
 
-    const rootfs = await rootFilesystem.mount({ project_id, home, config });
-    bootlog({
-      project_id,
-      type: "start",
-      progress: 40,
-      desc: "mounted rootfs",
-    });
-    logger.debug("start: got rootfs", { project_id, rootfs });
     await mkdir(home, { recursive: true });
     logger.debug("start: created home", { project_id });
     await ensureConfFilesExists(home);
@@ -227,9 +229,12 @@ export async function start({
     args.push("--name", projectContainerName(project_id));
 
     for (const path in mounts) {
-      args.push("-v", `${path}:${mounts[path]}:ro`);
+      args.push(
+        mountArg({ source: path, target: mounts[path], readOnly: true }),
+      );
     }
-    args.push("-v", `${home}:${env.HOME}`);
+    args.push(mountArg({ source: home, target: env.HOME }));
+
     for (const name in env) {
       args.push("-e", `${name}=${env[name]}`);
     }

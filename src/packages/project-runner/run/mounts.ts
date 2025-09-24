@@ -22,16 +22,21 @@ export function getCoCalcMounts() {
   };
 }
 
+function escapeMountPath(p) {
+  return p
+    .replace(/\\/g, "\\\\") // literal backslashes
+    .replace(/,/g, "\\,") // commas separate K/V pairs
+    .replace(/=/g, "\\="); // equals separate keys from values
+}
+
 export function mountArg({
   source,
   target,
-  type = "bind",
-  options = "rw",
+  readOnly = false,
 }: {
   source: string;
   target: string;
-  type?: "bind";
-  options?: "ro" | "rw";
+  readOnly?: boolean;
 }) {
-  return `--mount=type=${type},source=${source},target=${target},${options}`;
+  return `--mount=type=bind,source=${escapeMountPath(source)},target=${escapeMountPath(target)},${readOnly ? "ro" : "rw"}`;
 }
