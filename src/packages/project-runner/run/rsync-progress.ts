@@ -26,7 +26,7 @@ export default async function rsyncProgress({
     command = "rsync";
   }
   args1.push(
-    "--outbuf=L",
+    //"--outbuf=L",
     "--no-inc-recursive",
     "--info=progress2",
     "--no-human-readable",

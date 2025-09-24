@@ -33,15 +33,56 @@ import { getPaths as getOverlayPaths } from "./overlay";
 import rsyncProgress from "./rsync-progress";
 import { mountArg } from "./mounts";
 
+// Increase this version tag right here if you change
+// any of the Dockerfile or any files it uses:
+export const sidecarImageName = "localhost/sidecar:0.4.4";
+
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client rsync
+
+COPY delete-extra.js /usr/local/bin/delete-extra.js
+COPY backup-rootfs.sh /usr/local/bin/backup-rootfs.sh
+COPY restore-rootfs.sh /usr/local/bin/restore-rootfs.sh
+RUN chmod a+x /usr/local/bin/*
 `;
 
-export const sidecarImageName = "localhost/sidecar:0.4";
+const BACKUP_ROOTFS_SH = `
+#!/bin/bash
+set -euo pipefail
+
+(cd /rootfs/lowerdir && find . -print0 | sort -z) > /tmp/lower.nul
+(cd /rootfs/merged   && find . -print0 | sort -z) > /tmp/merged.nul
+comm -z -23 /tmp/lower.nul /tmp/merged.nul > /rootfs/merged/root/deleted.nul
+
+ssh file-server mkdir -p /root/.local/share/overlay/$ROOTFS_IMAGE/
+
+rsync -Hax --delete --numeric-ids \
+      --no-inc-recursive --info=progress2 --no-human-readable \
+      --compare-dest=/rootfs/lowerdir /rootfs/merged/ file-server:/root/.local/share/overlay/$ROOTFS_IMAGE/
+`;
+
+const RESTORE_ROOTFS_SH = `
+#!/bin/bash
+set -euo pipefail
+
+rsync -Hax --numeric-ids \
+      --no-inc-recursive --info=progress2 --no-human-readable \
+      file-server:/root/.local/share/overlay/$ROOTFS_IMAGE/ /rootfs/merged/
+
+node /usr/local/bin/delete-extra.js
+`;
 
 export async function init() {
-  await build({ name: sidecarImageName, Dockerfile });
+  await build({
+    name: sidecarImageName,
+    Dockerfile,
+    files: [join(__dirname, "delete-extra.js")],
+    fileContents: {
+      "backup-rootfs.sh": BACKUP_ROOTFS_SH,
+      "restore-rootfs.sh": RESTORE_ROOTFS_SH,
+    },
+  });
 }
 
 export function sidecarContainerName(project_id) {
@@ -97,6 +138,8 @@ export async function startSidecar({
   for (const name in env) {
     args2.push("-e", `${name}=${env[name]}`);
   }
+
+  args2.push("-e", `ROOTFS_IMAGE=${image}`);
 
   args2.push(sidecarImageName, "mutagen", "daemon", "run");
 

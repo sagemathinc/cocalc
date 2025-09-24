@@ -25,7 +25,7 @@ async function hasImage(name: string): Promise<boolean> {
   ]);
   if (JSON.parse(stdout).length > 0) {
     images.add(name);
-    logger.debug(`image ${name} exists`);
+    logger.debug(`image ${name} now exists`);
     return true;
   }
   return false;
@@ -37,10 +37,12 @@ export const build = reuseInFlight(
     Dockerfile,
     name,
     files,
+    fileContents,
   }: {
     Dockerfile: string;
     name: string;
     files?: string[];
+    fileContents?: { [path: string]: string };
   }) => {
     if (await hasImage(name)) {
       return;
@@ -52,6 +54,13 @@ export const build = reuseInFlight(
       logger.debug("Created temp dir:", path);
       if (files != null) {
         await Promise.all(files.map((x) => cp(x, join(path!, basename(x)))));
+      }
+      if (fileContents != null) {
+        const v: any[] = [];
+        for (const x in fileContents) {
+          v.push(writeFile(join(path, x), fileContents[x]));
+        }
+        await Promise.all(v);
       }
       await writeFile(join(path, "Dockerfile"), Dockerfile, "utf8");
       const { stderr } = await execFile("podman", ["build", "-t", name, "."], {
