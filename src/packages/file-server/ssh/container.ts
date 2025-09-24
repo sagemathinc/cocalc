@@ -179,12 +179,27 @@ export const start = reuseInFlight(
       args.push(
         "--cap-drop",
         "ALL",
+        // SYS_CHROOT: needed for ssh each time we get a new connection
         "--cap-add",
         "SYS_CHROOT",
         "--cap-add",
         "SETGID",
         "--cap-add",
         "SETUID",
+        // CHOWN: needed to rsync rootfs and preserve uid's
+        "--cap-add",
+        "CHOWN",
+        // FSETID: needed to preserve setuid/setgid bits (e.g,. so ping for regular users works)
+        "--cap-add",
+        "FSETID",
+        // FOWNER: needed to set permissions when rsync'ing rootfs
+        "--cap-add",
+        "FOWNER",
+        // these two are so root can see inside non-root user paths when doing backups of rootfs
+        "--cap-add",
+        "DAC_READ_SEARCH",
+        "--cap-add",
+        "DAC_OVERRIDE",
       );
       args.push("--security-opt", `seccomp=${secompPath}`);
 

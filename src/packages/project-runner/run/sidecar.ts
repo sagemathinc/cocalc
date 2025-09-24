@@ -223,7 +223,15 @@ export async function startSidecar({
     // mutagen refuses to proceed with the error (by design):
     //  <root>: unable to walk to transition root parent: unable to open synchronization
     //  root parent directory: no such file or directory
-    await podman(["exec", name, "ssh", "file-server", "mkdir", "-p", upperdir]);
+    await podman([
+      "exec",
+      name,
+      "ssh",
+      "file-server",
+      "mkdir",
+      "-p",
+      join(PROJECT_IMAGE_PATH, image),
+    ]);
     bootlog({
       project_id,
       type: "start-file-sync",
