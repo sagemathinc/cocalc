@@ -13,17 +13,17 @@ export const SNAPSHOT_INTERVALS_MS = {
 
 // How many of each type of snapshot to retain
 export const DEFAULT_SNAPSHOT_COUNTS = {
-  frequent: 24,
-  daily: 14,
-  weekly: 7,
-  monthly: 4,
+  frequent: 4,
+  daily: 7,
+  weekly: 4,
+  monthly: 2,
 } as SnapshotCounts;
 
 export const DEFAULT_BACKUP_COUNTS = {
   frequent: 0,
-  daily: 3,
-  weekly: 4,
-  monthly: 6,
+  daily: 1,
+  weekly: 3,
+  monthly: 4,
 } as SnapshotCounts;
 
 // We have at least one snapshot for each interval, assuming
