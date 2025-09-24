@@ -1320,6 +1320,39 @@ addCommands({
       defaultMessage: "Default",
     }),
   },
+  new_layout: {
+    icon: "layout",
+    group: "frame_types",
+    title: defineMessage({
+      id: "command.generic.new_layout.title",
+      defaultMessage:
+        "Switch to a simplified layout with LaTeX source editor and multi-purpose output panel",
+    }),
+    label: defineMessage({
+      id: "command.generic.new_layout.label",
+      defaultMessage: "New Layout",
+    }),
+    button: defineMessage({
+      id: "command.generic.new_layout.button",
+      defaultMessage: "New",
+    }),
+    isVisible: ({ props }) =>
+      typeof props.actions?._new_latex_frame_tree === "function",
+    onClick: ({ props }) => {
+      try {
+        // Check if this is a LaTeX editor and use its specific layout method
+        if (
+          props.actions._new_latex_frame_tree &&
+          props.actions.replace_frame_tree_with_custom
+        ) {
+          const tree = props.actions._new_latex_frame_tree();
+          props.actions.replace_frame_tree_with_custom(tree);
+        }
+      } catch (error) {
+        console.error("Error in New Layout:", error);
+      }
+    },
+  },
   button_bar: {
     alwaysShow: true,
     icon: "tool",

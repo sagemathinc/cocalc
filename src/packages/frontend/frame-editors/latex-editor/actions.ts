@@ -1,4 +1,4 @@
-/*
+ /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
@@ -632,6 +632,51 @@ export class Actions extends BaseActions<LatexEditorState> {
         },
         pos: 0.5,
       };
+    }
+  }
+
+  _new_latex_frame_tree(): FrameTree {
+    if (this.is_public) {
+      return { type: "cm" };
+    } else {
+      return {
+        type: "node",
+        direction: "col",
+        first: { type: "cm" },
+        second: { type: "output" },
+        pos: 0.5,
+      };
+    }
+  }
+
+  // Method to replace the entire frame tree with a custom tree structure
+  replace_frame_tree_with_custom(customTree: FrameTree): void {
+    let local = this.store.get("local_view_state");
+
+    // Process the custom tree: assign IDs and ensure uniqueness
+    let frame_tree = fromJS(customTree) as Map<string, any>;
+    frame_tree = tree_ops.assign_ids(frame_tree);
+    frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
+
+    // Set the frame tree to the custom tree
+    local = local.set("frame_tree", frame_tree);
+
+    // Also make some id active, since existing active_id is no longer valid
+    local = local.set("active_id", tree_ops.get_some_leaf_id(frame_tree));
+
+    // Update state, so visible to UI
+    this.setState({ local_view_state: local });
+
+    // And save this new state to localStorage
+    this.save_local_view_state();
+
+    // Emit new-frame events for all leaf nodes
+    for (const id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (leaf != null) {
+        const type = leaf.get("type");
+        this.store.emit("new-frame", { id, type });
+      }
     }
   }
 
