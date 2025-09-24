@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { mountArg } from "@cocalc/project-runner/run/mounts";
+import { extractBaseImage } from "@cocalc/project-runner/run/overlay";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 
 const FAIR_CPU_MODE = true;
@@ -77,6 +78,7 @@ export const start = reuseInFlight(
   async ({
     volume,
     path,
+    rootfsImage,
     publicKey,
     authorizedKeys,
     // path in which to put directory for mutagen's state, which includes
@@ -96,6 +98,10 @@ export const start = reuseInFlight(
   }: {
     volume: string;
     path: string;
+    // rootfsImage = the OCI rootfs image name that is currently being used for this project;
+    // this is called "rootfs_image" in the database projects table. If given, this gets
+    // pulled, then mounted at /rootfs/lowerdir.
+    rootfsImage?: string;
     publicKey: string;
     authorizedKeys: string;
     scratch: string;
@@ -131,6 +137,18 @@ export const start = reuseInFlight(
     args.push("--name", name);
     args.push("--hostname", "file-server");
     args.push("--label", `volume=${volume}`, "--label", `role=file-server`);
+
+    if (rootfsImage) {
+      const lowerdir = await extractBaseImage(rootfsImage);
+      args.push(
+        mountArg({
+          source: lowerdir,
+          target: "/rootfs/lowerdir",
+          readOnly: true,
+          options: "noexec,nodev,nosuid",
+        }),
+      );
+    }
 
     // mount the volume contents to the directory /root in the container.
     // Since user can write arbitrary files here, this is noexec, so they

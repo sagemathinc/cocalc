@@ -102,6 +102,8 @@ export async function start({
     });
 
     const pod = projectPodName(project_id);
+    const image = getImage(config);
+
     await podman([
       "pod",
       "create",
@@ -112,8 +114,11 @@ export async function start({
       `project_id=${project_id}`,
       "--label",
       `role=project`,
+      "--label",
+      `rootfs_image=${image}`,
       "--network=pasta",
     ]);
+    rootfsImageCache[project_id] = image;
     bootlog({ project_id, type: "start", progress: 10, desc: "created pod" });
 
     const home = await localPath({ project_id });
@@ -125,7 +130,6 @@ export async function start({
       desc: "got home directory",
     });
     const mounts = getCoCalcMounts();
-    const image = getImage(config);
     const servers = await sshServers?.({ project_id });
     await initSshKeys({ home, sshServers: servers });
     bootlog({
@@ -427,6 +431,32 @@ async function state(project_id): Promise<ProjectState> {
   return "opened";
 }
 
+const rootfsImageCache: { [project_id: string]: string } = {};
+async function getRootfsImage(project_id: string) {
+  if (rootfsImageCache[project_id]) {
+    return rootfsImageCache[project_id];
+  }
+  //podman inspect --type pod mypod --format '{{ index .Labels "project_id" }}'
+  try {
+    const { stdout } = await podman([
+      "inspect",
+      "--type",
+      "pod",
+      projectPodName(project_id),
+      "--format",
+      '{{ index .Labels "rootfs_image" }}',
+    ]);
+    const rootfsImage = stdout;
+    rootfsImageCache[project_id] = rootfsImage;
+    return rootfsImage;
+  } catch (err) {
+    if (`${err}`.includes("no such pod")) {
+      return;
+    }
+    throw err;
+  }
+}
+
 export async function status({ project_id, localPath }) {
   if (!isValidUUID(project_id)) {
     throw Error("status: project_id must be valid");
@@ -446,7 +476,13 @@ export async function status({ project_id, localPath }) {
   if (error) {
     logger.debug("WARNING ", { project_id, error });
   }
-  return { state: s, ip: "127.0.0.1", publicKey, error };
+  return {
+    state: s,
+    ip: "127.0.0.1",
+    publicKey,
+    error,
+    rootfsImage: s != "opened" ? await getRootfsImage(project_id) : undefined,
+  };
 }
 
 export async function getAll(): Promise<string[]> {
