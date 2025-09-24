@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ShowError from "@cocalc/frontend/components/error";
 import { redux } from "@cocalc/frontend/app-framework";
-import { dirname } from "path";
+import { dirname, join } from "path";
 import { A, Icon } from "@cocalc/frontend/components";
 import { split } from "@cocalc/util/misc";
 
@@ -182,11 +182,16 @@ function getImage(project) {
   return image ? image : DEFAULT_PROJECT_IMAGE;
 }
 
-async function getImages(project_id: string) {
+async function getImages(project_id: string, compute_server_id = 0) {
+  // [ ] TODO: this should really be the fs in the sandbox that runs on the file-server ALWAYS
+  // but I don't have a way to express that yet.
   const fs = redux.getProjectActions(project_id).fs(0);
-  const { stdout } = await fs.fd(PROJECT_IMAGE_PATH, {
-    options: ["-E", "workdir", "-E", "upperdir"],
-  });
+  const { stdout } = await fs.fd(
+    join(PROJECT_IMAGE_PATH, `${compute_server_id}`),
+    {
+      options: ["-E", "workdir", "-E", "upperdir"],
+    },
+  );
   const v = Buffer.from(stdout)
     .toString()
     .split("\n")

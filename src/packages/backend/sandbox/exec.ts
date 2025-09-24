@@ -86,7 +86,7 @@ export default async function exec({
       args.push("--", ...positionalArgs);
     }
 
-    logger.debug({ cmd, args });
+    logger.debug(`cd ${cwd}; ${cmd} ${args.join(" ")}`);
 
     //console.log(`${cmd} ${args.join(" ")}`, { cwd, env });
     const child = spawn(cmd, args, {
