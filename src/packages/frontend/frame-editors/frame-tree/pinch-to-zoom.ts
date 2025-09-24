@@ -43,6 +43,7 @@ document.addEventListener("gestureend", handler);
 
 export interface Data {
   fontSize: number;
+  first?: boolean;
 }
 
 const pinchMax = 1000;
@@ -70,9 +71,9 @@ export default function usePinchToZoom({
 
   const saveThrottled = useMemo(() => {
     if (disabled) return () => {};
-    return throttle((fontSize, _first) => {
+    return throttle((fontSize, first) => {
       if (onZoom != null) {
-        onZoom({ fontSize });
+        onZoom({ fontSize, first });
         return;
       }
       actions.set_font_size(id, fontSize);

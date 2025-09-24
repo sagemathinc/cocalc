@@ -87,6 +87,7 @@ import {
   ScrollIntoViewRecord,
 } from "./types";
 import { ensureTargetPathIsCorrect, pdf_path } from "./util";
+import * as tree_ops from "../frame-tree/tree-ops";
 
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
@@ -1444,7 +1445,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     const tree = this._get_tree();
     const leaf_ids = tree_ops.get_leaf_ids(tree);
 
-    for (const id of leaf_ids) {
+    for (const id in leaf_ids) {
       const node = tree_ops.get_node(tree, id);
       if (node && node.get("type") === type) {
         return id;
