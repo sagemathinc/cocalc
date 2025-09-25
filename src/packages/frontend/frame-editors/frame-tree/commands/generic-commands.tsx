@@ -33,6 +33,15 @@ import { SEARCH_COMMANDS } from "./const";
 // Predefined zoom percentages for consistent zoom options across the application
 export const ZOOM_PERCENTAGES = [50, 85, 100, 115, 125, 150, 200, 400] as const;
 
+// Build on save icon constants - exported for consistent iconography across components
+export const BUILD_ON_SAVE_ICON_ENABLED = "delivered-procedure-outlined";
+export const BUILD_ON_SAVE_ICON_DISABLED = "stop-filled";
+export const BUILD_ON_SAVE_LABEL = defineMessage({
+  id: "command.generic.build_on_save.label",
+  defaultMessage:
+    "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
+});
+
 // Export zoom-related messages for use in other components
 export const ZOOM_MESSAGES = {
   zoomPageWidth: {
@@ -655,26 +664,19 @@ addCommands({
   build_on_save: {
     group: "build",
     label: ({ intl }) =>
-      intl.formatMessage(
-        {
-          id: "command.generic.build_on_save.label",
-          defaultMessage:
-            "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
-        },
-        {
-          enabled: redux
-            .getStore("account")
-            .getIn(["editor_settings", "build_on_save"]),
-        },
-      ),
+      intl.formatMessage(BUILD_ON_SAVE_LABEL, {
+        enabled: redux
+          .getStore("account")
+          .getIn(["editor_settings", "build_on_save"]),
+      }),
     title: defineMessage({
       id: "command.generic.build_on_save.title",
       defaultMessage: "Toggle automatic build on file save.",
     }),
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "build_on_save"])
-        ? "delivered-procedure-outlined"
-        : "stop-filled",
+        ? BUILD_ON_SAVE_ICON_ENABLED
+        : BUILD_ON_SAVE_ICON_DISABLED,
   },
   force_build: {
     group: "build",

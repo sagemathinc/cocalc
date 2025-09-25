@@ -15,12 +15,15 @@ import { defineMessage, useIntl } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { useRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { HelpIcon, Icon } from "@cocalc/frontend/components";
 import {
+  BUILD_ON_SAVE_ICON_DISABLED,
+  BUILD_ON_SAVE_ICON_ENABLED,
+  BUILD_ON_SAVE_LABEL,
   ZOOM_MESSAGES,
   ZOOM_PERCENTAGES,
 } from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
-import { labels } from "@cocalc/frontend/i18n";
+import { editor, labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
 
@@ -43,13 +46,37 @@ const CONTROL_PAGE_STYLE = {
   color: COLORS.GRAY_M,
 } as const;
 
-const autoSyncTooltipMessage = defineMessage({
+export const AUTO_SYNC_TOOLTIP_MSG = defineMessage({
   id: "editor.latex.pdf_controls.auto_sync.tooltip",
   defaultMessage:
     "Auto-sync between source and PDF: cursor moves follow PDF scrolling, PDF scrolls to cursor position",
   description:
     "Tooltip explaining bidirectional auto-sync functionality in LaTeX PDF controls",
 });
+
+export const SYNC_HELP_MSG = {
+  title: defineMessage({
+    id: "editor.latex.pdf_controls.sync_help.title",
+    defaultMessage: "LaTeX Sync Help",
+    description: "Title for LaTeX sync help popup",
+  }),
+  content: defineMessage({
+    id: "editor.latex.pdf_controls.sync_help.content",
+    defaultMessage: `<p><strong>Manual Mode:</strong></p>
+<ul>
+  <li>Use ALT+Return in source document to jump to corresponding PDF location</li>
+  <li>Double-click in PDF for inverse search to source</li>
+</ul>
+<p><strong>Automatic Mode:</strong></p>
+<ul>
+  <li>Syncs automatically from cursor changes in source to PDF</li>
+  <li>Moving the PDF viewport moves the cursor in source</li>
+</ul>
+<p>This functionality uses SyncTeX to coordinate between LaTeX source and PDF output.</p>`,
+    description:
+      "Complete explanation of LaTeX sync functionality including manual and automatic modes",
+  }),
+};
 
 interface PDFControlsProps {
   actions: Actions;
@@ -62,6 +89,7 @@ interface PDFControlsProps {
     y: number;
   } | null;
   onClearViewportInfo?: () => void;
+  pageDimensions?: { width: number; height: number }[];
 }
 
 export function PDFControls({
@@ -71,6 +99,7 @@ export function PDFControls({
   currentPage = 1,
   viewportInfo,
   onClearViewportInfo,
+  pageDimensions = [],
 }: PDFControlsProps) {
   const intl = useIntl();
 
@@ -91,6 +120,7 @@ export function PDFControls({
   const storedAutoSyncEnabled =
     useRedux([actions.name, "local_view_state", id, "autoSyncEnabled"]) ??
     false; // Default to false
+
   const [localAutoSyncEnabled, setLocalAutoSyncEnabled] = useState(
     storedAutoSyncEnabled,
   );
@@ -121,6 +151,23 @@ export function PDFControls({
     },
     [actions, autoSyncInProgress, onClearViewportInfo],
   );
+
+  // Handle manual sync from middle of current page
+  const handleManualSync = useCallback(() => {
+    if (
+      pageDimensions.length === 0 ||
+      storedCurrentPage < 1 ||
+      storedCurrentPage > pageDimensions.length
+    ) {
+      return; // No page dimensions available or invalid page
+    }
+    const pageDim = pageDimensions[storedCurrentPage - 1]; // pages are 1-indexed
+    handleViewportSync(
+      storedCurrentPage,
+      pageDim.width / 2,
+      pageDim.height / 2,
+    );
+  }, [handleViewportSync, storedCurrentPage, pageDimensions]);
 
   // Sync state with stored values when they change
   useEffect(() => {
@@ -267,8 +314,16 @@ export function PDFControls({
       key: "auto-build",
       label: (
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Icon name={buildOnSave ? "check-square" : "square"} />
-          Auto Build
+          <Icon
+            name={
+              buildOnSave
+                ? BUILD_ON_SAVE_ICON_ENABLED
+                : BUILD_ON_SAVE_ICON_DISABLED
+            }
+          />
+          {intl.formatMessage(BUILD_ON_SAVE_LABEL, {
+            enabled: buildOnSave,
+          })}
         </div>
       ),
       onClick: toggleBuildOnSave,
@@ -279,7 +334,15 @@ export function PDFControls({
     {
       key: "custom-zoom",
       label: (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+        >
           <InputNumber
             size="small"
             style={{ width: "80px" }}
@@ -337,8 +400,8 @@ export function PDFControls({
   return (
     <div style={CONTROL_STYLE}>
       {/* Left side controls */}
-      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-        {/* Build Controls */}
+      {/* Build Controls */}
+      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
         <Dropdown.Button
           type="primary"
           size="small"
@@ -348,24 +411,40 @@ export function PDFControls({
           onClick={handleBuild}
         >
           <Icon name="play-circle" />
-          Build
+          {intl.formatMessage(editor.build_control_and_log_title_short)}
         </Dropdown.Button>
-
-        {/* Auto-Sync Control */}
-        <Tooltip title={intl.formatMessage(autoSyncTooltipMessage)}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Switch
-              size="small"
-              checked={localAutoSyncEnabled}
-              onChange={handleAutoSyncChange}
-            />
-            <Icon name="exchange" />
-            <span style={{ fontSize: "13px" }}>Sync</span>
-          </div>
-        </Tooltip>
       </div>
 
-      {/* Right side page navigation */}
+      {/* Auto-Sync Control */}
+      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+        <Icon name="exchange" />
+        <Tooltip title={intl.formatMessage(AUTO_SYNC_TOOLTIP_MSG)}>
+          <Switch
+            size="small"
+            checked={localAutoSyncEnabled}
+            onChange={handleAutoSyncChange}
+            checkedChildren={intl.formatMessage(labels.on)}
+            unCheckedChildren={intl.formatMessage(labels.off)}
+          />
+        </Tooltip>
+        <Button
+          type="text"
+          size="small"
+          style={{ fontSize: "13px", padding: "0 4px", height: "auto" }}
+          onClick={handleManualSync}
+          disabled={pageDimensions.length === 0}
+        >
+          Sync
+        </Button>
+        <HelpIcon
+          title={intl.formatMessage(SYNC_HELP_MSG.title)}
+          placement="bottomLeft"
+        >
+          {intl.formatMessage(SYNC_HELP_MSG.content)}
+        </HelpIcon>
+      </div>
+
+      {/* middle: page navigation */}
       {totalPages > 0 && (
         <div style={CONTROL_PAGE_STYLE}>
           <InputNumber

@@ -43,7 +43,7 @@ import { Actions } from "./actions";
 import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { use_build_logs } from "./hooks";
-import { PDFControls } from "./pdf-controls";
+import { PDFControls } from "./output-pdf-control";
 import { PDFJS } from "./pdfjs";
 import { BuildLogs } from "./types";
 import { useFileSummaries } from "./summarize-tex";
@@ -110,6 +110,9 @@ export function Output(props: OutputProps) {
     x: number;
     y: number;
   } | null>(null);
+
+  // Track page dimensions for manual sync
+  const [pageDimensions, setPageDimensions] = useState<{ width: number; height: number }[]>([]);
 
   // Callback to clear viewport info after successful sync
   const clearViewportInfo = useCallback(() => {
@@ -271,6 +274,7 @@ export function Output(props: OutputProps) {
             currentPage={currentPage}
             viewportInfo={viewportInfo}
             onClearViewportInfo={clearViewportInfo}
+            pageDimensions={pageDimensions}
           />
           <PDFJS
             id={id}
@@ -316,6 +320,7 @@ export function Output(props: OutputProps) {
                 }, 500); // Wait longer to ensure scrolling has stabilized
               }
             }}
+            onPageDimensions={setPageDimensions}
           />
         </div>
       ),

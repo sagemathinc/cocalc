@@ -40,8 +40,15 @@ export const labels = defineMessages({
   },
   on: {
     id: "labels.on",
-    defaultMessage: "on",
-    description: "single word, something 'on' something else",
+    defaultMessage: "On",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'enabled'.",
+  },
+  off: {
+    id: "labels.off",
+    defaultMessage: "Off",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'disabled'.",
   },
   yes: {
     id: "labels.yes",

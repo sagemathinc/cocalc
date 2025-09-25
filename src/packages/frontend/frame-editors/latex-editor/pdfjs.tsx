@@ -51,6 +51,7 @@ interface PDFJSProps {
   initialPage?: number;
   onPageInfo?: (currentPage: number, totalPages: number) => void;
   onViewportInfo?: (page: number, x: number, y: number) => void;
+  onPageDimensions?: (pageDimensions: { width: number; height: number }[]) => void;
   zoom?: number; // Optional zoom override (when provided, overrides font_size-based zoom)
   onZoom?: (data: Data) => void; // Called when zoom changes via pinch/wheel gestures
 }
@@ -70,6 +71,7 @@ export function PDFJS({
   initialPage,
   onPageInfo,
   onViewportInfo,
+  onPageDimensions,
   zoom,
   onZoom,
 }: PDFJSProps) {
@@ -284,12 +286,21 @@ export function PDFJS({
         const page = doc.getPage(n) as unknown as Promise<PDFPageProxy>;
         v.push(page);
       }
-      const pages: PDFPageProxy[] = await Promise.all(v);
-      if (!isMounted.current) return;
-      setDoc(doc);
-      setLoaded(true);
-      setPages(pages);
-      setMissing(false);
+       const pages: PDFPageProxy[] = await Promise.all(v);
+       if (!isMounted.current) return;
+       setDoc(doc);
+       setLoaded(true);
+       setPages(pages);
+       setMissing(false);
+
+       // Extract page dimensions and call callback
+       if (onPageDimensions) {
+         const pageDimensions = pages.map(page => {
+           const viewport = page.getViewport({ scale: 1.0 });
+           return { width: viewport.width, height: viewport.height };
+         });
+         onPageDimensions(pageDimensions);
+       }
 
       // documents often don't have pageLabels, but when they do, they are
       // good to show (e.g., in a book the content at the beginning might
