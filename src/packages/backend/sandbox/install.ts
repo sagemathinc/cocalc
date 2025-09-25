@@ -167,6 +167,13 @@ export const SPEC = {
     script: () =>
       `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
   },
+  sftp: {
+    desc: "sftp-server Statically Linked (so sshfs works with dropbear)",
+    platforms: ["linux"],
+    path: join(binPath, "sftp-server"),
+    script: () =>
+      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/sftp-server-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 sftp-server-$(uname -m)-linux-musl/sftp-server`,
+  },
 };
 
 export const rg = SPEC.rg.path;
@@ -178,6 +185,7 @@ export const sshpiper = SPEC.sshpiper.path;
 export const mutagen = SPEC.mutagen.path;
 export const btm = SPEC.btm.path;
 export const dropbear = SPEC.dropbear.path;
+export const sftp = SPEC.sftp.path;
 
 type App = keyof typeof SPEC;
 
