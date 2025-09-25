@@ -11,7 +11,7 @@ import { useIntl } from "react-intl";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Icon } from "@cocalc/frontend/components";
 import { jupyter, labels } from "@cocalc/frontend/i18n";
-import { commands } from "./commands";
+import { commands, CLEAR_CELL_OUTPUT_LABEL } from "./commands";
 import {
   CODE_BAR_BTN_STYLE,
   COPY_CELL_ICON,
@@ -110,6 +110,13 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       onClick: pasteFromClipboard,
     },
     { key: "divider5", type: "divider" },
+    {
+      key: "clear-output",
+      label: intl.formatMessage(CLEAR_CELL_OUTPUT_LABEL),
+      icon: <Icon name="battery-empty" />,
+      onClick: () => frameActions.current?.clear_selected_outputs(),
+    },
+    { key: "divider9", type: "divider" },
     {
       key: "cell-type",
       label: intl.formatMessage(jupyter.commands.cell_type_menu),
@@ -261,7 +268,7 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       onClick: () => frameActions.current?.delete_selected_cells(),
     },
 
-    { key: "divider6", type: "divider" },
+    { key: "divider8", type: "divider" },
     {
       key: "split-cell",
       label: intl.formatMessage({
