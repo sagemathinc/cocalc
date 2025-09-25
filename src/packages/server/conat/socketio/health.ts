@@ -14,7 +14,7 @@ export function handleHealth(
   res: ServerResponse,
 ) {
   const healthy = server.isHealthy();
-  logger.debug("/health reporting conat is healthy=${healthy}");
+  logger.debug(`/health reporting conat is healthy=${healthy}`);
   if (healthy) {
     res.statusCode = 200;
     res.end("healthy");
