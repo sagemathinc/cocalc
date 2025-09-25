@@ -5,10 +5,13 @@ import { COCALC_SRC, COCALC_BIN } from "./mounts";
 import { executeCode } from "@cocalc/backend/execute-code";
 import getLogger from "@cocalc/backend/logger";
 
+// where the project places all its data, relative to HOME. This used by ".smc"
+export const COCALC_PROJECT_CACHE = ".cache/cocalc/project";
+
 const logger = getLogger("project-runner:run:env");
 
 export function dataPath(HOME: string): string {
-  return join(HOME, ".cache", "cocalc", "project");
+  return join(HOME, COCALC_PROJECT_CACHE);
 }
 
 // see also packages/project/secret-token.ts

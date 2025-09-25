@@ -37,8 +37,10 @@ import { podman, starting } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
+import { COCALC_PROJECT_CACHE } from "./env";
 import { getPaths as getOverlayPaths } from "./overlay";
 import rsyncProgress, { rsyncProgressRunner } from "./rsync-progress";
+import { initSshKeys } from "@cocalc/backend/ssh-keys";
 import { mountArg } from "./mounts";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -49,7 +51,10 @@ const logger = getLogger("project-runner:sidecar");
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-export const sidecarImageName = "localhost/sidecar:0.5.9";
+// home directory of the side user, relative to /root:
+export const SIDECAR_HOME = ".cache/cocalc-sidecar";
+
+export const sidecarImageName = "localhost/sidecar:0.6.0";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -77,7 +82,7 @@ rsync -Hax --delete --numeric-ids \
       --no-inc-recursive --info=progress2 --no-human-readable \
       --delete \
       --relative \
-      ${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
+      /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
       core:/root/
 `.trim();
 
@@ -95,7 +100,7 @@ rsync -Hax --numeric-ids \
       --no-inc-recursive --info=progress2 --no-human-readable \
       --delete \
       --relative \
-      core:${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/   \
+      core:/root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/   \
       /root/
 
 `.trim();
@@ -128,9 +133,20 @@ export async function startSidecar({
   env,
   pod,
   home,
+  sshServers,
 }) {
   logger.debug("startSidecar", { image, project_id });
   bootlog({ project_id, type: "start-sidecar", progress: 0 });
+
+  await initSshKeys({ home: join(home, SIDECAR_HOME), sshServers });
+
+  bootlog({
+    project_id,
+    type: "start-sidecar",
+    progress: 10,
+    desc: "initialized ssh keys",
+  });
+
   const name = sidecarContainerName(project_id);
   const args2 = [
     "run",
@@ -147,6 +163,8 @@ export async function startSidecar({
     "--replace",
     "--pod",
     pod,
+    "-e",
+    `HOME=/home/root/${SIDECAR_HOME}`,
     "--init",
   ];
   for (const path in mounts) {
@@ -164,14 +182,8 @@ export async function startSidecar({
 
   args2.push(sidecarImageName, "mutagen", "daemon", "run");
 
-  bootlog({
-    project_id,
-    type: "start-sidecar",
-    progress: 5,
-    desc: "reset sync state",
-  });
-
   await podman(args2);
+
   bootlog({
     project_id,
     type: "start-sidecar",
@@ -238,9 +250,10 @@ export async function startSidecar({
         "--compress",
         "--compress-choice=lz4",
         `--exclude=/${PROJECT_IMAGE_PATH}`,
+        `--exclude=/${COCALC_PROJECT_CACHE}`,
+        `--exclude=/${SIDECAR_HOME}`,
         "--exclude=/.mutagen*",
         "--exclude=/.snapshots",
-        "--exclude=/.ssh/config",
         `core:/root/`,
         "/root/",
       ],
@@ -313,10 +326,10 @@ export async function startSidecar({
         "--symlink-mode=posix-raw",
         "--compression=deflate",
         `--ignore=/${PROJECT_IMAGE_PATH}`,
-        "--ignore=/.cache/cocalc",
+        `--ignore=/${COCALC_PROJECT_CACHE}`,
+        `--ignore=/${SIDECAR_HOME}`,
         "--ignore=/.mutagen**",
         "--ignore=/.snapshots",
-        "--ignore=/.ssh/config",
         "/root",
         "core:/root",
       ]);

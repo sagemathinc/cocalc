@@ -43,7 +43,6 @@ import {
   type SshServersFunction,
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
-import { initSshKeys } from "@cocalc/backend/ssh-keys";
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 
@@ -69,7 +68,7 @@ export async function start({
 }: {
   project_id: string;
   config?: Configuration;
-  sshServers?: SshServersFunction;
+  sshServers: SshServersFunction;
   localPath: LocalPathFunction;
 }) {
   if (!isValidUUID(project_id)) {
@@ -135,7 +134,6 @@ export async function start({
     const env = await getEnvironment({
       project_id,
       env: config?.env,
-      //HOME: "/home/ubuntu",
       HOME: "/root",
       image,
     });
@@ -147,15 +145,6 @@ export async function start({
       desc: "got env variables",
     });
 
-    const servers = await sshServers?.({ project_id });
-    await initSshKeys({ home, sshServers: servers });
-    bootlog({
-      project_id,
-      type: "start",
-      progress: 35,
-      desc: "initialized ssh keys",
-    });
-
     const initFileSync = await startSidecar({
       image,
       project_id,
@@ -163,6 +152,7 @@ export async function start({
       mounts,
       env,
       pod,
+      sshServers: await sshServers({ project_id }),
     });
     bootlog({
       project_id,
