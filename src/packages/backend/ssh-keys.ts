@@ -4,12 +4,16 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "path";
 import { existsSync } from "node:fs";
 import { type SshServer } from "@cocalc/conat/project/runner/types";
+import { SSH_IDENTITY_FILE } from "@cocalc/conat/project/runner/constants";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("backend:ssh-keys");
 
 function files(home = process.env.HOME) {
   if (!home) {
     throw Error("home must be specified");
   }
-  const privateFile = join(home, ".ssh", "id_ed25519");
+  const privateFile = join(home, SSH_IDENTITY_FILE);
   const publicFile = privateFile + ".pub";
   return { privateFile, publicFile };
 }
@@ -20,11 +24,12 @@ export async function initSshKeys({
 }: { home?: string; sshServers?: SshServer[] } = {}) {
   const { privateFile, publicFile } = files(home);
   if (!existsSync(privateFile)) {
+    logger.debug(`creating ${privateFile}`);
     const seed = randomBytes(32);
     const { privateKey, publicKey } = ssh(seed, "root");
     await mkdir(dirname(privateFile), { recursive: true, mode: 0o700 });
-    await writeFile(privateFile, privateKey, { mode: 0o700 });
-    await writeFile(publicFile, publicKey, { mode: 0o700 });
+    await writeFile(privateFile, privateKey, { mode: 0o600 });
+    await writeFile(publicFile, publicKey, { mode: 0o600 });
   }
 
   for (const { name, host, port, user } of sshServers) {
@@ -39,6 +44,7 @@ Host ${name}
   Port ${port}
   StrictHostKeyChecking no
   UpdateHostKeys no
+  IdentityFile ~/${SSH_IDENTITY_FILE}
 `;
     const configPath = join(home!, ".ssh", "config");
     let config;
@@ -49,7 +55,8 @@ Host ${name}
     }
     if (!config.includes(hostConfig)) {
       // put at front since only the first with a given name is used by ssh
-      await writeFile(configPath, hostConfig + "\n" + config, { mode: 0o700 });
+      logger.debug(`updating .ssh/config to include host ${name}`);
+      await writeFile(configPath, hostConfig + "\n" + config, { mode: 0o600 });
     }
   }
 }

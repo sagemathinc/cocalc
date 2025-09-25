@@ -15,6 +15,7 @@ import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { mountArg } from "@cocalc/project-runner/run/mounts";
 import * as sandbox from "@cocalc/backend/sandbox/install";
+import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 
 const FAIR_CPU_MODE = true;
 
@@ -27,13 +28,13 @@ const logger = getLogger("file-server:ssh:container");
 const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync telnet
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const IMAGE = "localhost/core:0.3.0";
+const IMAGE = "localhost/core:0.3.1";
 
-const SSHD_CONF = ".ssh/core";
+const SSHD_CONF = join(INTERNAL_SSH_CONFIG, "core-sshd");
 
 const PORTS = {
   // core = openssh sshd server running on same VM as file-server for

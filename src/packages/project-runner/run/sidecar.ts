@@ -39,11 +39,12 @@ import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { COCALC_PROJECT_CACHE } from "./env";
 import { getPaths as getOverlayPaths } from "./overlay";
-import rsyncProgress, { rsyncProgressRunner } from "./rsync-progress";
+import { rsyncProgressRunner } from "./rsync-progress";
 import { initSshKeys } from "@cocalc/backend/ssh-keys";
 import { mountArg } from "./mounts";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:sidecar");
@@ -51,10 +52,7 @@ const logger = getLogger("project-runner:sidecar");
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-// home directory of the side user, relative to /root:
-export const SIDECAR_HOME = ".cache/cocalc-sidecar";
-
-export const sidecarImageName = "localhost/sidecar:0.6.0";
+export const sidecarImageName = "localhost/sidecar:0.6.6";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -62,8 +60,12 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-
 
 COPY backup-rootfs.sh /usr/local/bin/backup-rootfs.sh
 COPY restore-rootfs.sh /usr/local/bin/restore-rootfs.sh
+COPY backup-home.sh /usr/local/bin/backup-home.sh
+COPY restore-home.sh /usr/local/bin/restore-home.sh
 RUN chmod a+x /usr/local/bin/*
 `;
+
+const RSYNC_COMPRESSION = "lz4";
 
 // The backup and restore scripts assume overlayfs was mounted using:
 //     xino=off,metacopy=off,redirect_dir=off
@@ -75,35 +77,59 @@ mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/uppe
 
 cd /root
 rsync -Hax --delete --numeric-ids \
-      "-e" \
-      "ssh -o Compression=no -c aes128-gcm@openssh.com" \
-      "--compress" \
-      "--compress-choice=lz4" \
-      --no-inc-recursive --info=progress2 --no-human-readable \
-      --delete \
-      --relative \
-      /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
-      core:/root/
+  -e "ssh -o Compression=no -c aes128-gcm@openssh.com" \
+  --compress \
+  --compress-choice=${RSYNC_COMPRESSION} \
+  --no-inc-recursive --info=progress2 --no-human-readable \
+  --delete \
+  --relative \
+  /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
+  ${FILE_SERVER_NAME}:/
 `.trim();
 
 const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
 
-ssh core mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
+ssh ${FILE_SERVER_NAME} mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
 rsync -Hax --numeric-ids \
-      "-e" \
-      "ssh -o Compression=no -c aes128-gcm@openssh.com" \
-      "--compress" \
-      "--compress-choice=lz4" \
-      --no-inc-recursive --info=progress2 --no-human-readable \
-      --delete \
-      --relative \
-      core:/root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/   \
-      /root/
+  -e "ssh -o Compression=no -c aes128-gcm@openssh.com" \
+  --compress \
+  --compress-choice=${RSYNC_COMPRESSION} \
+  --no-inc-recursive --info=progress2 --no-human-readable \
+  --delete \
+  --relative \
+   ${FILE_SERVER_NAME}:/root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/  /
 
 `.trim();
+
+// The --update in RSYNC_HOME_SH is very important.  In one direction,
+// it is so that this rsync doesn't overwrite the ssh keys we likely
+// just placed in the sidecar! In the other it is to avoid overwriting
+// newer work.
+
+const RSYNC_HOME_SH = `#!/bin/bash
+set -euo pipefail
+
+rsync -axH \
+  --sparse \
+  -e "ssh -o Compression=no -c aes128-gcm@openssh.com" \
+  --compress \
+  --compress-choice=${RSYNC_COMPRESSION} \
+  --no-inc-recursive --info=progress2 --no-human-readable \
+  --update \
+  --exclude=/${PROJECT_IMAGE_PATH} \
+  --exclude=/${COCALC_PROJECT_CACHE} \
+  --exclude=/.mutagen* \
+  --exclude=/.snapshots`;
+
+const RESTORE_HOME_SH = `${RSYNC_HOME_SH} ${FILE_SERVER_NAME}:/root/ /root/`;
+
+// currently we don't use this backup at all, since mutagen
+// handles all copying back to file server.  But having it
+// in place for making a backup is a nice "just in case".
+const BACKUP_HOME_SH = `${RSYNC_HOME_SH} /root/ ${FILE_SERVER_NAME}:/root/`;
 
 // run backups of all running projects, then wait this long, then do it again, etc.
 const BACKUP_ROOTFS_INTERVAL = 30_000;
@@ -116,6 +142,8 @@ export async function init() {
     fileContents: {
       "backup-rootfs.sh": BACKUP_ROOTFS_SH,
       "restore-rootfs.sh": RESTORE_ROOTFS_SH,
+      "backup-home.sh": BACKUP_HOME_SH,
+      "restore-home.sh": RESTORE_HOME_SH,
     },
   });
 
@@ -132,13 +160,14 @@ export async function startSidecar({
   mounts,
   env,
   pod,
+  // home = local home on disk here that is mounted in.
   home,
   sshServers,
 }) {
   logger.debug("startSidecar", { image, project_id });
   bootlog({ project_id, type: "start-sidecar", progress: 0 });
 
-  await initSshKeys({ home: join(home, SIDECAR_HOME), sshServers });
+  await initSshKeys({ home, sshServers });
 
   bootlog({
     project_id,
@@ -163,8 +192,6 @@ export async function startSidecar({
     "--replace",
     "--pod",
     pod,
-    "-e",
-    `HOME=/home/root/${SIDECAR_HOME}`,
     "--init",
   ];
   for (const path in mounts) {
@@ -200,8 +227,8 @@ export async function startSidecar({
       home,
     });
 
-    if (!(await exists(upperdir))) {
-      // we have never grabbed the rootfs, so grab it from the core:
+    if (!(await exists(join(upperdir)))) {
+      // we have never grabbed the rootfs, so grab it from the file-server:
       bootlog({
         project_id,
         type: "copy-rootfs",
@@ -232,31 +259,24 @@ export async function startSidecar({
 
   const copyHome = async () => {
     if (knownMutagenSessions.has("home")) {
+      // if we have ever setup mutagen then it is
+      // now responsible for sync and has its own
+      // state.
       return;
     }
+    // If we haven't setup mutagen, we cleanly get the
+    // entire home directory below via rsync (with correct timestamps),
+    // then setup mutagen to sync it for the rest of the time it
+    // lives on this server.
     bootlog({
       project_id,
       type: "copy-home",
       progress: 0,
       desc: "copy home directory to project runner",
     });
-    await rsyncProgress({
-      name,
-      args: [
-        "-axH",
-        "--sparse",
-        "-e",
-        "ssh -o Compression=no -c aes128-gcm@openssh.com",
-        "--compress",
-        "--compress-choice=lz4",
-        `--exclude=/${PROJECT_IMAGE_PATH}`,
-        `--exclude=/${COCALC_PROJECT_CACHE}`,
-        `--exclude=/${SIDECAR_HOME}`,
-        "--exclude=/.mutagen*",
-        "--exclude=/.snapshots",
-        `core:/root/`,
-        "/root/",
-      ],
+    await rsyncProgressRunner({
+      command: "podman",
+      args: ["exec", name, "/bin/bash", "/usr/local/bin/restore-home.sh"],
       progress: (event) => {
         bootlog({
           project_id,
@@ -327,7 +347,6 @@ export async function startSidecar({
         "--compression=deflate",
         `--ignore=/${PROJECT_IMAGE_PATH}`,
         `--ignore=/${COCALC_PROJECT_CACHE}`,
-        `--ignore=/${SIDECAR_HOME}`,
         "--ignore=/.mutagen**",
         "--ignore=/.snapshots",
         "/root",

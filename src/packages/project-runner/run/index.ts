@@ -12,6 +12,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { init as initFilesystem, localPath, sshServers } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
 import { start, stop, status } from "./podman";
+import { init as initSidecar } from "./sidecar";
 
 const logger = getLogger("project-runner:run");
 
@@ -22,6 +23,8 @@ export async function init(
   logger.debug("init");
   client = opts.client ?? conat();
   initFilesystem({ client });
+  // make sure the sidecar container image is built and available (it's small and should take a few seconds)
+  await initSidecar();
   return await projectRunnerServer({
     client,
     start: reuseInFlight(start),

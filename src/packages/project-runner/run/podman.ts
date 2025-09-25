@@ -33,7 +33,6 @@ import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { podmanLimits } from "./limits";
 import {
-  init as initSidecar,
   startSidecar,
   sidecarContainerName,
   flushMutagen,
@@ -43,10 +42,18 @@ import {
   type SshServersFunction,
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
+import { SSH_IDENTITY_FILE } from "@cocalc/conat/project/runner/constants";
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:podman");
+
+// if computing status of a project shows pod is
+// somehow messed up, this will cleanly kill it.  It's
+// very good right now to have this on, since otherwise
+// restart, etc., would be impossible. But it is annoying
+// when debugging.  TODO: implement a "force stop" UI.
+const STOP_ON_STATUS_ERROR = false;
 
 // projects we are definitely starting right now
 export const starting = new Set<string>();
@@ -93,21 +100,6 @@ export async function start({
       type: "start",
       progress: 5,
       desc: "got home directory",
-    });
-
-    try {
-      bootlog({ project_id, type: "init-sidecar", progress: 0 });
-      await initSidecar();
-      bootlog({ project_id, type: "init-sidecar", progress: 100 });
-    } catch (err) {
-      bootlog({ project_id, type: "init-sidecar", error: err });
-      throw err;
-    }
-    bootlog({
-      project_id,
-      type: "start",
-      progress: 15,
-      desc: "initialized sidecar",
     });
 
     const pod = projectPodName(project_id);
@@ -415,7 +407,7 @@ async function state(project_id): Promise<ProjectState> {
   ) {
     return "running";
   }
-  if (Object.keys(output).length > 0) {
+  if (Object.keys(output).length > 0 && STOP_ON_STATUS_ERROR) {
     // broken half-way state -- stop it asap
     await stop({ project_id, force: true });
   }
@@ -432,7 +424,7 @@ export async function status({ project_id, localPath }) {
   let error: string | undefined = undefined;
   try {
     const home = await localPath({ project_id });
-    publicKey = await readFile(join(home, ".ssh", "id_ed25519.pub"), "utf8");
+    publicKey = await readFile(join(home, SSH_IDENTITY_FILE + ".pub"), "utf8");
   } catch (err) {
     if (s != "opened") {
       error = `unable to read ssh public key of project -- ${err}`;
@@ -443,7 +435,7 @@ export async function status({ project_id, localPath }) {
   }
   return {
     state: s,
-    ip: "127.0.0.1",
+    ip: "",
     publicKey,
     error,
   };
