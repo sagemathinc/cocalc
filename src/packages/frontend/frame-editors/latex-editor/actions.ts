@@ -1,4 +1,4 @@
- /*
+/*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
@@ -6,7 +6,6 @@
 /*
 LaTeX Editor Actions.
 */
-
 
 // cSpell:ignore rtex cmdl ramdisk maketitle documentclass outdirflag latexer rescan
 
@@ -106,7 +105,7 @@ interface LatexEditorState extends CodeEditorState {
   switch_output_to_pdf_tab?: boolean; // used for SyncTeX to switch output panel to PDF tab
   output_panel_id_for_sync?: string; // stores the output panel ID for SyncTeX operations
   // job_infos: JobInfos;
-  sync_in_progress?: boolean; // flag to prevent sync loops - true when any sync operation is in progress
+  autoSyncInProgress?: boolean; // unified flag to prevent sync loops - true when any auto sync operation is in progress
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -136,8 +135,6 @@ export class Actions extends BaseActions<LatexEditorState> {
   private canonical_paths: { [path: string]: string } = {};
   private parsed_output_log?: IProcessedLatexLog;
 
-  // Flag to prevent infinite sync loops - use local variable for immediate sync control
-  private _sync_in_progress = false;
   private _last_sync_time = 0;
 
   // Auto-sync function for cursor position changes (forward sync: source → PDF)
@@ -146,19 +143,26 @@ export class Actions extends BaseActions<LatexEditorState> {
     column: number,
     filename: string,
   ): Promise<void> {
-    if (this._sync_in_progress) {
+    if (this.is_auto_sync_in_progress()) {
       return; // Prevent sync loops
     }
 
-    this._sync_in_progress = true;
-    this.set_sync_in_progress(true); // Also update state for UI
+    this.set_auto_sync_in_progress(true);
     try {
       await this.synctex_tex_to_pdf(line, column, filename);
+
+      // Fallback: Clear flag after timeout if viewport change doesn't happen
+      setTimeout(() => {
+        if (this.is_auto_sync_in_progress()) {
+          this.set_auto_sync_in_progress(false);
+        }
+      }, 2000);
+
+      // Note: The autoSyncInProgress flag will be cleared when PDF viewport actually changes
     } catch (error) {
       console.warn("Auto-sync forward search failed:", error);
-    } finally {
-      this._sync_in_progress = false;
-      this.set_sync_in_progress(false); // Also update state for UI
+      // Clear flag on error since viewport won't change
+      this.set_auto_sync_in_progress(false);
     }
   }
 
@@ -1332,8 +1336,20 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.update_gutters();
   }
 
-  async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
-    // Note: Flag management is handled by the caller
+  async synctex_pdf_to_tex(
+    page: number,
+    x: number,
+    y: number,
+    manual: boolean = false,
+  ): Promise<void> {
+    // Only check auto sync flag for automatic sync, not manual double-clicks
+    if (!manual && this.is_auto_sync_in_progress()) {
+      return; // Prevent sync loops
+    }
+
+    if (!manual) {
+      this.set_auto_sync_in_progress(true);
+    }
     this.set_status("Running SyncTex...");
     try {
       const info = await synctex.pdf_to_tex({
@@ -1365,10 +1381,18 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.set_error(
           'Synctex failed to run.  Try "Force Rebuild" your project (use the Build frame) or retry once the build is complete.',
         );
+        // Clear flag since sync failed (only for automatic sync)
+        if (!manual) {
+          this.set_auto_sync_in_progress(false);
+        }
         return;
       }
       console.warn("ERROR ", err);
       this.set_error(err);
+      // Clear flag since sync failed (only for automatic sync)
+      if (!manual) {
+        this.set_auto_sync_in_progress(false);
+      }
     } finally {
       this.set_status("");
     }
@@ -1381,6 +1405,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this.knitr) {
       // #v0 will not support multi-file knitr.
       this.programmatically_goto_line(line, true, true);
+      // Clear auto sync flag after cursor has moved (backward sync completion)
+      // Only for automatic sync - manual sync doesn't set the flag
+      if (this.is_auto_sync_in_progress()) {
+        setTimeout(() => {
+          this.set_auto_sync_in_progress(false);
+        }, 200); // Give time for cursor to actually move
+      }
       return;
     }
     // Focus a cm frame so that we split a code editor below.
@@ -1393,6 +1424,14 @@ export class Actions extends BaseActions<LatexEditorState> {
       throw Error(`actions for "${path}" must be defined`);
     }
     (actions as BaseActions).programmatically_goto_line(line, true, true, id);
+
+    // Clear auto sync flag after cursor has moved (backward sync completion)
+    // Only for automatic sync - manual sync doesn't set the flag
+    if (this.is_auto_sync_in_progress()) {
+      setTimeout(() => {
+        this.set_auto_sync_in_progress(false);
+      }, 200); // Give time for cursor to actually move
+    }
   }
 
   // Check if auto-sync is enabled for any output panel
@@ -1404,9 +1443,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     for (const [key, value] of local_view_state.entrySeq()) {
       // Only check output panels
       if (this._is_output_panel(key) && value) {
-        const autoSyncEnabled = typeof value.get === 'function'
-          ? value.get("autoSyncEnabled")
-          : value.autoSyncEnabled;
+        const autoSyncEnabled =
+          typeof value.get === "function"
+            ? value.get("autoSyncEnabled")
+            : value.autoSyncEnabled;
         if (autoSyncEnabled) {
           return true;
         }
@@ -1415,17 +1455,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     return false;
   }
 
-  // Set sync in progress flag in state (for UI components)
-  private set_sync_in_progress(inProgress: boolean): void {
-    // Defer state update to avoid React rendering conflicts
-    setTimeout(() => {
-      this.setState({ sync_in_progress: inProgress });
-    }, 0);
+  // Set auto sync in progress flag in state
+  private set_auto_sync_in_progress(inProgress: boolean): void {
+    this.setState({ autoSyncInProgress: inProgress });
   }
 
-  // Check if sync is currently in progress
-  private is_sync_in_progress(): boolean {
-    return this._sync_in_progress;
+  // Check if auto sync is currently in progress
+  private is_auto_sync_in_progress(): boolean {
+    return this.store.get("autoSyncInProgress") ?? false;
   }
 
   // Handle cursor movement - called by BaseActions.set_cursor_locs
@@ -1433,7 +1470,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!this.is_auto_sync_enabled() || locs.length === 0) return;
 
     // Prevent duplicate sync operations
-    if (this.is_sync_in_progress()) return;
+    if (this.is_auto_sync_in_progress()) return;
 
     // Throttle sync operations to prevent excessive calls (max once every 500ms)
     const now = Date.now();
@@ -1457,7 +1494,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!this.is_auto_sync_enabled()) return;
 
     // Prevent duplicate sync operations
-    if (this.is_sync_in_progress()) return;
+    if (this.is_auto_sync_in_progress()) return;
 
     // Use current file if filename not provided
     const file = filename || this.path;
@@ -1474,7 +1511,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _get_most_recent_output_panel(): string | undefined {
     let result = this._get_most_recent_active_frame_id_of_type("output");
-    console.log("LaTeX: _get_most_recent_output_panel() via active history returning", result);
+    console.log(
+      "LaTeX: _get_most_recent_output_panel() via active history returning",
+      result,
+    );
 
     // If no recently active output panel found, look for any output panel
     if (!result) {
@@ -1546,20 +1586,22 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._get_most_recent_output_panel();
     let pdfjs_id: string | undefined;
 
-    console.log("LaTeX forward sync: output_panel_id =", output_panel_id);
+    // console.log("LaTeX forward sync: output_panel_id =", output_panel_id);
 
     if (output_panel_id) {
       // There's an output panel - switch it to PDF tab and use it
-      console.log("LaTeX forward sync: Using output panel", output_panel_id);
+      // console.log("LaTeX forward sync: Using output panel", output_panel_id);
       this._switch_output_panel_to_pdf(output_panel_id);
       pdfjs_id = output_panel_id;
     } else {
       // No output panel, look for standalone PDF viewer
-      console.log("LaTeX forward sync: No output panel found, looking for standalone PDFJS");
+      // console.log(
+      //   "LaTeX forward sync: No output panel found, looking for standalone PDFJS",
+      // );
       pdfjs_id = this._get_most_recent_pdfjs();
       if (!pdfjs_id) {
         // no pdfjs preview, so make one
-        console.log("LaTeX forward sync: Creating new PDFJS panel");
+        // console.log("LaTeX forward sync: Creating new PDFJS panel");
         this.split_frame("col", this._get_active_id(), "pdfjs_canvas");
         pdfjs_id = this._get_most_recent_pdfjs();
         if (!pdfjs_id) {

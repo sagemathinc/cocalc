@@ -84,7 +84,7 @@ export function PDFJS({
   const mode: undefined | "rmd" = useRedux(name, "mode");
   const derived_file_types: iSet<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
-  const syncInProgress = useRedux(name, "sync_in_progress") ?? false;
+  const autoSyncInProgress = useRedux(name, "autoSyncInProgress") ?? false;
 
   const [loaded, setLoaded] = useState<boolean>(false);
   const [pages, setPages] = useState<PDFPageProxy[]>([]);
@@ -385,18 +385,10 @@ export function PDFJS({
       offset: y * getScale() + PAGE_GAP - height / 2,
     });
 
-    // Wait before clearing the scroll_pdf_into_view field,
-    // so the yellow highlight bar gets rendered and viewport tracking stays disabled
-    // during the scroll animation and debounce delay
-    await delay(1000);
-
-    // Clear any pending debounced viewport info timeouts
-    if (debouncedViewportInfoRef.current) {
-      clearTimeout(debouncedViewportInfoRef.current);
-      debouncedViewportInfoRef.current = null;
-    }
-
-    actions.setState({ scroll_pdf_into_view: undefined });
+    // Clear the scroll_pdf_into_view flag after a short delay to allow the scroll to complete
+    setTimeout(() => {
+      actions.setState({ scroll_pdf_into_view: undefined });
+    }, 100); // 100ms delay
   }
 
   async function doZoomPageWidth(): Promise<void> {
@@ -572,7 +564,7 @@ export function PDFJS({
           // Set new timeout to report viewport info after scrolling stops
           debouncedViewportInfoRef.current = setTimeout(() => {
             // Don't trigger sync if already in progress
-            if (syncInProgress) {
+            if (autoSyncInProgress) {
               debouncedViewportInfoRef.current = null;
               return;
             }
@@ -606,7 +598,7 @@ export function PDFJS({
       onPageInfo,
       doc,
       handleViewportInfo,
-      syncInProgress,
+      autoSyncInProgress,
       scroll_pdf_into_view,
     ],
   );

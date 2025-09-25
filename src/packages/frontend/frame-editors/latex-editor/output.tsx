@@ -34,10 +34,7 @@ import {
 } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import {
-  exec,
-  project_api,
-} from "@cocalc/frontend/frame-editors/generic/client";
+import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { editor, labels } from "@cocalc/frontend/i18n";
 import { path_split, plural } from "@cocalc/util/misc";
@@ -119,15 +116,6 @@ export function Output(props: OutputProps) {
     setViewportInfo(null);
   }, []);
 
-  // Flag to temporarily disable viewport tracking during auto-sync
-  const [disableViewportTracking, setDisableViewportTracking] = useState(false);
-
-  // Watch for sync in progress to disable viewport tracking
-  const syncInProgress = useRedux([name, "sync_in_progress"]) ?? false;
-  React.useEffect(() => {
-    setDisableViewportTracking(syncInProgress);
-  }, [syncInProgress]);
-
   // Table of contents data
   const contents: TableOfContentsEntryList | undefined = useRedux([
     name,
@@ -169,16 +157,6 @@ export function Output(props: OutputProps) {
     // takes a while to load.
     setTimeout(() => actions.updateTableOfContents(true));
   }, []);
-
-  // Also disable viewport tracking during PDF scrolling operations
-  const scrollIntoView = useRedux([name, "scroll_pdf_into_view"]);
-  React.useEffect(() => {
-    if (scrollIntoView) {
-      setDisableViewportTracking(true);
-      // Re-enable after scroll completes
-      setTimeout(() => setDisableViewportTracking(false), 1000);
-    }
-  }, [scrollIntoView]);
 
   // Sync state with stored values when they change
   React.useEffect(() => {
@@ -325,8 +303,17 @@ export function Output(props: OutputProps) {
               (actions as any)._save_local_view_state?.();
             }}
             onViewportInfo={(page, x, y) => {
-              if (!disableViewportTracking) {
-                setViewportInfo({ page, x, y });
+              setViewportInfo({ page, x, y });
+
+              // Clear auto sync flag when PDF viewport changes (forward sync completion)
+              const autoSyncInProgress =
+                actions.store.get("autoSyncInProgress");
+              if (autoSyncInProgress) {
+                // Debounce the flag clearing to avoid clearing too early during scrolling
+                clearTimeout((window as any).__autoSyncClearTimeout);
+                (window as any).__autoSyncClearTimeout = setTimeout(() => {
+                  actions.setState({ autoSyncInProgress: false });
+                }, 500); // Wait longer to ensure scrolling has stabilized
               }
             }}
           />

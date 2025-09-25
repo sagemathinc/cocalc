@@ -95,20 +95,16 @@ export function PDFControls({
     storedAutoSyncEnabled,
   );
 
-  // Check if sync is in progress
-  const syncInProgress = useRedux([actions.name, "sync_in_progress"]) ?? false;
+  // Check if auto sync is in progress
+  const autoSyncInProgress =
+    useRedux([actions.name, "autoSyncInProgress"]) ?? false;
 
   // Handle inverse sync (PDF → source)
   const handleViewportSync = useCallback(
     async (page: number, x: number, y: number) => {
-      if (syncInProgress) {
+      if (autoSyncInProgress) {
         return; // Prevent sync loops
       }
-
-      // Set sync in progress flag (deferred to avoid React rendering conflicts)
-      setTimeout(() => {
-        actions.setState({ sync_in_progress: true });
-      }, 0);
 
       try {
         await actions.synctex_pdf_to_tex(page, x, y);
@@ -121,14 +117,9 @@ export function PDFControls({
         }
       } catch (error) {
         console.warn("Auto-sync reverse search failed:", error);
-      } finally {
-        // Clear sync in progress flag (deferred to avoid React rendering conflicts)
-        setTimeout(() => {
-          actions.setState({ sync_in_progress: false });
-        }, 0);
       }
     },
-    [actions, syncInProgress],
+    [actions, autoSyncInProgress, onClearViewportInfo],
   );
 
   // Sync state with stored values when they change
@@ -138,10 +129,15 @@ export function PDFControls({
 
   // Auto-sync effect when viewport changes and auto-sync is enabled
   useEffect(() => {
-    if (localAutoSyncEnabled && viewportInfo && !syncInProgress) {
+    if (localAutoSyncEnabled && viewportInfo && !autoSyncInProgress) {
       handleViewportSync(viewportInfo.page, viewportInfo.x, viewportInfo.y);
     }
-  }, [localAutoSyncEnabled, viewportInfo, syncInProgress, handleViewportSync]);
+  }, [
+    localAutoSyncEnabled,
+    viewportInfo,
+    autoSyncInProgress,
+    handleViewportSync,
+  ]);
 
   // Note: Page initialization is handled by the output component through actions.setPage
   // and page updates from PDF scrolling are handled through onPageInfo callback
