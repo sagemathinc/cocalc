@@ -68,38 +68,40 @@ export async function init({
 
   app.get(`/${base_url}/:user`, async (req, res) => {
     try {
-      const { volume, authorizedKeys, path } = await handleRequest(
+      const { volume, authorizedKeys, path, target } = await handleRequest(
         req.params.user,
         client,
       );
 
       // the project is actually running, so we ensure ssh target container
       // is available locally:
-      const { sshPort } = await container.start({
+      const ports: { core: number; project: number } = await container.start({
         volume,
         scratch,
         publicKey: sshKey.publicKey,
         authorizedKeys,
         path,
       });
-      if (!sshPort) {
+      const port = ports?.[target];
+      if (!port) {
         throw Error(`failed to start -- ${volume}`);
       }
 
       const resp = {
         privateKey: sshKey.privateKey,
         user: "root",
-        host: `localhost:${sshPort}`,
+        host: `localhost:${port}`,
         authorizedKeys,
       };
 
-      //console.log("USING", { ...resp, privateKey: "xxx" });
+      // console.log("USING", { ...resp, privateKey: "xxx" });
 
       res.json(resp);
     } catch (err) {
       logger.debug("ERROR", err);
       // Doing this crashes the ssh server, so instead we respond with '' values.
       // res.status(403).json({ error: `${err}` });
+      // Alternatively, we would have to rewrite the sshpiper_rest plugin.
       res.json({ privateKey: "", user: "", host: "", authorizedKeys: "" });
     }
   });
@@ -120,45 +122,51 @@ async function handleRequest(
   authorizedKeys: string;
   volume: string;
   path: string;
+  target: "core" | "project";
 }> {
+  let target;
   if (user?.startsWith("project-")) {
-    const project_id = user.slice("project-".length, "project-".length + 36);
-    const volume = `project-${project_id}`;
-    const id = user.slice("project-".length + 37);
-    const compute_server_id = parseInt(id ? id : "0");
-    let authorizedKeys;
-    if (!compute_server_id) {
-      const runner = projectRunnerClient({
-        client,
-        project_id,
-        timeout: 5000,
-        waitForInterest: false,
-      });
-      const s = await runner.status({ project_id });
-      authorizedKeys = s.publicKey;
-      if (!authorizedKeys) {
-        throw Error("no ssh key known");
-      }
-    } else {
-      const api = projectApiClient({
-        project_id,
-        compute_server_id,
-        client,
-        timeout: 5000,
-      });
-      authorizedKeys = await api.system.sshPublicKey();
-    }
-
-    // NOTE/TODO: we could have a special username that maps to a
-    // specific path in a project, which would change this path here,
-    // and require a different auth dance above.  This could be for safely
-    // sharing folders instead of all files in a project.
-    const path = await getHome(client, project_id);
-
-    return { authorizedKeys, volume, path };
+    target = "project";
+  } else if (user?.startsWith("core-")) {
+    target = "core";
   } else {
-    throw Error("uknown user");
+    throw Error("unknown user");
   }
+  const prefix = target + "-";
+  const project_id = user.slice(prefix.length, prefix.length + 36);
+  const volume = `project-${project_id}`;
+  const id = user.slice(prefix.length + 37);
+  const compute_server_id = parseInt(id ? id : "0");
+  let authorizedKeys;
+  if (!compute_server_id) {
+    const runner = projectRunnerClient({
+      client,
+      project_id,
+      timeout: 5000,
+      waitForInterest: false,
+    });
+    const s = await runner.status({ project_id });
+    authorizedKeys = s.publicKey;
+    if (!authorizedKeys) {
+      throw Error("no ssh key known");
+    }
+  } else {
+    const api = projectApiClient({
+      project_id,
+      compute_server_id,
+      client,
+      timeout: 5000,
+    });
+    authorizedKeys = await api.system.sshPublicKey();
+  }
+
+  // NOTE/TODO: we could have a special username that maps to a
+  // specific path in a project, which would change this path here,
+  // and require a different auth dance above.  This could be for safely
+  // sharing folders instead of all files in a project.
+  const path = await getHome(client, project_id);
+
+  return { authorizedKeys, volume, path, target };
 }
 
 let fsclient: Fileserver | null = null;

@@ -33,9 +33,9 @@ COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 
 const IMAGE = "localhost/file-server-project:0.2.2";
 
-const PORT = 2222;
+const PORTS = { core: 2222, project: 2223 };
 const sshd_conf = `
-Port ${PORT}
+Port ${PORTS.core}
 PasswordAuthentication no
 ChallengeResponseAuthentication no
 UsePAM no
@@ -51,7 +51,7 @@ Subsystem sftp internal-sftp
 `;
 
 function containerName(volume: string): string {
-  return `file-server-${volume}`;
+  return `core-${volume}`;
 }
 
 const children: { [volume: string]: any } = {};
@@ -87,7 +87,7 @@ export const start = reuseInFlight(
     pids?: number;
     // can be nice to disable for dev and debugging
     lockdown?: boolean;
-  }): Promise<{ sshPort: number }> => {
+  }): Promise<{ core: number; project: number }> => {
     if (!scratch) {
       throw Error("scratch directory must be set");
     }
@@ -101,7 +101,10 @@ export const start = reuseInFlight(
         // rebuild if for some reason they project's key is changed
         await stop({ volume });
       } else {
-        return { sshPort: children[volume].sshPort };
+        return {
+          core: children[volume].corePort,
+          project: children[volume].projectPort,
+        };
       }
     }
 
@@ -112,7 +115,7 @@ export const start = reuseInFlight(
     // the container is named in a way that is determined by the volume name:
     const name = containerName(volume);
     args.push("--name", name);
-    args.push("--hostname", "file-server");
+    args.push("--hostname", `core-${volume}`);
     args.push("--label", `volume=${volume}`, "--label", `role=file-server`);
 
     // mount the volume contents to the directory /root in the container.
@@ -133,7 +136,8 @@ export const start = reuseInFlight(
     });
     await writeFile(join(sshPath, "sshd.conf"), sshd_conf, { mode: 0o700 });
 
-    args.push("-p", `${PORT}`);
+    args.push("-p", `${PORTS.core}`);
+    args.push("-p", `${PORTS.project}`);
 
     if (lockdown) {
       args.push(
@@ -178,15 +182,6 @@ export const start = reuseInFlight(
       args.push("--read-only");
     }
 
-    // [ ] TODO: this can't be in actual {path} (home dir) since we don't want it
-    // snapshoted in btrfs.  This could be in a scratch directory that is passed
-    // in as a parameter when starting file-server.  Using a tmpfs does NOT work,
-    // and results in an infinite loop trying to fix permissions (just try a git clone of cocalc)
-    // The size is important...
-    //     args.push(
-    //       "--mount",
-    //       "type=tmpfs,tmpfs-size=2G,destination=/root/.mutagen-dev",
-    //     );
     const dotMutagen = join(scratch, volume);
     dotMutagens[volume] = dotMutagen;
     try {
@@ -216,31 +211,31 @@ export const start = reuseInFlight(
       "-f",
       "/root/.ssh/file-server/sshd.conf",
     );
-    logger.debug(
-      `Start file-system project container: '${cmd} ${args.join(" ")}'`,
-    );
+    logger.debug(`Start core container: '${cmd} ${args.join(" ")}'`);
 
     child = spawn(cmd, args);
     children[volume] = child;
     // @ts-ignore
     child.publicKey = publicKey;
     child.authorizedKeys = authorizedKeys;
-    logger.debug("started ssh container", { volume, pid: child.pid });
+    logger.debug("started core container", { volume, pid: child.pid });
     await delay(50);
     const start = Date.now();
     await until(
       async () => {
         if (Date.now() - start >= 5000) {
-          throw Error("unable to determine port");
+          throw Error("unable to determine ports");
         }
         try {
           if (children[volume] == null || children[volume].exitCode != null) {
             return true;
           }
           const ports = await getPorts({ volume });
-          if (ports[PORT]) {
+          if (ports[PORTS.core]) {
             // @ts-ignore
-            child.sshPort = ports[PORT];
+            child.corePort = ports[PORTS.core];
+            // @ts-ignore
+            child.projectPort = ports[PORTS.project];
             return true;
           }
         } catch (err) {
@@ -251,7 +246,7 @@ export const start = reuseInFlight(
       { min: 100 },
     );
     // @ts-ignore
-    return { sshPort: child.sshPort };
+    return { core: child.corePort, project: child.projectPort };
   },
 );
 
@@ -305,7 +300,7 @@ export const buildContainerImage = reuseInFlight(async () => {
   await build({
     name: IMAGE,
     Dockerfile,
-    files: APPS.map((name) => sandbox[name]),
+    core: APPS.map((name) => sandbox[name]),
   });
 });
 

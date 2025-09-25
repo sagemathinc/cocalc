@@ -27,10 +27,7 @@ export async function initSshKeys({
     await writeFile(publicFile, publicKey, { mode: 0o700 });
   }
 
-  // we loop over them, but I think there will likely only be one
   for (const { name, host, port, user } of sshServers) {
-    // TODO: Regarding "StrictHostKeyChecking no", maybe we can actually
-    // add host keys properly instead.
     // We need "UpdateHostKeys no" because otherwise we see
     //    client_global_hostkeys_prove_confirm: server gave bad signature for RSA key 0: incorrect signature"
     // due to our sshpiperd proxy.

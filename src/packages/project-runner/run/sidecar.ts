@@ -35,7 +35,6 @@ anyways (otherwise, how did they get to that server).
 import { build } from "@cocalc/backend/podman/build-container";
 import { podman, starting } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
-//import { rm } from "node:fs/promises";
 import { join } from "path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { getPaths as getOverlayPaths } from "./overlay";
@@ -49,7 +48,8 @@ const logger = getLogger("project-runner:sidecar");
 
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
-export const sidecarImageName = "localhost/sidecar:0.5.7";
+
+export const sidecarImageName = "localhost/sidecar:0.5.9";
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -78,14 +78,14 @@ rsync -Hax --delete --numeric-ids \
       --delete \
       --relative \
       ${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
-      file-server:/root/
+      core:/root/
 `.trim();
 
 const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
 
-ssh file-server mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
+ssh core mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
 rsync -Hax --numeric-ids \
       "-e" \
@@ -95,7 +95,7 @@ rsync -Hax --numeric-ids \
       --no-inc-recursive --info=progress2 --no-human-readable \
       --delete \
       --relative \
-      file-server:${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/   \
+      core:${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/   \
       /root/
 
 `.trim();
@@ -189,7 +189,7 @@ export async function startSidecar({
     });
 
     if (!(await exists(upperdir))) {
-      // we have never grabbed the rootfs, so grab it from the file-server:
+      // we have never grabbed the rootfs, so grab it from the core:
       bootlog({
         project_id,
         type: "copy-rootfs",
@@ -240,7 +240,8 @@ export async function startSidecar({
         `--exclude=/${PROJECT_IMAGE_PATH}`,
         "--exclude=/.mutagen*",
         "--exclude=/.snapshots",
-        `file-server:/root/`,
+        "--exclude=/.ssh/config",
+        `core:/root/`,
         "/root/",
       ],
       progress: (event) => {
@@ -278,7 +279,7 @@ export async function startSidecar({
       "exec",
       name,
       "ssh",
-      "file-server",
+      "core",
       "mkdir",
       "-p",
       join(PROJECT_IMAGE_PATH, image),
@@ -304,7 +305,7 @@ export async function startSidecar({
         "create",
         // interval on project side (this is the default actually)
         "--watch-polling-interval-alpha=10",
-        // polling interval on the file-server side, where
+        // polling interval on the core side, where
         // reducing load matters the most:
         "--watch-polling-interval-beta=15",
         "--name=home",
@@ -315,8 +316,9 @@ export async function startSidecar({
         "--ignore=/.cache/cocalc",
         "--ignore=/.mutagen**",
         "--ignore=/.snapshots",
+        "--ignore=/.ssh/config",
         "/root",
-        "file-server:/root",
+        "core:/root",
       ]);
     }
     bootlog({
