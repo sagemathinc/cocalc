@@ -16,6 +16,7 @@ import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run"
 import { secretsPath } from "./ssh-server";
 import { join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
+import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
 
 const logger = getLogger("file-server:ssh:auth");
 
@@ -75,17 +76,15 @@ export async function init({
 
       // the project is actually running, so we ensure ssh target container
       // is available locally:
-      const ports: { core: number; project: number } = await container.start({
+      const ports = await container.start({
         volume,
         scratch,
         publicKey: sshKey.publicKey,
         authorizedKeys,
         path,
       });
-      const port = ports?.[target];
-      if (!port) {
-        throw Error(`failed to start -- ${volume}`);
-      }
+
+      const port = ports[target];
 
       const resp = {
         privateKey: sshKey.privateKey,
@@ -122,20 +121,28 @@ async function handleRequest(
   authorizedKeys: string;
   volume: string;
   path: string;
-  target: "core" | "project";
+  target: "file-server" | "project";
 }> {
-  let target;
+  let target, prefix;
   if (user?.startsWith("project-")) {
     target = "project";
-  } else if (user?.startsWith("core-")) {
-    target = "core";
+    prefix = "project-";
+  } else if (user?.startsWith(`${FILE_SERVER_NAME}-project-`)) {
+    // right now we only support project volumes, but later we may
+    // support volumes like:
+    //      file-server-mydata.
+    // which gives user access to a volume called "mydata"
+    // This of course just involves adding a way to lookup who
+    // has access to mydata which is just determined by a public key...?
+    target = "file-server";
+    prefix = `${FILE_SERVER_NAME}-project-`;
   } else {
-    throw Error("unknown user");
+    throw Error(`unknown user ${user}`);
   }
-  const prefix = target + "-";
+
   const project_id = user.slice(prefix.length, prefix.length + 36);
-  const volume = `project-${project_id}`;
   const id = user.slice(prefix.length + 37);
+  const volume = `project-${project_id}`;
   const compute_server_id = parseInt(id ? id : "0");
   let authorizedKeys;
   if (!compute_server_id) {

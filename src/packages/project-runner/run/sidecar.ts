@@ -52,7 +52,8 @@ const logger = getLogger("project-runner:sidecar");
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-export const sidecarImageName = "localhost/sidecar:0.6.6";
+const VERSION = "0.6.8";
+export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
@@ -262,6 +263,9 @@ export async function startSidecar({
       // if we have ever setup mutagen then it is
       // now responsible for sync and has its own
       // state.
+      // [ ] TODO: should have additional step to make
+      // sure it is working and if not fix it to have
+      // correct config, etc.
       return;
     }
     // If we haven't setup mutagen, we cleanly get the
@@ -350,7 +354,7 @@ export async function startSidecar({
         "--ignore=/.mutagen**",
         "--ignore=/.snapshots",
         "/root",
-        "core:/root",
+        `${FILE_SERVER_NAME}:/root`,
       ]);
     }
     bootlog({

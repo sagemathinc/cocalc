@@ -16,6 +16,7 @@ import { delay } from "awaiting";
 import { mountArg } from "@cocalc/project-runner/run/mounts";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
+import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
 
 const FAIR_CPU_MODE = true;
 
@@ -32,14 +33,23 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsyn
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const IMAGE = "localhost/core:0.3.1";
+const VERSION = "0.3.3";
+const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
 const SSHD_CONF = join(INTERNAL_SSH_CONFIG, "core-sshd");
 
+export interface Ports {
+  "file-server": number;
+  project: number;
+  proxy: number;
+  web: number;
+}
+
 const PORTS = {
-  // core = openssh sshd server running on same VM as file-server for
-  // close access to files.  Runs in a locked down container.
-  core: 2222,
+  // file-server = openssh sshd server running on same VM as
+  // file-server for close access to files.  Runs
+  // in a locked down container.
+  "file-server": 2222,
   // dropbear lightweight ssh server running in the project container
   // directly, which users can ssh with full port forwarding and exactly
   // standard ssh sematics (.ssh/authorized_keys|config|etc.), but
@@ -55,9 +65,10 @@ const PORTS = {
   // an arbitrary user-defined webserver, which will work without any base_url
   // or other requirement.  Served on wildcard subdomain.
   web: 2225,
-};
+} as Ports;
+
 const sshd_conf = `
-Port ${PORTS.core}
+Port ${PORTS["file-server"]}
 PasswordAuthentication no
 ChallengeResponseAuthentication no
 UsePAM no
@@ -76,7 +87,13 @@ function containerName(volume: string): string {
   return `core-${volume}`;
 }
 
-const children: { [volume: string]: any } = {};
+type Child = ReturnType<typeof spawn> & {
+  ports?: Ports;
+  publicKey?: string;
+  authorizedKeys?: string;
+};
+
+const children: { [volume: string]: Child } = {};
 
 export const start = reuseInFlight(
   async ({
@@ -109,7 +126,7 @@ export const start = reuseInFlight(
     pids?: number;
     // can be nice to disable for dev and debugging
     lockdown?: boolean;
-  }): Promise<{ core: number; project: number }> => {
+  }): Promise<Ports> => {
     if (!scratch) {
       throw Error("scratch directory must be set");
     }
@@ -123,14 +140,9 @@ export const start = reuseInFlight(
         // rebuild if for some reason they project's key is changed
         await stop({ volume });
       } else {
-        return {
-          core: children[volume].corePort,
-          project: children[volume].projectPort,
-        };
+        return children[volume].ports!;
       }
     }
-
-    await buildContainerImage();
 
     const cmd = "podman";
     const args = ["run"];
@@ -238,7 +250,7 @@ export const start = reuseInFlight(
     );
     logger.debug(`Start core container: '${cmd} ${args.join(" ")}'`);
 
-    child = spawn(cmd, args);
+    child = spawn(cmd, args) as Child;
     children[volume] = child;
     // @ts-ignore
     child.publicKey = publicKey;
@@ -256,13 +268,7 @@ export const start = reuseInFlight(
             return true;
           }
           const ports = await getPorts({ volume });
-          if (ports[PORTS.core]) {
-            // @ts-ignore
-            child.corePort = ports[PORTS.core];
-            // @ts-ignore
-            child.projectPort = ports[PORTS.project];
-            return true;
-          }
+          child.ports = ports;
         } catch (err) {
           logger.debug("WARNING: got ports error", err);
         }
@@ -271,13 +277,17 @@ export const start = reuseInFlight(
       { min: 100 },
     );
     // @ts-ignore
-    return { core: child.corePort, project: child.projectPort };
+    return child.ports;
   },
 );
 
-export async function getPorts({ volume }: { volume: string }) {
+export async function getPorts({ volume }: { volume: string }): Promise<Ports> {
+  const child = children[volume];
+  if (child.ports != null) {
+    return child.ports;
+  }
   const { stdout } = await execFile("podman", ["port", containerName(volume)]);
-  const ports: { [port: number]: number } = {};
+  const ports: Partial<Ports> = {};
   for (const x of stdout.split("\n")) {
     if (x) {
       const i = x.indexOf("/");
@@ -286,7 +296,7 @@ export async function getPorts({ volume }: { volume: string }) {
       ports[parseInt(x.slice(0, i))] = parseInt(x.slice(j + 1));
     }
   }
-  return ports;
+  return ports as Ports;
 }
 
 const dotMutagens: { [volume: string]: string } = {};
@@ -313,7 +323,7 @@ export async function stop({ volume }: { volume: string }) {
   }
 }
 
-export const buildContainerImage = reuseInFlight(async () => {
+const buildContainerImage = reuseInFlight(async () => {
   // make sure apps are installed
   const v: any[] = [];
   for (const app of APPS) {
@@ -391,6 +401,9 @@ let monitoring = false;
 export async function init() {
   if (monitoring) return;
   monitoring = true;
+
+  await buildContainerImage();
+
   while (monitoring) {
     try {
       logger.debug(`scanning for idle file-system containers...`);

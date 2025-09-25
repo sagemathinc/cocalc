@@ -6,6 +6,7 @@ import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { sshServer as defaultSshServer } from "@cocalc/backend/data";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
+import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
 
 //import getLogger from "@cocalc/backend/logger";
 
@@ -58,5 +59,13 @@ export async function localPath({
 // mode when everything is on the same computer.
 export async function sshServers({ project_id }: { project_id: string }) {
   const { host, port } = defaultSshServer;
-  return [{ name: "core", host, port, user: `core-${project_id}` }];
+  const volume = `project-${project_id}`;
+  return [
+    {
+      name: FILE_SERVER_NAME,
+      host,
+      port,
+      user: `${FILE_SERVER_NAME}-${volume}`,
+    },
+  ];
 }
