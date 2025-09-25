@@ -10,6 +10,7 @@ Spec for editing LaTeX documents.
 import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
 import { editor, labels } from "@cocalc/frontend/i18n";
 import { set } from "@cocalc/util/misc";
+import { WORD_COUNT_ICON } from "./constants";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
@@ -164,7 +165,7 @@ const word_count: EditorDescription = {
   type: "latex-word_count",
   short: labels.word_count,
   name: labels.word_count,
-  icon: "file-alt",
+  icon: WORD_COUNT_ICON,
   commands: set(["word_count"]),
   component: LatexWordCount,
 } as const;

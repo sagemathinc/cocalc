@@ -114,6 +114,11 @@ export class Actions extends BaseActions<LatexEditorState> {
   private _last_sagetex_hash: string;
   private _last_syncstring_hash: number | undefined;
   private is_building: boolean = false;
+  public word_count: (
+    time: number,
+    force: boolean,
+    skipFramePopup?: boolean,
+  ) => Promise<void>;
   private is_stopping: boolean = false; // if true, do not continue running any compile jobs
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
@@ -193,6 +198,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         debounce(this.ensureNonempty.bind(this), 1500),
       );
     }
+    this.word_count = reuseInFlight(this._word_count.bind(this));
   }
 
   // similar to jupyter, where an empty document is really
@@ -1718,9 +1724,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     return force ? Date.now() : time || this.last_save_time();
   }
 
-  async word_count(time: number, force: boolean): Promise<void> {
-    // only run word count if at least one such panel exists
-    this.show_recently_focused_frame_of_type("word_count");
+  private async _word_count(
+    time: number,
+    force: boolean,
+    skipFramePopup: boolean = false,
+  ): Promise<void> {
+    // only run word count if at least one such panel exists or skipFramePopup is true
+    if (!skipFramePopup) {
+      this.show_recently_focused_frame_of_type("word_count");
+    }
 
     try {
       const timestamp = this.make_timestamp(time, force);

@@ -21,7 +21,7 @@ With build controls at the top (build, force build, clean, etc.)
 import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import type { TabsProps } from "antd";
 
-import { Avatar, List as AntdList, Button, Spin, Tabs, Tag } from "antd";
+import { List as AntdList, Avatar, Button, Spin, Tabs, Tag } from "antd";
 import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -33,20 +33,21 @@ import {
   TableOfContentsEntryList,
 } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
-import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { editor, labels } from "@cocalc/frontend/i18n";
 import { path_split, plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
 import { Build } from "./build";
+import { WORD_COUNT_ICON } from "./constants";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { use_build_logs } from "./hooks";
 import { PDFControls } from "./output-pdf-control";
 import { PDFJS } from "./pdfjs";
-import { BuildLogs } from "./types";
 import { useFileSummaries } from "./summarize-tex";
+import { BuildLogs } from "./types";
 
 interface OutputProps {
   id: string;
@@ -63,7 +64,7 @@ interface OutputProps {
   status: string;
 }
 
-type TabType = "pdf" | "contents" | "files" | "build" | "errors";
+type TabType = "pdf" | "contents" | "files" | "build" | "errors" | "word_count";
 
 interface FileListItem {
   path: string;
@@ -112,7 +113,9 @@ export function Output(props: OutputProps) {
   } | null>(null);
 
   // Track page dimensions for manual sync
-  const [pageDimensions, setPageDimensions] = useState<{ width: number; height: number }[]>([]);
+  const [pageDimensions, setPageDimensions] = useState<
+    { width: number; height: number }[]
+  >([]);
 
   // Callback to clear viewport info after successful sync
   const clearViewportInfo = useCallback(() => {
@@ -134,6 +137,29 @@ export function Output(props: OutputProps) {
   // File summaries using the custom hook
   const { fileSummaries, summariesLoading, refreshSummaries } =
     useFileSummaries(switch_to_files, project_id, path, homeDir, reload);
+
+  // Word count state
+  const [wordCountLoading, setWordCountLoading] = useState<boolean>(false);
+
+  // Get word count from redux store
+  const wordCount: string = useRedux([name, "word_count"]) ?? "";
+
+  // Word count refresh function (debounce/reuseInFlight handled in actions)
+  const refreshWordCount = useCallback(
+    async (force: boolean = false) => {
+      if (activeTab !== "word_count") return;
+      setWordCountLoading(true);
+      try {
+        const timestamp = force ? Date.now() : actions.last_save_time();
+        await actions.word_count(timestamp, force, true); // skipFramePopup = true
+      } catch (error) {
+        console.warn("Word count failed:", error);
+      } finally {
+        setWordCountLoading(false);
+      }
+    },
+    [actions, activeTab],
+  );
 
   // Fetch home directory once when component mounts or project_id changes
   React.useEffect(() => {
@@ -161,6 +187,13 @@ export function Output(props: OutputProps) {
     setTimeout(() => actions.updateTableOfContents(true));
   }, []);
 
+  // Refresh word count when tab is opened or document changes
+  useEffect(() => {
+    if (activeTab === "word_count") {
+      refreshWordCount(false);
+    }
+  }, [activeTab, reload, refreshWordCount]);
+
   // Sync state with stored values when they change
   React.useEffect(() => {
     setActiveTab(storedTab);
@@ -187,7 +220,7 @@ export function Output(props: OutputProps) {
   const knitr: boolean = useRedux([name, "knitr"]);
 
   // Get UI font size for output panel interface elements
-  const uiFontSize =
+  const uiFontSize: number =
     useRedux([name, "local_view_state", id, "font_size"]) ?? font_size;
 
   // Get PDF zoom level (completely separate from UI font size)
@@ -508,6 +541,88 @@ export function Output(props: OutputProps) {
     };
   }
 
+  function renderWordCountTab() {
+    return {
+      key: "word_count",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <Icon name={WORD_COUNT_ICON} />
+          Word Count
+          {wordCountLoading && <Spin size="small" />}
+        </span>
+      ),
+      children: (
+        <div
+          className="smc-vfill"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+          }}
+        >
+          {/* Fixed header with refresh button */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "10px",
+              borderBottom: "1px solid #d9d9d9",
+              backgroundColor: "white",
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                color: COLORS.GRAY_M,
+                fontSize: uiFontSize - 1,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <Icon name={WORD_COUNT_ICON} />
+              Word Count Statistics
+            </span>
+
+            <Button
+              size="small"
+              icon={<Icon name="refresh" />}
+              onClick={() => refreshWordCount(true)}
+              loading={wordCountLoading}
+              disabled={wordCountLoading}
+            >
+              {intl.formatMessage(labels.refresh)}
+            </Button>
+          </div>
+
+          {/* Scrollable content */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "10px",
+            }}
+          >
+            <pre
+              style={{
+                fontSize: `${uiFontSize}px`,
+                fontFamily: "monospace",
+                whiteSpace: "pre-wrap",
+                wordWrap: "break-word",
+                margin: 0,
+                color: COLORS.GRAY_D,
+              }}
+            >
+              {wordCount ||
+                "Click refresh to generate word count statistics..."}
+            </pre>
+          </div>
+        </div>
+      ),
+    };
+  }
+
   function renderErrorsTab() {
     const { errors, warnings, typesetting } = errorCounts;
     const hasAnyIssues = errors > 0 || warnings > 0 || typesetting > 0;
@@ -552,6 +667,7 @@ export function Output(props: OutputProps) {
       ...(switch_to_files?.size > 1 ? [renderFilesTab()] : []),
       renderBuildTab(),
       renderErrorsTab(),
+      renderWordCountTab(),
     ];
 
     return (
