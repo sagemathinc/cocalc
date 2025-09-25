@@ -5,7 +5,10 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["lite", "cocalc"],
+  "keywords": [
+    "lite",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf build dist node_modules sea/sea-prep.blob",
@@ -38,7 +41,7 @@
     "compression": "^1.8.1",
     "express": "^4.21.2",
     "formidable": "^3.5.4",
-    "http-proxy-3": "^1.20.10",
+    "http-proxy-3": "^1.21.1",
     "lodash": "^4.17.21",
     "selfsigned": "^3.0.1"
   },
