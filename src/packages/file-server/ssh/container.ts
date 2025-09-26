@@ -12,8 +12,15 @@ import { join } from "node:path";
 import { delay } from "awaiting";
 import { mountArg } from "@cocalc/project-runner/run/mounts";
 import * as sandbox from "@cocalc/backend/sandbox/install";
-import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
-import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
+import {
+  START_PROJECT_SSH,
+  SSHD_CONFIG,
+} from "@cocalc/conat/project/runner/constants";
+import {
+  FILE_SERVER_NAME,
+  Ports,
+  PORTS,
+} from "@cocalc/conat/project/runner/constants";
 import { podman } from "@cocalc/project-runner/run/podman";
 import { sha1 } from "@cocalc/backend/sha1";
 
@@ -35,37 +42,6 @@ COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 const VERSION = "0.3.5";
 const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
-const SSHD_CONF = join(INTERNAL_SSH_CONFIG, "core-sshd");
-
-export interface Ports {
-  "file-server": number;
-  project: number;
-  proxy: number;
-  web: number;
-}
-
-const PORTS = {
-  // file-server = openssh sshd server running on same VM as
-  // file-server for close access to files.  Runs
-  // in a locked down container.
-  "file-server": 2222,
-  // dropbear lightweight ssh server running in the project container
-  // directly, which users can ssh with full port forwarding and exactly
-  // standard ssh sematics (.ssh/authorized_keys|config|etc.), but
-  // runs in any container image. Forwarded to this container by mutagen
-  // (so reverse ssh).
-  project: 2223,
-  // very simple http proxy written in nodejs running in the project, which
-  // lets us proxy any webserver that supports base_url (e.g., juputerlab)
-  // or non-absolute URL's (e.g., vscode).  This supports the same schema
-  // as in cocalc, so the base_url has to be of the form
-  //      /{PROJECT_ID}/server/{PORT}/ or /{PROJECT_ID}/port/{PORT}/
-  proxy: 2224,
-  // an arbitrary user-defined webserver, which will work without any base_url
-  // or other requirement.  Served on wildcard subdomain.
-  web: 2225,
-} as Ports;
-
 const sshd_conf = `
 Port ${PORTS["file-server"]}
 PasswordAuthentication no
@@ -73,7 +49,7 @@ ChallengeResponseAuthentication no
 UsePAM no
 PermitRootLogin yes
 PubkeyAuthentication yes
-AuthorizedKeysFile ${SSHD_CONF}/authorized_keys
+AuthorizedKeysFile ${SSHD_CONFIG}/authorized_keys
 AllowTcpForwarding yes
 GatewayPorts no
 X11Forwarding no
@@ -167,13 +143,16 @@ export const start = reuseInFlight(
       }),
     );
 
-    const sshdConfPathOnHost = join(path, SSHD_CONF);
+    const sshdConfPathOnHost = join(path, SSHD_CONFIG);
     await mkdir(sshdConfPathOnHost, { recursive: true, mode: 0o700 });
     await writeFile(join(sshdConfPathOnHost, "authorized_keys"), publicKey, {
       mode: 0o600,
     });
     await writeFile(join(sshdConfPathOnHost, "sshd.conf"), sshd_conf, {
       mode: 0o600,
+    });
+    await writeFile(join(path, START_PROJECT_SSH), START_PROJECT_SSH_SCRIPT, {
+      mode: 0o700,
     });
 
     for (const key in PORTS) {
@@ -241,7 +220,7 @@ export const start = reuseInFlight(
     );
 
     // openssh server
-    //  /usr/sbin/sshd -D -e -f /root/{SSHD_CONF}/sshd.conf
+    //  /usr/sbin/sshd -D -e -f /root/{SSHD_CONFIG}/sshd.conf
     args.push(
       "--rm",
       IMAGE,
@@ -249,7 +228,7 @@ export const start = reuseInFlight(
       "-D",
       "-e",
       "-f",
-      `/root/${SSHD_CONF}/sshd.conf`,
+      `/root/${SSHD_CONFIG}/sshd.conf`,
     );
     logger.debug(`Start file-system container: 'podman ${args.join(" ")}'`);
     await podman(args);
@@ -434,3 +413,15 @@ export async function close() {
   }
   await Promise.all(v);
 }
+
+const START_PROJECT_SSH_SCRIPT = `#!/usr/bin/env bash
+set -ev
+
+mkdir -p /etc/dropbear
+
+dropbear -p ${PORTS.project} -s -a -R -D /root/${SSHD_CONFIG}
+
+mutagen forward list dropbear || mutagen forward create --name=dropbear file-server:tcp::${PORTS.project} tcp::${PORTS.project}
+
+ln -s $(which sftp-server) /usr/libexec/sftp-server || true
+`;

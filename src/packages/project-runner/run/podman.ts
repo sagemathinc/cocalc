@@ -20,9 +20,6 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
 import { mkdir, readFile } from "node:fs/promises";
-import { execFile as execFile0 } from "node:child_process";
-import { promisify } from "node:util";
-const execFile = promisify(execFile0);
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
@@ -42,7 +39,10 @@ import {
   type SshServersFunction,
   type LocalPathFunction,
 } from "@cocalc/conat/project/runner/types";
-import { SSH_IDENTITY_FILE } from "@cocalc/conat/project/runner/constants";
+import {
+  SSH_IDENTITY_FILE,
+  START_PROJECT_SSH,
+} from "@cocalc/conat/project/runner/constants";
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 
@@ -205,10 +205,10 @@ export async function start({
     args.push("--replace");
     args.push("--pod", pod);
 
-    const cmd = "podman";
     const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
 
-    args.push("--name", projectContainerName(project_id));
+    const name = projectContainerName(project_id);
+    args.push("--name", name);
 
     for (const path in mounts) {
       args.push(
@@ -217,8 +217,8 @@ export async function start({
     }
     args.push(mountArg({ source: home, target: env.HOME }));
 
-    for (const name in env) {
-      args.push("-e", `${name}=${env[name]}`);
+    for (const key in env) {
+      args.push("-e", `${key}=${env[key]}`);
     }
 
     args.push(...podmanLimits(config));
@@ -230,10 +230,10 @@ export async function start({
     args.push(nodePath);
     args.push(script, "--init", "project_init.sh");
 
-    console.log(`${cmd} ${args.join(" ")}`);
-    logger.debug("start: launching container - ", `${cmd} ${args.join(" ")}`);
+    logger.debug("start: launching container - ", name);
 
-    await execFile(cmd, args);
+    await podman(args);
+
     bootlog({
       project_id,
       type: "start",
@@ -242,6 +242,7 @@ export async function start({
     });
 
     await initFileSync();
+    await initSshServer(name);
 
     bootlog({
       project_id,
@@ -489,4 +490,8 @@ function normalizeImageName(name) {
 export function getImage(config?: Configuration): string {
   const image = config?.image?.trim();
   return normalizeImageName(image ? image : DEFAULT_PROJECT_IMAGE);
+}
+
+export async function initSshServer(name: string) {
+  await podman(["exec", name, "bash", "-c", join("/root", START_PROJECT_SSH)]);
 }

@@ -74,15 +74,26 @@ export async function init({
         client,
       );
 
-      // the project is actually running, so we ensure ssh target container
-      // is available locally:
-      const ports = await container.start({
-        volume,
-        scratch,
-        publicKey: sshKey.publicKey,
-        authorizedKeys,
-        path,
-      });
+      let ports;
+      if (target == "file-server") {
+        // the project is actually running, so we ensure ssh target container
+        // is available locally.
+        ports = await container.start({
+          volume,
+          scratch,
+          publicKey: sshKey.publicKey,
+          authorizedKeys,
+          path,
+        });
+      } else if (target == "project") {
+        // do NOT start if not already running, because this could be any random
+        // request for access to the project and user must explicitly start project
+        // first.  Alternatively, if container weren't running we could consider
+        // starting the project somehow...  but that could take a long time.
+        ports = await container.getPorts({ volume });
+      } else {
+        throw Error(`unknown target '${target}'`);
+      }
 
       const port = ports[target];
       if (port == null) {
@@ -147,34 +158,20 @@ async function handleRequest(
   const id = user.slice(prefix.length + 37);
   const volume = `project-${project_id}`;
   const compute_server_id = parseInt(id ? id : "0");
-  let authorizedKeys;
-  if (!compute_server_id) {
-    const runner = projectRunnerClient({
-      client,
-      project_id,
-      timeout: 5000,
-      waitForInterest: false,
-    });
-    const s = await runner.status({ project_id });
-    authorizedKeys = s.publicKey;
-    if (!authorizedKeys) {
-      throw Error("no ssh key known");
-    }
-  } else {
-    const api = projectApiClient({
-      project_id,
-      compute_server_id,
-      client,
-      timeout: 5000,
-    });
-    authorizedKeys = await api.system.sshPublicKey();
-  }
 
   // NOTE/TODO: we could have a special username that maps to a
   // specific path in a project, which would change this path here,
   // and require a different auth dance above.  This could be for safely
   // sharing folders instead of all files in a project.
   const path = await getHome(client, project_id);
+
+  const authorizedKeys = await getAuthorizedKeys({
+    target,
+    client,
+    project_id,
+    compute_server_id,
+    path,
+  });
 
   return { authorizedKeys, volume, path, target };
 }
@@ -189,4 +186,56 @@ async function getHome(client: ConatClient, project_id: string) {
   const c = getFsClient(client);
   const { path } = await c.mount({ project_id });
   return path;
+}
+
+async function getAuthorizedKeys({
+  target,
+  client,
+  project_id,
+  compute_server_id,
+  path,
+}: {
+  target: "file-server" | "project";
+  client: ConatClient;
+  project_id: string;
+  compute_server_id: number;
+  path: string;
+}): Promise<string> {
+  if (target == "file-server") {
+    if (!compute_server_id) {
+      const runner = projectRunnerClient({
+        client,
+        project_id,
+        timeout: 5000,
+        waitForInterest: false,
+      });
+      const { publicKey } = await runner.status({ project_id });
+      if (!publicKey) {
+        throw Error("no public key available for project");
+      }
+      return publicKey;
+    } else {
+      const api = projectApiClient({
+        project_id,
+        compute_server_id,
+        client,
+        timeout: 5000,
+      });
+      return await api.system.sshPublicKey();
+    }
+  } else if (target == "project") {
+    if (!compute_server_id) {
+      // we just read authorized_keys straight from the project
+      const authorized_keys = join(path, ".ssh", "authorized_keys");
+      logger.debug("read project authorized_keys", {
+        authorized_keys,
+        project_id,
+      });
+      return await readFile(authorized_keys, "utf8");
+    } else {
+      throw Error("ssh directly to compute server not yet implemented");
+    }
+  } else {
+    throw Error(`unknown target '${target}'`);
+  }
 }
