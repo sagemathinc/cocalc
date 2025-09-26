@@ -1095,6 +1095,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
     this.setState({ deleted });
   }
 
+  public display_starred_projects(starred: boolean): void {
+    this.setState({ starred });
+  }
+
   public async load_all_projects(): Promise<void> {
     if (store.get("all_projects_have_been_loaded")) {
       return;
