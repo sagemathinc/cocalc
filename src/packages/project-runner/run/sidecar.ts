@@ -35,7 +35,7 @@ anyways (otherwise, how did they get to that server).
 import { build } from "@cocalc/backend/podman/build-container";
 import { podman, starting } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
-import { join } from "path";
+import { dirname, join } from "node:path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { COCALC_PROJECT_CACHE } from "./env";
 import { getPaths as getOverlayPaths } from "./overlay";
@@ -52,7 +52,7 @@ const logger = getLogger("project-runner:sidecar");
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.6.10";
+const VERSION = "0.6.12";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
@@ -67,6 +67,8 @@ RUN chmod a+x /usr/local/bin/*
 `;
 
 const RSYNC_COMPRESSION = "lz4";
+
+const ROOTFS_SUCCESS_SENTINEL = "etc/cocalc/initialized";
 
 // The backup and restore scripts assume overlayfs was mounted using:
 //     xino=off,metacopy=off,redirect_dir=off
@@ -83,11 +85,14 @@ rsync -Hax --delete --numeric-ids \
   --compress-choice=${RSYNC_COMPRESSION} \
   --no-inc-recursive --info=progress2 --no-human-readable \
   --delete \
+  --exclude /${ROOTFS_SUCCESS_SENTINEL} \
   --relative \
   /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
   ${FILE_SERVER_NAME}:/
 `.trim();
 
+// We have to be very careful to put in a root marker when we sync the rootfs successfully.
+// With home on the other hand, we don't, because of mutagen always.
 const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
@@ -100,9 +105,13 @@ rsync -Hax --numeric-ids \
   --compress-choice=${RSYNC_COMPRESSION} \
   --no-inc-recursive --info=progress2 --no-human-readable \
   --delete \
+  --exclude ${ROOTFS_SUCCESS_SENTINEL} \
   --relative \
    ${FILE_SERVER_NAME}:/root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/  /
 
+# successfully initialization with no errors:
+mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/${dirname(ROOTFS_SUCCESS_SENTINEL)}
+touch /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/${ROOTFS_SUCCESS_SENTINEL}
 `.trim();
 
 // The --update in RSYNC_HOME_SH is very important.  In one direction,
@@ -228,8 +237,8 @@ export async function startSidecar({
       home,
     });
 
-    if (!(await exists(join(upperdir)))) {
-      // we have never grabbed the rootfs, so grab it from the file-server:
+    if (!(await exists(join(upperdir, ROOTFS_SUCCESS_SENTINEL)))) {
+      // we have not *successfully* grabbed the rootfs, so grab it from the file-server:
       bootlog({
         project_id,
         type: "copy-rootfs",
