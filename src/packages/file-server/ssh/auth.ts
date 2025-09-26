@@ -85,6 +85,9 @@ export async function init({
       });
 
       const port = ports[target];
+      if (port == null) {
+        throw Error(`BUG -- port for target ${target} must be defined`);
+      }
 
       const resp = {
         privateKey: sshKey.privateKey,
@@ -93,7 +96,7 @@ export async function init({
         authorizedKeys,
       };
 
-      // console.log("USING", { ...resp, privateKey: "xxx" });
+      logger.debug(req.params.user, "--->", { ...resp, privateKey: "xxx" });
 
       res.json(resp);
     } catch (err) {

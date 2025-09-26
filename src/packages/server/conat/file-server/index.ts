@@ -222,9 +222,13 @@ export async function init(_fs?) {
     deleteSnapshot,
     updateSnapshots,
   });
-  const { path: scratch } = await getVolume("mutagen-scratch");
-  const ssh = await initSshServer({ client, scratch });
-
+  let ssh;
+  if (process.env.COCALC_SSH_SERVER_COUNT != "0") {
+    const { path: scratch } = await getVolume("mutagen-scratch");
+    ssh = await initSshServer({ client, scratch });
+  } else {
+    ssh = { close: () => {} };
+  }
   servers = { file, ssh };
 }
 

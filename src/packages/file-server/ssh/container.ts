@@ -2,8 +2,6 @@
 Manager container that is the target of ssh.
 */
 
-import { spawn, execFile as execFile0 } from "node:child_process";
-import { promisify } from "node:util";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { build } from "@cocalc/backend/podman/build-container";
@@ -11,16 +9,17 @@ import { getMutagenAgent } from "./mutagen";
 import { k8sCpuParser, split } from "@cocalc/util/misc";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { mountArg } from "@cocalc/project-runner/run/mounts";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
+import { podman } from "@cocalc/project-runner/run/podman";
+import { sha1 } from "@cocalc/backend/sha1";
 
 const FAIR_CPU_MODE = true;
 
-const execFile = promisify(execFile0);
+const GRACE_PERIOD_S = "1";
 
 const IDLE_CHECK_INTERVAL = 30_000;
 
@@ -33,7 +32,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsyn
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const VERSION = "0.3.3";
+const VERSION = "0.3.5";
 const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
 const SSHD_CONF = join(INTERNAL_SSH_CONFIG, "core-sshd");
@@ -84,16 +83,8 @@ Subsystem sftp internal-sftp
 `;
 
 function containerName(volume: string): string {
-  return `core-${volume}`;
+  return `${FILE_SERVER_NAME}-${volume}`;
 }
-
-type Child = ReturnType<typeof spawn> & {
-  ports?: Ports;
-  publicKey?: string;
-  authorizedKeys?: string;
-};
-
-const children: { [volume: string]: Child } = {};
 
 export const start = reuseInFlight(
   async ({
@@ -130,27 +121,40 @@ export const start = reuseInFlight(
     if (!scratch) {
       throw Error("scratch directory must be set");
     }
-    let child = children[volume];
-    if (child != null && child.exitCode == null) {
-      // already running
-      if (
-        child.publicKey != publicKey ||
-        child.authorizedKeys != authorizedKeys
-      ) {
-        // rebuild if for some reason they project's key is changed
-        await stop({ volume });
-      } else {
-        return children[volume].ports!;
-      }
-    }
-
-    const cmd = "podman";
-    const args = ["run"];
-    // the container is named in a way that is determined by the volume name:
     const name = containerName(volume);
+    const key = sha1(publicKey + authorizedKeys);
+    try {
+      const { stdout } = await podman([
+        "inspect",
+        name,
+        "--format",
+        "{{json .Config.Labels.key}}|{{json .NetworkSettings.Ports}}",
+      ]);
+      const x = stdout.split("|");
+      const storedKey = JSON.parse(x[0]);
+      if (storedKey == key) {
+        return jsonToPorts(JSON.parse(x[1]));
+      } else {
+        // I don't understand why things stop working with the key changes...
+        logger.debug(`restarting ${name} since key changed`);
+        await stop({ volume });
+      }
+    } catch {}
+    // container does not exist -- create it
+    const args = ["run"];
+    args.push("--detach");
+    // the container is named in a way that is determined by the volume name,
+    // but we also use labels.
     args.push("--name", name);
-    args.push("--hostname", `core-${volume}`);
-    args.push("--label", `volume=${volume}`, "--label", `role=file-server`);
+    args.push("--hostname", name);
+    args.push(
+      "--label",
+      `volume=${volume}`,
+      "--label",
+      `role=file-server`,
+      "--label",
+      `key=${key}`,
+    );
 
     // mount the volume contents to the directory /root in the container.
     // Since user can write arbitrary files here, this is noexec, so they
@@ -166,10 +170,10 @@ export const start = reuseInFlight(
     const sshdConfPathOnHost = join(path, SSHD_CONF);
     await mkdir(sshdConfPathOnHost, { recursive: true, mode: 0o700 });
     await writeFile(join(sshdConfPathOnHost, "authorized_keys"), publicKey, {
-      mode: 0o700,
+      mode: 0o600,
     });
     await writeFile(join(sshdConfPathOnHost, "sshd.conf"), sshd_conf, {
-      mode: 0o700,
+      mode: 0o600,
     });
 
     for (const key in PORTS) {
@@ -226,8 +230,7 @@ export const start = reuseInFlight(
     } catch {}
     await mkdir(dotMutagen, { recursive: true });
     args.push(mountArg({ source: dotMutagen, target: "/root/.mutagen-dev" }));
-    // Mutagen with agent pre-installed (alternatively: we could
-    // build this into the image)
+    // Mutagen agent mounted in
     const mutagen = await getMutagenAgent();
     args.push(
       mountArg({
@@ -248,71 +251,56 @@ export const start = reuseInFlight(
       "-f",
       `/root/${SSHD_CONF}/sshd.conf`,
     );
-    logger.debug(`Start core container: '${cmd} ${args.join(" ")}'`);
-
-    child = spawn(cmd, args) as Child;
-    children[volume] = child;
-    // @ts-ignore
-    child.publicKey = publicKey;
-    child.authorizedKeys = authorizedKeys;
-    logger.debug("started core container", { volume, pid: child.pid });
-    await delay(50);
-    const start = Date.now();
-    await until(
-      async () => {
-        if (Date.now() - start >= 5000) {
-          throw Error("unable to determine ports");
-        }
-        try {
-          if (children[volume] == null || children[volume].exitCode != null) {
-            return true;
-          }
-          const ports = await getPorts({ volume });
-          child.ports = ports;
-        } catch (err) {
-          logger.debug("WARNING: got ports error", err);
-        }
-        return false;
-      },
-      { min: 100 },
-    );
-    // @ts-ignore
-    return child.ports;
+    logger.debug(`Start file-system container: 'podman ${args.join(" ")}'`);
+    await podman(args);
+    logger.debug("Started file-system container", { volume });
+    const ports = await getPorts({ volume });
+    logger.debug("Got ports", { volume, ports });
+    return ports;
   },
 );
 
-export async function getPorts({ volume }: { volume: string }): Promise<Ports> {
-  const child = children[volume];
-  if (child.ports != null) {
-    return child.ports;
+function jsonToPorts(obj) {
+  // obj looks like this:
+  //   obj = {
+  //     "2222/tcp": [{ HostIp: "0.0.0.0", HostPort: "42419" }],
+  //     "2223/tcp": [{ HostIp: "0.0.0.0", HostPort: "38437" }],
+  //     "2224/tcp": [{ HostIp: "0.0.0.0", HostPort: "41165" }],
+  //     "2225/tcp": [{ HostIp: "0.0.0.0", HostPort: "34057" }],
+  //   };
+  const portMap: { [p: number]: number } = {};
+  for (const k in obj) {
+    const port = parseInt(k.split("/")[0]);
+    portMap[port] = obj[k][0].HostPort;
   }
-  const { stdout } = await execFile("podman", ["port", containerName(volume)]);
   const ports: Partial<Ports> = {};
-  for (const x of stdout.split("\n")) {
-    if (x) {
-      const i = x.indexOf("/");
-      const j = x.lastIndexOf(":");
-      if (i == -1 || j == -1) continue;
-      ports[parseInt(x.slice(0, i))] = parseInt(x.slice(j + 1));
+  for (const k in PORTS) {
+    ports[k] = portMap[PORTS[k]];
+    if (ports[k] == null) {
+      throw Error("BUG -- not all ports found");
     }
   }
   return ports as Ports;
 }
 
+export async function getPorts({ volume }: { volume: string }): Promise<Ports> {
+  const { stdout } = await podman([
+    "inspect",
+    containerName(volume),
+    "--format",
+    "{{json .NetworkSettings.Ports}}",
+  ]);
+  return jsonToPorts(JSON.parse(stdout));
+}
+
 const dotMutagens: { [volume: string]: string } = {};
 
 export async function stop({ volume }: { volume: string }) {
-  const child = children[volume];
-  if (child == null) return;
-
-  delete children[volume];
-  if (child.exitCode == null) {
-    try {
-      logger.debug("stopping", { volume });
-      await execFile("podman", ["rm", "-f", "-t", "0", containerName(volume)]);
-    } catch (err) {
-      logger.debug("stop", { volume, err });
-    }
+  try {
+    logger.debug("stopping", { volume });
+    await podman(["rm", "-f", "-t", GRACE_PERIOD_S, containerName(volume)]);
+  } catch (err) {
+    logger.debug("stop error", { volume, err });
   }
   const dotMutagen = dotMutagens[volume];
   if (dotMutagen) {
@@ -341,7 +329,7 @@ const buildContainerImage = reuseInFlight(async () => {
 
 export async function getProcesses(name) {
   try {
-    const { stdout } = await execFile("podman", [
+    const { stdout } = await podman([
       "exec",
       name,
       "ps",
@@ -360,16 +348,18 @@ export async function terminateIfIdle(name): Promise<boolean> {
     // has an open ssh session
     return false;
   }
-  await execFile("podman", ["rm", "-f", "-t", "0", name]);
+  await podman(["rm", "-f", "-t", GRACE_PERIOD_S, name]);
   return true;
 }
 
 export async function terminateAllIdle({
   minAge = 15_000,
 }: { minAge?: number } = {}) {
-  const { stdout } = await execFile("podman", [
+  const { stdout } = await podman([
     "ps",
     "-a",
+    "--filter",
+    `name=${FILE_SERVER_NAME}-`,
     "--filter=label=role=file-server",
     "--format",
     "{{.Names}} {{.StartedAt}}",
@@ -405,6 +395,10 @@ export async function init() {
   await buildContainerImage();
 
   while (monitoring) {
+    // wait first, otherwise everything is instantly killed
+    // on startup, since sshpiperd itself just got restarted
+    // (at least until we daemonize it).
+    await delay(IDLE_CHECK_INTERVAL);
     try {
       logger.debug(`scanning for idle file-system containers...`);
       const { killed, total } = await terminateAllIdle();
@@ -415,25 +409,28 @@ export async function init() {
         err,
       );
     }
-    await delay(IDLE_CHECK_INTERVAL);
   }
+}
+
+export async function getAll(): Promise<string[]> {
+  const { stdout } = await podman([
+    "ps",
+    "--filter",
+    `name=${FILE_SERVER_NAME}-`,
+    "--filter",
+    "label=role=file-server",
+    "--format",
+    '{{ index .Labels "volume" }}',
+  ]);
+  return stdout.split("\n").filter((x) => x.length == 36);
 }
 
 export async function close() {
   monitoring = false;
   const v: any[] = [];
-  for (const volume in children) {
+  for (const volume in await getAll()) {
     logger.debug("stopping", { volume });
     v.push(stop({ volume }));
   }
   await Promise.all(v);
 }
-
-// important because it kills all
-// the processes that were spawned
-process.once("exit", close);
-["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
-  process.once(sig, () => {
-    process.exit();
-  });
-});

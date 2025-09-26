@@ -61,6 +61,7 @@ export async function init({
     "-i",
     hostKey,
     `--port=${port}`,
+    "--log-level=warn",
     "--server-key-generate-mode",
     "notexist",
     sshpiper + "-rest",

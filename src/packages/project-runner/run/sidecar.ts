@@ -52,7 +52,7 @@ const logger = getLogger("project-runner:sidecar");
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.6.8";
+const VERSION = "0.6.10";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
@@ -316,7 +316,7 @@ export async function startSidecar({
       "exec",
       name,
       "ssh",
-      "core",
+      FILE_SERVER_NAME,
       "mkdir",
       "-p",
       join(PROJECT_IMAGE_PATH, image),

@@ -5,7 +5,7 @@ import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
 export { initConatPersist } from "./persist";
-import { conatApiCount, conatProjectRunnerCount } from "@cocalc/backend/data";
+import { conatApiCount, projectRunnerCount } from "@cocalc/backend/data";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initProjectRunner } from "./project/run";
 import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
@@ -26,7 +26,7 @@ export async function initConatChangefeedServer() {
 export async function initConatApi() {
   logger.debug("initConatApi: the central api services", {
     conatApiCount,
-    conatProjectRunnerCount,
+    projectRunnerCount,
   });
   await loadConatConfiguration();
 
@@ -35,7 +35,7 @@ export async function initConatApi() {
     initAPI();
   }
   initLLM();
-  for (let i = 0; i < conatProjectRunnerCount; i++) {
+  for (let i = 0; i < projectRunnerCount; i++) {
     initProjectRunner();
   }
   initProjectRunnerLoadBalancer();

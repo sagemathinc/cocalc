@@ -369,13 +369,20 @@ export async function stop({
 
 export async function podman(args: string[], timeout?) {
   logger.debug("podman ", args.join(" "));
-  return await executeCode({
-    verbose: true,
-    command: "podman",
-    args,
-    err_on_exit: true,
-    timeout,
-  });
+  try {
+    const x = await executeCode({
+      verbose: false,
+      command: "podman",
+      args,
+      err_on_exit: true,
+      timeout,
+    });
+    logger.debug("podman returned ", x);
+    return x;
+  } catch (err) {
+    logger.debug("podman run error: ", err);
+    throw err;
+  }
 }
 
 async function state(project_id): Promise<ProjectState> {
