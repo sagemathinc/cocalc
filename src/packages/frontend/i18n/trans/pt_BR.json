@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "Ampliar",
   "labels.zoom_out": "Diminuir zoom",
   "labels.zoom_out_short": "Reduzir",
+  "latex.output.stats_tab.label": "Estat",
+  "latex.output.stats.header": "Estatísticas",
   "llm-selector.help.message1": "Este seletor determina qual modelo de linguagem será usado para gerar a resposta. Você pode selecionar entre uma variedade de modelos, cada um com seus próprios pontos fortes e fracos. Sua escolha se tornará o padrão na próxima vez que você usar um LLM.",
   "llm-selector.help.message2": "<Paragraph> Os modelos marcados como \"{FREE}\" não geram cobranças. No entanto, eles têm limitações de taxa para evitar abusos. Os modelos mais capazes são marcados como \"{PREMIUM}\" e cobrados pelo número de tokens lidos e gerados – ou seja, \"pague conforme o uso\" – e não têm limitações de taxa. Normalmente, essas cobranças são muito pequenas! </Paragraph> <Paragraph> Supondo um uso típico que envolve {input} tokens de entrada e {output} tokens de saída, o preço em todos os modelos varia de ${min} a ${max} por uso, e é {calc} para o modelo selecionado {name}. </Paragraph>",
   "llm.cost-estimation.model_free_to_use": "Este modelo é gratuito para uso.",

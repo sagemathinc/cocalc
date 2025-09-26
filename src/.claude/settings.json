@@ -29,6 +29,7 @@
       "Bash(pnpm build:*)",
       "Bash(pnpm exec tsc:*)",
       "Bash(pnpm i18n:*)",
+      "Bash(pnpm i18n:*:*)",
       "Bash(pnpm info:*)",
       "Bash(pnpm list:*)",
       "Bash(pnpm remove:*)",

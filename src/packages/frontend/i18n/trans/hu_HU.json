@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "Nagyítás",
   "labels.zoom_out": "Távolítás",
   "labels.zoom_out_short": "Kicsinyítés",
+  "latex.output.stats_tab.label": "Statiszt",
+  "latex.output.stats.header": "Statisztika",
   "llm-selector.help.message1": "Ez a választó határozza meg, hogy melyik nyelvi modellt fogják használni a válasz létrehozásához. Különböző modellek közül választhat, mindegyiknek megvannak a maga erősségei és gyengeségei. A választása lesz az alapértelmezett, amikor legközelebb LLM-et használ.",
   "llm-selector.help.message2": "A \"{FREE}\" jelzéssel ellátott modellek nem járnak költségekkel. Azonban ezek sebessége korlátozott a visszaélés elkerülése érdekében. A fejlettebb modellek \"{PREMIUM}\" jelzéssel vannak ellátva, és az olvasott és generált tokenek száma alapján kerülnek felszámolásra – azaz \"pay-as-you-go\" – és nincs sebességkorlátozásuk. Általában ezek a költségek nagyon kicsik!\n\nTegyük fel, hogy egy tipikus használat {input} bevitt tokent és {output} kimeneti tokent tartalmaz, az ár minden modell esetében ${min} és ${max} között mozog használatonként, és a kiválasztott {name} modell esetében {calc}.",
   "llm.cost-estimation.model_free_to_use": "Ez a modell ingyenesen használható.",

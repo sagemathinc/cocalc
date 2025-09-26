@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "拡大",
   "labels.zoom_out": "ズームアウト",
   "labels.zoom_out_short": "縮小",
+  "latex.output.stats_tab.label": "統計",
+  "latex.output.stats.header": "統計",
   "llm-selector.help.message1": "このセレクターは、応答を生成するために使用される言語モデルを決定します。さまざまなモデルから選択でき、それぞれに強みと弱みがあります。選択したモデルは、次回LLMを使用するときにデフォルトになります。",
   "llm-selector.help.message2": "<Paragraph> \"{FREE}\"とマークされたモデルは料金が発生しません。ただし、乱用を避けるためにレート制限があります。より高機能なモデルは\"{PREMIUM}\"とマークされ、読み取りおよび生成されたトークンの数に応じて課金されます。つまり「従量課金制」であり、レート制限がありません。通常、これらの料金は非常に少額です。</Paragraph> <Paragraph> 典型的な使用状況として、{input}入力トークンと{output}出力トークンが含まれる場合、すべてのモデルの価格は1回の使用につき${min}から${max}までで、選択されたモデル{name}の場合は{calc}です。</Paragraph>",
   "llm.cost-estimation.model_free_to_use": "このモデルは無料で使用できます。",

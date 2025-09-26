@@ -16,6 +16,7 @@ import { defineMessage, useIntl } from "react-intl";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Icon } from "@cocalc/frontend/components";
+import { COMMANDS } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import {
   BUILD_ON_SAVE_ICON_DISABLED,
   BUILD_ON_SAVE_ICON_ENABLED,
@@ -23,9 +24,11 @@ import {
   ZOOM_MESSAGES,
   ZOOM_PERCENTAGES,
 } from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
-import { editor, labels } from "@cocalc/frontend/i18n";
+import { editor, IntlMessage, labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
+
+const ZOOM_SNAP_TARGETS = ZOOM_PERCENTAGES.map((p) => p / 100);
 
 const CONTROL_STYLE = {
   padding: "5px 10px",
@@ -190,19 +193,48 @@ export function PDFControls({
   // and page updates from PDF scrolling are handled through onPageInfo callback
 
   // Helper function to snap zoom to common levels if close, then clamp to bounds
+  // Uses logarithmic snapping for better behavior across the zoom range
   function snapAndClampZoom(zoomLevel: number): number {
-    const snapTargets = [0.5, 1.0, 2.0];
-    const snapThreshold = 0.05;
+    // Clamp to reasonable bounds first
+    const clampedZoom = Math.max(0.1, Math.min(10.0, zoomLevel));
 
-    // Check for snapping to common zoom levels
-    for (const target of snapTargets) {
-      if (Math.abs(zoomLevel - target) <= snapThreshold) {
-        return target;
+    // Only snap if we're not already very close to a preset
+    // This prevents "sticky" behavior when trying to zoom in/out from preset values
+    const isCurrentlyAtPreset = ZOOM_SNAP_TARGETS.some(target =>
+      Math.abs(currentPdfZoom - target) < 0.01
+    );
+
+    if (isCurrentlyAtPreset) {
+      // If currently at a preset, require a larger change to escape the snap zone
+      const escapeThreshold = currentPdfZoom * 0.15; // 15% change required to escape
+      if (Math.abs(clampedZoom - currentPdfZoom) < escapeThreshold) {
+        return clampedZoom; // Don't snap, allow free movement
       }
     }
 
-    // Otherwise clamp to reasonable bounds
-    return Math.max(0.1, Math.min(10.0, zoomLevel));
+    // Use logarithmic snapping - more sensitive at lower values, less at higher values
+    // Convert zoom level to log space for distance calculation
+    const logZoom = Math.log(clampedZoom);
+
+    // Check for snapping to common zoom levels using logarithmic distance
+    let bestTarget = clampedZoom;
+    let minLogDistance = Infinity;
+
+    for (const target of ZOOM_SNAP_TARGETS) {
+      const logTarget = Math.log(target);
+      const logDistance = Math.abs(logZoom - logTarget);
+
+      // Logarithmic snap threshold - adjusts based on zoom level
+      // Smaller threshold at lower zoom levels, larger at higher levels
+      const logThreshold = Math.log(1 + Math.min(target, clampedZoom) * 0.05);
+
+      if (logDistance <= logThreshold && logDistance < minLogDistance) {
+        minLogDistance = logDistance;
+        bestTarget = target;
+      }
+    }
+
+    return bestTarget;
   }
 
   // Helper method to set PDF zoom level
@@ -311,21 +343,32 @@ export function PDFControls({
       type: "divider",
     },
     {
+      key: "download-pdf",
+      label: intl.formatMessage(COMMANDS.download_pdf.label as IntlMessage),
+      icon: <Icon name="cloud-download" />,
+      onClick: () => actions.download_pdf(),
+    },
+    {
+      key: "print",
+      label: intl.formatMessage(COMMANDS.print.label as IntlMessage),
+      icon: <Icon name="print" />,
+      onClick: () => actions.print(id),
+    },
+    {
+      type: "divider",
+    },
+    {
       key: "auto-build",
-      label: (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Icon
-            name={
-              buildOnSave
-                ? BUILD_ON_SAVE_ICON_ENABLED
-                : BUILD_ON_SAVE_ICON_DISABLED
-            }
-          />
-          {intl.formatMessage(BUILD_ON_SAVE_LABEL, {
-            enabled: buildOnSave,
-          })}
-        </div>
+      icon: (
+        <Icon
+          name={
+            buildOnSave
+              ? BUILD_ON_SAVE_ICON_ENABLED
+              : BUILD_ON_SAVE_ICON_DISABLED
+          }
+        />
       ),
+      label: intl.formatMessage(BUILD_ON_SAVE_LABEL, { enabled: buildOnSave }),
       onClick: toggleBuildOnSave,
     },
   ];
@@ -415,35 +458,6 @@ export function PDFControls({
         </Dropdown.Button>
       </div>
 
-      {/* Auto-Sync Control */}
-      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-        <Icon name="exchange" />
-        <Tooltip title={intl.formatMessage(AUTO_SYNC_TOOLTIP_MSG)}>
-          <Switch
-            size="small"
-            checked={localAutoSyncEnabled}
-            onChange={handleAutoSyncChange}
-            checkedChildren={intl.formatMessage(labels.on)}
-            unCheckedChildren={intl.formatMessage(labels.off)}
-          />
-        </Tooltip>
-        <Button
-          type="text"
-          size="small"
-          style={{ fontSize: "13px", padding: "0 4px", height: "auto" }}
-          onClick={handleManualSync}
-          disabled={pageDimensions.length === 0}
-        >
-          Sync
-        </Button>
-        <HelpIcon
-          title={intl.formatMessage(SYNC_HELP_MSG.title)}
-          placement="bottomLeft"
-        >
-          {intl.formatMessage(SYNC_HELP_MSG.content)}
-        </HelpIcon>
-      </div>
-
       {/* middle: page navigation */}
       {totalPages > 0 && (
         <div style={CONTROL_PAGE_STYLE}>
@@ -501,8 +515,36 @@ export function PDFControls({
         </div>
       )}
 
+      {/* Auto-Sync Control */}
+      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+        <Icon name="exchange" />
+        <Tooltip title={intl.formatMessage(AUTO_SYNC_TOOLTIP_MSG)}>
+          <Switch
+            checked={localAutoSyncEnabled}
+            onChange={handleAutoSyncChange}
+            checkedChildren={intl.formatMessage(labels.on)}
+            unCheckedChildren={intl.formatMessage(labels.off)}
+          />
+        </Tooltip>
+        <Button
+          type="text"
+          size="small"
+          style={{ fontSize: "13px", padding: "0 4px", height: "auto" }}
+          onClick={handleManualSync}
+          disabled={pageDimensions.length === 0}
+        >
+          Sync
+        </Button>
+        <HelpIcon
+          title={intl.formatMessage(SYNC_HELP_MSG.title)}
+          placement="bottomLeft"
+        >
+          {intl.formatMessage(SYNC_HELP_MSG.content)}
+        </HelpIcon>
+      </div>
+
       {/* Zoom Controls - Overleaf Style */}
-      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
         <Space.Compact>
           <Tooltip title={intl.formatMessage(labels.zoom_in)}>
             <Button

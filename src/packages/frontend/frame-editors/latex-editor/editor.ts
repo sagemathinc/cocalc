@@ -92,6 +92,41 @@ const cm: EditorDescription = {
   gutters: ["Codemirror-latex-errors"],
 } as const;
 
+const output: EditorDescription = {
+  type: "latex-output",
+  short: "Output",
+  name: "Output",
+  icon: "file-alt",
+  component: Output,
+  commands: set([
+    "build",
+    "build_on_save",
+    "force_build",
+    "stop_build",
+    "print",
+    "clean",
+    "stop_build",
+    "download",
+    "download_pdf",
+    "decrease_font_size",
+    "increase_font_size",
+  ]),
+  buttons: set([
+    "build",
+    "force_build",
+    "clean",
+    "stop_build",
+    "sync",
+    "decrease_font_size",
+    "increase_font_size",
+    "zoom_page_width",
+    "zoom_page_height",
+    "set_zoom",
+    "print",
+    "download_pdf",
+  ]),
+} as const;
+
 const pdfjs_canvas: EditorDescription = {
   type: "preview-pdf-canvas",
   short: editor.pdfjs_canvas_title_short,
@@ -179,44 +214,12 @@ const pdf_embed: EditorDescription = {
   component: PDFEmbed,
 } as const;
 
-const output: EditorDescription = {
-  type: "latex-output",
-  short: "Output",
-  name: "Output",
-  icon: "file-alt",
-  component: Output,
-  commands: {
-    build: true,
-    force_build: true,
-    clean: true,
-    stop_build: true,
-    download: false,
-    download_pdf: true,
-    decrease_font_size: true,
-    increase_font_size: true,
-  },
-  buttons: set([
-    "build",
-    "force_build",
-    "clean",
-    "stop_build",
-    "sync",
-    "decrease_font_size",
-    "increase_font_size",
-    "zoom_page_width",
-    "zoom_page_height",
-    "set_zoom",
-    "print",
-    "download_pdf",
-  ]),
-} as const;
-
 const EDITOR_SPEC = {
   cm,
+  output,
   pdfjs_canvas,
   error,
   build,
-  output,
   latex_table_of_contents,
   word_count,
   terminal,

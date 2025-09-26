@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "In",
   "labels.zoom_out": "Uitzoomen",
   "labels.zoom_out_short": "Uit",
+  "latex.output.stats_tab.label": "Stats",
+  "latex.output.stats.header": "Statistieken",
   "llm-selector.help.message1": "Deze selector bepaalt welk taalmodel wordt gebruikt om de reactie te genereren. Je kunt kiezen uit verschillende modellen, elk met zijn eigen sterke en zwakke punten. Je keuze wordt de standaard de volgende keer dat je een LLM gebruikt.",
   "llm-selector.help.message2": "<Paragraph> De modellen gemarkeerd als \"{FREE}\" brengen geen kosten met zich mee. Ze zijn echter beperkt in snelheid om misbruik te voorkomen. De meer capabele modellen zijn gemarkeerd als \"{PREMIUM}\" en worden in rekening gebracht op basis van het aantal gelezen en gegenereerde tokens – oftewel \"pay-as-you-go\" – en hebben geen snelheidslimieten. Meestal zijn deze kosten zeer klein! </Paragraph> <Paragraph> Bij een typisch gebruik met {input} invoertokens en {output} uitvoertokens, variëren de prijzen voor alle modellen van ${min} tot ${max} per gebruik, en is het {calc} voor het geselecteerde model {name}. </Paragraph>",
   "llm.cost-estimation.model_free_to_use": "Dit model is gratis te gebruiken.",

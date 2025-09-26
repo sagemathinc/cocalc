@@ -93,11 +93,12 @@ interface ItemProps {
   actions: Actions;
   item: TypedMap<item>;
   group: string;
+  font_size: number;
 }
 
 // memo has an update function, see bottom
 const Item: React.FC<ItemProps> = React.memo(
-  ({ actions, item, group }: ItemProps) => {
+  ({ actions, item, group, font_size }: ItemProps) => {
     function edit_source(e: React.SyntheticEvent<any>): void {
       e.stopPropagation();
       if (!item.get("file")) return; // not known
@@ -168,7 +169,16 @@ const Item: React.FC<ItemProps> = React.memo(
         {renderGetHelp()}
         {render_location()}
         {item.get("message") && <div>{item.get("message")}</div>}
-        {item.get("content") && <pre>{item.get("content")}</pre>}
+        {item.get("content") && (
+          <pre
+            style={{
+              fontSize: font_size * 0.85, // slightly smaller than main font size
+              borderRadius: 0, // remove border radius
+            }}
+          >
+            {item.get("content")}
+          </pre>
+        )}
       </div>
     );
   },
@@ -225,7 +235,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
             <Loading
               text={status}
               style={{
-                fontSize: "10pt",
+                fontSize: props.font_size,
                 color: COLORS.GRAY,
               }}
             />
@@ -235,7 +245,15 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
     }
 
     function render_item(item, key, group): Rendered {
-      return <Item key={key} item={item} actions={actions} group={group} />;
+      return (
+        <Item
+          key={key}
+          item={item}
+          actions={actions}
+          group={group}
+          font_size={props.font_size}
+        />
+      );
     }
 
     function render_group_content(content, group): Rendered {
@@ -325,7 +343,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "10pt",
+          fontSize: props.font_size,
         }}
       >
         {includeError && (

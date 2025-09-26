@@ -146,7 +146,7 @@ if __name__ == "__main__":
     main()
 `;
 
-export interface UseFileSummariesResult {
+export interface TexSummaries {
   fileSummaries: Record<string, string>;
   summariesLoading: boolean;
   refreshSummaries: () => void;
@@ -155,13 +155,13 @@ export interface UseFileSummariesResult {
 /**
  * Hook to generate and manage LaTeX file summaries
  */
-export function useFileSummaries(
+export function useTexSummaries(
   switch_to_files: List<string>,
   project_id: string,
   path: string,
   homeDir: string | null,
   reload?: number,
-): UseFileSummariesResult {
+): TexSummaries {
   // File summaries state with caching (1 minute max)
   const [fileSummaries, setFileSummaries] = useState<Record<string, string>>(
     {},

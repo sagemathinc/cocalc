@@ -1411,13 +1411,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this.knitr) {
       // #v0 will not support multi-file knitr.
       this.programmatically_goto_line(line, true, true);
-      // Clear auto sync flag after cursor has moved (backward sync completion)
-      // Only for automatic sync - manual sync doesn't set the flag
-      if (this.is_auto_sync_in_progress()) {
-        setTimeout(() => {
-          this.set_auto_sync_in_progress(false);
-        }, 200); // Give time for cursor to actually move
-      }
+      this.clear_auto_sync_after_cursor_move();
       return;
     }
     // Focus a cm frame so that we split a code editor below.
@@ -1431,7 +1425,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     (actions as BaseActions).programmatically_goto_line(line, true, true, id);
 
-    // Clear auto sync flag after cursor has moved (backward sync completion)
+    this.clear_auto_sync_after_cursor_move();
+  }
+
+  // Clear auto sync flag after cursor has moved (backward sync completion)
+  private clear_auto_sync_after_cursor_move(): void {
     // Only for automatic sync - manual sync doesn't set the flag
     if (this.is_auto_sync_in_progress()) {
       setTimeout(() => {
@@ -1489,24 +1487,6 @@ export class Actions extends BaseActions<LatexEditorState> {
       // Trigger forward sync (source → PDF)
       this.handle_cursor_sync_to_pdf(cursor.y + 1, cursor.x, this.path); // y is 0-based, synctex expects 1-based
     }
-  }
-
-  // Public method to trigger auto-sync when cursor position changes (for backwards compatibility)
-  public handle_cursor_activity(
-    line: number,
-    column: number,
-    filename?: string,
-  ): void {
-    if (!this.is_auto_sync_enabled()) return;
-
-    // Prevent duplicate sync operations
-    if (this.is_auto_sync_in_progress()) return;
-
-    // Use current file if filename not provided
-    const file = filename || this.path;
-
-    // Trigger forward sync (source → PDF)
-    this.handle_cursor_sync_to_pdf(line + 1, column, file); // line is 0-based, synctex expects 1-based
   }
 
   _get_most_recent_pdfjs(): string | undefined {
@@ -1817,7 +1797,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       super.print(id);
       return;
     }
-    if (type.indexOf("pdf") != -1) {
+    if (type.indexOf("pdf") != -1 || type === "output") {
       this.print_pdf();
       return;
     }

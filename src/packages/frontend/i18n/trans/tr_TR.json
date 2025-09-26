@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "Yakınlaştır",
   "labels.zoom_out": "Uzaklaştır",
   "labels.zoom_out_short": "Uzaklaştır",
+  "latex.output.stats_tab.label": "İstat",
+  "latex.output.stats.header": "İstatistikler",
   "llm-selector.help.message1": "Bu seçici, yanıtı oluşturmak için hangi dil modelinin kullanılacağını belirler. Her biri kendi güçlü ve zayıf yönlerine sahip çeşitli modellerden birini seçebilirsiniz. Seçiminiz, bir sonraki LLM kullanımınızda varsayılan hale gelecektir.",
   "llm-selector.help.message2": "Modeller \"{FREE}\" olarak işaretlenmişse herhangi bir ücret alınmaz. Ancak, suistimali önlemek için hız sınırlaması uygulanır. Daha yetenekli modeller \"{PREMIUM}\" olarak işaretlenmiştir ve okunan ve oluşturulan jeton sayısına göre ücretlendirilir – yani \"kullandıkça öde\" – ve hız sınırlamaları yoktur. Genellikle, bu ücretler çok küçüktür!\n\nTipik bir kullanımın {input} giriş jetonu ve {output} çıkış jetonu içerdiğini varsayarsak, tüm modeller için fiyat kullanım başına ${min} ile ${max} arasında değişir ve seçilen model {name} için {calc} olur.",
   "llm.cost-estimation.model_free_to_use": "Bu model kullanımı ücretsizdir.",

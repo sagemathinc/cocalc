@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "Handik",
   "labels.zoom_out": "Txikitu",
   "labels.zoom_out_short": "Kanpo",
+  "latex.output.stats_tab.label": "Estad",
+  "latex.output.stats.header": "Estatistikak",
   "llm-selector.help.message1": "Hautatzaile honek erantzuna sortzeko zein hizkuntza-eredu erabiliko den zehazten du. Eredu ezberdinen artean aukeratu dezakezu, bakoitzak bere indargune eta ahuleziekin. Zure aukera lehenetsia izango da hurrengoan LLM bat erabiltzen duzunean.",
   "llm-selector.help.message2": "<Paragraph> \"{FREE}\" bezala markatutako ereduak ez dute inolako kosturik. Hala ere, gehiegikeria saihesteko tasa mugatuak dituzte. Gaitasun handiagoko ereduak \"{PREMIUM}\" bezala markatuta daude eta irakurritako eta sortutako token kopuruaren arabera kobratzen dira – hau da, \"ordaindu erabili ahala\" – eta ez dute tasa mugarik. Normalean, kargu hauek oso txikiak dira! </Paragraph> <Paragraph> Erabilera tipiko batek {input} sarrera token eta {output} irteera token biltzen dituela suposatuz, eredu guztien prezioa erabilera bakoitzeko ${min} eta ${max} artean dago, eta aukeratutako ereduaren {name} prezioa {calc} da. </Paragraph>",
   "llm.cost-estimation.model_free_to_use": "Eredu hau erabiltzeko doakoa da.",

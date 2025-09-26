@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "Powiększ",
   "labels.zoom_out": "Pomniejsz",
   "labels.zoom_out_short": "Pomniejsz",
+  "latex.output.stats_tab.label": "Stat",
+  "latex.output.stats.header": "Statystyka",
   "llm-selector.help.message1": "Ten selektor określa, który model językowy zostanie użyty do wygenerowania odpowiedzi. Możesz wybierać spośród różnych modeli, z których każdy ma swoje mocne i słabe strony. Twój wybór stanie się domyślnym przy następnym użyciu LLM.",
   "llm-selector.help.message2": "<Paragraph> Modele oznaczone jako \"{FREE}\" nie generują żadnych opłat. Jednak ich użycie jest ograniczone, aby zapobiec nadużyciom. Bardziej zaawansowane modele są oznaczone jako \"{PREMIUM}\" i są obciążane na podstawie liczby przeczytanych i wygenerowanych tokenów – czyli \"płać za użycie\" – i nie mają ograniczeń szybkości. Zwykle te opłaty są bardzo małe! </Paragraph> <Paragraph> Przy założeniu, że typowe użycie obejmuje {input} tokenów wejściowych i {output} tokenów wyjściowych, cena dla wszystkich modeli waha się od ${min} do ${max} za użycie, a dla wybranego modelu {name} wynosi {calc}. </Paragraph>",
   "llm.cost-estimation.model_free_to_use": "Ten model jest darmowy do użycia",

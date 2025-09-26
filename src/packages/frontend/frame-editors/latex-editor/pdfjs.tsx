@@ -51,7 +51,9 @@ interface PDFJSProps {
   initialPage?: number;
   onPageInfo?: (currentPage: number, totalPages: number) => void;
   onViewportInfo?: (page: number, x: number, y: number) => void;
-  onPageDimensions?: (pageDimensions: { width: number; height: number }[]) => void;
+  onPageDimensions?: (
+    pageDimensions: { width: number; height: number }[],
+  ) => void;
   zoom?: number; // Optional zoom override (when provided, overrides font_size-based zoom)
   onZoom?: (data: Data) => void; // Called when zoom changes via pinch/wheel gestures
 }
@@ -100,12 +102,13 @@ export function PDFJS({
   const pinchToZoomConfig = {
     target: divRef,
     onZoom:
-      onZoom ||
-      ((data) => {
-        // Default behavior: set font size directly when no parent callback provided
-        actions.set_font_size(id, data.fontSize);
-      }),
-    ...(zoom !== undefined
+      onZoom != null
+        ? onZoom
+        : (data) => {
+            // Default behavior: set font size directly when no parent callback provided
+            actions.set_font_size(id, data.fontSize);
+          },
+    ...(zoom != null
       ? {
           getFontSize: () => {
             // Convert current zoom back to fontSize for pinch calculations
@@ -286,21 +289,21 @@ export function PDFJS({
         const page = doc.getPage(n) as unknown as Promise<PDFPageProxy>;
         v.push(page);
       }
-       const pages: PDFPageProxy[] = await Promise.all(v);
-       if (!isMounted.current) return;
-       setDoc(doc);
-       setLoaded(true);
-       setPages(pages);
-       setMissing(false);
+      const pages: PDFPageProxy[] = await Promise.all(v);
+      if (!isMounted.current) return;
+      setDoc(doc);
+      setLoaded(true);
+      setPages(pages);
+      setMissing(false);
 
-       // Extract page dimensions and call callback
-       if (onPageDimensions) {
-         const pageDimensions = pages.map(page => {
-           const viewport = page.getViewport({ scale: 1.0 });
-           return { width: viewport.width, height: viewport.height };
-         });
-         onPageDimensions(pageDimensions);
-       }
+      // Extract page dimensions and call callback
+      if (onPageDimensions) {
+        const pageDimensions = pages.map((page) => {
+          const viewport = page.getViewport({ scale: 1.0 });
+          return { width: viewport.width, height: viewport.height };
+        });
+        onPageDimensions(pageDimensions);
+      }
 
       // documents often don't have pageLabels, but when they do, they are
       // good to show (e.g., in a book the content at the beginning might

@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore demaximize subframe rescan
+
 import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
@@ -960,6 +962,7 @@ addCommands({
   },
   download_pdf: {
     group: "export",
+    // ATTN: this must be an IntlMessage
     label: defineMessage({
       id: "menu.generic.download_pdf.label",
       defaultMessage: "Download PDF",
@@ -1010,6 +1013,7 @@ addCommands({
       defaultMessage:
         "Show a printable version of this document in a popup window.",
     }),
+    // ATTN: this must be an IntlMessage
     label: labels.print,
   },
   new: {

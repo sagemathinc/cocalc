@@ -32,31 +32,35 @@
       display: flex
       flex-direction: column
 
-// latex editor, output panel - full height tabs with outline
+// latex editor, output panel - full height tabs
+// This ensures the new output panel tabs (Build, Errors, Stats) take full height
+// and their content (like build logs, error lists) fills the available space
 .cocalc-latex-output-tabs
-  height: 100% !important
-  display: flex !important
-  flex-direction: column !important
+  // Make the entire tabs container take full height and use flex layout
+  // This is needed because the output panel should fill the available editor space
+  height: 100%
+  display: flex
+  flex-direction: column
 
-  // Ensure content fills remaining space
+  // The content holder contains all tab panes and should expand to fill remaining space
+  // flex: 1 makes it take all space not used by the tab headers
   .ant-tabs-content-holder
-    flex: 1 !important
-    display: flex !important
-    min-height: 0 !important
-    border-radius: 0 !important
+    flex: 1
+    display: flex
 
+  // The content wrapper needs to pass through the full height to individual tab panes
   .ant-tabs-content
-    height: 100% !important
-    display: flex !important
-    flex-direction: column !important
-    border: none !important
+    height: 100%
+    display: flex
+    flex-direction: column
 
+  // Individual tab panes (Build content, Errors content, etc.) need full height
   .ant-tabs-tabpane
-    height: 100% !important
-    flex-direction: column !important
-    min-height: 0 !important
-    padding: 0 !important
+    height: 100%
 
-    // Only apply flex display to active tab pane
+    // CRITICAL: Only make the active tab pane use flex layout
+    // Hidden tab panes (ant-tabs-tabpane-hidden) must remain hidden
+    // Without this selector, all tab panes would be visible at once
     &:not(.ant-tabs-tabpane-hidden)
-      display: flex !important
+      display: flex
+      flex-direction: column

@@ -16,7 +16,7 @@ Combined output panel for LaTeX editor that includes:
 With build controls at the top (build, force build, clean, etc.)
 */
 
-// cSpell:ignore EOFPYTHON
+// cSpell:ignore EOFPYTHON Estad
 
 import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import type { TabsProps } from "antd";
@@ -24,7 +24,7 @@ import type { TabsProps } from "antd";
 import { List as AntdList, Avatar, Button, Spin, Tabs, Tag } from "antd";
 import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
-import { useIntl } from "react-intl";
+import { defineMessage, useIntl } from "react-intl";
 
 import { React, useEffect, useRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -46,7 +46,7 @@ import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { use_build_logs } from "./hooks";
 import { PDFControls } from "./output-pdf-control";
 import { PDFJS } from "./pdfjs";
-import { useFileSummaries } from "./summarize-tex";
+import { useTexSummaries } from "./use-summarize";
 import { BuildLogs } from "./types";
 
 interface OutputProps {
@@ -64,7 +64,7 @@ interface OutputProps {
   status: string;
 }
 
-type TabType = "pdf" | "contents" | "files" | "build" | "errors" | "word_count";
+type TabType = "pdf" | "contents" | "files" | "build" | "errors" | "stats";
 
 interface FileListItem {
   path: string;
@@ -72,6 +72,19 @@ interface FileListItem {
   isMain: boolean;
   summary: string;
 }
+
+const STATS_LABEL = defineMessage({
+  id: "latex.output.stats_tab.label",
+  defaultMessage: "Stats",
+  description:
+    "Short abbreviation for 'Statistics' used as tab label. Should be abbreviated like 'Stats' in English for 'Statistics', 'Stats' in German, or 'Estad' in Spanish - a recognizable short form, not the full word.",
+});
+
+const STATISTICS_HEADER = defineMessage({
+  id: "latex.output.stats.header",
+  defaultMessage: "Statistics",
+  description: "Header text for the statistics section in LaTeX output",
+});
 
 export function Output(props: OutputProps) {
   const {
@@ -136,7 +149,7 @@ export function Output(props: OutputProps) {
 
   // File summaries using the custom hook
   const { fileSummaries, summariesLoading, refreshSummaries } =
-    useFileSummaries(switch_to_files, project_id, path, homeDir, reload);
+    useTexSummaries(switch_to_files, project_id, path, homeDir, reload);
 
   // Word count state
   const [wordCountLoading, setWordCountLoading] = useState<boolean>(false);
@@ -147,7 +160,7 @@ export function Output(props: OutputProps) {
   // Word count refresh function (debounce/reuseInFlight handled in actions)
   const refreshWordCount = useCallback(
     async (force: boolean = false) => {
-      if (activeTab !== "word_count") return;
+      if (activeTab !== "stats") return;
       setWordCountLoading(true);
       try {
         const timestamp = force ? Date.now() : actions.last_save_time();
@@ -189,7 +202,7 @@ export function Output(props: OutputProps) {
 
   // Refresh word count when tab is opened or document changes
   useEffect(() => {
-    if (activeTab === "word_count") {
+    if (activeTab === "stats") {
       refreshWordCount(false);
     }
   }, [activeTab, reload, refreshWordCount]);
@@ -408,9 +421,8 @@ export function Output(props: OutputProps) {
       key: "files",
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          <Icon name="file" />
+          {summariesLoading ? <Spin size="small" /> : <Icon name="file" />}
           Files
-          {summariesLoading && <Spin size="small" />}
         </span>
       ),
       children: (
@@ -522,9 +534,8 @@ export function Output(props: OutputProps) {
       key: "build",
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          <Icon name="terminal" />
+          {hasRunningJobs ? <Spin size="small" /> : <Icon name="terminal" />}
           {intl.formatMessage(editor.build_control_and_log_title_short)}
-          {hasRunningJobs && <Spin size="small" />}
         </span>
       ),
       children: (
@@ -543,12 +554,15 @@ export function Output(props: OutputProps) {
 
   function renderWordCountTab() {
     return {
-      key: "word_count",
+      key: "stats",
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          <Icon name={WORD_COUNT_ICON} />
-          Word Count
-          {wordCountLoading && <Spin size="small" />}
+          {wordCountLoading ? (
+            <Spin size="small" />
+          ) : (
+            <Icon name={WORD_COUNT_ICON} />
+          )}
+          {intl.formatMessage(STATS_LABEL)}
         </span>
       ),
       children: (
@@ -575,14 +589,14 @@ export function Output(props: OutputProps) {
             <span
               style={{
                 color: COLORS.GRAY_M,
-                fontSize: uiFontSize - 1,
+                fontSize: uiFontSize,
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
               }}
             >
               <Icon name={WORD_COUNT_ICON} />
-              Word Count Statistics
+              {intl.formatMessage(STATISTICS_HEADER)}
             </span>
 
             <Button
@@ -596,7 +610,7 @@ export function Output(props: OutputProps) {
             </Button>
           </div>
 
-          {/* Scrollable content */}
+          {/* Scrollable statistics content */}
           <div
             style={{
               flex: 1,
@@ -606,7 +620,7 @@ export function Output(props: OutputProps) {
           >
             <pre
               style={{
-                fontSize: `${uiFontSize}px`,
+                fontSize: `${uiFontSize - 2}px`,
                 fontFamily: "monospace",
                 whiteSpace: "pre-wrap",
                 wordWrap: "break-word",

@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "Ingrandisci",
   "labels.zoom_out": "Rimpicciolisci",
   "labels.zoom_out_short": "Riduci",
+  "latex.output.stats_tab.label": "Stats",
+  "latex.output.stats.header": "Statistiche",
   "llm-selector.help.message1": "Questo selettore determina quale modello di linguaggio sarà utilizzato per generare la risposta. Puoi scegliere tra una varietà di modelli, ciascuno con i propri punti di forza e debolezza. La tua scelta diventerà quella predefinita la prossima volta che utilizzerai un LLM.",
   "llm-selector.help.message2": "I modelli contrassegnati come \"{FREE}\" non comportano alcun costo. Tuttavia, sono limitati nella velocità per evitare abusi. I modelli più capaci sono contrassegnati come \"{PREMIUM}\" e addebitati in base al numero di token letti e generati – cioè \"pay-as-you-go\" – e non hanno limitazioni di velocità. Solitamente, questi costi sono molto ridotti!\n\nAssumendo che un utilizzo tipico coinvolga {input} token di input e {output} token di output, il prezzo tra tutti i modelli varia da ${min} a ${max} per utilizzo, ed è {calc} per il modello selezionato {name}.",
   "llm.cost-estimation.model_free_to_use": "Questo modello è gratuito.",

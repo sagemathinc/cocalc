@@ -1110,6 +1110,8 @@
   "labels.zoom_in_short": "放大",
   "labels.zoom_out": "缩小",
   "labels.zoom_out_short": "缩小",
+  "latex.output.stats_tab.label": "统计",
+  "latex.output.stats.header": "统计",
   "llm-selector.help.message1": "该选择器决定了将使用哪个语言模型来生成响应。您可以从各种模型中进行选择，每个模型都有其自身的优点和缺点。您的选择将成为下次使用LLM时的默认设置。",
   "llm-selector.help.message2": "标记为“{FREE}”的模型不收取任何费用。然而，它们有速率限制以避免滥用。更强大的模型标记为“{PREMIUM}”，并按读取和生成的令牌数量收费，即“按使用付费”，且没有速率限制。通常，这些费用非常小！\n\n假设典型使用涉及{input}个输入令牌和{output}个输出令牌，各模型的价格范围从${min}到${max}，所选模型{name}的价格为{calc}。",
   "llm.cost-estimation.model_free_to_use": "此模型可免费使用",
