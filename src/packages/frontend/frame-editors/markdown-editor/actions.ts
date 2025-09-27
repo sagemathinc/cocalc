@@ -282,7 +282,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     }
     const pos = slatePointToMarkdownPosition(editor, point);
     if (pos == null) return;
-    this.programmatical_goto_line(
+    this.programmatically_goto_line(
       pos.line + 1, // 1 based (TODO: could use codemirror option)
       true,
       false,

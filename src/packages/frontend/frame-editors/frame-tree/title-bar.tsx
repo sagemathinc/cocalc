@@ -8,6 +8,8 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+// cSpell:ignore rescan subframe
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
 import type { MenuProps } from "antd/lib";
@@ -723,8 +725,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
@@ -1212,11 +1214,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (
       props.page == null ||
       props.pages == null ||
-      manageCommands.isExplicitlyHidden("page")
+      manageCommands.isExplicitlyHidden("page") ||
+      props.type === "output"
     ) {
       // do not render anything unless both page and pages are set
+      // also don't render for latex output panels (they have their own page controls)
+      // but DO render for standalone pdfjs viewers
       return;
     }
+
     let content;
     if (typeof props.pages == "number") {
       // pages contains the number of pages and page must also be a number
