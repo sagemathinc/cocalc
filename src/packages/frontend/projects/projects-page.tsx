@@ -33,6 +33,7 @@ import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
 import ProjectsPageTour from "./tour";
 import { get_visible_hashtags, get_visible_projects } from "./util";
+import { useBookmarkedProjects } from "./use-bookmarked-projects";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: COLORS.GRAY_D,
@@ -64,9 +65,10 @@ export const ProjectsPage: React.FC = () => {
   );
   const hidden = !!useTypedRedux("projects", "hidden");
   const deleted = !!useTypedRedux("projects", "deleted");
+  const starred = !!useTypedRedux("projects", "starred");
   const filter = useMemo(() => {
-    return `${!!hidden}-${!!deleted}`;
-  }, [hidden, deleted]);
+    return `${!!hidden}-${!!deleted}-${!!starred}`;
+  }, [hidden, deleted, starred]);
   const search: string = useTypedRedux("projects", "search");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
 
@@ -75,21 +77,33 @@ export const ProjectsPage: React.FC = () => {
     "selected_hashtags",
   );
 
+  const { bookmarkedProjects } = useBookmarkedProjects();
+
   const project_map = useTypedRedux("projects", "project_map");
   const user_map = useTypedRedux("users", "user_map");
-  const visible_projects: string[] = useMemo(
-    () =>
-      get_visible_projects(
-        project_map,
-        user_map,
-        selected_hashtags?.get(filter),
-        search,
-        deleted,
-        hidden,
-        "last_edited" /* "user_last_active" was confusing */,
-      ),
-    [project_map, user_map, deleted, hidden, filter, selected_hashtags, search],
-  );
+  const visible_projects: string[] = useMemo(() => {
+    return get_visible_projects(
+      project_map,
+      user_map,
+      selected_hashtags?.get(filter),
+      search,
+      deleted,
+      hidden,
+      starred,
+      bookmarkedProjects,
+      "last_edited" /* "user_last_active" was confusing */,
+    );
+  }, [
+    project_map,
+    user_map,
+    deleted,
+    hidden,
+    starred,
+    filter,
+    selected_hashtags,
+    search,
+    bookmarkedProjects,
+  ]);
   const all_projects: string[] = useMemo(
     () => project_map?.keySeq().toJS() ?? [],
     [project_map?.size],

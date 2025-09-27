@@ -37,6 +37,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { Avatar, Button, Tooltip } from "antd";
 import { CSSProperties, useEffect } from "react";
 import { ProjectUsers } from "./project-users";
+import { useBookmarkedProjects } from "./use-bookmarked-projects";
 
 const image_name_style: React.CSSProperties = {
   fontSize: "12px",
@@ -61,6 +62,35 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   const software = useTypedRedux("customize", "software");
 
   const actions = useActions("projects");
+  const { isProjectBookmarked, setProjectBookmarked } = useBookmarkedProjects();
+
+  function render_star(): React.JSX.Element {
+    const isStarred = isProjectBookmarked(project_id);
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          minHeight: "21px",
+          cursor: "pointer",
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setProjectBookmarked(project_id, !isStarred);
+        }}
+      >
+        <Icon
+          name={isStarred ? "star-filled" : "star"}
+          style={{
+            color: isStarred ? COLORS.STAR : COLORS.GRAY,
+            fontSize: "16px",
+          }}
+        />
+      </div>
+    );
+  }
 
   function render_add_collab(): React.JSX.Element | undefined {
     if (!add_collab) {
@@ -194,6 +224,9 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   return (
     <Well style={project_row_styles} onMouseDown={handle_mouse_down}>
       <Row>
+        <Col sm={1} style={{ maxWidth: "50px", padding: "0 5px", alignSelf: "flex-start" }}>
+          {!is_anonymous && render_star()}
+        </Col>
         <Col
           onClick={handle_click}
           sm={3}
