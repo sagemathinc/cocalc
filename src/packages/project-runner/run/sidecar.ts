@@ -40,7 +40,7 @@ import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { COCALC_PROJECT_CACHE } from "./env";
 import { getPaths as getOverlayPaths } from "./overlay";
 import { rsyncProgressRunner } from "./rsync-progress";
-import { initSshKeys } from "@cocalc/backend/ssh-keys";
+import { initSshKeys } from "@cocalc/backend/ssh/ssh-keys";
 import { mountArg } from "./mounts";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
