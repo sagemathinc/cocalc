@@ -17,6 +17,7 @@ import { secretsPath } from "./ssh-server";
 import { join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("file-server:ssh:auth");
 
@@ -137,27 +138,11 @@ async function handleRequest(
   path: string;
   target: "file-server" | "project";
 }> {
-  let target, prefix;
-  if (user?.startsWith("project-")) {
-    target = "project";
-    prefix = "project-";
-  } else if (user?.startsWith(`${FILE_SERVER_NAME}-project-`)) {
-    // right now we only support project volumes, but later we may
-    // support volumes like:
-    //      file-server-mydata.
-    // which gives user access to a volume called "mydata"
-    // This of course just involves adding a way to lookup who
-    // has access to mydata which is just determined by a public key...?
-    target = "file-server";
-    prefix = `${FILE_SERVER_NAME}-project-`;
-  } else {
-    throw Error(`unknown user ${user}`);
+  if (!user) {
+    throw Error("invalid user");
   }
-
-  const project_id = user.slice(prefix.length, prefix.length + 36);
-  const id = user.slice(prefix.length + 37);
+  const { target, project_id, compute_server_id } = parseUser(user);
   const volume = `project-${project_id}`;
-  const compute_server_id = parseInt(id ? id : "0");
 
   // NOTE/TODO: we could have a special username that maps to a
   // specific path in a project, which would change this path here,
@@ -238,4 +223,76 @@ async function getAuthorizedKeys({
   } else {
     throw Error(`unknown target '${target}'`);
   }
+}
+
+/*
+The patterns that we support here:
+
+- project-{uuid} --> target = 'project', project_id={uuid}
+- {uuid} --> target = 'project', project_id={uuid}
+- {uuid with dashes removed} --> target='project', project_id={uuid with dashes put back}
+- {any of 3 above}-{compute_server_id} --> target = 'project', project_id={uuid}, compute_server_id=compute_server_id, where it is the GLOBAL compute server id.
+
+- {FILE_SERVER_NAME}-project-{project_id} --> target='file-server', project_id={project_id}
+
+*/
+function parseUser(user: string): {
+  project_id: string;
+  target: "project" | "file-server";
+  compute_server_id: number;
+} {
+  let target, prefix;
+  if (user?.startsWith("project-")) {
+    target = "project";
+    prefix = "project-";
+  } else if (user?.startsWith(`${FILE_SERVER_NAME}-project-`)) {
+    // right now we only support project volumes, but later we may
+    // support volumes like:
+    //      file-server-mydata.
+    // which gives user access to a volume called "mydata"
+    // This of course just involves adding a way to lookup who
+    // has access to mydata which is just determined by a public key...?
+    target = "file-server";
+    prefix = `${FILE_SERVER_NAME}-project-`;
+  } else if (isValidUUID(user)) {
+    target = "project";
+    prefix = "";
+  } else if (
+    user.length >= 32 &&
+    isValidUUID(putBackDashes(user.split("-")[0]))
+  ) {
+    target = "project";
+    prefix = "";
+    const v = user.split("-");
+    user = putBackDashes(v[0]);
+    if (v[1]) {
+      // compute server id
+      user += "-" + v[1];
+    }
+  } else {
+    throw Error(`unknown user ${user}`);
+  }
+
+  const project_id = user.slice(prefix.length, prefix.length + 36);
+  const id = user.slice(prefix.length + 37);
+  const compute_server_id = parseInt(id ? id : "0");
+  return { target, project_id, compute_server_id };
+}
+
+// 00000000-1000-4000-8000-000000000000
+export function putBackDashes(s: string) {
+  if (s.length != 32) {
+    throw Error("must have length 32");
+  }
+  return (
+    s.slice(0, 8) +
+    "-" +
+    s.slice(8, 12) +
+    "-" +
+    s.slice(12, 16) +
+    "-" +
+    s.slice(16, 20) +
+    "-" +
+    s.slice(20)
+  );
 }
