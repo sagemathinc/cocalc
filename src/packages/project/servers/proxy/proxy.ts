@@ -54,11 +54,43 @@ export function startProxyServer({
       const port = Number(mPort[1]);
       return { port, host: "localhost" };
     }
+    const mServer = serverPattern.exec(url);
+    if (mServer) {
+      const port = Number(mServer[1]);
+      const rest = mServer[2] || "/";
+      // Rewrite path by mutating req.url before proxying
+      req.url = rest;
+      return { port, host: "localhost" };
+    }
+
     logger.debug("URL not matched", { url });
     throw Error("not matched");
   }
 
-  const proxy = httpProxy.createProxyServer({});
+  const proxy = httpProxy.createProxyServer({
+    xfwd: true,
+    ws: true,
+    // We set target per-request.
+  });
+
+  proxy.on("error", (err, req, res) => {
+    const url = (req as http.IncomingMessage).url;
+    logger.warn("proxy error", { err, url });
+    // Best-effort error response (HTTP only):
+    if (!res || (res as http.ServerResponse).headersSent) return;
+    try {
+      (res as http.ServerResponse).writeHead(502, {
+        "Content-Type": "text/plain",
+      });
+      (res as http.ServerResponse).end("Bad Gateway\n");
+    } catch {
+      /* ignore */
+    }
+  });
+
+  proxy.on("proxyReq", (proxyReq) => {
+    proxyReq.setHeader("X-Proxy-By", "cocalc-lite-proxy");
+  });
 
   const proxyServer = http.createServer((req, res) => {
     try {
@@ -89,7 +121,7 @@ export function startProxyServer({
   return proxyServer;
 }
 
-/** Build the default base_url from project/compute ids. */
+// Build the default base_url from project/compute ids.
 function getProxyBaseUrl({
   project_id,
   compute_server_id,
@@ -104,21 +136,19 @@ function getProxyBaseUrl({
   return base_url;
 }
 
-/** Ensure base_url has no leading/trailing slashes; proxy matches start after a single slash. */
+// Ensure base_url has no leading/trailing slashes; proxy matches start after a single slash.
 function normalizeBase(base_url: string): string {
   return base_url.replace(/^\/+|\/+$/g, "");
 }
 
-/** Escape string for use inside a RegExp literal. */
+// Escape string for use inside a RegExp literal.
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/**
- * Build a matcher:
- *  - type "server": ^/<base>/server/(\d+)(/.*)?$
- *  - type "port":   ^/<base>/port/(\d+)(/.*)?$
- */
+// Build a matcher:
+//  - type "server": ^/<base>/server/(\d+)(/.*)?$
+//  - type "port":   ^/<base>/port/(\d+)(/.*)?$
 function buildPattern(base: string, type: "server" | "port"): RegExp {
   const prefix = `/${escapeRegExp(base)}/${type}/`;
   // capture numeric port, then optionally capture the rest of the path
