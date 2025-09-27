@@ -35,7 +35,7 @@ async function callHub({
   return resp.data;
 }
 
-function hubApi(client: ConatClient) {
+export function hubApi(client: ConatClient) {
   return initHubApi((opts) => callHub({ ...opts, client }));
 }
 

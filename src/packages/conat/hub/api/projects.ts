@@ -209,5 +209,5 @@ export interface Projects {
   // this is ALL global public keys for all collabs on the project,
   // along with all project specific keys. This is called by the project
   // on startup to configure itself.
-  getSshKeys: (opts: { project_id?: string }) => Promise<string[]>;
+  getSshKeys: (opts?: { project_id?: string }) => Promise<string[]>;
 }

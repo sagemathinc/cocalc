@@ -113,7 +113,7 @@ export async function getSshKeys({
   project_id,
 }: {
   project_id?: string;
-}): Promise<string[]> {
+} = {}): Promise<string[]> {
   if (!project_id) {
     throw Error("project_id must be specified");
   }
