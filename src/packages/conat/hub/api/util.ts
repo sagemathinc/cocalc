@@ -37,3 +37,14 @@ export const authFirstRequireAccount = async ({ args, account_id }) => {
   args[0].account_id = account_id;
   return args;
 };
+
+export const authFirstRequireProject = async ({ args, project_id }) => {
+  if (args[0] == null) {
+    args[0] = {} as any;
+  }
+  if (!project_id) {
+    throw Error("must be a project");
+  }
+  args[0].project_id = project_id;
+  return args;
+};

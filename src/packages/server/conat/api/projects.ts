@@ -8,6 +8,7 @@ import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { client as filesystemClient } from "@cocalc/conat/files/file-server";
 export * from "@cocalc/server/conat/api/project-snapshots";
 export * from "@cocalc/server/conat/api/project-backups";
+import getPool from "@cocalc/database/pool";
 
 export async function copyPathBetweenProjects({
   src,
@@ -106,4 +107,49 @@ export async function stop({
   }
   const project = await getProject(project_id);
   await project.stop();
+}
+
+export async function getSshKeys({
+  project_id,
+}: {
+  project_id?: string;
+}): Promise<string[]> {
+  if (!project_id) {
+    throw Error("project_id must be specified");
+  }
+  const pool = getPool();
+  const keys: string[] = [];
+  const f = async (query) => {
+    const { rows } = await pool.query(query, [project_id]);
+    for (const x of rows) {
+      keys.push((x as any).key);
+    }
+  };
+
+  // The two crazy looking queries below get the ssh public keys
+  // for a specific project, both the project-specific keys *AND*
+  // the global keys for collabs that happen to apply to the project.
+  // We use complicated jsonb so these are weird/complicated queries,
+  // which AI wrote (with some uuid casting by me), but they work
+  // fine as far as I can tell.
+  await Promise.all([
+    f(`
+SELECT
+  ssh_key ->> 'value' AS key
+FROM projects
+CROSS JOIN LATERAL jsonb_each(users) AS u(user_id, user_data)
+CROSS JOIN LATERAL jsonb_each(u.user_data -> 'ssh_keys') AS k(fingerprint, ssh_key)
+WHERE project_id = $1;
+`),
+    f(`
+SELECT  kdata ->> 'value' AS key
+FROM projects p
+CROSS JOIN LATERAL jsonb_object_keys(p.users) AS u(account_id)
+JOIN accounts a ON a.account_id = u.account_id::uuid
+CROSS JOIN LATERAL jsonb_each(a.ssh_keys) AS k(fingerprint, kdata)
+WHERE p.project_id = $1;
+`),
+  ]);
+
+  return Array.from(new Set<string>(keys));
 }

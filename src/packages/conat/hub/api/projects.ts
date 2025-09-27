@@ -1,4 +1,4 @@
-import { authFirstRequireAccount } from "./util";
+import { authFirstRequireAccount, authFirstRequireProject } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
@@ -29,6 +29,8 @@ export const projects = {
 
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
+
+  getSshKeys: authFirstRequireProject,
 };
 
 export type AddCollaborator =
@@ -201,4 +203,11 @@ export interface Projects {
 
   start: (opts: { account_id: string; project_id: string }) => Promise<void>;
   stop: (opts: { account_id: string; project_id: string }) => Promise<void>;
+
+  // get a list if all public ssh authorized keys that apply to
+  // the given project.
+  // this is ALL global public keys for all collabs on the project,
+  // along with all project specific keys. This is called by the project
+  // on startup to configure itself.
+  getSshKeys: (opts: { project_id?: string }) => Promise<string[]>;
 }
