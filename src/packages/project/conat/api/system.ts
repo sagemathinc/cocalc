@@ -106,3 +106,5 @@ import {
 export { startNamedServer, statusOfNamedServer };
 
 export { sshPublicKey } from "@cocalc/backend/ssh/ssh-keys";
+
+export { update as updateSshKeys } from "@cocalc/project/conat/authorized-keys";

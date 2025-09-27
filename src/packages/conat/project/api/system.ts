@@ -37,6 +37,7 @@ export const system = {
 
   // ssh support
   sshPublicKey: true,
+  updateSshKeys: true,
 };
 
 export interface System {
@@ -84,6 +85,17 @@ export interface System {
     { state: "running"; port: number; url: string } | { state: "stopped" }
   >;
 
-  // return ssh public key of this project/compute server.
+  // return the ssh public key of this project/compute server.
+  // The project generates a public key on startup that is used
+  // internally for connecting to the file server, and this is that key.
+  // Basically this is a key that is used internally for communication
+  // within cocalc, so other services can trust the project.
+  // It can be changed without significant consequences (the file-server
+  // container gets restarted).
   sshPublicKey: () => Promise<string>;
+
+  // calling updateSshKeys causes the project to ensure that
+  // ~/.ssh/authorized_keys contains all entries set
+  // in the database (in addition to whatever else might be there).
+  updateSshKeys: () => Promise<void>;
 }

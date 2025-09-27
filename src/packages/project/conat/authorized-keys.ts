@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { getLogger } from "@cocalc/project/logger";
 
 const logger = getLogger("conat:authorized-keys");
-export async function init(opts) {
-  logger.debug("init");
+export async function update(opts?) {
+  logger.debug("update");
   const { client } = getIdentity(opts);
   const api = hubApi(client);
   const keys = await api.projects.getSshKeys();

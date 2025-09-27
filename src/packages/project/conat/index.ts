@@ -15,7 +15,7 @@ import { init as initTerminalServer } from "./terminal-server";
 import { getIdentity } from "./connection";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { init as initExecStream } from "@cocalc/project/exec-stream";
-import { init as initAuthorizedKeys } from "./authorized-keys";
+import { update as initAuthorizedKeys } from "./authorized-keys";
 
 const logger = getLogger("project:conat:index");
 
