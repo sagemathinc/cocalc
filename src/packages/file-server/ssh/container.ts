@@ -419,9 +419,9 @@ set -ev
 
 mkdir -p /etc/dropbear
 
-dropbear -p ${PORTS.project} -s -a -R -D /root/${SSHD_CONFIG}
+dropbear -p ${PORTS.project} -e -s -a -R -D /root/${SSHD_CONFIG}
 
 mutagen forward list dropbear || mutagen forward create --name=dropbear file-server:tcp::${PORTS.project} tcp::${PORTS.project}
 
-ln -s $(which sftp-server) /usr/libexec/sftp-server || true
+ln -sf $(which sftp-server) /usr/libexec/sftp-server || true
 `;

@@ -110,6 +110,7 @@ export async function getEnvironment({
     LOGS: DATA,
     // DEBUG: so interesting stuff gets logged, but not too much unless we really need it.
     DEBUG: "cocalc:*,-cocalc:silly:*",
+    DEBUG_CONSOLE: "yes",
     // important to explicitly set the COCALC_ vars since server env has own in a project
     COCALC_PROJECT_ID: project_id,
     COCALC_USERNAME: USER,
