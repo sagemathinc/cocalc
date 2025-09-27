@@ -117,7 +117,7 @@ const codemirror_associations: { [ext: string]: string } = {
   sql: "text/x-sql",
   ss: "text/x-scheme",
   sty: "stex2",
-  txt: "text",
+  te: "text",
   tex: "stex2",
   ts: "application/typescript",
   tsx: "text/typescript-jsx",
@@ -567,6 +567,20 @@ file_associations["sagews"] = {
   exclude_from_menu: true,
   exclude_from_compute_server: true,
 };
+
+for (const m of ["authorized_keys", "config"]) {
+  file_associations["noext-" + m] = {
+    editor: "codemirror",
+    icon: "cogs",
+    opts: {
+      mode: "text",
+      indent_unit: 4,
+      tab_size: 4,
+    },
+    name: "Text",
+    ext: "",
+  };
+}
 
 export function excludeFromComputeServer(path: string): boolean {
   const ext = filename_extension(path);
