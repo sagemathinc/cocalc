@@ -14,7 +14,7 @@ overrides:
   langchain: ^0.3.34
   katex@<0.16.9: ^0.16.10
   nanoid@<3.3.8: ^3.3.8
-  tar-fs@2.1.1: 2.1.3
+  tar-fs@<=2.1.3: 2.1.4
   tar-fs@3.0.8: 3.0.9
   '@types/request@2.48.12': 2.48.13
   '@types/node-fetch@2.6.12': 2.6.13
@@ -101,8 +101,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       better-sqlite3:
-        specifier: ^12.2.0
-        version: 12.2.0
+        specifier: ^12.4.1
+        version: 12.4.1
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -134,8 +134,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
       zstd-napi:
-        specifier: ^0.0.10
-        version: 0.0.10
+        specifier: ^0.0.12
+        version: 0.0.12
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -5119,8 +5119,8 @@ packages:
   batch@0.6.1:
     resolution: {integrity: sha512-x+VAiMRL6UPkx+kudNvxTl6hB2XNNCG2r+7wixVfIYwu/2HKRXimwQyaumLjMveWvT2Hkd/cAJw+QBMfJ/EKVw==}
 
-  better-sqlite3@12.2.0:
-    resolution: {integrity: sha512-eGbYq2CT+tos1fBwLQ/tkBt9J5M3JEHjku4hbvQUePCckkvVf14xWj+1m7dGoK81M/fOjFT7yM9UMeKT/+vFLQ==}
+  better-sqlite3@12.4.1:
+    resolution: {integrity: sha512-3yVdyZhklTiNrtg+4WqHpJpFDd+WHTg2oM7UcR80GqL05AOV0xEJzc6qNvFYoEtE+hRp1n9MpN6/+4yhlGkDXQ==}
     engines: {node: 20.x || 22.x || 23.x || 24.x}
 
   big.js@3.2.0:
@@ -10778,8 +10778,8 @@ packages:
     resolution: {integrity: sha512-ZL6DDuAlRlLGghwcfmSn9sK3Hr6ArtyudlSAiCqQ6IfE+b+HHbydbYDIG15IfS5do+7XQQBdBiubF/cV2dnDzg==}
     engines: {node: '>=6'}
 
-  tar-fs@2.1.3:
-    resolution: {integrity: sha512-090nwYJDmlhwFwEW3QQl+vaNnxsO2yVsd45eTKRBzSzu+hlb1w2K9inVq5b0ngXuLVqQ4ApvsUHHnu/zQNkWAg==}
+  tar-fs@2.1.4:
+    resolution: {integrity: sha512-mDAjwmZdh7LTT6pNleZ05Yt65HC3E+NiQzl672vQG38jIrehtJk/J3mNwIg+vShQPcLF/LV7CMnDW6vjj6sfYQ==}
 
   tar-stream@2.2.0:
     resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
@@ -11750,8 +11750,8 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zstd-napi@0.0.10:
-    resolution: {integrity: sha512-pwnG+auSiIrD2BNSIpPEUtcRSK33cfYmKo3sJPTohFiPqPci9F4SIRPR7gGeI45Maj4nFoyyxzT2YDxVXIIgzQ==}
+  zstd-napi@0.0.12:
+    resolution: {integrity: sha512-W4qfyNIJAfu8zB1w4TkjKBuXLRvkWa+owH4o32AEep1hRbAzS/bHNErC4fSKN7ls5s15b77bV0yRXbr9h12Wkg==}
     engines: {node: ^12.22.0 || ^14.17.0 || ^15.12.0 || >=16}
 
   zwitch@2.0.4:
@@ -15497,7 +15497,7 @@ snapshots:
 
   batch@0.6.1: {}
 
-  better-sqlite3@12.2.0:
+  better-sqlite3@12.4.1:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
@@ -20666,7 +20666,7 @@ snapshots:
       pump: 3.0.3
       rc: 1.2.8
       simple-get: 4.0.1
-      tar-fs: 2.1.3
+      tar-fs: 2.1.4
       tunnel-agent: 0.6.0
 
   precond@0.2.3: {}
@@ -22352,7 +22352,7 @@ snapshots:
 
   tapable@2.2.3: {}
 
-  tar-fs@2.1.3:
+  tar-fs@2.1.4:
     dependencies:
       chownr: 1.1.4
       mkdirp-classic: 0.5.3
@@ -23412,7 +23412,7 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zstd-napi@0.0.10:
+  zstd-napi@0.0.12:
     dependencies:
       '@types/node': 18.19.122
       node-addon-api: 7.1.1
