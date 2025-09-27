@@ -117,7 +117,7 @@ const codemirror_associations: { [ext: string]: string } = {
   sql: "text/x-sql",
   ss: "text/x-scheme",
   sty: "stex2",
-  te: "text",
+  txt: "text",
   tex: "stex2",
   ts: "application/typescript",
   tsx: "text/typescript-jsx",

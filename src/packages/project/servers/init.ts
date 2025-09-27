@@ -7,12 +7,17 @@
 
 import initPidFile from "./pid-file";
 import initConat from "@cocalc/project/conat";
+import { startProxyServer } from "./proxy/proxy";
 
 import { getLogger } from "@cocalc/project/logger";
-const logger = getLogger("init-project-server");
+const logger = getLogger("servers:init");
 
 export default async function init() {
-  logger.info("Write pid file to disk.");
+  logger.debug("servers: init");
+  logger.debug("Write pid file to disk.");
   await initPidFile();
+  logger.debug("Start Conat services");
   await initConat();
+  logger.debug("Start proxy server");
+  startProxyServer();
 }

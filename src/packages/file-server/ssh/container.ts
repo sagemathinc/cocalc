@@ -419,9 +419,12 @@ set -ev
 
 mkdir -p /etc/dropbear
 
-dropbear -p ${PORTS.project} -e -s -a -R -D /root/${SSHD_CONFIG}
+PORT=\${COCALC_SSHD_PORT:=22}
 
-mutagen forward list dropbear || mutagen forward create --name=dropbear file-server:tcp::${PORTS.project} tcp::${PORTS.project}
+dropbear -p \$PORT -e -s -a -R -D /root/${SSHD_CONFIG}
+
+mutagen forward list sshd 2>/dev/null \
+   || mutagen forward create --name=sshd file-server:tcp::${PORTS.project} tcp::\$PORT
 
 ln -sf $(which sftp-server) /usr/libexec/sftp-server || true
 `;
