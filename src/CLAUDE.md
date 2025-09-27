@@ -222,6 +222,93 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
 
+# CoCalc Python API Client
+
+## Overview
+
+The `python/cocalc-api/` directory contains a Python client library for the CoCalc API, published as the `cocalc-api` package on PyPI.
+
+## Architecture
+
+### Package Structure
+
+- **`src/cocalc_api/`** - Main Python package source code
+  - `__init__.py` - Package exports (Hub, Project classes)
+  - `hub.py` - Hub client for account-level API operations
+  - `project.py` - Project client for project-specific operations
+  - `api_types.py` - TypedDict definitions for API responses
+  - `util.py` - Utility functions and decorators
+
+### Key Classes
+
+#### Hub Client (`hub.py`)
+
+Account-level API client that provides access to:
+
+- **System** - Server ping, user search, account name resolution
+- **Projects** - Project management (create, start, stop, collaborators)
+- **Jupyter** - Global Jupyter kernel execution
+- **Database** - Direct PostgreSQL database queries
+- **Messages** - Send/receive messages between users
+- **Organizations** - Organization management (admin functions)
+- **Sync** - File history and synchronization
+
+#### Project Client (`project.py`)
+
+Project-specific API client for:
+
+- **System** - Project ping, shell command execution, Jupyter execution
+
+### Development Tools
+
+- **Package Manager**: `uv` (modern Python package manager)
+- **Code Formatter**: `yapf` (Python code formatter following Google style)
+- **Code Quality**: `ruff` (linting), `mypy` (type checking), `pyright` (additional type checking)
+- **Documentation**: `mkdocs` with material theme
+- **Testing**: `pytest`
+
+### Development Commands
+
+```bash
+# Setup and install dependencies
+make install  # or: uv sync --dev && uv pip install -e .
+
+# Format Python code
+make format   # or: uv run yapf --in-place --recursive src/
+
+# Code quality checks
+make check    # or: uv run ruff check src/ && uv run mypy src/ && uv run pyright src/
+
+# Documentation
+make serve-docs  # or: uv run mkdocs serve
+make build-docs  # or: uv run mkdocs build
+
+# Publishing
+make publish  # or: uv build && uv publish
+
+# Cleanup
+make clean
+```
+
+### API Design Patterns
+
+- **Decorator-based Methods**: Uses `@api_method()` decorator to automatically convert method calls to API requests
+- **TypedDict Responses**: All API responses use TypedDict for type safety
+- **Error Handling**: Centralized error handling via `handle_error()` utility
+- **HTTP Client**: Uses `httpx` for HTTP requests with authentication
+- **Nested Namespaces**: API organized into logical namespaces (system, projects, jupyter, etc.)
+
+### Authentication
+
+- Supports both account-level and project-specific API keys
+- Account API keys provide full access to all hub functionality
+- Project API keys are limited to project-specific operations
+
+### Connection Endpoints
+
+- **Hub API**: `POST /api/conat/hub` - Account-level operations
+- **Project API**: `POST /api/conat/project` - Project-specific operations
+
 # important-instruction-reminders
 
 Do what has been asked; nothing more, nothing less.

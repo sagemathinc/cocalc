@@ -5,9 +5,13 @@ install:
 	uv sync --dev
 	uv pip install -e .
 
+format:
+	uv run yapf --in-place --recursive src/
+
 check:
 	uv run ruff check src/
 	uv run mypy src/
+	uv run pyright src/
 
 serve-docs:
 	uv run mkdocs serve

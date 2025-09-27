@@ -23,6 +23,17 @@ Issues = "https://github.com/sagemathinc/cocalc/issues"
 python_version = "3.13"
 # strict = true
 # disallow_untyped_defs = true
+# Ignore empty-body errors for decorator-implemented methods
+disable_error_code = ["empty-body"]
+
+[tool.pyright]
+# Ignore return type errors for decorator-implemented methods
+reportReturnType = false
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 150
+indent_width = 4
 
 [tool.ruff]
 line-length = 150
@@ -35,6 +46,8 @@ dev = [
     "mkdocs-material",
     "mkdocstrings[python]",
     "mypy",
+    "pyright",
     "pytest>=8.4.1",
     "ruff>=0.12.11",
+    "yapf",
 ]

@@ -9,13 +9,9 @@ class Hub:
     def __init__(self, api_key: str, host: str = "https://cocalc.com"):
         self.api_key = api_key
         self.host = host
-        self.client = httpx.Client(
-            auth=(api_key, ""), headers={"Content-Type": "application/json"})
+        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"})
 
-    def call(self,
-             name: str,
-             arguments: list[Any],
-             timeout: Optional[int] = None) -> Any:
+    def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
         """
         Perform an API call to the CoCalc backend.
 
@@ -81,7 +77,7 @@ class System:
         Ping the server.
 
         Returns:
-            Any: JSON object containing the current server time.
+            PingResponse: JSON object containing the current server time.
         """
         raise NotImplementedError
 
@@ -93,7 +89,7 @@ class System:
             account_ids (list[str]): List of account UUID strings.
 
         Returns:
-            Any: Mapping from account_id to profile information.
+            list[str]: Mapping from account_id to profile information.
         """
         return self._parent.call("system.getNames", [account_ids])
 
@@ -106,12 +102,11 @@ class System:
             query (str): A query, e.g., partial name, email address, etc.
 
         Returns:
-            list[UserSearchResult]: array of dicts with account_id, name,
+            UserSearchResult: Array of dicts with account_id, name,
                 first_name, last_name, last_active (in ms since epoch),
                 created (in ms since epoch) and email_address_verified.
 
         Examples:
-
             Search for myself:
 
             >>> import cocalc_api; hub = cocalc_api.Hub(api_key="sk...")
@@ -124,10 +119,10 @@ class System:
               'created': 1756056224470,
               'email_address_verified': None}]
 
-             You can search by email address to ONLY get the user
-             that has that email address:
+            You can search by email address to ONLY get the user
+            that has that email address:
 
-             >>>  hub.system.user_search('wstein@gmail.com')
+            >>> hub.system.user_search('wstein@gmail.com')
             [{'account_id': 'd0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb',
               'first_name': 'W',
               'last_name': 'Stein',
@@ -145,25 +140,22 @@ class Projects:
     def __init__(self, parent: "Hub"):
         self._parent = parent
 
-    def get(self,
-            fields: Optional[list[str]] = None,
-            all: Optional[bool] = False,
-            project_id: Optional[str] = None):
+    def get(self, fields: Optional[list[str]] = None, all: Optional[bool] = False, project_id: Optional[str] = None) -> list[dict[str, Any]]:
         """
-        Get data about projects that you are a collaborator on.  Only gets
+        Get data about projects that you are a collaborator on. Only gets
         recent projects by default; set all=True to get all projects.
 
         Args:
-            fields (Optional[list[str]]): the fields about the project to get.
-                default: ['project_id', 'title', 'last_edited', 'state'], but see
+            fields (Optional[list[str]]): The fields about the project to get.
+                Default: ['project_id', 'title', 'last_edited', 'state'], but see
                 https://github.com/sagemathinc/cocalc/blob/master/src/packages/util/db-schema/projects.ts
-            all (Optional[bool]): if True, return ALL your projects,
+            all (Optional[bool]): If True, return ALL your projects,
                 not just the recent ones. False by default.
-            project_id (Optional[string]): if given as a project_id, gets just the
-                one project (as a length of length 1).
+            project_id (Optional[str]): If given, gets just this
+                one project (as a list of length 1).
 
         Returns:
-            list[dict[str,Any]]: list of projects
+            list[dict[str, Any]]: List of projects.
         """
         if fields is None:
             fields = ['project_id', 'title', 'last_edited', 'state']
@@ -185,7 +177,7 @@ class Projects:
         src_path: str,
         target_project_id: Optional[str] = None,
         target_path: Optional[str] = None,
-    ):
+    ) -> dict[str, Any]:  # type: ignore[empty-body]
         """
         Copy a path from one project to another (or within a project).
 
@@ -196,7 +188,7 @@ class Projects:
             target_path (Optional[str]): Target path in the target project. Defaults to src_path.
 
         Returns:
-            Any: JSON response indicating success or error.
+            dict[str, Any]: JSON response indicating success or error.
         """
         ...
 
@@ -224,8 +216,7 @@ class Projects:
         raise NotImplementedError
 
     @api_method("projects.addCollaborator", opts=True)
-    def add_collaborator(self, project_id: str | list[str],
-                         account_id: str | list[str]):
+    def add_collaborator(self, project_id: str | list[str], account_id: str | list[str]) -> dict[str, Any]:
         """
         Add a collaborator to a project.
 
@@ -239,12 +230,12 @@ class Projects:
             `project_id[i]`.
 
         Returns:
-            Any: JSON response from the API.
+            dict[str, Any]: JSON response from the API.
         """
         ...
 
     @api_method("projects.removeCollaborator", opts=True)
-    def remove_collaborator(self, project_id: str, account_id: str):
+    def remove_collaborator(self, project_id: str, account_id: str) -> dict[str, Any]:
         """
         Remove a collaborator from a project.
 
@@ -253,27 +244,27 @@ class Projects:
             account_id (str): Account ID of the user to remove.
 
         Returns:
-            Any: JSON response from the API.
+            dict[str, Any]: JSON response from the API.
         """
         ...
 
     @api_method("projects.start")
-    def start(self, project_id: str):
+    def start(self, project_id: str) -> dict[str, Any]:
         """
         Start a project.
 
         Args:
-            project_id (str): project_id of the project to start
+            project_id (str): Project ID of the project to start.
         """
         ...
 
     @api_method("projects.stop")
-    def stop(self, project_id: str):
+    def stop(self, project_id: str) -> dict[str, Any]:
         """
         Stop a project.
 
         Args:
-            project_id (str): project_id of the project to stop
+            project_id (str): Project ID of the project to stop.
         """
         ...
 
@@ -284,7 +275,7 @@ class Jupyter:
         self._parent = parent
 
     @api_method("jupyter.kernels")
-    def kernels(self, project_id: Optional[str] = None):
+    def kernels(self, project_id: Optional[str] = None) -> dict[str, Any]:
         """
         Get specifications of available Jupyter kernels.
 
@@ -293,7 +284,7 @@ class Jupyter:
                 If not given, a global anonymous project may be used.
 
         Returns:
-            Any: JSON response containing kernel specs.
+            dict[str, Any]: JSON response containing kernel specs.
         """
         ...
 
@@ -305,19 +296,19 @@ class Jupyter:
         history: Optional[list[str]] = None,
         project_id: Optional[str] = None,
         path: Optional[str] = None,
-    ):
+    ) -> dict[str, Any]:  # type: ignore[empty-body]
         """
         Execute code using a Jupyter kernel.
 
         Args:
             input (str): Code to execute.
-            kernel (Optional[str]): Name of kernel to use. Get options using jupyter.kernels()
+            kernel (str): Name of kernel to use. Get options using jupyter.kernels().
             history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
             project_id (Optional[str]): Project in which to run the code -- if not given, global anonymous project is used, if available.
             path (Optional[str]): File path context for execution.
 
         Returns:
-            Any: JSON response containing execution results.
+            dict[str, Any]: JSON response containing execution results.
 
         Examples:
             Execute a simple sum using a Jupyter kernel:
@@ -343,16 +334,16 @@ class Sync:
         self._parent = parent
 
     @api_method("sync.history")
-    def history(self, project_id: str, path: str):
+    def history(self, project_id: str, path: str) -> list[dict[str, Any]]:  # type: ignore[empty-body]
         """
         Get complete edit history of a file.
 
         Args:
-            project_id (str): The project_id of the project containing the file.
+            project_id (str): The project ID of the project containing the file.
             path (str): The path to the file.
 
         Returns:
-            Any: Array of patches in a compressed diff-match-patch format, along with time and user data.
+            list[dict[str, Any]]: Array of patches in a compressed diff-match-patch format, along with time and user data.
         """
         ...
 
@@ -365,10 +356,10 @@ class Database:
     @api_method("db.userQuery")
     def query(self, query: dict[str, Any]) -> dict[str, Any]:
         """
-        Do a user query.  The input is of one of the following forms, where the tables are defined at
+        Do a user query. The input is of one of the following forms, where the tables are defined at
         https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/db-schema
 
-        - `{"table-name":{"key":"value", ...}}`  with no None values sets one record in the database
+        - `{"table-name":{"key":"value", ...}}` with no None values sets one record in the database
         - `{"table-name":[{"key":"value", "key2":None...}]}` gets an array of all matching records
           in the database, filling in None's with the actual values.
         - `{"table-name:{"key":"value", "key2":None}}` gets one record, filling in None's with actual values.
@@ -379,8 +370,7 @@ class Database:
             query (dict[str, Any]): Object that defines the query, as explained above.
 
         Examples:
-
-        Get and also change your first name:
+            Get and also change your first name:
 
             >>> import cocalc_api; hub = cocalc_api.Hub(api_key="sk...")
             >>> hub.db.query({"accounts":{"first_name":None}})
@@ -399,22 +389,18 @@ class Messages:
         self._parent = parent
 
     @api_method("messages.send")
-    def send(self,
-             subject: str,
-             body: str,
-             to_ids: list[str],
-             reply_id: Optional[int] = None) -> int:
+    def send(self, subject: str, body: str, to_ids: list[str], reply_id: Optional[int] = None) -> int:
         """
         Send a message to one or more users.
 
         Args:
-            subject (str): short plain text subject of the message
-            body (str): Longer markdown body of the message (math typesetting and cocalc links work)
-            to_ids (list[str]): email addresses or account_id of each recipients
-            reply_id (Optional[int]): optional message you're replying to (for threading)
+            subject (str): Short plain text subject of the message.
+            body (str): Longer markdown body of the message (math typesetting and cocalc links work).
+            to_ids (list[str]): Email addresses or account_id of each recipient.
+            reply_id (Optional[int]): Optional message you're replying to (for threading).
 
         Returns:
-            int: id of the message
+            int: ID of the message.
         """
         raise NotImplementedError
 
@@ -423,11 +409,18 @@ class Messages:
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        type: Optional[Literal["received", "sent", "new", "starred",
-                               "liked"]] = None,
-    ) -> list[MessageType]:
+        type: Optional[Literal["received", "sent", "new", "starred", "liked"]] = None,
+    ) -> list[MessageType]:  # type: ignore[empty-body]
         """
         Get your messages.
+
+        Args:
+            limit (Optional[int]): Maximum number of messages to return.
+            offset (Optional[int]): Number of messages to skip.
+            type (Optional[Literal]): Filter by message type.
+
+        Returns:
+            list[MessageType]: List of messages.
         """
         raise NotImplementedError
 
@@ -445,39 +438,39 @@ class Organizations:
         self._parent = parent
 
     @api_method("org.getAll")
-    def get_all(self):
+    def get_all(self) -> dict[str, Any]:
         """
         Get all organizations (site admins only).
 
         Returns:
-            Any: ...
+            dict[str, Any]: Organization data.
         """
         raise NotImplementedError
 
     @api_method("org.create")
-    def create(self, name: str):
+    def create(self, name: str) -> dict[str, Any]:
         """
         Create an organization (site admins only).
 
         Args:
-            name (str) - name of the organization; must be globally unique,
-                at most 39 characters, and CANNOT BE CHANGED
+            name (str): Name of the organization; must be globally unique,
+                at most 39 characters, and CANNOT BE CHANGED.
 
         Returns:
-            Any: ...
+            dict[str, Any]: Organization data.
         """
         raise NotImplementedError
 
     @api_method("org.get")
-    def get(self, name: str):
+    def get(self, name: str) -> dict[str, Any]:
         """
-        Get an organization
+        Get an organization.
 
         Args:
-            name (str) - name of the organization
+            name (str): Name of the organization.
 
         Returns:
-            Any: ...
+            dict[str, Any]: Organization data.
         """
         raise NotImplementedError
 
@@ -487,22 +480,22 @@ class Organizations:
             title: Optional[str] = None,
             description: Optional[str] = None,
             email_address: Optional[str] = None,
-            link: Optional[str] = None):
+            link: Optional[str] = None) -> dict[str, Any]:
         """
         Set properties of an organization.
 
         Args:
-            name (str): name of the organization
-            title (Optional[str]): the title of the organization
-            description (Optional[str]): description of the organization
-            email_address (Optional[str]): email address to reach the organization
-               (nothing to do with a cocalc account)
-            link (Optional[str]): a website of the organization
+            name (str): Name of the organization.
+            title (Optional[str]): The title of the organization.
+            description (Optional[str]): Description of the organization.
+            email_address (Optional[str]): Email address to reach the organization
+                (nothing to do with a cocalc account).
+            link (Optional[str]): A website of the organization.
         """
         raise NotImplementedError
 
     @api_method("org.addAdmin")
-    def add_admin(self, name: str, user: str):
+    def add_admin(self, name: str, user: str) -> dict[str, Any]:
         """
         Make the user with given account_id or email an admin
         of the named organization.
@@ -514,7 +507,7 @@ class Organizations:
         raise NotImplementedError
 
     @api_method("org.addUser")
-    def add_user(self, name: str, user: str):
+    def add_user(self, name: str, user: str) -> dict[str, Any]:
         """
         Make the user with given account_id or email a member
         of the named organization. Only site admins can do this.
@@ -577,7 +570,7 @@ class Organizations:
         raise NotImplementedError
 
     @api_method("org.expireToken")
-    def expire_token(self, token: str):
+    def expire_token(self, token: str) -> dict[str, Any]:
         """
         Immediately expire a token created using create_token.
 
@@ -587,7 +580,7 @@ class Organizations:
         raise NotImplementedError
 
     @api_method("org.getUsers")
-    def get_users(self, name: str) -> OrganizationUser:
+    def get_users(self, name: str) -> list[OrganizationUser]:  # type: ignore[empty-body]
         """
         Return list of all accounts that are members of the named organization.
 
@@ -608,7 +601,7 @@ class Organizations:
         raise NotImplementedError
 
     @api_method("org.message")
-    def message(self, name: str, subject: str, body: str):
+    def message(self, name: str, subject: str, body: str) -> dict[str, Any]:
         """
         Send a message from you to every account that is a member of
         the named organization.
