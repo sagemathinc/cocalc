@@ -6,7 +6,6 @@
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Collapse, CollapseProps, Space, Tooltip } from "antd";
 import { useIntl } from "react-intl";
-
 import {
   redux,
   useActions,
@@ -46,6 +45,7 @@ import {
 import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
 import { getFlyoutSettings, storeFlyoutState } from "./state";
+import ProjectControlError from "@cocalc/frontend/project/settings/project-control-error";
 
 interface Props {
   project_id: string;
@@ -136,13 +136,13 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
           Status: <span style={{ float: "right" }}>{renderState()}</span>
         </Title>
         <Button.Group>
-          <RestartProject project_id={project_id} short={true} />
+          <RestartProject project_id={project_id} />
           <StopProject
             project_id={project_id}
             disabled={status.get("state") !== "running"}
-            short={true}
           />
         </Button.Group>
+        <ProjectControlError style={{ marginTop: "15px" }} />
       </div>
     );
   }

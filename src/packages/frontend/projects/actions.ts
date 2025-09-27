@@ -968,7 +968,14 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
       const runner = webapp_client.conat_client.projectRunner(project_id);
       webapp_client.project_client.touch_project(project_id);
-      const s = await runner.start({ project_id });
+      const actions = redux.getProjectActions(project_id);
+      try {
+        await runner.start({ project_id });
+      } catch (err) {
+        actions.setState({ control_error: `Error starting project -- ${err}` });
+        throw err;
+      }
+      actions.setState({ control_error: "" });
 
       this.project_log(project_id, {
         event: "project_started",
@@ -1000,21 +1007,30 @@ export class ProjectsActions extends Actions<ProjectsState> {
   };
 
   // returns true, if it actually stopped the project
-  stop_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
-    const t0 = webapp_client.server_time().getTime();
-    this.project_log(project_id, {
-      event: "project_stop_requested",
-    });
-    const runner = webapp_client.conat_client.projectRunner(project_id);
-    await runner.stop({ project_id });
-    this.optimisticProjectStateUpdate(project_id, "opened");
-    this.project_log(project_id, {
-      event: "project_stopped",
-      duration_ms: webapp_client.server_time().getTime() - t0,
-      ...store.classify_project(project_id),
-    });
-    return true;
-  });
+  stop_project = reuseInFlight(
+    async (project_id: string, force?: boolean): Promise<boolean> => {
+      const t0 = webapp_client.server_time().getTime();
+      this.project_log(project_id, {
+        event: "project_stop_requested",
+      });
+      const runner = webapp_client.conat_client.projectRunner(project_id);
+      const actions = redux.getProjectActions(project_id);
+      try {
+        await runner.stop({ project_id, force });
+      } catch (err) {
+        actions.setState({ control_error: `Error stopping project -- ${err}` });
+        throw err;
+      }
+      actions.setState({ control_error: "" });
+      this.optimisticProjectStateUpdate(project_id, "opened");
+      this.project_log(project_id, {
+        event: "project_stopped",
+        duration_ms: webapp_client.server_time().getTime() - t0,
+        ...store.classify_project(project_id),
+      });
+      return true;
+    },
+  );
 
   restart_project = reuseInFlight(
     async (project_id: string, options?): Promise<void> => {

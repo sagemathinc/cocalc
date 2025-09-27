@@ -17,25 +17,27 @@ interface Props {
   project_id: string;
   disabled?: boolean;
   size?;
-  short?: boolean;
+  force?: boolean;
 }
 
-export function StopProject({
-  project_id,
-  disabled,
-  size,
-  short = false,
-}: Props) {
+export function StopProject({ project_id, disabled, size, force }: Props) {
   const actions = useActions("projects");
 
   const text = (
     <div style={{ maxWidth: "300px" }}>
-      <FormattedMessage
-        id="project.settings.stop-project.explanation"
-        defaultMessage={
-          "Stopping the project server will kill all processes. After stopping a project, it will not start until you or a collaborator restarts the project."
-        }
-      />
+      {force ? (
+        <>
+          Forcing the project to stop will shut it down even if it is stuck
+          trying to save some files. <b>This is potentially dangerous.</b>
+        </>
+      ) : (
+        <FormattedMessage
+          id="project.settings.stop-project.explanation"
+          defaultMessage={
+            "Stopping the project server will kill all processes. After stopping a project, it will not start until you or a collaborator restarts the project."
+          }
+        />
+      )}
     </div>
   );
 
@@ -45,16 +47,13 @@ export function StopProject({
       arrow={{ pointAtCenter: true }}
       title={text}
       icon={<StopOutlined />}
-      onConfirm={() => actions.stop_project(project_id)}
+      onConfirm={() => actions.stop_project(project_id, force)}
       okText={<FormattedMessage {...labels.project_settings_stop_project_ok} />}
       cancelText={<CancelText />}
     >
-      <Button disabled={disabled || actions == null} size={size}>
-        <StopOutlined />{" "}
-        <FormattedMessage
-          {...labels.project_settings_stop_project_label}
-          values={{ short }}
-        />
+      <Button disabled={disabled || actions == null} size={size} danger={force}>
+        <StopOutlined /> {force && "Force "}
+        <FormattedMessage {...labels.project_settings_stop_project_label} />
       </Button>
     </Popconfirm>
   );

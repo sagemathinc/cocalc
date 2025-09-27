@@ -152,7 +152,7 @@ export const labels = defineMessages({
   },
   project_settings_stop_project_label: {
     id: "labels.project.settings.stop-project.label",
-    defaultMessage: "Stop{short, select, true {} other { Project}}…",
+    defaultMessage: "Stop…",
   },
   upload: {
     id: "labels.upload",

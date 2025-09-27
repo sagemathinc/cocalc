@@ -141,7 +141,7 @@ export interface ProjectStoreState {
 
   // Search page -- update this when params change
   search_page?: number;
-  
+
   // Project Settings
   get_public_path_id?: (path: string) => any;
 
@@ -175,9 +175,12 @@ export interface ProjectStoreState {
 
   // while true, explorer keyhandler will not be enabled
   disableExplorerKeyhandler?: boolean;
-  
+
   // whe change this when any sort changes, so the UI can update
   active_file_sort?: number;
+
+  // error controlling the state of a project, e.g., starting or stopping it.
+  control_error?: string;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
@@ -331,7 +334,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       create_compute_server,
       create_compute_server_template_id,
       // compute_server_ids -- starts out NOT set so we know the data is NOT known:
-      compute_server_ids: undefined
+      compute_server_ids: undefined,
     };
   };
 

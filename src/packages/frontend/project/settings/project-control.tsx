@@ -48,6 +48,7 @@ import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
 import { Project } from "./types";
 import RootFilesystemImage from "./root-filesystem-image";
+import ProjectControlError from "./project-control-error";
 
 interface ReactProps {
   project: Project;
@@ -362,9 +363,10 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   function renderBody() {
     return (
       <>
-        <LabeledRow key="action" label="Actions" vertical={isFlyout}>
+        <div>
           {render_action_buttons()}
-        </LabeledRow>
+          <ProjectControlError />
+        </div>
         <LabeledRow
           key="state"
           label="State"
