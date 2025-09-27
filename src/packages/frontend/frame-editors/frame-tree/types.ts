@@ -63,6 +63,7 @@ type EditorType =
   | "jupyter-toc"
   | "jupyter"
   | "latex-build"
+  | "latex-output"
   | "latex-toc"
   | "latex-word_count"
   | "latex"
