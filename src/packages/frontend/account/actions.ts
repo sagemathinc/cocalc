@@ -163,7 +163,7 @@ export class AccountActions extends Actions<AccountState> {
         },
       },
     });
-    await this.updateAuthorizedKeysForRunningProjects();
+    await this.updateAuthorizedKeysForRunningProjects(true);
   };
 
   // Delete the ssh key with given fingerprint for this user.
@@ -174,15 +174,23 @@ export class AccountActions extends Actions<AccountState> {
         [fingerprint]: null,
       },
     }); // null is how to tell the backend/synctable to delete this...
-    await this.updateAuthorizedKeysForRunningProjects();
+    await this.updateAuthorizedKeysForRunningProjects(true);
   };
 
   // call after adding/removing global ssh keys
-  updateAuthorizedKeysForRunningProjects = async () => {
+  updateAuthorizedKeysForRunningProjects = async (ignoreErrors = true) => {
     const store = this.redux.getStore("projects");
     const f = async (project_id) => {
       const api = webapp_client.conat_client.projectApi({ project_id });
-      await api.system.updateSshKeys();
+      try {
+        await api.system.updateSshKeys();
+      } catch (err) {
+        if (!ignoreErrors) {
+          throw err;
+        }
+        // it is expected for these to sometimes fail, e.g., because
+        // the state is listed as "running" but it is stale.
+      }
     };
     await Promise.all(store.getRunningProjects().map(f));
   };
