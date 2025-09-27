@@ -247,14 +247,15 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
   }
 
-  public async add_ssh_key_to_project(opts: {
+  add_ssh_key_to_project = async (opts: {
     project_id: string;
     fingerprint: string;
     title: string;
     value: string;
-  }): Promise<void> {
+  }): Promise<void> => {
+    const { project_id } = opts;
     await this.projects_table_set({
-      project_id: opts.project_id,
+      project_id,
       users: {
         [this.redux.getStore("account").get_account_id()]: {
           ssh_keys: {
@@ -267,14 +268,16 @@ export class ProjectsActions extends Actions<ProjectsState> {
         },
       },
     });
-  }
+    await this.updateAuthorizedKeys(project_id);
+  };
 
-  public async delete_ssh_key_from_project(opts: {
+  delete_ssh_key_from_project = async (opts: {
     project_id: string;
     fingerprint: string;
-  }): Promise<void> {
+  }): Promise<void> => {
+    const { project_id } = opts;
     await this.projects_table_set({
-      project_id: opts.project_id,
+      project_id,
       users: {
         [this.redux.getStore("account").get_account_id()]: {
           ssh_keys: {
@@ -283,7 +286,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
         },
       },
     });
-  }
+    await this.updateAuthorizedKeys(project_id);
+  };
+
+  updateAuthorizedKeys = async (project_id: string) => {
+    // only do this if running, since it only matters when
+    // running and is updated on startup
+    if (store.get_state(project_id) == "running") {
+      const api = webapp_client.conat_client.projectApi({ project_id });
+      await api.system.updateSshKeys();
+    }
+  };
 
   // Apply default upgrades -- if available -- to the given project.
   // Right now this means upgrading to member hosting and enabling

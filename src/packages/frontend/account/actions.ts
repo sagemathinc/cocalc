@@ -141,8 +141,10 @@ export class AccountActions extends Actions<AccountState> {
     this.push_state("/" + tab);
   }
 
-  // Add an ssh key for this user, with the given fingerprint, title, and value
-  public add_ssh_key(unsafe_opts: unknown): void {
+  // Add an ssh key for this user, with the given fingerprint,
+  // title, and value. Also updates authorized_keys for all running
+  // projects.
+  add_ssh_key = async (unsafe_opts: unknown): Promise<void> => {
     const opts = define<{
       fingerprint: string;
       title: string;
@@ -152,7 +154,7 @@ export class AccountActions extends Actions<AccountState> {
       title: required,
       value: required,
     });
-    this.redux.getTable("account").set({
+    await this.redux.getTable("account").set({
       ssh_keys: {
         [opts.fingerprint]: {
           title: opts.title,
@@ -161,16 +163,29 @@ export class AccountActions extends Actions<AccountState> {
         },
       },
     });
-  }
+    await this.updateAuthorizedKeysForRunningProjects();
+  };
 
   // Delete the ssh key with given fingerprint for this user.
-  public delete_ssh_key(fingerprint): void {
-    this.redux.getTable("account").set({
+  // Also updates authorized_keys for all running projects.
+  delete_ssh_key = async (fingerprint): Promise<void> => {
+    await this.redux.getTable("account").set({
       ssh_keys: {
         [fingerprint]: null,
       },
     }); // null is how to tell the backend/synctable to delete this...
-  }
+    await this.updateAuthorizedKeysForRunningProjects();
+  };
+
+  // call after adding/removing global ssh keys
+  updateAuthorizedKeysForRunningProjects = async () => {
+    const store = this.redux.getStore("projects");
+    const f = async (project_id) => {
+      const api = webapp_client.conat_client.projectApi({ project_id });
+      await api.system.updateSshKeys();
+    };
+    await Promise.all(store.getRunningProjects().map(f));
+  };
 
   public set_account_table(obj: object): void {
     this.redux.getTable("account").set(obj);

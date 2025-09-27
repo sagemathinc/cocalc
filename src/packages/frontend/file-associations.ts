@@ -568,7 +568,8 @@ file_associations["sagews"] = {
   exclude_from_compute_server: true,
 };
 
-for (const m of ["authorized_keys", "config"]) {
+// some things in ~/.ssh
+for (const m of ["authorized_keys", "config", "id_ed25519.pub"]) {
   file_associations["noext-" + m] = {
     editor: "codemirror",
     icon: "cogs",

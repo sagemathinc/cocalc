@@ -29,7 +29,7 @@ export async function updateAuthorizedKeys({
 }: {
   keys: string[];
   path: string;
-}) {
+}): Promise<string> {
   // Normalize input keys and de-duplicate
   const desiredKeys = Array.from(new Set(keys.map((k) => normalizeKeyLine(k))));
 
@@ -122,8 +122,9 @@ export async function updateAuthorizedKeys({
 
   if (out.trim().length == 0 && text.trim().length == 0) {
     // if no keys, do not create file
-    return;
+    return "";
   }
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   await writeFile(path, out, { encoding: "utf8", mode: 0o600 });
+  return out;
 }

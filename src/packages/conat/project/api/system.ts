@@ -97,5 +97,5 @@ export interface System {
   // calling updateSshKeys causes the project to ensure that
   // ~/.ssh/authorized_keys contains all entries set
   // in the database (in addition to whatever else might be there).
-  updateSshKeys: () => Promise<void>;
+  updateSshKeys: () => Promise<string>;
 }

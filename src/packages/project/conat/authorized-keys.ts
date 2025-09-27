@@ -12,6 +12,7 @@ export async function update(opts?) {
   const keys = await api.projects.getSshKeys();
   logger.debug("got keys", keys);
   const path = join(process.env.HOME ?? "", ".ssh", "authorized_keys");
-  await updateAuthorizedKeys({ path, keys });
+  const value = await updateAuthorizedKeys({ path, keys });
   logger.debug("updated authorized_keys files", { path });
+  return value;
 }

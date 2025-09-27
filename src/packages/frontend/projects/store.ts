@@ -131,6 +131,22 @@ export class ProjectsStore extends Store<ProjectsState> {
     return this.getIn(["project_map", project_id, "state", "state"]);
   }
 
+  getRunningProjects = (): string[] => {
+    return this.getProjectsWithState("running");
+  };
+
+  getProjectsWithState = (state): string[] => {
+    const project_map = this.get("project_map");
+    const v: string[] = [];
+    if (project_map == null) return v;
+    for (const [project_id, project] of project_map) {
+      if (project.getIn(["state", "state"]) == state) {
+        v.push(project_id);
+      }
+    }
+    return v;
+  };
+
   public get_description(project_id: string): string {
     return (
       this.getIn(["project_map", project_id, "description"]) ?? "No Description"
