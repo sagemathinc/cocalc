@@ -969,7 +969,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
       const runner = webapp_client.conat_client.projectRunner(project_id);
       webapp_client.project_client.touch_project(project_id);
       const s = await runner.start({ project_id });
-      console.log("run got s = ", s);
 
       this.project_log(project_id, {
         event: "project_started",

@@ -105,7 +105,7 @@ export async function start({
     const pod = projectPodName(project_id);
     const image = getImage(config);
 
-    try {
+    const createPod = async () => {
       await podman([
         "pod",
         "create",
@@ -119,17 +119,30 @@ export async function start({
         `rootfs_image=${image}`,
         "--network=pasta",
       ]);
+    };
+
+    try {
+      await createPod();
     } catch (err) {
       if (`${err}`.includes("pod already exists")) {
-        bootlog({
-          project_id,
-          type: "start",
-          progress: 100,
-          desc: "already running",
-        });
-        return;
+        // maybe already running?
+        const x = await state(project_id, true);
+        if (x == "running") {
+          bootlog({
+            project_id,
+            type: "start",
+            progress: 100,
+            desc: "already running",
+          });
+          return;
+        }
+      } else {
+        // user tried to call start, but project is not already
+        // running and instead is in a possibly broken state,
+        // so clean up everything and try to start again.
+        await stop({ project_id, force: true });
+        await createPod();
       }
-      throw err;
     }
     bootlog({ project_id, type: "start", progress: 20, desc: "created pod" });
 
@@ -399,12 +412,14 @@ export async function podman(args: string[], timeout?) {
   }
 }
 
-async function state(project_id): Promise<ProjectState> {
-  if (starting.has(project_id)) {
-    return "starting";
-  }
-  if (stopping.has(project_id)) {
-    return "stopping";
+async function state(project_id, ignoreCache = false): Promise<ProjectState> {
+  if (!ignoreCache) {
+    if (starting.has(project_id)) {
+      return "starting";
+    }
+    if (stopping.has(project_id)) {
+      return "stopping";
+    }
   }
   const { stdout } = await podman([
     "ps",

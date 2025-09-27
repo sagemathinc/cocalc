@@ -152,12 +152,19 @@ This would go in sudo for the user to allow just this:
 
 export async function unmount(project_id: string) {
   const mountpoint = getMergedPath(project_id);
-  await executeCode({
-    verbose: true,
-    err_on_exit: true,
-    command: "sudo",
-    args: ["umount", "-l", mountpoint],
-  });
+  try {
+    await executeCode({
+      verbose: true,
+      err_on_exit: true,
+      command: "sudo",
+      args: ["umount", "-l", mountpoint],
+    });
+  } catch (err) {
+    if (`${err}`.includes("not mounted")) {
+      return;
+    }
+    throw err;
+  }
 }
 
 export function escape(path) {
