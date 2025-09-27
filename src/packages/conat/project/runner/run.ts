@@ -45,9 +45,10 @@ export interface Options {
     project_id?: string;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
+    force?: boolean;
   }) => Promise<void>;
-  // get the status of a project here.
 
+  // get the status of a project here.
   status: (opts: {
     project_id: string;
     localPath: LocalPathFunction;
@@ -81,7 +82,10 @@ export interface API {
     project_id: string;
     config?: Configuration;
   }) => Promise<ProjectStatus>;
-  stop: (opts: { project_id: string }) => Promise<ProjectStatus>;
+  stop: (opts: {
+    project_id: string;
+    force?: boolean;
+  }) => Promise<ProjectStatus>;
   status: (opts: { project_id: string }) => Promise<ProjectStatus>;
 }
 
@@ -117,18 +121,29 @@ export async function server(options: Options) {
       projects.set(opts.project_id, s);
       return s;
     },
-    async stop(opts: { project_id: string }) {
-      logger.debug("stop", opts.project_id);
+
+    async stop(opts: { project_id: string; force?: boolean }) {
+      logger.debug("stop", opts);
       projects.set(opts.project_id, { server: id, state: "stopping" } as const);
-      await stop({
-        ...opts,
-        localPath: options.localPath,
-        sshServers: options.sshServers,
-      });
+      try {
+        await stop({
+          ...opts,
+          localPath: options.localPath,
+          sshServers: options.sshServers,
+        });
+      } catch (err) {
+        // couldn't stop it.
+        projects.set(opts.project_id, {
+          server: id,
+          state: "running",
+        } as const);
+        throw err;
+      }
       const s = { server: id, state: "opened" } as const;
       projects.set(opts.project_id, s);
       return s;
     },
+
     async status(opts: { project_id: string }) {
       logger.debug("status", opts.project_id);
       const s = {
@@ -153,20 +168,30 @@ export async function server(options: Options) {
   };
 }
 
+export interface BasicOptions {
+  client?: Client;
+  timeout?: number;
+  waitForInterest?: boolean;
+}
+
 export function client({
   client,
   project_id,
   subject,
   timeout,
   waitForInterest = true,
-}: {
-  client?: Client;
-  project_id?: string;
-  subject?: string;
-  timeout?: number;
-  waitForInterest?: boolean;
-}): API {
+}:
+  | (BasicOptions & {
+      project_id?: string;
+      subject: string;
+    })
+  | (BasicOptions & {
+      project_id: string;
+      subject?: string;
+    })): API {
   subject ??= `project.${project_id}.run`;
   client ??= conat();
+  // Note that the project_id field gets filled in automatically in the API
+  // because the project above is of the form project.{project_id}.
   return client.call<API>(subject, { waitForInterest, timeout });
 }

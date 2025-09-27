@@ -105,20 +105,32 @@ export async function start({
     const pod = projectPodName(project_id);
     const image = getImage(config);
 
-    await podman([
-      "pod",
-      "create",
-      "--replace",
-      "--name",
-      pod,
-      "--label",
-      `project_id=${project_id}`,
-      "--label",
-      `role=project`,
-      "--label",
-      `rootfs_image=${image}`,
-      "--network=pasta",
-    ]);
+    try {
+      await podman([
+        "pod",
+        "create",
+        "--name",
+        pod,
+        "--label",
+        `project_id=${project_id}`,
+        "--label",
+        `role=project`,
+        "--label",
+        `rootfs_image=${image}`,
+        "--network=pasta",
+      ]);
+    } catch (err) {
+      if (`${err}`.includes("pod already exists")) {
+        bootlog({
+          project_id,
+          type: "start",
+          progress: 100,
+          desc: "already running",
+        });
+        return;
+      }
+      throw err;
+    }
     bootlog({ project_id, type: "start", progress: 20, desc: "created pod" });
 
     const mounts = getCoCalcMounts();
@@ -362,6 +374,7 @@ export async function stop({
         type: "stop",
         error: err,
       });
+      throw err;
     }
   } finally {
     stopping.delete(project_id);

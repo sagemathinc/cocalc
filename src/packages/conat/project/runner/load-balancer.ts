@@ -113,27 +113,26 @@ export async function server({
       const project_id = getProjectId(this);
       logger.debug("start", project_id);
       const config = await getConfig?.({ project_id });
-      const cur = projects.get(project_id);
-      if (cur?.state == "starting" || cur?.state == "running") {
-        return;
-      }
       const runClient = await getClient(project_id);
       await setState1?.({ project_id, state: "starting" });
       await runClient.start({ project_id, config });
       await setState1?.({ project_id, state: "running" });
     },
 
-    async stop() {
+    async stop({ force }: { force?: boolean } = {}) {
       const project_id = getProjectId(this);
       logger.debug("stop", project_id);
       const runClient = await getClient(project_id);
       try {
-        await runClient.stop({ project_id });
+        await runClient.stop({ project_id, force });
         await setState1?.({ project_id, state: "opened" });
       } catch (err) {
         if (err.code == 503) {
           // the runner is no longer running, so obviously project isn't running there.
           await setState1?.({ project_id, state: "opened" });
+        } else {
+          // can't stop it (e.g., sync broken/disabled), so it is still running
+          await setState1?.({ project_id, state: "running" });
         }
         throw err;
       }
