@@ -219,7 +219,7 @@ export class API {
         "Code formatting status not available. Please restart your project!",
       );
     }
-    // TODO refactor the assocated formatter and smc-project into a common configuration object
+    // TODO refactor the associated formatter and smc-project into a common configuration object
     const tool = syntax2tool[config.syntax];
     if (tool == null) {
       throw new Error(`No known tool for '${config.syntax}' available`);

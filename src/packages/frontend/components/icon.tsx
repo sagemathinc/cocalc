@@ -229,6 +229,8 @@ import {
   XOutlined,
   YoutubeFilled,
   YoutubeOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
 } from "@ant-design/icons";
 
 // Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
@@ -528,8 +530,8 @@ const IconSpec = {
   scheme: { IconFont: "scheme" },
   scissors: ScissorOutlined,
   search: SearchOutlined,
-  "search-minus": MinusOutlined, // we actually use this for zoom
-  "search-plus": PlusOutlined,
+  "search-minus": ZoomOutOutlined,
+  "search-plus": ZoomInOutlined,
   "select-outlined": SelectOutlined,
   settings: SettingOutlined,
   server: CloudServerOutlined,
@@ -635,6 +637,8 @@ const IconSpec = {
   "merge-cells-outlined": MergeCellsOutlined,
   "fork-outlined": ForkOutlined,
   "to-top-outlined": ToTopOutlined,
+  "column-width": ColumnWidthOutlined,
+  "column-height": ColumnHeightOutlined,
 } as const;
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us

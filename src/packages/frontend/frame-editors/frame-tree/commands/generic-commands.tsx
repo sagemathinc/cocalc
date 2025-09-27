@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore demaximize subframe rescan
+
 import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
@@ -28,6 +30,42 @@ import userTracking from "@cocalc/frontend/user-tracking";
 import { filename_extension } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
 import { SEARCH_COMMANDS } from "./const";
+
+// Predefined zoom percentages for consistent zoom options across the application
+export const ZOOM_PERCENTAGES = [50, 85, 100, 115, 125, 150, 200, 400] as const;
+
+// Build on save icon constants - exported for consistent iconography across components
+export const BUILD_ON_SAVE_ICON_ENABLED = "delivered-procedure-outlined";
+export const BUILD_ON_SAVE_ICON_DISABLED = "stop-filled";
+export const BUILD_ON_SAVE_LABEL = defineMessage({
+  id: "command.generic.build_on_save.label",
+  defaultMessage:
+    "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
+});
+
+// Export zoom-related messages for use in other components
+export const ZOOM_MESSAGES = {
+  zoomPageWidth: {
+    title: defineMessage({
+      id: "command.generic.zoom_page_width.title",
+      defaultMessage: "Zoom to page width",
+    }),
+    label: defineMessage({
+      id: "command.generic.zoom_page_width.label",
+      defaultMessage: "Zoom to Width",
+    }),
+  },
+  zoomPageHeight: {
+    title: defineMessage({
+      id: "command.generic.zoom_page_height.title",
+      defaultMessage: "Zoom to page height",
+    }),
+    label: defineMessage({
+      id: "command.generic.zoom_page_height.label",
+      defaultMessage: "Zoom to Height",
+    }),
+  },
+};
 
 addCommands({
   "split-row": {
@@ -253,27 +291,15 @@ addCommands({
   zoom_page_width: {
     pos: 3,
     group: "zoom",
-    title: defineMessage({
-      id: "command.generic.zoom_page_width.title",
-      defaultMessage: "Zoom to page width",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_width.label",
-      defaultMessage: "Zoom to Width",
-    }),
+    title: ZOOM_MESSAGES.zoomPageWidth.title,
+    label: ZOOM_MESSAGES.zoomPageWidth.label,
     icon: "ColumnWidthOutlined",
   },
   zoom_page_height: {
     pos: 4,
     group: "zoom",
-    title: defineMessage({
-      id: "command.generic.zoom_page_height.title",
-      defaultMessage: "Zoom to page height",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_height.label",
-      defaultMessage: "Zoom to Height",
-    }),
+    title: ZOOM_MESSAGES.zoomPageHeight.title,
+    label: ZOOM_MESSAGES.zoomPageHeight.label,
     icon: "ColumnHeightOutlined",
   },
   set_zoom: {
@@ -292,7 +318,7 @@ addCommands({
     ),
     onClick: () => {},
     icon: "percentage",
-    children: [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
+    children: ZOOM_PERCENTAGES.map((zoom) => {
       return {
         stayOpenOnClick: true,
         label: `${zoom}%`,
@@ -639,26 +665,19 @@ addCommands({
   build_on_save: {
     group: "build",
     label: ({ intl }) =>
-      intl.formatMessage(
-        {
-          id: "command.generic.build_on_save.label",
-          defaultMessage:
-            "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
-        },
-        {
-          enabled: redux
-            .getStore("account")
-            .getIn(["editor_settings", "build_on_save"]),
-        },
-      ),
+      intl.formatMessage(BUILD_ON_SAVE_LABEL, {
+        enabled: redux
+          .getStore("account")
+          .getIn(["editor_settings", "build_on_save"]),
+      }),
     title: defineMessage({
       id: "command.generic.build_on_save.title",
       defaultMessage: "Toggle automatic build on file save.",
     }),
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "build_on_save"])
-        ? "delivered-procedure-outlined"
-        : "stop-filled",
+        ? BUILD_ON_SAVE_ICON_ENABLED
+        : BUILD_ON_SAVE_ICON_DISABLED,
   },
   force_build: {
     group: "build",
@@ -942,6 +961,7 @@ addCommands({
   },
   download_pdf: {
     group: "export",
+    // ATTN: this must be an IntlMessage
     label: defineMessage({
       id: "menu.generic.download_pdf.label",
       defaultMessage: "Download PDF",
@@ -992,6 +1012,7 @@ addCommands({
       defaultMessage:
         "Show a printable version of this document in a popup window.",
     }),
+    // ATTN: this must be an IntlMessage
     label: labels.print,
   },
   new: {
@@ -1303,6 +1324,39 @@ addCommands({
       id: "command.generic.reset_local_view_state.button",
       defaultMessage: "Default",
     }),
+  },
+  new_layout: {
+    icon: "layout",
+    group: "frame_types",
+    title: defineMessage({
+      id: "command.generic.new_layout.title",
+      defaultMessage:
+        "Switch to a simplified layout with LaTeX source editor and multi-purpose output panel",
+    }),
+    label: defineMessage({
+      id: "command.generic.new_layout.label",
+      defaultMessage: "New Layout",
+    }),
+    button: defineMessage({
+      id: "command.generic.new_layout.button",
+      defaultMessage: "New",
+    }),
+    isVisible: ({ props }) =>
+      typeof props.actions?._new_latex_frame_tree === "function",
+    onClick: ({ props }) => {
+      try {
+        // Check if this is a LaTeX editor and use its specific layout method
+        if (
+          props.actions._new_latex_frame_tree &&
+          props.actions.replace_frame_tree_with_custom
+        ) {
+          const tree = props.actions._new_latex_frame_tree();
+          props.actions.replace_frame_tree_with_custom(tree);
+        }
+      } catch (error) {
+        console.error("Error in New Layout:", error);
+      }
+    },
   },
   button_bar: {
     alwaysShow: true,

@@ -40,8 +40,15 @@ export const labels = defineMessages({
   },
   on: {
     id: "labels.on",
-    defaultMessage: "on",
-    description: "single word, something 'on' something else",
+    defaultMessage: "On",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'enabled'.",
+  },
+  off: {
+    id: "labels.off",
+    defaultMessage: "Off",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'disabled'.",
   },
   yes: {
     id: "labels.yes",
@@ -306,6 +313,24 @@ export const labels = defineMessages({
   zoom_out: {
     id: "labels.zoom_out",
     defaultMessage: "Zoom out",
+  },
+  zoom_in_short: {
+    id: "labels.zoom_in_short",
+    defaultMessage: "In",
+    description: "Short label on a button for zooming in",
+  },
+  zoom_out_short: {
+    id: "labels.zoom_out_short",
+    defaultMessage: "Out",
+    description: "Short label on a button for zooming out",
+  },
+  width: {
+    id: "labels.width",
+    defaultMessage: "Width",
+  },
+  height: {
+    id: "labels.height",
+    defaultMessage: "Height",
   },
   reload: {
     id: "labels.reload",
