@@ -36,6 +36,11 @@ import {
   SPLIT_CELL_ICON,
 } from "./consts";
 
+export const CLEAR_CELL_OUTPUT_LABEL = defineMessage({
+  id: "jupyter.cell-buttonbar-menu.clear-output",
+  defaultMessage: "Clear Output",
+});
+
 export interface KeyboardCommand {
   mode?: NotebookMode;
   which: number;
