@@ -3,9 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Set } from "immutable";
+import { Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
@@ -32,6 +31,7 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import type {
   CourseInfo,
@@ -247,14 +247,15 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
   }
 
-  public async add_ssh_key_to_project(opts: {
+  add_ssh_key_to_project = async (opts: {
     project_id: string;
     fingerprint: string;
     title: string;
     value: string;
-  }): Promise<void> {
+  }): Promise<void> => {
+    const { project_id } = opts;
     await this.projects_table_set({
-      project_id: opts.project_id,
+      project_id,
       users: {
         [this.redux.getStore("account").get_account_id()]: {
           ssh_keys: {
@@ -267,14 +268,16 @@ export class ProjectsActions extends Actions<ProjectsState> {
         },
       },
     });
-  }
+    await this.updateAuthorizedKeys(project_id);
+  };
 
-  public async delete_ssh_key_from_project(opts: {
+  delete_ssh_key_from_project = async (opts: {
     project_id: string;
     fingerprint: string;
-  }): Promise<void> {
+  }): Promise<void> => {
+    const { project_id } = opts;
     await this.projects_table_set({
-      project_id: opts.project_id,
+      project_id,
       users: {
         [this.redux.getStore("account").get_account_id()]: {
           ssh_keys: {
@@ -283,7 +286,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
         },
       },
     });
-  }
+    await this.updateAuthorizedKeys(project_id);
+  };
+
+  updateAuthorizedKeys = async (project_id: string) => {
+    // only do this if running, since it only matters when
+    // running and is updated on startup
+    if (store.get_state(project_id) == "running") {
+      const api = webapp_client.conat_client.projectApi({ project_id });
+      await api.system.updateSshKeys();
+    }
+  };
 
   // Apply default upgrades -- if available -- to the given project.
   // Right now this means upgrading to member hosting and enabling
@@ -379,7 +392,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     description?: string;
     image?: string; // if given, sets the compute image (the ID string)
     start?: boolean; // immediately start on create
-    noPool?: boolean; // never use the pool
     license?: string;
   }): Promise<string> {
     const image = await redux.getStore("customize").getDefaultComputeImage();
@@ -389,14 +401,12 @@ export class ProjectsActions extends Actions<ProjectsState> {
       description: string;
       image?: string;
       start: boolean;
-      noPool?: boolean;
       license?: string;
     } = defaults(opts, {
       title: "No Title",
       description: "No Description",
       image,
       start: false,
-      noPool: undefined,
       license: undefined,
     });
     if (!opts2.image) {
@@ -417,7 +427,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   // Open the given project
-  public async open_project(opts: {
+  open_project = async (opts: {
     project_id: string; //  id of the project to open
     target?: string; // The file path to open
     fragmentId?: FragmentId; //  if given, an uri fragment in the editor that is opened.
@@ -425,7 +435,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     ignore_kiosk?: boolean; // Ignore ?fullscreen=kiosk
     change_history?: boolean; // (default: true) Whether or not to alter browser history
     restore_session?: boolean; // (default: true)  Opens up previously closed editor tabs
-  }) {
+  }) => {
     opts = defaults(opts, {
       project_id: undefined,
       target: undefined,
@@ -464,7 +474,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (relation == null || ["public", "admin"].includes(relation)) {
       this.fetch_public_project_title(opts.project_id);
     }
-    project_actions.fetch_directory_listing();
     if (opts.switch_to) {
       redux
         .getActions("page")
@@ -487,7 +496,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     // initialize project
     project_actions.init();
-  }
+  };
 
   // tab at old_index taken out and then inserted into the resulting array's new index
   public move_project_tab({
@@ -927,102 +936,107 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   // return true, if it actually started the project
-  start_project = async (
+  start_project = reuseInFlight(
+    async (
+      project_id: string,
+      options: { disablePayAsYouGo?: boolean } = {},
+    ): Promise<boolean> => {
+      if (
+        !(await allow_project_to_run(project_id)) ||
+        !store.getIn(["project_map", project_id])
+      ) {
+        return false;
+      }
+      if (!options.disablePayAsYouGo) {
+        const quota = store
+          .getIn([
+            "project_map",
+            project_id,
+            "pay_as_you_go_quotas",
+            webapp_client.account_id ?? "",
+          ])
+          ?.toJS();
+        if (quota?.enabled) {
+          return await startProjectPayg({ project_id, quota });
+        }
+      }
+
+      const t0 = webapp_client.server_time().getTime();
+      // make an action request:
+      this.project_log(project_id, {
+        event: "project_start_requested",
+      });
+      const runner = webapp_client.conat_client.projectRunner(project_id);
+      webapp_client.project_client.touch_project(project_id);
+      const s = await runner.start({ project_id });
+
+      this.project_log(project_id, {
+        event: "project_started",
+        duration_ms: webapp_client.server_time().getTime() - t0,
+        ...store.classify_project(project_id),
+      });
+
+      return true;
+    },
+  );
+
+  private optimisticProjectStateUpdate = (
     project_id: string,
-    options: { disablePayAsYouGo?: boolean } = {},
-  ): Promise<boolean> => {
-    if (
-      !(await allow_project_to_run(project_id)) ||
-      !store.getIn(["project_map", project_id])
-    ) {
-      return false;
-    }
-    if (!options.disablePayAsYouGo) {
-      const quota = store
-        .getIn([
-          "project_map",
-          project_id,
-          "pay_as_you_go_quotas",
-          webapp_client.account_id ?? "",
-        ])
-        ?.toJS();
-      if (quota?.enabled) {
-        return await startProjectPayg({ project_id, quota });
+    state: string,
+  ) => {
+    // do optimistic update of local state, since several things like project
+    // restart are so fas we won't see anything otherwise, which is very disturbing.
+    const project_map = store.get("project_map");
+    if (project_map != null) {
+      const project = project_map
+        .get(project_id)
+        ?.set("state", fromJS({ state, time: new Date() }));
+      if (project != null) {
+        this.setState({
+          project_map: project_map.set(project_id, project),
+        });
       }
     }
-
-    const t0 = webapp_client.server_time().getTime();
-    // make an action request:
-    this.project_log(project_id, {
-      event: "project_start_requested",
-    });
-    await this.projects_table_set({
-      project_id,
-      action_request: {
-        action: "start",
-        time: webapp_client.server_time(),
-      },
-    });
-
-    // Wait until it is running
-    await store.async_wait({
-      timeout: 120,
-      until(store) {
-        return store.get_state(project_id) == "running";
-      },
-    });
-    this.project_log(project_id, {
-      event: "project_started",
-      duration_ms: webapp_client.server_time().getTime() - t0,
-      ...store.classify_project(project_id),
-    });
-
-    return true;
   };
 
   // returns true, if it actually stopped the project
-  stop_project = async (project_id: string): Promise<boolean> => {
+  stop_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
     const t0 = webapp_client.server_time().getTime();
     this.project_log(project_id, {
       event: "project_stop_requested",
     });
-    await this.projects_table_set({
-      project_id,
-      action_request: { action: "stop", time: webapp_client.server_time() },
-    });
-
-    // Wait until it is no longer running or stopping.  We don't
-    // wait for "opened" because something or somebody else could
-    // have started the project and we missed that, and don't
-    // want to get stuck.
-    await store.async_wait({
-      timeout: 60,
-      until(store) {
-        const state = store.get_state(project_id);
-        return state != "running" && state != "stopping";
-      },
-    });
+    const runner = webapp_client.conat_client.projectRunner(project_id);
+    await runner.stop({ project_id });
+    this.optimisticProjectStateUpdate(project_id, "opened");
     this.project_log(project_id, {
       event: "project_stopped",
       duration_ms: webapp_client.server_time().getTime() - t0,
       ...store.classify_project(project_id),
     });
     return true;
-  };
+  });
 
-  restart_project = async (project_id: string, options?): Promise<void> => {
-    if (!(await allow_project_to_run(project_id))) {
-      return;
-    }
-    this.project_log(project_id, {
-      event: "project_restart_requested",
-    });
-    const state = store.get_state(project_id);
-    if (state == "running") {
-      await this.stop_project(project_id);
-    }
-    await this.start_project(project_id, options);
-  };
+  restart_project = reuseInFlight(
+    async (project_id: string, options?): Promise<void> => {
+      if (!(await allow_project_to_run(project_id))) {
+        return;
+      }
+      this.project_log(project_id, {
+        event: "project_restart_requested",
+      });
+      const state = store.get_state(project_id);
+      if (state == "running") {
+        await this.stop_project(project_id);
+      }
+      await this.start_project(project_id, options);
+    },
+  );
+
+  updateProjectState = reuseInFlight(async (project_id: string) => {
+    const runner = webapp_client.conat_client.projectRunner(project_id);
+    // this causes an update
+    return await runner.status({ project_id });
+  });
 
   // Explcitly set whether or not project is hidden for the given account
   // (hide=true means hidden)

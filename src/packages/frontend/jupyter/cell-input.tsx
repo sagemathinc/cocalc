@@ -70,6 +70,7 @@ export interface CellInputProps {
   computeServerId?: number;
   setShowAICellGen?: (show: Position) => void;
   dragHandle?: React.JSX.Element;
+  isPending?: boolean;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -93,7 +94,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         <HiddenXS>
           <InputPrompt
             type={type}
-            state={props.cell.get("state")}
+            state={props.isPending ? "start" : props.cell.get("state")}
             exec_count={props.cell.get("exec_count")}
             kernel={props.cell.get("kernel")}
             start={props.cell.get("start")}
@@ -473,6 +474,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
       next.dragHandle !== cur.dragHandle ||
+      next.isPending !== cur.isPending ||
       (next.cell_toolbar === "slideshow" &&
         next.cell.get("slide") !== cur.cell.get("slide"))
     ),

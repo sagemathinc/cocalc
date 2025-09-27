@@ -7,7 +7,7 @@ const VERSION = "v2";
 export default async function apiPost(
   path: string,
   data?: object,
-  cache_s: number = 0 // if given, cache results for this many seconds to avoid overfetching
+  cache_s: number = 0, // if given, cache results for this many seconds to avoid overfetching
 ): Promise<any> {
   let cache, key;
   if (cache_s) {
@@ -30,6 +30,11 @@ export default async function apiPost(
       // if error is set in response, then just throw exception (this greatly simplifies client code).
       throw Error(result.error);
     }
+    if (result.errors) {
+      // This happens with zod schema errors, e.g., try creating an account with email a@b.c,
+      // which violates the schema for email in zod. 
+      throw Error(JSON.stringify(result.errors));
+    }
   } catch (err) {
     if (response.statusText == "Not Found") {
       throw Error(`The API endpoint ${path} does not exist`);
@@ -39,6 +44,7 @@ export default async function apiPost(
   if (cache_s) {
     cache.set(key, result);
   }
+
   return result;
 }
 

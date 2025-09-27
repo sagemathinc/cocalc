@@ -143,7 +143,7 @@ class PersistStreamClient extends EventEmitter {
             });
             if (resp.headers?.error) {
               throw new ConatError(`${resp.headers?.error}`, {
-                code: resp.headers?.code,
+                code: resp.headers?.code as string | number,
               });
             }
             if (this.changefeeds.length == 0 || this.state != "ready") {
@@ -218,7 +218,7 @@ class PersistStreamClient extends EventEmitter {
     });
     if (resp.headers?.error) {
       throw new ConatError(`${resp.headers?.error}`, {
-        code: resp.headers?.code,
+        code: resp.headers?.code as string | number,
       });
     }
     // an iterator over any updates that are published.
@@ -384,7 +384,9 @@ class PersistStreamClient extends EventEmitter {
     let seq = 0; // next expected seq number for the sub (not the data)
     for await (const { data, headers } of sub) {
       if (headers?.error) {
-        throw new ConatError(`${headers.error}`, { code: headers.code });
+        throw new ConatError(`${headers.error}`, {
+          code: headers.code as string | number,
+        });
       }
       if (data == null || this.socket.state == "closed") {
         // done

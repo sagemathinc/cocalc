@@ -5,7 +5,7 @@
 
 import { Space } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-
+import Bootlog from "../bootlog";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -47,6 +47,7 @@ import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
 import { Project } from "./types";
+import RootFilesystemImage from "./root-filesystem-image";
 
 interface ReactProps {
   project: Project;
@@ -251,7 +252,11 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   function render_select_compute_image_row() {
-    if (![KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc)) {
+    // TODO: not sure how to do this with our new images...
+    if (
+      true ||
+      ![KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc)
+    ) {
       return;
     }
 
@@ -372,7 +377,18 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         {render_uptime()}
         {render_cpu_usage()}
         {render_project_id()}
+        <hr />
+        <LabeledRow
+          key="root_fs"
+          label="Root Filesystem Image"
+          vertical={isFlyout}
+        >
+          <RootFilesystemImage />
+        </LabeledRow>
         {render_select_compute_image_row()}
+        <LabeledRow key="bootlog" label="Boot Log" vertical={isFlyout}>
+          <Bootlog />
+        </LabeledRow>
       </>
     );
   }

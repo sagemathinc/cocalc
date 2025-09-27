@@ -1,50 +1,41 @@
-import { delay } from "awaiting";
-
 import createProject from "@cocalc/server/projects/create";
 export { createProject };
-
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { getProject } from "@cocalc/server/projects/control";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
 export * from "@cocalc/server/projects/collaborators";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
+import { client as filesystemClient } from "@cocalc/conat/files/file-server";
+export * from "@cocalc/server/conat/api/project-snapshots";
+export * from "@cocalc/server/conat/api/project-backups";
+import getPool from "@cocalc/database/pool";
 
-export async function copyPathBetweenProjects(
-  opts: UserCopyOptions,
-): Promise<void> {
-  const { account_id, src_project_id, target_project_id } = opts;
+export async function copyPathBetweenProjects({
+  src,
+  dest,
+  options,
+  account_id,
+}: {
+  src: { project_id: string; path: string | string[] };
+  dest: { project_id: string; path: string };
+  options?: CopyOptions;
+  account_id?: string;
+}): Promise<void> {
   if (!account_id) {
     throw Error("user must be signed in");
   }
-  if (opts.target_path == null) {
-    opts.target_path = opts.src_path;
-  }
-  if (!(await isCollaborator({ account_id, project_id: src_project_id }))) {
+  if (!(await isCollaborator({ account_id, project_id: src.project_id }))) {
     throw Error("user must be collaborator on source project");
   }
   if (
-    !!target_project_id &&
-    target_project_id != src_project_id &&
-    !(await isCollaborator({ account_id, project_id: target_project_id }))
+    dest.project_id != src.project_id &&
+    !(await isCollaborator({ account_id, project_id: dest.project_id }))
   ) {
-    throw Error("user must be collaborator on target project");
+    throw Error("user must be collaborator on dest project");
   }
 
-  await doCopyPathBetweenProjects(opts);
-}
-
-// do the actual copy, awaiting as long as it takes to finish,
-// with no security checks.
-async function doCopyPathBetweenProjects(opts: UserCopyOptions) {
-  const project = await getProject(opts.src_project_id);
-  await project.copyPath({
-    ...opts,
-    path: opts.src_path,
-    wait_until_done: true,
-  });
-  if (opts.debug_delay_ms) {
-    await delay(opts.debug_delay_ms);
-  }
+  const client = filesystemClient();
+  await client.cp({ src, dest, options });
 }
 
 import { db } from "@cocalc/database";
@@ -76,6 +67,20 @@ export async function setQuotas(opts: {
   await project?.setAllQuotas();
 }
 
+export async function getDiskQuota({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<{ used: number; size: number }> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be a collaborator on project to get quota");
+  }
+  const client = filesystemClient();
+  return await client.getQuota({ project_id });
+}
+
 export async function start({
   account_id,
   project_id,
@@ -102,4 +107,49 @@ export async function stop({
   }
   const project = await getProject(project_id);
   await project.stop();
+}
+
+export async function getSshKeys({
+  project_id,
+}: {
+  project_id?: string;
+} = {}): Promise<string[]> {
+  if (!project_id) {
+    throw Error("project_id must be specified");
+  }
+  const pool = getPool();
+  const keys: string[] = [];
+  const f = async (query) => {
+    const { rows } = await pool.query(query, [project_id]);
+    for (const x of rows) {
+      keys.push((x as any).key);
+    }
+  };
+
+  // The two crazy looking queries below get the ssh public keys
+  // for a specific project, both the project-specific keys *AND*
+  // the global keys for collabs that happen to apply to the project.
+  // We use complicated jsonb so these are weird/complicated queries,
+  // which AI wrote (with some uuid casting by me), but they work
+  // fine as far as I can tell.
+  await Promise.all([
+    f(`
+SELECT
+  ssh_key ->> 'value' AS key
+FROM projects
+CROSS JOIN LATERAL jsonb_each(users) AS u(user_id, user_data)
+CROSS JOIN LATERAL jsonb_each(u.user_data -> 'ssh_keys') AS k(fingerprint, ssh_key)
+WHERE project_id = $1;
+`),
+    f(`
+SELECT  kdata ->> 'value' AS key
+FROM projects p
+CROSS JOIN LATERAL jsonb_object_keys(p.users) AS u(account_id)
+JOIN accounts a ON a.account_id = u.account_id::uuid
+CROSS JOIN LATERAL jsonb_each(a.ssh_keys) AS k(fingerprint, kdata)
+WHERE p.project_id = $1;
+`),
+  ]);
+
+  return Array.from(new Set<string>(keys));
 }

@@ -3,7 +3,7 @@ This is useful not just for testing, but also for implementing undo/redo for
 editing a text document when there is no actual file or project involved.
 */
 
-import { Client } from "./client-test";
+import { Client, fs } from "./client-test";
 import { SyncString } from "../sync";
 import { a_txt } from "./data";
 import { once } from "@cocalc/util/async-utils";
@@ -16,6 +16,7 @@ export default async function ephemeralSyncstring() {
     path,
     client,
     ephemeral: true,
+    fs,
   });
   // replace save to disk, since otherwise unless string is empty,
   // this will hang forever... and it is called on close.

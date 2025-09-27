@@ -7,7 +7,7 @@ import type {
   Configuration,
   ConfigurationAspect,
 } from "@cocalc/comm/project-configuration";
-import { type ProjectJupyterApiOptions } from "@cocalc/util/jupyter/api-types";
+import type { NamedServerName } from "@cocalc/util/types/servers";
 
 export const system = {
   terminate: true,
@@ -15,7 +15,6 @@ export const system = {
   version: true,
 
   listing: true,
-  deleteFiles: true,
   moveFiles: true,
   renameFile: true,
   realpath: true,
@@ -32,8 +31,13 @@ export const system = {
 
   signal: true,
 
-  // jupyter stateless API
-  jupyterExecute: true,
+  // named servers like jupyterlab, vscode, etc.
+  startNamedServer: true,
+  statusOfNamedServer: true,
+
+  // ssh support
+  sshPublicKey: true,
+  updateSshKeys: true,
 };
 
 export interface System {
@@ -46,7 +50,6 @@ export interface System {
     path: string;
     hidden?: boolean;
   }) => Promise<DirectoryListingEntry[]>;
-  deleteFiles: (opts: { paths: string[] }) => Promise<void>;
   moveFiles: (opts: { paths: string[]; dest: string }) => Promise<void>;
   renameFile: (opts: { src: string; dest: string }) => Promise<void>;
   realpath: (path: string) => Promise<string>;
@@ -73,5 +76,26 @@ export interface System {
     pid?: number;
   }) => Promise<void>;
 
-  jupyterExecute: (opts: ProjectJupyterApiOptions) => Promise<object[]>;
+  startNamedServer: (
+    name: NamedServerName,
+  ) => Promise<{ port: number; url: string }>;
+  statusOfNamedServer: (
+    name: NamedServerName,
+  ) => Promise<
+    { state: "running"; port: number; url: string } | { state: "stopped" }
+  >;
+
+  // return the ssh public key of this project/compute server.
+  // The project generates a public key on startup that is used
+  // internally for connecting to the file server, and this is that key.
+  // Basically this is a key that is used internally for communication
+  // within cocalc, so other services can trust the project.
+  // It can be changed without significant consequences (the file-server
+  // container gets restarted).
+  sshPublicKey: () => Promise<string>;
+
+  // calling updateSshKeys causes the project to ensure that
+  // ~/.ssh/authorized_keys contains all entries set
+  // in the database (in addition to whatever else might be there).
+  updateSshKeys: () => Promise<string>;
 }

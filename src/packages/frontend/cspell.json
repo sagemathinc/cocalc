@@ -88,6 +88,7 @@
     "ipynb",
     "isabs",
     "isdir",
+    "isDir",
     "kernelspec",
     "LLM",
     "LLMs",

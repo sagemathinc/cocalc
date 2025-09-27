@@ -30,15 +30,25 @@ import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
+import { FALLBACK_ACCOUNT_UUID } from "@cocalc/util/misc";
+// using old version of pkg-dir because of nextjs :-(
+import { sync as packageDirectorySync } from "pkg-dir";
 
-function determineRootFromPath(): string {
-  const cur = __dirname;
-  const search = "/src/";
-  const i = cur.lastIndexOf(search);
-  const root = resolve(cur.slice(0, i + search.length - 1));
+function determineRoot(): string {
+  const pd = packageDirectorySync(__dirname) ?? "/";
+  const root = resolve(pd, "..", "..");
   process.env.COCALC_ROOT = root;
   return root;
 }
+
+// Path to where our special binaries are, e.g., working with the
+// filesystem and also the "open" command.  This is used, e.g.,
+// by cocalc-lite to know what to add to the PATH.
+export const bin = join(
+  packageDirectorySync(__dirname) ?? "/",
+  "node_modules",
+  ".bin",
+);
 
 // Each field value in this interface is to be treated as though it originated from a raw
 // environment variable. These environment variables are used to configure CoCalc's SSL connection
@@ -169,7 +179,7 @@ export function sslConfigToPsqlEnv(config: SSLConfig): PsqlSSLEnvConfig {
   return psqlArgs;
 }
 
-export const root: string = process.env.COCALC_ROOT ?? determineRootFromPath();
+export const root: string = process.env.COCALC_ROOT ?? determineRoot();
 export const data: string = process.env.DATA ?? join(root, "data");
 export const pguser: string = process.env.PGUSER ?? "smc";
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
@@ -180,6 +190,11 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+export const rusticRepo: string =
+  process.env.RUSTIC_REPO ?? join(data, "rustic");
+
+export const account_id: string =
+  process.env.COCALC_ACCOUNT_ID ?? FALLBACK_ACCOUNT_UUID;
 
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory
@@ -253,6 +268,10 @@ export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
 // number of api servers (if configured to run)
 export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
 
+export let projectRunnerCount = parseInt(
+  process.env.COCALC_PROJECT_RUNNER_COUNT ?? "1",
+);
+
 // if configured, will create a socketio cluster using
 // the cluster adapter, listening on the given port.
 export let conatClusterPort = parseInt(process.env.CONAT_CLUSTER_PORT ?? "0");
@@ -263,6 +282,17 @@ export let conatClusterHealthPort = parseInt(
 );
 
 export const conatClusterName = process.env.CONAT_CLUSTER_NAME;
+
+// SSH server -- {host, port}:
+export const sshServer: { host: string; port: number } = (() => {
+  const [host, port = "2222"] = (
+    process.env.COCALC_SSH_SERVER ?? "host.containers.internal"
+  ).split(":");
+  return {
+    host: host ? host : "host.containers.internal",
+    port: parseInt(port),
+  };
+})();
 
 // API keys
 

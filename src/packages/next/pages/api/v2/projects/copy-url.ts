@@ -3,16 +3,15 @@ API endpoint to copy from a URL on the internet to a project.
 
 This requires the user to be signed in with appropriate access to the project.
 
-If project doesn't have network access, we stop the project, start it with
-network access, get the content, then restart the project without network access.
+This grabs one file, reads it into memory, then writes it to disk in the project.
 */
 
 import getAccountId from "lib/account/get-account";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getParams from "lib/api/get-params";
-import call from "@cocalc/server/projects/connection/call";
 import getProxiedPublicPathInfo from "lib/share/proxy/get-proxied-public-path-info";
+import { conat } from "@cocalc/backend/conat";
 
 export default async function handle(req, res) {
   const params = getParams(req);
@@ -43,13 +42,9 @@ export default async function handle(req, res) {
     }
     const i = url.lastIndexOf("/");
     const filename = url.slice(i + 1);
-    const mesg = {
-      event: "write_text_file_to_project",
-      path: path ? path : filename,
-      content: info.contents.content,
-    };
-    const response = await call({ project_id, mesg });
-    res.json({ response });
+    const fs = conat().fs({ project_id });
+    await fs.writeFile(path ? path : filename, info.contents.content);
+    res.json({});
   } catch (err) {
     res.json({ error: `${err.message}` });
   }

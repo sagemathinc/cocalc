@@ -52,11 +52,11 @@ import { log_opened_time } from "@cocalc/frontend/project/open-file";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { SyncDB } from "@cocalc/sync/editor/db";
-import { apply_patch } from "@cocalc/sync/editor/generic/util";
+import { apply_patch, make_patch } from "@cocalc/sync/editor/generic/util";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
 import {
-  Config as FormatterConfig,
+  Options as FormatterOptions,
   Exts as FormatterExts,
   Syntax as FormatterSyntax,
   Tool as FormatterTool,
@@ -94,7 +94,6 @@ import {
   SetMap,
 } from "../frame-tree/types";
 import {
-  formatter,
   get_default_font_size,
   log_error,
   syncdb2,
@@ -114,6 +113,8 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { lite } from "@cocalc/frontend/lite";
 
 interface gutterMarkerParams {
   line: number;
@@ -301,56 +302,68 @@ export class Actions<
   }
 
   protected _init_syncstring(): void {
-    if (this.doctype == "none") {
-      this._syncstring = syncstring({
-        project_id: this.project_id,
-        path: this.path,
-        cursors: !this.disable_cursors,
-        before_change_hook: () => this.set_syncstring_to_codemirror(),
-        after_change_hook: () => this.set_codemirror_to_syncstring(),
-        fake: true,
-        patch_interval: 500,
-      }) as SyncString;
-    } else if (this.doctype == "syncstring") {
-      this._syncstring = syncstring2({
-        project_id: this.project_id,
-        path: this.path,
-        cursors: !this.disable_cursors,
-      });
-    } else if (this.doctype == "syncdb") {
-      if (
-        this.primary_keys == null ||
-        this.primary_keys.length == null ||
-        this.primary_keys.length <= 0
-      ) {
-        throw Error("primary_keys must be array of positive length");
-      }
-      this._syncstring = syncdb2({
-        project_id: this.project_id,
-        path: this.path,
-        primary_keys: this.primary_keys,
-        string_cols: this.string_cols,
-        cursors: !this.disable_cursors,
-      });
-      if (this.searchEmbeddings != null) {
-        if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
-          throw Error(
-            `search embedding primaryKey must be in ${JSON.stringify(
-              this.primary_keys,
-            )}`,
-          );
+    if (this._syncstring == null) {
+      // this._syncstring wasn't set in derived class so we set it here
+      if (this.doctype == "none") {
+        this._syncstring = syncstring({
+          project_id: this.project_id,
+          path: this.path,
+          compute_server_id: this.getComputeServerId(),
+          cursors: !this.disable_cursors,
+          before_change_hook: () => this.set_syncstring_to_codemirror(),
+          after_change_hook: () => this.set_codemirror_to_syncstring(),
+          fake: true,
+          patch_interval: 500,
+        }) as SyncString;
+      } else if (this.doctype == "syncstring") {
+        this._syncstring = syncstring2({
+          project_id: this.project_id,
+          path: this.path,
+          compute_server_id: this.getComputeServerId(),
+          cursors: !this.disable_cursors,
+        });
+      } else if (this.doctype == "syncdb") {
+        if (
+          this.primary_keys == null ||
+          this.primary_keys.length == null ||
+          this.primary_keys.length <= 0
+        ) {
+          throw Error("primary_keys must be array of positive length");
         }
-        if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
-          throw Error(
-            `search embedding textColumn must be in ${JSON.stringify(
-              this.string_cols,
-            )}`,
-          );
+        this._syncstring = syncdb2({
+          project_id: this.project_id,
+          path: this.path,
+          compute_server_id: this.getComputeServerId(),
+          primary_keys: this.primary_keys,
+          string_cols: this.string_cols,
+          cursors: !this.disable_cursors,
+        });
+        if (this.searchEmbeddings != null) {
+          if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
+            throw Error(
+              `search embedding primaryKey must be in ${JSON.stringify(
+                this.primary_keys,
+              )}`,
+            );
+          }
+          if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
+            throw Error(
+              `search embedding textColumn must be in ${JSON.stringify(
+                this.string_cols,
+              )}`,
+            );
+          }
         }
+      } else {
+        throw Error(`invalid doctype="${this.doctype}"`);
       }
-    } else {
-      throw Error(`invalid doctype="${this.doctype}"`);
     }
+
+    this._syncstring.once("deleted", () => {
+      // the file was deleted
+      this._syncstring.close();
+      this._get_project_actions().close_file(this.path);
+    });
 
     this._syncstring.once("ready", (err) => {
       if (this.doctype != "none") {
@@ -441,7 +454,7 @@ export class Actions<
 
   // Flag that there is activity (causes icon to turn orange).
   private activity = (): void => {
-    this._get_project_actions().flag_file_activity(this.path);
+    this._get_project_actions()?.flag_file_activity(this.path);
   };
 
   // This is currently NOT used in this base class.  It's used in other
@@ -1232,7 +1245,8 @@ export class Actions<
       this.is_public ||
       !this.store.get("is_loaded") ||
       this._syncstring == null ||
-      this._syncstring.get_state() != "ready"
+      this._syncstring.get_state() != "ready" ||
+      this.isClosed()
     ) {
       return;
     }
@@ -1241,9 +1255,6 @@ export class Actions<
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
     if (explicit) {
-      if (!(await this.ensureProjectIsRunning(`save ${this.path} to disk`))) {
-        return;
-      }
       const account: any = this.redux.getStore("account");
       if (
         account &&
@@ -1496,7 +1507,7 @@ export class Actions<
     return this.terminals.get_terminal(id, parent);
   }
 
-  public set_terminal_cwd(id: string, cwd: string): void {
+  set_terminal_cwd(id: string, cwd: string): void {
     this.save_editor_state(id, { cwd });
   }
 
@@ -1569,7 +1580,7 @@ export class Actions<
       // editor to immediately react when we commit. This is particularly
       // important in the whiteboard where we draw/move objects, and show
       // a preview, then the real thing only after the change event from commit.
-      this._syncstring.commit(true);
+      this._syncstring.commit({ emitChangeImmediately: true });
     }
   }
 
@@ -2231,11 +2242,11 @@ export class Actions<
     return this.format_support_for_syntax(available_features, syntax);
   }
 
-  // Not an action, but works to make code clean
-  has_format_support(
+  private hasFormatSupport = (
     id: string,
     available_features?: AvailableFeatures, // is in project store
-  ): false | string {
+  ): boolean => {
+    if (lite) return true;
     if (available_features == null) return false;
     const leaf = this._get_frame_node(id);
     if (leaf != null) {
@@ -2248,22 +2259,18 @@ export class Actions<
     const ext = filename_extension(this.path).toLowerCase();
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return false;
-    return `Format the entire document using '${tool}'.`;
-  }
+    return true;
+  };
 
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
-  // and the action has_format_support.
+  // and the action hasFormatSupport.
   // Also, format is reuseInFlight, so if you call this multiple times while
   // it is being called, it really only does the formatting once, which avoids
   // corrupting your code:  https://github.com/sagemathinc/cocalc/issues/4343
   async format(id: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
-
-    if (!(await this.ensure_latest_changes_are_saved())) {
-      return;
-    }
 
     // Important: this function may be called even if there is no format support,
     // because it can be called via a keyboard shortcut.  That's why we gracefully
@@ -2272,35 +2279,41 @@ export class Actions<
     if (s == null) {
       return;
     }
-    // TODO: Using any here since TypeMap is just not working right...
-    if (!this.has_format_support(id, s.get("available_features"))) {
-      return;
-    }
 
     // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
     const syntax: FormatterSyntax = ext2syntax[ext];
-    const config: FormatterConfig = {
-      syntax,
+    const parser = syntax2tool[syntax];
+    if (!parser || !this.hasFormatSupport(id, s.get("available_features"))) {
+      return;
+    }
+    const options: FormatterOptions = {
+      parser,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
       lastChanged: this._syncstring.last_changed(),
     };
 
-    this.set_status("Running code formatter...");
+    const api = webapp_client.project_client.conatApi(this.project_id);
+    const str = cm.getValue();
+
     try {
-      const patch = await formatter(this.project_id, this.path, config);
-      if (patch != null) {
-        // Apply the patch.
-        // NOTE: old backends that haven't restarted just return {status:'ok'}
-        // and directly make the change.  Delete this comment in a month or so.
-        // See https://github.com/sagemathinc/cocalc/issues/4335
-        this.set_syncstring_to_codemirror();
-        const new_val = apply_patch(patch, this._syncstring.to_str())[0];
-        this._syncstring.from_str(new_val);
-        this._syncstring.commit();
-        this.set_codemirror_to_syncstring();
+      this.set_status("Running code formatter...");
+      let formatted = await api.editor.formatString({
+        str,
+        options,
+        path: this.path,
+      });
+      if (formatted != str) {
+        const str2 = cm.getValue();
+        if (str2 != str) {
+          // user made edits *during* formatting, so we "3-way merge" it in, rather
+          // than breaking what they did:
+          const patch = make_patch(str, formatted);
+          formatted = apply_patch(patch, str2)[0];
+        }
+        cm.setValueNoJump(formatted);
       }
       this.setFormatError("");
     } catch (err) {
@@ -3189,4 +3202,15 @@ export class Actions<
     });
     actions?.foldAllThreads();
   }
+
+  getComputeServerId = (): number | undefined => {
+    return this.redux
+      .getProjectActions(this.project_id)
+      .getComputeServerIdForFile(this.path);
+  };
+
+  fs = () => {
+    const a = this.redux.getProjectActions(this.project_id);
+    return a.fs(a.getComputeServerIdForFile(this.path));
+  };
 }

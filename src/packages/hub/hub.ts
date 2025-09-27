@@ -10,7 +10,7 @@
 import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
-import { program as commander, Option } from "commander";
+import { program as commander } from "commander";
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
@@ -21,23 +21,13 @@ import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
 import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
 import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
-import {
-  initConatApi,
-  initConatChangefeedServer,
-  initConatPersist,
-  loadConatConfiguration,
-} from "@cocalc/server/conat";
-import { initConatServer } from "@cocalc/server/conat/socketio";
 import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
 import initMessageMaintenance from "@cocalc/server/messages/maintenance";
+import initProjectControl from "@cocalc/server/projects/control";
 import { start as startHubRegister } from "@cocalc/server/metrics/hub_register";
-import initProjectControl, {
-  COCALC_MODES,
-} from "@cocalc/server/projects/control";
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
-import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
@@ -46,7 +36,14 @@ import { set_agent_endpoint } from "./health-checks";
 import { getLogger } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
-
+import {
+  loadConatConfiguration,
+  initConatChangefeedServer,
+  initConatApi,
+  initConatPersist,
+  initConatFileserver,
+} from "@cocalc/server/conat";
+import { initConatServer } from "@cocalc/server/conat/socketio";
 import initHttpRedirect from "./servers/http-redirect";
 
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
@@ -163,7 +160,7 @@ async function startServer(): Promise<void> {
 
   // Project control
   logger.info("initializing project control...");
-  const projectControl = initProjectControl(program.mode);
+  const projectControl = initProjectControl();
   // used for nextjs hot module reloading dev server
   process.env["COCALC_MODE"] = program.mode;
 
@@ -181,6 +178,10 @@ async function startServer(): Promise<void> {
   if (program.conatRouter) {
     // launch standalone socketio websocket server (no http server)
     await initConatServer({ kucalc: program.mode == "kucalc" });
+  }
+
+  if (program.conatFileserver || program.conatServer) {
+    await initConatFileserver();
   }
 
   if (program.conatApi || program.conatServer) {
@@ -283,11 +284,6 @@ async function startServer(): Promise<void> {
   }
 
   if (program.all || program.mentions) {
-    // kucalc: for now we just have the hub-mentions servers
-    // do the new project pool maintenance, since there is only
-    // one hub-stats.
-    // On non-cocalc it'll get done by *the* hub because of program.all.
-    initNewProjectPoolMaintenanceLoop();
     // Starts periodic maintenance on pay-as-you-go purchases, e.g., quota
     // upgrades of projects.
     initPurchasesMaintenanceLoop();
@@ -309,13 +305,10 @@ async function main(): Promise<void> {
   commander
     .name("cocalc-hub-server")
     .usage("options")
-    .addOption(
-      new Option(
-        "--mode [string]",
-        `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(
-          ", ",
-        )}) - or set COCALC_MODE env var`,
-      ).choices(COCALC_MODES as any as string[]),
+    .option(
+      "--mode <string>",
+      `REQUIRED mode in which to run CoCalc or set COCALC_MODE env var`,
+      "",
     )
     .option(
       "--all",
@@ -323,11 +316,15 @@ async function main(): Promise<void> {
     )
     .option(
       "--conat-server",
-      "run a hub that provides a single-core conat server (i.e., conat-router but integrated with the http server), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
+      "run a hub that provides a single-core conat server (i.e., conat-router but integrated with the http server), api, and persistence, fileserver, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
     )
     .option(
       "--conat-router",
       "run a hub that provides the core conat communication layer server over a websocket (but not http server).",
+    )
+    .option(
+      "--conat-fileserver",
+      "run a hub that provides a fileserver conat service",
     )
     .option(
       "--conat-api",
@@ -426,9 +423,7 @@ async function main(): Promise<void> {
     program.mode = process.env.COCALC_MODE;
     if (!program.mode) {
       throw Error(
-        `the --mode option must be specified or the COCALC_MODE env var set to one of ${COCALC_MODES.join(
-          ", ",
-        )}`,
+        `the --mode option must be specified or the COCALC_MODE env var`,
       );
       process.exit(1);
     }

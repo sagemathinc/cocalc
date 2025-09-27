@@ -188,7 +188,7 @@ function SignUp0({
         reCaptchaToken = await executeRecaptcha("signup");
       }
 
-      const result = await apiPost("/auth/sign-up", {
+      const opts = {
         terms: true,
         email,
         password,
@@ -199,7 +199,8 @@ function SignUp0({
         publicPathId,
         tags: Array.from(tags),
         signupReason,
-      });
+      };
+      const result = await apiPost("/auth/sign-up", opts);
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
       } else {
@@ -480,26 +481,26 @@ function SignUp0({
                 what,
               )}`
             : requiresToken2 && !registrationToken
-            ? "Enter the secret registration token"
-            : !email
-            ? "How will you sign in?"
-            : !isValidEmailAddress(email)
-            ? "Enter a valid email address above"
-            : requiredSSO != null
-            ? "You must sign up via SSO"
-            : !password || password.length < MIN_PASSWORD_LENGTH
-            ? `Choose password with at least ${MIN_PASSWORD_LENGTH} characters`
-            : password &&
-              password.length >= MIN_PASSWORD_LENGTH &&
-              passwordStrength.score <= MIN_PASSWORD_STRENGTH
-            ? "Make your password more complex"
-            : !firstName?.trim()
-            ? "Enter your first name above"
-            : !lastName?.trim()
-            ? "Enter your last name above"
-            : signingUp
-            ? ""
-            : "Sign Up!"}
+              ? "Enter the secret registration token"
+              : !email
+                ? "How will you sign in?"
+                : !isValidEmailAddress(email)
+                  ? "Enter a valid email address above"
+                  : requiredSSO != null
+                    ? "You must sign up via SSO"
+                    : !password || password.length < MIN_PASSWORD_LENGTH
+                      ? `Choose password with at least ${MIN_PASSWORD_LENGTH} characters`
+                      : password &&
+                          password.length >= MIN_PASSWORD_LENGTH &&
+                          passwordStrength.score <= MIN_PASSWORD_STRENGTH
+                        ? "Make your password more complex"
+                        : !firstName?.trim()
+                          ? "Enter your first name above"
+                          : !lastName?.trim()
+                            ? "Enter your last name above"
+                            : signingUp
+                              ? ""
+                              : "Sign Up!"}
           {signingUp && (
             <span style={{ marginLeft: "15px" }}>
               <Loading>Signing Up...</Loading>
@@ -549,10 +550,10 @@ function EmailOrSSO(props: EmailOrSSOProps) {
           {hideSSO
             ? "Sign up using your single sign-on provider"
             : strategies.length > 0 && emailSignup
-            ? "Sign up using either your email address or a single sign-on provider."
-            : emailSignup
-            ? "Enter the email address you will use to sign in."
-            : "Sign up using a single sign-on provider."}
+              ? "Sign up using either your email address or a single sign-on provider."
+              : emailSignup
+                ? "Enter the email address you will use to sign in."
+                : "Sign up using a single sign-on provider."}
         </p>
       </div>
       {renderSSO()}

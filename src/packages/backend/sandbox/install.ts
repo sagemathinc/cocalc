@@ -1,0 +1,428 @@
+/*
+Download a ripgrep or fd binary for the operating system
+
+This supports x86_64/arm64 linux & macos
+
+This assumes tar is installed.
+
+NOTE: There are several npm modules that purport to install ripgrep.  We do not use
+https://www.npmjs.com/package/@vscode/ripgrep because it is not properly maintained,
+e.g.,
+  - security vulnerabilities: https://github.com/microsoft/ripgrep-prebuilt/issues/48
+  - not updated to a major new release without a good reason: https://github.com/microsoft/ripgrep-prebuilt/issues/38
+*/
+
+import { arch, platform } from "os";
+import { split } from "@cocalc/util/misc";
+import { execFileSync, execSync } from "child_process";
+import { executeCode } from "@cocalc/backend/execute-code";
+import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
+import { join } from "path";
+// using old version of pkg-dir because of nextjs :-(
+import { sync as packageDirectorySync } from "pkg-dir";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("files:sandbox:install");
+
+const pkgDir = packageDirectorySync(__dirname) ?? "";
+
+const binPath = join(pkgDir, "node_modules", ".bin");
+
+interface Spec {
+  nonFatal?: boolean; // true if failure to install is non-fatal
+  VERSION?: string;
+  BASE?: string;
+  binary?: string;
+  path: string;
+  stripComponents?: number;
+  pathInArchive?: () => string;
+  skip?: string[];
+  script?: () => string;
+  platforms?: string[];
+  fix?: string;
+  url?: () => string;
+  // if given, a bash shell line to run whose LAST output
+  // (split by whitespace) is the version
+  getVersion: string;
+}
+
+export const SPEC = {
+  rg: {
+    // See https://github.com/BurntSushi/ripgrep/releases
+    VERSION: "14.1.1",
+    BASE: "https://github.com/BurntSushi/ripgrep/releases/download",
+    binary: "rg",
+    path: join(binPath, "rg"),
+    getVersion: "rg --version | head -n 1 | awk '{ print $2 }'",
+    url: () =>
+      `${SPEC.rg.BASE}/${SPEC.rg.VERSION}/ripgrep-${SPEC.rg.VERSION}-${getOS()}.tar.gz`,
+    pathInArchive: () =>
+      `ripgrep-${SPEC.rg.VERSION}-${getOS()}/${SPEC.rg.binary}`,
+  },
+  fd: {
+    // See https://github.com/sharkdp/fd/releases
+    VERSION: "v10.2.0",
+    getVersion: `fd --version | awk '{print "v"$2}'`,
+    BASE: "https://github.com/sharkdp/fd/releases/download",
+    binary: "fd",
+    path: join(binPath, "fd"),
+  },
+  dust: {
+    // See https://github.com/bootandy/dust/releases
+    VERSION: "v1.2.3",
+    getVersion: `dust --version | awk '{print "v"$2}'`,
+    BASE: "https://github.com/bootandy/dust/releases/download",
+    binary: "dust",
+    path: join(binPath, "dust"),
+    // github binaries exists for x86 mac only, which is dead - in homebrew.
+    platforms: ["linux"],
+  },
+  ouch: {
+    // See https://github.com/ouch-org/ouch/releases
+    VERSION: "0.6.1",
+    getVersion: "ouch --version",
+    BASE: "https://github.com/ouch-org/ouch/releases/download",
+    binary: "ouch",
+    path: join(binPath, "ouch"),
+    // See https://github.com/ouch-org/ouch/issues/45; note that ouch is in home brew
+    // for this platform.
+    skip: ["aarch64-apple-darwin"],
+    url: () => {
+      const os = getOS();
+      return `${SPEC.ouch.BASE}/${SPEC.ouch.VERSION}/ouch-${os}.tar.gz`;
+    },
+    pathInArchive: () => `ouch-${getOS()}/${SPEC.ouch.binary}`,
+  },
+  rustic: {
+    // See https://github.com/rustic-rs/rustic/releases
+    VERSION: "v0.10.0",
+    getVersion: "rustic --version",
+    BASE: "https://github.com/rustic-rs/rustic/releases/download",
+    binary: "rustic",
+    path: join(binPath, "rustic"),
+    stripComponents: 0,
+    pathInArchive: () => "rustic",
+  },
+  // sshpiper -- used by the core
+  // See https://github.com/sagemathinc/sshpiper-binaries/releases
+  sshpiper: {
+    optional: true,
+    desc: "sshpiper reverse proxy for sshd",
+    path: join(binPath, "sshpiperd"),
+    // this is what --version outputs and is the sha hash of HEAD:
+    VERSION: "7fdd88982",
+    getVersion: "sshpiperd --version | awk '{print $4}' | cut -c 1-9",
+    script: () => {
+      // this is the actual version in our release page
+      const VERSION = "v1.5.0";
+      const a = arch() == "x64" ? "amd64" : arch();
+      return `curl -L https://github.com/sagemathinc/sshpiper-binaries/releases/download/${VERSION}/sshpiper-${VERSION}-${platform()}-${a}.tar.xz | tar -xJ -C "${binPath}" --strip-components=1`;
+    },
+    url: () => {
+      const VERSION = SPEC.sshpiper.VERSION;
+      // https://github.com/sagemathinc/sshpiper-binaries/releases/download/v1.5.0/sshpiper-v1.5.0-darwin-amd64.tar.xz
+      return `sshpiper-${VERSION}-${arch() == "x64" ? "amd64" : arch()}.tar.xz`;
+    },
+    BASE: "https://github.com/sagemathinc/sshpiper-binaries/releases",
+  },
+
+  // See https://github.com/sagemathinc/mutagen-open-source/releases
+  mutagen: {
+    // Mutagen seems to be critical for everything, so not optional.
+    // Below we also remove the windows agents and x86 darwin, since
+    // old macs are very rare now.
+    desc: "Fast file synchronization and network forwarding for remote development",
+    path: join(binPath, "mutagen"),
+    VERSION: "0.19.0-dev",
+    getVersion: "mutagen --version",
+    script: () => {
+      const VERSION = SPEC.mutagen.VERSION;
+      const a = arch() == "x64" ? "amd64" : arch();
+      return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -xz -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
+    },
+  },
+
+  btm: {
+    // See https://github.com/ClementTsang/bottom/releases
+    VERSION: "0.11.1",
+    getVersion: "btm --version",
+    BASE: "https://github.com/ClementTsang/bottom/releases/download",
+    binary: "btm",
+    script: () => {
+      const VERSION = SPEC.btm.VERSION;
+      const url = `${SPEC.btm.BASE}/${VERSION}/bottom_${getOS()}.tar.gz`;
+      return `curl -L ${url} | tar -xz -C ${binPath} btm`;
+    },
+    path: join(binPath, "btm"),
+  },
+
+  dropbear: {
+    desc: "Dropbear Statically Linked SSH Server ",
+    platforms: ["linux"],
+    VERSION: "v2025.88",
+    getVersion: "dropbear -V",
+    path: join(binPath, "dropbear"),
+    // we grab just the dropbear binary out of the release; we don't
+    // need any of the others:
+    script: () =>
+      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
+  },
+  sftp: {
+    desc: "sftp-server Statically Linked (so sshfs works with dropbear)",
+    platforms: ["linux"],
+    path: join(binPath, "sftp-server"),
+    script: () =>
+      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/sftp-server-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 sftp-server-$(uname -m)-linux-musl/sftp-server`,
+  },
+};
+
+export const rg = SPEC.rg.path;
+export const fd = SPEC.fd.path;
+export const dust = SPEC.dust.path;
+export const rustic = SPEC.rustic.path;
+export const ouch = SPEC.ouch.path;
+export const sshpiper = SPEC.sshpiper.path;
+export const mutagen = SPEC.mutagen.path;
+export const btm = SPEC.btm.path;
+export const dropbear = SPEC.dropbear.path;
+export const sftp = SPEC.sftp.path;
+
+type App = keyof typeof SPEC;
+
+// https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-unknown-linux-musl.tar.gz
+// https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz
+
+export async function exists(path: string) {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function installedVersion(app: App): Promise<string | undefined> {
+  const { path, getVersion } = SPEC[app] as Spec;
+  if (!(await exists(path))) {
+    return;
+  }
+  if (!getVersion) {
+    return;
+  }
+  try {
+    const { stdout, stderr } = await executeCode({
+      verbose: true,
+      command: getVersion,
+      env: { ...process.env, PATH: binPath + ":/usr/bin" },
+    });
+    const v = split(stdout + stderr).slice(-1)[0];
+    return v;
+  } catch (err) {
+    logger.debug("WARNING: issue getting version", { path, getVersion, err });
+  }
+  return;
+}
+
+export async function versions() {
+  const v: { [app: string]: string | undefined } = {};
+  await Promise.all(
+    Object.keys(SPEC).map(async (app) => {
+      v[app] = await installedVersion(app as App);
+    }),
+  );
+  return v;
+}
+
+export async function alreadyInstalled(app: App) {
+  const { path, VERSION } = SPEC[app] as Spec;
+  if (!(await exists(path))) {
+    return false;
+  }
+  return (await installedVersion(app)) == VERSION;
+}
+
+export async function install(
+  app?: App,
+  { optional }: { optional?: boolean } = {},
+) {
+  if (app == null) {
+    if (!(await exists(binPath))) {
+      await mkdir(binPath, { recursive: true });
+    }
+    // @ts-ignore
+    await Promise.all(
+      Object.keys(SPEC)
+        .filter((x) => optional || !SPEC[x].optional)
+        .map((x) => install(x as App, { optional })),
+    );
+    return;
+  }
+
+  if (await alreadyInstalled(app)) {
+    return;
+  }
+
+  const spec = SPEC[app] as Spec;
+
+  if (spec.platforms != null && !spec.platforms?.includes(platform())) {
+    return;
+  }
+
+  const { script } = spec;
+  try {
+    if (script != null) {
+      const s = script();
+      console.log(s);
+      try {
+        execSync(s);
+      } catch (err) {
+        if (spec.fix) {
+          console.warn(`BUILD OF ${app} FAILED: Suggested fix -- ${spec.fix}`);
+        }
+        throw err;
+      }
+      if (!(await alreadyInstalled(app))) {
+        throw Error(`failed to install ${app}`);
+      }
+      return;
+    }
+
+    if (!(await exists(binPath))) {
+      await mkdir(binPath, { recursive: true });
+    }
+
+    const url = getUrl(app);
+    if (!url) {
+      logger.debug("install: skipping ", app);
+      return;
+    }
+    logger.debug("install", { app, url });
+    // - 1. Fetch the tarball from the github url (using the fetch library)
+    const response = await downloadFromGithub(url);
+    const tarballBuffer = Buffer.from(await response.arrayBuffer());
+
+    // - 2. Extract the file "rg" from the tarball to ${__dirname}/rg
+    // The tarball contains this one file "rg" at the top level, i.e., for
+    //   ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz
+    // we have "tar tvf ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz" outputs
+    //    ...
+    //    ripgrep-14.1.1-x86_64-unknown-linux-musl/rg
+
+    const { VERSION, binary, path, stripComponents = 1, pathInArchive } = spec;
+
+    const archivePath =
+      pathInArchive?.() ?? `${app}-${VERSION}-${getOS()}/${binary}`;
+
+    const tmpFile = join(__dirname, `${app}-${VERSION}.tar.gz`);
+    try {
+      await writeFile(tmpFile, tarballBuffer);
+      // sync is fine since this is run at *build time*.
+      execFileSync("tar", [
+        "xzf",
+        tmpFile,
+        `--strip-components=${stripComponents}`,
+        `-C`,
+        binPath,
+        archivePath,
+      ]);
+
+      // - 3. Make the file executable
+      await chmod(path, 0o755);
+    } finally {
+      try {
+        await unlink(tmpFile);
+      } catch {}
+    }
+  } catch (err) {
+    if (spec.nonFatal) {
+      console.log(`WARNING: unable to install ${app}`, err);
+    } else {
+      throw err;
+    }
+  }
+}
+
+// Download from github, but aware of rate limits, the retry-after header, etc.
+async function downloadFromGithub(url: string) {
+  const maxRetries = 10;
+  const baseDelay = 1000; // 1 second
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url);
+
+      if (res.status === 429) {
+        // Rate limit error
+        if (attempt === maxRetries) {
+          throw new Error("Rate limit exceeded after max retries");
+        }
+
+        const retryAfter = res.headers.get("retry-after");
+        const delay = retryAfter
+          ? parseInt(retryAfter) * 1000
+          : baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+
+        console.log(
+          `Rate limited. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      return res;
+    } catch (error) {
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      console.log(
+        `Fetch ${url} failed. Retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Should not reach here");
+}
+
+function getUrl(app: App) {
+  const spec = SPEC[app] as Spec;
+  if (spec.url != null) {
+    return spec.url();
+  }
+  const { BASE, VERSION, skip } = spec;
+  const os = getOS();
+  if (skip?.includes(os)) {
+    return "";
+  }
+  // very common pattern with rust cli tools:
+  return `${BASE}/${VERSION}/${app}-${VERSION}-${os}.tar.gz`;
+}
+
+function getOS() {
+  switch (platform()) {
+    case "linux":
+      switch (arch()) {
+        case "x64":
+          return "x86_64-unknown-linux-musl";
+        case "arm64":
+          return "aarch64-unknown-linux-gnu";
+        default:
+          throw Error(`unsupported arch '${arch()}'`);
+      }
+    case "darwin":
+      switch (arch()) {
+        case "x64":
+          return "x86_64-apple-darwin";
+        case "arm64":
+          return "aarch64-apple-darwin";
+        default:
+          throw Error(`unsupported arch '${arch()}'`);
+      }
+    default:
+      throw Error(`unsupported platform '${platform()}'`);
+  }
+}

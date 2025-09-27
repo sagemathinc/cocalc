@@ -1,6 +1,7 @@
 import { Select, Spin, Tag, Tooltip } from "antd";
 import { useEffect, useState } from "react";
-import { getTemplates } from "@cocalc/frontend/compute/api";
+import api from "@cocalc/frontend/client/api";
+import TTL from "@isaacs/ttlcache";
 import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
 import type { HyperstackConfiguration } from "@cocalc/util/db-schema/compute-servers";
 import { CLOUDS_BY_NAME } from "@cocalc/util/compute/cloud/clouds";
@@ -12,6 +13,17 @@ import { RenderImage } from "@cocalc/frontend/compute/images";
 import { filterOption } from "@cocalc/frontend/compute/util";
 import DisplayCloud from "./display-cloud";
 import { Icon } from "@cocalc/frontend/components/icon";
+
+const templatesCache = new TTL({ ttl: 60 * 1000 * 15 });
+export async function getTemplates() {
+  if (templatesCache.has("templates")) {
+    return templatesCache.get("templates")!;
+  }
+  // use nextjs api instead of conat, since this component is used on the landing page.
+  const x = await api("compute/get-templates");
+  templatesCache.set("templates", x);
+  return x;
+}
 
 const { CheckableTag } = Tag;
 

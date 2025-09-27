@@ -34,7 +34,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
-import { Avatar } from "antd";
+import { Avatar, Button, Tooltip } from "antd";
 import { CSSProperties, useEffect } from "react";
 import { ProjectUsers } from "./project-users";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
@@ -273,6 +273,15 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
               onClick={handle_click}
               style={{ margin: "-20px 0", textAlign: "center" }}
             />
+          )}
+        </Col>
+        <Col sm={1}>
+          {!is_anonymous && (
+            <Tooltip title={`Fork your own copy of ${project.get("title")}`}>
+              <Button>
+                <Icon name="fork-outlined" /> Fork
+              </Button>
+            </Tooltip>
           )}
         </Col>
       </Row>

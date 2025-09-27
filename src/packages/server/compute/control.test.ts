@@ -1,4 +1,3 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
@@ -6,13 +5,9 @@ import createServer from "./create-server";
 import * as control from "./control";
 import { delay } from "awaiting";
 
-beforeAll(async () => {
-  await initEphemeralDatabase();
-}, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+import { before, after } from "@cocalc/server/test";
+beforeAll(before, 15000);
+afterAll(after);
 
 describe("creates account, project and a test compute server, then control it", () => {
   const account_id = uuid();
@@ -26,6 +21,9 @@ describe("creates account, project and a test compute server, then control it", 
       lastName: "One",
       account_id,
     });
+  });
+
+  it("create project", async () => {
     // Only User One:
     project_id = await createProject({
       account_id,

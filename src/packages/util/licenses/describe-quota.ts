@@ -23,6 +23,7 @@ import { SiteLicenseQuota } from "../types/site-licenses";
 import { loadPatch } from "../upgrades/quota";
 import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
 import type { PurchaseInfo } from "./purchase/types";
+import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
 export function describeQuotaFromInfo(
   info: Partial<PurchaseInfo>,
@@ -124,8 +125,10 @@ export function describe_quota(
   if (onPremQuota ? (quota.ram ?? 1) > 2 : quota.ram) {
     v.push(`${quota.ram} GB RAM`);
   }
-  if (onPremQuota ? (quota.cpu ?? 1) > 1 : quota.cpu) {
-    v.push(`${quota.cpu} shared ${plural(quota.cpu, "vCPU")}`);
+  if (!FAIR_CPU_MODE) {
+    if (onPremQuota ? (quota.cpu ?? 1) > 1 : quota.cpu) {
+      v.push(`${quota.cpu} shared ${plural(quota.cpu, "vCPU")}`);
+    }
   }
   if (quota.disk) {
     v.push(`${quota.disk} GB disk`);
@@ -133,10 +136,12 @@ export function describe_quota(
   if (quota.dedicated_ram) {
     v.push(`${quota.dedicated_ram} GB dedicated RAM`);
   }
-  if (quota.dedicated_cpu) {
-    v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "vCPU")}`,
-    );
+  if (!FAIR_CPU_MODE) {
+    if (quota.dedicated_cpu) {
+      v.push(
+        `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "vCPU")}`,
+      );
+    }
   }
   if (quota.gpu) {
     const { gpu } = quota;
@@ -225,7 +230,7 @@ export function describeQuotaOnLine(
   if (quota.ram) {
     v.push(`${quota.ram} GB RAM`);
   }
-  if (quota.cpu) {
+  if (!FAIR_CPU_MODE && quota.cpu) {
     v.push(`${quota.cpu} ${plural(quota.cpu, "vCPU")}`);
   }
   if (quota.disk) {

@@ -11,9 +11,11 @@ import { EventEmitter } from "events";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
 import { close, deep_copy, trunc_middle } from "@cocalc/util/misc";
+import { isEqual } from "lodash";
 import LRU from "lru-cache";
 
 const MAX_PATCHLIST_CACHE_SIZE = 100;
+const FILE_TIME_DEDUP_TOLERANCE = 3000;
 
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
@@ -37,6 +39,8 @@ export class SortedPatchList extends EventEmitter {
 
   // max of all times that have been adding to this patch list, even those in staging.
   private maxTime = 0;
+
+  public fileTimeDedupTolerance = FILE_TIME_DEDUP_TOLERANCE;
 
   private versions_cache: number[] | undefined;
 
@@ -102,7 +106,7 @@ export class SortedPatchList extends EventEmitter {
   };
 
   /* Choose the next available time in ms that is congruent to
-     m modulo n and is larger than any current times.  
+     m modulo n and is larger than any current times.
      This is a LOGICAL TIME; it does not have to equal the
      actual wall clock.  The key is that it is increasing.
      The congruence condition is so that any time
@@ -134,9 +138,13 @@ export class SortedPatchList extends EventEmitter {
     if (n <= 0) {
       n = 1;
     }
-    let a = m - (time % n);
+    // we add 50 to the modulus so that if a bunch of new users are joining at the exact same moment,
+    // they don't have to be instantly aware of each other for this to keep working. Basically, we
+    // give ourself a buffer of 10
+    const modulus = n + 10;
+    let a = m - (time % modulus);
     if (a < 0) {
-      a += n;
+      a += modulus;
     }
     time += a; // now time = m (mod n)
     // There is also no possibility of a conflict with a known time
@@ -339,6 +347,7 @@ export class SortedPatchList extends EventEmitter {
     if (key != null) {
       k = this.knownTimes([key]);
     } else {
+      // potentially a merge
       const heads = this.getHeads();
       if (heads.length == 0) {
         k = new Set<number>();
@@ -350,6 +359,27 @@ export class SortedPatchList extends EventEmitter {
           }
         }
         k = this.knownTimes(heads);
+      }
+    }
+
+    // We remove file load patches that are identical and close in time,
+    // since these may happen with multiple clients when the file changes
+    // on disk, in the context of filesystem sync and compute servers.
+    // It's a merge heuristic.
+    const fileTimes = Array.from(k).filter((t) => this.live[t].file);
+    if (fileTimes.length > 1) {
+      fileTimes.sort();
+      for (let i = 0; i < fileTimes.length - 1; i++) {
+        if (fileTimes[i + 1] - fileTimes[i] <= this.fileTimeDedupTolerance) {
+          if (
+            isEqual(
+              this.live[fileTimes[i + 1]].patch,
+              this.live[fileTimes[i]].patch,
+            )
+          ) {
+            k.delete(fileTimes[i]);
+          }
+        }
       }
     }
 
@@ -771,23 +801,6 @@ export class SortedPatchList extends EventEmitter {
     }
     return nonSnapshotTails;
   };
-
-  //   private ensureTailsAreSnapshots = reuseInFlight(async () => {
-  //     if (this.loadMoreHistory == null) {
-  //       // functionality is not available (e.g., when unit testing we might not enable this)
-  //       return;
-  //     }
-  //     while (true) {
-  //       const nsTails = this.nonSnapshotTails();
-  //       if (nsTails.length == 0) {
-  //         return;
-  //       }
-  //       const hasMore = await this.loadMoreHistory();
-  //       if (!hasMore) {
-  //         return;
-  //       }
-  //     }
-  //   });
 
   private knownTimes = (heads: number[]): Set<number> => {
     return getTimesWithHeads(this.live, heads, true);

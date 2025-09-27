@@ -3,8 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { Icon } from "@cocalc/frontend/components";
 import { path_to_file } from "@cocalc/util/misc";
@@ -15,16 +13,22 @@ interface Props {
   actions: ProjectActions;
   current_path: string;
   style?: React.CSSProperties;
+  listing;
 }
 
-export const FileCheckbox: React.FC<Props> = React.memo((props: Props) => {
-  const { name, checked, actions, current_path, style } = props;
-
+export function FileCheckbox({
+  name,
+  checked,
+  actions,
+  current_path,
+  style,
+  listing,
+}: Props) {
   function handle_click(e) {
     e.stopPropagation(); // so we don't open the file
     const full_name = path_to_file(current_path, name);
     if (e.shiftKey) {
-      actions.set_selected_file_range(full_name, !checked);
+      actions.set_selected_file_range(full_name, !checked, listing);
     } else {
       actions.set_file_checked(full_name, !checked);
     }
@@ -39,4 +43,4 @@ export const FileCheckbox: React.FC<Props> = React.memo((props: Props) => {
       />
     </span>
   );
-});
+}

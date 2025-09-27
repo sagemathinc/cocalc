@@ -12,8 +12,7 @@ between them.  I think this is acceptable, since it is unlikely
 for people to do that.
 */
 
-import { FC, memo, useMemo, useState } from "react";
-
+import { useMemo, useState } from "react";
 import { DropdownMenu } from "@cocalc/frontend/components";
 import { MenuItems } from "../components/dropdown-menu";
 import { LICENSES } from "./licenses";
@@ -24,9 +23,7 @@ interface Props {
   disabled?: boolean;
 }
 
-export const License: FC<Props> = memo((props: Props) => {
-  const { license, set_license, disabled = false } = props;
-
+export function License({ license, set_license, disabled = false }: Props) {
   const [sel_license, set_sel_license] = useState(license);
 
   function select(license: string): void {
@@ -65,4 +62,4 @@ export const License: FC<Props> = memo((props: Props) => {
       items={items}
     />
   );
-});
+}

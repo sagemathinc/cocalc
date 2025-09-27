@@ -44,6 +44,14 @@ const config = {
     defaultLocale: "en-US",
   },
   poweredByHeader: false,
+  experimental: {
+    // I added this so micro-key-producer/ssh.js can be imported.  It's ESM only
+    // and breaks the bundler. https://github.com/paulmillr/micro-key-producer/issues/20
+    // But with this config option, things seem fine.  Note that micro-key-producer/ssh.js
+    // is NOT actually used ever by nextjs -- it's used by our backend file-server
+    // to generate an ssh key.
+    esmExternals: "loose",
+  },
 };
 
 const withRspack = require("next-rspack");

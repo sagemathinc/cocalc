@@ -67,6 +67,19 @@ export function RestartProject({
     </div>
   );
 
+  if (state != "running") {
+    return (
+      <Button
+        disabled={disabled || actions == null}
+        size={size}
+        danger={danger}
+        onClick={() => actions?.restart_project(project_id)}
+      >
+        {icon} {description}
+      </Button>
+    );
+  }
+
   return (
     <Popconfirm
       placement={"bottom"}
