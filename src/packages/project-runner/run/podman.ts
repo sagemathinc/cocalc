@@ -42,6 +42,7 @@ import {
 import {
   SSH_IDENTITY_FILE,
   START_PROJECT_SSH,
+  START_PROJECT_FORWARDS,
 } from "@cocalc/conat/project/runner/constants";
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
@@ -266,8 +267,11 @@ export async function start({
       desc: "launched project container",
     });
 
-    await initFileSync();
-    await initSshServer(name);
+    await Promise.all([
+      initFileSync(),
+      initSshServer(name),
+      initForwards(name),
+    ]);
 
     bootlog({
       project_id,
@@ -522,4 +526,14 @@ export function getImage(config?: Configuration): string {
 
 export async function initSshServer(name: string) {
   await podman(["exec", name, "bash", "-c", join("/root", START_PROJECT_SSH)]);
+}
+
+export async function initForwards(name: string) {
+  await podman([
+    "exec",
+    name,
+    "bash",
+    "-c",
+    join("/root", START_PROJECT_FORWARDS),
+  ]);
 }

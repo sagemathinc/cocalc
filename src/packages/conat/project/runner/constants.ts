@@ -9,10 +9,14 @@ export const FILE_SERVER_NAME = "file-server";
 export const SSHD_CONFIG = join(INTERNAL_SSH_CONFIG, "sshd");
 
 export const START_PROJECT_SSH = join(SSHD_CONFIG, "start-project-ssh.sh");
+export const START_PROJECT_FORWARDS = join(
+  SSHD_CONFIG,
+  "start-project-forwards.sh",
+);
 
 export interface Ports {
   "file-server": number;
-  project: number;
+  ssh: number;
   proxy: number;
   web: number;
 }
@@ -27,14 +31,15 @@ export const PORTS = {
   // standard ssh sematics (.ssh/authorized_keys|config|etc.), but
   // runs in any container image. Forwarded to this container by mutagen
   // (so reverse ssh).
-  project: 2223,
+  ssh: 2200,
   // very simple http proxy written in nodejs running in the project, which
   // lets us proxy any webserver that supports base_url (e.g., juputerlab)
   // or non-absolute URL's (e.g., vscode).  This supports the same schema
   // as in cocalc, so the base_url has to be of the form
   //      /{PROJECT_ID}/server/{PORT}/ or /{PROJECT_ID}/port/{PORT}/
-  proxy: 2224,
+  proxy: 8000,
   // an arbitrary user-defined webserver, which will work without any base_url
-  // or other requirement.  Served on wildcard subdomain.
-  web: 2225,
+  // or other requirement.  Served on wildcard subdomain at
+  //      [project_id].your-domain.com
+  web: 8080,
 } as Ports;
