@@ -5,7 +5,7 @@
 
 import { Space } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-import Bootlog from "../bootlog";
+import BootLog from "../bootlog";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -366,6 +366,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         <div>
           {render_action_buttons()}
           <ProjectControlError />
+          <BootLog />
         </div>
         <LabeledRow
           key="state"
@@ -388,9 +389,6 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <RootFilesystemImage />
         </LabeledRow>
         {render_select_compute_image_row()}
-        <LabeledRow key="bootlog" label="Boot Log" vertical={isFlyout}>
-          <Bootlog />
-        </LabeledRow>
       </>
     );
   }

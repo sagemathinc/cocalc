@@ -33,7 +33,7 @@ export default function Bootlog({
     return <Spin />;
   }
   return (
-    <pre style={{ maxHeight: "300px", minWidth: "450px" }}>
+    <pre style={{ maxHeight: "200px", minWidth: "450px" }}>
       {log.map((x) => JSON.stringify(x)).join("\n")}
     </pre>
   );

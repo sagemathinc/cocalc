@@ -12,11 +12,7 @@ import { join } from "node:path";
 import { delay } from "awaiting";
 import { mountArg } from "@cocalc/project-runner/run/mounts";
 import * as sandbox from "@cocalc/backend/sandbox/install";
-import {
-  START_PROJECT_SSH,
-  START_PROJECT_FORWARDS,
-  SSHD_CONFIG,
-} from "@cocalc/conat/project/runner/constants";
+import { SSHD_CONFIG } from "@cocalc/conat/project/runner/constants";
 import {
   FILE_SERVER_NAME,
   Ports,
@@ -152,16 +148,6 @@ export const start = reuseInFlight(
     await writeFile(join(sshdConfPathOnHost, "sshd.conf"), sshd_conf, {
       mode: 0o600,
     });
-    await writeFile(join(path, START_PROJECT_SSH), START_PROJECT_SSH_SCRIPT, {
-      mode: 0o700,
-    });
-    await writeFile(
-      join(path, START_PROJECT_FORWARDS),
-      START_PROJECT_FORWARDS_SCRIPT,
-      {
-        mode: 0o700,
-      },
-    );
 
     for (const key in PORTS) {
       args.push("-p", `${PORTS[key]}`);
@@ -423,24 +409,3 @@ export async function close() {
   }
   await Promise.all(v);
 }
-
-const START_PROJECT_SSH_SCRIPT = `#!/usr/bin/env bash
-set -ev
-
-mkdir -p /etc/dropbear
-
-dropbear -p \${COCALC_SSHD_PORT:=22} -e -s -a -R -D /root/${SSHD_CONFIG}
-
-ln -sf $(which sftp-server) /usr/libexec/sftp-server || true
-`;
-
-const START_PROJECT_FORWARDS_SCRIPT = `#!/usr/bin/env bash
-set -ev
-
-mutagen forward terminate sshd 2>/dev/null || true
-mutagen forward create --name=sshd file-server:tcp::${PORTS.ssh} tcp::\${COCALC_SSHD_PORT:=22}
-
-mutagen forward terminate proxy 2>/dev/null || true
-mutagen forward create --name=proxy file-server:tcp::${PORTS.proxy} tcp::\${COCALC_PROXY_PORT:=80}
-
-`;

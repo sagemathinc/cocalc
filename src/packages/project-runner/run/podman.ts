@@ -46,6 +46,7 @@ import {
 } from "@cocalc/conat/project/runner/constants";
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
+import { writeStartupScripts } from "./startup-scripts";
 
 const logger = getLogger("project-runner:podman");
 
@@ -175,20 +176,43 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 45,
+      progress: 30,
       desc: "started file sync sidecar",
     });
 
     await mkdir(home, { recursive: true });
     logger.debug("start: created home", { project_id });
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 35,
+      desc: "created HOME",
+    });
+
     await ensureConfFilesExists(home);
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 37,
+      desc: "created conf files",
+    });
     logger.debug("start: created conf files", { project_id });
+
+    await writeStartupScripts(home);
+    logger.debug("start: wrote startup scripts", { project_id });
+
+    bootlog({
+      project_id,
+      type: "start",
+      progress: 40,
+      desc: "wrote startup scripts",
+    });
 
     const rootfs = await rootFilesystem.mount({ project_id, home, config });
     bootlog({
       project_id,
       type: "start",
-      progress: 30,
+      progress: 45,
       desc: "mounted rootfs",
     });
     logger.debug("start: got rootfs", { project_id, rootfs });
@@ -263,14 +287,26 @@ export async function start({
     bootlog({
       project_id,
       type: "start",
-      progress: 90,
+      progress: 85,
       desc: "launched project container",
     });
 
+    let progress = 85;
+    const f = async (task, desc) => {
+      await task();
+      progress += 2;
+      bootlog({
+        project_id,
+        type: "start",
+        progress,
+        desc,
+      });
+    };
+
     await Promise.all([
-      initFileSync(),
-      initSshServer(name),
-      initForwards(name),
+      f(initFileSync, "file sync"),
+      f(async () => await initSshServer(name), "ssh server"),
+      f(async () => await initForwards(name), "port forwards"),
     ]);
 
     bootlog({

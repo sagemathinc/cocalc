@@ -16,10 +16,20 @@ export const START_PROJECT_FORWARDS = join(
 
 export interface Ports {
   "file-server": number;
-  ssh: number;
+  sshd: number;
   proxy: number;
   web: number;
 }
+
+// WARNING: if you change these ports than the mutagen port forwards setup
+// in START_PROJECT_FORWARDS_SH of packages/project-runner/run/startup-scripts.ts
+// for any existing project would break!  And they will not be fixed unless
+// one manually terminates them.   So if there is some very good reason
+// to change these, the start script also has to be changed to be more
+// sophisticated and update existing assignments if they are wrong. BUT...
+// don't just do that willy nilly, e.g., if you just terminate and recreate
+// them it'll take 500ms at least on startup instead of 30ms, and dominate
+// the project startup time!
 
 export const PORTS = {
   // file-server = openssh sshd server running on same VM as
@@ -31,7 +41,7 @@ export const PORTS = {
   // standard ssh sematics (.ssh/authorized_keys|config|etc.), but
   // runs in any container image. Forwarded to this container by mutagen
   // (so reverse ssh).
-  ssh: 2200,
+  sshd: 2200,
   // very simple http proxy written in nodejs running in the project, which
   // lets us proxy any webserver that supports base_url (e.g., juputerlab)
   // or non-absolute URL's (e.g., vscode).  This supports the same schema
