@@ -33,12 +33,13 @@ export default function GlobalSSHKeys() {
         <Paragraph style={{ color: COLORS.GRAY_M }}>
           <FormattedMessage
             id="account.global-ssh-keys.info"
-            defaultMessage={`The global SSH keys listed here allow you to connect from your computer via SSH
+            defaultMessage={`The SSH keys listed here allow you to connect via SSH
             to <strong><i>all projects</i> and <i>compute servers</i></strong>
-            on which you are an owner or collaborator.
+            on which you are a collaborator.
             Alternatively, set SSH keys that grant access only to a project in the settings for that project.
             See <A>the docs</A>
-            or the SSH part of the settings page in a project for further instructions.`}
+            or the SSH part of the settings page in a project for further instructions.
+            Adding keys here simply automates them being added to the file ~/.ssh/authorized_keys`}
             values={{
               strong: (c) => <Text strong>{c}</Text>,
               i: (c) => <i>{c}</i>,

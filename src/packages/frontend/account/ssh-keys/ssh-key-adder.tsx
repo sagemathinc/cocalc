@@ -150,7 +150,7 @@ export default function SSHKeyAdder({
             {intl.formatMessage(
               {
                 id: "account.ssh-key-adder.title",
-                defaultMessage: "Add an <A>SSH key</A>",
+                defaultMessage: "Add <A>SSH key</A>",
               },
               {
                 A: (c) => (
@@ -177,17 +177,6 @@ export default function SSHKeyAdder({
       >
         {extra && extra}
         <div>
-          Title
-          <Input
-            id="ssh-title"
-            value={keyTitle}
-            onChange={(e) => setKeyTitle(e.target.value)}
-            placeholder={intl.formatMessage({
-              id: "account.ssh-key-adder.placeholder",
-              defaultMessage:
-                "Choose a name for this ssh key to help you keep track of it...",
-            })}
-          />
           <div style={{ marginTop: "15px" }}>
             Key
             <Input.TextArea

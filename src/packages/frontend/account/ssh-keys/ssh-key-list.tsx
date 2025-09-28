@@ -18,6 +18,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { cmp } from "@cocalc/util/misc";
 import SSHKeyAdder from "./ssh-key-adder";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
@@ -74,7 +75,7 @@ export default function SSHKeyList({
   function render_header() {
     return (
       <Flex style={{ width: "100%" }}>
-        {project_id ? "Project Specific " : "Global "}
+        {project_id ? "Project " : ""}
         {intl.formatMessage(labels.ssh_keys)} <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
         <div style={{ flex: 1 }} />
@@ -232,6 +233,12 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
           {ssh_key.get("fingerprint")}
         </Typography.Text>
         <br />
+        <CopyToClipBoard
+          size="small"
+          inputWidth="400px"
+          value={ssh_key.get("value")}
+          style={{ width: "100%", margin: "5px 0" }}
+        />
         Added on {new Date(ssh_key.get("creation_date")).toLocaleDateString()}
         {/*<div> {render_last_use()} (NOTE: not all usage is tracked.)</div>*/}
       </div>
