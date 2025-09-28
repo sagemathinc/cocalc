@@ -270,10 +270,22 @@ export const getPorts = reuseInFlight(
 
 const dotMutagens: { [volume: string]: string } = {};
 
-export async function stop({ volume }: { volume: string }) {
+export async function stop({
+  volume,
+  force,
+}: {
+  volume: string;
+  force?: boolean;
+}) {
   try {
     logger.debug("stopping", { volume });
-    await podman(["rm", "-f", "-t", GRACE_PERIOD_S, containerName(volume)]);
+    await podman([
+      "rm",
+      "-f",
+      "-t",
+      force ? "0" : GRACE_PERIOD_S,
+      containerName(volume),
+    ]);
   } catch (err) {
     logger.debug("stop error", { volume, err });
   }
@@ -367,6 +379,7 @@ export async function init() {
   if (monitoring) return;
   monitoring = true;
 
+  await stopAll();
   await buildContainerImage();
 
   while (monitoring) {
@@ -390,22 +403,27 @@ export async function init() {
 export async function getAll(): Promise<string[]> {
   const { stdout } = await podman([
     "ps",
-    "--filter",
-    `name=${FILE_SERVER_NAME}-`,
-    "--filter",
-    "label=role=file-server",
-    "--format",
-    '{{ index .Labels "volume" }}',
+    `--filter=name=${FILE_SERVER_NAME}-`,
+    `--filter=label=role=file-server`,
+    `--format={{ index .Labels "volume" }}`,
   ]);
-  return stdout.split("\n").filter((x) => x.length == 36);
+  return stdout.split("\n").filter((x) => x);
 }
 
-export async function close() {
+// important to clear on startup, because for whatever reason the file-server containers
+// do NOT work if we restart sshpiperd, so best to stop them all.
+// They don't work without the proxy anyways.  We can't kill all on shutdown unless
+// we make them child processes (we could do that).
+
+export async function stopAll() {
+  logger.debug(`stopping all ${FILE_SERVER_NAME} containers`);
   monitoring = false;
   const v: any[] = [];
-  for (const volume in await getAll()) {
+  const volumes = await getAll();
+  logger.debug(volumes);
+  for (const volume of volumes) {
     logger.debug("stopping", { volume });
-    v.push(stop({ volume }));
+    v.push(stop({ volume, force: true }));
   }
   await Promise.all(v);
 }

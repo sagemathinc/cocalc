@@ -86,7 +86,7 @@ export async function init({
           authorizedKeys,
           path,
         });
-      } else if (target == "project") {
+      } else if (target == "sshd") {
         // do NOT start if not already running, because this could be any random
         // request for access to the project and user must explicitly start project
         // first.  Alternatively, if container weren't running we could consider
@@ -136,7 +136,7 @@ async function handleRequest(
   authorizedKeys: string;
   volume: string;
   path: string;
-  target: "file-server" | "project";
+  target: "file-server" | "sshd";
 }> {
   if (!user) {
     throw Error("invalid user");
@@ -180,7 +180,7 @@ async function getAuthorizedKeys({
   compute_server_id,
   path,
 }: {
-  target: "file-server" | "project";
+  target: "file-server" | "sshd";
   client: ConatClient;
   project_id: string;
   compute_server_id: number;
@@ -208,7 +208,7 @@ async function getAuthorizedKeys({
       });
       return await api.system.sshPublicKey();
     }
-  } else if (target == "project") {
+  } else if (target == "sshd") {
     if (!compute_server_id) {
       // we just read authorized_keys straight from the project
       const authorized_keys = join(path, ".ssh", "authorized_keys");
@@ -228,22 +228,22 @@ async function getAuthorizedKeys({
 /*
 The patterns that we support here:
 
-- project-{uuid} --> target = 'project', project_id={uuid}
-- {uuid} --> target = 'project', project_id={uuid}
-- {uuid with dashes removed} --> target='project', project_id={uuid with dashes put back}
-- {any of 3 above}-{compute_server_id} --> target = 'project', project_id={uuid}, compute_server_id=compute_server_id, where it is the GLOBAL compute server id.
+- project-{uuid} --> target = 'sshd', project_id={uuid}
+- {uuid} --> target = 'sshd', project_id={uuid}
+- {uuid with dashes removed} --> target='sshd', project_id={uuid with dashes put back}
+- {any of 3 above}-{compute_server_id} --> target = 'sshd', project_id={uuid}, compute_server_id=compute_server_id, where it is the GLOBAL compute server id.
 
 - {FILE_SERVER_NAME}-project-{project_id} --> target='file-server', project_id={project_id}
 
 */
 function parseUser(user: string): {
   project_id: string;
-  target: "project" | "file-server";
+  target: "sshd" | "file-server";
   compute_server_id: number;
 } {
   let target, prefix;
   if (user?.startsWith("project-")) {
-    target = "project";
+    target = "sshd";
     prefix = "project-";
   } else if (user?.startsWith(`${FILE_SERVER_NAME}-project-`)) {
     // right now we only support project volumes, but later we may
@@ -255,13 +255,13 @@ function parseUser(user: string): {
     target = "file-server";
     prefix = `${FILE_SERVER_NAME}-project-`;
   } else if (isValidUUID(user)) {
-    target = "project";
+    target = "sshd";
     prefix = "";
   } else if (
     user.length >= 32 &&
     isValidUUID(putBackDashes(user.split("-")[0]))
   ) {
-    target = "project";
+    target = "sshd";
     prefix = "";
     const v = user.split("-");
     user = putBackDashes(v[0]);
