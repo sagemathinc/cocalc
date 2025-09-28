@@ -30,29 +30,6 @@ const cache = new TTLCache<string, { proxy?: number; err? }>({
   updateAgeOnGet: true,
 });
 
-async function getProxyPort(project_id: string) {
-  if (!isValidUUID(project_id)) {
-    throw Error("invalid url");
-  }
-  if (cache.has(project_id)) {
-    const { proxy, err } = cache.get(project_id)!;
-    if (err) {
-      throw err;
-    } else {
-      return proxy;
-    }
-  }
-  let proxy;
-  try {
-    ({ proxy } = await getPorts({ volume: `project-${project_id}` }));
-  } catch (err) {
-    cache.set(project_id, { err });
-    throw err;
-  }
-  cache.set(project_id, { proxy });
-  return proxy;
-}
-
 interface StartOptions {
   port?: number; // default 8080
   host?: string; // default 127.0.0.1
@@ -63,13 +40,23 @@ export async function startProxyServer({
   host = "127.0.0.1",
 }: StartOptions = {}) {
   logger.debug("startProxyServer", { port, host });
-  async function getTarget(req) {
-    const url = req.url ?? "";
-    logger.debug("request", { url });
-    const project_id = url.slice(1, 37);
-    return { port: await getProxyPort(project_id), host: "localhost" };
-  }
 
+  const { handleRequest, handleUpgrade } = createProxyHandlers();
+
+  const proxyServer = http.createServer(handleRequest);
+  proxyServer.on("upgrade", handleUpgrade);
+
+  await listen({
+    server: proxyServer,
+    port,
+    host,
+    desc: "file-server's HTTP proxy server",
+  });
+
+  return proxyServer;
+}
+
+export function createProxyHandlers() {
   const proxy = httpProxy.createProxyServer({
     xfwd: true,
     ws: true,
@@ -95,7 +82,7 @@ export async function startProxyServer({
     proxyReq.setHeader("X-Proxy-By", "cocalc-proxy");
   });
 
-  const proxyServer = http.createServer(async (req, res) => {
+  const handleRequest = async (req, res) => {
     try {
       const target = await getTarget(req);
       proxy.web(req, res, { target });
@@ -104,9 +91,9 @@ export async function startProxyServer({
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not found\n");
     }
-  });
+  };
 
-  proxyServer.on("upgrade", async (req, socket, head) => {
+  const handleUpgrade = async (req, socket, head) => {
     try {
       const target = await getTarget(req);
       proxy.ws(req, socket, head, {
@@ -118,13 +105,37 @@ export async function startProxyServer({
       socket.destroy();
       return;
     }
-  });
+  };
 
-  await listen({
-    server: proxyServer,
-    port,
-    host,
-    desc: "file-server's HTTP proxy server",
-  });
-  return proxyServer;
+  return { handleRequest, handleUpgrade };
+}
+
+async function getProxyPort(project_id: string) {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid url");
+  }
+  if (cache.has(project_id)) {
+    const { proxy, err } = cache.get(project_id)!;
+    if (err) {
+      throw err;
+    } else {
+      return proxy;
+    }
+  }
+  let proxy;
+  try {
+    ({ proxy } = await getPorts({ volume: `project-${project_id}` }));
+  } catch (err) {
+    cache.set(project_id, { err });
+    throw err;
+  }
+  cache.set(project_id, { proxy });
+  return proxy;
+}
+
+async function getTarget(req) {
+  const url = req.url ?? "";
+  logger.debug("request", { url });
+  const project_id = url.slice(1, 37);
+  return { port: await getProxyPort(project_id), host: "localhost" };
 }
