@@ -5,8 +5,12 @@ which proxies all http traffic (including websockets) as follows:
  - /base_url/server/PORT/... ---> http://localhost:PORT/base_url/server/PORT/...
  - /base_url/port/PORT/...   ---> http://localhost:PORT/...
 
-Notice that one format strips the whole /base_url/... business, and the
-other leaves it unchanged.
+
+Notice that the server format strips the whole /base_url/... business, and "port"
+leaves it unchanged, meaning you have to run your application aware of a base_url.
+
+NOTE: you can use "proxy" as an alias for "server", for compatibility with code-server,
+which uses /base_url/proxy/PORT/ for *exactly* what we have /base_url/server/PORT/ for.
 
 This uses the http-proxy-3 library, which is a modern supported version
 of the old http-proxy nodejs npm library, with the same API.
@@ -48,6 +52,7 @@ export async function startProxyServer({
   logger.debug("startProxyServer", { base_url, port, host });
   const base = normalizeBase(base_url);
   const serverPattern = buildPattern(base, "server");
+  const proxyPattern = buildPattern(base, "proxy");
   const portPattern = buildPattern(base, "port");
 
   function getTarget(req) {
@@ -57,7 +62,7 @@ export async function startProxyServer({
       const port = Number(mPort[1]);
       return { port, host: "localhost" };
     }
-    const mServer = serverPattern.exec(url);
+    const mServer = serverPattern.exec(url) || proxyPattern.exec(url);
     if (mServer) {
       const port = Number(mServer[1]);
       const rest = mServer[2] || "/";
@@ -157,7 +162,7 @@ function escapeRegExp(s: string): string {
 // Build a matcher:
 //  - type "server": ^/<base>/server/(\d+)(/.*)?$
 //  - type "port":   ^/<base>/port/(\d+)(/.*)?$
-function buildPattern(base: string, type: "server" | "port"): RegExp {
+function buildPattern(base: string, type: "server" | "port" | "proxy"): RegExp {
   const prefix = `/${escapeRegExp(base)}/${type}/`;
   // capture numeric port, then optionally capture the rest of the path
   return new RegExp(`^${prefix}(\\d+)(/.*)?$`);
