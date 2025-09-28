@@ -1,13 +1,9 @@
 /* Handle a proxy request */
 
-import { createProxyServer, type ProxyServer } from "http-proxy-3";
-import LRU from "lru-cache";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
-import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
-import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
 import { parseReq } from "./parse";
 import hasAccess from "./check-for-access-to-project";
@@ -16,26 +12,14 @@ import { handleFileDownload } from "@cocalc/conat/files/file-download";
 const logger = getLogger("proxy:handle-request");
 
 interface Options {
-  projectControl: ProjectControlFunction;
   isPersonal: boolean;
+  projectProxyHandlersPromise?;
 }
 
-export default function init({ projectControl, isPersonal }: Options) {
-  /* Cache at most 5000 proxies, each for up to 3 minutes.
-   Throwing away proxies at any time from the cache is fine since
-   the proxy is just used to handle *individual* http requests,
-   and the cache is entirely for speed.  Also, invalidating cache entries
-   works around weird cases, where maybe error/close don't get
-   properly called, but the proxy is not working due to network
-   issues.  Invalidating cache entries quickly is also good from
-   a permissions and security point of view.
-*/
-
-  const cache = new LRU<string, ProxyServer>({
-    max: 5000,
-    ttl: 1000 * 60 * 3,
-  });
-
+export default function init({
+  isPersonal,
+  projectProxyHandlersPromise,
+}: Options) {
   async function handleProxyRequest(req, res): Promise<void> {
     const dbg = (...args) => {
       // for low level debugging -- silly isn't logged by default
@@ -94,45 +78,24 @@ export default function init({ projectControl, isPersonal }: Options) {
       return;
     }
 
-    const { host, port, internal_url } = await getTarget({
-      remember_me,
-      api_key,
-      url,
-      isPersonal,
-      projectControl,
-      parsed,
-    });
-
-    // It's http here because we've already got past the ssl layer.  This is all internal.
-    const target = `http://${host}:${port}`;
-    dbg("target resolves to", target);
-
-    let proxy;
-    if (cache.has(target)) {
-      // we already have the proxy for this target in the cache
-      dbg("using cached proxy");
-      proxy = cache.get(target);
-    } else {
-      logger.debug("make a new proxy server to", target);
-      proxy = createProxyServer({
-        ws: false,
-        target,
-      });
-      // and cache it.
-      cache.set(target, proxy);
-      logger.debug("created new proxy");
-
-      proxy.on("error", (err) => {
-        logger.debug(`http proxy error -- ${err}`);
-      });
+    const projectProxyHandlers = await projectProxyHandlersPromise;
+    if (projectProxyHandlers == null) {
+      throw Error("no project proxy request handler is configured");
     }
 
-    if (internal_url != null) {
-      dbg("changing req url from ", req.url, " to ", internal_url);
-      req.url = internal_url;
+    if (
+      !(await hasAccess({
+        project_id,
+        remember_me,
+        api_key,
+        type: "write",
+        isPersonal,
+      }))
+    ) {
+      throw Error(`user does not have write access to project`);
     }
-    dbg("handling the request using the proxy");
-    proxy.web(req, res);
+
+    projectProxyHandlers.handleRequest(req, res);
   }
 
   return async (req, res) => {

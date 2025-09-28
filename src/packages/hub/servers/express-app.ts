@@ -49,6 +49,7 @@ interface Options {
   conatServer: boolean;
   cert?: string;
   key?: string;
+  projectProxyHandlersPromise?;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -162,6 +163,7 @@ export default async function init(opts: Options): Promise<{
       isPersonal: opts.isPersonal,
       httpServer,
       app,
+      projectProxyHandlersPromise: opts.projectProxyHandlersPromise,
       // enable proxy server for /conat if:
       //  (1) we are not running conat at all from here, or
       //  (2) we are running socketio in cluster mode, hence

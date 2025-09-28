@@ -42,9 +42,10 @@ export async function initConatApi() {
   createTimeService();
 }
 
+// returns proxyHandlers
 export async function initConatFileserver() {
   await loadConatConfiguration();
   logger.debug("initFileserver");
   localPathFileserver();
-  initFileserver();
+  return await initFileserver();
 }

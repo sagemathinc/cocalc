@@ -180,8 +180,14 @@ async function startServer(): Promise<void> {
     await initConatServer({ kucalc: program.mode == "kucalc" });
   }
 
+  let projectProxyHandlersPromise;
   if (program.conatFileserver || program.conatServer) {
-    await initConatFileserver();
+    // purposely do NOT await here, because initializing this
+    // relies on conat being up and running, which relies on
+    // http server created below!
+    projectProxyHandlersPromise = initConatFileserver();
+  } else {
+    projectProxyHandlersPromise = null;
   }
 
   if (program.conatApi || program.conatServer) {
@@ -235,6 +241,7 @@ async function startServer(): Promise<void> {
       projectControl,
       conatServer: !!program.conatServer,
       proxyServer: true, // always
+      projectProxyHandlersPromise,
       nextServer: !!program.nextServer,
       cert: program.httpsCert,
       key: program.httpsKey,

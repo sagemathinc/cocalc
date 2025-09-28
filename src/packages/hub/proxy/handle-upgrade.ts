@@ -1,12 +1,8 @@
 // Websocket support
 
-import { createProxyServer, type ProxyServer } from "http-proxy-3";
-import LRU from "lru-cache";
 import { getEventListeners } from "node:events";
 import getLogger from "@cocalc/hub/logger";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
-import { getTarget } from "./target";
-import { stripBasePath } from "./util";
 import { versionCheckFails } from "./version";
 import { proxyConatWebsocket } from "./proxy-conat";
 import basePath from "@cocalc/backend/base-path";
@@ -16,14 +12,13 @@ const LISTENERS_HACK = true;
 const logger = getLogger("proxy:handle-upgrade");
 
 export default function initUpgrade(
-  { projectControl, isPersonal, httpServer, proxyConat },
+  {
+    httpServer,
+    proxyConat,
+    projectProxyHandlersPromise,
+  }: { httpServer; proxyConat; projectProxyHandlersPromise?; isPersonal },
   proxy_regexp: string,
 ) {
-  const cache = new LRU<string, ProxyServer>({
-    max: 5000,
-    ttl: 1000 * 60 * 3,
-  });
-
   const re = new RegExp(proxy_regexp);
 
   let nextUpgrade: undefined | Function = undefined;
@@ -94,6 +89,10 @@ export default function initUpgrade(
       nextUpgrade?.(req, socket, head);
       return;
     }
+    const projectProxyHandlers = await projectProxyHandlersPromise;
+    if (projectProxyHandlers == null) {
+      throw Error("no handler configured");
+    }
 
     socket.on("error", (err) => {
       // server will crash sometimes without this:
@@ -113,71 +112,12 @@ export default function initUpgrade(
       throw Error("client version check failed");
     }
 
-    let remember_me, api_key;
     if (req.headers["cookie"] != null) {
       let cookie;
-      ({ cookie, remember_me, api_key } = stripRememberMeCookie(
-        req.headers["cookie"],
-      ));
+      ({ cookie } = stripRememberMeCookie(req.headers["cookie"]));
       req.headers["cookie"] = cookie;
     }
-
-    dbg("calling getTarget");
-    const url = stripBasePath(req.url);
-    const { host, port, internal_url } = await getTarget({
-      url,
-      isPersonal,
-      projectControl,
-      remember_me,
-      api_key,
-    });
-    dbg("got ", { host, port });
-
-    const target = `ws://${host}:${port}`;
-    if (internal_url != null) {
-      req.url = internal_url;
-    }
-
-    {
-      const proxy = cache.get(target);
-      if (proxy != null) {
-        dbg("using cache");
-        proxy.ws(req, socket, head);
-        return;
-      }
-    }
-
-    dbg("target", target);
-    dbg("not using cache");
-
-    const proxy = createProxyServer({
-      ws: true,
-      target,
-    });
-
-    cache.set(target, proxy);
-
-    // taken from https://github.com/http-party/node-http-proxy/issues/1401
-    proxy.on("proxyRes", function (proxyRes) {
-      //console.log(
-      //  "Raw [target] response",
-      //  JSON.stringify(proxyRes.headers, true, 2)
-      //);
-
-      proxyRes.headers["x-reverse-proxy"] = "custom-proxy";
-      proxyRes.headers["cache-control"] = "no-cache, no-store";
-
-      //console.log(
-      //  "Updated [proxied] response",
-      //  JSON.stringify(proxyRes.headers, true, 2)
-      //);
-    });
-
-    proxy.on("error", (err) => {
-      logger.debug(`WARNING: websocket proxy error -- ${err}`);
-    });
-
-    proxy.ws(req, socket, head);
+    projectProxyHandlers.handleUpgrade(req, socket, head);
   }
 
   const handler = async (req, socket, head) => {

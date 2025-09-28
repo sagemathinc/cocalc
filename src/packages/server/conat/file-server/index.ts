@@ -179,7 +179,7 @@ async function updateSnapshots({
 let servers: null | { ssh: any; file: any } = null;
 export async function init(_fs?) {
   if (servers != null) {
-    return;
+    return servers.ssh.proxyHandlers;
   }
   await loadConatConfiguration();
   const image = join(data, "btrfs", "image");
@@ -225,11 +225,12 @@ export async function init(_fs?) {
   let ssh;
   if (process.env.COCALC_SSH_SERVER_COUNT != "0") {
     const { path: scratch } = await getVolume("mutagen-scratch");
-    ssh = await initSshServer({ client, scratch });
+    ssh = await initSshServer({ client, scratch, proxyHandlers: true });
   } else {
     ssh = { close: () => {} };
   }
   servers = { file, ssh };
+  return ssh.projectProxyHandlers;
 }
 
 export function close() {
