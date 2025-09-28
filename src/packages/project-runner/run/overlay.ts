@@ -160,7 +160,9 @@ export async function unmount(project_id: string) {
       args: ["umount", "-l", mountpoint],
     });
   } catch (err) {
-    if (`${err}`.includes("not mounted")) {
+    const e = `${err}`;
+    if (e.includes("not mounted") || e.includes("no mount point")) {
+      // if it isn't mounted or the mountpoint doesn't even exist
       return;
     }
     throw err;
