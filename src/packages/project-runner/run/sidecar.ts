@@ -33,7 +33,7 @@ anyways (otherwise, how did they get to that server).
 */
 
 import { build } from "@cocalc/backend/podman/build-container";
-import { podman, starting } from "./podman";
+import { podman, starting, stopping } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import { dirname, join } from "node:path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
@@ -385,44 +385,47 @@ export async function startSidecar({
   return initFileSync;
 }
 
-export const backupRootfs = reuseInFlight(async ({ project_id }) => {
-  const name = sidecarContainerName(project_id);
-  const t = Date.now();
-  logger.debug("backupRootfs: STARTED", { project_id });
-  bootlog({
-    project_id,
-    type: "save-rootfs",
-    progress: 0,
-    desc: "backing up rootfs",
-  });
-  // NOTE: very important to *not* do a backup while project is initially opening/loading, which
-  // is why we have to check that the project is running.
-  if (starting.has(project_id)) {
-    logger.debug("backupRootfs: skipping since currently starting");
-    return;
-  }
-  try {
-    await rsyncProgressRunner({
-      command: "podman",
-      args: ["exec", name, "/bin/bash", "/usr/local/bin/backup-rootfs.sh"],
-      progress: (event) => {
-        bootlog({
-          project_id,
-          type: "save-rootfs",
-          ...event,
-        });
-      },
-    });
-  } catch (err) {
-    if (`${err}`.includes("no container with name")) {
-      // it was deleted.
+export const backupRootfs = reuseInFlight(
+  async ({ project_id, force }: { project_id: string; force?: boolean }) => {
+    // NOTE: very important to *not* do a backup while project is initially opening/loading, which
+    // is why we have to check that the project is running.
+    if (!force && (starting.has(project_id) || stopping.has(project_id))) {
+      logger.debug("backupRootfs: skipping since currently starting");
       return;
-    } else {
-      throw err;
     }
-  }
-  logger.debug("backupRootfs: DONE", { project_id, ms: Date.now() - t });
-});
+
+    const name = sidecarContainerName(project_id);
+    const t = Date.now();
+    logger.debug("backupRootfs: STARTED", { project_id });
+    bootlog({
+      project_id,
+      type: "save-rootfs",
+      progress: 0,
+      desc: "backing up rootfs",
+    });
+    try {
+      await rsyncProgressRunner({
+        command: "podman",
+        args: ["exec", name, "/bin/bash", "/usr/local/bin/backup-rootfs.sh"],
+        progress: (event) => {
+          bootlog({
+            project_id,
+            type: "save-rootfs",
+            ...event,
+          });
+        },
+      });
+    } catch (err) {
+      if (`${err}`.includes("no container with name")) {
+        // it was deleted.
+        return;
+      } else {
+        throw err;
+      }
+    }
+    logger.debug("backupRootfs: DONE", { project_id, ms: Date.now() - t });
+  },
+);
 
 // we back up each one in serial rather than parallel, to
 // avoid too much of a load spike.  Also reuseInFlight ensures

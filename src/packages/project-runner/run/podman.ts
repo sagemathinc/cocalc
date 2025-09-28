@@ -324,7 +324,7 @@ export async function start({
 }
 
 // projects we are definitely stopping right now
-const stopping = new Set<string>();
+export const stopping = new Set<string>();
 export async function stop({
   project_id,
   force,
@@ -373,9 +373,11 @@ export async function stop({
     try {
       if (!force) {
         // graceful shutdown so flush first -- this could take
-        // arbitrarily long in theory, or fail
+        // arbitrarily long in theory, or fail.
+        // the force here for backupRootfs is so that
+        // it doens't not do it due to already being in stopping state.
         const tasks = [
-          backupRootfs({ project_id }),
+          backupRootfs({ project_id, force: true }),
           flushMutagen({ project_id }),
         ];
         await Promise.all(tasks);
