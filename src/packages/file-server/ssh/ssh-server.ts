@@ -27,6 +27,7 @@ the REST server on localhost.
 */
 
 import { init as initAuth } from "./auth";
+import { startProxyServer } from "./proxy";
 import { install, sshpiper } from "@cocalc/backend/sandbox/install";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { secrets, sshServer } from "@cocalc/backend/data";
@@ -54,6 +55,7 @@ export async function init({
   logger.debug("init", { port });
   // ensure sshpiper is installed
   await install("sshpiper");
+  await startProxyServer();
   const { url } = await initAuth({ client, scratch });
   const hostKey = join(secretsPath(), "host_key");
   await mkdir(dirname(hostKey), { recursive: true });

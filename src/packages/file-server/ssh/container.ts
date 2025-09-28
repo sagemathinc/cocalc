@@ -262,15 +262,17 @@ function jsonToPorts(obj) {
   return ports as Ports;
 }
 
-export async function getPorts({ volume }: { volume: string }): Promise<Ports> {
-  const { stdout } = await podman([
-    "inspect",
-    containerName(volume),
-    "--format",
-    "{{json .NetworkSettings.Ports}}",
-  ]);
-  return jsonToPorts(JSON.parse(stdout));
-}
+export const getPorts = reuseInFlight(
+  async ({ volume }: { volume: string }): Promise<Ports> => {
+    const { stdout } = await podman([
+      "inspect",
+      containerName(volume),
+      "--format",
+      "{{json .NetworkSettings.Ports}}",
+    ]);
+    return jsonToPorts(JSON.parse(stdout));
+  },
+);
 
 const dotMutagens: { [volume: string]: string } = {};
 

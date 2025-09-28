@@ -19,5 +19,5 @@ export default async function init() {
   logger.debug("Start Conat services");
   await initConat();
   logger.debug("Start proxy server");
-  startProxyServer();
+  await startProxyServer();
 }

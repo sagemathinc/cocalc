@@ -17,9 +17,17 @@
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "btrfs", "cocalc"],
+  "keywords": [
+    "utilities",
+    "btrfs",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
@@ -27,8 +35,10 @@
     "@cocalc/file-server": "workspace:*",
     "@cocalc/project-runner": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@isaacs/ttlcache": "^1.4.1",
     "awaiting": "^3.0.0",
     "express": "^4.21.2",
+    "http-proxy-3": "^1.21.1",
     "micro-key-producer": "^0.8.1"
   },
   "devDependencies": {

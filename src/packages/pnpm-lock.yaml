@@ -320,12 +320,18 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@isaacs/ttlcache':
+        specifier: ^1.4.1
+        version: 1.4.1
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      http-proxy-3:
+        specifier: ^1.21.1
+        version: 1.21.1
       micro-key-producer:
         specifier: ^0.8.1
         version: 0.8.1

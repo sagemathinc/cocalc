@@ -1,6 +1,4 @@
 /*
-Lightweight HTTP/WS proxy for Node 24 + http-proxy-3.
-
 This starts a very lightweight http server listening on the requested port,
 which proxies all http traffic (including websockets) as follows:
 
@@ -21,6 +19,10 @@ by the compute_server_id, so url's look like
 Notes:
 - <base_url> is typically `${project_id}` or `${project_id}/${compute_server_id}`.
 - We set xfwd headers and support WebSockets.
+
+This proxy gets typically exposed externally via the proxy in
+
+   packages/file-server/ssh/proxy.ts
 */
 
 import * as http from "node:http";
@@ -28,6 +30,7 @@ import { userInfo } from "node:os";
 import httpProxy from "http-proxy-3";
 import { getLogger } from "@cocalc/project/logger";
 import { project_id, compute_server_id } from "@cocalc/project/data";
+import listen from "@cocalc/backend/misc/async-server-listen";
 
 const logger = getLogger("project:servers:proxy");
 
@@ -37,7 +40,7 @@ interface StartOptions {
   host?: string; // default 127.0.0.1
 }
 
-export function startProxyServer({
+export async function startProxyServer({
   base_url = getProxyBaseUrl({ project_id, compute_server_id }),
   port = userInfo().username == "root" ? 80 : 8080,
   host = "127.0.0.1",
@@ -117,7 +120,12 @@ export function startProxyServer({
     }
   });
 
-  proxyServer.listen(port);
+  await listen({
+    server: proxyServer,
+    port,
+    host,
+    desc: "project HTTP proxy server",
+  });
   return proxyServer;
 }
 
