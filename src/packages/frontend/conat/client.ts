@@ -480,10 +480,14 @@ export class ConatClient extends EventEmitter {
 
   refCacheInfo = () => refCacheInfo();
 
-  projectRunner = (project_id: string) => {
+  projectRunner = (
+    project_id: string,
+    { timeout = 30 * 1000 * 60 }: { timeout?: number } = {},
+  ) => {
     return projectRunnerClient({
       project_id,
       client: this.conat(),
+      timeout,
     });
   };
 

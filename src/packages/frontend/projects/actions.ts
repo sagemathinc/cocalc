@@ -1019,6 +1019,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         await runner.stop({ project_id, force });
       } catch (err) {
         actions.setState({ control_error: `Error stopping project -- ${err}` });
+        // it might still have stopped or failed to stop due to already
+        // being stopped
+        await runner.status({ project_id });
         throw err;
       }
       actions.setState({ control_error: "" });

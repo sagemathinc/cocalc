@@ -19,6 +19,7 @@ import { getLogger } from "@cocalc/conat/client";
 const logger = getLogger("conat:project:runner:load-balancer");
 
 const MAX_STATUS_TRIES = 3;
+const TIMEOUT = 30 * 60 * 1000;
 
 export interface Options {
   subject?: string;
@@ -61,6 +62,7 @@ export async function server({
           return projectRunnerClient({
             client,
             subject: `project-runner.${server}`,
+            timeout: TIMEOUT,
           });
         }
       }
@@ -85,6 +87,7 @@ export async function server({
     return projectRunnerClient({
       client,
       subject: `project-runner.${server}`,
+      timeout: TIMEOUT,
     });
   };
 

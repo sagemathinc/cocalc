@@ -49,10 +49,15 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:sidecar");
 
+// run backups of all running projects, then wait this long,
+// then do it again, etc.
+// Of course this always gets run when the project stops.
+const BACKUP_ROOTFS_INTERVAL = 60_000;
+
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.6.12";
+const VERSION = "0.6.13";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
@@ -66,12 +71,17 @@ COPY restore-home.sh /usr/local/bin/restore-home.sh
 RUN chmod a+x /usr/local/bin/*
 `;
 
-const RSYNC_COMPRESSION = "lz4";
+const RSYNC_COMPRESS = {
+  lowCpu: "--compress --compress-choice=lz4",
+  moreCompressed: "--compress --compress-choice=zstd --compress-level=3",
+  none: "",
+};
 
 const ROOTFS_SUCCESS_SENTINEL = "etc/cocalc/initialized";
 
-// The backup and restore scripts assume overlayfs was mounted using:
+// - The backup and restore scripts assume overlayfs was mounted using:
 //     xino=off,metacopy=off,redirect_dir=off
+// - Backup does NOT use --whole-file since it could be partial updates.
 const BACKUP_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
@@ -81,18 +91,19 @@ mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/uppe
 cd /root
 rsync -Hax --delete --numeric-ids \
   -e "ssh -o Compression=no -c aes128-gcm@openssh.com" \
-  --compress \
-  --compress-choice=${RSYNC_COMPRESSION} \
+  ${RSYNC_COMPRESS.lowCpu} \
   --no-inc-recursive --info=progress2 --no-human-readable \
   --delete \
   --exclude /${ROOTFS_SUCCESS_SENTINEL} \
-  --relative \
-  /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
-  ${FILE_SERVER_NAME}:/
+  --mkpath \
+                      /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/ \
+  ${FILE_SERVER_NAME}:/root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 `.trim();
 
 // We have to be very careful to put in a root marker when we sync the rootfs successfully.
 // With home on the other hand, we don't, because of mutagen always.
+// Restore is a very visible bottlekneck for users *and* can be over either a fast link
+// or a slow link.  We thus use adaptive zstd compresison
 const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
@@ -101,17 +112,18 @@ ssh ${FILE_SERVER_NAME} mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_I
 
 rsync -Hax --numeric-ids \
   -e "ssh -o Compression=no -c aes128-gcm@openssh.com" \
-  --compress \
-  --compress-choice=${RSYNC_COMPRESSION} \
+  ${RSYNC_COMPRESS.moreCompressed} \
   --no-inc-recursive --info=progress2 --no-human-readable \
   --delete \
+  --whole-file \
   --exclude ${ROOTFS_SUCCESS_SENTINEL} \
-  --relative \
-   ${FILE_SERVER_NAME}:/root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/  /
+  --mkpath \
+  ${FILE_SERVER_NAME}:/root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/  \
+                      /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
 # successfully initialization with no errors:
 mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/${dirname(ROOTFS_SUCCESS_SENTINEL)}
-touch /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/${ROOTFS_SUCCESS_SENTINEL}
+touch    /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/${ROOTFS_SUCCESS_SENTINEL}
 `.trim();
 
 // The --update in RSYNC_HOME_SH is very important.  In one direction,
@@ -125,8 +137,7 @@ set -euo pipefail
 rsync -axH \
   --sparse \
   -e "ssh -o Compression=no -c aes128-gcm@openssh.com" \
-  --compress \
-  --compress-choice=${RSYNC_COMPRESSION} \
+  ${RSYNC_COMPRESS.moreCompressed} \
   --no-inc-recursive --info=progress2 --no-human-readable \
   --update \
   --exclude=/${PROJECT_IMAGE_PATH} \
@@ -140,9 +151,6 @@ const RESTORE_HOME_SH = `${RSYNC_HOME_SH} ${FILE_SERVER_NAME}:/root/ /root/`;
 // handles all copying back to file server.  But having it
 // in place for making a backup is a nice "just in case".
 const BACKUP_HOME_SH = `${RSYNC_HOME_SH} /root/ ${FILE_SERVER_NAME}:/root/`;
-
-// run backups of all running projects, then wait this long, then do it again, etc.
-const BACKUP_ROOTFS_INTERVAL = 30_000;
 
 export async function init() {
   logger.debug("init");
@@ -377,7 +385,7 @@ export async function startSidecar({
   return initFileSync;
 }
 
-export async function backupRootfs({ project_id }) {
+export const backupRootfs = reuseInFlight(async ({ project_id }) => {
   const name = sidecarContainerName(project_id);
   const t = Date.now();
   logger.debug("backupRootfs: STARTED", { project_id });
@@ -414,7 +422,7 @@ export async function backupRootfs({ project_id }) {
     }
   }
   logger.debug("backupRootfs: DONE", { project_id, ms: Date.now() - t });
-}
+});
 
 // we back up each one in serial rather than parallel, to
 // avoid too much of a load spike.  Also reuseInFlight ensures

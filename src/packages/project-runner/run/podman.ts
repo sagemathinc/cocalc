@@ -434,7 +434,8 @@ export async function stop({
   }
 }
 
-export async function podman(args: string[], timeout?) {
+// 30 minute timeout (?)
+export async function podman(args: string[], timeout = 30 * 60 * 1000) {
   logger.debug("podman ", args.join(" "));
   try {
     const x = await executeCode({
