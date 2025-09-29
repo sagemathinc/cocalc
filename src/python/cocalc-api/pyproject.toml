@@ -39,8 +39,38 @@ indent_width = 4
 line-length = 150
 lint.select = ["E", "F", "B"]  # Pyflakes, pycodestyle, bugbear, etc.
 
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/env/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+precision = 1
+
+[tool.coverage.html]
+directory = "htmlcov"
+
 [dependency-groups]
 dev = [
+    "coverage[toml]",
     "ipython",
     "mkdocs",
     "mkdocs-material",
@@ -48,6 +78,7 @@ dev = [
     "mypy",
     "pyright",
     "pytest>=8.4.1",
+    "pytest-cov",
     "ruff>=0.12.11",
     "yapf",
 ]

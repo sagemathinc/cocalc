@@ -71,6 +71,12 @@ src/conf/tinc_hosts/
 # mocha: banket coverage report
 src/coverage
 src/*/coverage
+
+# Python coverage files
+.coverage
+.coverage.*
+htmlcov/
+**/htmlcov/
 # comes up when testing in that directory
 src/rethinkdb_data/
 src/dev/project/rethinkdb_data/
