@@ -5,6 +5,7 @@ import time
 import pytest
 
 from cocalc_api import Hub, Project
+from .conftest import assert_valid_uuid
 
 
 class TestHubSystem:
@@ -50,10 +51,7 @@ class TestHubProjects:
         project_id = hub.projects.create_project(title=title, description=description)
 
         assert project_id is not None
-        assert isinstance(project_id, str)
-        assert len(project_id) > 0
-        # Should be a UUID-like string
-        assert '-' in project_id
+        assert_valid_uuid(project_id, "Project ID")
 
     def test_list_projects(self, hub):
         """Test listing projects."""
@@ -84,7 +82,7 @@ class TestHubProjects:
         print(f"\n1. Creating project '{title}'...")
         project_id = hub.projects.create_project(title=title, description=description)
         assert project_id is not None
-        assert isinstance(project_id, str)
+        assert_valid_uuid(project_id, "Project ID")
         print(f"   Created project: {project_id}")
 
         try:

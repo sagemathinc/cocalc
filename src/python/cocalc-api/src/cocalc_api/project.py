@@ -59,7 +59,7 @@ class System:
             {'now': 1756489740133}
 
         """
-        raise NotImplementedError
+        ...
 
     @api_method("system.exec", timeout_seconds=True)
     def exec(
@@ -106,7 +106,7 @@ class System:
             >>> project.system.exec(command="echo 'hello from cocalc'")
             {'stdout': 'hello from cocalc\\n', 'stderr':'', 'exit_code': 0}
         """
-        raise NotImplementedError
+        ...
 
     @api_method("system.jupyterExecute")
     def jupyter_execute(

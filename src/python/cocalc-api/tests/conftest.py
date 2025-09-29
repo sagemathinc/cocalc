@@ -2,9 +2,27 @@
 Pytest configuration and fixtures for cocalc-api tests.
 """
 import os
+import uuid
 import pytest
 
 from cocalc_api import Hub, Project
+
+
+def assert_valid_uuid(value, description="value"):
+    """
+    Assert that the given value is a string and a valid UUID.
+
+    Args:
+        value: The value to check
+        description: Description of the value for error messages
+    """
+    assert isinstance(value, str), f"{description} should be a string, got {type(value)}"
+    assert len(value) > 0, f"{description} should not be empty"
+
+    try:
+        uuid.UUID(value)
+    except ValueError:
+        pytest.fail(f"{description} should be a valid UUID, got: {value}")
 
 
 @pytest.fixture(scope="session")

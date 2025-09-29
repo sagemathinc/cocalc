@@ -4,6 +4,7 @@ Tests for Project client functionality.
 import pytest
 
 from cocalc_api import Project
+from .conftest import assert_valid_uuid
 
 
 class TestProjectCreation:
@@ -17,9 +18,8 @@ class TestProjectCreation:
         assert 'description' in temporary_project
         assert temporary_project['title'].startswith('CoCalc API Test ')
         assert temporary_project['description'] == "Temporary project created by cocalc-api tests"
-        # Project ID should be a UUID-like string
-        assert len(temporary_project['project_id']) > 0
-        assert '-' in temporary_project['project_id']
+        # Project ID should be a valid UUID
+        assert_valid_uuid(temporary_project['project_id'], "Project ID")
 
     def test_project_exists_in_list(self, hub, temporary_project):
         """Test that the created project appears in the projects list."""
