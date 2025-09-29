@@ -12,6 +12,7 @@ export const projects = {
   setQuotas: authFirstRequireAccount,
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
+  deleteProject: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -103,4 +104,5 @@ export interface Projects {
 
   start: (opts: { account_id: string; project_id: string }) => Promise<void>;
   stop: (opts: { account_id: string; project_id: string }) => Promise<void>;
+  deleteProject: (opts: { account_id: string; project_id: string }) => Promise<void>;
 }

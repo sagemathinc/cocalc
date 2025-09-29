@@ -103,3 +103,6 @@ export async function stop({
   const project = await getProject(project_id);
   await project.stop();
 }
+
+import deleteProject from "@cocalc/server/projects/delete";
+export { deleteProject };

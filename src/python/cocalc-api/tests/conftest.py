@@ -73,9 +73,25 @@ def temporary_project(hub):
 
     yield project_info
 
-    # Cleanup: No direct delete API available
-    # The project will remain but can be manually cleaned up
-    print(f"\nNote: Test project '{title}' (ID: {project_id}) created but not deleted - no delete API available")
+    # Cleanup: Stop the project and attempt to delete it
+    print(f"\nCleaning up test project '{title}' (ID: {project_id})...")
+
+    try:
+        # Stop the project first
+        print(f"  Stopping project {project_id}...")
+        hub.projects.stop(project_id)
+        print(f"  Project {project_id} stopped successfully")
+    except Exception as e:
+        print(f"  Failed to stop project {project_id}: {e}")
+
+    try:
+        # Delete the project using the new delete method
+        print(f"  Deleting project {project_id}...")
+        hub.projects.delete(project_id)
+        print(f"  Project {project_id} deleted successfully")
+    except Exception as e:
+        print(f"  Failed to delete project {project_id}: {e}")
+        print("  Project is stopped but may still exist - manual cleanup recommended")
 
 
 @pytest.fixture(scope="session")

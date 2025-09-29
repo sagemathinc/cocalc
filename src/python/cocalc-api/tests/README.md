@@ -36,12 +36,20 @@ uv run pytest -v
 - `COCALC_API_KEY` (required) - Your CoCalc API key
 - `COCALC_HOST` (optional) - CoCalc server URL (default: `http://localhost:5000`)
 
-## Automatic Project Creation
+## Automatic Project Lifecycle Management
 
-The test suite automatically creates temporary projects for testing via the `temporary_project` fixture:
+The test suite automatically manages project lifecycle for testing via the `temporary_project` fixture:
 
+### Project Creation
 - Projects are created with unique names like `CoCalc API Test YYYYMMDD-HHMMSS`
 - Projects include a description: "Temporary project created by cocalc-api tests"
-- **Important**: Projects are NOT automatically deleted after tests (no delete API available)
-- You'll see a note after tests indicating which projects were created
-- These test projects can be manually deleted from the CoCalc interface if desired
+- Projects are automatically started and tested for readiness before tests run
+
+### Project Cleanup (NEW)
+After all tests complete, the test suite now automatically performs cleanup:
+- **Stops** the test project to free up resources
+- **Attempts deletion** if the delete API becomes available (currently not implemented)
+- Provides clear feedback about cleanup actions and any failures
+- If deletion is not available, projects remain stopped but can be manually deleted from the CoCalc interface
+
+This ensures test projects don't continue consuming server resources after tests complete.

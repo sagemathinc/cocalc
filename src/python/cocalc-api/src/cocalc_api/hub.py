@@ -9,9 +9,13 @@ class Hub:
     def __init__(self, api_key: str, host: str = "https://cocalc.com"):
         self.api_key = api_key
         self.host = host
-        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"})
+        self.client = httpx.Client(
+            auth=(api_key, ""), headers={"Content-Type": "application/json"})
 
-    def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
+    def call(self,
+             name: str,
+             arguments: list[Any],
+             timeout: Optional[int] = None) -> Any:
         """
         Perform an API call to the CoCalc backend.
 
@@ -140,7 +144,10 @@ class Projects:
     def __init__(self, parent: "Hub"):
         self._parent = parent
 
-    def get(self, fields: Optional[list[str]] = None, all: Optional[bool] = False, project_id: Optional[str] = None) -> list[dict[str, Any]]:
+    def get(self,
+            fields: Optional[list[str]] = None,
+            all: Optional[bool] = False,
+            project_id: Optional[str] = None) -> list[dict[str, Any]]:
         """
         Get data about projects that you are a collaborator on. Only gets
         recent projects by default; set all=True to get all projects.
@@ -216,7 +223,8 @@ class Projects:
         raise NotImplementedError
 
     @api_method("projects.addCollaborator", opts=True)
-    def add_collaborator(self, project_id: str | list[str], account_id: str | list[str]) -> dict[str, Any]:
+    def add_collaborator(self, project_id: str | list[str],
+                         account_id: str | list[str]) -> dict[str, Any]:
         """
         Add a collaborator to a project.
 
@@ -235,7 +243,8 @@ class Projects:
         ...
 
     @api_method("projects.removeCollaborator", opts=True)
-    def remove_collaborator(self, project_id: str, account_id: str) -> dict[str, Any]:
+    def remove_collaborator(self, project_id: str,
+                            account_id: str) -> dict[str, Any]:
         """
         Remove a collaborator from a project.
 
@@ -265,6 +274,19 @@ class Projects:
 
         Args:
             project_id (str): Project ID of the project to stop.
+        """
+        ...
+
+    @api_method("projects.deleteProject")
+    def delete(self, project_id: str) -> dict[str, Any]:
+        """
+        Delete a project by setting the deleted flag to true.
+
+        Args:
+            project_id (str): Project ID of the project to delete.
+
+        Returns:
+            dict[str, Any]: API response indicating success.
         """
         ...
 
@@ -334,7 +356,8 @@ class Sync:
         self._parent = parent
 
     @api_method("sync.history")
-    def history(self, project_id: str, path: str) -> list[dict[str, Any]]:  # type: ignore[empty-body]
+    def history(self, project_id: str,
+                path: str) -> list[dict[str, Any]]:  # type: ignore[empty-body]
         """
         Get complete edit history of a file.
 
@@ -380,7 +403,7 @@ class Database:
             >>> hub.db.query({"accounts":{"first_name":None}})
             {'accounts': {'first_name': 'W'}}
         """
-        raise NotImplementedError
+        ...
 
 
 class Messages:
@@ -389,7 +412,11 @@ class Messages:
         self._parent = parent
 
     @api_method("messages.send")
-    def send(self, subject: str, body: str, to_ids: list[str], reply_id: Optional[int] = None) -> int:
+    def send(self,
+             subject: str,
+             body: str,
+             to_ids: list[str],
+             reply_id: Optional[int] = None) -> int:
         """
         Send a message to one or more users.
 
@@ -409,7 +436,8 @@ class Messages:
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        type: Optional[Literal["received", "sent", "new", "starred", "liked"]] = None,
+        type: Optional[Literal["received", "sent", "new", "starred",
+                               "liked"]] = None,
     ) -> list[MessageType]:  # type: ignore[empty-body]
         """
         Get your messages.
@@ -580,7 +608,9 @@ class Organizations:
         raise NotImplementedError
 
     @api_method("org.getUsers")
-    def get_users(self, name: str) -> list[OrganizationUser]:  # type: ignore[empty-body]
+    def get_users(
+            self,
+            name: str) -> list[OrganizationUser]:  # type: ignore[empty-body]
         """
         Return list of all accounts that are members of the named organization.
 

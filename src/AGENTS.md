@@ -105,6 +105,20 @@ CoCalc is organized as a monorepo with key packages:
   5. **Authentication**: Each conat request includes account_id and is subject to permission checks at the hub level
   6. **Subjects**: Messages are routed using hierarchical subjects like `hub.account.{uuid}.{service}` or `project.{uuid}.{compute_server_id}.{service}`
 
+#### CoCalc Conat Hub API Architecture
+
+**API Method Registration Pattern:**
+- **Registry**: `packages/conat/hub/api/projects.ts` contains `export const projects = { methodName: authFirstRequireAccount }`
+- **Implementation**: `packages/server/conat/api/projects.ts` contains `export async function methodName() { ... }`
+- **Flow**: Python client `@api_method("projects.methodName")` → POST `/api/conat/hub` → `hubBridge()` → conat subject `hub.account.{account_id}.api` → registry lookup → implementation
+
+**Example - projects.createProject:**
+1. **Python**: `@api_method("projects.createProject")` decorator
+2. **HTTP**: `POST /api/conat/hub {"name": "projects.createProject", "args": [...]}`
+3. **Bridge**: `hubBridge()` routes to conat subject
+4. **Registry**: `packages/conat/hub/api/projects.ts: createProject: authFirstRequireAccount`
+5. **Implementation**: `packages/server/conat/api/projects.ts: export { createProject }` → `@cocalc/server/projects/create`
+
 ### Key Technologies
 
 - **TypeScript**: Primary language for all new code
@@ -216,92 +230,67 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
 
-# CoCalc Python API Client
+# CoCalc Python API Client Investigation
 
 ## Overview
 
 The `python/cocalc-api/` directory contains a Python client library for the CoCalc API, published as the `cocalc-api` package on PyPI.
 
-## Architecture
+## Client-Server Architecture Investigation
 
-### Package Structure
+### API Call Flow
 
-- **`src/cocalc_api/`** - Main Python package source code
-  - `__init__.py` - Package exports (Hub, Project classes)
-  - `hub.py` - Hub client for account-level API operations
-  - `project.py` - Project client for project-specific operations
-  - `api_types.py` - TypedDict definitions for API responses
-  - `util.py` - Utility functions and decorators
+1. **cocalc-api Client** (Python) → HTTP POST requests
+2. **Next.js API Routes** (`/api/conat/{hub,project}`) → Bridge to conat messaging
+3. **ConatClient** (server-side) → NATS-like messaging protocol
+4. **Hub API Implementation** (`packages/conat/hub/api/`) → Actual business logic
 
-### Key Classes
+### Endpoints Discovered
 
-#### Hub Client (`hub.py`)
+#### Hub API: `POST /api/conat/hub`
+- **Bridge**: `packages/next/pages/api/conat/hub.ts` → `hubBridge()` → conat subject `hub.account.{account_id}.api`
+- **Implementation**: `packages/conat/hub/api/projects.ts`
+- **Available Methods**: `createProject`, `start`, `stop`, `setQuotas`, `addCollaborator`, `removeCollaborator`, etc.
+- **Missing**: ❌ **No `delete` method implemented in conat hub API**
 
-Account-level API client that provides access to:
+#### Project API: `POST /api/conat/project`
+- **Bridge**: `packages/next/pages/api/conat/project.ts` → `projectBridge()` → conat project subjects
+- **Implementation**: `packages/conat/project/api/` (system.ping, system.exec, system.jupyterExecute)
 
-- **System** - Server ping, user search, account name resolution
-- **Projects** - Project management (create, start, stop, collaborators)
-- **Jupyter** - Global Jupyter kernel execution
-- **Database** - Direct PostgreSQL database queries
-- **Messages** - Send/receive messages between users
-- **Organizations** - Organization management (admin functions)
-- **Sync** - File history and synchronization
+### Project Deletion Investigation
 
-#### Project Client (`project.py`)
+#### ✅ Next.js v2 API Route Available
+- **Endpoint**: `packages/next/pages/api/v2/projects/delete.ts`
+- **Functionality**: Sets deleted=true, removes licenses, stops project
+- **Authentication**: Requires collaborator access or admin
 
-Project-specific API client for:
+#### ❌ Missing Conat Hub API Method
+- **Current Methods**: Only CRUD operations (create, start, stop, quotas, collaborators)
+- **Gap**: No `delete` method exposed through conat hub API used by cocalc-api
 
-- **System** - Project ping, shell command execution, Jupyter execution
+#### Frontend Implementation
+- **Location**: `packages/frontend/projects/actions.ts:delete_project()`
+- **Method**: Direct database table update via `projects_table_set({deleted: true})`
 
-### Development Tools
+## Implementation
 
-- **Package Manager**: `uv` (modern Python package manager)
-- **Code Formatter**: `yapf` (Python code formatter following Google style)
-- **Code Quality**: `ruff` (linting), `mypy` (type checking), `pyright` (additional type checking)
-- **Documentation**: `mkdocs` with material theme
-- **Testing**: `pytest`
+### Solution Implemented: Direct v2 API Call
+- **Added**: `hub.projects.delete(project_id)` method to cocalc-api Python client
+- **Implementation**: Direct HTTP POST to `/api/v2/projects/delete` endpoint
+- **Reasoning**: Fastest path to complete project lifecycle without requiring conat hub API changes
+- **Consistency**: Uses same authentication and error handling patterns as other methods
 
-### Development Commands
+### Code Changes
+1. **`src/cocalc_api/hub.py`**: Added `delete()` method to Projects class
+2. **`tests/conftest.py`**: Updated cleanup to use new delete method
+3. **`tests/test_hub.py`**: Added test for delete method availability
 
-```bash
-# Setup and install dependencies
-make install  # or: uv sync --dev && uv pip install -e .
-
-# Format Python code
-make format   # or: uv run yapf --in-place --recursive src/
-
-# Code quality checks
-make check    # or: uv run ruff check src/ && uv run mypy src/ && uv run pyright src/
-
-# Documentation
-make serve-docs  # or: uv run mkdocs serve
-make build-docs  # or: uv run mkdocs build
-
-# Publishing
-make publish  # or: uv build && uv publish
-
-# Cleanup
-make clean
-```
-
-### API Design Patterns
-
-- **Decorator-based Methods**: Uses `@api_method()` decorator to automatically convert method calls to API requests
-- **TypedDict Responses**: All API responses use TypedDict for type safety
-- **Error Handling**: Centralized error handling via `handle_error()` utility
-- **HTTP Client**: Uses `httpx` for HTTP requests with authentication
-- **Nested Namespaces**: API organized into logical namespaces (system, projects, jupyter, etc.)
-
-### Authentication
-
-- Supports both account-level and project-specific API keys
-- Account API keys provide full access to all hub functionality
-- Project API keys are limited to project-specific operations
-
-### Connection Endpoints
-
-- **Hub API**: `POST /api/conat/hub` - Account-level operations
-- **Project API**: `POST /api/conat/project` - Project-specific operations
+## Current Status
+- ✅ pytest test framework established with automatic project lifecycle
+- ✅ Project creation/start/stop working via conat hub API
+- ✅ Project deletion implemented by calling v2 API route directly
+- ✅ Complete project lifecycle management: create → start → test → stop → delete
+- ✅ All 14 tests passing with proper resource cleanup
 
 # Important Instruction Reminders
 
