@@ -93,13 +93,13 @@ export async function start({
   try {
     starting.add(project_id);
     resetBootlog({ project_id });
-    bootlog({ project_id, type: "start", progress: 0 });
+    bootlog({ project_id, type: "start-project", progress: 0 });
 
     const home = await localPath({ project_id });
     logger.debug("start: got home", { project_id, home });
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 5,
       desc: "got home directory",
     });
@@ -132,7 +132,7 @@ export async function start({
         if (x == "running") {
           bootlog({
             project_id,
-            type: "start",
+            type: "start-project",
             progress: 100,
             desc: "already running",
           });
@@ -146,7 +146,12 @@ export async function start({
         await createPod();
       }
     }
-    bootlog({ project_id, type: "start", progress: 20, desc: "created pod" });
+    bootlog({
+      project_id,
+      type: "start-project",
+      progress: 20,
+      desc: "created pod",
+    });
 
     const mounts = getCoCalcMounts();
 
@@ -159,7 +164,7 @@ export async function start({
 
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 20,
       desc: "got env variables",
     });
@@ -175,7 +180,7 @@ export async function start({
     });
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 30,
       desc: "started file sync sidecar",
     });
@@ -184,7 +189,7 @@ export async function start({
     logger.debug("start: created home", { project_id });
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 35,
       desc: "created HOME",
     });
@@ -192,7 +197,7 @@ export async function start({
     await ensureConfFilesExists(home);
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 37,
       desc: "created conf files",
     });
@@ -203,7 +208,7 @@ export async function start({
 
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 40,
       desc: "wrote startup scripts",
     });
@@ -211,7 +216,7 @@ export async function start({
     const rootfs = await rootFilesystem.mount({ project_id, home, config });
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 45,
       desc: "mounted rootfs",
     });
@@ -221,7 +226,7 @@ export async function start({
 
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 50,
       desc: "setup project directories",
     });
@@ -241,7 +246,7 @@ export async function start({
     }
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 80,
       desc: "configured quotas",
     });
@@ -286,7 +291,7 @@ export async function start({
 
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 85,
       desc: "launched project container",
     });
@@ -297,7 +302,7 @@ export async function start({
       progress += 2;
       bootlog({
         project_id,
-        type: "start",
+        type: "start-project",
         progress,
         desc,
       });
@@ -311,12 +316,12 @@ export async function start({
 
     bootlog({
       project_id,
-      type: "start",
+      type: "start-project",
       progress: 100,
-      desc: "started!",
+      desc: "started",
     });
   } catch (err) {
-    bootlog({ project_id, type: "start", error: err });
+    bootlog({ project_id, type: "start-project", error: err });
     throw err;
   } finally {
     starting.delete(project_id);
@@ -345,9 +350,10 @@ export async function stop({
   }
   try {
     stopping.add(project_id);
+    resetBootlog({ project_id });
     bootlog({
       project_id,
-      type: "stop",
+      type: "stop-project",
       progress: 0,
     });
 
@@ -364,7 +370,7 @@ export async function stop({
       progress += 10;
       bootlog({
         project_id,
-        type: "stop",
+        type: "stop-project",
         progress,
         desc,
       });
@@ -384,7 +390,7 @@ export async function stop({
 
         bootlog({
           project_id,
-          type: "stop",
+          type: "stop-project",
           progress: 50,
           desc: "saved files",
         });
@@ -418,15 +424,15 @@ export async function stop({
       }
       bootlog({
         project_id,
-        type: "stop",
+        type: "stop-project",
         progress: 100,
-        desc: "Fully stopped",
+        desc: "stopped",
       });
     } catch (err) {
       logger.debug("stop", { err });
       bootlog({
         project_id,
-        type: "stop",
+        type: "stop-project",
         error: err,
       });
       throw err;

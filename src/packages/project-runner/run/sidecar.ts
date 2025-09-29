@@ -363,15 +363,15 @@ export async function startSidecar({
         // reducing load matters the most:
         "--watch-polling-interval-beta=15",
         "--name=home",
-        "--mode=two-way-safe",
+        "--mode=two-way-resolved",
         "--symlink-mode=posix-raw",
         "--compression=deflate",
         `--ignore=/${PROJECT_IMAGE_PATH}`,
         `--ignore=/${COCALC_PROJECT_CACHE}`,
         "--ignore=/.mutagen**",
         "--ignore=/.snapshots",
-        "/root",
         `${FILE_SERVER_NAME}:/root`,
+        "/root",
       ]);
     }
     bootlog({
@@ -423,6 +423,13 @@ export const backupRootfs = reuseInFlight(
         throw err;
       }
     }
+    bootlog({
+      project_id,
+      type: "save-rootfs",
+      progress: 100,
+      desc: "saved",
+    });
+
     logger.debug("backupRootfs: DONE", { project_id, ms: Date.now() - t });
   },
 );
@@ -472,7 +479,7 @@ export async function flushMutagen({ project_id }) {
   // flush mutagen sync so we do not loose any work
   bootlog({
     project_id,
-    type: "mutagen",
+    type: "file-sync",
     progress: 0,
     desc: "flushing sync",
   });
@@ -480,9 +487,9 @@ export async function flushMutagen({ project_id }) {
   await podman(["exec", name, "mutagen", "sync", "flush", "--all"], 60 * 60);
   bootlog({
     project_id,
-    type: "mutagen",
+    type: "file-sync",
     progress: 100,
-    desc: "sync flushed",
+    desc: "flushed",
   });
 }
 

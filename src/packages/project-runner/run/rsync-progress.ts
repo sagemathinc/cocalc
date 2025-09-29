@@ -5,6 +5,8 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:run:rsync-progress");
 
+const MAX_UPDATES_PER_SECOND = 3;
+
 export default async function rsyncProgress({
   name,
   args,
@@ -26,7 +28,7 @@ export default async function rsyncProgress({
     command = "rsync";
   }
   args1.push(
-    //"--outbuf=L",
+    "--outbuf=L",
     "--no-inc-recursive",
     "--info=progress2",
     "--no-human-readable",
@@ -51,7 +53,7 @@ export async function rsyncProgressRunner({ command, args, progress }) {
   let lastTime = Date.now();
   child.stdout.on("data", (data) => {
     let time = Date.now();
-    if (time - lastTime <= 1000) {
+    if (time - lastTime <= 1000 / MAX_UPDATES_PER_SECOND) {
       return;
     }
     const v = split(data.toString());

@@ -169,7 +169,9 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
             {render_not_allowed()}
             {starting && (
               <div style={{ background: "white" }}>
-                <Bootlog />
+                <Bootlog
+                  style={{ border: "1px solid #ddd", padding: "15px" }}
+                />
               </div>
             )}
           </div>
