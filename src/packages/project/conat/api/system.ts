@@ -102,8 +102,9 @@ export async function signal({
 import {
   start as startNamedServer,
   status as statusOfNamedServer,
+  stop as stopNamedServer,
 } from "@cocalc/project/named-servers/control";
-export { startNamedServer, statusOfNamedServer };
+export { startNamedServer, statusOfNamedServer, stopNamedServer };
 
 export { sshPublicKey } from "@cocalc/backend/ssh/ssh-keys";
 

@@ -111,6 +111,7 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
   jupyter: async (ip: string, port: number, basePath: string) =>
     [
       `jupyter notebook`,
+      `--allow-root`,
       `--port-retries=0`,
       `--no-browser`,
       `--NotebookApp.iopub_data_rate_limit=${JUPYTERNB_DATA}`,
@@ -124,6 +125,7 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
   jupyterlab: async (ip: string, port: number, basePath: string) =>
     [
       "jupyter lab",
+      `--allow-root`,
       `--port-retries=0`, // don't try another port, only the one we specified will work
       `--no-browser`, // don't open a browser – the UI does this if appliable
       `--NotebookApp.iopub_data_rate_limit=${JUPYTERLAB_DATA}`,

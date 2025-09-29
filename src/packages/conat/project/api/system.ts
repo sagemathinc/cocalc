@@ -76,14 +76,32 @@ export interface System {
     pid?: number;
   }) => Promise<void>;
 
-  startNamedServer: (
-    name: NamedServerName,
-  ) => Promise<{ port: number; url: string }>;
-  statusOfNamedServer: (
-    name: NamedServerName,
-  ) => Promise<
-    { state: "running"; port: number; url: string } | { state: "stopped" }
+  startNamedServer: (name: NamedServerName) => Promise<{
+    state: "running" | "stopped";
+    port: number;
+    url: string;
+    pid?: number;
+    stdout: Buffer;
+    stderr: Buffer;
+    spawnError?;
+    exit?: { code; signal? };
+  }>;
+
+  statusOfNamedServer: (name: NamedServerName) => Promise<
+    | {
+        state: "running" | "stopped";
+        port: number;
+        url: string;
+        pid?: number;
+        stdout: Buffer;
+        stderr: Buffer;
+        spawnError?;
+        exit?: { code; signal? };
+      }
+    | { state: "stopped" }
   >;
+
+  stopNamedServer: (name: NamedServerName) => Promise<void>;
 
   // return the ssh public key of this project/compute server.
   // The project generates a public key on startup that is used
