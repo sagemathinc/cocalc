@@ -12,7 +12,6 @@ import { randomChoice } from "@cocalc/conat/core/server";
 import { conat } from "@cocalc/conat/client";
 import { client as projectRunnerClient, UPDATE_INTERVAL } from "./run";
 import state, { type ProjectStatus, type ProjectState } from "./state";
-import { field_cmp } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { getLogger } from "@cocalc/conat/client";
 
@@ -35,6 +34,7 @@ export interface API {
   start: () => Promise<void>;
   stop: () => Promise<void>;
   status: () => Promise<ProjectStatus>;
+  move: (opts?: { force?: boolean }) => Promise<void>;
 }
 
 export async function server({
@@ -54,35 +54,26 @@ export async function server({
     const cutoff = Date.now() - UPDATE_INTERVAL * 2.5;
 
     const cur = projects.get(project_id);
-    if (cur != null && cur.state != "opened") {
+    if (cur?.server) {
       const { server } = cur;
-      if (server) {
-        const s = runners.get(server);
-        if ((s?.time ?? 0) > cutoff) {
-          return projectRunnerClient({
-            client,
-            subject: `project-runner.${server}`,
-            timeout: TIMEOUT,
-          });
-        }
+      const s = runners.get(server);
+      if ((s?.time ?? 0) > cutoff) {
+        return projectRunnerClient({
+          client,
+          subject: `project-runner.${server}`,
+          timeout: TIMEOUT,
+        });
+      } else {
+        throw Error(`project host ${server} is not responding`);
       }
     }
-    const v: { time: number; server: string }[] = [];
-    const k = runners.getAll();
-    for (const server in k) {
-      if ((k[server].time ?? 0) <= cutoff) {
-        continue;
-      }
-      v.push({ ...k[server], server });
-    }
-    v.sort(field_cmp("time"));
-    v.reverse();
-
+    const v = getActiveRunners(runners);
     if (v.length == 0) {
       throw Error("no project runners available -- try again later");
     }
-    // this is a very dumb first attempt; it should also try another server in case a server isn't reachable
-    const server = randomChoice(new Set(v)).server;
+
+    // Project assignment: just random for now:
+    const server = randomChoice(new Set(v));
     logger.debug("getClient -- assigning to ", { project_id, server });
     return projectRunnerClient({
       client,
@@ -112,6 +103,54 @@ export async function server({
         };
 
   const sub = await client.service<API>(subject, {
+    async move({ force }: { force?: boolean } = {}) {
+      const project_id = getProjectId(this);
+      logger.debug("move", project_id);
+      const cur = projects.get(project_id);
+      if (cur == null || !cur.server) {
+        // it is not assigned to a server, so nothing to do.
+        return;
+      }
+      const setNewServer = async () => {
+        const v = getActiveRunners(runners).filter(
+          (server) => server != cur?.server,
+        );
+        const server = v.length == 0 ? undefined : randomChoice(new Set(v));
+        projects.set(project_id, { server, state: "opened" });
+        await setState1?.({ project_id, state: "opened" });
+      };
+
+      let runClient;
+      try {
+        runClient = await getClient(project_id);
+      } catch (err) {
+        if (!force) {
+          throw err;
+        }
+      }
+      try {
+        const status = await runClient.status({ project_id });
+        if (status?.state == "opened") {
+          await setNewServer();
+          return;
+        }
+      } catch (err) {
+        if (!force) {
+          throw err;
+        }
+      }
+      try {
+        await setState1?.({ project_id, state: "stopping" });
+        await runClient.stop({ project_id, force });
+      } catch (err) {
+        if (!force) {
+          await setState1?.({ project_id, state: "running" });
+          throw err;
+        }
+      }
+      await setNewServer();
+    },
+
     async start() {
       const project_id = getProjectId(this);
       logger.debug("start", project_id);
@@ -143,7 +182,7 @@ export async function server({
 
     async status() {
       const project_id = getProjectId(this);
-      logger.debug("start", project_id);
+      logger.debug("status", project_id);
       const runClient = await getClient(project_id);
       for (let i = 0; i < MAX_STATUS_TRIES; i++) {
         try {
@@ -180,6 +219,19 @@ export async function server({
       sub.close();
     },
   };
+}
+
+function getActiveRunners(runners): string[] {
+  const cutoff = Date.now() - UPDATE_INTERVAL * 2.5;
+  const k = runners.getAll();
+  const v: string[] = [];
+  for (const server in k) {
+    if ((k[server].time ?? 0) <= cutoff) {
+      continue;
+    }
+    v.push(server);
+  }
+  return v;
 }
 
 export function client({

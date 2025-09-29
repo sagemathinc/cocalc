@@ -8,7 +8,6 @@
 import { StopOutlined } from "@ant-design/icons";
 import { Button, Popconfirm } from "antd";
 import { FormattedMessage } from "react-intl";
-
 import { useActions } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";

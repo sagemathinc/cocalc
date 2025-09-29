@@ -54,7 +54,7 @@ const logger = getLogger("project-runner:podman");
 // somehow messed up, this will cleanly kill it.  It's
 // very good right now to have this on, since otherwise
 // restart, etc., would be impossible. But it is annoying
-// when debugging.  TODO: implement a "force stop" UI.
+// when debugging. 
 const STOP_ON_STATUS_ERROR = false;
 
 // projects we are definitely starting right now
@@ -520,7 +520,6 @@ export async function status({ project_id, localPath }) {
   }
   return {
     state: s,
-    ip: "",
     publicKey,
     error,
   };

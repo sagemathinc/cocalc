@@ -227,7 +227,9 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_start_project(event: ProjectControlEvent): React.JSX.Element {
+    function render_start_project(
+      event: ProjectControlEvent,
+    ): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -289,6 +291,17 @@ export const LogEntry: React.FC<Props> = React.memo(
           <FormattedMessage
             id="project.history.log-entry.project_stopped"
             defaultMessage={`stopped this project`}
+          />
+        </span>
+      );
+    }
+
+    function render_project_moved(): React.JSX.Element {
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.project_moved"
+            defaultMessage={`moved this project`}
           />
         </span>
       );
@@ -725,7 +738,9 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_invite_nonuser(event: CollaboratorEvent): React.JSX.Element {
+    function render_invite_nonuser(
+      event: CollaboratorEvent,
+    ): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -737,7 +752,9 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_remove_collaborator(event: CollaboratorEvent): React.JSX.Element {
+    function render_remove_collaborator(
+      event: CollaboratorEvent,
+    ): React.JSX.Element {
       return (
         <span>
           {" "}
@@ -769,6 +786,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_project_stop_requested();
         case "project_stopped":
           return render_project_stopped();
+        case "project_moved":
+          return render_project_moved();
         case "project_start_requested":
           return render_project_start_requested();
         case "project_started":

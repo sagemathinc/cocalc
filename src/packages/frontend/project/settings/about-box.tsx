@@ -13,9 +13,11 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
+  CopyToClipBoard,
   HelpIcon,
   Icon,
   LabeledRow,
+  Paragraph,
   SettingBox,
   TextInput,
   TimeAgo,
@@ -174,16 +176,30 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
           vertical={isFlyout}
           style={{ marginBottom: "15px" }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Icon
                 name={isProjectBookmarked(project_id) ? "star-filled" : "star"}
                 style={{
-                  color: isProjectBookmarked(project_id) ? COLORS.STAR : COLORS.GRAY,
+                  color: isProjectBookmarked(project_id)
+                    ? COLORS.STAR
+                    : COLORS.GRAY,
                   fontSize: "18px",
                   cursor: "pointer",
                 }}
-                onClick={() => setProjectBookmarked(project_id, !isProjectBookmarked(project_id))}
+                onClick={() =>
+                  setProjectBookmarked(
+                    project_id,
+                    !isProjectBookmarked(project_id),
+                  )
+                }
               />
               <Typography.Text>
                 {isProjectBookmarked(project_id) ? "Enabled" : "Disabled"}
@@ -192,7 +208,8 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             <HelpIcon title="Project Starring">
               {intl.formatMessage({
                 id: "project.settings.about-box.starred.help",
-                defaultMessage: "Starred projects can be filtered by clicking the starred filter button in your projects list.",
+                defaultMessage:
+                  "Starred projects can be filtered by clicking the starred filter button in your projects list.",
                 description: "Help text explaining how project starring works",
               })}
             </HelpIcon>
@@ -222,10 +239,37 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
           <LabeledRow
             label={intl.formatMessage(labels.created)}
             vertical={isFlyout}
+            style={{ marginBottom: "15px" }}
           >
             <TimeAgo date={created} />
           </LabeledRow>
         )}
+
+        <LabeledRow
+          key="project_id"
+          label="Project ID"
+          vertical={isFlyout}
+          style={{ marginTop: "15px" }}
+        >
+          {!isFlyout ? (
+            <CopyToClipBoard
+              inputWidth={"330px"}
+              value={project_id}
+              style={{ display: "inline-block", width: "100%", margin: 0 }}
+            />
+          ) : (
+            <Paragraph
+              copyable={{
+                text: project_id,
+                tooltips: ["Copy Project ID", "Copied!"],
+              }}
+              code
+              style={{ marginBottom: 0 }}
+            >
+              {project_id}
+            </Paragraph>
+          )}
+        </LabeledRow>
       </>
     );
   }
@@ -237,12 +281,8 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
       <SettingBox
         title={
           <>
-            {intl.formatMessage(labels.about)}{" "}
-            <ProjectTitle
-              style={{ float: "right" }}
-              project_id={project_id}
-              noClick
-            />
+            {intl.formatMessage(labels.about)} &nbsp;
+            <ProjectTitle project_id={project_id} noClick />
           </>
         }
         icon="file-alt"

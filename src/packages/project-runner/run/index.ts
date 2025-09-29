@@ -21,15 +21,21 @@ export async function init(
   opts: { id?: string; client?: ConatClient; localPath?; sshServers? } = {},
 ) {
   logger.debug("init");
+  const id = opts.id ?? process.env.PROJECT_RUNNER_NAME;
+  if (!id) {
+    throw Error("you must set the PROJECT_RUNNER_NAME env variable or the id");
+  }
   client = opts.client ?? conat();
   initFilesystem({ client });
   // make sure the sidecar container image is built and available (it's small and should take a few seconds)
   await initSidecar();
   return await projectRunnerServer({
+    id,
     client,
     start: reuseInFlight(start),
     stop: reuseInFlight(stop),
     status: reuseInFlight(status),
+    move: async () => {}, // no-op here
     localPath: opts.localPath ?? localPath,
     sshServers: opts.sshServers ?? sshServers,
   });

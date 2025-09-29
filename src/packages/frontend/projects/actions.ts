@@ -1035,6 +1035,26 @@ export class ProjectsActions extends Actions<ProjectsState> {
     },
   );
 
+  move_project = reuseInFlight(
+    async (project_id: string, force?: boolean): Promise<boolean> => {
+      const runner = webapp_client.conat_client.projectRunner(project_id);
+      const actions = redux.getProjectActions(project_id);
+      try {
+        await runner.move({ force });
+      } catch (err) {
+        actions.setState({ control_error: `Error move project -- ${err}` });
+        await runner.status({ project_id });
+        throw err;
+      }
+      actions.setState({ control_error: "" });
+      this.optimisticProjectStateUpdate(project_id, "opened");
+      this.project_log(project_id, {
+        event: "project_moved",
+      });
+      return true;
+    },
+  );
+
   restart_project = reuseInFlight(
     async (project_id: string, options?): Promise<void> => {
       if (!(await allow_project_to_run(project_id))) {

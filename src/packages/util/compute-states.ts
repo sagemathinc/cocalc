@@ -66,7 +66,7 @@ export const COMPUTE_STATES: ComputeStates = {
     desc: defineMessage({
       id: "util.compute-states.archived.desc",
       defaultMessage:
-        "Project is stored in longterm storage, and will take even longer to start.",
+        "Project will take longer to start.",
     }),
     icon: "file-archive",
     display: defineMessage({

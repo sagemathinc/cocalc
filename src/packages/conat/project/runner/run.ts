@@ -9,7 +9,6 @@ Tests are in
 
 import { type Client } from "@cocalc/conat/core/client";
 import { conat } from "@cocalc/conat/client";
-import { randomId } from "@cocalc/conat/names";
 import state, { type ProjectStatus } from "./state";
 import { until } from "@cocalc/util/async-utils";
 import type {
@@ -28,12 +27,13 @@ export interface Options {
   // willl start a service listening here.
   client?: Client;
   // id -- the id of this project runner -- each project runner must have a different id,
-  // so the load balancer knows where to place projects.
-  id?: string;
+  // so the load balancer knows where to place projects and knows where a project is
+  // currently located.
+  id: string;
   // start --- start the given project with the specified configuration.  The configuration
   // typically determines memory, disk spaces, the root filesystem image, etc.
   start: (opts: {
-    project_id: string;
+    project_id?: string;
     config?: Configuration;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
@@ -50,10 +50,13 @@ export interface Options {
 
   // get the status of a project here.
   status: (opts: {
-    project_id: string;
+    project_id?: string;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
   }) => Promise<ProjectStatus>;
+
+  move: (opts: { project_id?: string; force?: boolean }) => Promise<void>;
+
   // local -- the absolute path on the filesystem where the home directory of this
   // project is hosted.  In case of a single server setup it could be the exact
   // same path as the remote files and no sync is involved.
@@ -78,25 +81,30 @@ export interface Options {
 }
 
 export interface API {
-  start: (opts: {
+  start: (opts?: {
     project_id: string;
     config?: Configuration;
   }) => Promise<ProjectStatus>;
-  stop: (opts: {
+  stop: (opts?: {
     project_id: string;
     force?: boolean;
   }) => Promise<ProjectStatus>;
-  status: (opts: { project_id: string }) => Promise<ProjectStatus>;
+  status: (opts?: { project_id: string }) => Promise<ProjectStatus>;
+  move: (opts?: { force?: boolean }) => Promise<void>;
 }
 
 export async function server(options: Options) {
-  options.id ??= randomId();
+  logger.debug(`Start project server ${options.id}`);
+  if (!options.id) {
+    throw Error("project server id MUST be specified");
+  }
   options.client ??= conat();
 
   const { id, client, start, stop, status } = options;
   const { projects, runners } = await state({ client });
   let running = true;
 
+  runners.set(id, { time: Date.now() });
   until(
     () => {
       if (!running) {
@@ -154,8 +162,14 @@ export async function server(options: Options) {
         })),
         server: id,
       };
-      projects.set(opts.project_id, s);
+      projects.set(opts.project_id, { server: id, state: s.state } as const);
       return s;
+    },
+
+    async move(_opts?: { force?: boolean }) {
+      // this is actually handled by the load balancer, since project runner
+      // might be down (as main motivation to move!) and archiving just
+      // involves stop and set something in projects state.
     },
   });
 
