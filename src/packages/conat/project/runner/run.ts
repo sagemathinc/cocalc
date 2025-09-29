@@ -55,7 +55,11 @@ export interface Options {
     sshServers?: SshServersFunction;
   }) => Promise<ProjectStatus>;
 
-  move: (opts: { project_id?: string; force?: boolean }) => Promise<void>;
+  move: (opts: {
+    project_id?: string;
+    force?: boolean;
+    server?: string;
+  }) => Promise<void>;
 
   // local -- the absolute path on the filesystem where the home directory of this
   // project is hosted.  In case of a single server setup it could be the exact

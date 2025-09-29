@@ -34,7 +34,7 @@ export interface API {
   start: () => Promise<void>;
   stop: () => Promise<void>;
   status: () => Promise<ProjectStatus>;
-  move: (opts?: { force?: boolean }) => Promise<void>;
+  move: (opts?: { force?: boolean; server?: string }) => Promise<void>;
 }
 
 export async function server({
@@ -103,7 +103,7 @@ export async function server({
         };
 
   const sub = await client.service<API>(subject, {
-    async move({ force }: { force?: boolean } = {}) {
+    async move({ force, server }: { force?: boolean; server?: string } = {}) {
       const project_id = getProjectId(this);
       logger.debug("move", project_id);
       const cur = projects.get(project_id);
@@ -112,10 +112,12 @@ export async function server({
         return;
       }
       const setNewServer = async () => {
-        const v = getActiveRunners(runners).filter(
-          (server) => server != cur?.server,
-        );
-        const server = v.length == 0 ? undefined : randomChoice(new Set(v));
+        if (!server) {
+          const v = getActiveRunners(runners).filter(
+            (server) => server != cur?.server,
+          );
+          server = v.length == 0 ? undefined : randomChoice(new Set(v));
+        }
         projects.set(project_id, { server, state: "opened" });
         await setState1?.({ project_id, state: "opened" });
       };
