@@ -15,6 +15,7 @@ import {
   NAMED_SERVER_NAMES,
 } from "@cocalc/util/types/servers";
 import getSpec from "./list";
+import { delay } from "awaiting";
 
 const winston = getLogger("named-servers:control");
 
@@ -37,10 +38,13 @@ interface SpawnedServer {
   stderr: Buffer;
   spawnError?;
   exit?: { code; signal? };
+  cmd: string;
+  args: string[];
 }
 
 // The servers are children processes:
 const children: { [name: string]: SpawnedServer } = {};
+export { children };
 
 // Returns the port or throws an exception.
 export async function start(name: NamedServerName) {
@@ -64,22 +68,27 @@ export async function start(name: NamedServerName) {
   // Other servers (e.g., Pluto, code-server) that don't need
   // a basePath because they use only relative URL's are accessed
   // via .../project_id/server/${port}.
-  let ip = INFO.location.host ?? "127.0.0.1";
+  let ip = INFO?.location.host ?? "127.0.0.1";
   if (ip === "localhost") {
     ip = "127.0.0.1";
   }
 
   const url = getBase(name, port);
-  const cmd = await getCommand(name, ip, port, url);
-  winston.debug(`will start ${name} by running "${cmd}"`);
+  const [cmd, ...args] = await getCommand(name, ip, port, url);
+  winston.debug(`will start ${name} by running "${cmd} ${args.join(" ")}"`);
 
-  const child = spawn(cmd, { cwd: process.env.HOME, shell: true });
+  const child = spawn(cmd, args, {
+    stdio: ["ignore", "pipe", "pipe"],
+    cwd: process.env.HOME,
+  });
   children[name] = {
     child,
     port,
     url,
     stdout: Buffer.alloc(0),
     stderr: Buffer.alloc(0),
+    cmd,
+    args,
   };
   watchOutput(children[name]);
   const s2 = await status(name);
@@ -94,7 +103,7 @@ async function getCommand(
   ip: string,
   port: number,
   url: string,
-): Promise<string> {
+): Promise<string[]> {
   const spec = getSpec(name);
   return await spec(ip, port, url);
 }
@@ -119,26 +128,29 @@ export async function status(name: NamedServerName): Promise<
     return { state: "stopped" };
   }
   const { child, ...status } = server;
+  const state = child.exitCode != null ? "stopped" : "running";
   return {
-    state: child.exitCode ? "stopped" : "running",
-    pid: child.pid,
+    state,
+    pid: state == "running" ? child.pid : undefined,
     ...status,
   };
 }
 
-const GRACE_PERIOD = 3000;
+const GRACE_PERIOD = 1000;
 export async function stop(name: NamedServerName) {
   assertNamedServer(name);
   let server = children[name];
-  if (server == null || server.child.exitCode) {
+  if (server == null || server.child.exitCode != null) {
     // already stopped
     return;
   }
   const { child } = server;
-  child.kill();
-  setTimeout(() => {
-    child.kill(9);
-  }, GRACE_PERIOD);
+  child.kill("SIGTERM");
+  // Force kill after grace period
+  await delay(GRACE_PERIOD);
+  if (!child.killed) {
+    child.kill("SIGKILL");
+  }
   return;
 }
 
@@ -186,7 +198,20 @@ function watchOutput(server: SpawnedServer) {
     server.spawnError = err; // rename to clarify it’s a spawn error
   });
 
-  child.on("close", (code, signal) => {
+  child.on("exit", (code, signal) => {
     server.exit = { code, signal };
   });
 }
+
+function closeAll() {
+  for (const server of Object.values(children)) {
+    server.child.kill("SIGKILL");
+  }
+}
+
+process.once("exit", closeAll);
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    process.exit();
+  });
+});

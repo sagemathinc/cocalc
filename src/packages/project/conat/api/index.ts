@@ -148,12 +148,14 @@ import * as system from "./system";
 import * as editor from "./editor";
 import * as jupyter from "./jupyter";
 import * as sync from "./sync";
+import * as apps from "./apps";
 
 export const projectApi: ProjectApi = {
   system,
   editor,
   jupyter,
   sync,
+  apps,
   isReady: async () => true,
   waitUntilReady: async () => {},
 };
