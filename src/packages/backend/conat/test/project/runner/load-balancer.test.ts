@@ -47,6 +47,7 @@ describe("create basic mocked project runner service and test", () => {
           : { state: "opened" };
       },
       localPath: async ({ project_id }) => `/tmp/${project_id}`,
+      move: async () => {},
     });
   });
 

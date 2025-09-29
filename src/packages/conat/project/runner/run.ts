@@ -33,7 +33,7 @@ export interface Options {
   // start --- start the given project with the specified configuration.  The configuration
   // typically determines memory, disk spaces, the root filesystem image, etc.
   start: (opts: {
-    project_id?: string;
+    project_id: string;
     config?: Configuration;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
@@ -42,7 +42,7 @@ export interface Options {
   // ensure a specific project is not running on this runner, or
   // if project_id not given, stop all projects
   stop: (opts: {
-    project_id?: string;
+    project_id: string;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
     force?: boolean;
@@ -50,7 +50,7 @@ export interface Options {
 
   // get the status of a project here.
   status: (opts: {
-    project_id?: string;
+    project_id: string;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
   }) => Promise<ProjectStatus>;

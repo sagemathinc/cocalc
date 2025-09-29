@@ -50,6 +50,7 @@ describe("create runner and load balancer with getConfig function", () => {
           : { state: "opened" };
       },
       localPath: async ({ project_id }) => `/tmp/${project_id}`,
+      move: async () => {},
     });
     await lbServer({
       client: client1,
