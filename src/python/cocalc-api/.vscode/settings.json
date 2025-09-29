@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.analysis.extraPaths": ["./src"],
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.autoImportCompletions": true,
+    "pylance.insidersChannel": "off"
+}

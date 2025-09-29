@@ -611,3 +611,4 @@ class Organizations:
             subject (str): plain text subject of the message
             body (str): markdown body of the message (math typesetting works)
         """
+        raise NotImplementedError
