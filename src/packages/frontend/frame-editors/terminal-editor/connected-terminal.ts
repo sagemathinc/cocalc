@@ -968,7 +968,7 @@ async function touchPath(project_id: string, path: string): Promise<void> {
   }
 }
 
-function handleLink(_: MouseEvent, uri: string): void {
+export function handleLink(_: MouseEvent, uri: string): void {
   if (!isCoCalcURL(uri)) {
     window.open(uri, "_blank");
     return;

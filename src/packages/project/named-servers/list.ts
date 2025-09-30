@@ -72,18 +72,22 @@ async function rserver(
   // watch out, this will be prefixed with #!/bin/sh and piped into stdout/stderr files
   // part from that, rserver must be in the $PATH
   // see note at project/configuration::get_rserver
+  if (!basePath.endsWith("/")) {
+    basePath += "/";
+  }
   return [
     `rserver`,
     `--server-daemonize=0`,
     `--auth-none=1`,
     `--auth-encrypt-password=0`,
     `--server-user=${user}`,
-    `--database-config-file="${db_conf}"`,
-    `--server-data-dir="${data}"`,
-    `--server-working-dir="${process.env.HOME}"`,
+    `--database-config-file=${db_conf}`,
+    `--server-data-dir=${data}`,
+    `--server-working-dir=${process.env.HOME}`,
     `--www-port=${port}`,
-    `--www-root-path="${basePath}/"`, // www-root-path needs the trailing slash and it must be "server", not "port"
-    `--server-pid-file="${join(tmp, "rserver.pid")}"`,
+    `--www-root-path=${basePath}`,
+    `--server-pid-file=${join(tmp, "rserver.pid")}`,
+    "--auth-minimum-user-id=0",
   ];
 }
 
@@ -127,7 +131,10 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
     `--NotebookApp.base_url=${basePath}`,
     `--ip=${ip}`,
     `--port=${port}`,
-    `--collaborative`,
+    // could be an option, but requires another package which could be tricky to install... "pip install jupyter_collaboration";
+    // on standard ubuntu 25.04 i got errors trying to install this package.  This should thus be optional and maybe part
+    // of some special container or package or something (?).
+    // `--collaborative`,
   ],
 
   pluto: async (ip: string, port: number) => [
@@ -138,10 +145,10 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
   rserver,
 } as const;
 
-export default function getSpec(name: NamedServerName): CommandFunction {
+export default function getSpec(name: string): CommandFunction {
   const spec = SPEC[name];
   if (spec == null) {
-    throw Error(`unknown named server: "${name}"`);
+    throw Error(`unknown application: "${name}"`);
   }
   return spec;
 }

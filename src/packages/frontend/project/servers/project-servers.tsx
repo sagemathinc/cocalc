@@ -6,7 +6,6 @@
 import { Col, Divider, Modal, Row, Tabs, TabsProps } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import { FormattedMessage } from "react-intl";
-
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import {
@@ -91,7 +90,7 @@ export function ProjectServers() {
             !student_project_functionality.disablePlutoServer && (
               <Col sm={sm} md={md}>
                 <NewFileButton
-                  name={<span style={{ fontSize: "14pt" }}>Pluto</span>}
+                  name={<span style={{ fontSize: "14pt" }}>Pluto (Julia)</span>}
                   icon={"julia"}
                   active={showNamedServer === "pluto"}
                   on_click={() => toggleShowNamedServer("pluto")}
@@ -153,7 +152,7 @@ export function ProjectServers() {
             <NamedServerPanel
               project_id={project_id}
               name={showNamedServer}
-              style={{ maxWidth: "600px", margin: "30px auto" }}
+              style={{ maxWidth: "1200px", margin: "30px auto" }}
             />
           )}
         </div>
@@ -187,7 +186,7 @@ export function ProjectServers() {
         <Paragraph>
           <FormattedMessage
             id="project.servers.project-servers.description"
-            defaultMessage={`You can run various notebook servers inside this project with one click.
+            defaultMessage={`Run various notebook servers inside this project.
             They run in the same environment, have access to the same files,
             and stop when the project stops.
             You can also <A>run your own servers</A>.`}

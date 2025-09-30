@@ -9,6 +9,9 @@ Autorefresh exponential backoff algorithm:
    - if there is a change, refresh again in MIN_INTERVAL_MS
    - if there is no change, refresh in cur*EXPONENTIAL_BACKOFF seconds,
      up to MAX_INTERVAL_MS.
+
+It might be nice to replace the terminal rendering with:
+frontend/components/terminal.tsx
 */
 
 const MIN_INTERVAL_MS = 2000;

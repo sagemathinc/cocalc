@@ -10,10 +10,7 @@ import basePath from "@cocalc/backend/base-path";
 import { project_id } from "@cocalc/project/data";
 import { INFO } from "@cocalc/project/info-json";
 import { getLogger } from "@cocalc/project/logger";
-import {
-  type NamedServerName,
-  NAMED_SERVER_NAMES,
-} from "@cocalc/util/types/servers";
+import { NAMED_SERVER_NAMES } from "@cocalc/util/types/servers";
 import getSpec from "./list";
 import { delay } from "awaiting";
 
@@ -26,7 +23,9 @@ function assertNamedServer(name: string) {
 }
 
 function getBase(name: string, port: number): string {
-  const baseType = name === "rserver" ? "server" : "port";
+  const baseType = ["rserver", "pluto", "code"].includes(name)
+    ? "proxy"
+    : "port";
   return join(basePath, `/${project_id}/${baseType}/${port}/`);
 }
 
@@ -47,7 +46,7 @@ const children: { [name: string]: SpawnedServer } = {};
 export { children };
 
 // Returns the port or throws an exception.
-export async function start(name: NamedServerName) {
+export async function start(name: string) {
   assertNamedServer(name);
   winston.debug(`start ${name}`);
   const s = await status(name);
@@ -78,7 +77,6 @@ export async function start(name: NamedServerName) {
   winston.debug(`will start ${name} by running "${cmd} ${args.join(" ")}"`);
 
   const child = spawn(cmd, args, {
-    stdio: ["ignore", "pipe", "pipe"],
     cwd: process.env.HOME,
   });
   children[name] = {
@@ -99,17 +97,20 @@ export async function start(name: NamedServerName) {
 }
 
 async function getCommand(
-  name: NamedServerName,
+  name: string,
   ip: string,
   port: number,
   url: string,
 ): Promise<string[]> {
   const spec = getSpec(name);
+  if (spec == null) {
+    throw Error(`no registered spec for ${name}`);
+  }
   return await spec(ip, port, url);
 }
 
 // Returns the state and port (if defined).
-export async function status(name: NamedServerName): Promise<
+export async function status(name: string): Promise<
   | {
       state: "running" | "stopped";
       port: number;
@@ -137,7 +138,7 @@ export async function status(name: NamedServerName): Promise<
 }
 
 const GRACE_PERIOD = 1000;
-export async function stop(name: NamedServerName) {
+export async function stop(name: string) {
   assertNamedServer(name);
   let server = children[name];
   if (server == null || server.child.exitCode != null) {
@@ -162,7 +163,7 @@ const PORTS = {
   rserver: 6006,
 };
 
-function preferredPort(name: NamedServerName): number | undefined {
+function preferredPort(name: string): number | undefined {
   return PORTS[name];
 }
 

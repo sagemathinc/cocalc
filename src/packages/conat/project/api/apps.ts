@@ -1,5 +1,3 @@
-import type { NamedServerName } from "@cocalc/util/types/servers";
-
 export const apps = {
   start: true,
   stop: true,
@@ -7,7 +5,7 @@ export const apps = {
 };
 
 export interface Apps {
-  start: (name: NamedServerName) => Promise<{
+  start: (name: string) => Promise<{
     state: "running" | "stopped";
     port: number;
     url: string;
@@ -18,7 +16,7 @@ export interface Apps {
     exit?: { code; signal? };
   }>;
 
-  status: (name: NamedServerName) => Promise<
+  status: (name: string) => Promise<
     | {
         state: "running" | "stopped";
         port: number;
@@ -32,5 +30,5 @@ export interface Apps {
     | { state: "stopped" }
   >;
 
-  stop: (name: NamedServerName) => Promise<void>;
+  stop: (name: string) => Promise<void>;
 }

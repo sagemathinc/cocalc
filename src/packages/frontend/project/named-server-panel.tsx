@@ -9,8 +9,8 @@ Jupyter notebook server is running, then pops it up in a new tab.
 */
 
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
-
 import { CSS } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -20,7 +20,6 @@ import {
 } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { IntlMessage } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { R_IDE } from "@cocalc/util/consts/ui";
@@ -28,6 +27,11 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { useAvailableFeatures } from "./use-available-features";
+import AppState from "@cocalc/frontend/project/apps/app-state";
+import { useState } from "react";
+import { useAppStatus } from "@cocalc/frontend/project/apps/use-app-status";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Button } from "antd";
 
 const LAUNCHING_SERVER = defineMessage({
   id: "project.named-server-panel.launching_server",
@@ -133,6 +137,7 @@ interface Props {
 
 export function NamedServerPanel({ project_id, name, style }: Props) {
   const intl = useIntl();
+  const [url, setUrl] = useState<string | undefined>(undefined);
 
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -166,6 +171,8 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
     student_project_functionality.disableRServer
   ) {
     body = intl.formatMessage(DISABLED, { longName });
+  } else if (!url) {
+    body = null;
   } else {
     body = (
       <>
@@ -181,21 +188,23 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
             values={{ longName }}
           />
         </Paragraph>
-        <Paragraph
-          style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
-        >
-          <LinkRetry
-            maxTime={1000 * 60 * 5}
-            autoStart
-            href={serverURL(project_id, name)}
-            loadingText={intl.formatMessage(LAUNCHING_SERVER)}
-            onClick={() => {
-              track("launch-server", { name, project_id });
-            }}
+        {url && (
+          <Paragraph
+            style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
           >
-            <Icon name={icon} /> {longName} Server...
-          </LinkRetry>
-        </Paragraph>
+            <LinkRetry
+              maxTime={1000 * 60 * 5}
+              autoStart
+              href={url}
+              loadingText={intl.formatMessage(LAUNCHING_SERVER)}
+              onClick={() => {
+                track("launch-server", { name, project_id });
+              }}
+            >
+              <Icon name={icon} /> {longName} Server...
+            </LinkRetry>
+          </Paragraph>
+        )}
       </>
     );
   }
@@ -203,6 +212,7 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
   return (
     <SettingBox title={`${longName} Server`} icon={icon} style={style}>
       {body}
+      <AppState name={name} setUrl={setUrl} autoStart />
     </SettingBox>
   );
 }
@@ -227,10 +237,12 @@ export function ServerLink({
   name: NamedServerName;
   mode: "flyout" | "full";
 }) {
+  const appStatus = useAppStatus({ name });
   const intl = useIntl();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const available = useAvailableFeatures(project_id);
+
   if (
     name === "jupyterlab" &&
     (!available.jupyter_lab ||
@@ -258,21 +270,35 @@ export function ServerLink({
     (!available.rserver || student_project_functionality.disableRServer)
   ) {
     return null;
-  } else {
-    const { icon, longName, description: descMsg } = getServerInfo(name);
-    const description = intl.formatMessage(descMsg, { name: capitalize(name) });
+  }
+
+  if (!appStatus.status?.url) {
     return (
-      <LinkRetry
-        maxTime={1000 * 60 * 5}
-        href={serverURL(project_id, name)}
-        loadingText={intl.formatMessage(LAUNCHING_SERVER)}
-        tooltip={mode === "flyout" ? description : undefined}
-        onClick={() => {
-          track("launch-server", { name, project_id });
+      <Button
+        onClick={async () => {
+          const api = webapp_client.conat_client.projectApi({ project_id });
+          await api.apps.start(name);
+          appStatus.refresh();
         }}
       >
-        <Icon name={icon} /> {longName}...
-      </LinkRetry>
+        Start {name}
+      </Button>
     );
   }
+
+  const { icon, longName, description: descMsg } = getServerInfo(name);
+  const description = intl.formatMessage(descMsg, { name: capitalize(name) });
+  return (
+    <LinkRetry
+      maxTime={1000 * 60 * 5}
+      href={appStatus.status?.url}
+      loadingText={intl.formatMessage(LAUNCHING_SERVER)}
+      tooltip={mode === "flyout" ? description : undefined}
+      onClick={() => {
+        track("launch-server", { name, project_id });
+      }}
+    >
+      <Icon name={icon} /> {longName}...
+    </LinkRetry>
+  );
 }

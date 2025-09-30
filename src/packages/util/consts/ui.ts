@@ -22,9 +22,4 @@ export const SHARE_FLAGS = {
 // documentation pages
 export const DOC_AI = "https://doc.cocalc.com/ai.html";
 
-// How we call Posit's RStudio (rserver) IDE.  They trademark "RStudio"
-// see https://posit.co/about/trademark-guidelines/
-// and a core principle of our company is to be as respectful as possible
-// to all legal requirements. We thus don't use their trademark
-// anywhere in our frontend.
-export const R_IDE = "R IDE";
+export const R_IDE = "R Studio";
