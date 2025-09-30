@@ -64,7 +64,7 @@ export async function server({
           timeout: TIMEOUT,
         });
       } else {
-        throw Error(`project host ${server} is not responding`);
+        throw Error(`project server '${server}' is not responding`);
       }
     }
     const v = getActiveRunners(runners);

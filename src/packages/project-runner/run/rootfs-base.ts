@@ -1,4 +1,4 @@
-import { join } from "path";
+import { basename, dirname, join } from "path";
 import { data } from "@cocalc/backend/data";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { executeCode } from "@cocalc/backend/execute-code";
@@ -27,7 +27,14 @@ export function registerProgress(image: string, f: ProgressFunction) {
 }
 
 function inspectFile(image) {
-  return join(IMAGE_CACHE, image + ".json");
+  // we use the following format so that:
+  //   - the json files with the inspect info are hidden
+  //   - they start with a '.' so there is no way that one of these files
+  //     can also be the name of an OCI image that we're downloading
+  //     E.g., .foo.json cna't be the name of an image, because image names
+  //      can't start with separate characters and '.' is one -- see
+  //      https://stackoverflow.com/questions/43091075/docker-restrictions-regarding-naming-image
+  return join(IMAGE_CACHE, dirname(image), "." + basename(image) + ".json");
 }
 
 // this should error if the image isn't available and extracted.  I.e., it should always

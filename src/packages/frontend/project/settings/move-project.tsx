@@ -27,22 +27,26 @@ export default function MoveProject({
   const text = (
     <div style={{ maxWidth: "300px" }}>
       {server && (
-        <h4>
-          Hosted on <code>'{server}'</code>
-        </h4>
+        <div>
+          <b>
+            Project Server: <code>'{server}'</code>
+          </b>
+        </div>
+      )}
+      {!server && (
+        <div>
+          <b>Project Server: Not Available</b>
+        </div>
       )}
       {force ? (
         <>
-          Forcing the project to move will move it even if it didn't save all
-          files to the file server. <b>This is potentially dangerous</b> but you
-          can verify your files are on the central server by browsing in the
-          file explorer.
+          Force the project to move even if it didn't save all files to the file
+          server. <b>This is potentially dangerous</b> since it uses only the
+          files on the central file server, which you can browse right now in
+          the file explorer.
         </>
       ) : (
-        <>
-          You can move this project to another runner, if one is available.
-          Moving may take a few minutes.
-        </>
+        <>Move this project to another server to start it.</>
       )}
     </div>
   );
@@ -59,7 +63,7 @@ export default function MoveProject({
       okText={`${force ? "Force " : ""}Move Project`}
     >
       <Button disabled={disabled || actions == null} size={size} danger={force}>
-        Hosted on "{server}"...
+        {server ? `Server: "${server}"...` : "Move..."}
       </Button>
     </Popconfirm>
   );

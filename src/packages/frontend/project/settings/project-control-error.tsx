@@ -34,7 +34,9 @@ export default function ProjectControlError({
           </div>
         )}
         {!!control_error && (
-          <MoveProject force project_id={project_id} size="large" />
+          <div style={{ margin: "15px", textAlign: "center" }}>
+            <MoveProject force project_id={project_id} size="large" />
+          </div>
         )}
       </Space>
     </div>
