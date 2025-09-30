@@ -37,7 +37,7 @@ const SUBJECT = "sticky.one";
 
 const DEFAULT_CHOICE_TTL = 60_000 * 60 * 24 * 30; // 30 days
 
-const DEFAULT_CLIENT_TTL = 15_000; // 15 seconds
+const DEFAULT_CLIENT_TTL = 120_000; // 2 minutes
 
 // NOTE: there are no assumptions here about clocks being synchronized. These
 // are just ttl's.
@@ -79,8 +79,10 @@ export async function createStickyRouter({
   // The client trusts a choice returned from the router for this long,
   // or until the target is no longer available.  Thus if the target
   // is randomly vanishing and coming back and a reassignment gets made,
-  // this client would definitely find out if necessary within this amount of time.
-  // Basically this is roughly how long failover may take.
+  // this client would definitely find out if necessary within this amount
+  // of time. Basically this is roughly how long failover may take in the
+  // worst imaginable situation (which is unlikely in practice). Making this
+  // longer greatly reduces server load and increases scalability.
   clientTtl = DEFAULT_CLIENT_TTL,
 }: {
   client: Client;
