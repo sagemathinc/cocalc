@@ -47,12 +47,10 @@ def hub(api_key, cocalc_host):
 
 
 @pytest.fixture(scope="session")
-def temporary_project(hub):
+def temporary_project(hub, request):
     """
     Create a temporary project for testing and return project info.
-
-    Note: Since there's no project deletion API available, the project
-    will remain after tests. It can be manually deleted if needed.
+    Uses a session-scoped fixture so only ONE project is created for the entire test suite.
     """
     import time
 
@@ -61,15 +59,20 @@ def temporary_project(hub):
     title = f"CoCalc API Test {timestamp}"
     description = "Temporary project created by cocalc-api tests"
 
+    print("\n" + "="*70)
+    print("=== Creating temporary project for entire test session ===")
+    print("=== THIS SHOULD ONLY PRINT ONCE ===")
+    print("="*70)
     project_id = hub.projects.create_project(title=title, description=description)
+    print(f"Created project {project_id}")
+    print("="*70)
 
     # Start the project so it can respond to API calls
     try:
         hub.projects.start(project_id)
-        print(f"Started project {project_id}, waiting for it to become ready...")
+        print(f"Starting project {project_id}, waiting for it to become ready...")
 
         # Wait for project to be ready (can take 10-15 seconds)
-        import time
         from cocalc_api import Project
 
         for attempt in range(10):
@@ -82,34 +85,39 @@ def temporary_project(hub):
                 break
             except Exception:
                 if attempt == 9:  # Last attempt
-                    print(f"Warning: Project {project_id} did not become ready within 50 seconds")
+                    print(f"⚠ Warning: Project {project_id} did not become ready within 50 seconds")
 
     except Exception as e:
-        print(f"Warning: Failed to start project {project_id}: {e}")
+        print(f"⚠ Warning: Failed to start project {project_id}: {e}")
 
     project_info = {'project_id': project_id, 'title': title, 'description': description}
 
-    yield project_info
+    # Register cleanup using finalizer (more reliable than yield teardown)
+    def cleanup():
+        print(f"\n=== Cleaning up test project '{title}' (ID: {project_id}) ===")
 
-    # Cleanup: Stop the project and attempt to delete it
-    print(f"\nCleaning up test project '{title}' (ID: {project_id})...")
+        try:
+            # Stop the project first
+            print(f"Stopping project {project_id}...")
+            hub.projects.stop(project_id)
+            print("✓ Project stop command sent")
+            # Wait for the project process to actually terminate
+            time.sleep(3)
+            print(f"✓ Waited for project {project_id} to stop")
+        except Exception as e:
+            print(f"⚠ Failed to stop project {project_id}: {e}")
 
-    try:
-        # Stop the project first
-        print(f"  Stopping project {project_id}...")
-        hub.projects.stop(project_id)
-        print(f"  Project {project_id} stopped successfully")
-    except Exception as e:
-        print(f"  Failed to stop project {project_id}: {e}")
+        try:
+            # Delete the project
+            print(f"Deleting project {project_id}...")
+            hub.projects.delete(project_id)
+            print(f"✓ Project {project_id} deleted")
+        except Exception as e:
+            print(f"⚠ Failed to delete project {project_id}: {e}")
 
-    try:
-        # Delete the project using the new delete method
-        print(f"  Deleting project {project_id}...")
-        hub.projects.delete(project_id)
-        print(f"  Project {project_id} deleted successfully")
-    except Exception as e:
-        print(f"  Failed to delete project {project_id}: {e}")
-        print("  Project is stopped but may still exist - manual cleanup recommended")
+    request.addfinalizer(cleanup)
+
+    return project_info
 
 
 @pytest.fixture(scope="session")

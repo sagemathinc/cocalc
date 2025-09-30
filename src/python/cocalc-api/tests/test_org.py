@@ -151,7 +151,6 @@ class TestOrganizationUserManagement:
             assert_valid_uuid(new_user_id, "User ID")
             print(f"✓ User created with ID: {new_user_id}")
 
-
             # Wait a moment for database consistency
             import time as time_module
             time_module.sleep(1)
@@ -180,50 +179,34 @@ class TestOrganizationUserManagement:
             pytest.fail(f"User creation failed: {e}")
 
     def test_admin_management(self, hub, test_organization):
-        """Test adding and managing admins using the correct workflow."""
-        # CORRECT WORKFLOW: add_admin() works with users NOT already in the target organization
-
+        """Test adding and managing admins - simplified workflow."""
         timestamp = int(time.time())
 
         try:
-            # Method 1: Create external user in a temporary org, then make them admin of target org
-            temp_org_name = f"temp-admin-org-{timestamp}"
-            hub.org.create(temp_org_name)
-            print(f"✓ Created temporary org: {temp_org_name}")
+            # Create user directly in the target organization
+            user_email = f"test-admin-{timestamp}@example.com"
+            user_id = hub.org.create_user(name=test_organization['name'], email=user_email, firstName="Test", lastName="Admin")
+            assert_valid_uuid(user_id, "User ID")
+            print(f"✓ Created user in organization: {user_id}")
 
-            # Create user in the temporary org
-            external_user_id = hub.org.create_user(name=temp_org_name,
-                                                   email=f"external-admin-{timestamp}@example.com",
-                                                   firstName="External",
-                                                   lastName="Admin")
-            assert_valid_uuid(external_user_id, "External user ID")
-            print(f"✓ Created external user: {external_user_id}")
-
-            # Now add the external user as admin to the target organization
-            # This should work because the user is not already in the target org
-            hub.org.add_admin(test_organization['name'], external_user_id)
-            print(f"✓ Added external user as admin to {test_organization['name']}")
+            # Promote the user to admin
+            hub.org.add_admin(test_organization['name'], user_id)
+            print(f"✓ Promoted user to admin of {test_organization['name']}")
 
             # Verify admin status
             org_details = hub.org.get(test_organization['name'])
             admin_ids = org_details.get('admin_account_ids') or []
-            assert external_user_id in admin_ids, "External user should be in admin list"
+            assert user_id in admin_ids, "User should be in admin list"
             print(f"✓ Admin status verified: {admin_ids}")
 
-            # Verify the user was also moved to the target organization
-            users_in_org = hub.org.get_users(test_organization['name'])
-            user_ids = [u['account_id'] for u in users_in_org]
-            assert external_user_id in user_ids, "Admin should now be in target organization"
-            print("✓ User successfully moved to target org")
-
             # Test remove_admin
-            hub.org.remove_admin(test_organization['name'], external_user_id)
-            print(f"✓ Admin status removed for {external_user_id}")
+            hub.org.remove_admin(test_organization['name'], user_id)
+            print(f"✓ Admin status removed for {user_id}")
 
             # Verify admin removal
             updated_org = hub.org.get(test_organization['name'])
             updated_admin_ids = updated_org.get('admin_account_ids') or []
-            assert external_user_id not in updated_admin_ids, "User should no longer be admin"
+            assert user_id not in updated_admin_ids, "User should no longer be admin"
             print("✓ Admin removal verified")
 
         except Exception as e:
@@ -237,26 +220,76 @@ class TestOrganizationUserManagement:
             # Create target organization
             target_org = f"target-workflow-{timestamp}"
             hub.org.create(target_org)
+            print(f"✓ Created organization: {target_org}")
 
-            # Workflow 1: External user method (recommended)
-            temp_org = f"temp-workflow-{timestamp}"
-            hub.org.create(temp_org)
-            external_user = hub.org.create_user(name=temp_org,
-                                                email=f"workflow-external-{timestamp}@example.com",
-                                                firstName="Workflow",
-                                                lastName="External")
-            assert_valid_uuid(external_user, "Workflow external user ID")
+            # Workflow 1: Create user in org, then promote to admin (simplest)
+            user_id = hub.org.create_user(name=target_org, email=f"workflow-simple-{timestamp}@example.com", firstName="Workflow", lastName="Simple")
+            assert_valid_uuid(user_id, "Workflow user ID")
+            print("✓ Created user in organization")
 
-            # This works: user from different org
-            hub.org.add_admin(target_org, external_user)
+            # Promote to admin - works directly since user is in same org
+            hub.org.add_admin(target_org, user_id)
             org_details = hub.org.get(target_org)
             admin_ids = org_details.get('admin_account_ids') or []
-            assert external_user in admin_ids
-            print("✓ Workflow 1 (External user): SUCCESS")
+            assert user_id in admin_ids
+            print("✓ Workflow 1 (Same org user → admin): SUCCESS")
+
+            # Workflow 2: Move user from org A to org B, then promote to admin
+            other_org = f"other-workflow-{timestamp}"
+            hub.org.create(other_org)
+            other_user_id = hub.org.create_user(name=other_org, email=f"workflow-cross-{timestamp}@example.com", firstName="Cross", lastName="Org")
+            print(f"✓ Created user in {other_org}")
+
+            # Step 1: Use addUser to move user from other_org to target_org (site admin only)
+            hub.org.add_user(target_org, other_user_id)
+            print(f"✓ Moved user from {other_org} to {target_org} using addUser")
+
+            # Step 2: Now promote to admin in target_org
+            hub.org.add_admin(target_org, other_user_id)
+            updated_org = hub.org.get(target_org)
+            updated_admin_ids = updated_org.get('admin_account_ids') or []
+            assert other_user_id in updated_admin_ids, "Moved user should be admin"
+            print("✓ Workflow 2 (Cross-org: addUser → addAdmin): SUCCESS")
             print("✓ Admin workflow documentation complete")
 
         except Exception as e:
             pytest.fail(f"Admin workflow documentation failed: {e}")
+
+    def test_cross_org_admin_promotion_blocked(self, hub):
+        """Test that promoting a user from org A to admin of org B is blocked."""
+        timestamp = int(time.time())
+
+        try:
+            # Create two organizations
+            org_a = f"org-a-{timestamp}"
+            org_b = f"org-b-{timestamp}"
+            hub.org.create(org_a)
+            hub.org.create(org_b)
+            print(f"✓ Created organizations: {org_a} and {org_b}")
+
+            # Create user in org A
+            user_id = hub.org.create_user(name=org_a, email=f"cross-org-user-{timestamp}@example.com", firstName="CrossOrg", lastName="User")
+            assert_valid_uuid(user_id, "Cross-org user ID")
+            print(f"✓ Created user in {org_a}")
+
+            # Try to promote user from org A to admin of org B - should fail
+            try:
+                hub.org.add_admin(org_b, user_id)
+                pytest.fail("Expected error when promoting user from different org to admin")
+            except Exception as e:
+                error_msg = str(e)
+                assert "already member of another organization" in error_msg, \
+                    f"Expected 'already member of another organization' error, got: {error_msg}"
+                print(f"✓ Cross-org promotion correctly blocked: {error_msg}")
+
+            # Demonstrate correct workflow: use addUser to move, then addAdmin
+            # Note: addUser is site-admin only, so we can't test the full workflow
+            # without site admin privileges, but we document the pattern
+            print("✓ Correct workflow: Use addUser to move user between orgs first, then addAdmin")
+            print("✓ Cross-org admin promotion blocking test passed")
+
+        except Exception as e:
+            pytest.fail(f"Cross-org admin promotion test failed: {e}")
 
 
 class TestOrganizationTokens:
@@ -276,7 +309,6 @@ class TestOrganizationTokens:
         test_email = f"token-user-{timestamp}@example.com"
         user_id = hub.org.create_user(name=org_name, email=test_email, firstName="Token", lastName="User")
         assert_valid_uuid(user_id, "Token user ID")
-
 
         yield {'name': org_name, 'id': org_id, 'user_id': user_id, 'user_email': test_email}
 
@@ -326,7 +358,6 @@ class TestOrganizationMessaging:
             test_email = f"msg-user-{i}-{timestamp}@example.com"
             user_id = hub.org.create_user(name=org_name, email=test_email, firstName=f"User{i}", lastName="Messaging")
             assert_valid_uuid(user_id, f"Messaging user {i} ID")
-
 
             users.append({'id': user_id, 'email': test_email})
 
@@ -530,21 +561,16 @@ class TestOrganizationIntegration:
                 user_id = hub.org.create_user(name=org_name, email=user_email, firstName=f"User{i}", lastName="Lifecycle")
                 assert_valid_uuid(user_id, f"Lifecycle user {i} ID")
 
-
                 users.append({'id': user_id, 'email': user_email})
             print(f"✓ 3. Created {len(users)} users")
 
-            # 4. Make external admin using correct workflow
-            # Create external user and make them admin (correct workflow)
-            temp_admin_org = f"temp-admin-{timestamp}"
-            hub.org.create(temp_admin_org)
-            external_admin_id = hub.org.create_user(name=temp_admin_org,
-                                                    email=f"external-admin-{timestamp}@example.com",
-                                                    firstName="External",
-                                                    lastName="Admin")
-            assert_valid_uuid(external_admin_id, "External admin ID")
-            hub.org.add_admin(org_name, external_admin_id)
-            print("✓ 4. Added external user as admin using correct workflow")
+            # 4. Promote a user to admin (simplified workflow)
+            # Create user and promote directly to admin
+            admin_email = f"lifecycle-admin-{timestamp}@example.com"
+            admin_id = hub.org.create_user(name=org_name, email=admin_email, firstName="Admin", lastName="User")
+            assert_valid_uuid(admin_id, "Admin user ID")
+            hub.org.add_admin(org_name, admin_id)
+            print("✓ 4. Created and promoted user to admin")
 
             # 5. Create and expire a token
             token_info = hub.org.create_token(users[1]['id'])
@@ -562,9 +588,9 @@ class TestOrganizationIntegration:
             assert final_org['title'] == "Lifecycle Test Organization"
             assert len(final_users) >= len(users) + 1, "All users plus admin should be in organization"
 
-            # Check admin status (should work with correct workflow)
+            # Check admin status
             admin_ids = final_org.get('admin_account_ids') or []
-            assert external_admin_id in admin_ids, "External admin should be in admin list"
+            assert admin_id in admin_ids, "Admin should be in admin list"
             print(f"✓ Admin assignment successful: {admin_ids}")
 
             print(f"✓ 7. Final verification complete - org has {len(final_users)} users")

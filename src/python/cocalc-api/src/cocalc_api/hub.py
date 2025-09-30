@@ -10,7 +10,8 @@ class Hub:
     def __init__(self, api_key: str, host: str = "https://cocalc.com"):
         self.api_key = api_key
         self.host = host
-        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"})
+        # Use longer timeout for API calls (30 seconds instead of default 5)
+        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=30.0)
 
     def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
         """

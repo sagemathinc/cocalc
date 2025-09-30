@@ -12,11 +12,26 @@ class TestHubSystem:
     """Tests for Hub system operations."""
 
     def test_ping(self, hub):
-        """Test basic ping connectivity."""
-        result = hub.system.ping()
-        assert result is not None
-        # The ping response should contain some basic server info
-        assert isinstance(result, dict)
+        """Test basic ping connectivity with retry logic."""
+        # Retry with exponential backoff in case server is still starting up
+        max_attempts = 5
+        delay = 2  # Start with 2 second delay
+
+        for attempt in range(max_attempts):
+            try:
+                result = hub.system.ping()
+                assert result is not None
+                # The ping response should contain some basic server info
+                assert isinstance(result, dict)
+                print(f"✓ Server ping successful on attempt {attempt + 1}")
+                return  # Success!
+            except Exception as e:
+                if attempt < max_attempts - 1:
+                    print(f"Ping attempt {attempt + 1} failed, retrying in {delay}s... ({e})")
+                    time.sleep(delay)
+                    delay *= 2  # Exponential backoff
+                else:
+                    pytest.fail(f"Server ping failed after {max_attempts} attempts: {e}")
 
     def test_hub_initialization(self, api_key, cocalc_host):
         """Test Hub client initialization."""
@@ -31,11 +46,12 @@ class TestHubSystem:
         with pytest.raises((ValueError, RuntimeError, Exception)):  # Should raise authentication error
             hub.system.ping()
 
-    def test_ping_timeout(self, api_key, cocalc_host):
-        """Test ping with timeout parameter."""
-        hub = Hub(api_key=api_key, host=cocalc_host)
-        result = hub.system.ping()
-        assert result is not None
+    def test_multiple_pings(self, hub):
+        """Test that multiple ping calls work consistently."""
+        for _i in range(3):
+            result = hub.system.ping()
+            assert result is not None
+            assert isinstance(result, dict)
 
 
 class TestHubProjects:
@@ -50,8 +66,22 @@ class TestHubProjects:
 
         project_id = hub.projects.create_project(title=title, description=description)
 
-        assert project_id is not None
-        assert_valid_uuid(project_id, "Project ID")
+        try:
+            assert project_id is not None
+            assert_valid_uuid(project_id, "Project ID")
+            print(f"✓ Created project: {project_id}")
+        finally:
+            # Cleanup: stop then delete the project
+            try:
+                print(f"Cleaning up test project {project_id}...")
+                hub.projects.stop(project_id)
+                print("✓ Project stop command sent")
+                time.sleep(3)  # Wait for process to terminate
+                print(f"✓ Waited for project {project_id} to stop")
+                hub.projects.delete(project_id)
+                print(f"✓ Project {project_id} deleted")
+            except Exception as e:
+                print(f"⚠ Failed to cleanup project {project_id}: {e}")
 
     def test_list_projects(self, hub):
         """Test listing projects."""
@@ -131,13 +161,19 @@ class TestHubProjects:
             else:
                 print("5. Skipping command execution - project not ready")
 
-            # 3. Delete the project
-            print("6. Deleting project...")
+            # 3. Stop and delete the project
+            print("6. Stopping project...")
+            hub.projects.stop(project_id)
+            print("   ✓ Project stop command sent")
+            time.sleep(3)  # Wait for process to terminate
+            print("   ✓ Waited for project to stop")
+
+            print("7. Deleting project...")
             delete_result = hub.projects.delete(project_id)
-            print(f"   Delete result: {delete_result}")
+            print(f"   ✓ Delete result: {delete_result}")
 
             # 4. Verify project is marked as deleted in database
-            print("7. Verifying project is marked as deleted...")
+            print("8. Verifying project is marked as deleted...")
             projects = hub.projects.get(fields=['project_id', 'title', 'deleted'], project_id=project_id, all=True)
             assert len(projects) == 1, f"Expected 1 project (still in DB), found {len(projects)}"
             project = projects[0]
@@ -148,12 +184,16 @@ class TestHubProjects:
             print("✅ Project lifecycle test completed successfully!")
 
         except Exception as e:
-            # Cleanup: attempt to delete project if test fails
+            # Cleanup: attempt to stop and delete project if test fails
             print(f"\n❌ Test failed: {e}")
             try:
-                print("Attempting cleanup...")
+                print("Attempting cleanup: stopping then deleting project...")
+                hub.projects.stop(project_id)
+                print("✓ Project stop command sent")
+                time.sleep(3)  # Wait for process to terminate
+                print("✓ Waited for project to stop")
                 hub.projects.delete(project_id)
-                print("✓ Cleanup successful")
+                print("✓ Project deleted")
             except Exception as cleanup_error:
                 print(f"❌ Cleanup failed: {cleanup_error}")
             raise e
