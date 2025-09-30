@@ -35,26 +35,10 @@
       "tmp@<0.2.4": "^0.2.4"
     },
     "onlyBuiltDependencies": [
-      "@cocalc/gcloud-pricing-calculator",
-      "@cocalc/primus-multiplex",
-      "@cocalc/widgets",
-      "@nestjs/core",
-      "@openapitools/openapi-generator-cli",
-      "@parcel/watcher",
       "better-sqlite3",
-      "bufferutil",
-      "core-js",
-      "diskusage",
-      "dtrace-provider",
-      "es5-ext",
-      "protobufjs",
-      "sharp",
-      "storage-engine",
-      "unrs-resolver",
-      "utf-8-validate",
+      "node-pty",
       "websocket-sftp",
       "websocketfs",
-      "zeromq",
       "zstd-napi"
     ]
   }

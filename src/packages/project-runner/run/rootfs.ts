@@ -70,11 +70,13 @@ export async function mount({
     bootlog({
       project_id,
       type: "mount-rootfs",
-      progress: (progress / 100) * 70, // normalize to go from 0 to 70
+      progress,
+      max: 70,
       desc,
     });
   });
 
+  // uses the above registerProgress
   const lowerdir = await extractBaseImage(image);
 
   bootlog({

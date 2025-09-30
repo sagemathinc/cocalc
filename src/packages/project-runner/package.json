@@ -37,6 +37,7 @@
     "@cocalc/conat": "workspace:*",
     "@cocalc/project-runner": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@lydell/node-pty": "^1.1.0",
     "package-directory": "^8.1.0"
   },
   "devDependencies": {

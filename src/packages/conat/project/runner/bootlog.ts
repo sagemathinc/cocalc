@@ -15,6 +15,8 @@ const DEFAULT_TTL = 1000 * 60 * 60;
 export interface Event {
   type: string;
   progress?: number;
+  min?: number;
+  max?: number; // if given, normalize progress to be between 0 and max instead of 0 and 100.
   error?;
   desc?: string;
   elapsed?: number;
@@ -62,6 +64,8 @@ export async function bootlog(opts: Options) {
     compute_server_id = 0,
     client = conat(),
     ttl = DEFAULT_TTL,
+    min = 0,
+    max = 100,
     ...event
   } = opts;
   const stream = client.sync.astream<Event>({
@@ -72,6 +76,7 @@ export async function bootlog(opts: Options) {
     event.error = `${event.error}`;
   }
   const key = `${project_id}-${compute_server_id}-${event.type}`;
+  let progress;
   if (event.progress != null) {
     if (!event.progress) {
       start[key] = Date.now();
@@ -79,9 +84,12 @@ export async function bootlog(opts: Options) {
     } else if (start[key]) {
       event.elapsed = Date.now() - start[key];
     }
+    progress = shiftProgress({ progress: event.progress, min, max });
+  } else {
+    progress = undefined;
   }
   try {
-    await stream.publish(event, { ttl });
+    await stream.publish({ ...event, progress }, { ttl });
   } catch (err) {
     logger.debug("ERROR publishing to bootlog", {
       project_id,
@@ -89,6 +97,21 @@ export async function bootlog(opts: Options) {
       err,
     });
   }
+}
+
+export function shiftProgress<T extends number | undefined>({
+  progress,
+  min = 0,
+  max = 100,
+}: {
+  progress: T;
+  min?: number;
+  max?: number;
+}): T extends number ? number : undefined {
+  if (progress == null) {
+    return undefined as any;
+  }
+  return Math.round(min + (progress / 100) * (max - min)) as any;
 }
 
 // be sure to call .close() on the result when done

@@ -4,6 +4,8 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { readFile, rm, writeFile } from "fs/promises";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import pullImage from "./pull-image";
+import { shiftProgress } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:rootfs-base");
@@ -47,15 +49,25 @@ export async function inspect(image: string) {
 
 export const extractBaseImage = reuseInFlight(async (image: string) => {
   logger.debug("extractBaseImage", { image });
-  const reportProgress = (x: { progress: number; desc: string }) => {
+  const reportProgress = (x: {
+    progress: number;
+    desc: string;
+    min?: number;
+    max?: number;
+  }) => {
+    x.progress = shiftProgress(x);
     for (const f of progressWatchers[image] ?? []) {
       f(x);
     }
   };
+
   try {
     const baseImagePath = join(IMAGE_CACHE, image);
     reportProgress({ progress: 0, desc: `checking for ${image}...` });
-    if (await exists(inspectFile(image))) {
+    if (
+      (await exists(inspectFile(image))) &&
+      (await exists(join(IMAGE_CACHE, image)))
+    ) {
       // already exist
       reportProgress({ progress: 100, desc: `${image} available` });
       return baseImagePath;
@@ -65,20 +77,17 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
     // It is also important to do this before the unshare below,
     // since doing it inside the unshare hits namespace issues.
     try {
-      await executeCode({
-        timeout: 60 * 60, // in seconds
-        err_on_exit: true,
-        command: "podman",
-        args: [
-          // ignore_chown_errors=true is needed since otherwise we
-          // have to make changes to the host system to allow more
-          // uid's, etc. for complicated images (e.g., sage);
-          // this is fine since we run everything as root anyways.
-          "--storage-opt",
-          "ignore_chown_errors=true",
-          "pull",
-          image,
-        ],
+      await pullImage({
+        image,
+        reportProgress: ({ progress, desc }) => {
+          reportProgress({ progress, desc, min: 5, max: 45 });
+        },
+        timeout: 30 * 60 * 1000, // 30 minutes
+        // ignore_chown_errors=true is needed since otherwise we
+        // have to make changes to the host system to allow more
+        // uid's, etc. for complicated images (e.g., sage);
+        // this is fine since we run everything as root anyways.
+        storageOptIgnoreChownErrors: true,
       });
     } catch (err) {
       reportProgress({ progress: 100, desc: `pulling ${image} failed` });
