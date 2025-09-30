@@ -142,7 +142,11 @@ export interface Options {
   // if true, use https when creating an internal client.
   ssl?: boolean;
 
-  // WARNING: **superclusters are NOT fully iplemented yet.**
+  // WARNING: **superclusters are NOT implemented yet**.  Maybe they
+  // are a very bad idea and should NOT be implemented. In practice,
+  // when I hit a need for this it's better to just explicitly make
+  // a process with two clients, and use an explicit protocol to
+  // connect the clusters...
   //
   // if clusterName is set, enable clustering. Each node
   // in the cluster must have a different name. systemAccountPassword
@@ -456,8 +460,12 @@ export class ConatServer extends EventEmitter {
     this.stickyClient = this.client({
       systemAccountPassword: this.options.systemAccountPassword,
     });
-    if (!this.cluster) {
-      // not a cluster, so we can server as the sticky routing serivce
+    if (!this.cluster || this.options.localClusterSize != null) {
+      // not a cluster or a local cluster, so we view THIS server
+      // as the canonical server and it also hosts the
+      // sticky routing service.  The one case where we don't do
+      // this is for a non-local cluster, e.g., deploying on
+      // Kubernetes.
       createStickyRouter({ client: this.stickyClient });
     }
   };
@@ -1105,7 +1113,10 @@ export class ConatServer extends EventEmitter {
     if (localClusterSize < 2) {
       return;
     }
-    // spawn additional servers as separate processes to form a cluster
+    // Spawn additional servers as *separate processes* to form a cluster.
+    // This is mainly used for testing, but is also very useful on
+    // a single powerful machine where we want more routing than a single
+    // nodejs process provides. This cannot do autoscaling though.
     const port = this.options.port;
     if (!port) {
       throw Error("bug -- port must be set");

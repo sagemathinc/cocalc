@@ -113,6 +113,7 @@ export async function createStickyRouter({
     }
   };
   listen();
+  return sub;
 }
 
 const stickyRequest = reuseInFlight(
