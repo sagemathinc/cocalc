@@ -2,7 +2,7 @@ import { join } from "path";
 import { data } from "@cocalc/backend/data";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { executeCode } from "@cocalc/backend/execute-code";
-import { rm, writeFile } from "fs/promises";
+import { readFile, rm, writeFile } from "fs/promises";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 
@@ -26,6 +26,18 @@ export function registerProgress(image: string, f: ProgressFunction) {
   }
 }
 
+function inspectFile(image) {
+  return join(IMAGE_CACHE, image + ".json");
+}
+
+// this should error if the image isn't available and extracted.  I.e., it should always
+// be either very fast or throw an error.  Clients that use it should make sure to do
+// extractBaseImage before using this.  The reason is to ensure that users have visibility
+// into all long running steps.
+export async function inspect(image: string) {
+  return JSON.parse(await readFile(inspectFile(image), "utf8"));
+}
+
 export const extractBaseImage = reuseInFlight(async (image: string) => {
   logger.debug("extractBaseImage", { image });
   const reportProgress = (x: { progress: number; desc: string }) => {
@@ -35,9 +47,8 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
   };
   try {
     const baseImagePath = join(IMAGE_CACHE, image);
-    const okFile = baseImagePath + ".ok";
     reportProgress({ progress: 0, desc: `checking for ${image}...` });
-    if (await exists(okFile)) {
+    if (await exists(inspectFile(image))) {
       // already exist
       reportProgress({ progress: 100, desc: `${image} available` });
       return baseImagePath;
@@ -66,6 +77,15 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
       reportProgress({ progress: 100, desc: `pulling ${image} failed` });
       throw err;
     }
+
+    reportProgress({ progress: 45, desc: `inspecting ${image}...` });
+    const { stdout: inspect } = await executeCode({
+      err_on_exit: true,
+      verbose: true,
+      command: "podman",
+      args: ["image", "inspect", image, "--format", "{{json .}}"],
+    });
+
     reportProgress({ progress: 50, desc: `extracting ${image}...` });
 
     // TODO: an optimization on COW filesystem if we pull one image
@@ -115,8 +135,10 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
       reportProgress({ progress: 100, desc: `extracting ${image} failed` });
       throw err;
     }
-    // success!
-    await writeFile(okFile, "");
+    // success -- write out "podman image inspect" in json format to:
+    //   (1) signal success, and (2) it is useful for getting information about
+    // the image (environment, sha256, etc.), without having to download it again.
+    await writeFile(inspectFile(image), inspect);
     // remove the image to save space, in case it isn't used by
     // anything else.  we will not need it again, since we already
     // have a copy of it.

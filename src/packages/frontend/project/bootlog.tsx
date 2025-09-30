@@ -1,11 +1,12 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useState } from "react";
-import { Progress, Space, Spin } from "antd";
+import { Progress, Space, Spin, Switch } from "antd";
 import { useProjectContext } from "./context";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import type { Event } from "@cocalc/conat/project/runner/bootlog";
 import ShowError from "@cocalc/frontend/components/error";
 import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
+import { namespaceToColor } from "@cocalc/util/color";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 export default function Bootlog({
@@ -17,6 +18,9 @@ export default function Bootlog({
 }) {
   const { project_id } = useProjectContext();
   const [log, setLog] = useState<null | Event[]>(null);
+  const [rawBootlog, setRawBootlog] = useState<boolean>(
+    !!localStorage.rawBootlog,
+  );
 
   useAsyncEffect(async () => {
     const log = await webapp_client.conat_client.projectBootlog({
@@ -66,11 +70,29 @@ export default function Bootlog({
       {data.map((event) => (
         <ProgressEntry key={event.type} {...event} />
       ))}
-      <StaticMarkdown
-        value={
-          "```js\n" + log.map((x) => JSON.stringify(x)).join("\n") + "\n```\n"
-        }
-      />
+      <Space style={{ margin: "5px 0" }}>
+        <Switch
+          unCheckedChildren="Log"
+          checked={rawBootlog}
+          onChange={(checked) => {
+            setRawBootlog(checked);
+            if (checked) {
+              localStorage.rawBootlog = "true";
+            } else {
+              delete localStorage.rawBootlog;
+            }
+          }}
+        />
+        {rawBootlog && <> Boot Log</>}
+      </Space>
+
+      {rawBootlog && (
+        <StaticMarkdown
+          value={
+            "```js\n" + log.map((x) => JSON.stringify(x)).join("\n") + "\n```\n"
+          }
+        />
+      )}
     </div>
   );
 }
@@ -80,7 +102,11 @@ function ProgressEntry({ type, progress, desc, elapsed, error }: Event) {
     <div>
       <Space>
         <div style={{ width: "150px" }}>{typeToString(type)}</div>
-        <Progress style={{ width: "150px" }} percent={progress} />
+        <Progress
+          style={{ width: "150px" }}
+          percent={progress}
+          strokeColor={namespaceToColor(type)}
+        />
         <div>
           {desc} ({msToString(elapsed)})
         </div>

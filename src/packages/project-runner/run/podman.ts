@@ -24,7 +24,7 @@ import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { join } from "path";
-import * as overlay from "./overlay";
+import { mount as mountRootFs, unmount as unmountRootFs } from "./rootfs";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
@@ -33,7 +33,7 @@ import {
   startSidecar,
   sidecarContainerName,
   flushMutagen,
-  backupRootfs,
+  backupRootFs,
 } from "./sidecar";
 import {
   type SshServersFunction,
@@ -150,11 +150,19 @@ export async function start({
       project_id,
       type: "start-project",
       progress: 20,
-      desc: "created pod",
+      desc: "mounting rootfs...",
     });
 
-    const mounts = getCoCalcMounts();
+    const rootfs = await mountRootFs({ project_id, home, config });
+    bootlog({
+      project_id,
+      type: "start-project",
+      progress: 40,
+      desc: "mounted rootfs",
+    });
+    logger.debug("start: got rootfs", { project_id, rootfs });
 
+    const mounts = getCoCalcMounts();
     const env = await getEnvironment({
       project_id,
       env: config?.env,
@@ -165,7 +173,7 @@ export async function start({
     bootlog({
       project_id,
       type: "start-project",
-      progress: 20,
+      progress: 42,
       desc: "got env variables",
     });
 
@@ -181,7 +189,7 @@ export async function start({
     bootlog({
       project_id,
       type: "start-project",
-      progress: 30,
+      progress: 45,
       desc: "started file sync sidecar",
     });
 
@@ -190,7 +198,7 @@ export async function start({
     bootlog({
       project_id,
       type: "start-project",
-      progress: 35,
+      progress: 48,
       desc: "created HOME",
     });
 
@@ -198,7 +206,7 @@ export async function start({
     bootlog({
       project_id,
       type: "start-project",
-      progress: 37,
+      progress: 50,
       desc: "created conf files",
     });
     logger.debug("start: created conf files", { project_id });
@@ -209,25 +217,16 @@ export async function start({
     bootlog({
       project_id,
       type: "start-project",
-      progress: 40,
+      progress: 52,
       desc: "wrote startup scripts",
     });
-
-    const rootfs = await overlay.mount({ project_id, home, config });
-    bootlog({
-      project_id,
-      type: "start-project",
-      progress: 45,
-      desc: "mounted rootfs",
-    });
-    logger.debug("start: got rootfs", { project_id, rootfs });
 
     await setupDataPath(home);
 
     bootlog({
       project_id,
       type: "start-project",
-      progress: 50,
+      progress: 55,
       desc: "setup project directories",
     });
 
@@ -380,10 +379,10 @@ export async function stop({
       if (!force) {
         // graceful shutdown so flush first -- this could take
         // arbitrarily long in theory, or fail.
-        // the force here for backupRootfs is so that
+        // the force here for backupRootFs is so that
         // it doens't not do it due to already being in stopping state.
         const tasks = [
-          backupRootfs({ project_id, force: true }),
+          backupRootFs({ project_id, force: true }),
           flushMutagen({ project_id }),
         ];
         await Promise.all(tasks);
@@ -415,9 +414,7 @@ export async function stop({
           podman(["rm", "-f", "-t", "0", sidecarContainerName(project_id)]),
         ),
       );
-      v.push(
-        f("unmounted root filesystem", overlay.unmount(project_id)),
-      );
+      v.push(f("unmounted root filesystem", unmountRootFs(project_id)));
       await Promise.all(v);
       if (errors.length > 0) {
         throw Error(errors.join("; "));

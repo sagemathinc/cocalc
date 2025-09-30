@@ -38,7 +38,7 @@ import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import { dirname, join } from "node:path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { COCALC_PROJECT_CACHE } from "./env";
-import { getPaths as getOverlayPaths } from "./overlay";
+import { getPaths as getOverlayPaths } from "./rootfs";
 import { rsyncProgressRunner } from "./rsync-progress";
 import { initSshKeys } from "@cocalc/backend/ssh/ssh-keys";
 import { mountArg } from "./mounts";
@@ -165,7 +165,7 @@ export async function init() {
     },
   });
 
-  backupRootfsLoop();
+  backupRootFsLoop();
 }
 
 export function sidecarContainerName(project_id) {
@@ -238,7 +238,7 @@ export async function startSidecar({
 
   const knownMutagenSessions = await getMutagenSessions(name);
 
-  const copyRootfs = async () => {
+  const copyRootFs = async () => {
     const { upperdir } = getOverlayPaths({
       image,
       project_id,
@@ -308,7 +308,7 @@ export async function startSidecar({
     });
   };
 
-  await Promise.all([copyRootfs(), copyHome()]);
+  await Promise.all([copyRootFs(), copyHome()]);
 
   bootlog({
     project_id,
@@ -385,18 +385,18 @@ export async function startSidecar({
   return initFileSync;
 }
 
-export const backupRootfs = reuseInFlight(
+export const backupRootFs = reuseInFlight(
   async ({ project_id, force }: { project_id: string; force?: boolean }) => {
     // NOTE: very important to *not* do a backup while project is initially opening/loading, which
     // is why we have to check that the project is running.
     if (!force && (starting.has(project_id) || stopping.has(project_id))) {
-      logger.debug("backupRootfs: skipping since currently starting");
+      logger.debug("backupRootFs: skipping since currently starting");
       return;
     }
 
     const name = sidecarContainerName(project_id);
     const t = Date.now();
-    logger.debug("backupRootfs: STARTED", { project_id });
+    logger.debug("backupRootFs: STARTED", { project_id });
     bootlog({
       project_id,
       type: "save-rootfs",
@@ -430,7 +430,7 @@ export const backupRootfs = reuseInFlight(
       desc: "saved",
     });
 
-    logger.debug("backupRootfs: DONE", { project_id, ms: Date.now() - t });
+    logger.debug("backupRootFs: DONE", { project_id, ms: Date.now() - t });
   },
 );
 
@@ -451,7 +451,7 @@ export const backupAllRootFs = reuseInFlight(async () => {
   ]);
   for (const project_id of stdout.split("\n").filter((x) => x.length == 36)) {
     try {
-      await backupRootfs({ project_id });
+      await backupRootFs({ project_id });
     } catch (err) {
       // this should maybe message admins (?)
       // but obviously not fatal, since we want to backup all of them.
@@ -462,7 +462,7 @@ export const backupAllRootFs = reuseInFlight(async () => {
 });
 
 let initialized = false;
-async function backupRootfsLoop() {
+async function backupRootFsLoop() {
   if (initialized) {
     return;
   }

@@ -2,13 +2,13 @@ import { conatServer } from "@cocalc/backend/data";
 import { join } from "node:path";
 import base_path from "@cocalc/backend/base-path";
 import { COCALC_SRC, COCALC_BIN } from "./mounts";
-import { executeCode } from "@cocalc/backend/execute-code";
-import getLogger from "@cocalc/backend/logger";
+//import getLogger from "@cocalc/backend/logger";
+import { inspect } from "./rootfs-base";
 
 // where the project places all its data, relative to HOME. This used by ".smc"
 export const COCALC_PROJECT_CACHE = ".cache/cocalc/project";
 
-const logger = getLogger("project-runner:run:env");
+//const logger = getLogger("project-runner:run:env");
 
 export function dataPath(HOME: string): string {
   return join(HOME, COCALC_PROJECT_CACHE);
@@ -20,21 +20,10 @@ export function secretTokenPath(HOME: string) {
   return join(data, "secret-token");
 }
 
-async function getImageEnv0(image): Promise<{ [key: string]: string }> {
-  const { stdout } = await executeCode({
-    err_on_exit: true,
-    verbose: true,
-    command: "podman",
-    args: [
-      "image",
-      "inspect",
-      image,
-      "--format",
-      "{{range .Config.Env}}{{println .}}{{end}}",
-    ],
-  });
+async function getImageEnv(image): Promise<{ [key: string]: string }> {
+  const { Env } = (await inspect(image)).Config;
   const env: { [key: string]: string } = {};
-  for (const line of stdout.split("\n")) {
+  for (const line of Env) {
     const i = line.indexOf("=");
     if (i == -1) continue;
     const key = line.slice(0, i);
@@ -42,34 +31,6 @@ async function getImageEnv0(image): Promise<{ [key: string]: string }> {
     env[key] = value;
   }
   return env;
-}
-
-// cache since answer doesn't change and every project startup
-// does this, so we save about 50ms-100ms easily, which is very
-// significant.
-const imageEnvCache: { [image: string]: { [key: string]: string } } = {};
-export async function getImageEnv(
-  image: string,
-): Promise<{ [key: string]: string }> {
-  if (imageEnvCache[image] != null) {
-    return imageEnvCache[image];
-  }
-  let e;
-  try {
-    e = await getImageEnv0(image);
-  } catch {
-    logger.debug("pull and try again");
-    await executeCode({
-      err_on_exit: true,
-      verbose: true,
-      command: "podman",
-      args: ["pull", image],
-      timeout: 5 * 60, // 5 minutes
-    });
-    e = await getImageEnv0(image);
-  }
-  imageEnvCache[image] = e;
-  return e;
 }
 
 export async function getEnvironment({
