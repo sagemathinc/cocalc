@@ -22,9 +22,11 @@ const log = getLogger("server:accounts:first-project");
 export default async function firstProject({
   account_id,
   tags,
+  dontStartProject,
 }: {
   account_id: string;
   tags?: string[];
+  dontStartProject?: boolean;
 }): Promise<string> {
   log.debug(account_id, tags);
   if (!isValidUUID(account_id)) {
@@ -35,8 +37,10 @@ export default async function firstProject({
     title: "My First Project",
   });
   log.debug("created new project", project_id);
-  const project = getProject(project_id);
-  await project.start();
+  if (!dontStartProject) {
+    const project = getProject(project_id);
+    await project.start();
+  }
   if (!WELCOME_FILES || tags == null || tags.length == 0) {
     return project_id;
   }
@@ -57,7 +61,7 @@ export default async function firstProject({
             account_id,
             project_id,
             language,
-            welcome + jupyterExtra
+            welcome + jupyterExtra,
           );
         }
       }
@@ -78,7 +82,7 @@ async function createJupyterNotebookIfAvailable(
   account_id: string,
   project_id: string,
   language: string,
-  welcome: string
+  welcome: string,
 ): Promise<string> {
   // find the highest priority kernel with the given language
   let kernelspec: any = null;
@@ -129,7 +133,7 @@ async function createWelcome(
   account_id: string,
   project_id: string,
   ext: string,
-  welcome: string
+  welcome: string,
 ): Promise<string> {
   const path = `welcome/welcome.${ext}`;
   const { torun } = TAGS_MAP[ext] ?? {};

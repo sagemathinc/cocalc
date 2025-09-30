@@ -5,7 +5,7 @@ import time
 import pytest
 
 from cocalc_api import Hub, Project
-from .conftest import assert_valid_uuid
+from .conftest import assert_valid_uuid, cleanup_project
 
 
 class TestHubSystem:
@@ -69,19 +69,9 @@ class TestHubProjects:
         try:
             assert project_id is not None
             assert_valid_uuid(project_id, "Project ID")
-            print(f"✓ Created project: {project_id}")
         finally:
             # Cleanup: stop then delete the project
-            try:
-                print(f"Cleaning up test project {project_id}...")
-                hub.projects.stop(project_id)
-                print("✓ Project stop command sent")
-                time.sleep(3)  # Wait for process to terminate
-                print(f"✓ Waited for project {project_id} to stop")
-                hub.projects.delete(project_id)
-                print(f"✓ Project {project_id} deleted")
-            except Exception as e:
-                print(f"⚠ Failed to cleanup project {project_id}: {e}")
+            cleanup_project(hub, project_id)
 
     def test_list_projects(self, hub):
         """Test listing projects."""
@@ -162,15 +152,8 @@ class TestHubProjects:
                 print("5. Skipping command execution - project not ready")
 
             # 3. Stop and delete the project
-            print("6. Stopping project...")
-            hub.projects.stop(project_id)
-            print("   ✓ Project stop command sent")
-            time.sleep(3)  # Wait for process to terminate
-            print("   ✓ Waited for project to stop")
-
-            print("7. Deleting project...")
-            delete_result = hub.projects.delete(project_id)
-            print(f"   ✓ Delete result: {delete_result}")
+            print("6. Stopping and deleting project...")
+            cleanup_project(hub, project_id)
 
             # 4. Verify project is marked as deleted in database
             print("8. Verifying project is marked as deleted...")
@@ -185,15 +168,9 @@ class TestHubProjects:
 
         except Exception as e:
             # Cleanup: attempt to stop and delete project if test fails
-            print(f"\n❌ Test failed: {e}")
+            print(f"\nTest failed: {e}")
             try:
-                print("Attempting cleanup: stopping then deleting project...")
-                hub.projects.stop(project_id)
-                print("✓ Project stop command sent")
-                time.sleep(3)  # Wait for process to terminate
-                print("✓ Waited for project to stop")
-                hub.projects.delete(project_id)
-                print("✓ Project deleted")
+                cleanup_project(hub, project_id)
             except Exception as cleanup_error:
-                print(f"❌ Cleanup failed: {cleanup_error}")
+                print(f"Cleanup failed: {cleanup_error}")
             raise e

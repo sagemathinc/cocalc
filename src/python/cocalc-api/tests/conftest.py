@@ -2,6 +2,7 @@
 Pytest configuration and fixtures for cocalc-api tests.
 """
 import os
+import time
 import uuid
 import pytest
 
@@ -23,6 +24,25 @@ def assert_valid_uuid(value, description="value"):
         uuid.UUID(value)
     except ValueError:
         pytest.fail(f"{description} should be a valid UUID, got: {value}")
+
+
+def cleanup_project(hub, project_id):
+    """
+    Clean up a test project by stopping it and deleting it.
+
+    Args:
+        hub: Hub client instance
+        project_id: Project ID to cleanup
+    """
+    try:
+        hub.projects.stop(project_id)
+    except Exception as e:
+        print(f"Warning: Failed to stop project {project_id}: {e}")
+
+    try:
+        hub.projects.delete(project_id)
+    except Exception as e:
+        print(f"Warning: Failed to delete project {project_id}: {e}")
 
 
 @pytest.fixture(scope="session")
@@ -59,18 +79,11 @@ def temporary_project(hub, request):
     title = f"CoCalc API Test {timestamp}"
     description = "Temporary project created by cocalc-api tests"
 
-    print("\n" + "="*70)
-    print("=== Creating temporary project for entire test session ===")
-    print("=== THIS SHOULD ONLY PRINT ONCE ===")
-    print("="*70)
     project_id = hub.projects.create_project(title=title, description=description)
-    print(f"Created project {project_id}")
-    print("="*70)
 
     # Start the project so it can respond to API calls
     try:
         hub.projects.start(project_id)
-        print(f"Starting project {project_id}, waiting for it to become ready...")
 
         # Wait for project to be ready (can take 10-15 seconds)
         from cocalc_api import Project
@@ -81,39 +94,19 @@ def temporary_project(hub, request):
                 # Try to ping the project to see if it's ready
                 test_project = Project(project_id=project_id, api_key=hub.api_key, host=hub.host)
                 test_project.system.ping()  # If this succeeds, project is ready
-                print(f"✓ Project {project_id} is ready after {(attempt + 1) * 5} seconds")
                 break
             except Exception:
                 if attempt == 9:  # Last attempt
-                    print(f"⚠ Warning: Project {project_id} did not become ready within 50 seconds")
+                    print(f"Warning: Project {project_id} did not become ready within 50 seconds")
 
     except Exception as e:
-        print(f"⚠ Warning: Failed to start project {project_id}: {e}")
+        print(f"Warning: Failed to start project {project_id}: {e}")
 
     project_info = {'project_id': project_id, 'title': title, 'description': description}
 
-    # Register cleanup using finalizer (more reliable than yield teardown)
+    # Register cleanup using finalizer
     def cleanup():
-        print(f"\n=== Cleaning up test project '{title}' (ID: {project_id}) ===")
-
-        try:
-            # Stop the project first
-            print(f"Stopping project {project_id}...")
-            hub.projects.stop(project_id)
-            print("✓ Project stop command sent")
-            # Wait for the project process to actually terminate
-            time.sleep(3)
-            print(f"✓ Waited for project {project_id} to stop")
-        except Exception as e:
-            print(f"⚠ Failed to stop project {project_id}: {e}")
-
-        try:
-            # Delete the project
-            print(f"Deleting project {project_id}...")
-            hub.projects.delete(project_id)
-            print(f"✓ Project {project_id} deleted")
-        except Exception as e:
-            print(f"⚠ Failed to delete project {project_id}: {e}")
+        cleanup_project(hub, project_id)
 
     request.addfinalizer(cleanup)
 

@@ -285,6 +285,7 @@ export async function createUser({
     account_id: new_account_id,
     owner_id: account_id,
     password,
+    dontStartProject: true, // Don't auto-start projects for API-created users. A "first project" will be created, though.
   });
   // add account to org
   const pool = getPool();
