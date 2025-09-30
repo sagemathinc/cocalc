@@ -66,13 +66,18 @@ import {
 } from "./cluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
-import { getLogger } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 import { forkedConatServer } from "./start-server";
-import { stickyChoice } from "./sticky";
+import {
+  stickyChoice,
+  createStickyRouter,
+  getStickyTarget,
+  stickyKey,
+} from "./sticky";
 import { EventEmitter } from "events";
 import { Metrics } from "../types";
+import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:server");
 
@@ -171,6 +176,8 @@ export class ConatServer extends EventEmitter {
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
   public readonly options: Partial<Options>;
+
+  // cluster = true if and only if this is a cluster:
   private cluster?: boolean;
 
   private sockets: { [id: string]: any } = {};
@@ -180,6 +187,7 @@ export class ConatServer extends EventEmitter {
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
   public interest: Interest = new Patterns();
+  private stickyClient: Client;
 
   private clusterStreams?: ClusterStreams;
   private clusterLinks: {
@@ -277,6 +285,7 @@ export class ConatServer extends EventEmitter {
     }
     this.initUsage();
     this.io.on("connection", this.handleSocket);
+    this.initSticky();
     this.init();
   }
 
@@ -443,15 +452,21 @@ export class ConatServer extends EventEmitter {
   // STICKY QUEUE GROUPS
   ///////////////////////////////////////
 
-  private stickyKey = ({ pattern, subject }) => {
-    return pattern + " " + subject;
+  private initSticky = () => {
+    this.stickyClient = this.client({
+      systemAccountPassword: this.options.systemAccountPassword,
+    });
+    if (!this.cluster) {
+      // not a cluster, so we can server as the sticky routing serivce
+      createStickyRouter({ client: this.stickyClient });
+    }
   };
 
   private stickyCache: { [key: string]: { target: string; expire: number } } =
     {};
   private updateSticky = (sticky: StickyUpdate) => {
     // save in the cache
-    this.stickyCache[this.stickyKey(sticky)] = {
+    this.stickyCache[stickyKey(sticky)] = {
       target: sticky.target,
       expire: Date.now() + sticky.ttl,
     };
@@ -464,18 +479,7 @@ export class ConatServer extends EventEmitter {
     pattern: string;
     subject: string;
   }): string | undefined => {
-    const key = this.stickyKey({ pattern, subject });
-    const x = this.stickyCache[key];
-    if (x != null) {
-      if (Date.now() >= x.expire) {
-        // it's in the cache
-        return x.target;
-      } else {
-        delete this.stickyCache[key];
-      }
-    }
-    // not in the cache or expired
-    return undefined;
+    return getStickyTarget({ stickyCache: this.stickyCache, pattern, subject });
   };
 
   ///////////////////////////////////////
@@ -763,13 +767,27 @@ export class ConatServer extends EventEmitter {
     if (targets.size == 0) {
       return undefined;
     }
-    return await stickyChoice({
-      pattern,
-      subject,
-      targets,
-      updateSticky: this.updateSticky,
-      getStickyTarget: this.getStickyTarget,
-    });
+    try {
+      const target = await stickyChoice({
+        client: this.stickyClient,
+        pattern,
+        subject,
+        targets,
+        updateSticky: this.updateSticky,
+        getStickyTarget: this.getStickyTarget,
+      });
+      return target;
+    } catch (err) {
+      this.log("WARNING: sticky router is not working", err);
+      // not possible to make assignment, e.g., not able
+      // to connect to the sticky service.  Can and should
+      // happen in case of a split brain (say).  This will
+      // make it so messages stop being delivered and hopefully
+      // client gets an error, and keeps retrying until the
+      // sticky service is back. This is of course the tradeoff
+      // of using a centralized algorithm for sticky routing.
+      return undefined;
+    }
   };
 
   stickyClusterLoadBalance = async ({
