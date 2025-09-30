@@ -6,6 +6,7 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
+
 import createAccount from "@cocalc/server/accounts/create-account";
 import manageApiKeys from "@cocalc/server/api/manage";
 import getPool from "@cocalc/database/pool";
@@ -17,7 +18,7 @@ async function main() {
   const firstName = "CI";
   const lastName = "Admin";
 
-  console.log(`Creating admin account ${account_id}...`);
+  console.error(`Creating admin account ${account_id}...`);
 
   // Create the account
   await createAccount({
@@ -38,7 +39,7 @@ async function main() {
     account_id,
   ]);
 
-  console.log("Creating API key...");
+  console.error("Creating API key...");
 
   // Create API key
   const keys = await manageApiKeys({
@@ -52,7 +53,11 @@ async function main() {
   }
 
   const apiKey = keys[0];
-  console.log(`API key created: ${apiKey.secret}`);
+  if (!apiKey.secret) {
+    throw new Error("API key secret is missing");
+  }
+  console.error(`API key created with id=${apiKey.id}: ${apiKey.secret}`);
+  console.error(`Last 6 chars: ${apiKey.secret.slice(-6)}`);
 
   // Output the key for CI
   process.stdout.write(apiKey.secret);

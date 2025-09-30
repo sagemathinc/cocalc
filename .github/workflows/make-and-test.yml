@@ -128,28 +128,13 @@ jobs:
           name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
           path: 'src/packages/*/junit.xml'
 
-      - name: Create CI admin user and API key
-        run: |
-          cd src/packages/hub
-          node run/test-create-admin.js > ../../api_key.txt
-          # Validate API key was created
-          if [ ! -s ../../api_key.txt ]; then
-            echo "Error: API key file is empty or missing"
-            exit 1
-          fi
-          API_KEY=$(cat ../../api_key.txt)
-          if ! echo "$API_KEY" | grep -qE '^sk-[A-Za-z0-9]+$'; then
-            echo "Error: Invalid API key format: $API_KEY"
-            exit 1
-          fi
-          echo "API key created successfully"
-        env:
-          PGDATABASE: smc
-          PGUSER: smc
-          PGHOST: localhost
-
       - name: Start CoCalc Hub
         run: |
+          # Create conat password for hub internal authentication
+          mkdir -p src/data/secrets
+          echo "test-conat-password-$(date +%s)" > src/data/secrets/conat-password
+          chmod 600 src/data/secrets/conat-password
+
           cd src/packages/hub
           pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
           HUB_PID=$!
@@ -168,13 +153,15 @@ jobs:
           PGUSER: smc
           PGHOST: localhost
           COCALC_MODE: single-user
+          COCALC_TEST_MODE: yes
+          DEBUG: 'cocalc:*,-cocalc:silly:*,hub:*,project:*'
 
       - name: Wait for hub readiness
         run: |
           MAX_ATTEMPTS=30
           READY=false
           for i in $(seq 1 $MAX_ATTEMPTS); do
-            if curl -f --max-time 3 http://localhost:5000/healthcheck; then
+            if curl -sf --max-time 3 http://localhost:5000/healthcheck > /dev/null; then
               echo "Hub is ready"
               READY=true
               break
@@ -189,6 +176,26 @@ jobs:
             exit 1
           fi
 
+      - name: Create CI admin user and API key
+        run: |
+          cd src/packages/hub
+          node dist/run/test-create-admin.js > ../../api_key.txt
+          # Validate API key was created
+          if [ ! -s ../../api_key.txt ]; then
+            echo "Error: API key file is empty or missing"
+            exit 1
+          fi
+          API_KEY=$(cat ../../api_key.txt)
+          if ! echo "$API_KEY" | grep -qE '^sk-[A-Za-z0-9]+$'; then
+            echo "Error: Invalid API key format: $API_KEY"
+            exit 1
+          fi
+          echo "API key created successfully"
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+
       - name: Install uv for cocalc-api tests
         run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
 
@@ -196,7 +203,7 @@ jobs:
         run: |
           export COCALC_API_KEY=$(cat src/api_key.txt)
           export COCALC_HOST=http://localhost:5000
-          cd src/python/cocalc-api && uv run pytest --junitxml=test-results.xml
+          cd src/python/cocalc-api && make ci
 
       - name: Stop CoCalc Hub
         if: always()

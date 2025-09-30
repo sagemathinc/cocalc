@@ -7,6 +7,7 @@ help:
 	@echo "  check            - Run linting and type checking"
 	@echo "  test             - Run tests"
 	@echo "  test-verbose     - Run tests with verbose output"
+	@echo "  ci               - Run tests with coverage and JUnit XML for CI"
 	@echo "  coverage         - Run tests with coverage reporting (HTML + terminal)"
 	@echo "  coverage-report  - Show coverage report in terminal"
 	@echo "  coverage-html    - Generate HTML coverage report only"
@@ -33,6 +34,9 @@ test:
 
 test-verbose:
 	uv run pytest -v
+
+ci:
+	uv run pytest --junitxml=test-results.xml --cov=src --cov-report=term-missing --cov-report=html
 
 coverage:
 	uv run pytest --cov=src --cov-report=term-missing --cov-report=html
