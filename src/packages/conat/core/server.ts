@@ -744,12 +744,17 @@ export class ConatServer extends EventEmitter {
         }
         // send to exactly one in each queue group
         for (const queue in g) {
-          const target = this.loadBalance({
-            pattern,
-            subject,
-            queue,
-            targets: g[queue],
-          });
+          let target;
+          const targets = g[queue];
+          if (queue == STICKY_QUEUE_GROUP) {
+            target = await this.stickyLoadBalance({
+              pattern,
+              subject,
+              targets,
+            });
+          } else {
+            target = this.loadBalance(targets);
+          }
           if (target !== undefined) {
             this.io.to(target).emit(pattern, { subject, data });
             if (!isSilentPattern(pattern)) {
@@ -773,12 +778,17 @@ export class ConatServer extends EventEmitter {
     for (const pattern in clusterInterest) {
       const g = clusterInterest[pattern];
       for (const queue in g) {
-        const t = this.clusterLoadBalance({
-          pattern,
-          subject,
-          queue,
-          targets: g[queue],
-        });
+        let t;
+        const targets = g[queue];
+        if (queue == STICKY_QUEUE_GROUP) {
+          t = await this.stickyClusterLoadBalance({
+            pattern,
+            subject,
+            targets,
+          });
+        } else {
+          t = this.clusterLoadBalance(targets);
+        }
         if (t !== undefined) {
           const { id, target } = t;
           if (id == this.id) {
@@ -824,70 +834,21 @@ export class ConatServer extends EventEmitter {
       link?.client.conn.emit("publish", data1);
     }
 
-    //
-    // TODO: Supercluster routing.  NOT IMPLEMENTED YET
-    //
-    //     // if no matches in local cluster, try the supercluster (if there is one)
-    //     if (count == 0) {
-    //       // nothing in this cluster, so try other clusters
-    //       for (const clusterName in this.clusterLinks) {
-    //         if (clusterName == this.clusterName) continue;
-    //         const links = this.clusterLinks[clusterName];
-    //         for (const id in links) {
-    //           const link = links[id];
-    //           const count2 = link.publish({ subject, data, queueGroups });
-    //           if (count2 > 0) {
-    //             count += count2;
-    //             // once we publish to any other cluster, we are done.
-    //             break;
-    //           }
-    //         }
-    //       }
-    //     }
-
     return count;
   };
 
   ///////////////////////////////////////
   // WHO GETS PUBLISHED MESSAGE:
   ///////////////////////////////////////
-  private loadBalance = ({
-    pattern,
-    subject,
-    queue,
-    targets,
-  }: {
-    pattern: string;
-    subject: string;
-    queue: string;
-    targets: Set<string>;
-  }): string | undefined => {
+  private loadBalance = (targets: Set<string>): string | undefined => {
     if (targets.size == 0) {
       return undefined;
     }
-    if (queue == STICKY_QUEUE_GROUP) {
-      return stickyChoice({
-        pattern,
-        subject,
-        targets,
-        updateSticky: this.updateSticky,
-        getStickyTarget: this.getStickyTarget,
-      });
-    } else {
-      return randomChoice(targets);
-    }
+    return randomChoice(targets);
   };
 
-  clusterLoadBalance = ({
-    pattern,
-    subject,
-    queue,
-    targets: targets0,
-  }: {
-    pattern: string;
-    subject: string;
-    queue: string;
-    targets: { [id: string]: Set<string> };
+  clusterLoadBalance = (targets0: {
+    [id: string]: Set<string>;
   }): { id: string; target: string } | undefined => {
     const targets = new Set<string>();
     for (const id in targets0) {
@@ -895,7 +856,52 @@ export class ConatServer extends EventEmitter {
         targets.add(JSON.stringify({ id, target }));
       }
     }
-    const x = this.loadBalance({ pattern, subject, queue, targets });
+    const x = this.loadBalance(targets);
+    if (!x) {
+      return undefined;
+    }
+    return JSON.parse(x);
+  };
+
+  // sticky versions
+
+  private stickyLoadBalance = async ({
+    pattern,
+    subject,
+    targets,
+  }: {
+    pattern: string;
+    subject: string;
+    targets: Set<string>;
+  }): Promise<string | undefined> => {
+    if (targets.size == 0) {
+      return undefined;
+    }
+    return stickyChoice({
+      pattern,
+      subject,
+      targets,
+      updateSticky: this.updateSticky,
+      getStickyTarget: this.getStickyTarget,
+    });
+  };
+
+  stickyClusterLoadBalance = async ({
+    pattern,
+    subject,
+    targets: targets0,
+  }: {
+    pattern: string;
+    subject: string;
+    targets: { [id: string]: Set<string> };
+  }): Promise<{ id: string; target: string } | undefined> => {
+    const targets = new Set<string>();
+    for (const id in targets0) {
+      for (const target of targets0[id]) {
+        targets.add(JSON.stringify({ id, target }));
+      }
+    }
+    const x = await this.stickyLoadBalance({ pattern, subject, targets });
     if (!x) {
       return undefined;
     }
