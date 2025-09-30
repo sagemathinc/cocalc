@@ -24,7 +24,7 @@ import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { join } from "path";
-import * as rootFilesystem from "./overlay";
+import * as overlay from "./overlay";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
@@ -54,7 +54,7 @@ const logger = getLogger("project-runner:podman");
 // somehow messed up, this will cleanly kill it.  It's
 // very good right now to have this on, since otherwise
 // restart, etc., would be impossible. But it is annoying
-// when debugging. 
+// when debugging.
 const STOP_ON_STATUS_ERROR = false;
 
 // projects we are definitely starting right now
@@ -213,7 +213,7 @@ export async function start({
       desc: "wrote startup scripts",
     });
 
-    const rootfs = await rootFilesystem.mount({ project_id, home, config });
+    const rootfs = await overlay.mount({ project_id, home, config });
     bootlog({
       project_id,
       type: "start-project",
@@ -416,7 +416,7 @@ export async function stop({
         ),
       );
       v.push(
-        f("unmounted root filesystem", rootFilesystem.unmount(project_id)),
+        f("unmounted root filesystem", overlay.unmount(project_id)),
       );
       await Promise.all(v);
       if (errors.length > 0) {

@@ -1,6 +1,4 @@
 /*
-
-
 Privileges: This uses sudo to do an overlayfs mount.
 
     wstein ALL=(ALL) NOPASSWD: /bin/mount -t overlay *, /bin/umount *
@@ -16,7 +14,8 @@ import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { replace_all } from "@cocalc/util/misc";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { getImage } from "./podman";
-import { extractBaseImage, IMAGE_CACHE } from "./rootfs-base";
+import { extractBaseImage, IMAGE_CACHE, registerProgress } from "./rootfs-base";
+import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -57,9 +56,33 @@ export async function mount({
   home: string;
   config?: Configuration;
 }) {
+  bootlog({
+    project_id,
+    type: "mount-rootfs",
+    progress: 0,
+    desc: "",
+  });
+
   const image = getImage(config);
   logger.debug("mount", { project_id, home, image });
+
+  registerProgress(image, ({ progress, desc }) => {
+    bootlog({
+      project_id,
+      type: "mount-rootfs",
+      progress: (progress / 100) * 70, // normalize to go from 0 to 70
+      desc,
+    });
+  });
+
   const lowerdir = await extractBaseImage(image);
+
+  bootlog({
+    project_id,
+    type: "mount-rootfs",
+    progress: 70,
+    desc: "extracted base image",
+  });
   const { upperdir, workdir, merged } = getPaths({ home, image, project_id });
   try {
     // workdir must be empty when mount happens -- it is scratch space
@@ -68,7 +91,19 @@ export async function mount({
   await mkdir(upperdir, { recursive: true });
   await mkdir(workdir, { recursive: true });
   await mkdir(merged, { recursive: true });
+  bootlog({
+    project_id,
+    type: "mount-rootfs",
+    progress: 80,
+    desc: "created directories",
+  });
   await mountOverlayFs({ lowerdir, upperdir, workdir, merged });
+  bootlog({
+    project_id,
+    type: "mount-rootfs",
+    progress: 100,
+    desc: "mounted",
+  });
 
   return merged;
 }

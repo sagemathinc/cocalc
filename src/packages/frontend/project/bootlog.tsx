@@ -5,7 +5,8 @@ import { useProjectContext } from "./context";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import type { Event } from "@cocalc/conat/project/runner/bootlog";
 import ShowError from "@cocalc/frontend/components/error";
-import { capitalize, plural } from "@cocalc/util/misc";
+import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 export default function Bootlog({
   style,
@@ -47,13 +48,14 @@ export default function Bootlog({
       newest[t].desc = x.desc;
     }
   }
-  const types = Object.keys(newest);
-  types.sort();
+  const data = Object.values(newest);
+  data.sort(field_cmp("elapsed"));
+  data.reverse();
 
   return (
     <div
       style={{
-        maxHeight: "200px",
+        maxHeight: "300px",
         minWidth: "600px",
         overflow: "auto",
         background: "white",
@@ -61,9 +63,14 @@ export default function Bootlog({
         ...style,
       }}
     >
-      {types.map((type) => (
-        <ProgressEntry key={type} {...newest[type]} />
+      {data.map((event) => (
+        <ProgressEntry key={event.type} {...event} />
       ))}
+      <StaticMarkdown
+        value={
+          "```js\n" + log.map((x) => JSON.stringify(x)).join("\n") + "\n```\n"
+        }
+      />
     </div>
   );
 }
