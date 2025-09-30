@@ -114,11 +114,13 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
     `--no-browser`,
     `--NotebookApp.iopub_data_rate_limit=${JUPYTERNB_DATA}`,
     `--NotebookApp.iopub_msg_rate_limit=${JUPYTERNB_MSGS}`,
-    // we run Jupyter NB without authentication, because everything is proxied through CoCalc anyway
-    `--NotebookApp.token='' --NotebookApp.password=''`,
+    `--NotebookApp.token=`,
+    `--NotebookApp.password=`,
     `--NotebookApp.allow_remote_access=True`,
     `--NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js`,
-    `--NotebookApp.base_url=${basePath} --ip=${ip} --port=${port}`,
+    `--NotebookApp.base_url=${basePath}`,
+    `--ip=${ip}`,
+    `--port=${port}`,
   ],
 
   jupyterlab: async (ip: string, port: number, basePath: string) => [
@@ -129,8 +131,8 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
     `--no-browser`, // don't open a browser – the UI does this if appliable
     `--NotebookApp.iopub_data_rate_limit=${JUPYTERLAB_DATA}`,
     `--NotebookApp.iopub_msg_rate_limit=${JUPYTERLAB_MSGS}`,
-    // we run Jupyter Lab without authentication, because everything is proxied through CoCalc anyway
-    `--NotebookApp.token='' --NotebookApp.password=''`,
+    `--NotebookApp.token=`,
+    `--NotebookApp.password=`,
     // additionally to the above, and since several Jupyter Lab across projects might interfere with each other, we disable XSRF protection
     // see https://github.com/sagemathinc/cocalc/issues/6492
     `--ServerApp.disable_check_xsrf=True`, // Ref: https://jupyter-server.readthedocs.io/en/latest/other/full-config.html
@@ -142,6 +144,7 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
     // could be an option, but requires another package which could be tricky to install... "pip install jupyter_collaboration";
     // on standard ubuntu 25.04 i got errors trying to install this package.  This should thus be optional and maybe part
     // of some special container or package or something (?).
+    // TODO: We need to make it easy for users to customize app launchers.
     // `--collaborative`,
   ],
 
