@@ -128,6 +128,103 @@ jobs:
           name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
           path: 'src/packages/*/junit.xml'
 
+      - name: Create CI admin user and API key
+        run: |
+          cd src/packages/hub
+          node run/test-create-admin.js > ../../api_key.txt
+          # Validate API key was created
+          if [ ! -s ../../api_key.txt ]; then
+            echo "Error: API key file is empty or missing"
+            exit 1
+          fi
+          API_KEY=$(cat ../../api_key.txt)
+          if ! echo "$API_KEY" | grep -qE '^sk-[A-Za-z0-9]+$'; then
+            echo "Error: Invalid API key format: $API_KEY"
+            exit 1
+          fi
+          echo "API key created successfully"
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+
+      - name: Start CoCalc Hub
+        run: |
+          cd src/packages/hub
+          pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
+          HUB_PID=$!
+          echo $HUB_PID > hub.pid
+          echo "Hub started with PID $HUB_PID"
+          # Check if process is still running after a moment
+          sleep 2
+          if ! kill -0 $HUB_PID 2>/dev/null; then
+            echo "Error: Hub process died immediately after starting"
+            echo "Hub log:"
+            cat hub.log
+            exit 1
+          fi
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+          COCALC_MODE: single-user
+
+      - name: Wait for hub readiness
+        run: |
+          MAX_ATTEMPTS=30
+          READY=false
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if curl -f --max-time 3 http://localhost:5000/healthcheck; then
+              echo "Hub is ready"
+              READY=true
+              break
+            fi
+            echo "Waiting for hub... ($i/$MAX_ATTEMPTS)"
+            sleep 3
+          done
+          if [ "$READY" = "false" ]; then
+            echo "Hub failed to become ready after $MAX_ATTEMPTS attempts"
+            echo "Hub log:"
+            cat src/packages/hub/hub.log || echo "No log file found"
+            exit 1
+          fi
+
+      - name: Install uv for cocalc-api tests
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Run cocalc-api tests
+        run: |
+          export COCALC_API_KEY=$(cat src/api_key.txt)
+          export COCALC_HOST=http://localhost:5000
+          cd src/python/cocalc-api && uv run pytest --junitxml=test-results.xml
+
+      - name: Stop CoCalc Hub
+        if: always()
+        run: |
+          if [ -f src/packages/hub/hub.pid ]; then
+            HUB_PID=$(cat src/packages/hub/hub.pid)
+            echo "Stopping hub with PID $HUB_PID"
+            kill $HUB_PID || true
+            # Wait a bit for graceful shutdown
+            sleep 2
+            # Force kill if still running
+            kill -9 $HUB_PID 2>/dev/null || true
+          fi
+
+      - name: Upload hub logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "hub-logs-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
+          path: 'src/packages/hub/hub.log'
+
+      - name: Upload cocalc-api test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "cocalc-api-test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
+          path: 'src/python/cocalc-api/test-results.xml'
+
   report:
     runs-on: ubuntu-latest
 
