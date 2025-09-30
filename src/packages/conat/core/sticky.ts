@@ -30,8 +30,15 @@ export function consistentHashingChoice(
   return hr.get(hash_string(resource));
 }
 
+// the subject that is used for the sticky router service
 const SUBJECT = "sticky.one";
-const DEFAULT_TTL = 15_000;
+
+const DEFAULT_CHOICE_TTL = 60_000 * 60 * 24 * 30; // 30 days
+
+const DEFAULT_CLIENT_TTL = 15_000; // 15 seconds
+
+// NOTE: there are no assumptions here about clocks being synchronized. These
+// are just ttl's.
 
 export function stickyKey({ pattern, subject }) {
   return pattern + " " + subject;
@@ -60,7 +67,24 @@ export function getStickyTarget({
   return undefined;
 }
 
-export async function createStickyRouter({ client }: { client: Client }) {
+export async function createStickyRouter({
+  client,
+  // when the stick router service makes a choice, it keeps it this
+  // long, or until the choice it made is no longer valid (i.e., the target
+  // vanishes).  This may as well be infinite, but it is nice to have the
+  // option to discard choices from memory to avoid leaks.
+  choiceTtl = DEFAULT_CHOICE_TTL,
+  // The client trusts a choice returned from the router for this long,
+  // or until the target is no longer available.  Thus if the target
+  // is randomly vanishing and coming back and a reassignment gets made,
+  // this client would definitely find out if necessary within this amount of time.
+  // Basically this is roughly how long failover may take.
+  clientTtl = DEFAULT_CLIENT_TTL,
+}: {
+  client: Client;
+  choiceTtl?: number;
+  clientTtl?: number;
+}) {
   const sub = await client.subscribe(SUBJECT);
   const stickyCache: { [key: string]: { target: string; expire: number } } = {};
 
@@ -76,9 +100,9 @@ export async function createStickyRouter({ client }: { client: Client }) {
       if (target == null || !targets.includes(target)) {
         // make a new choice
         target = consistentHashingChoice(targets, subject);
-        stickyCache[key] = { target, expire: Date.now() + DEFAULT_TTL };
+        stickyCache[key] = { target, expire: Date.now() + choiceTtl };
       }
-      await mesg.respond({ target, ttl: DEFAULT_TTL });
+      await mesg.respond({ target, ttl: clientTtl });
     } catch (err) {
       logger.debug("WARNING: unable to handle routing message", err);
     }
@@ -143,7 +167,7 @@ export async function stickyChoice({
       subject,
       targets: Array.from(targets),
     });
-    const { target, ttl = DEFAULT_TTL } = resp.data;
+    const { target, ttl = DEFAULT_CLIENT_TTL } = resp.data;
     updateSticky({ pattern, subject, target, ttl });
     return target;
   }

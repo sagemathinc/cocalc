@@ -767,16 +767,23 @@ export class ConatServer extends EventEmitter {
     if (targets.size == 0) {
       return undefined;
     }
+    if (targets.size == 1) {
+      // currently there is a canonical choice
+      for (const target of targets) {
+        return target;
+      }
+    }
     try {
-      const target = await stickyChoice({
-        client: this.stickyClient,
+      return await stickyChoice({
         pattern,
         subject,
         targets,
+        // client -- so can call the remote sticky router if necessary
+        client: this.stickyClient,
+        // updateSticky & getStickyTarget -- so can consule/update the cache
         updateSticky: this.updateSticky,
         getStickyTarget: this.getStickyTarget,
       });
-      return target;
     } catch (err) {
       this.log("WARNING: sticky router is not working", err);
       // not possible to make assignment, e.g., not able
