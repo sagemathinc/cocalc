@@ -92,6 +92,14 @@ async function rserver(
 }
 
 const SPEC: { [name in NamedServerName]: CommandFunction } = {
+  xpra: async (ip: string, port: number) => [
+    "xpra",
+    "start",
+    `--bind-tcp=${ip}:${port}`,
+    "--sharing=yes",
+    "--daemon=no",
+    "--start=/usr/bin/xterm",
+  ],
   code: async (ip: string, port: number) => [
     `code-server`,
     `--bind-addr=${ip}:${port}`,

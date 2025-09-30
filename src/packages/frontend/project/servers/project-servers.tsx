@@ -121,6 +121,14 @@ export function ProjectServers() {
                 />
               </Col>
             )}
+          <Col sm={sm} md={md}>
+            <NewFileButton
+              name={<span style={{ fontSize: "14pt" }}>Xpra</span>}
+              icon={"desktop"}
+              active={showNamedServer === "xpra"}
+              on_click={() => toggleShowNamedServer("xpra")}
+            />
+          </Col>
           {noServers && (
             <Col sm={sm} md={md}>
               <NewFileButton

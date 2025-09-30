@@ -23,9 +23,7 @@ function assertNamedServer(name: string) {
 }
 
 function getBase(name: string, port: number): string {
-  const baseType = ["rserver", "pluto", "code"].includes(name)
-    ? "proxy"
-    : "port";
+  const baseType = ["jupyter", "jupyterlab"].includes(name) ? "port" : "proxy";
   return join(basePath, `/${project_id}/${baseType}/${port}/`);
 }
 

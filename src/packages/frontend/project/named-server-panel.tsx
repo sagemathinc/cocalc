@@ -85,6 +85,15 @@ export const SPEC: {
     usesBasePath: false,
     icon: "vscode",
   },
+  xpra: {
+    longName: "Xpra X11 Desktop",
+    description: defineMessage({
+      id: "project.named-server-panel.spec.xpra.description",
+      defaultMessage: `Run graphical Linux applications in your web browser.`,
+    }),
+    usesBasePath: false,
+    icon: "desktop",
+  },
   pluto: {
     longName: "Julia Pluto.jl",
     description: defineMessage({
