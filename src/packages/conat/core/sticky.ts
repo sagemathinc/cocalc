@@ -4,6 +4,8 @@ import { type Client } from "./client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getLogger } from "@cocalc/conat/client";
 
+const DEBUG = true;
+
 const logger = getLogger("conat:core:sticky");
 
 export function consistentHashingChoice(
@@ -85,9 +87,13 @@ export async function createStickyRouter({
   choiceTtl?: number;
   clientTtl?: number;
 }) {
+  logger.debug("Creating Sticky Router: ", { choiceTtl, clientTtl });
+  await client.waitUntilConnected();
   const sub = await client.subscribe(SUBJECT);
+  logger.debug("Creating Sticky Router: subscription created");
   const stickyCache: { [key: string]: { target: string; expire: number } } = {};
 
+  let counter = 0;
   const handle = async (mesg) => {
     try {
       const { pattern, subject, targets } = mesg.data;
@@ -97,10 +103,23 @@ export async function createStickyRouter({
         pattern,
         subject,
       });
+      let madeChoice = false;
       if (target == null || !targets.includes(target)) {
         // make a new choice
+        madeChoice = true;
         target = consistentHashingChoice(targets, subject);
         stickyCache[key] = { target, expire: Date.now() + choiceTtl };
+      }
+      counter++;
+      if (DEBUG) {
+        logger.debug("handle request", {
+          counter,
+          madeChoice,
+          pattern,
+          subject,
+          targets,
+          target,
+        });
       }
       await mesg.respond({ target, ttl: clientTtl });
     } catch (err) {
@@ -113,7 +132,6 @@ export async function createStickyRouter({
     }
   };
   listen();
-  return sub;
 }
 
 const stickyRequest = reuseInFlight(
