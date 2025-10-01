@@ -1,11 +1,6 @@
 import { type Client, connect } from "./client";
 import { Patterns } from "./patterns";
-import {
-  updateInterest,
-  updateSticky,
-  type InterestUpdate,
-  type StickyUpdate,
-} from "@cocalc/conat/core/server";
+import { updateInterest, type InterestUpdate } from "@cocalc/conat/core/server";
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import { server as createPersistServer } from "@cocalc/conat/persist/server";
 import { getLogger } from "@cocalc/conat/client";
@@ -46,14 +41,12 @@ export async function clusterLink(
   return link;
 }
 
-export type Sticky = { [pattern: string]: { [subject: string]: string } };
 export type Interest = Patterns<{ [queue: string]: Set<string> }>;
 
 export { type ClusterLink };
 
 class ClusterLink {
   public interest: Interest = new Patterns();
-  public sticky: Sticky = {};
   private streams: ClusterStreams;
   private state: "init" | "ready" | "closed" = "init";
   private clientStateChanged = Date.now(); // when client status last changed
@@ -84,10 +77,7 @@ class ClusterLink {
       clusterName: this.clusterName,
     });
     for (const update of this.streams.interest.getAll()) {
-      updateInterest(update, this.interest, this.sticky);
-    }
-    for (const update of this.streams.sticky.getAll()) {
-      updateSticky(update, this.sticky);
+      updateInterest(update, this.interest);
     }
     // I have a slight concern about this because updates might not
     // arrive in order during automatic failover.  That said, maybe
@@ -96,7 +86,6 @@ class ClusterLink {
     // it is about, and when that server goes down none of this state
     // matters anymore.
     this.streams.interest.on("change", this.handleInterestUpdate);
-    this.streams.sticky.on("change", this.handleStickyUpdate);
     this.state = "ready";
   };
 
@@ -105,11 +94,7 @@ class ClusterLink {
   };
 
   handleInterestUpdate = (update: InterestUpdate) => {
-    updateInterest(update, this.interest, this.sticky);
-  };
-
-  handleStickyUpdate = (update: StickyUpdate) => {
-    updateSticky(update, this.sticky);
+    updateInterest(update, this.interest);
   };
 
   private handleClientStateChanged = () => {
@@ -133,7 +118,6 @@ class ClusterLink {
     if (this.streams != null) {
       this.streams.interest.removeListener("change", this.handleInterestUpdate);
       this.streams.interest.close();
-      this.streams.sticky.close();
       // @ts-ignore
       delete this.streams;
     }
@@ -177,10 +161,9 @@ class ClusterLink {
     return false;
   };
 
-  hash = (): { interest: number; sticky: number } => {
+  hash = (): { interest: number } => {
     return {
       interest: hashInterest(this.interest),
-      sticky: hashSticky(this.sticky),
     };
   };
 }
@@ -194,7 +177,6 @@ function clusterStreamNames({
 }) {
   return {
     interest: `cluster/${clusterName}/${id}/interest`,
-    sticky: `cluster/${clusterName}/${id}/sticky`,
   };
 }
 
@@ -224,7 +206,6 @@ export async function createClusterPersistServer({
 
 export interface ClusterStreams {
   interest: DStream<InterestUpdate>;
-  sticky: DStream<StickyUpdate>;
 }
 
 export async function clusterStreams({
@@ -251,13 +232,8 @@ export async function clusterStreams({
     name: names.interest,
     ...opts,
   });
-  const sticky = await client.sync.dstream<StickyUpdate>({
-    noInventory: true,
-    name: names.sticky,
-    ...opts,
-  });
   logger.debug("clusterStreams: got them", { clusterName });
-  return { interest, sticky };
+  return { interest };
 }
 
 // Periodically delete not-necessary updates from the interest stream
@@ -265,15 +241,14 @@ export async function trimClusterStreams(
   streams: ClusterStreams,
   data: {
     interest: Patterns<{ [queue: string]: Set<string> }>;
-    sticky: { [pattern: string]: { [subject: string]: string } };
     links: { interest: Patterns<{ [queue: string]: Set<string> }> }[];
   },
   // don't delete anything that isn't at lest minAge ms old.
   minAge: number,
-): Promise<{ seqsInterest: number[]; seqsSticky: number[] }> {
-  const { interest, sticky } = streams;
-  // First deal with interest.
-  // We iterate over the interest stream checking for subjects
+): Promise<{ seqsInterest: number[] }> {
+  const { interest } = streams;
+  // First deal with interst
+  // we iterate over the interest stream checking for subjects
   // with no current interest at all; in such cases it is safe
   // to purge them entirely from the stream.
   const seqs: number[] = [];
@@ -299,45 +274,7 @@ export async function trimClusterStreams(
     logger.debug("trimClusterStream: successfully trimmed interest", { seqs });
   }
 
-  // Next deal with sticky -- trim ones where the pattern is no longer of interest.
-  // There could be other reasons to trim but it gets much trickier. This one is more
-  // obvious, except we have to check for any interest in the whole cluster, not
-  // just this node.
-  const seqs2: number[] = [];
-  function noInterest(pattern: string) {
-    if (data.interest.hasPattern(pattern)) {
-      return false;
-    }
-    for (const link of data.links) {
-      if (link.interest.hasPattern(pattern)) {
-        return false;
-      }
-    }
-    // nobody cares
-    return true;
-  }
-  for (let n = 0; n < sticky.length; n++) {
-    const time = sticky.time(n);
-    if (time == null) continue;
-    if (now - time.valueOf() <= minAge) {
-      break;
-    }
-    const update = sticky.get(n) as StickyUpdate;
-    if (noInterest(update.pattern)) {
-      const seq = sticky.seq(n);
-      if (seq != null) {
-        seqs2.push(seq);
-      }
-    }
-  }
-  if (seqs2.length > 0) {
-    // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
-    logger.debug("trimClusterStream: trimming sticky", { seqs2 });
-    await sticky.delete({ seqs: seqs2 });
-    logger.debug("trimClusterStream: successfully trimmed sticky", { seqs2 });
-  }
-
-  return { seqsInterest: seqs, seqsSticky: seqs2 };
+  return { seqsInterest: seqs };
 }
 
 function hashSet(X: Set<string>): number {
@@ -360,16 +297,4 @@ export function hashInterest(
   interest: Patterns<{ [queue: string]: Set<string> }>,
 ): number {
   return interest.hash(hashInterestValue);
-}
-
-export function hashSticky(sticky: Sticky): number {
-  let h = 0;
-  for (const pattern in sticky) {
-    h += hash_string(pattern);
-    const x = sticky[pattern];
-    for (const subject in x) {
-      h += hash_string(x[subject]);
-    }
-  }
-  return h;
 }

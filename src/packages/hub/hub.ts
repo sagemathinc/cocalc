@@ -43,9 +43,11 @@ import {
   initConatPersist,
   initConatFileserver,
 } from "@cocalc/server/conat";
-import { initConatServer } from "@cocalc/server/conat/socketio";
+import {
+  initConatServer,
+  initStickyRouterService,
+} from "@cocalc/server/conat/socketio";
 import initHttpRedirect from "./servers/http-redirect";
-
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
 import { migrateBookmarksToConat } from "./migrate-bookmarks";
@@ -290,7 +292,19 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
+  // UNIQUE SERVICE: THESE ARE THE SERVICES THAT HAVE TO RUN *EXACTLY ONCE*.
   if (program.all || program.mentions) {
+    if (program.mode == "kucalc") {
+      // init kucalc it's critical to have one sticky router service running,
+      // and this is the hub node where we do this. Do NOT do this
+      // if there is no clustering or a local conat cluster, since then
+      // you end up with two sticky routers.
+      initStickyRouterService();
+    }
+    // kucalc: for now we just have the hub-mentions servers
+    // do the new project pool maintenance, since there is only
+    // one hub-stats.
+    // On non-cocalc it'll get done by *the* hub because of program.all.
     // Starts periodic maintenance on pay-as-you-go purchases, e.g., quota
     // upgrades of projects.
     initPurchasesMaintenanceLoop();
