@@ -56,7 +56,7 @@ export default function Edit({
   }, [id, path, url, relativePath]);
 
   return (
-    <span>
+    <>
       <Button
         style={{ marginLeft: "-15px" }}
         type="link"
@@ -67,7 +67,7 @@ export default function Edit({
         }}
         key="edit"
       >
-        <Icon name="pencil" /> Edit Copy
+        <Icon name="pencil" /> Edit...
       </Button>
       {expanded && (
         <EditOptions
@@ -84,6 +84,6 @@ export default function Edit({
           }}
         />
       )}
-    </span>
+    </>
   );
 }

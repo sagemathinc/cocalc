@@ -24,6 +24,7 @@ export default async function apiPost(
     body: JSON.stringify(data),
   });
   let result;
+  const respClone = response.clone();
   try {
     result = await response.json();
     if (result.error) {
@@ -32,14 +33,24 @@ export default async function apiPost(
     }
     if (result.errors) {
       // This happens with zod schema errors, e.g., try creating an account with email a@b.c,
-      // which violates the schema for email in zod. 
+      // which violates the schema for email in zod.
       throw Error(JSON.stringify(result.errors));
     }
   } catch (err) {
     if (response.statusText == "Not Found") {
       throw Error(`The API endpoint ${path} does not exist`);
     }
-    throw err;
+    let r;
+    try {
+      r = await respClone.text();
+    } catch {
+      r = undefined;
+    }
+    if (r) {
+      throw Error(r);
+    } else {
+      throw err;
+    }
   }
   if (cache_s) {
     cache.set(key, result);

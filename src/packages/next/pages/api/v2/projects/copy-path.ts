@@ -7,11 +7,12 @@ This requires the user to be signed in with appropriate access.
 See "@cocalc/server/projects/control/base" for params.
 */
 import getAccountId from "lib/account/get-account";
-import { getProject } from "@cocalc/server/projects/control";
 import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getParams from "lib/api/get-params";
+import { client as filesystemClient } from "@cocalc/conat/files/file-server";
+import "@cocalc/backend/conat";
 
 export default async function handle(req, res) {
   const params = getParams(req);
@@ -28,11 +29,13 @@ export default async function handle(req, res) {
     src_project_id,
     target_project_id,
     target_path,
+    timeout, // old timeout was in seconds.
+    /*
     overwrite_newer,
     delete_missing,
     backup,
-    timeout,
     bwlimit,
+    */
   } = params;
 
   try {
@@ -60,23 +63,16 @@ export default async function handle(req, res) {
         throw Error("must be a collaborator on source project");
       }
     }
-    throw Error("TODO: reimplement copyPath");
-    const project = getProject(src_project_id);
-    console.log({
-      project,
-      path,
-      target_project_id,
-      target_path,
-      overwrite_newer,
-      delete_missing,
-      backup,
-      timeout,
-      bwlimit,
-      public: !!public_id,
-      wait_until_done: true,
+    const client = filesystemClient();
+    await client.cp({
+      src: { project_id: src_project_id, path },
+      dest: { project_id: target_project_id, path: target_path ?? path },
+      options: {
+        timeout: timeout != null ? timeout * 1000 : undefined, // old timeout was in seconds.
+        recursive: true,
+      },
     });
-    // success means no exception and no error field in response.
-    res.json({});
+    res.json({ status: "ok" });
   } catch (err) {
     res.json({ error: `${err.message}` });
   }

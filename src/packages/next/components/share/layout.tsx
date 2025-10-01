@@ -44,7 +44,7 @@ export function Layout({ title, children, top }: Props) {
               fontSize: "11pt",
             }}
           >
-            {children}
+            <div style={{ margin: "15px" }}>{children}</div>
           </div>
         </AntdLayout.Content>
         <Footer />

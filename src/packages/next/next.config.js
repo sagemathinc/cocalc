@@ -23,6 +23,8 @@ const config = {
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.
     config.resolve.alias["pg-native"] = ".";
+    // Some backend code uses @lydell/node-pty but it won't be used in next:
+    config.resolve.alias["@lydell/node-pty"] = ".";
     // These aliases are so we don't end up with two distinct copies
     // of React in our application, since this doesn't work at all!
     config.resolve.alias["react"] = resolve(__dirname, "node_modules", "react");

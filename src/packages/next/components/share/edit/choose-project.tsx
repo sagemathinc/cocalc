@@ -52,6 +52,7 @@ export default function ChooseProject(props: Props) {
   const [copying, setCopying] = useState<
     "before" | "starting" | "during" | "after"
   >("before");
+  const [log, setLog] = useState<string>("");
   const [errorCopying, setErrorCopying] = useState<string>("");
   const [showListing, setShowListing] = useState<boolean>(false);
   const [hideSelect, setHideSelect] = useState<boolean>(false);
@@ -72,9 +73,10 @@ export default function ChooseProject(props: Props) {
   async function doCopy() {
     try {
       if (project == null) throw Error("no target specified");
-      setCopying("starting");
       setHideSelect(true);
+      setCopying("starting");
       if (!createdProject) {
+        setLog("Applying License");
         // Possibly upgrade the project using a public_path license. Only do this if we
         // didn't just create the project, since in that case the license would already
         // be applied during creation.
@@ -82,13 +84,12 @@ export default function ChooseProject(props: Props) {
           public_path_id: id,
           project_id: project.project_id,
         });
+        if (!isMounted.current) return;
       }
-      // Start the *target* project!
-      await api("/projects/start", { project_id: project.project_id });
-      if (!isMounted.current) return;
-      setCopying("during");
       // Get the content
+      setCopying("during");
       if (url) {
+        setLog("Copying From URL");
         // From a URL (e.g. github)
         await api("/projects/copy-url", {
           project_id: project.project_id,
@@ -96,6 +97,7 @@ export default function ChooseProject(props: Props) {
           path: targetPath,
         });
       } else {
+        setLog("Copying From Project");
         // From another project
         await copyPublicPath({
           id,
@@ -111,6 +113,7 @@ export default function ChooseProject(props: Props) {
       setErrorCopying(err.message);
     } finally {
       if (!isMounted.current) return;
+      setLog("");
       setCopying("after");
       onCopied();
     }
@@ -128,6 +131,18 @@ export default function ChooseProject(props: Props) {
             uses the non-default image "{image}".
           </div>
         )}
+        {log && <Alert type="info" message={log} />}
+        {!hideSelect && (
+          <SelectProject
+            defaultOpen
+            label="In one of your existing projects"
+            onChange={({ project_id, title }) => {
+              setCreatedProject(false);
+              setProject({ project_id, title });
+              setHideCreate(true);
+            }}
+          />
+        )}
         {!hideCreate && (
           <CreateProject
             image={image}
@@ -139,16 +154,6 @@ export default function ChooseProject(props: Props) {
               setCreatedProject(true);
               setProject(project);
               setHideSelect(true);
-              setHideCreate(true);
-            }}
-          />
-        )}
-        {!hideSelect && (
-          <SelectProject
-            label="In one of your existing projects"
-            onChange={({ project_id, title }) => {
-              setCreatedProject(false);
-              setProject({ project_id, title });
               setHideCreate(true);
             }}
           />
