@@ -39,12 +39,13 @@ import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, labels } from "@cocalc/frontend/i18n";
 import { path_split, plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+
 import { Actions } from "./actions";
 import { Build } from "./build";
 import { WORD_COUNT_ICON } from "./constants";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { use_build_logs } from "./hooks";
-import { PDFControls } from "./output-pdf-control";
+import { PDFControls } from "./output-control";
 import { PDFJS } from "./pdfjs";
 import { useTexSummaries } from "./use-summarize";
 import { BuildLogs } from "./types";
@@ -148,8 +149,13 @@ export function Output(props: OutputProps) {
   const [homeDir, setHomeDir] = useState<string | null>(null);
 
   // File summaries using the custom hook
-  const { fileSummaries, summariesLoading, refreshSummaries } =
-    useTexSummaries(switch_to_files, project_id, path, homeDir, reload);
+  const { fileSummaries, summariesLoading, refreshSummaries } = useTexSummaries(
+    switch_to_files,
+    project_id,
+    path,
+    homeDir,
+    reload,
+  );
 
   // Word count state
   const [wordCountLoading, setWordCountLoading] = useState<boolean>(false);
