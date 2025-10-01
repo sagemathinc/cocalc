@@ -13,7 +13,7 @@ export function syncdbPath(path: string) {
     return path;
   }
   if (!path.endsWith(".ipynb")) {
-    throw Error(`must end with .ipynb but it is "${ipynbPath}"`);
+    throw Error(`must end with .ipynb but it is "${path}"`);
   }
   return meta_file(path, JUPYTER_POSTFIX);
 }

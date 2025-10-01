@@ -162,7 +162,7 @@ export function Kernel({
             onClick={() => actions.set_kernel(closestKernelName)}
           >
             Unknown kernel <span style={{ fontWeight: "bold" }}>{kernel}</span>,
-            click here to use {closestKernelDisplayName} instead.
+            click here to use {closestKernelDisplayName || "No Kernel"} instead.
           </span>
         );
       }
