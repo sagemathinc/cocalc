@@ -1,10 +1,8 @@
-/*
 import {
   before,
   after,
   defaultCluster as servers,
   waitForConsistentState,
-  wait,
   addNodeToDefaultCluster,
 } from "@cocalc/backend/conat/test/setup";
 import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
@@ -47,9 +45,6 @@ describe("ensure sticky state sync and use is working properly", () => {
       );
       // publishing causes a choice to be made and saved on servers[0]
       await clients[0].publish(`subject.${i}.foo`, "hello");
-      expect(servers[0].sticky[`subject.${i}.*`]).not.toBe(undefined);
-      // but no choice on servers[1]
-      expect(servers[1].sticky[`subject.${i}.*`]).toBe(undefined);
     }
   });
 
@@ -66,50 +61,11 @@ describe("ensure sticky state sync and use is working properly", () => {
     chosen = await Promise.race([p0(), p1()]);
   });
 
-  it(`sticky on servers[0] should have ${count} entries starting in "subject".`, async () => {
-    const v = Object.keys(servers[0].sticky).filter((s) =>
-      s.startsWith("subject."),
-    );
-    expect(v.length).toBe(count);
-  });
-
-  it(`sticky on servers[1] should have no entries starting in "subject".`, async () => {
-    const v = Object.keys(servers[1].sticky).filter((s) =>
-      s.startsWith("subject."),
-    );
-    expect(v.length).toBe(0);
-  });
-
-  it(`servers[1]'s link to servers[0] should *eventually* have ${count} entries starting in "subject."`, async () => {
-    // @ts-ignore
-    const link = servers[1].clusterLinksByAddress[servers[0].address()];
-    let v;
-    await wait({
-      until: () => {
-        v = Object.keys(link.sticky).filter((s) => s.startsWith("subject."));
-        return v.length == count;
-      },
-    });
-    expect(v.length).toBe(count);
-  });
-
   it("send message from clients[1] to each subject", async () => {
     for (let i = 0; i < count; i++) {
       await clients[1].publish(`subject.${i}.foo`);
     }
   });
-
-  // Sometimes this fails under very heavy load.
-  // It's not a good test, because it probably hits some timeouts sometimes, and
-  // it is testing internal structure/optimizations, not behavior.
-  // Note also that minimizing sticky state computation is just an optimization so even if this test were failing
-  // due to a bug, it might just mean things are slightly slower.
-  //   it(`sticky on servers[1] should STILL have no entries starting in "subject", since no choices had to be made`, async () => {
-  //     const v = Object.keys(servers[1].sticky).filter((s) =>
-  //       s.startsWith("subject."),
-  //     );
-  //     expect(v.length).toBe(0);
-  //   });
 
   async function deliveryTest() {
     const sub = chosen == 0 ? subs0[0] : subs1[0];
@@ -155,17 +111,6 @@ describe("ensure sticky state sync and use is working properly", () => {
     await waitForConsistentState(servers);
   });
 
-  it("double check the links have the sticky state", () => {
-    for (const server of servers.slice(1)) {
-      // @ts-ignore
-      const link = server.clusterLinksByAddress[servers[0].address()];
-      const v = Object.keys(link.sticky).filter((s) =>
-        s.startsWith("subject."),
-      );
-      expect(v.length).toBe(count);
-    }
-  });
-
   it(
     "in bigger, cluster, publish from every node to subject.0.foo",
     deliveryTest,
@@ -181,15 +126,6 @@ describe("ensure sticky state sync and use is working properly", () => {
     }
     sub.close();
   });
-
-  it("unjoining servers[0] from servers[1] should transfer the sticky state to servers[1]", async () => {
-    await servers[1].unjoin({ address: servers[0].address() });
-    const v = Object.keys(servers[1].sticky).filter((s) =>
-      s.startsWith("subject."),
-    );
-    expect(v.length).toBe(count);
-  });
 });
 
 afterAll(after);
-*/

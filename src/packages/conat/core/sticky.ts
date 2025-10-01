@@ -4,7 +4,7 @@ import { type Client } from "./client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getLogger } from "@cocalc/conat/client";
 
-const DEBUG = true;
+const DEBUG = !!process.env.COCALC_DEBUG_CONAT_SERVER_STICKY;
 
 const logger = getLogger("conat:core:sticky");
 
@@ -122,6 +122,8 @@ export async function createStickyRouter({
           targets,
           target,
         });
+      } else {
+        logger.debug("handle request", { counter, madeChoice });
       }
       await mesg.respond({ target, ttl: clientTtl });
     } catch (err) {

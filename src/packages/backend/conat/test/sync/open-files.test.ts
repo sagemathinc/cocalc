@@ -8,7 +8,7 @@ to open so they can fulfill their backend responsibilities:
 
 DEVELOPMENT:
 
-pnpm test ./open-files.test.ts
+pnpm test `pwd`/open-files.test.ts
 
 */
 
