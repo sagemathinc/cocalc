@@ -86,7 +86,7 @@ export const SPEC = {
     path: join(binPath, "ouch"),
     // See https://github.com/ouch-org/ouch/issues/45; note that ouch is in home brew
     // for this platform.
-    skip: ["aarch64-apple-darwin"],
+    platforms: ["linux"],
     url: () => {
       const os = getOS();
       return `${SPEC.ouch.BASE}/${SPEC.ouch.VERSION}/ouch-${os}.tar.gz`;
@@ -135,12 +135,15 @@ export const SPEC = {
     path: join(binPath, "mutagen"),
     VERSION: "0.19.0-dev",
     getVersion: "mutagen --version",
+    // for now
     script: () => {
       const VERSION = SPEC.mutagen.VERSION;
       const a = arch() == "x64" ? "amd64" : arch();
-      // below we shrink mutagen-agents.tar but only
-      // when gnu tar is available:
-      return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -xz -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && (tar --version 2>/dev/null | grep -q 'GNU tar' && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar || true)`;
+      if(platform() == 'darwin') {
+          return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath}`; 
+      } else {
+          return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
+      }
     },
   },
 
@@ -149,6 +152,7 @@ export const SPEC = {
     VERSION: "0.11.1",
     getVersion: "btm --version",
     BASE: "https://github.com/ClementTsang/bottom/releases/download",
+    platforms: ["linux"],
     binary: "btm",
     script: () => {
       const VERSION = SPEC.btm.VERSION;
@@ -215,7 +219,7 @@ export async function installedVersion(app: App): Promise<string | undefined> {
     const { stdout, stderr } = await executeCode({
       verbose: true,
       command: getVersion,
-      env: { ...process.env, PATH: binPath + ":/usr/bin" },
+      env: { ...process.env, PATH: binPath + ":/usr/bin:" + process.env.PATH },
     });
     const v = split(stdout + stderr).slice(-1)[0];
     return v;
