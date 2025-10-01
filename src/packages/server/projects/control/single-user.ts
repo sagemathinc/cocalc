@@ -153,20 +153,33 @@ class Project extends BaseProject {
       this.stateChanging = { state: "stopping" };
       await this.saveStateToDatabase(this.stateChanging);
       const pid = await getProjectPID(this.HOME);
-      const killProject = () => {
+
+      // First attempt: graceful shutdown with SIGTERM
+      // This allows the process to clean up child processes (e.g., Jupyter kernels)
+      let usedSigterm = false;
+      const killProject = (signal: NodeJS.Signals = "SIGTERM") => {
         try {
-          logger.debug(`stop: sending kill -${pid}`);
-          kill(-pid, "SIGKILL");
+          logger.debug(`stop: sending kill -${pid} with ${signal}`);
+          kill(-pid, signal);
         } catch (err) {
           // expected exception if no pid
           logger.debug(`stop: kill err ${err}`);
         }
       };
-      killProject();
+
+      // Try SIGTERM first for graceful shutdown
+      killProject("SIGTERM");
+      usedSigterm = true;
+
       await this.wait({
         until: async () => {
           if (await isProjectRunning(this.HOME)) {
-            killProject();
+            // After 5 seconds, escalate to SIGKILL
+            if (usedSigterm) {
+              logger.debug("stop: escalating to SIGKILL");
+              killProject("SIGKILL");
+              usedSigterm = false;
+            }
             return false;
           } else {
             return true;

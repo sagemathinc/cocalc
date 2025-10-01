@@ -50,7 +50,7 @@ export async function renameFile({ src, dest }: { src: string; dest: string }) {
 import { get_configuration } from "@cocalc/project/configuration";
 export { get_configuration as configuration };
 
-import { canonical_paths } from "../../browser-websocket/canonical-path";
+import { canonical_paths } from "@cocalc/project/browser-websocket/canonical-path";
 export { canonical_paths as canonicalPaths };
 
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
@@ -107,3 +107,17 @@ export async function signal({
 
 import jupyterExecute from "@cocalc/jupyter/stateless-api/execute";
 export { jupyterExecute };
+
+import {
+  listRunningKernels,
+  stopKernel,
+} from "@cocalc/jupyter/kernel/launch-kernel";
+
+export async function listJupyterKernels() {
+  return listRunningKernels();
+}
+
+export async function stopJupyterKernel({ pid }: { pid: number }) {
+  const success = stopKernel(pid);
+  return { success };
+}

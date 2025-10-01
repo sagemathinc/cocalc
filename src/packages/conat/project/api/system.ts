@@ -34,6 +34,10 @@ export const system = {
 
   // jupyter stateless API
   jupyterExecute: true,
+
+  // jupyter kernel management
+  listJupyterKernels: true,
+  stopJupyterKernel: true,
 };
 
 export interface System {
@@ -74,4 +78,9 @@ export interface System {
   }) => Promise<void>;
 
   jupyterExecute: (opts: ProjectJupyterApiOptions) => Promise<object[]>;
+
+  listJupyterKernels: () => Promise<
+    { pid: number; connectionFile: string; kernel_name?: string }[]
+  >;
+  stopJupyterKernel: (opts: { pid: number }) => Promise<{ success: boolean }>;
 }

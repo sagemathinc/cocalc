@@ -289,7 +289,7 @@ class Jupyter:
         self._parent = parent
 
     @api_method("jupyter.kernels")
-    def kernels(self, project_id: Optional[str] = None) -> dict[str, Any]:
+    def kernels(self, project_id: Optional[str] = None) -> list[dict[str, Any]]:
         """
         Get specifications of available Jupyter kernels.
 
@@ -298,7 +298,18 @@ class Jupyter:
                 If not given, a global anonymous project may be used.
 
         Returns:
-            dict[str, Any]: JSON response containing kernel specs.
+            list[dict[str, Any]]: List of kernel specification objects. Each kernel object
+                contains information like 'name', 'display_name', 'language', etc.
+
+        Examples:
+            Get available kernels for a project:
+
+            >>> import cocalc_api; hub = cocalc_api.Hub(api_key="sk-...")
+            >>> kernels = hub.jupyter.kernels(project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
+            >>> # Extract kernel names
+            >>> kernel_names = [k['name'] for k in kernels]
+            >>> 'python3' in kernel_names
+            True
         """
         ...
 

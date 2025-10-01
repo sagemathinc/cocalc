@@ -174,7 +174,6 @@ def check_cleanup_config():
 
     # Cleanup is enabled - verify required configuration
     pghost = os.environ.get("PGHOST")
-    pgpassword = os.environ.get("PGPASSWORD")
 
     # PGHOST is mandatory
     if not pghost:

@@ -116,26 +116,84 @@ class System:
         kernel: str,
         history: Optional[list[str]] = None,
         path: Optional[str] = None,
-    ) -> dict[str, Any]:  # type: ignore[empty-body]
+    ) -> list[dict[str, Any]]:  # type: ignore[empty-body]
         """
         Execute code using a Jupyter kernel.
 
         Args:
             input (str): Code to execute.
-            kernel (str): Name of kernel to use. Get options using jupyter.kernels().
+            kernel (str): Name of kernel to use. Get options using hub.jupyter.kernels().
             history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
             path (Optional[str]): File path context for execution.
 
         Returns:
-            dict[str, Any]: JSON response containing execution results.
+            list[dict[str, Any]]: List of output items. Each output item contains
+                execution results with 'data' field containing output by MIME type
+                (e.g., 'text/plain' for text output) or 'name'/'text' fields for
+                stream output (stdout/stderr).
 
         Examples:
             Execute a simple sum using a Jupyter kernel:
 
-            >>> import cocalc_api; project = cocalc_api.Project(api_key="sk-...")
-            >>> project.jupyter.execute(history=['a=100;print(a)'],
-                         input='sum(range(a+1))',
-                         kernel='python3')
-            {'output': [{'data': {'text/plain': '5050'}}], ...}
+            >>> import cocalc_api; project = cocalc_api.Project(api_key="sk-...", project_id='...')
+            >>> result = project.system.jupyter_execute(input='sum(range(100))', kernel='python3')
+            >>> result
+            [{'data': {'text/plain': '4950'}}]
+
+            Execute with history context:
+
+            >>> result = project.system.jupyter_execute(
+            ...     history=['a = 100'],
+            ...     input='sum(range(a + 1))',
+            ...     kernel='python3')
+            >>> result
+            [{'data': {'text/plain': '5050'}}]
+
+            Print statements produce stream output:
+
+            >>> result = project.system.jupyter_execute(input='print("Hello")', kernel='python3')
+            >>> result
+            [{'name': 'stdout', 'text': 'Hello\\n'}]
+        """
+        ...
+
+    @api_method("system.listJupyterKernels")
+    def list_jupyter_kernels(self) -> list[dict[str, Any]]:  # type: ignore[empty-body]
+        """
+        List all running Jupyter kernels in the project.
+
+        Returns:
+            list[dict[str, Any]]: List of running kernels. Each kernel has:
+                - pid (int): Process ID of the kernel
+                - connectionFile (str): Path to the kernel connection file
+                - kernel_name (str, optional): Name of the kernel (e.g., 'python3')
+
+        Examples:
+            List all running kernels:
+
+            >>> import cocalc_api; project = cocalc_api.Project(api_key="sk-...", project_id='...')
+            >>> kernels = project.system.list_jupyter_kernels()
+            >>> kernels
+            [{'pid': 12345, 'connectionFile': '/run/user/1000/jupyter/kernel-abc123.json', 'kernel_name': 'python3'}]
+        """
+        ...
+
+    @api_method("system.stopJupyterKernel")
+    def stop_jupyter_kernel(self, pid: int) -> dict[str, bool]:  # type: ignore[empty-body]
+        """
+        Stop a specific Jupyter kernel by process ID.
+
+        Args:
+            pid (int): Process ID of the kernel to stop
+
+        Returns:
+            dict[str, bool]: Dictionary with 'success' key indicating if the kernel was stopped
+
+        Examples:
+            Stop a kernel by PID:
+
+            >>> import cocalc_api; project = cocalc_api.Project(api_key="sk-...", project_id='...')
+            >>> project.system.stop_jupyter_kernel(pid=12345)
+            {'success': True}
         """
         ...
