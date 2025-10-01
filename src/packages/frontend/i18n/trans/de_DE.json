@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Das Leeren dieses Linux-Terminal-Fensters beendet laufende Programme, startet die Shell neu und löscht den Anzeige-Puffer.",
   "editor.editor_settings": "Editor-Einstellungen",
   "editor.errors_and_warning.title": "Fehler und Warnungen",
-  "editor.errors_and_warning.title.short": "Fehler",
+  "editor.errors_and_warning.title.short": "Probleme",
   "editor.guide_tooltip": "Werkzeug zum Erstellen, Testen und Lernen von Linux-Terminalbefehlen",
   "editor.latex.cm.title": "LaTeX-Quellcode",
   "editor.latex.cm.title.short": "Quellcode",

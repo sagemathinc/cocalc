@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "سيؤدي مسح إطار الطرفية لنظام Linux إلى إنهاء البرامج الجارية، وإعادة تشغيل الصدفة، وتنظيف الذاكرة المؤقتة للعرض.",
   "editor.editor_settings": "إعدادات المحرر",
   "editor.errors_and_warning.title": "الأخطاء والتحذيرات",
-  "editor.errors_and_warning.title.short": "أخطاء",
+  "editor.errors_and_warning.title.short": "مشاكل",
   "editor.guide_tooltip": "أداة لإنشاء واختبار وتعلم أوامر لينكس الطرفية",
   "editor.latex.cm.title": "مصدر كود LaTeX",
   "editor.latex.cm.title.short": "المصدر",

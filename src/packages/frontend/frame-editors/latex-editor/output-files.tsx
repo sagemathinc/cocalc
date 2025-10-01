@@ -15,6 +15,7 @@ import { path_split, plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 import { Actions } from "./actions";
+import { OUTPUT_HEADER_STYLE } from "./util";
 
 interface FileListItem {
   path: string;
@@ -76,17 +77,7 @@ export function OutputFiles({
       }}
     >
       {/* Fixed header with buttons and file count */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "10px",
-          borderBottom: "1px solid #d9d9d9",
-          backgroundColor: "white",
-          flexShrink: 0,
-        }}
-      >
+      <div style={OUTPUT_HEADER_STYLE}>
         <Button
           type="primary"
           size="small"

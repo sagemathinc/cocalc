@@ -11,6 +11,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 
 import { WORD_COUNT_ICON } from "./constants";
+import { OUTPUT_HEADER_STYLE } from "./util";
 
 export const STATISTICS_HEADER = defineMessage({
   id: "latex.output.stats.header",
@@ -43,17 +44,7 @@ export function OutputStats({
       }}
     >
       {/* Fixed header with refresh button */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "10px",
-          borderBottom: "1px solid #d9d9d9",
-          backgroundColor: "white",
-          flexShrink: 0,
-        }}
-      >
+      <div style={OUTPUT_HEADER_STYLE}>
         <span
           style={{
             color: COLORS.GRAY_M,

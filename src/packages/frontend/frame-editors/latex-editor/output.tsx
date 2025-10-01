@@ -21,7 +21,7 @@ With build controls at the top (build, force build, clean, etc.)
 import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import type { TabsProps } from "antd";
 
-import { Alert, Space, Spin, Tabs, Tag } from "antd";
+import { Alert, Button, Space, Spin, Tabs, Tag } from "antd";
 import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
@@ -32,22 +32,26 @@ import {
   TableOfContents,
   TableOfContentsEntryList,
   Text,
+  Tip,
 } from "@cocalc/frontend/components";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
-import { editor } from "@cocalc/frontend/i18n";
+import { editor, labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
 
 import { Actions } from "./actions";
 import { Build } from "./build";
 import { WORD_COUNT_ICON } from "./constants";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { use_build_logs } from "./hooks";
+import { OUTPUT_HEADER_STYLE } from "./util";
 import { PDFControls } from "./output-control";
 import { OutputFiles } from "./output-files";
 import { OutputStats } from "./output-stats";
 import { PDFJS } from "./pdfjs";
 import { BuildLogs } from "./types";
 import { useTexSummaries } from "./use-summarize";
+import { TITLE_BAR_BORDER } from "../frame-tree/style";
 
 interface OutputProps {
   id: string;
@@ -375,32 +379,62 @@ export function Output(props: OutputProps) {
     return {
       key: "contents",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span
+          style={{
+            color: COLORS.GRAY_M,
+            fontSize: uiFontSize,
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+        >
           <Icon name="align-right" />
-          {intl.formatMessage(editor.table_of_contents_short)}
+          {intl.formatMessage(editor.table_of_contents_name)}
         </span>
       ),
       children: (
-        <div className="smc-vfill">
-          <TableOfContents
-            contents={contents}
-            fontSize={uiFontSize}
-            scrollTo={actions.scrollToHeading.bind(actions)}
-            ifEmpty={
-              <Alert
-                type="info"
-                message="Table of Contents is empty"
-                description={
-                  <>
-                    Add <Text code>{"\\section{...}"}</Text> and{" "}
-                    <Text code>{"\\subsection{...}"}</Text> commands to your
-                    LaTeX document to create a table of contents.
-                  </>
-                }
-                style={{ margin: "15px" }}
-              />
-            }
-          />
+        <div
+          className="smc-vfill"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+          }}
+        >
+          <div style={OUTPUT_HEADER_STYLE}>
+            <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+              <Icon name="align-right" />
+              {intl.formatMessage(editor.table_of_contents_name)}
+            </span>
+            <Button
+              size="small"
+              icon={<Icon name="refresh" />}
+              onClick={() => actions.updateTableOfContents(true)}
+            >
+              {intl.formatMessage(labels.refresh)}
+            </Button>
+          </div>
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <TableOfContents
+              contents={contents}
+              fontSize={uiFontSize}
+              scrollTo={actions.scrollToHeading.bind(actions)}
+              ifEmpty={
+                <Alert
+                  type="info"
+                  message="Table of Contents is empty"
+                  description={
+                    <>
+                      Add <Text code>{"\\section{...}"}</Text> and{" "}
+                      <Text code>{"\\subsection{...}"}</Text> commands to your
+                      LaTeX document to create a table of contents.
+                    </>
+                  }
+                  style={{ margin: "15px" }}
+                />
+              }
+            />
+          </div>
         </div>
       ),
     };
@@ -438,13 +472,25 @@ export function Output(props: OutputProps) {
       key: "errors",
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <Icon name="bug" />
+          <Icon name="bug" style={{ marginRight: "0" }} />
           {intl.formatMessage(editor.errors_and_warnings_title_short)}
           {hasAnyIssues && (
             <Space.Compact>
-              {errors > 0 && <Tag color="red">{errors}</Tag>}
-              {warnings > 0 && <Tag color="orange">{warnings}</Tag>}
-              {typesetting > 0 && <Tag color="blue">{typesetting}</Tag>}
+              {errors > 0 && (
+                <Tip title="Number of errors" placement="top">
+                  <Tag color="red">{errors}</Tag>
+                </Tip>
+              )}
+              {warnings > 0 && (
+                <Tip title="Number of warnings" placement="top">
+                  <Tag color="orange">{warnings}</Tag>
+                </Tip>
+              )}
+              {typesetting > 0 && (
+                <Tip title="Number of typesetting problems" placement="top">
+                  <Tag color="blue">{typesetting}</Tag>
+                </Tip>
+              )}
             </Space.Compact>
           )}
         </span>
@@ -530,7 +576,7 @@ export function Output(props: OutputProps) {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          border: "1px solid #d9d9d9",
+          border: TITLE_BAR_BORDER,
           borderRadius: "6px",
           overflow: "hidden",
         }}
@@ -557,7 +603,7 @@ export function Output(props: OutputProps) {
           tabBarStyle={{
             margin: 0,
             padding: "0 8px",
-            borderBottom: "1px solid #d9d9d9",
+            borderBottom: TITLE_BAR_BORDER,
           }}
           items={tabItems}
           className="cocalc-latex-output-tabs"

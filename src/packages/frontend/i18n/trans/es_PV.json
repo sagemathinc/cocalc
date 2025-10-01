@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Linux terminal marko hau garbitzeak exekuzioan dauden programak amaitu, shell-a berriro hasi eta erakusleihoaren bufferra garbitzen du.",
   "editor.editor_settings": "Editorearen ezarpenak",
   "editor.errors_and_warning.title": "Erroreak eta Oharrak",
-  "editor.errors_and_warning.title.short": "Erroreak",
+  "editor.errors_and_warning.title.short": "Arazoak",
   "editor.guide_tooltip": "Tresna Linux Terminaleko komandoak sortzeko, probatzeko eta ikasteko.",
   "editor.latex.cm.title": "LaTeX Iturburu Kodea",
   "editor.latex.cm.title.short": "Iturria",

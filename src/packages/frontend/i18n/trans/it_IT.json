@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Cancellare questo frame del Terminale Linux termina i programmi in esecuzione, riavvia la shell e pulisce il buffer di visualizzazione.",
   "editor.editor_settings": "Impostazioni dell'Editor",
   "editor.errors_and_warning.title": "Errori e Avvisi",
-  "editor.errors_and_warning.title.short": "Errori",
+  "editor.errors_and_warning.title.short": "Problemi",
   "editor.guide_tooltip": "Strumento per creare, testare e imparare i comandi del Terminale Linux",
   "editor.latex.cm.title": "Codice Sorgente LaTeX",
   "editor.latex.cm.title.short": "Fonte",

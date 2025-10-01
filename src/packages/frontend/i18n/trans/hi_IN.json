@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "इस लिनक्स टर्मिनल फ्रेम को साफ़ करने से चल रहे प्रोग्राम समाप्त हो जाते हैं, शेल फिर से शुरू होता है, और डिस्प्ले बफर साफ हो जाता है।",
   "editor.editor_settings": "संपादक सेटिंग्स",
   "editor.errors_and_warning.title": "त्रुटियाँ और चेतावनियाँ",
-  "editor.errors_and_warning.title.short": "त्रुटियाँ",
+  "editor.errors_and_warning.title.short": "समस्याएँ",
   "editor.guide_tooltip": "लिनक्स टर्मिनल कमांड बनाने, परीक्षण करने और सीखने का उपकरण",
   "editor.latex.cm.title": "LaTeX स्रोत कोड",
   "editor.latex.cm.title.short": "स्रोत",

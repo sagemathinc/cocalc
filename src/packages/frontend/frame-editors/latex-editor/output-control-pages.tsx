@@ -8,9 +8,9 @@ Page Navigation Controls Component for LaTeX Editor Output Panel
 Provides page number input and previous/next page navigation
 */
 
-import { Button, InputNumber, Space, Tooltip } from "antd";
+import { Button, InputNumber, Space } from "antd";
 
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Tip } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
 import { Actions } from "./actions";
@@ -94,23 +94,23 @@ export function PageNavigationControls({
       />
       {!narrow && <> / {totalPages}</>}
       <Space.Compact>
-        <Tooltip title="Previous Page">
+        <Tip title="Previous Page" placement="top">
           <Button
             size="small"
             icon={<Icon name="arrow-up" />}
             onClick={() => flipPage(-1)}
             disabled={currentPage <= 1}
           />
-        </Tooltip>
+        </Tip>
 
-        <Tooltip title="Next Page">
+        <Tip title="Next Page" placement="top">
           <Button
             size="small"
             icon={<Icon name="arrow-down" />}
             onClick={() => flipPage(1)}
             disabled={currentPage >= totalPages}
           />
-        </Tooltip>
+        </Tip>
       </Space.Compact>
     </div>
   );

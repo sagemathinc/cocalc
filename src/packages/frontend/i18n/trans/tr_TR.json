@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Bu Linux Terminal çerçevesini temizlemek çalışan programları sonlandırır, kabuğu yeniden başlatır ve ekran arabelleğini temizler.",
   "editor.editor_settings": "Editör Ayarları",
   "editor.errors_and_warning.title": "Hatalar ve Uyarılar",
-  "editor.errors_and_warning.title.short": "Hatalar",
+  "editor.errors_and_warning.title.short": "Sorunlar",
   "editor.guide_tooltip": "Linux Terminal komutları oluşturmak, test etmek ve öğrenmek için araç",
   "editor.latex.cm.title": "LaTeX Kaynak Kodu",
   "editor.latex.cm.title.short": "Kaynak",

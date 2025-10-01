@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "このLinuxターミナルフレームをクリアすると、実行中のプログラムが終了し、シェルが再起動され、表示バッファがクリアされます。",
   "editor.editor_settings": "エディター設定",
   "editor.errors_and_warning.title": "エラーと警告",
-  "editor.errors_and_warning.title.short": "エラー",
+  "editor.errors_and_warning.title.short": "問題",
   "editor.guide_tooltip": "Linuxターミナルコマンドを作成、テスト、学習するためのツール",
   "editor.latex.cm.title": "LaTeX ソースコード",
   "editor.latex.cm.title.short": "ソース",

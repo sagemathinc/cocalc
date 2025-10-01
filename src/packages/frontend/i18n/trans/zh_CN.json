@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "清除此Linux终端框架将终止运行的程序，重新生成shell，并清理显示缓冲区。",
   "editor.editor_settings": "编辑器设置",
   "editor.errors_and_warning.title": "错误和警告",
-  "editor.errors_and_warning.title.short": "错误",
+  "editor.errors_and_warning.title.short": "问题",
   "editor.guide_tooltip": "用于创建、测试和学习Linux终端命令的工具",
   "editor.latex.cm.title": "LaTeX 源代码",
   "editor.latex.cm.title.short": "源",

@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Очистка этого фрейма терминала Linux завершает выполнение программ, перезапускает оболочку и очищает буфер дисплея.",
   "editor.editor_settings": "Настройки редактора",
   "editor.errors_and_warning.title": "Ошибки и Предупреждения",
-  "editor.errors_and_warning.title.short": "Ошибки",
+  "editor.errors_and_warning.title.short": "Проблемы",
   "editor.guide_tooltip": "Инструмент для создания, тестирования и изучения команд терминала Linux",
   "editor.latex.cm.title": "Исходный код LaTeX",
   "editor.latex.cm.title.short": "Источник",

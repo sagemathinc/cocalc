@@ -9,12 +9,12 @@ Provides zoom in/out, zoom percentage selection, and fit width/height controls
 */
 
 import type { MenuProps } from "antd";
-import { Button, Dropdown, InputNumber, Space, Tooltip } from "antd";
+import { Button, Dropdown, InputNumber, Space } from "antd";
 import { useCallback } from "react";
 import { useIntl } from "react-intl";
 
 import { useRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Tip } from "@cocalc/frontend/components";
 import {
   ZOOM_MESSAGES,
   ZOOM_PERCENTAGES,
@@ -196,7 +196,7 @@ export function ZoomControls({ actions, id, narrow }: ZoomControlsProps) {
 
   return (
     <Space.Compact>
-      <Tooltip title={intl.formatMessage(labels.zoom_in)}>
+      <Tip title={intl.formatMessage(labels.zoom_in)} placement="top">
         <Button
           size="small"
           icon={<Icon name="search-plus" />}
@@ -204,9 +204,9 @@ export function ZoomControls({ actions, id, narrow }: ZoomControlsProps) {
         >
           {!narrow && intl.formatMessage(labels.zoom_in_short)}
         </Button>
-      </Tooltip>
+      </Tip>
 
-      <Tooltip title={intl.formatMessage(labels.zoom_out)}>
+      <Tip title={intl.formatMessage(labels.zoom_out)} placement="top">
         <Button
           size="small"
           icon={<Icon name="search-minus" />}
@@ -214,7 +214,7 @@ export function ZoomControls({ actions, id, narrow }: ZoomControlsProps) {
         >
           {!narrow && intl.formatMessage(labels.zoom_out_short)}
         </Button>
-      </Tooltip>
+      </Tip>
 
       <Dropdown
         menu={{ items: zoomMenuItems }}

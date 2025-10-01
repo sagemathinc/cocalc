@@ -1021,7 +1021,7 @@ export const editor = defineMessages({
   },
   errors_and_warnings_title_short: {
     id: "editor.errors_and_warning.title.short",
-    defaultMessage: "Errors",
+    defaultMessage: "Problems", // common term for Errors and Warnings
   },
   errors_and_warnings_title: {
     id: "editor.errors_and_warning.title",

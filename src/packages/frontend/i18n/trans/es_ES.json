@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Limpiar este marco de Terminal Linux termina los programas en ejecución, reinicia la shell y limpia el búfer de pantalla.",
   "editor.editor_settings": "Configuración del editor",
   "editor.errors_and_warning.title": "Errores y Advertencias",
-  "editor.errors_and_warning.title.short": "Errores",
+  "editor.errors_and_warning.title.short": "Problemas",
   "editor.guide_tooltip": "Herramienta para crear, probar y aprender sobre comandos del Terminal de Linux",
   "editor.latex.cm.title": "Código Fuente LaTeX",
   "editor.latex.cm.title.short": "Fuente",

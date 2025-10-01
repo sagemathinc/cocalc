@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "이 Linux 터미널 프레임을 지우면 실행 중인 프로그램이 종료되고 셀이 다시 시작되며 디스플레이 버퍼가 정리됩니다.",
   "editor.editor_settings": "편집기 설정",
   "editor.errors_and_warning.title": "오류 및 경고",
-  "editor.errors_and_warning.title.short": "오류",
+  "editor.errors_and_warning.title.short": "문제",
   "editor.guide_tooltip": "Linux 터미널 명령어를 만들고, 테스트하고, 배우는 도구.",
   "editor.latex.cm.title": "LaTeX 소스 코드",
   "editor.latex.cm.title.short": "소스",

@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "ניקוי חלון מסוף לינוקס זה מפסיק תוכניות רצות, מפעיל מחדש את ה-shell, ומנקה את זיכרון התצוגה.",
   "editor.editor_settings": "הגדרות עורך",
   "editor.errors_and_warning.title": "שגיאות ואזהרות",
-  "editor.errors_and_warning.title.short": "שגיאות",
+  "editor.errors_and_warning.title.short": "בעיות",
   "editor.guide_tooltip": "כלי ליצירה, בדיקה ולמידה על פקודות מסוף לינוקס",
   "editor.latex.cm.title": "קוד מקור LaTeX",
   "editor.latex.cm.title.short": "מקור",

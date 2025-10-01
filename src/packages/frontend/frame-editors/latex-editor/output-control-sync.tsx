@@ -8,12 +8,12 @@ Sync Controls Component for LaTeX Editor Output Panel
 Provides auto-sync toggle and manual sync functionality between source and PDF
 */
 
-import { Button, Switch, Tooltip } from "antd";
+import { Button, Switch } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
 import { useRedux } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Icon } from "@cocalc/frontend/components";
+import { HelpIcon, Icon, Tip } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 
 import { Actions } from "./actions";
@@ -156,14 +156,14 @@ export function SyncControls({
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
       {!narrow && <Icon name="exchange" />}
-      <Tooltip title={intl.formatMessage(AUTO_SYNC_TOOLTIP_MSG)}>
+      <Tip title={intl.formatMessage(AUTO_SYNC_TOOLTIP_MSG)} placement="top">
         <Switch
           checked={localAutoSyncEnabled}
           onChange={handleAutoSyncChange}
           checkedChildren={intl.formatMessage(labels.on)}
           unCheckedChildren={intl.formatMessage(labels.off)}
         />
-      </Tooltip>
+      </Tip>
       <Button
         type="text"
         size="small"

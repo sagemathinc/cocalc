@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Wyczyszczenie tej ramki terminala Linux kończy działające programy, ponownie uruchamia powłokę i czyści bufor wyświetlacza.",
   "editor.editor_settings": "Ustawienia Edytora",
   "editor.errors_and_warning.title": "Błędy i ostrzeżenia",
-  "editor.errors_and_warning.title.short": "Błędy",
+  "editor.errors_and_warning.title.short": "Problemy",
   "editor.guide_tooltip": "Narzędzie do tworzenia, testowania i nauki poleceń Terminala Linux.",
   "editor.latex.cm.title": "Kod źródłowy LaTeX",
   "editor.latex.cm.title.short": "Źródło",

@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Effacer cette fenêtre de terminal Linux met fin aux programmes en cours d'exécution, relance le shell et nettoie le tampon d'affichage.",
   "editor.editor_settings": "Paramètres de l'éditeur",
   "editor.errors_and_warning.title": "Erreurs et Avertissements",
-  "editor.errors_and_warning.title.short": "Erreurs",
+  "editor.errors_and_warning.title.short": "Problèmes",
   "editor.guide_tooltip": "Outil pour créer, tester et apprendre les commandes du terminal Linux.",
   "editor.latex.cm.title": "Code source LaTeX",
   "editor.latex.cm.title.short": "Source",

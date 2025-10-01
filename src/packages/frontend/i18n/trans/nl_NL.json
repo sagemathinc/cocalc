@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "Het wissen van dit Linux Terminal-venster beëindigt lopende programma's, herstart de shell en maakt de weergavebuffer schoon.",
   "editor.editor_settings": "Editorinstellingen",
   "editor.errors_and_warning.title": "Fouten en Waarschuwingen",
-  "editor.errors_and_warning.title.short": "Fouten",
+  "editor.errors_and_warning.title.short": "Problemen",
   "editor.guide_tooltip": "Hulpmiddel voor het maken, testen en leren over Linux Terminal-commando's.",
   "editor.latex.cm.title": "LaTeX-broncode",
   "editor.latex.cm.title.short": "Bron",

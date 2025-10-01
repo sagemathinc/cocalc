@@ -579,7 +579,7 @@
   "editor.clear_terminal_tooltip": "A Linux Terminál keret törlése megszakítja a futó programokat, újraindítja a shellt és törli a megjelenítési puffer tartalmát.",
   "editor.editor_settings": "Szerkesztő beállítások",
   "editor.errors_and_warning.title": "Hibák és Figyelmeztetések",
-  "editor.errors_and_warning.title.short": "Hibák",
+  "editor.errors_and_warning.title.short": "Problémák",
   "editor.guide_tooltip": "Eszköz Linux terminál parancsok létrehozásához, teszteléséhez és tanulásához.",
   "editor.latex.cm.title": "LaTeX Forráskód",
   "editor.latex.cm.title.short": "Forrás",
