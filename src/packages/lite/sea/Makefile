@@ -47,20 +47,6 @@ help:
 show-ids:
 	security find-identity -v -p codesigning login.keychain-db || true
 
-entitlements:
-	@[ -f entitlements.plist ] || { \
-	  cat > entitlements.plist <<'PLIST'; \
-	  <?xml version="1.0" encoding="UTF-8"?> \
-	  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> \
-	  <plist version="1.0"><dict> \
-	    <key>com.apple.security.cs.allow-jit</key><true/> \
-	    <key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/> \
-	    <key>com.apple.security.cs.disable-library-validation</key><true/> \
-	  </dict></plist> \
-	  PLIST \
-	  echo "wrote minimal entitlements.plist"; \
-	}
-
 # ---- SEA build/inject (optional if you already have ./cocalc) ----
 sea: clean-sea
 	@[ -x "$(NODE_BIN)" ] || (echo "node not found" && exit 1)
@@ -81,7 +67,7 @@ clean-sea:
 	rm -f sea-prep.blob sea.term
 
 # ---- sign the binary ----
-sign-bin: entitlements
+sign-bin:
 	@echo "→ Signing binary with Developer ID Application + hardened runtime"
 	codesign --force --sign "$(DEV_APP_ID)" \
 	  --options runtime \
