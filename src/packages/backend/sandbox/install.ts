@@ -138,7 +138,9 @@ export const SPEC = {
     script: () => {
       const VERSION = SPEC.mutagen.VERSION;
       const a = arch() == "x64" ? "amd64" : arch();
-      return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -xz -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
+      // below we shrink mutagen-agents.tar but only
+      // when gnu tar is available:
+      return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -xz -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && (tar --version 2>/dev/null | grep -q 'GNU tar' && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar || true)`;
     },
   },
 

@@ -5,7 +5,6 @@
 
 import { join } from "path";
 import NextHead from "next/head";
-
 import basePath from "lib/base-path";
 import getPublicPathInfo from "lib/share/get-public-path-info";
 import shareURL from "lib/share/share-url";
