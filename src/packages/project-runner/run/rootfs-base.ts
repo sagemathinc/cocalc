@@ -1,11 +1,13 @@
-import { basename, dirname, join } from "path";
+import { basename, dirname, join } from "node:path";
 import { data } from "@cocalc/backend/data";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { spawn } from "node:child_process";
 import { readFile, rm, writeFile } from "fs/promises";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import pullImage from "./pull-image";
 import { shiftProgress } from "@cocalc/conat/project/runner/bootlog";
+import { PROGRESS_ARGS, rsyncProgressReporter } from "./rsync-progress";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:rootfs-base");
@@ -52,6 +54,8 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
   const reportProgress = (x: {
     progress: number;
     desc: string;
+    speed?;
+    eta?;
     min?: number;
     max?: number;
   }) => {
@@ -80,7 +84,7 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
       await pullImage({
         image,
         reportProgress: ({ progress, desc }) => {
-          reportProgress({ progress, desc, min: 5, max: 45 });
+          reportProgress({ progress, desc, min: 5, max: 55 });
         },
         timeout: 30 * 60 * 1000, // 30 minutes
         // ignore_chown_errors=true is needed since otherwise we
@@ -94,7 +98,7 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
       throw err;
     }
 
-    reportProgress({ progress: 45, desc: `inspecting ${image}...` });
+    reportProgress({ progress: 55, desc: `inspecting ${image}...` });
     const { stdout: inspect } = await executeCode({
       err_on_exit: true,
       verbose: true,
@@ -102,7 +106,7 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
       args: ["image", "inspect", image, "--format", "{{json .}}"],
     });
 
-    reportProgress({ progress: 50, desc: `extracting ${image}...` });
+    reportProgress({ progress: 60, desc: `extracting ${image}...` });
 
     // TODO: an optimization on COW filesystem if we pull one image
     // then pull another with a different tag, would be to start by
@@ -111,27 +115,37 @@ export const extractBaseImage = reuseInFlight(async (image: string) => {
 
     // extract the image
     try {
-      await executeCode({
-        verbose: true,
-        timeout: 60 * 60, // timeout in seconds
-        err_on_exit: true,
-        command: "podman",
-        args: [
-          "unshare",
-          "bash",
-          "-c",
-          `
+      const args = [
+        "unshare",
+        "bash",
+        "-c",
+        `
   set -ev
   mnt="$(podman image mount ${image})"
   echo "mounted at: $mnt"
   mkdir -p "${baseImagePath}"
-  rsync -aHx --numeric-ids --delete "$mnt"/ "${baseImagePath}"/
+  rsync -aHx ${PROGRESS_ARGS.join(" ")} --numeric-ids --delete "$mnt"/ "${baseImagePath}"/
   podman image unmount ${image}
 `,
-        ],
+      ];
+      logger.debug(`extracting ${image}...`);
+      const child = spawn("podman", args);
+      await rsyncProgressReporter({
+        child,
+        progress: ({ progress, speed, eta }) => {
+          reportProgress({
+            min: 60,
+            max: 90,
+            progress,
+            speed,
+            eta,
+            desc: `extracting ${image}...`,
+          });
+        },
       });
+
       reportProgress({
-        progress: 80,
+        progress: 90,
         desc: `cleaning up ${image}...`,
       });
     } catch (err) {

@@ -7,6 +7,13 @@ const logger = getLogger("project-runner:run:rsync-progress");
 
 const MAX_UPDATES_PER_SECOND = 3;
 
+export const PROGRESS_ARGS = [
+  "--outbuf=L",
+  "--no-inc-recursive",
+  "--info=progress2",
+  "--no-human-readable",
+];
+
 export default async function rsyncProgress({
   name,
   args,
@@ -27,12 +34,7 @@ export default async function rsyncProgress({
   } else {
     command = "rsync";
   }
-  args1.push(
-    "--outbuf=L",
-    "--no-inc-recursive",
-    "--info=progress2",
-    "--no-human-readable",
-  );
+  args1.push(...PROGRESS_ARGS);
   logger.debug(
     "rsyncProgress:",
     `"${command} ${args1.concat(args).join(" ")}"`,
@@ -44,7 +46,10 @@ export default async function rsyncProgress({
 export async function rsyncProgressRunner({ command, args, progress }) {
   logger.debug(`${command} ${args.join(" ")}`);
   const child = spawn(command, args);
+  await rsyncProgressReporter({ child, progress });
+}
 
+export async function rsyncProgressReporter({ child, progress }) {
   let stderr = "";
   child.stderr.on("data", (data) => {
     stderr += data.toString();
