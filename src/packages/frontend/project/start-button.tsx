@@ -170,7 +170,11 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
             {starting && (
               <div style={{ background: "white" }}>
                 <Bootlog
-                  style={{ border: "1px solid #ddd", padding: "15px" }}
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: "15px",
+                    boxShadow: "5px 5px 5px grey",
+                  }}
                 />
               </div>
             )}

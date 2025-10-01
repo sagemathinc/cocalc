@@ -1,6 +1,6 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useState } from "react";
-import { Progress, Space, Spin, Switch } from "antd";
+import { Progress, Space, Spin, Switch, Tooltip } from "antd";
 import { useProjectContext } from "./context";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import type { Event } from "@cocalc/conat/project/runner/bootlog";
@@ -8,6 +8,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
 import { namespaceToColor } from "@cocalc/util/color";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { TimeAgo } from "@cocalc/frontend/components";
 
 export default function Bootlog({
   style,
@@ -98,22 +99,67 @@ export default function Bootlog({
 }
 
 function ProgressEntry({ type, progress, desc, elapsed, error }: Event) {
+  const remaining = estimateRemainingTime({ elapsed, progress });
   return (
     <div>
-      <Space>
-        <div style={{ width: "150px" }}>{typeToString(type)}</div>
-        <Progress
-          style={{ width: "150px" }}
-          percent={progress}
-          strokeColor={namespaceToColor(type)}
-        />
-        <div>
-          {desc} ({msToString(elapsed)})
-        </div>
-      </Space>
+      <Tooltip
+        title={
+          <>
+            {typeToString(type)}
+            <br />
+            Elapsed: {msToString(elapsed)}
+            {remaining ? (
+              <>
+                <br />
+                ETA: <TimeAgo date={new Date(Date.now() + remaining)} />
+              </>
+            ) : null}
+          </>
+        }
+      >
+        <Space>
+          <div style={{ width: "150px" }}>{typeToString(type)}</div>
+          <Progress
+            style={{ width: "150px" }}
+            percent={progress}
+            strokeColor={namespaceToColor(type)}
+          />
+          <div>
+            {desc}
+            {remaining ? (
+              <>
+                {" "}
+                (ETA: <TimeAgo date={new Date(Date.now() + remaining)} />)
+              </>
+            ) : null}
+          </div>
+        </Space>
+      </Tooltip>
       <ShowError error={error} />
     </div>
   );
+}
+
+// elapsed is a number of ms since the task started
+// progress is a number between 0 and 100 recording how much we have accomplished
+function estimateRemainingTime({
+  elapsed,
+  progress,
+}: {
+  elapsed?: number;
+  progress?: number;
+}): number | undefined {
+  if (elapsed == null || progress == null) {
+    return undefined;
+  }
+  if (elapsed < 2000 || progress <= 2) {
+    return undefined;
+  }
+  if (progress == 100) {
+    return 0;
+  }
+  const timePerUnit = elapsed / progress;
+  return Math.round((100 - progress) * timePerUnit);
 }
 
 function typeToString(type: string) {
@@ -123,7 +169,7 @@ function typeToString(type: string) {
 
 function msToString(t?: number): string {
   if (!t) {
-    return " - ";
+    return "";
   }
   if (t < 1000) {
     const n = Math.round(t);
