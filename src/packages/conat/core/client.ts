@@ -1204,51 +1204,58 @@ export class Client extends EventEmitter {
     // **right now** or received these messages.
     count: number;
   }> => {
-    if (this.isClosed()) {
-      // already closed
-      return { bytes: 0, count: 0 };
-    }
-    await this.waitUntilSignedIn();
-    const start = Date.now();
-    const { bytes, getCount, promise } = this._publish(subject, mesg, {
-      ...opts,
-      confirm: true,
-    });
-    await promise;
-    let count = getCount?.()!;
-
-    if (
-      opts.waitForInterest &&
-      count != null &&
-      count == 0 &&
-      !this.isClosed() &&
-      (opts.timeout == null || Date.now() - start <= opts.timeout)
-    ) {
-      let timeout = opts.timeout ?? DEFAULT_WAIT_FOR_INTEREST_TIMEOUT;
-      await this.waitForInterest(subject, {
-        timeout: timeout ? timeout - (Date.now() - start) : undefined,
-      });
+    try {
       if (this.isClosed()) {
-        return { bytes, count };
+        // already closed
+        return { bytes: 0, count: 0 };
       }
-      const elapsed = Date.now() - start;
-      timeout -= elapsed;
-      // client and there is interest
-      if (timeout <= 500) {
-        // but... not enough time left to try again even if there is interest,
-        // i.e., will fail anyways due to network latency
-        return { bytes, count };
-      }
-      const { getCount, promise } = this._publish(subject, mesg, {
+      await this.waitUntilSignedIn();
+      const start = Date.now();
+      const { bytes, getCount, promise } = this._publish(subject, mesg, {
         ...opts,
-        timeout,
         confirm: true,
       });
       await promise;
-      count = getCount?.()!;
-    }
+      let count = getCount?.()!;
 
-    return { bytes, count };
+      if (
+        opts.waitForInterest &&
+        count != null &&
+        count == 0 &&
+        !this.isClosed() &&
+        (opts.timeout == null || Date.now() - start <= opts.timeout)
+      ) {
+        let timeout = opts.timeout ?? DEFAULT_WAIT_FOR_INTEREST_TIMEOUT;
+        await this.waitForInterest(subject, {
+          timeout: timeout ? timeout - (Date.now() - start) : undefined,
+        });
+        if (this.isClosed()) {
+          return { bytes, count };
+        }
+        const elapsed = Date.now() - start;
+        timeout -= elapsed;
+        // client and there is interest
+        if (timeout <= 500) {
+          // but... not enough time left to try again even if there is interest,
+          // i.e., will fail anyways due to network latency
+          return { bytes, count };
+        }
+        const { getCount, promise } = this._publish(subject, mesg, {
+          ...opts,
+          timeout,
+          confirm: true,
+        });
+        await promise;
+        count = getCount?.()!;
+      }
+      return { bytes, count };
+    } catch (err) {
+      if (opts.noThrow) {
+        return { bytes: 0, count: 0 };
+      } else {
+        throw err;
+      }
+    }
   };
 
   private _publish = (
@@ -1609,9 +1616,10 @@ interface PublishOptions {
 
   // noThrow -- if set and publishing would throw an exception, it is
   // instead silently dropped and undefined is returned instead.
+  // Returned value of bytes and count will are not defined.
   // Use this where you might want to use publishSync, but still want
   // to ensure there is interest; however, it's not important to know
-  // if there was an error sending.
+  // if there was an error sending or that sending worked.
   noThrow?: boolean;
 }
 
@@ -1891,7 +1899,7 @@ export class Message<T = any> extends MessageData<T> {
       return { bytes: 0, count: 0 };
     }
     return await this.client.publish(subject, mesg, {
-      // we *always* wait for interest for sync respond, since
+      // we *always* wait for interest for async respond, since
       // it is by far the most likely situation where it wil be needed, due
       // to inboxes when users first sign in.
       waitForInterest: true,
