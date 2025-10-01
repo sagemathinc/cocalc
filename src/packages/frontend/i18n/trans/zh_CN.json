@@ -652,6 +652,7 @@
   "i18n.localization.lang.turkish": "土耳其语",
   "jupyter.about.features": "<ul> <li> <b>实时同步：</b> 多人可以同时编辑笔记本：多个光标、文档范围内的用户特定撤销和重做、实时同步的ipywidgets </li> <li> <b>文档分割：</b> 同时编辑和查看大笔记本的多个部分 </li> <li> <b>时光旅行：</b> 查看笔记本创建的详细历史记录 </li> <li> <b>文本/Markdown：</b> 功能强大的图形编辑器，用于Markdown单元格，因此您可以编写格式良好的文本来解释代码，而无需直接编写Markdown </li> <li> <b>AI助手：</b> 多种AI工具帮助您理解错误消息、优化代码、根据上下文生成新代码单元格，或仅解释/记录现有代码 </li> <li> <b>代码片段：</b> 适用于许多内核的代码示例 </li> <li> <b>白板：</b> 创建一个白板（以“.board”结尾的文档）并将Jupyter单元格用作白板的一部分 </li> <li> <b>缩放：</b> 轻松更改字体大小 </li> <li> <b>代码折叠：</b> 查看输入的结构 </li> <li> <b>代码格式化：</b> 单击格式化按钮自动格式化您的代码和Markdown </li> <li> <b>现代外观：</b> 按钮、菜单和单元格执行提示，更好地反映状态 </li> <li> <b>大输出：</b> 服务器端节流、窗口化和缓冲 </li> <li> <b>后台捕获输出：</b> 如果没有用户打开笔记本，它也能工作 (<A>讨论</A>) </li> <li> <b>移动支持：</b> 手机和平板电脑 </li> <li> <b>单元格创建：</b> 单击单元格之间的蓝线以创建新单元格 </li> <li> <b>分享：</b> 通过我们快速轻量的笔记本查看器公开您的工作 </li> <li> <b>LaTeX：</b> 将笔记本导出为LaTeX，然后直接在CoCalc中编辑生成的LaTeX </li> <li> <b>键绑定和配色方案：</b> VIM、Emacs和Sublime键绑定，以及多种配色方案（在账户设置中） </li> </ul>",
   "jupyter.about.message": "您正在使用CoCalc Jupyter笔记本。\n\nCoCalc Jupyter笔记本是SageMath, Inc.完全重写的开源版本，基于经典的Jupyter笔记本客户端。CoCalc Jupyter笔记本在文件格式和整体外观上完全兼容经典笔记本，并在以下方面进行了改进：{features} 一些经典扩展的功能尚未支持（如果您需要某些功能，<A2>请在此处查看</A2>并创建一个{support_link}），上述一些功能在经典Jupyter中也可通过扩展实现。\n\n问题\n\n{faq}\n\n服务器信息\n\n{server_info}\n\n当前内核信息\n\n{kernel_info}",
+  "jupyter.cell-buttonbar-menu.clear-output": "清除输出",
   "jupyter.cell-buttonbar-menu.copy-cell": "复制单元格",
   "jupyter.cell-buttonbar-menu.copy-clipboard": "复制到剪贴板",
   "jupyter.cell-buttonbar-menu.cut-cell": "剪切单元格",

@@ -999,7 +999,7 @@ export const editor = defineMessages({
   },
   table_of_contents_short: {
     id: "editor.table_of_contents.short",
-    defaultMessage: "Content",
+    defaultMessage: "Contents",
     description: "Short for Table of Contents",
   },
   table_of_contents_name: {
