@@ -3,12 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import pathToFiles from "./path-to-files";
-import { promises as fs } from "fs";
 import { join } from "path";
 import { sortBy } from "lodash";
 import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "./util";
+import { fsClient, fsSubject } from "@cocalc/conat/files/fs";
+import "@cocalc/backend/conat";
 
 const MB: number = 1000000;
 
@@ -70,26 +70,26 @@ export default async function getContents(
   path: string,
   unlisted?: boolean, // if true, higher size limits, since much less likely to be abused
 ): Promise<PathContents> {
-  const fsPath = pathToFiles(project_id, path);
   const obj: PathContents = {};
+  const fs = fsClient({ subject: fsSubject({ project_id }) });
 
   // use lstat instead of stat so it works on symlinks too
-  const stats = await fs.lstat(fsPath);
+  const stats = await fs.lstat(path);
   obj.isdir = stats.isDirectory();
-  obj.mtime = stats.mtime.valueOf();
+  obj.mtime = stats.mtime?.valueOf() ?? null;
   if (obj.isdir) {
     // get listing
-    const { listing, truncated } = await getDirectoryListing(fsPath);
+    const { listing, truncated } = await getDirectoryListing(path, fs);
     obj.listing = listing;
     if (truncated) {
       obj.truncated = truncated;
     }
   } else {
     // get actual file content
-    if (stats.size >= getSizeLimit(fsPath, unlisted)) {
+    if (stats.size >= getSizeLimit(path, unlisted)) {
       obj.truncated = "File too big to be displayed; download it instead.";
     } else {
-      obj.content = (await fs.readFile(fsPath)).toString();
+      obj.content = (await fs.readFile(path)).toString();
     }
     obj.size = stats.size;
   }
@@ -98,6 +98,7 @@ export default async function getContents(
 
 async function getDirectoryListing(
   path: string,
+  fs,
 ): Promise<{ listing: FileInfo[]; truncated?: string }> {
   const listing: FileInfo[] = [];
   let truncated: string | undefined = undefined;
@@ -118,7 +119,7 @@ async function getDirectoryListing(
       } else {
         obj.size = stats.size;
       }
-      obj.mtime = stats.mtime.valueOf();
+      obj.mtime = stats.mtime?.valueOf() ?? null;
     } catch (err) {
       obj.error = err;
     }

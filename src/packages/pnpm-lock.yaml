@@ -1011,6 +1011,9 @@ importers:
       '@cocalc/cdn':
         specifier: workspace:*
         version: link:../cdn
+      '@cocalc/conat':
+        specifier: workspace:*
+        version: link:../conat
       '@cocalc/database':
         specifier: workspace:*
         version: link:../database
