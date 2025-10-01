@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { join } from "path";
 import { sortBy } from "lodash";
 import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "./util";
@@ -101,33 +100,17 @@ async function getDirectoryListing(
   fs,
 ): Promise<{ listing: FileInfo[]; truncated?: string }> {
   const listing: FileInfo[] = [];
-  let truncated: string | undefined = undefined;
-  for (const name of await fs.readdir(path)) {
+  const { files, truncated: isTruncate } = await fs.getListing(path);
+  for (const name in files) {
+    const { mtime, size, isDir } = files[name];
     if (name.startsWith(".")) {
-      // We never grab hidden files.  This is a public share server after all.
+      // We never show hidden files.  This is a public share server after all.
       continue;
     }
-    const obj: FileInfo = { name };
-    // use lstat instead of stat so it works on symlinks too
-    try {
-      const stats = await fs.lstat(join(path, name));
-      if (stats.isDirectory()) {
-        obj.isdir = true;
-        // For a directory, we define "size" to be the number of items
-        // in the directory.
-        obj.size = (await fs.readdir(join(path, name))).length;
-      } else {
-        obj.size = stats.size;
-      }
-      obj.mtime = stats.mtime?.valueOf() ?? null;
-    } catch (err) {
-      obj.error = err;
-    }
+    const obj: FileInfo = { name, isdir: !!isDir, size, mtime };
     listing.push(obj);
-    if (listing.length >= LISTED_LIMITS.listing) {
-      truncated = `Too many files -- only showing ${LISTED_LIMITS.listing} of them.`;
-      break;
-    }
   }
+  const truncated = isTruncate ? "Not showing all files" : "";
+
   return { listing: sortBy(listing, ["name"]), truncated };
 }
