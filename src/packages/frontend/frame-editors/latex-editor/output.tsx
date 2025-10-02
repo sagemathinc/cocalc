@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -13,11 +13,14 @@ Combined output panel for LaTeX editor that includes:
 - PDF preview
 - Build log output
 - Errors and warnings
+- Statistics (word count)
+- Sub-files
 With build controls at the top (build, force build, clean, etc.)
 */
 
 // cSpell:ignore EOFPYTHON Estad
 
+import type { CSS } from "@cocalc/frontend/app-framework";
 import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import type { TabsProps } from "antd";
 
@@ -37,21 +40,20 @@ import {
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
+import { TITLE_BAR_BORDER } from "../frame-tree/style";
 import { Actions } from "./actions";
 import { Build } from "./build";
 import { WORD_COUNT_ICON } from "./constants";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { use_build_logs } from "./hooks";
-import { OUTPUT_HEADER_STYLE } from "./util";
 import { PDFControls } from "./output-control";
 import { OutputFiles } from "./output-files";
 import { OutputStats } from "./output-stats";
 import { PDFJS } from "./pdfjs";
 import { BuildLogs } from "./types";
 import { useTexSummaries } from "./use-summarize";
-import { TITLE_BAR_BORDER } from "../frame-tree/style";
+import { OUTPUT_HEADER_STYLE } from "./util";
 
 interface OutputProps {
   id: string;
@@ -68,7 +70,13 @@ interface OutputProps {
   status: string;
 }
 
-type TabType = "pdf" | "contents" | "files" | "build" | "errors" | "stats";
+type TabType = "pdf" | "contents" | "files" | "build" | "problems" | "stats";
+
+const LABEL_STYLE: CSS = {
+  display: "flex",
+  alignItems: "center",
+  gap: "2px",
+} as const;
 
 const STATS_LABEL = defineMessage({
   id: "latex.output.stats_tab.label",
@@ -308,7 +316,7 @@ export function Output(props: OutputProps) {
     return {
       key: "pdf",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span style={LABEL_STYLE}>
           <Icon name="file-pdf" />
           PDF
         </span>
@@ -379,15 +387,7 @@ export function Output(props: OutputProps) {
     return {
       key: "contents",
       label: (
-        <span
-          style={{
-            color: COLORS.GRAY_M,
-            fontSize: uiFontSize,
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
+        <span style={LABEL_STYLE}>
           <Icon name="align-right" />
           {intl.formatMessage(editor.table_of_contents_name)}
         </span>
@@ -402,7 +402,7 @@ export function Output(props: OutputProps) {
           }}
         >
           <div style={OUTPUT_HEADER_STYLE}>
-            <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+            <span style={LABEL_STYLE}>
               <Icon name="align-right" />
               {intl.formatMessage(editor.table_of_contents_name)}
             </span>
@@ -444,7 +444,7 @@ export function Output(props: OutputProps) {
     return {
       key: "build",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span style={LABEL_STYLE}>
           {hasRunningJobs ? <Spin size="small" /> : <Icon name="terminal" />}
           {intl.formatMessage(editor.build_control_and_log_title_short)}
         </span>
@@ -463,36 +463,58 @@ export function Output(props: OutputProps) {
     };
   }
 
-  // Errors are indicated with red icon only
-  function renderErrorsTab() {
-    const { errors, warnings, typesetting } = errorCounts;
+  // Problems are indicated with color coded numbers.
+  // Show only the highest priority counter: errors > warnings > typesetting
+  function renderProblemsCounter(
+    errors: number,
+    warnings: number,
+    typesetting: number,
+  ) {
     const hasAnyIssues = errors > 0 || warnings > 0 || typesetting > 0;
+    if (!hasAnyIssues) return null;
+
+    // Determine which counter to show (highest priority)
+    let count: number;
+    let color: string;
+    if (errors > 0) {
+      count = errors;
+      color = "red";
+    } else if (warnings > 0) {
+      count = warnings;
+      color = "orange";
+    } else {
+      count = typesetting;
+      color = "blue";
+    }
+
+    // Comprehensive tooltip showing all three counters
+    const tipTitle = intl.formatMessage(
+      {
+        id: "latex.output.problems_counter.tooltip",
+        defaultMessage: `{errors, plural, =0 {No errors} one {# error} other {# errors}},
+        {warnings, plural, =0 {no warnings} one {# warning} other {# warnings}},
+        and {typesetting, plural, =0 {no typesetting problems} one {# typesetting problem} other {# typesetting problems}}`,
+      },
+      { errors, warnings, typesetting },
+    );
+
+    return (
+      <Tip title={tipTitle} placement="top">
+        <Tag color={color}>{count}</Tag>
+      </Tip>
+    );
+  }
+
+  function renderProblemsTab() {
+    const { errors, warnings, typesetting } = errorCounts;
 
     return {
-      key: "errors",
+      key: "problems",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <span style={LABEL_STYLE}>
           <Icon name="bug" style={{ marginRight: "0" }} />
           {intl.formatMessage(editor.errors_and_warnings_title_short)}
-          {hasAnyIssues && (
-            <Space.Compact>
-              {errors > 0 && (
-                <Tip title="Number of errors" placement="top">
-                  <Tag color="red">{errors}</Tag>
-                </Tip>
-              )}
-              {warnings > 0 && (
-                <Tip title="Number of warnings" placement="top">
-                  <Tag color="orange">{warnings}</Tag>
-                </Tip>
-              )}
-              {typesetting > 0 && (
-                <Tip title="Number of typesetting problems" placement="top">
-                  <Tag color="blue">{typesetting}</Tag>
-                </Tip>
-              )}
-            </Space.Compact>
-          )}
+          {renderProblemsCounter(errors, warnings, typesetting)}
         </span>
       ),
       children: (
@@ -517,7 +539,7 @@ export function Output(props: OutputProps) {
     return {
       key: "files",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span style={LABEL_STYLE}>
           {summariesLoading ? <Spin size="small" /> : <Icon name="file" />}
           Files
         </span>
@@ -540,7 +562,7 @@ export function Output(props: OutputProps) {
     return {
       key: "stats",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span style={LABEL_STYLE}>
           {wordCountLoading ? (
             <Spin size="small" />
           ) : (
@@ -566,7 +588,7 @@ export function Output(props: OutputProps) {
       renderContentsTab(),
       ...(switch_to_files?.size > 1 ? [renderFilesTab()] : []),
       renderBuildTab(),
-      renderErrorsTab(),
+      renderProblemsTab(),
       renderStatsTab(),
     ];
 
