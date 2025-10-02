@@ -15,6 +15,9 @@ import { COLORS } from "@cocalc/util/theme";
 
 import { Actions } from "./actions";
 
+// Tweak it in such a way, that it looks consistent with ./*-sync.tsx left/right arrows
+const CONTROL_BUTTON_PADDING = "0 14px";
+
 const CONTROL_PAGE_STYLE = {
   display: "flex",
   alignItems: "center",
@@ -100,6 +103,7 @@ export function PageNavigationControls({
             icon={<Icon name="arrow-up" />}
             onClick={() => flipPage(-1)}
             disabled={currentPage <= 1}
+            style={{ padding: CONTROL_BUTTON_PADDING }}
           />
         </Tip>
 
@@ -109,6 +113,7 @@ export function PageNavigationControls({
             icon={<Icon name="arrow-down" />}
             onClick={() => flipPage(1)}
             disabled={currentPage >= totalPages}
+            style={{ padding: CONTROL_BUTTON_PADDING }}
           />
         </Tip>
       </Space.Compact>

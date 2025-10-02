@@ -184,6 +184,7 @@
     "i18n:compile": "bash ./i18n/bin/compile.sh",
     "i18n:unused": "bash ./i18n/bin/unused.sh",
     "i18n:delete": "bash ./i18n/bin/delete.sh",
+    "i18n:update": "pnpm i18n:extract && pnpm i18n:upload && pnpm i18n:download && pnpm i18n:compile",
     "spellcheck": "git ls-files \"*.ts\" \"*.tsx\" | xargs cspell --config cspell.json"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",

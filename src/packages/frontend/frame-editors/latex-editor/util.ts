@@ -10,8 +10,8 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
-import { TIMEOUT_LATEX_JOB_S } from "./constants";
 import { TITLE_BAR_BORDER } from "../frame-tree/style";
+import { TIMEOUT_LATEX_JOB_S } from "./constants";
 
 export const OUTPUT_HEADER_STYLE = {
   display: "flex",

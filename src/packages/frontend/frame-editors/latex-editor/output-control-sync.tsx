@@ -5,28 +5,44 @@
 
 /*
 Sync Controls Component for LaTeX Editor Output Panel
-Provides auto-sync toggle and manual sync functionality between source and PDF
+Provides auto-sync toggle buttons for bidirectional sync between source and PDF
 */
 
-import { Button, Switch } from "antd";
+import { Space } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Icon, Tip } from "@cocalc/frontend/components";
-import { labels } from "@cocalc/frontend/i18n";
 
 import { Actions } from "./actions";
 
-export const AUTO_SYNC_TOOLTIP_MSG = defineMessage({
-  id: "editor.latex.pdf_controls.auto_sync.tooltip",
-  defaultMessage:
-    "Auto-sync between source and PDF: cursor moves follow PDF scrolling, PDF scrolls to cursor position",
+// Tweak it in such a way, that it looks consistent with ./*-pages.tsx up/down arrows
+const CONTROL_BUTTON_PADDING = "0 8px";
+
+const FORWARD_SYNC_TOOLTIP_MSG = defineMessage({
+  id: "editor.latex.pdf_controls.forward_sync.tooltip",
+  defaultMessage: "Auto-sync from source to PDF: cursor moves scroll the PDF",
   description:
-    "Tooltip explaining bidirectional auto-sync functionality in LaTeX PDF controls",
+    "Tooltip explaining forward auto-sync (CM → PDF) in LaTeX PDF controls",
 });
 
-export const SYNC_HELP_MSG = {
+const INVERSE_SYNC_TOOLTIP_MSG = defineMessage({
+  id: "editor.latex.pdf_controls.inverse_sync.tooltip",
+  defaultMessage:
+    "Auto-sync from PDF to source: PDF scrolling moves the cursor",
+  description:
+    "Tooltip explaining inverse auto-sync (PDF → CM) in LaTeX PDF controls",
+});
+
+const SYNC_BUTTON_TOOLTIP_MSG = defineMessage({
+  id: "editor.latex.pdf_controls.sync_button.tooltip",
+  defaultMessage: "One-time inverse sync to the source editor",
+  description: "Tooltip for manual sync button in LaTeX PDF controls",
+});
+
+const SYNC_HELP_MSG = {
   title: defineMessage({
     id: "editor.latex.pdf_controls.sync_help.title",
     defaultMessage: "LaTeX Sync Help",
@@ -37,12 +53,12 @@ export const SYNC_HELP_MSG = {
     defaultMessage: `<p><strong>Manual Mode:</strong></p>
 <ul>
   <li>Use ALT+Return in source document to jump to corresponding PDF location</li>
-  <li>Double-click in PDF for inverse search to source</li>
+  <li>Double-click in PDF or the "Sync" button for inverse search to source</li>
 </ul>
 <p><strong>Automatic Mode:</strong></p>
 <ul>
-  <li>Syncs automatically from cursor changes in source to PDF</li>
-  <li>Moving the PDF viewport moves the cursor in source</li>
+  <li>Forward Sync (→): Syncs automatically from cursor changes in source to PDF</li>
+  <li>Inverse Sync (←): Moving the PDF viewport moves the cursor in source</li>
 </ul>
 <p>This functionality uses SyncTeX to coordinate between LaTeX source and PDF output.</p>`,
     description:
@@ -76,13 +92,17 @@ export function SyncControls({
   const intl = useIntl();
 
   // Auto-sync state (stored in local view state)
-  const storedAutoSyncEnabled =
-    useRedux([actions.name, "local_view_state", id, "autoSyncEnabled"]) ??
-    false; // Default to false
+  const storedAutoSyncForward =
+    useRedux([actions.name, "local_view_state", id, "autoSyncForward"]) ??
+    false;
 
-  const [localAutoSyncEnabled, setLocalAutoSyncEnabled] = useState(
-    storedAutoSyncEnabled,
-  );
+  const storedAutoSyncInverse =
+    useRedux([actions.name, "local_view_state", id, "autoSyncInverse"]) ??
+    false;
+
+  const [autoSyncForward, setAutoSyncForward] = useState(storedAutoSyncForward);
+
+  const [autoSyncInverse, setAutoSyncInverse] = useState(storedAutoSyncInverse);
 
   // Check if auto sync is in progress
   const autoSyncInProgress =
@@ -126,53 +146,73 @@ export function SyncControls({
 
   // Sync state with stored values when they change
   useEffect(() => {
-    setLocalAutoSyncEnabled(storedAutoSyncEnabled);
-  }, [storedAutoSyncEnabled]);
+    setAutoSyncForward(storedAutoSyncForward);
+  }, [storedAutoSyncForward]);
 
-  // Auto-sync effect when viewport changes and auto-sync is enabled
   useEffect(() => {
-    if (localAutoSyncEnabled && viewportInfo && !autoSyncInProgress) {
+    setAutoSyncInverse(storedAutoSyncInverse);
+  }, [storedAutoSyncInverse]);
+
+  // Auto-sync effect when viewport changes and inverse auto-sync is enabled
+  useEffect(() => {
+    if (autoSyncInverse && viewportInfo && !autoSyncInProgress) {
       handleViewportSync(viewportInfo.page, viewportInfo.x, viewportInfo.y);
     }
-  }, [
-    localAutoSyncEnabled,
-    viewportInfo,
-    autoSyncInProgress,
-    handleViewportSync,
-  ]);
+  }, [autoSyncInverse, viewportInfo, autoSyncInProgress, handleViewportSync]);
 
-  const handleAutoSyncChange = (enabled: boolean) => {
-    setLocalAutoSyncEnabled(enabled);
-    // Save to local view state for persistence
+  function handleAutoSyncChange(type: "autoSyncForward" | "autoSyncInverse") {
+    const forward = type === "autoSyncForward";
+    const enabled = !(forward ? autoSyncForward : autoSyncInverse);
+    (forward ? setAutoSyncForward : setAutoSyncInverse)(enabled);
     const local_view_state = actions.store.get("local_view_state");
     actions.setState({
-      local_view_state: local_view_state.setIn(
-        [id, "autoSyncEnabled"],
-        enabled,
-      ),
+      local_view_state: local_view_state.setIn([id, type], enabled),
     });
-  };
+  }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-      {!narrow && <Icon name="exchange" />}
-      <Tip title={intl.formatMessage(AUTO_SYNC_TOOLTIP_MSG)} placement="top">
-        <Switch
-          checked={localAutoSyncEnabled}
-          onChange={handleAutoSyncChange}
-          checkedChildren={intl.formatMessage(labels.on)}
-          unCheckedChildren={intl.formatMessage(labels.off)}
-        />
-      </Tip>
-      <Button
-        type="text"
-        size="small"
-        style={{ fontSize: "13px", padding: "0 4px", height: "auto" }}
-        onClick={handleManualSync}
-        disabled={pageDimensions.length === 0}
-      >
-        Sync
-      </Button>
+      <Space.Compact>
+        <Tip
+          title={intl.formatMessage(INVERSE_SYNC_TOOLTIP_MSG)}
+          placement="top"
+        >
+          <BSButton
+            active={autoSyncInverse}
+            bsSize="xsmall"
+            onClick={() => handleAutoSyncChange("autoSyncInverse")}
+            style={{ padding: CONTROL_BUTTON_PADDING }}
+          >
+            <Icon name="sync-left" />
+          </BSButton>
+        </Tip>
+        <Tip
+          title={intl.formatMessage(FORWARD_SYNC_TOOLTIP_MSG)}
+          placement="top"
+        >
+          <BSButton
+            active={autoSyncForward}
+            bsSize="xsmall"
+            onClick={() => handleAutoSyncChange("autoSyncForward")}
+            style={{ padding: CONTROL_BUTTON_PADDING }}
+          >
+            <Icon name="sync-left" rotate="180" />
+          </BSButton>
+        </Tip>
+        <Tip
+          title={intl.formatMessage(SYNC_BUTTON_TOOLTIP_MSG)}
+          placement="top"
+        >
+          <BSButton
+            bsSize="xsmall"
+            style={{ padding: CONTROL_BUTTON_PADDING }}
+            onClick={handleManualSync}
+            disabled={pageDimensions.length === 0}
+          >
+            Sync
+          </BSButton>
+        </Tip>
+      </Space.Compact>
       {!narrow && (
         <HelpIcon
           title={intl.formatMessage(SYNC_HELP_MSG.title)}

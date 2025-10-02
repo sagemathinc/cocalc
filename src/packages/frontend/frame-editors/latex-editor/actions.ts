@@ -1413,20 +1413,20 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  // Check if auto-sync is enabled for any output panel
-  private is_auto_sync_enabled(): boolean {
+  // Check if forward auto-sync (CM → PDF) is enabled for any output panel
+  private is_auto_sync_forward_enabled(): boolean {
     const local_view_state = this.store.get("local_view_state");
     if (!local_view_state) return false;
 
-    // Check all output panels for auto-sync enabled
+    // Check all output panels for forward auto-sync enabled
     for (const [key, value] of local_view_state.entrySeq()) {
       // Only check output panels
       if (this._is_output_panel(key) && value) {
-        const autoSyncEnabled =
+        const autoSyncForward =
           typeof value.get === "function"
-            ? value.get("autoSyncEnabled")
-            : value.autoSyncEnabled;
-        if (autoSyncEnabled) {
+            ? value.get("autoSyncForward")
+            : value.autoSyncForward;
+        if (autoSyncForward) {
           return true;
         }
       }
@@ -1446,7 +1446,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // Handle cursor movement - called by BaseActions.set_cursor_locs
   public handle_cursor_move(locs: any[]): void {
-    if (!this.is_auto_sync_enabled() || locs.length === 0) return;
+    if (!this.is_auto_sync_forward_enabled() || locs.length === 0) return;
 
     // Prevent duplicate sync operations
     if (this.is_auto_sync_in_progress()) return;
