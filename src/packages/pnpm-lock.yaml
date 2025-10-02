@@ -213,9 +213,6 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
-      pnpm:
-        specifier: ^10.17.1
-        version: 10.17.1
       socket.io:
         specifier: ^4.8.1
         version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
@@ -9366,11 +9363,6 @@ packages:
   plur@4.0.0:
     resolution: {integrity: sha512-4UGewrYgqDFw9vV6zNV+ADmPAUAfJPKtGvb/VdpQAx25X5f3xXdGdyOEVFwkl8Hl/tl7+xbeHqSEM+D5/TirUg==}
     engines: {node: '>=10'}
-
-  pnpm@10.17.1:
-    resolution: {integrity: sha512-F8Vg/KSGeulHOjiZrYSogzSRTzeb5G1FXL+S5c9LOdNJhdRS0lg7rxmWf6dstcF7yeJFUp0LmHRXIapyAOyveg==}
-    engines: {node: '>=18.12'}
-    hasBin: true
 
   point-in-polygon@1.1.0:
     resolution: {integrity: sha512-3ojrFwjnnw8Q9242TzgXuTD+eKiutbzyslcq1ydfu82Db2y+Ogbmyrkpv0Hgj31qwT3lbS9+QAAO/pIQM35XRw==}
@@ -20592,8 +20584,6 @@ snapshots:
   plur@4.0.0:
     dependencies:
       irregular-plurals: 3.5.0
-
-  pnpm@10.17.1: {}
 
   point-in-polygon@1.1.0: {}
 
