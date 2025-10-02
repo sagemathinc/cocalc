@@ -183,21 +183,52 @@ export const SPEC = {
     script: () =>
       `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/dropbear-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 dropbear-$(uname -m)-linux-musl/dropbear`,
   },
-  sftp: {
-    desc: "sftp-server Statically Linked (so sshfs works with dropbear)",
-    platforms: ["linux"],
-    path: join(binPath, "sftp-server"),
-    script: () =>
-      `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/sftp-server-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 sftp-server-$(uname -m)-linux-musl/sftp-server`,
-  },
-  // Locate the latest binaries at
-  //    https://github.com/binary-manu/static-cross-openssh/actions
-  // The binaries are just build artificates from CI.
-  // https://github.com/binary-manu/static-cross-openssh/actions/runs/18067057616/artifacts/4123691045
+  /*
+   Locate the latest binaries are here:
+     https://github.com/sagemathinc/static-openssh-binaries/releases
+   E.g., the files look like
+    https://github.com/sagemathinc/static-openssh-binaries/releases/download/OpenSSH_9.9p2/openssh-static-x86_64-small-2025-10-02b.tar.gz
+    https://github.com/sagemathinc/static-openssh-binaries/releases/download/OpenSSH_9.9p2/openssh-static-aarch64-small-2025-10-02b.tar.gz
+   and they extract like this:
+~# tar xvf openssh-static-x86_64-small-OpenSSH_9.9p2.tar.gz
+openssh/
+openssh/sbin/
+openssh/sbin/sshd
+openssh/etc/
+openssh/etc/sshd_config
+openssh/bin/
+openssh/bin/ssh-add
+openssh/bin/sftp
+openssh/bin/ssh-keyscan
+openssh/bin/ssh-keygen
+openssh/bin/ssh-agent
+openssh/bin/ssh
+openssh/bin/scp
+openssh/var/
+openssh/var/empty/
+openssh/libexec/
+openssh/libexec/ssh-keysign
+openssh/libexec/sshd-session
+openssh/libexec/sftp-server
+
+To build a new version figure out what version (say OpenSSH_9.9p2)
+happens to be being built, then do
+
+   git tag OpenSSH_9.9p2
+   git push --tags
+
+to make a binary with that version
+
+---
+*/
   ssh: {
     desc: "statically linked compressed openssh binaries: ssh, scp, ssh-keygen",
     path: join(binPath, "ssh"),
-    platforms: [],
+    platforms: ["linux"],
+    VERSION: "OpenSSH_9.9p2",
+    getVersion: "ssh -V 2>&1 | cut -f 1 -d ','",
+    script: () =>
+      `curl -L https://github.com/sagemathinc/static-openssh-binaries/releases/download/${SPEC.ssh.VERSION}/openssh-static-$(uname -m)-small-${SPEC.ssh.VERSION}.tar.gz | tar -xz -C ${binPath} --strip-components=2 openssh/bin/ssh openssh/bin/ssh-keygen openssh/libexec/sftp-server`,
   },
 };
 
@@ -210,7 +241,7 @@ export const sshpiper = SPEC.sshpiper.path;
 export const mutagen = SPEC.mutagen.path;
 export const btm = SPEC.btm.path;
 export const dropbear = SPEC.dropbear.path;
-export const sftp = SPEC.sftp.path;
+export const ssh = SPEC.ssh.path;
 
 type App = keyof typeof SPEC;
 
@@ -240,7 +271,9 @@ export async function installedVersion(app: App): Promise<string | undefined> {
       command: getVersion,
       env: { ...process.env, PATH: binPath + ":/usr/bin:" + process.env.PATH },
     });
-    const v = split(stdout + stderr).slice(-1)[0];
+    const v = split(stdout + stderr)
+      .slice(-1)[0]
+      .trim();
     return v;
   } catch (err) {
     logger.debug("WARNING: issue getting version", { path, getVersion, err });
@@ -263,6 +296,7 @@ export async function alreadyInstalled(app: App) {
   if (!(await exists(path))) {
     return false;
   }
+  console.log({ version: await installedVersion(app), VERSION });
   return (await installedVersion(app)) == VERSION;
 }
 
