@@ -24,7 +24,7 @@ import type { CSS } from "@cocalc/frontend/app-framework";
 import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import type { TabsProps } from "antd";
 
-import { Alert, Button, Space, Spin, Tabs, Tag } from "antd";
+import { Alert, Button, Spin, Tabs, Tag } from "antd";
 import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";

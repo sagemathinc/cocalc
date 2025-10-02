@@ -613,6 +613,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     return change;
   }
 
+  // this was the default until we made the new output.tsx one-stop-shop panel the default
   _classic_frame_tree_layout(): FrameTree {
     if (this.is_public) {
       return { type: "cm" };
