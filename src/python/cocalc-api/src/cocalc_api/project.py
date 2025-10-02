@@ -10,8 +10,8 @@ class Project:
         self.project_id = project_id
         self.api_key = api_key
         self.host = host
-        # Use longer timeout for API calls (30 seconds instead of default 5)
-        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=30.0)
+        # Use longer timeout for API calls (60 seconds to handle slow kernel startups in CI)
+        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=60.0)
 
     def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
         """
@@ -28,7 +28,7 @@ class Project:
         payload: dict[str, Any] = {"name": name, "args": arguments, "project_id": self.project_id}
         if timeout is not None:
             payload["timeout"] = timeout
-        resp = self.client.post(self.host + '/api/conat/project', json=payload)
+        resp = self.client.post(self.host + "/api/conat/project", json=payload)
         resp.raise_for_status()
         return handle_error(resp.json())
 
