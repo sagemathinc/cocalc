@@ -45,7 +45,6 @@ import {
 } from "@cocalc/server/conat";
 import {
   initConatServer,
-  initStickyRouterService,
 } from "@cocalc/server/conat/socketio";
 import initHttpRedirect from "./servers/http-redirect";
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
@@ -292,15 +291,7 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
-  // UNIQUE SERVICE: THESE ARE THE SERVICES THAT HAVE TO RUN *EXACTLY ONCE*.
   if (program.all || program.mentions) {
-    if (program.mode == "kucalc") {
-      // init kucalc it's critical to have one sticky router service running,
-      // and this is the hub node where we do this. Do NOT do this
-      // if there is no clustering or a local conat cluster, since then
-      // you end up with two sticky routers.
-      initStickyRouterService();
-    }
     // kucalc: for now we just have the hub-mentions servers
     // do the new project pool maintenance, since there is only
     // one hub-stats.

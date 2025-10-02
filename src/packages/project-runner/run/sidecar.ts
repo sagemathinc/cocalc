@@ -325,26 +325,6 @@ export async function startSidecar({
       desc: "initializing file sync",
     });
 
-    // It's critical to make this directory if it does not exist.  Otherwise,
-    // mutagen refuses to proceed with the error (by design):
-    //  <root>: unable to walk to transition root parent: unable to open synchronization
-    //  root parent directory: no such file or directory
-    await podman([
-      "exec",
-      name,
-      "ssh",
-      FILE_SERVER_NAME,
-      "mkdir",
-      "-p",
-      join(PROJECT_IMAGE_PATH, image),
-    ]);
-    bootlog({
-      project_id,
-      type: "start-file-sync",
-      progress: 20,
-      desc: "created rootfs path",
-    });
-
     // NOTES:
     //   Do NOT use --max-staging-file-size=500M say, since
     //   if you do then any time there is a file over that size,

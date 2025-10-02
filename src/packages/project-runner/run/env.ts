@@ -52,7 +52,7 @@ export async function getEnvironment({
 
   const USER = "root";
   const DATA = dataPath(HOME);
-  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_BIN}:${COCALC_SRC}/packages/backend/node_modules/.bin:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`;
+  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_BIN}:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${COCALC_SRC}/packages/backend/node_modules/.bin`;
   const already = new Set<string>();
   const w: string[] = [];
   for (const segment of PATH.split(":")) {

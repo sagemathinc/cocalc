@@ -10,6 +10,16 @@ https://www.npmjs.com/package/@vscode/ripgrep because it is not properly maintai
 e.g.,
   - security vulnerabilities: https://github.com/microsoft/ripgrep-prebuilt/issues/48
   - not updated to a major new release without a good reason: https://github.com/microsoft/ripgrep-prebuilt/issues/38
+
+NOTE: there is a linux program "upx", which can be run on any of these binaries
+(except ssh where it is already run), which makes them self-extracting executables.
+The binaries become less than half their size, but startup time is typically
+increased to about 100ms to do the decompression every time.  We're not currently
+using this, but it could be useful in some contexts, maybe.   The main value in
+these programs isn't that they are small, but that:
+
+- they are all statically linked, so run anywhere (e.g., in any container)
+- they are fast (newer, in rust/go) often using parallelism well
 */
 
 import { arch, platform } from "os";
@@ -139,10 +149,10 @@ export const SPEC = {
     script: () => {
       const VERSION = SPEC.mutagen.VERSION;
       const a = arch() == "x64" ? "amd64" : arch();
-      if(platform() == 'darwin') {
-          return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath}`; 
+      if (platform() == "darwin") {
+        return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath}`;
       } else {
-          return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
+        return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
       }
     },
   },
@@ -179,6 +189,15 @@ export const SPEC = {
     path: join(binPath, "sftp-server"),
     script: () =>
       `curl -L https://github.com/sagemathinc/dropbear/releases/download/main/sftp-server-$(uname -m)-linux-musl.tar.xz | tar -xJ -C ${binPath} --strip-components=1 sftp-server-$(uname -m)-linux-musl/sftp-server`,
+  },
+  // Locate the latest binaries at
+  //    https://github.com/binary-manu/static-cross-openssh/actions
+  // The binaries are just build artificates from CI.
+  // https://github.com/binary-manu/static-cross-openssh/actions/runs/18067057616/artifacts/4123691045
+  ssh: {
+    desc: "statically linked compressed openssh binaries: ssh, scp, ssh-keygen",
+    path: join(binPath, "ssh"),
+    platforms: [],
   },
 };
 
