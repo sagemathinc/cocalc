@@ -1,12 +1,5 @@
 import ConsistentHash from "consistent-hash";
 import { hash_string } from "@cocalc/util/misc";
-import { type Client } from "./client";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { getLogger } from "@cocalc/conat/client";
-
-const DEBUG = !!process.env.COCALC_DEBUG_CONAT_SERVER_STICKY;
-
-const logger = getLogger("conat:core:sticky");
 
 export function consistentHashingChoice(
   v: Set<string>,
@@ -32,166 +25,40 @@ export function consistentHashingChoice(
   return hr.get(hash_string(resource));
 }
 
-// the subject that is used for the sticky router service
-const SUBJECT = "sticky.one";
-
-const DEFAULT_CHOICE_TTL = 60_000 * 60 * 24 * 30; // 30 days
-
-const DEFAULT_CLIENT_TTL = 120_000; // 2 minutes
-
-// NOTE: there are no assumptions here about clocks being synchronized. These
-// are just ttl's.
-
-export function stickyKey({ pattern, subject }) {
-  return pattern + " " + subject;
-}
-
-export function getStickyTarget({
-  stickyCache,
-  pattern,
-  subject,
-}: {
-  stickyCache: { [key: string]: { target: string; expire: number } };
-  pattern: string;
-  subject: string;
-}): string | undefined {
-  const key = stickyKey({ pattern, subject });
-  const x = stickyCache[key];
-  if (x != null) {
-    if (Date.now() <= x.expire) {
-      // it's in the cache
-      return x.target;
-    } else {
-      delete stickyCache[key];
-    }
-  }
-  // not in the cache or expired
-  return undefined;
-}
-
-export async function createStickyRouter({
-  client,
-  // when the stick router service makes a choice, it keeps it this
-  // long, or until the choice it made is no longer valid (i.e., the target
-  // vanishes).  This may as well be infinite, but it is nice to have the
-  // option to discard choices from memory to avoid leaks.
-  choiceTtl = DEFAULT_CHOICE_TTL,
-  // The client trusts a choice returned from the router for this long,
-  // or until the target is no longer available.  Thus if the target
-  // is randomly vanishing and coming back and a reassignment gets made,
-  // this client would definitely find out if necessary within this amount
-  // of time. Basically this is roughly how long failover may take in the
-  // worst imaginable situation (which is unlikely in practice). Making this
-  // longer greatly reduces server load and increases scalability.
-  clientTtl = DEFAULT_CLIENT_TTL,
-}: {
-  client: Client;
-  choiceTtl?: number;
-  clientTtl?: number;
-}) {
-  logger.debug("Creating Sticky Router: ", { choiceTtl, clientTtl });
-  await client.waitUntilConnected();
-  const sub = await client.subscribe(SUBJECT);
-  logger.debug("Creating Sticky Router: subscription created");
-  const stickyCache: { [key: string]: { target: string; expire: number } } = {};
-
-  let counter = 0;
-  const handle = async (mesg) => {
-    try {
-      const { pattern, subject, targets } = mesg.data;
-      const key = stickyKey({ pattern, subject });
-      let target = getStickyTarget({
-        stickyCache,
-        pattern,
-        subject,
-      });
-      let madeChoice = false;
-      if (target == null || !targets.includes(target)) {
-        // make a new choice
-        madeChoice = true;
-        target = consistentHashingChoice(targets, subject);
-        stickyCache[key] = { target, expire: Date.now() + choiceTtl };
-      }
-      counter++;
-      if (DEBUG) {
-        logger.debug("handle request", {
-          counter,
-          madeChoice,
-          pattern,
-          subject,
-          targets,
-          target,
-        });
-      } else {
-        logger.debug("handle request", { counter, madeChoice });
-      }
-      await mesg.respond({ target, ttl: clientTtl });
-    } catch (err) {
-      logger.debug("WARNING: unable to handle routing message", err);
-    }
-  };
-  const listen = async () => {
-    for await (const mesg of sub) {
-      handle(mesg);
-    }
-  };
-  listen();
-}
-
-const stickyRequest = reuseInFlight(
-  async (
-    client: Client,
-    {
-      subject,
-      pattern,
-      targets,
-    }: {
-      subject: string;
-      pattern: string;
-      targets: string[];
-    },
-  ) => {
-    return await client.request(SUBJECT, {
-      pattern,
-      subject,
-      targets,
-    });
-  },
-  {
-    createKey: (args) =>
-      args[0].id + " " + args[1].subject + " " + args[1].pattern,
-  },
-);
-
-export async function stickyChoice({
-  client,
+export function stickyChoice({
   subject,
   pattern,
   targets,
   updateSticky,
   getStickyTarget,
 }: {
-  client: Client;
   subject: string;
   pattern: string;
   targets: Set<string>;
-  updateSticky;
+  updateSticky?;
   getStickyTarget: (opts: {
     pattern: string;
     subject: string;
+    targets: Set<string>;
   }) => string | undefined;
-}): Promise<string> {
+}) {
   const v = subject.split(".");
   subject = v.slice(0, v.length - 1).join(".");
-  const currentTarget = getStickyTarget({ pattern, subject });
+  const currentTarget = getStickyTarget({ pattern, subject, targets });
   if (currentTarget === undefined || !targets.has(currentTarget)) {
-    const resp = await stickyRequest(client, {
-      pattern,
-      subject,
-      targets: Array.from(targets),
-    });
-    const { target, ttl = DEFAULT_CLIENT_TTL } = resp.data;
-    updateSticky({ pattern, subject, target, ttl });
+    // we use consistent hashing instead of random to make the choice, because if
+    // choice is being made by two different socketio servers at the same time,
+    // and they make different choices, it would be (temporarily) bad since a
+    // couple messages could get routed inconsistently.
+    // It's actually very highly likely to have such parallel choices
+    // happening in cocalc, since when a file is opened a persistent stream is opened
+    // in the browser and the project at the exact same time, and those are likely
+    // to be connected to different socketio servers.  By using consistent hashing,
+    // all conflicts are avoided except for a few moments when the actual targets
+    // (e.g., the persist servers) are themselves changing, which should be something
+    // that only happens for a moment every few days.
+    const target = consistentHashingChoice(targets, subject);
+    updateSticky?.({ pattern, subject, target });
     return target;
   }
   return currentTarget;
