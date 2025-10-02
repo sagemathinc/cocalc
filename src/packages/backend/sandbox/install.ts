@@ -230,6 +230,20 @@ to make a binary with that version
     script: () =>
       `curl -L https://github.com/sagemathinc/static-openssh-binaries/releases/download/${SPEC.ssh.VERSION}/openssh-static-$(uname -m)-small-${SPEC.ssh.VERSION}.tar.gz | tar -xz -C ${binPath} --strip-components=2 openssh/bin/ssh openssh/bin/ssh-keygen openssh/libexec/sftp-server`,
   },
+
+  // See https://github.com/moparisthebest/static-curl/releases
+  //
+  // https://github.com/moparisthebest/static-curl/releases/download/v8.11.0/curl-amd64
+  // https://github.com/moparisthebest/static-curl/releases/download/v8.11.0/curl-aarch64
+  curl: {
+    desc: "statically linked curl",
+    path: join(binPath, "curl"),
+    platforms: ["linux"],
+    getVersion: "curl --version | head -n 1 | cut -f 2 -d ' '",
+    VERSION: "8.11.0",
+    script: () =>
+      `curl -L https://github.com/moparisthebest/static-curl/releases/download/v${SPEC.curl.VERSION}/curl-${arch() == "x64" ? "amd64" : arch()} > ${join(binPath, "curl")} && chmod a+x ${join(binPath, "curl")}`,
+  },
 };
 
 export const rg = SPEC.rg.path;
@@ -242,6 +256,7 @@ export const mutagen = SPEC.mutagen.path;
 export const btm = SPEC.btm.path;
 export const dropbear = SPEC.dropbear.path;
 export const ssh = SPEC.ssh.path;
+export const curl = SPEC.curl.path;
 
 type App = keyof typeof SPEC;
 

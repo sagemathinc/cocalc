@@ -9,6 +9,7 @@ import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
 import { namespaceToColor } from "@cocalc/util/color";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { TimeAgo } from "@cocalc/frontend/components";
+import Save from "./save";
 
 export default function Bootlog({
   style,
@@ -17,7 +18,7 @@ export default function Bootlog({
   compute_server_id?: number;
   style?;
 }) {
-  const { project_id } = useProjectContext();
+  const { project_id, isRunning } = useProjectContext();
   const [log, setLog] = useState<null | Event[]>(null);
   const [rawBootlog, setRawBootlog] = useState<boolean>(
     !!localStorage.rawBootlog,
@@ -69,7 +70,7 @@ export default function Bootlog({
       }}
     >
       {data.map((event) => (
-        <ProgressEntry key={event.type} {...event} />
+        <ProgressEntry key={event.type} isRunning={isRunning} {...event} />
       ))}
       <Space style={{ margin: "5px 0" }}>
         <Switch
@@ -98,7 +99,14 @@ export default function Bootlog({
   );
 }
 
-function ProgressEntry({ type, progress, desc, elapsed, error }: Event) {
+function ProgressEntry({
+  type,
+  progress,
+  desc,
+  elapsed,
+  error,
+  isRunning,
+}: Event & { isRunning?: boolean }) {
   const remaining = estimateRemainingTime({ elapsed, progress });
   return (
     <div>
@@ -135,7 +143,10 @@ function ProgressEntry({ type, progress, desc, elapsed, error }: Event) {
           </div>
         </Space>
       </Tooltip>
-      <ShowError error={error} />
+      {error && <hr />}
+      {isRunning && error && type == "save-rootfs" && <Save rootfs home={false} />}
+      {isRunning && error && type == "save-home" && <Save home rootfs={false} />}
+      <ShowError error={error} style={{ margin: "10px 0" }} />
     </div>
   );
 }

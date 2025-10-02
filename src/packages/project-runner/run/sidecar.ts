@@ -45,6 +45,7 @@ import { mountArg } from "./mounts";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
+import { state } from "./podman";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-runner:sidecar");
@@ -459,17 +460,29 @@ export async function flushMutagen({ project_id }) {
   // flush mutagen sync so we do not loose any work
   bootlog({
     project_id,
-    type: "file-sync",
+    type: "save-home",
     progress: 0,
-    desc: "flushing sync",
+    desc: "saving HOME directory files...",
   });
+  // TODO: implement mutagen progress reporting!
   // long timeout (60*60 SECONDS)
-  await podman(["exec", name, "mutagen", "sync", "flush", "--all"], 60 * 60);
+  try {
+    await podman(["exec", name, "mutagen", "sync", "flush", "--all"], 60 * 60);
+  } catch (error) {
+    bootlog({
+      project_id,
+      type: "save-home",
+      progress: 100,
+      error,
+      desc: "failed to save HOME files",
+    });
+    throw error;
+  }
   bootlog({
     project_id,
-    type: "file-sync",
+    type: "save-home",
     progress: 100,
-    desc: "flushed",
+    desc: "saved HOME directory files",
   });
 }
 
@@ -485,4 +498,27 @@ async function getMutagenSessions(name: string) {
   ]);
   const v = JSON.parse(stdout);
   return new Set(v.filter((item) => item.name).map((item) => item.name));
+}
+
+export async function save({
+  project_id,
+  rootfs = true,
+  home = true,
+}: {
+  project_id: string;
+  rootfs?: boolean;
+  home?: boolean;
+}) {
+  const s = await state({ project_id });
+  if (s != "running") {
+    return;
+  }
+  const tasks: any[] = [];
+  if (home) {
+    tasks.push(flushMutagen({ project_id }));
+  }
+  if (rootfs) {
+    tasks.push(backupRootFs({ project_id }));
+  }
+  await Promise.all(tasks);
 }

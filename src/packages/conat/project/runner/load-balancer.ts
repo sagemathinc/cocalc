@@ -35,6 +35,11 @@ export interface API {
   stop: () => Promise<void>;
   status: () => Promise<ProjectStatus>;
   move: (opts?: { force?: boolean; server?: string }) => Promise<void>;
+  save: (opts?: {
+    project_id: string;
+    rootfs?: boolean;
+    home?: boolean;
+  }) => Promise<void>;
 }
 
 export async function server({
@@ -180,6 +185,19 @@ export async function server({
         }
         throw err;
       }
+    },
+
+    async save({
+      rootfs = true,
+      home = true,
+    }: {
+      rootfs?: boolean;
+      home?: boolean;
+    } = {}) {
+      const project_id = getProjectId(this);
+      logger.debug("save", project_id);
+      const runClient = await getClient(project_id);
+      await runClient.save({ project_id, rootfs, home });
     },
 
     async status() {

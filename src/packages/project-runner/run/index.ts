@@ -12,7 +12,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { init as initFilesystem, localPath, sshServers } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
 import { start, stop, status } from "./podman";
-import { init as initSidecar } from "./sidecar";
+import { init as initSidecar, save } from "./sidecar";
 
 const logger = getLogger("project-runner:run");
 
@@ -35,6 +35,7 @@ export async function init(
     start: reuseInFlight(start),
     stop: reuseInFlight(stop),
     status: reuseInFlight(status),
+    save: reuseInFlight(save),
     move: async () => {}, // no-op here
     localPath: opts.localPath ?? localPath,
     sshServers: opts.sshServers ?? sshServers,

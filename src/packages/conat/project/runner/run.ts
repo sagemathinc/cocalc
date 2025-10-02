@@ -1,4 +1,4 @@
-/*
+/*f
 Service to run a CoCalc project.
 
 Tests are in
@@ -17,6 +17,7 @@ import type {
   Configuration,
 } from "./types";
 import { getLogger } from "@cocalc/conat/client";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("conat:project:runner:run");
 
@@ -37,6 +38,15 @@ export interface Options {
     config?: Configuration;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
+  }) => Promise<void>;
+
+  // ensure rootfs and/or home are saved successfully to central file server
+  save: (opts: {
+    project_id: string;
+    // run save of rootfs -- default: true
+    rootfs?: boolean;
+    // run a mutagen sync flush of home -- default: true
+    home?: boolean;
   }) => Promise<void>;
 
   // ensure a specific project is not running on this runner, or
@@ -95,6 +105,11 @@ export interface API {
   }) => Promise<ProjectStatus>;
   status: (opts?: { project_id: string }) => Promise<ProjectStatus>;
   move: (opts?: { force?: boolean }) => Promise<void>;
+  save: (opts: {
+    project_id?: string;
+    rootfs?: boolean;
+    home?: boolean;
+  }) => Promise<void>;
 }
 
 export async function server(options: Options) {
@@ -104,7 +119,7 @@ export async function server(options: Options) {
   }
   options.client ??= conat();
 
-  const { id, client, start, stop, status } = options;
+  const { id, client, start, stop, status, save } = options;
   const { projects, runners } = await state({ client });
   let running = true;
 
@@ -175,6 +190,14 @@ export async function server(options: Options) {
       // might be down (as main motivation to move!) and archiving just
       // involves stop and set something in projects state.
     },
+
+    async save(opts: {
+      project_id: string;
+      rootfs?: boolean;
+      home?: boolean;
+    }): Promise<void> {
+      await save(opts);
+    },
   });
 
   return {
@@ -207,6 +230,9 @@ export function client({
       project_id: string;
       subject?: string;
     })): API {
+  if (project_id && !isValidUUID(project_id)) {
+    throw Error(`invalid project_id ${project_id}`);
+  }
   subject ??= `project.${project_id}.run`;
   client ??= conat();
   // Note that the project_id field gets filled in automatically in the API

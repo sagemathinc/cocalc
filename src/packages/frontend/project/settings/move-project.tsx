@@ -2,6 +2,7 @@ import { Button, Popconfirm } from "antd";
 import { useActions, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useState } from "react";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props {
   project_id: string;
@@ -29,13 +30,13 @@ export default function MoveProject({
       {server && (
         <div>
           <b>
-            Project Server: <code>'{server}'</code>
+            Project Runner: <code>'{server}'</code>
           </b>
         </div>
       )}
       {!server && (
         <div>
-          <b>Project Server: Not Available</b>
+          <b>Project Runner: Not Available</b>
         </div>
       )}
       {force ? (
@@ -46,7 +47,7 @@ export default function MoveProject({
           the file explorer.
         </>
       ) : (
-        <>Move this project to another server to start it.</>
+        <>You can move this project to another project runner.</>
       )}
     </div>
   );
@@ -63,7 +64,7 @@ export default function MoveProject({
       okText={`${force ? "Force " : ""}Move Project`}
     >
       <Button disabled={disabled || actions == null} size={size} danger={force}>
-        {server ? `Server: "${server}"...` : "Move..."}
+        <Icon name="servers" /> {server ? `Runner: "${server}"...` : "Move..."}
       </Button>
     </Popconfirm>
   );
