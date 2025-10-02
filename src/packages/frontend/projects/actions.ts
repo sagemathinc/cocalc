@@ -987,6 +987,34 @@ export class ProjectsActions extends Actions<ProjectsState> {
     },
   );
 
+  cloneProject = async ({
+    project_id,
+    title,
+  }: {
+    project_id: string;
+    title?: string;
+  }) => {
+    const project = redux
+      .getStore("projects")
+      .getIn(["project_map", project_id])
+      ?.toJS();
+    if (project == null) {
+      throw Error("unknown project");
+    }
+    const runner = webapp_client.conat_client.projectRunner(project_id);
+    // very important to save before cloning!
+    await runner.save();
+    // this clones due to src_project_id
+    const new_project_id = await webapp_client.project_client.create({
+      title: title ?? `Clone of ${project.title}`,
+      description: project?.description ?? "",
+      src_project_id: project_id,
+      image: project?.compute_image,
+      rootfs_image: project.rootfs_image,
+    });
+    redux.getActions("projects").open_project({ project_id: new_project_id });
+  };
+
   private optimisticProjectStateUpdate = (
     project_id: string,
     state: string,

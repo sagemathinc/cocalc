@@ -159,9 +159,14 @@ export class BaseProject extends EventEmitter {
     await runner.start({ project_id: this.project_id });
   };
 
-  stop = async (): Promise<void> => {
+  save = async (opts?): Promise<void> => {
     const runner = this.projectRunner();
-    await runner.stop({ project_id: this.project_id });
+    await runner.save({ project_id: this.project_id, ...opts });
+  };
+
+  stop = async ({ force }: { force?: boolean } = {}): Promise<void> => {
+    const runner = this.projectRunner();
+    await runner.stop({ project_id: this.project_id, force });
   };
 
   restart = async (): Promise<void> => {

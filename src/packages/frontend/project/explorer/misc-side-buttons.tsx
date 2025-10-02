@@ -20,7 +20,7 @@ import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import Snapshots from "@cocalc/frontend/project/snapshots";
 import { lite } from "@cocalc/frontend/lite";
 import TourButton from "./tour/button";
-import ForkProject from "./fork";
+import CloneProject from "./clone";
 
 const OPEN_MSG = defineMessage({
   id: "project.explorer.misc-side-buttons.open_dir.tooltip",
@@ -177,7 +177,7 @@ export function MiscSideButtons() {
         <Space.Compact>
           {render_hidden_toggle()}
           {!lite && render_backup()}
-          {!lite && <ForkProject project_id={project_id} />}
+          {!lite && <CloneProject project_id={project_id} />}
           {!lite && <TourButton project_id={project_id} />}
         </Space.Compact>
       </div>

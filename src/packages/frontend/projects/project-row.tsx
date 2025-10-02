@@ -224,7 +224,14 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   return (
     <Well style={project_row_styles} onMouseDown={handle_mouse_down}>
       <Row>
-        <Col sm={1} style={{ maxWidth: "50px", padding: "0 5px", alignSelf: "flex-start" }}>
+        <Col
+          sm={1}
+          style={{
+            maxWidth: "50px",
+            padding: "0 5px",
+            alignSelf: "flex-start",
+          }}
+        >
           {!is_anonymous && render_star()}
         </Col>
         <Col
@@ -277,9 +284,11 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         </Col>
         <Col sm={1}>
           {!is_anonymous && (
-            <Tooltip title={`Fork your own copy of ${project.get("title")}`}>
+            <Tooltip
+              title={`Cloning ${project.get("title")} makes an exact complete copy of the project, including any customization to the root filesystem / (e.g., systemwide software install).  It has the same root filesystem image.`}
+            >
               <Button>
-                <Icon name="fork-outlined" /> Fork
+                <Icon name="fork-outlined" /> Clone
               </Button>
             </Tooltip>
           )}

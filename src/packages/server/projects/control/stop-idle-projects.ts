@@ -59,17 +59,17 @@ export const test = { stopIdleProjects };
 export default function init(getProject: (string) => Project) {
   if (process.env.COCALC_NO_IDLE_TIMEOUT) {
     logger.info(
-      "NOT initializing idle project stop loop since COCALC_NO_IDLE_TIMEOUT to set"
+      "NOT initializing idle project stop loop since COCALC_NO_IDLE_TIMEOUT to set",
     );
     return;
   }
   logger.info(
-    "initializing idle project stop loop (set environment variable COCALC_NO_IDLE_TIMEOUT to disable)"
+    "initializing idle project stop loop (set environment variable COCALC_NO_IDLE_TIMEOUT to disable)",
   );
   const stopProject = async (project_id: string) => {
     logger.info(`stopping ${project_id} due to idle timeout`);
     try {
-      (await getProject(project_id)).stop();
+      (await getProject(project_id)).stop({ force: true });
       logger.debug(`stopped ${project_id} successfully`);
     } catch (err) {
       logger.error(`error stopping ${project_id} -- ${err}`);

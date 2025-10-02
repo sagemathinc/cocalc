@@ -32,6 +32,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     title,
     description,
     image,
+    rootfs_image,
     public_path_id,
     start,
     src_project_id,
@@ -86,7 +87,7 @@ export default async function createProject(opts: CreateProjectOptions) {
 
   const pool = getPool();
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW())",
+    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7)",
     [
       project_id,
       title ?? "No Title",
@@ -94,6 +95,7 @@ export default async function createProject(opts: CreateProjectOptions) {
       users != null ? JSON.stringify(users) : users,
       site_license != null ? JSON.stringify(site_license) : undefined,
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
+      rootfs_image,
     ],
   );
 

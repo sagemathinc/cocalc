@@ -105,7 +105,7 @@ export interface API {
   }) => Promise<ProjectStatus>;
   status: (opts?: { project_id: string }) => Promise<ProjectStatus>;
   move: (opts?: { force?: boolean }) => Promise<void>;
-  save: (opts: {
+  save: (opts?: {
     project_id?: string;
     rootfs?: boolean;
     home?: boolean;

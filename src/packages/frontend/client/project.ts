@@ -606,6 +606,7 @@ export class ProjectClient {
     title: string;
     description: string;
     image?: string;
+    rootfs_image?: string;
     start?: boolean;
     // "license_id1,license_id2,..." -- if given, create project with these licenses applied
     license?: string;

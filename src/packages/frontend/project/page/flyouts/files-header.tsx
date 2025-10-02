@@ -35,7 +35,7 @@ import type { ActiveFileSort } from "./files";
 import { FilesSelectedControls } from "./files-controls";
 import { FilesSelectButtons } from "./files-select-extra";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
-import ForkProject from "@cocalc/frontend/project/explorer/fork";
+import CloneProject from "@cocalc/frontend/project/explorer/clone";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import { setSort } from "@cocalc/frontend/project/explorer/config";
 
@@ -486,7 +486,7 @@ export function FilesHeader({
                 }
                 icon={<Icon name={"life-ring"} />}
               />
-              <ForkProject project_id={project_id} flyout />
+              <CloneProject project_id={project_id} flyout />
             </Space.Compact>
           ) : undefined}
         </div>

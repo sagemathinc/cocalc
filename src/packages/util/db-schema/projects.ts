@@ -739,6 +739,7 @@ export interface CreateProjectOptions {
   description?: string;
   // (optional) image ID
   image?: string;
+  rootfs_image?: string;
   // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
   license?: string;
   public_path_id?: string; // may imply use of a license
