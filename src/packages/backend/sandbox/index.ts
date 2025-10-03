@@ -419,7 +419,7 @@ export class SandboxedFilesystem {
   };
 
   rename = async (oldPath: string, newPath: string) => {
-    this.assertWritable(oldPath);
+    this.assertWritable(newPath);
     await rename(
       await this.safeAbsPath(oldPath),
       await this.safeAbsPath(newPath),
@@ -458,7 +458,7 @@ export class SandboxedFilesystem {
   };
 
   symlink = async (target: string, path: string) => {
-    this.assertWritable(target);
+    this.assertWritable(path);
     return await symlink(
       await this.safeAbsPath(target),
       await this.safeAbsPath(path),
