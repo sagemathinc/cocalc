@@ -4,7 +4,7 @@
  */
 
 import {
-  filename_extension_notilde,
+  filename_extension,
   meta_file,
   path_split,
   defaults,
@@ -148,7 +148,7 @@ function get_ed(
   ext =
     ext ??
     altExt[key(project_id, path)] ??
-    filename_extension_notilde(path).toLowerCase();
+    filename_extension(path).toLowerCase();
 
   // either use the one given by ext, or if there isn't one, use the '' fallback.
   const spec =

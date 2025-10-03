@@ -1,7 +1,6 @@
 import { Button, Card, Divider, Modal, Popconfirm, Spin } from "antd";
-import { CSSProperties, useMemo, useState } from "react";
-
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { CancelText } from "@cocalc/frontend/i18n/components";
@@ -564,6 +563,13 @@ export default function ComputeServer({
 }
 
 export function useServer({ id, project_id }) {
+  useEffect(() => {
+    const actions = redux.getProjectActions(project_id);
+    actions.incrementReferenceCount();
+    return () => {
+      actions.decrementReferenceCount();
+    };
+  }, [project_id]);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const server = useMemo(() => {
     return computeServers?.get(`${id}`)?.toJS();

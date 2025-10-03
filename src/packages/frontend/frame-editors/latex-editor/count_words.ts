@@ -3,7 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { exec } from "../generic/client";
+// cSpell:ignore texcount htmlcore
+
+import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { path_split } from "@cocalc/util/misc";
 
 // an enhancement might be to generate html via $ texcount -htmlcore

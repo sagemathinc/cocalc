@@ -5,10 +5,7 @@
 
 // data and functions specific to the latex editor.
 
-import {
-  ExecOutput,
-  showProjectRestartDialog,
-} from "@cocalc/frontend/frame-editors/generic/client";
+import { ExecOutput } from "@cocalc/frontend/frame-editors/generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
@@ -171,17 +168,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     });
 
     stream.on("error", (err) => {
-      // Check if this is a 503 error (exec-stream service not available in old project)
-      if (err?.code === 503) {
-        showProjectRestartDialog(project_id);
-        reject(err);
-      } else {
-        reject(
-          new Error(
-            "Unable to run the compilation. Please check up on the project.",
-          ),
-        );
-      }
+      reject(new Error(`Unable to run the compilation. ${err}`));
     });
   });
 }

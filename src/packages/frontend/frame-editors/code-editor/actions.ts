@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore multifile errorstyle subframe rtex popout codegen autobuild titlebar
+
 /*
 Code Editor Actions -- This the base class for all frame editor actions.
 
@@ -1523,7 +1525,7 @@ export class Actions<
         await delay(1);
         if (this.isClosed()) return;
       }
-      this.programmatical_goto_line(opts.line, opts.cursor);
+      this.programmatically_goto_line(opts.line, opts.cursor);
     }
 
     if (opts.focus) {
@@ -1756,7 +1758,7 @@ export class Actions<
     if (syncdoc == null || syncdoc.is_fake) {
       // give up -- don't even have a syncdoc...
       // A derived class that doesn't use a syncdoc
-      // might overload programmatical_goto_line to make
+      // might overload programmatically_goto_line to make
       // sense for whatever it works with.
       return false;
     }
@@ -1779,7 +1781,7 @@ export class Actions<
   // If cursor is given, moves the cursor to the line too.
   // *NOTE: This function can be called before
   // the syncstring is initialized and will still work fine!*
-  async programmatical_goto_line(
+  async programmatically_goto_line(
     line: string | number,
     cursor?: boolean,
     focus?: boolean,
@@ -2032,7 +2034,7 @@ export class Actions<
   }
 
   // Runs spellchecker on the backend last saved file, then
-  // sets the mispelled_words part of the state to the immutable
+  // sets the misspelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
     if (this.isClosed()) return;
@@ -3101,7 +3103,7 @@ export class Actions<
     return filename_extension(this.path);
   }
 
-  // return the suppoted scopes for this document type.
+  // return the supported scopes for this document type.
   // do not have to include "none" and "all", since they are always supported.
   languageModelGetScopes(): Set<LanguageModelScope> {
     return new Set(["selection"]);
@@ -3152,7 +3154,7 @@ export class Actions<
 
     if (fragmentId.line) {
       if (this.isClosed()) return;
-      this.programmatical_goto_line?.(fragmentId.line, true);
+      this.programmatically_goto_line?.(fragmentId.line, true);
     }
 
     if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
