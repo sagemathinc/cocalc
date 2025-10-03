@@ -472,8 +472,8 @@ importers:
         specifier: ^3.5.6
         version: 3.5.17
       darkreader:
-        specifier: 4.9.95
-        version: 4.9.95
+        specifier: 4.9.109
+        version: 4.9.109
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
@@ -3780,6 +3780,16 @@ packages:
     peerDependencies:
       react: ^16.14.0 || >=17
 
+  '@rollup/rollup-linux-x64-gnu@4.44.0':
+    resolution: {integrity: sha512-iUVJc3c0o8l9Sa/qlDL2Z9UP92UZZW1+EmQ4xfjTc1akr0iUFZNfxrXJ/R1T90h/ILm9iXEY6+iPrmYB3pXKjw==}
+    cpu: [x64]
+    os: [linux]
+
+  '@rollup/rollup-win32-x64-msvc@4.44.0':
+    resolution: {integrity: sha512-Q2Mgwt+D8hd5FIPUuPDsvPR7Bguza6yTkJxspDGkZj7tBRn2y4KSWYuIXpftFSjBra76TbKerCV7rgFPQrn+wQ==}
+    cpu: [x64]
+    os: [win32]
+
   '@rspack/binding-darwin-arm64@1.4.5':
     resolution: {integrity: sha512-rK8mJ+85cXrGSTZvr5vqI17TDimAUWYjl0T+JEg5MTqRNbpyovbGHbrrsQyIicwaFOS1wWkaLrBolC/+/FLUeg==}
     cpu: [arm64]
@@ -6029,8 +6039,8 @@ packages:
   dagre-d3-es@7.0.11:
     resolution: {integrity: sha512-tvlJLyQf834SylNKax8Wkzco/1ias1OPw8DcUMDE7oUIoSEW25riQVuiu/0OWEFqT0cxHT3Pa9/D82Jr47IONw==}
 
-  darkreader@4.9.95:
-    resolution: {integrity: sha512-P3sRqPsOcEs8k/36BEBhVrdY1nYYF03kK6vfQ7oLBzwuCpSanambl6xxsdoW/fyKevSRriBkU4LRmQrUxPIRew==}
+  darkreader@4.9.109:
+    resolution: {integrity: sha512-Jd7a+ywBvV3k6zuA246/BJBKwSl7D2puN16m4ZmULp4lPGJHJoWcc+8Kq2mQthkSrh5Bvn7JhVBcpth9Mm29BQ==}
 
   data-uri-to-buffer@6.0.2:
     resolution: {integrity: sha512-7hvf7/GW8e86rW0ptuwS3OcBGDjIi6SZva7hCyWC0yYry2cOPmLIjXAUHI6DK2HsnwJd9ifmt57i8eV2n4YNpw==}
@@ -13973,6 +13983,12 @@ snapshots:
       react: 19.1.1
       react-is: 18.3.1
 
+  '@rollup/rollup-linux-x64-gnu@4.44.0':
+    optional: true
+
+  '@rollup/rollup-win32-x64-msvc@4.44.0':
+    optional: true
+
   '@rspack/binding-darwin-arm64@1.4.5':
     optional: true
 
@@ -16537,9 +16553,12 @@ snapshots:
       d3: 7.9.0
       lodash-es: 4.17.21
 
-  darkreader@4.9.95:
+  darkreader@4.9.109:
     dependencies:
       malevic: 0.20.2
+    optionalDependencies:
+      '@rollup/rollup-linux-x64-gnu': 4.44.0
+      '@rollup/rollup-win32-x64-msvc': 4.44.0
 
   data-uri-to-buffer@6.0.2: {}
 
