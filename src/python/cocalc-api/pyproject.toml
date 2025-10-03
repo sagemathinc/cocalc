@@ -1,0 +1,40 @@
+[project]
+name = "cocalc-api"
+version = "0.4.0"
+description = "Python client for the CoCalc API"
+authors = [{ name="William Stein", email="wstein@sagemath.com" }]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["httpx"]
+license = "MIT"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cocalc_api"]
+include = ["src/cocalc_api/py.typed"]
+
+[project.urls]
+Homepage = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
+Repository = "https://github.com/sagemathinc/cocalc"
+Documentation = "https://cocalc.com/api/python"
+Source = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
+Issues = "https://github.com/sagemathinc/cocalc/issues"
+
+[tool.mypy]
+python_version = "3.13"
+# strict = true
+# disallow_untyped_defs = true
+
+[tool.ruff]
+line-length = 150
+lint.select = ["E", "F", "B"]  # Pyflakes, pycodestyle, bugbear, etc.
+
+[dependency-groups]
+dev = [
+    "ipython",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mypy",
+    "pytest>=8.4.1",
+    "ruff>=0.12.11",
+]

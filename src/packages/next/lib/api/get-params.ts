@@ -11,7 +11,8 @@ export default function getParams(req: Request): { [param: string]: any } {
       },
     );
   } else {
-    // only support params for POST requests.
+    // only support params for POST requests for security reasons -- this
+    // reduces the XSS attack service.
     return {};
   }
 }

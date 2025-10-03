@@ -1,12 +1,10 @@
 /* Sign in using an impersonation auth_token. */
 
-import base_path from "@cocalc/backend/base-path";
 import getPool from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
 import { isLocale } from "@cocalc/util/i18n/const";
-import { join } from "path";
 import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
+import siteUrl from "@cocalc/server/hub/site-url";
 
 export async function signInUsingImpersonateToken({ req, res }) {
   try {
@@ -33,8 +31,7 @@ async function doIt({ req, res }) {
   // maxAge = 12 hours
   await setSignInCookies({ req, res, account_id, maxAge: 12 * 3600 * 1000 });
 
-  const { dns } = await getServerSettings();
-  let target = `https://${dns}${join(base_path, "app")}`;
+  let target = await siteUrl("app");
 
   // if lang_temp is a locale, then append it as a query parameter.
   // This is usally "en" to help admins understanding the UI without changing the user's language preferences.

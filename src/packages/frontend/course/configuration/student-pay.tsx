@@ -347,8 +347,7 @@ function RequireStudentPayDesc({ cost, when, minPayment }) {
         {cost != null && (
           <>
             They will then be required to upgrade for a{" "}
-            <b>one-time fee of {currency(cost)}</b>. This cost in USD is locked
-            in, even if the rates on our site change.{" "}
+            <b>one-time fee of {currency(cost)}</b>.{" "}
             {minPayment != null && cost < minPayment
               ? `NOTE: Students will have
                to pay ${currency(

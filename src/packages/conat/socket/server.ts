@@ -211,7 +211,7 @@ export class ConatSocketServer extends ConatSocketBase {
       try {
         await socket.end({ timeout });
       } catch (err) {
-        console.log("WARNING: error ending socket -- ${err}");
+        console.log(`WARNING: error ending socket -- ${err}`);
       }
     };
     await Promise.all(Object.keys(this.sockets).map(end));

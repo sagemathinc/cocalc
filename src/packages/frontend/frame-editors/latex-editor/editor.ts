@@ -10,6 +10,7 @@ Spec for editing LaTeX documents.
 import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
 import { editor, labels } from "@cocalc/frontend/i18n";
 import { set } from "@cocalc/util/misc";
+import { WORD_COUNT_ICON } from "./constants";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
@@ -19,6 +20,7 @@ import { time_travel } from "../time-travel-editor/editor";
 import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { LatexWordCount } from "./latex-word-count";
+import { Output } from "./output";
 import { PDFEmbed } from "./pdf-embed";
 import { PDFJS } from "./pdfjs";
 
@@ -88,6 +90,41 @@ const cm: EditorDescription = {
   },
 
   gutters: ["Codemirror-latex-errors"],
+} as const;
+
+const output: EditorDescription = {
+  type: "latex-output",
+  short: "Output",
+  name: "Output",
+  icon: "file-alt",
+  component: Output,
+  commands: set([
+    "build",
+    "build_on_save",
+    "force_build",
+    "stop_build",
+    "print",
+    "clean",
+    "stop_build",
+    "download",
+    "download_pdf",
+    "decrease_font_size",
+    "increase_font_size",
+  ]),
+  buttons: set([
+    "build",
+    "force_build",
+    "clean",
+    "stop_build",
+    "sync",
+    "decrease_font_size",
+    "increase_font_size",
+    "zoom_page_width",
+    "zoom_page_height",
+    "set_zoom",
+    "print",
+    "download_pdf",
+  ]),
 } as const;
 
 const pdfjs_canvas: EditorDescription = {
@@ -163,7 +200,7 @@ const word_count: EditorDescription = {
   type: "latex-word_count",
   short: labels.word_count,
   name: labels.word_count,
-  icon: "file-alt",
+  icon: WORD_COUNT_ICON,
   commands: set(["word_count"]),
   component: LatexWordCount,
 } as const;
@@ -179,6 +216,7 @@ const pdf_embed: EditorDescription = {
 
 const EDITOR_SPEC = {
   cm,
+  output,
   pdfjs_canvas,
   error,
   build,

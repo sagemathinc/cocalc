@@ -98,7 +98,10 @@ export function InsertCell({
     classNames.push("cocalc-jupyter-insert-cell-below");
   }
 
-  const isActiveAIGenerator = !hide && showAICellGen === position;
+  const isActiveAIGenerator =
+    !hide &&
+    (showAICellGen === position ||
+      (position === "below" && showAICellGen === "replace"));
 
   function renderControls() {
     return (

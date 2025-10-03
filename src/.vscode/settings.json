@@ -22,5 +22,9 @@
   ],
   "search.useGlobalIgnoreFiles": true,
   "search.useParentIgnoreFiles": true,
-  "search.followSymlinks": false
+  "search.followSymlinks": false,
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.tsc.autoDetect": "off",
+  "typescript.suggest.autoImports": "off"
 }

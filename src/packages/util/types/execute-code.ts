@@ -12,6 +12,13 @@ export interface ExecuteCodeOutputBlocking extends ExecuteCodeBase {
   type: "blocking";
 }
 
+export type ExecuteCodeStats = {
+  timestamp: number;
+  mem_rss: number;
+  cpu_pct: number;
+  cpu_secs: number;
+}[];
+
 export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
   type: "async";
   start: number;
@@ -19,17 +26,17 @@ export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
   status: AsyncStatus | "killed"; // killed is only set by the frontend (latex)
   elapsed_s?: number; // how long it took, async execution
   pid?: number; // in case you want to kill it remotely, good to know the PID
-  stats?: {
-    timestamp: number;
-    mem_rss: number;
-    cpu_pct: number;
-    cpu_secs: number;
-  }[];
+  stats?: ExecuteCodeStats;
 }
 
 export type ExecuteCodeOutput =
   | ExecuteCodeOutputBlocking
   | ExecuteCodeOutputAsync;
+
+export interface ExecuteCodeStreamEvent {
+  type: "stdout" | "stderr" | "done" | "stats" | "error";
+  data?: string | ExecuteCodeOutputAsync | ExecuteCodeStats[0];
+}
 
 export interface ExecuteCodeOptions {
   command: string;
@@ -53,6 +60,8 @@ export interface ExecuteCodeOptions {
   compute_server_id?: number;
   // in the filesystem container of a compute server
   filesystem?: boolean;
+  // streaming callback for real-time updates (only used with async_call)
+  streamCB?: (event: ExecuteCodeStreamEvent) => void;
 }
 
 export interface ExecuteCodeOptionsAsyncGet {

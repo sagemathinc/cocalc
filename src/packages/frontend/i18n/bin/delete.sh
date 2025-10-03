@@ -22,9 +22,8 @@ echo "Deleting translation keys from SimpleLocalize..."
 
 # Loop through all provided keys
 for key in "$@"; do
-    echo
-    echo "Deleting '$key':"
     curl \
+        -s \
         --location \
         --request DELETE "https://api.simplelocalize.io/api/v1/translation-keys?key=$key" \
         --header "X-SimpleLocalize-Token: $SIMPLELOCALIZE_KEY"

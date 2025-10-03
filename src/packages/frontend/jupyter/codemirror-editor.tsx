@@ -828,7 +828,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
               opacity: 0.5,
               fontSize: "inherit",
             }}
-            onClick={() => setShowAICellGen("replace")}
+            onClick={() => {
+              setShowAICellGen("replace");
+            }}
           >
             generate using AI...
           </a>

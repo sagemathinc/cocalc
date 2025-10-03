@@ -336,9 +336,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
   isTabClosed = () => !this.isTabOpened();
 
+  // The expensive part of the actions should NOT exist if and only if
+  // the reference count is 0 *AND* the tab is closed.
+  private referenceCount = 0;
+
+  incrementReferenceCount = () => {
+    this.referenceCount++;
+    this.initExpensive();
+  };
+
+  decrementReferenceCount = () => {
+    if (this.referenceCount <= 0) {
+      console.warn(
+        "BUG: attempt to decrement project actions reference count below 0",
+      );
+      return;
+    }
+    this.referenceCount--;
+    if (this.referenceCount <= 0 && !this.isTabOpened()) {
+      this.closeExpensive();
+    }
+  };
+
   private expensiveLoop = async () => {
     while (this.state != "closed") {
-      if (this.isTabOpened()) {
+      if (this.isTabOpened() || this.referenceCount > 0) {
         this.initExpensive();
       } else {
         this.closeExpensive();

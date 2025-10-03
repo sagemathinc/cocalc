@@ -726,7 +726,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   return (
     <FileContext.Provider
-      value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
+      value={{
+        ...fileContext,
+        noSanitize: !!trust,
+        HeadingTagComponent,
+        disableMarkdownCodebar: true,
+      }}
     >
       {body}
     </FileContext.Provider>

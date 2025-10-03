@@ -2,9 +2,11 @@
 Conat can wait for interest before publishing a message, in case there is none
 the first time it tries. There is thus only a penality on failure and never
 on immediate success. We test that here.
+
+pnpm test `pwd`/wait-for-interest.test.ts
 */
 
-import { before, after, client, delay } from "../setup";
+import { before, after, client, connect, delay } from "../setup";
 
 beforeAll(before);
 
@@ -73,6 +75,57 @@ describe("test waitForInterest with requestMany", () => {
     const { value: prod } = await responseSub.next();
     expect(prod.data).toEqual(6);
   });
+});
+
+describe("async respond tests for interest by default", () => {
+  it("test making a requested and sending a response with two clients, which works fine", async () => {
+    const server = await client.subscribe("eval2");
+
+    const client2 = connect();
+    const promise = client2.request("eval2", "2+3");
+
+    const { value: mesg } = await server.next();
+    await mesg.respond(eval(mesg.data));
+
+    expect((await promise).data).toEqual(5);
+    server.close();
+  });
+
+  it("same as previous, but we close the requesting client, causing respond to throw", async () => {
+    const server = await client.subscribe("eval3");
+
+    const client2 = connect();
+    (async () => {
+      try {
+        await client2.request("eval3", "2+3", { timeout: 100 });
+      } catch {}
+    })();
+    const { value: mesg } = await server.next();
+    client2.close();
+    try {
+      await mesg.respond(eval(mesg.data), { timeout: 500 });
+      throw Error("should time out");
+    } catch (err) {
+      // this is what should happen:
+      expect(`${err}`).toContain("timed out");
+    }
+  });
+
+  it("same as previous, but we use noThrow to get a silent fail (since we don't care)", async () => {
+    const server = await client.subscribe("eval4");
+
+    const client2 = connect();
+    (async () => {
+      try {
+        await client2.request("eval4", "2+3", { timeout: 100 });
+      } catch {}
+    })();
+    const { value: mesg } = await server.next();
+    client2.close();
+    await mesg.respond(eval(mesg.data), { timeout: 500, noThrow: true });
+  });
+  
+
 });
 
 afterAll(after);

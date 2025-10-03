@@ -12,6 +12,7 @@ import useAPI from "lib/hooks/api";
 import register from "../register";
 import { Paragraph, Text } from "components/misc";
 import ApiKeys from "@cocalc/frontend/components/api-keys";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 register({
   path: "account/api",
@@ -96,14 +97,14 @@ register({
               placeholder="Enter your password..."
               onChange={(e) => setPassword(e.target.value)}
               onPressEnter={() => {
-                if (password.length >= 6) {
+                if (password.length >= MIN_PASSWORD_LENGTH) {
                   submitPassword(password);
                 }
               }}
             />
             <Button
               style={{ marginLeft: "15px" }}
-              disabled={password.length < 6}
+              disabled={password.length < MIN_PASSWORD_LENGTH}
               onClick={() => submitPassword(password)}
             >
               Show Older Legacy API Key

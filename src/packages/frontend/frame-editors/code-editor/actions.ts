@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore multifile errorstyle subframe rtex popout codegen autobuild titlebar
+
 /*
 Code Editor Actions -- This the base class for all frame editor actions.
 
@@ -20,11 +22,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
-import type { TourProps } from "antd";
-import { delay } from "awaiting";
-import * as CodeMirror from "codemirror";
-import { List, Map, fromJS, Set as iSet } from "immutable";
-import { debounce } from "lodash";
+import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Actions as BaseActions,
   Rendered,
@@ -50,6 +48,8 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+import { log_opened_time } from "@cocalc/frontend/project/open-file";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
@@ -64,18 +64,23 @@ import {
   syntax2tool,
 } from "@cocalc/util/code-formatter";
 import {
-  IS_TIMEOUT_CALLING_PROJECT,
   TIMEOUT_CALLING_PROJECT_MSG,
+  isTimeoutCallingProject,
 } from "@cocalc/util/consts/project";
 import {
   aux_file,
   filename_extension,
   history_path,
   len,
-  uuid,
   path_split,
+  uuid,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { TourProps } from "antd";
+import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+import { List, Map, fromJS, Set as iSet } from "immutable";
+import { debounce } from "lodash";
 import { set_account_table } from "../../account/util";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
@@ -109,9 +114,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { log_opened_time } from "@cocalc/frontend/project/open-file";
-import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
-import { alert_message } from "@cocalc/frontend/alerts";
 
 interface gutterMarkerParams {
   line: number;
@@ -1523,7 +1525,7 @@ export class Actions<
         await delay(1);
         if (this.isClosed()) return;
       }
-      this.programmatical_goto_line(opts.line, opts.cursor);
+      this.programmatically_goto_line(opts.line, opts.cursor);
     }
 
     if (opts.focus) {
@@ -1756,7 +1758,7 @@ export class Actions<
     if (syncdoc == null || syncdoc.is_fake) {
       // give up -- don't even have a syncdoc...
       // A derived class that doesn't use a syncdoc
-      // might overload programmatical_goto_line to make
+      // might overload programmatically_goto_line to make
       // sense for whatever it works with.
       return false;
     }
@@ -1779,7 +1781,7 @@ export class Actions<
   // If cursor is given, moves the cursor to the line too.
   // *NOTE: This function can be called before
   // the syncstring is initialized and will still work fine!*
-  async programmatical_goto_line(
+  async programmatically_goto_line(
     line: string | number,
     cursor?: boolean,
     focus?: boolean,
@@ -1921,7 +1923,7 @@ export class Actions<
     if (error === undefined) {
       return "";
     }
-    if (IS_TIMEOUT_CALLING_PROJECT(error)) {
+    if (isTimeoutCallingProject(error)) {
       return TIMEOUT_CALLING_PROJECT_MSG;
     }
     if (typeof error == "string") {
@@ -2032,7 +2034,7 @@ export class Actions<
   }
 
   // Runs spellchecker on the backend last saved file, then
-  // sets the mispelled_words part of the state to the immutable
+  // sets the misspelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
     if (this.isClosed()) return;
@@ -3101,7 +3103,7 @@ export class Actions<
     return filename_extension(this.path);
   }
 
-  // return the suppoted scopes for this document type.
+  // return the supported scopes for this document type.
   // do not have to include "none" and "all", since they are always supported.
   languageModelGetScopes(): Set<LanguageModelScope> {
     return new Set(["selection"]);
@@ -3152,7 +3154,7 @@ export class Actions<
 
     if (fragmentId.line) {
       if (this.isClosed()) return;
-      this.programmatical_goto_line?.(fragmentId.line, true);
+      this.programmatically_goto_line?.(fragmentId.line, true);
     }
 
     if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {

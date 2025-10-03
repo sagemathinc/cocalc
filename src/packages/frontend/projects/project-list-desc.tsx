@@ -20,6 +20,7 @@ import {
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import RemoveMyself from "./remove-myself";
 
 interface Props {
@@ -35,12 +36,13 @@ export const ProjectsListingDescription: React.FC<Props> = ({
 
   const deleted = useTypedRedux("projects", "deleted");
   const hidden = useTypedRedux("projects", "hidden");
+  const starred = useTypedRedux("projects", "starred");
   const search: string | undefined = useTypedRedux("projects", "search");
   const selected_hashtags = useTypedRedux("projects", "selected_hashtags");
   const selected_hashtags_for_filter: string[] = useMemo(() => {
-    const filter = `${!!hidden}-${!!deleted}`;
+    const filter = `${!!hidden}-${!!deleted}-${!!starred}`;
     return selected_hashtags?.get(filter)?.toJS() ?? [];
-  }, [selected_hashtags, deleted, hidden]);
+  }, [selected_hashtags, deleted, hidden, starred]);
 
   const [show_alert, set_show_alert] = useState<
     | "none"
@@ -58,14 +60,31 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   const actions = useActions("projects");
 
   function render_header(): React.JSX.Element | undefined {
-    if ((project_map?.size ?? 0) > 0 && (hidden || deleted)) {
+    if ((project_map?.size ?? 0) > 0 && (hidden || deleted || starred)) {
       const d = deleted ? "deleted " : "";
       const h = hidden ? "hidden " : "";
-      const a = hidden && deleted ? " and " : "";
+      const s = starred ? "starred " : "";
       const n = visible_projects.length;
-      const desc = `Only showing ${n} ${d}${a}${h} ${plural(n, "project")}`;
+
+      if (starred && n === 0) {
+        return (
+          <h4 style={{ color: COLORS.GRAY_M, wordWrap: "break-word", marginTop: 0 }}>
+            {intl.formatMessage({
+              id: "projects.list.no_starred_found",
+              defaultMessage: "No starred projects found. Use the star icon next to project titles to bookmark your favorite projects.",
+              description: "Message shown when no starred projects are found",
+            })}
+          </h4>
+        );
+      }
+
+      const filters = [d, h, s].filter(Boolean);
+      const filterDesc = filters.length > 1
+        ? filters.slice(0, -1).join(", ") + " and " + filters.slice(-1)
+        : filters[0];
+      const desc = `Only showing ${n} ${filterDesc}${plural(n, "project")}`;
       return (
-        <h4 style={{ color: "#666", wordWrap: "break-word", marginTop: 0 }}>
+        <h4 style={{ color: COLORS.GRAY_M, wordWrap: "break-word", marginTop: 0 }}>
           {desc}
         </h4>
       );
@@ -134,14 +153,18 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     }
     query += hashtags_string;
 
-    if (query !== "" || deleted || hidden) {
+    if (query !== "" || deleted || hidden || starred) {
+      const filters = [
+        deleted ? "deleted " : "",
+        hidden ? "hidden " : "",
+        starred ? "starred " : "",
+      ].filter(Boolean).join("");
+
       return (
         <Alert bsStyle="warning" style={{ fontSize: "1.3em" }}>
           Only showing the {visible_projects.length}
           <Gap />
-          <strong>{`${deleted ? "deleted " : ""}${
-            hidden ? "hidden " : ""
-          }`}</strong>
+          <strong>{filters}</strong>
           {plural(visible_projects.length, "project")}
           <Gap />
           {query !== "" ? render_span(query) : undefined}

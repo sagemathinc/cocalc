@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useRedux } from "../../app-framework";
+import { React, useRedux } from "@cocalc/frontend/app-framework";
 
 interface LatexWordCountProps {
   name: string;

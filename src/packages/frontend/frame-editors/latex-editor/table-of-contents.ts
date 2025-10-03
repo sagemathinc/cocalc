@@ -1,5 +1,5 @@
 /*
-A quick naive table of contents implemenation, at least for the master document.
+A quick naive table of contents implementation, at least for the master document.
 
 This isn't sophisticated at all.  We also don't include the numbers even though we compute
 them, since it's too easy to mess them up by including subfiles or using macros to

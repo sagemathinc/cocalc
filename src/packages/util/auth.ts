@@ -18,3 +18,5 @@ export function ssoDispayedName({
 }
 
 export const MAX_PASSWORD_LENGTH = 64;
+export const MIN_PASSWORD_LENGTH = 8;
+export const MIN_PASSWORD_STRENGTH = 2; // zxcvbn score must be > 2 (so 3 or 4)

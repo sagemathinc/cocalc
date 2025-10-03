@@ -46,7 +46,7 @@
     "@types/debug": "^4.1.12",
     "@types/jest": "^30.0.0",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^12.4.1",
     "chokidar": "^3.6.0",
     "debug": "^4.4.0",
     "fs-extra": "^11.2.0",
@@ -57,7 +57,7 @@
     "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "tmp-promise": "^3.0.3",
-    "zstd-napi": "^0.0.10"
+    "zstd-napi": "^0.0.12"
   },
   "repository": {
     "type": "git",

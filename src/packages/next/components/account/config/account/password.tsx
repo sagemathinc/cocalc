@@ -6,7 +6,8 @@
 import { Alert, Button, Input, Space } from "antd";
 import { useState } from "react";
 
-import { Title, Text, Paragraph } from "components/misc";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
@@ -76,14 +77,14 @@ register({
             }}
             onPressEnter={resetPassword}
           />
-          (at least 6 characters)
+          (at least {MIN_PASSWORD_LENGTH} characters)
         </Paragraph>
         <Button
           type="primary"
           disabled={
             (changed && changed == newPassword) ||
             changing ||
-            newPassword.length < 6 ||
+            newPassword.length < MIN_PASSWORD_LENGTH ||
             newPassword == currentPassword
           }
           onClick={resetPassword}

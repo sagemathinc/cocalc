@@ -31,7 +31,7 @@ function replace_mark_region(input: string): string | undefined {
       // check to make sure this isn't a nested BEGIN MARK SCHEME region
       if (in_region)
         throw Error(
-          "encountered nested ${begin_delimiter}, which is not allowed"
+          `encountered nested ${begin_delimiter}, which is not allowed`,
         );
 
       in_region = true;
@@ -52,7 +52,7 @@ function replace_mark_region(input: string): string | undefined {
   // we finished going through all the lines, but didn't find a
   // matching END statement
   if (in_region) {
-    throw Error("no matching ${end_delimiter} found");
+    throw Error(`no matching ${end_delimiter} found`);
   }
 
   // replace the area?

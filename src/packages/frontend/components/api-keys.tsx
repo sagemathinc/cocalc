@@ -24,7 +24,6 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import TimeAgo from "react-timeago"; // so can use from nextjs
 const { Text, Paragraph } = Typography; // so can use from nextjs
-
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import { A } from "./A";
@@ -205,7 +204,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
 
   const handleModalOK = () => {
     const name = form.getFieldValue("name");
-    const expire = form.getFieldValue("expire");
+    const expire = form.getFieldValue("expire")?.toDate();
     if (editingKey != null) {
       editApiKey(editingKey, name, expire);
       setEditModalVisible(false);

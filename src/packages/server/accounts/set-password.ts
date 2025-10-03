@@ -2,12 +2,13 @@
 Set or change the password of an account.
 */
 
-import getPool from "@cocalc/database/pool";
-import { isValidUUID } from "@cocalc/util/misc";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
+import getPool from "@cocalc/database/pool";
 import passwordStrength from "@cocalc/server/auth/password-strength";
+import { MIN_PASSWORD_STRENGTH } from "@cocalc/util/auth";
+import { isValidUUID } from "@cocalc/util/misc";
 
 export default async function setPassword(
   account_id: string,
@@ -36,7 +37,7 @@ export default async function setPassword(
   }
 
   const { score, help } = passwordStrength(new_password);
-  if (score <= 2) {
+  if (score <= MIN_PASSWORD_STRENGTH) {
     throw Error(help ? help : "password is too weak");
   }
 

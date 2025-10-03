@@ -9,7 +9,6 @@ React component that describes the input of a cell
 
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef } from "react";
-
 import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";

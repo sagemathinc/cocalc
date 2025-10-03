@@ -17,7 +17,6 @@ import { createTransport } from "nodemailer";
 import * as os_path from "path";
 import sanitizeHtml from "sanitize-html";
 import { promisify } from "util";
-
 import base_path from "@cocalc/backend/base-path";
 import { secrets } from "@cocalc/backend/data";
 import { getLogger } from "@cocalc/backend/logger";
@@ -38,6 +37,7 @@ import {
   SENDGRID_TEMPLATE_ID,
   SITE_NAME,
 } from "@cocalc/util/theme";
+import siteUrl from "@cocalc/server/hub/site-url";
 
 const fs_readFile_prom = promisify(fs.readFile);
 
@@ -494,8 +494,7 @@ export async function send_email(opts: Opts): Promise<void> {
   opts = defaults(opts, opts_default);
   opts.company_name = company_name;
 
-  const dns = fallback(settings.dns, DNS);
-  opts.url = `https://${dns}`;
+  opts.url = await siteUrl();
 
   const dbg = make_dbg(opts);
   dbg(`${opts.body.slice(0, 201)}...`);
@@ -817,7 +816,7 @@ export function welcome_email(opts): void {
   const settings = opts.settings;
   const site_name = fallback(settings.site_name, SITE_NAME);
   const dns = fallback(settings.dns, DNS);
-  const url = `https://${dns}`;
+  const url = dns.startsWith("http") ? dns : `https://${dns}`;
   const token_query = encodeURI(
     `email=${encodeURIComponent(opts.to)}&token=${opts.token}`,
   );

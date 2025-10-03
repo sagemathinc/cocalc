@@ -65,6 +65,11 @@ Table({
       type: "map",
       desc: "This is a map from account_id to {created:timestamp, status:'pending'|'invited'|'accepted'|'denied', emailed:timestamp}",
     },
+    admin_account_ids: {
+      type: "array",
+      pg_type: "UUID[]",
+      desc: "The account_ids of the admins of this organization.",
+    },
   },
   rules: {
     desc: "All organizations.",
@@ -128,7 +133,7 @@ Table({
             const id = await db.nameToAccountOrOrganization(obj["name"]);
             if (id != null && id != account_id) {
               cb(
-                `name "${obj["name"]}" is already taken by another organization or account`
+                `name "${obj["name"]}" is already taken by another organization or account`,
               );
               return;
             }

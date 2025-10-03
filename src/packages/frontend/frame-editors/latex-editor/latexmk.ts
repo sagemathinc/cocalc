@@ -168,7 +168,7 @@ export function build_command(
   /*
     -f: force even when there are errors
     -g: ignore heuristics to stop processing latex (sagetex)
-    silent: **don't** set -silent, also silences sagetex mesgs!
+    silent: **don't** set -silent, also silences sagetex messages!
     bibtex: a default, run bibtex when necessary
     synctex: forward/inverse search in pdf
     nonstopmode: continue after errors (otherwise, partial files)

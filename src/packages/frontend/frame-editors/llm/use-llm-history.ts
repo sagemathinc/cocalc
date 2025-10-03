@@ -16,8 +16,7 @@ stream.push("New prompt")
 stream.on('change', (prompt) => console.log('New prompt:', prompt))
 */
 
-import { useState } from "react";
-import useAsyncEffect from "use-async-effect";
+import { useEffect, useRef, useState } from "react";
 
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -76,6 +75,11 @@ const getDStream = reuseInFlight(async () => {
 export function useLLMHistory(type: LLMHistoryType = "general") {
   const [prompts, setPrompts] = useState<string[]>([]);
 
+  // Use ref to store stable listener function
+  const listenerRef = useRef<((newEntry: LLMHistoryEntry) => void) | null>(
+    null,
+  );
+
   // Filter prompts by type and extract just the prompt strings (newest first)
   function filterPromptsByType(entries: LLMHistoryEntry[]): string[] {
     return entries
@@ -85,33 +89,51 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
   }
 
   // Initialize dstream and set up listeners
-  useAsyncEffect(async () => {
-    try {
-      const stream = await getDStream();
-      const allEntries = stream.getAll();
-      setPrompts(filterPromptsByType(allEntries));
+  useEffect(() => {
+    let isMounted = true;
+    let stream: DStream<LLMHistoryEntry> | null = null;
 
-      // Listen for new prompts being added
-      const handleChange = (newEntry: LLMHistoryEntry) => {
-        // Only update if the new entry matches our type
-        if (newEntry.type === type) {
+    const initializeStream = async () => {
+      try {
+        stream = await getDStream();
+
+        // Check if component was unmounted while we were waiting
+        if (!isMounted) {
+          return;
+        }
+
+        const allEntries = stream.getAll();
+        setPrompts(filterPromptsByType(allEntries));
+
+        // Create stable listener function
+        listenerRef.current = (newEntry: LLMHistoryEntry) => {
+          // Only update if the new entry matches our type
+          if (newEntry.type !== type) return;
+
           setPrompts((prev) => {
             // Remove duplicate if exists, then add to front
             const filtered = prev.filter((p) => p !== newEntry.prompt);
             return [newEntry.prompt, ...filtered];
           });
-        }
-      };
+        };
 
-      stream.on("change", handleChange);
+        // Add our listener to the stream
+        stream.on("change", listenerRef.current);
+      } catch (err) {
+        console.warn(`LLM history hook initialization error -- ${err}`);
+      }
+    };
 
-      // Cleanup listener on unmount/type change
-      return () => {
-        stream.off("change", handleChange);
-      };
-    } catch (err) {
-      console.warn(`LLM history hook initialization error -- ${err}`);
-    }
+    initializeStream();
+
+    // Cleanup function for useEffect
+    return () => {
+      isMounted = false;
+      if (stream && listenerRef.current) {
+        stream.off("change", listenerRef.current);
+        listenerRef.current = null;
+      }
+    };
   }, [type]);
 
   async function addPrompt(prompt: string) {

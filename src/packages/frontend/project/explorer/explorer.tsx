@@ -589,7 +589,6 @@ const Explorer0 = rclass(
               <div
                 style={{
                   fontSize: "10pt",
-                  marginTop: "-10px",
                   marginBottom: "5px",
                 }}
               >

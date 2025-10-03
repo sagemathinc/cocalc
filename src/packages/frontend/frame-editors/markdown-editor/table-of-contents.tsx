@@ -3,11 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useEffect, useRedux } from "../../app-framework";
+import { React, useEffect, useRedux } from "@cocalc/frontend/app-framework";
 import {
   TableOfContents as TOC,
   TableOfContentsEntryList,
-} from "../../components";
+} from "@cocalc/frontend/components";
 import { Actions } from "./actions";
 
 interface Props {

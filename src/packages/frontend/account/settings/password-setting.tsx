@@ -22,6 +22,7 @@ import {
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 interface State {
   state: "view" | "edit" | "saving"; // view --> edit --> saving --> view
@@ -67,7 +68,8 @@ export const PasswordSetting: React.FC = () => {
       if (!is_mounted.current) return;
     } catch (err) {
       if (!is_mounted.current) return;
-      set_state("edit"), set_error(`Error changing password -- ${err}`);
+      set_state("edit");
+      set_error(`Error changing password -- ${err}`);
       return;
     }
     reset();
@@ -75,7 +77,7 @@ export const PasswordSetting: React.FC = () => {
 
   function is_submittable(): boolean {
     return !!(
-      new_password.length >= 6 &&
+      new_password.length >= MIN_PASSWORD_LENGTH &&
       new_password &&
       new_password !== old_password
     );
@@ -138,7 +140,9 @@ export const PasswordSetting: React.FC = () => {
             />
           </Form.Item>
           New password
-          {new_password.length < 6 ? " (at least 6 characters)" : undefined}
+          {new_password.length < MIN_PASSWORD_LENGTH
+            ? ` (at least ${MIN_PASSWORD_LENGTH} characters)`
+            : undefined}
           {new_password.length >= 6 && new_password == old_password
             ? " (different than old password)"
             : undefined}

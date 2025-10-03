@@ -19,23 +19,30 @@ export default (props: PublicPathProps) => (
   <>
     <PublicPath {...props} />
     <NextHead>
-      <meta property="og:type" content="article"/>
-      <meta property="og:title" content={props.path}/>
+      <meta property="og:type" content="article" />
+      <meta property="og:title" content={props.path} />
 
       {props.description && (
-        <meta property="og:description" content={props.description}/>
+        <meta property="og:description" content={props.description} />
       )}
-      {props.ogUrl && (
-        <meta property="og:url" content={props.ogUrl}/>
-      )}
-      {props.ogImage && (
-        <meta property="og:image" content={props.ogImage}/>
-      )}
+      {props.ogUrl && <meta property="og:url" content={props.ogUrl} />}
+      {props.ogImage && <meta property="og:image" content={props.ogImage} />}
       {props.created && (
-        <meta property="article:published_time" content={props.created}/>
+        <meta property="article:published_time" content={props.created} />
       )}
       {props.last_edited && (
-        <meta property="article:modified_time" content={props.last_edited}/>
+        <meta property="article:modified_time" content={props.last_edited} />
+      )}
+
+      {/* Prevent search engine indexing of unlisted content or proxied content from external URLs */}
+      {(props.unlisted ||
+        (props.url &&
+          (props.url.startsWith("github/") ||
+            props.url.startsWith("gist/")))) && (
+        <>
+          <meta name="robots" content="noindex, nofollow" />
+          <meta name="googlebot" content="noindex, nofollow" />
+        </>
       )}
     </NextHead>
   </>
@@ -81,7 +88,8 @@ export async function getServerSideProps(context) {
 
       // Add image path for social media sharing
       //
-      customize.props.ogImage = customize.props.customize.logoSquareURL ||
+      customize.props.ogImage =
+        customize.props.customize.logoSquareURL ||
         `${customize.props.customize.siteURL}${ogShareLogo.src}`;
     }
 

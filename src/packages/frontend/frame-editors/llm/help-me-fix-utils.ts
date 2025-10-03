@@ -18,6 +18,7 @@ export interface GetHelpOptions {
   redux: any;
   prioritize?: "start" | "start-end" | "end";
   model: string;
+  isHint?: boolean;
 }
 
 export interface CreateMessageOpts {
@@ -35,23 +36,22 @@ export interface CreateMessageOpts {
   isHint?: boolean;
 }
 
-export async function getHelp(options: GetHelpOptions) {
-  const {
-    project_id,
-    path,
-    tag,
-    line = "",
-    error,
-    input,
-    task,
-    language,
-    extraFileInfo,
-    redux,
-    prioritize,
-    model,
-  } = options;
-
-  const solutionText = createMessage({
+export async function getHelp({
+  project_id,
+  path,
+  tag,
+  line = "",
+  error,
+  input,
+  task,
+  language,
+  extraFileInfo,
+  redux,
+  prioritize,
+  model,
+  isHint = false,
+}: GetHelpOptions) {
+  const messageText = createMessage({
     error,
     task,
     line,
@@ -60,17 +60,18 @@ export async function getHelp(options: GetHelpOptions) {
     extraFileInfo,
     model,
     prioritize,
-    open: false,
-    full: false,
-    isHint: false,
+    open: true,
+    full: true,
+    isHint,
   });
 
   try {
     const actions = await getChatActions(redux, project_id, path);
     setTimeout(() => actions.scrollToBottom(), 100);
+    const tagSuffix = isHint ? "hint" : "solution";
     await actions.sendChat({
-      input: solutionText,
-      tag: `help-me-fix-solution${tag ? `:${tag}` : ""}`,
+      input: messageText,
+      tag: `help-me-fix-${tagSuffix}${tag ? `:${tag}` : ""}`,
       noNotification: true,
     });
   } catch (err) {
@@ -139,8 +140,8 @@ export function createMessage({
         prioritize === "start"
           ? "starts"
           : prioritize === "end"
-          ? "ends"
-          : "starts and ends";
+            ? "ends"
+            : "starts and ends";
       message.push(
         `My ${
           extraFileInfo ?? ""

@@ -99,7 +99,7 @@ export class AStream<T = any> {
   // or network is flaky, but will return all data properly in order
   // then throw an exception with code 503 rather than returning data
   // with something skipped.
-  async *getAll(opts): AsyncGenerator<
+  async *getAll(opts?): AsyncGenerator<
     {
       mesg: T;
       headers?: Headers;

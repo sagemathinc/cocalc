@@ -17,7 +17,6 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   defaults,
   filename_extension,
-  filename_extension_notilde,
   path_to_tab,
   required,
   uuid,
@@ -173,7 +172,7 @@ export async function open_file(
   } catch (_) {
     // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
   }
-  let ext = opts.ext ?? filename_extension_notilde(opts.path).toLowerCase();
+  let ext = opts.ext ?? filename_extension(opts.path).toLowerCase();
 
   // Next get the group.
   let group: string;

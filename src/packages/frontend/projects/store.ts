@@ -56,6 +56,7 @@ export interface ProjectsState {
   search: string;
   deleted: boolean;
   hidden: boolean;
+  starred: boolean;
   selected_hashtags: Map<string, Set<string>>;
 
   all_projects_have_been_loaded: boolean;
@@ -881,6 +882,7 @@ const init_store = {
   search: "",
   deleted: false,
   hidden: false,
+  starred: false,
   selected_hashtags: Map<string, Set<string>>(),
 
   all_projects_have_been_loaded: false,
