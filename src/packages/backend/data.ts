@@ -190,19 +190,26 @@ export const pgdatabase: string =
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
-export const rusticRepo: string =
-  process.env.RUSTIC_REPO ?? join(data, "rustic");
 
 export const account_id: string =
   process.env.COCALC_ACCOUNT_ID ?? FALLBACK_ACCOUNT_UUID;
 
-// If given, COCALC_BTRFS_MOUNTPOINT must be the top level mountpoint
-// of a btrfs filesystem that is dedicated to whatever service you're
-// running on this server (e.g., a project runner or the central file-server).
+
+// File server and project runner config:
+export const rusticRepo: string =
+  process.env.COCALC_RUSTIC_REPO ?? join(data, "rustic");
+// If given, COCALC_FILE_SERVER_MOUNTPOINT must be the top level mountpoint
+// of a btrfs filesystem that is dedicated to the central file server.
 // If not specified, a sparse image file is created in data/btrfs, which
 // is designed for *development* purposes (not production deployments).
-export const btrfsMountpoint: string | undefined =
-  process.env.COCALC_BTRFS_MOUNTPOINT;
+// Similar remarks for COCALC_PROJECT_RUNNER_MOUNTPOINT, which must also
+// be a dedicated btrfs mountpoint, which will be used by a project runner.
+export const fileServerMountpoint: string | undefined =
+  process.env.COCALC_FILE_SERVER_MOUNTPOINT;
+export const projectRunnerMountpoint: string | undefined =
+  process.env.COCALC_PROJECT_RUNNER_MOUNTPOINT;
+
+
 
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory

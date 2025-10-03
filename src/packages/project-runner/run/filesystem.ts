@@ -3,10 +3,15 @@ import {
   type Fileserver,
 } from "@cocalc/conat/files/file-server";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
-import { sshServer as defaultSshServer } from "@cocalc/backend/data";
+import {
+  sshServer as defaultSshServer,
+  projectRunnerMountpoint,
+  rusticRepo,
+} from "@cocalc/backend/data";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
+import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
 
 //import getLogger from "@cocalc/backend/logger";
 
@@ -35,12 +40,20 @@ export async function setQuota(project_id: string, size: number | string) {
 // init in project-runner/run/index.ts
 // This is where the fileserver is storing files, and works if projects are
 // running on the same compute as the file server, e.g., dev mode.
+let fs: Filesystem | null = null;
 export async function localPath({
   project_id,
 }: {
   project_id: string;
 }): Promise<string> {
-  if (process.env.COCALC_PROJECT_PATH) {
+  if (projectRunnerMountpoint) {
+    fs ??= await filesystem({
+      mount: projectRunnerMountpoint,
+      rustic: rusticRepo,
+    });
+    const { path } = await fs.subvolumes.get(`project-${project_id}`);
+    return path;
+  } else if (process.env.COCALC_PROJECT_PATH) {
     const path = join(process.env.COCALC_PROJECT_PATH, project_id);
     await mkdir(path, { recursive: true });
     return path;

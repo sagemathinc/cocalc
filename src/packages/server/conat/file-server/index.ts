@@ -21,7 +21,7 @@ export type { Fileserver };
 import { loadConatConfiguration } from "../configuration";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
-import { btrfsMountpoint, data, rusticRepo } from "@cocalc/backend/data";
+import { fileServerMountpoint, data, rusticRepo } from "@cocalc/backend/data";
 import { join } from "node:path";
 import { mkdir } from "fs/promises";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
@@ -185,11 +185,11 @@ export async function init(_fs?) {
   if (_fs != null) {
     // passing in filesystem (e.g., used for dev work)
     fs = _fs;
-  } else if (btrfsMountpoint) {
+  } else if (fileServerMountpoint) {
     // an existing dedicated btrfs filesystem on the server, setup externally somehow:
     // this is what we should get in production
     fs = await filesystem({
-      mount: btrfsMountpoint,
+      mount: fileServerMountpoint,
       rustic: rusticRepo,
     });
   } else {
