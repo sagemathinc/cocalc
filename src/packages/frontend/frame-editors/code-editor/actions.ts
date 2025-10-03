@@ -1877,14 +1877,16 @@ export class Actions<
     if (focus) {
       cm.focus();
     }
-    if (cursor) {
-      doc.setCursor(pos);
-      await delay(100);
-      if (this.isClosed()) {
-        return;
+    for (let i = 0; i < 5; i++) {
+      if (cursor) {
+        doc.setCursor(pos);
+        await delay(100);
+        if (this.isClosed()) {
+          return;
+        }
+        doc.setCursor(pos);
+        cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
       }
-      doc.setCursor(pos);
-      cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
   }
 

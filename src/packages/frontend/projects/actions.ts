@@ -1014,7 +1014,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       image: project?.compute_image,
       rootfs_image: project.rootfs_image,
     });
-    redux.getActions("projects").open_project({ project_id: new_project_id });
+    this.open_project({ project_id: new_project_id });
   };
 
   private optimisticProjectStateUpdate = (
