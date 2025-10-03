@@ -85,6 +85,12 @@ export function PDFJS({
   onZoom,
 }: PDFJSProps) {
   const { desc } = useFrameContext();
+
+  // Get the dark mode disabled state for this specific frame from Redux store
+  // This allows toggle_pdf_dark_mode action to control dark mode per frame
+  const pdfDarkModeDisabledMap = useRedux(name, "pdf_dark_mode_disabled");
+  const disableDarkMode = pdfDarkModeDisabledMap?.get?.(id) ?? false;
+
   const isMounted = useIsMountedRef();
   const pageActions = useActions("page");
 
@@ -710,6 +716,7 @@ export function PDFJS({
               key={n}
               scale={scale}
               syncHighlight={syncHighlight({ n, id })}
+              disableDarkMode={disableDarkMode}
             />
           );
         }}

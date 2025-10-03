@@ -12,8 +12,10 @@ import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { useIntl } from "react-intl";
 
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
+import { DARK_MODE_ICON } from "@cocalc/frontend/account/dark-mode";
 import { set_account_table } from "@cocalc/frontend/account/util";
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COMMANDS } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import {
@@ -37,6 +39,17 @@ export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
   // Get build on save setting from account store
   const buildOnSave =
     useRedux(["account", "editor_settings", "build_on_save"]) ?? false;
+
+  // Check if global dark mode is enabled
+  const other_settings = useTypedRedux("account", "other_settings");
+  const isDarkMode = other_settings?.get("dark_mode") ?? false;
+
+  // Get PDF dark mode disabled state from Redux store
+  const pdfDarkModeDisabledMap = useRedux(
+    actions.name,
+    "pdf_dark_mode_disabled",
+  );
+  const pdfDarkModeDisabled = pdfDarkModeDisabledMap?.get?.(id) ?? false;
 
   const handleBuild = () => {
     actions.build();
@@ -102,16 +115,31 @@ export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
   ];
 
   return (
-    <Dropdown.Button
-      type="primary"
-      size="small"
-      icon={<Icon name="caret-down" />}
-      menu={{ items: buildMenuItems }}
-      trigger={["click"]}
-      onClick={handleBuild}
-    >
-      <Icon name="play-circle" />
-      {!narrow && intl.formatMessage(editor.build_control_and_log_title_short)}
-    </Dropdown.Button>
+    <>
+      <Dropdown.Button
+        type="primary"
+        size="small"
+        icon={<Icon name="caret-down" />}
+        menu={{ items: buildMenuItems }}
+        trigger={["click"]}
+        onClick={handleBuild}
+      >
+        <Icon name="play-circle" />
+        {!narrow &&
+          intl.formatMessage(editor.build_control_and_log_title_short)}
+      </Dropdown.Button>
+
+      {/* Dark mode toggle - only shown when global dark mode is enabled */}
+      {isDarkMode && (
+        <BSButton
+          bsSize="xsmall"
+          active={pdfDarkModeDisabled}
+          onClick={() => actions.toggle_pdf_dark_mode(id)}
+          title={intl.formatMessage(editor.toggle_pdf_dark_mode_title)}
+        >
+          <Icon unicode={DARK_MODE_ICON} />
+        </BSButton>
+      )}
+    </>
   );
 }

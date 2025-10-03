@@ -164,6 +164,7 @@ export interface CodeEditorState {
   derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
+  pdf_dark_mode_disabled?: { [id: string]: boolean };
 }
 
 export class Actions<
@@ -1368,6 +1369,12 @@ export class Actions<
 
   set_zoom(zoom: number, id?: string) {
     this.change_font_size(undefined, id, zoom);
+  }
+
+  toggle_pdf_dark_mode(id: string): void {
+    const next = this.store.get("pdf_dark_mode_disabled")?.toJS() ?? {};
+    next[id] = !(next[id] ?? false);
+    this.setState({ pdf_dark_mode_disabled: next });
   }
 
   /* zoom: 1=100%, 1.5=150%, ...*/

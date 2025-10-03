@@ -44,6 +44,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import {
+  DARK_MODE_ICON,
   DARK_MODE_KEYS,
   DARK_MODE_MINS,
   get_dark_mode_config,
@@ -104,12 +105,11 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   // Debounced version for dark mode sliders to reduce CPU usage
   const on_change_dark_mode = useMemo(
     () =>
-      debounce(
-        (name: string, value: any) => on_change(name, value),
-        50,
-        { trailing: true, leading: false }
-      ),
-    []
+      debounce((name: string, value: any) => on_change(name, value), 50, {
+        trailing: true,
+        leading: false,
+      }),
+    [],
   );
 
   function toggle_global_banner(val: boolean): void {
@@ -427,10 +427,15 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {checked ? (
           <Card
             size="small"
-            title={intl.formatMessage({
-              id: "account.other-settings.theme.dark_mode.configuration",
-              defaultMessage: "Dark Mode Configuration",
-            })}
+            title={
+              <>
+                <Icon unicode={DARK_MODE_ICON} />{" "}
+                {intl.formatMessage({
+                  id: "account.other-settings.theme.dark_mode.configuration",
+                  defaultMessage: "Dark Mode Configuration",
+                })}
+              </>
+            }
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               {DARK_MODE_KEYS.map((key) => (
@@ -456,7 +461,10 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
                   <Button
                     size="small"
                     onClick={() =>
-                      on_change_dark_mode(`dark_mode_${key}`, DARK_MODE_DEFAULTS[key])
+                      on_change_dark_mode(
+                        `dark_mode_${key}`,
+                        DARK_MODE_DEFAULTS[key],
+                      )
                     }
                   >
                     {intl.formatMessage(labels.reset)}

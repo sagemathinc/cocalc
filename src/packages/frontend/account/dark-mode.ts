@@ -3,12 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { throttle, isEqual, debounce } from "lodash";
+import { isEqual, debounce } from "lodash";
 
 import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { AccountStore } from "./store";
 
 export const DARK_MODE_KEYS = ["brightness", "contrast", "sepia"] as const;
+
+// Icon unicode character for dark mode toggle (◑ - circle with right half black)
+export const DARK_MODE_ICON = 0x25d1;
 
 type Config = Record<(typeof DARK_MODE_KEYS)[number], number>;
 
@@ -61,28 +64,35 @@ let last_config: Config | undefined = undefined;
 export function init_dark_mode(account_store: AccountStore): void {
   account_store.on(
     "change",
-    debounce(async () => {
-      const dark_mode = !!account_store.getIn(["other_settings", "dark_mode"]);
-      currentDarkMode = dark_mode;
-      const config = get_dark_mode_config(
-        account_store.get("other_settings")?.toJS(),
-      );
-      if (
-        dark_mode == last_dark_mode &&
-        (!dark_mode || isEqual(last_config, config))
-      ) {
-        return;
-      }
-      const { enable, disable } = await import("darkreader");
-      last_dark_mode = dark_mode;
-      last_config = config;
-      if (dark_mode) {
-        disable();
-        enable(config);
-      } else {
-        disable();
-      }
-    }, 1000, {trailing: true, leading: false}),
+    debounce(
+      async () => {
+        const dark_mode = !!account_store.getIn([
+          "other_settings",
+          "dark_mode",
+        ]);
+        currentDarkMode = dark_mode;
+        const config = get_dark_mode_config(
+          account_store.get("other_settings")?.toJS(),
+        );
+        if (
+          dark_mode == last_dark_mode &&
+          (!dark_mode || isEqual(last_config, config))
+        ) {
+          return;
+        }
+        const { enable, disable } = await import("darkreader");
+        last_dark_mode = dark_mode;
+        last_config = config;
+        if (dark_mode) {
+          disable();
+          enable(config);
+        } else {
+          disable();
+        }
+      },
+      1000,
+      { trailing: true, leading: false },
+    ),
   );
 }
 

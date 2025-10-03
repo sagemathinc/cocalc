@@ -10,6 +10,7 @@ import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
 import { defineMessage, IntlShape, useIntl } from "react-intl";
 
+import { DARK_MODE_ICON } from "@cocalc/frontend/account/dark-mode";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -330,6 +331,24 @@ addCommands({
         },
       };
     }),
+  },
+  toggle_pdf_dark_mode: {
+    pos: 6,
+    group: "zoom",
+    stayOpenOnClick: true,
+    title: editor.toggle_pdf_dark_mode_title,
+    label: editor.toggle_pdf_dark_mode_label,
+    icon: () => <Icon unicode={DARK_MODE_ICON} />,
+    isVisible: () => {
+      const other_settings = redux
+        .getStore("account")
+        .get("other_settings")
+        ?.toJS();
+      return other_settings?.dark_mode ?? false;
+    },
+    onClick: ({ props }) => {
+      props.actions.toggle_pdf_dark_mode?.(props.id);
+    },
   },
   scrollToTop: {
     group: "scroll",

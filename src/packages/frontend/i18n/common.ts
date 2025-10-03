@@ -1053,6 +1053,14 @@ export const editor = defineMessages({
     id: "editor.latex.pdf_embed.title",
     defaultMessage: "PDF - Native",
   },
+  toggle_pdf_dark_mode_title: {
+    id: "editor.toggle_pdf_dark_mode.title",
+    defaultMessage: "Toggle dark mode of PDF off, to see the original file",
+  },
+  toggle_pdf_dark_mode_label: {
+    id: "editor.toggle_pdf_dark_mode.label",
+    defaultMessage: "Toggle PDF Dark Mode",
+  },
   latex_source_code_label_name: {
     id: "editor.latex.source_code.name",
     defaultMessage: "LaTeX Source Code",

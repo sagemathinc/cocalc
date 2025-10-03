@@ -389,7 +389,7 @@ export function Output(props: OutputProps) {
       label: (
         <span style={LABEL_STYLE}>
           <Icon name="align-right" />
-          {intl.formatMessage(editor.table_of_contents_name)}
+          {intl.formatMessage(editor.table_of_contents_short)}
         </span>
       ),
       children: (
