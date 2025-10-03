@@ -19,7 +19,7 @@ export const CURRENT_DATE = "September 2020";
 // or rename it you will break kucalc.
 
 export const DEFAULT_QUOTAS = {
-  disk_quota: 3000,
+  disk_quota: 1000,
   cores: 1,
   cpu_shares: 0,
   memory: 1000,
@@ -45,7 +45,7 @@ export const ON_PREM_DEFAULT_QUOTAS = {
 export const upgrades = {
   // these are the base quotas
   DEFAULT_QUOTAS: {
-    disk_quota: 3000,
+    disk_quota: 1000,
     cores: 1,
     cpu_shares: 0,
     memory: 1000,
