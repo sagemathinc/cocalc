@@ -63,7 +63,7 @@ import {
   unlink,
   utimes,
 } from "node:fs/promises";
-import { move } from "fs-extra";
+import { move, pathExistsSync } from "fs-extra";
 import { watch } from "node:fs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { basename, dirname, join, resolve } from "path";
@@ -83,10 +83,16 @@ import { type CopyOptions } from "@cocalc/conat/files/fs";
 export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
 import getListing, { type Files } from "./get-listing";
+//import getLogger from "@cocalc/backend/logger";
+
+//const logger = getLogger("sandbox:fs");
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
-const MAX_TIMEOUT = 5000;
+const MAX_TIMEOUT = 5_000;
+
+const WATCHER_DELETE_POLL_INTERVAL = 3_000;
+const MIN_WATCHER_DELETE_POLL_INTERVAL = 250; //avoid excessive load
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
@@ -479,10 +485,20 @@ export class SandboxedFilesystem {
   };
 
   watch = async (filename: string, options?: WatchOptions) => {
-    // NOTE: in node v24 they fixed the fs/promises watch to have a queue, but previous
-    // versions were clearly badly implemented so we reimplement it from scratch
-    // using the non-promise watch.
+    // NOTES:
+    // (1) in node v24 they fixed the fs/promises watch to have a queue,
+    // but previous versions were badly implemented so we reimplement it
+    // from scratch using the non-promise watch.  This is very easy because
+    // our EventIterator is so good!
+    // (2) in node because an inode is being watch, if you watch a path
+    // and it is deleted, then the watch hangs forever broken
+    // and can never do anything, but also doesn't close either.  This
+    // is annoying, especially if e.g., we're watching a snapshot
+    // directory of a project and delete that snapshot -- btrfs won't free
+    // the disk space up ever.  Below we change the behavior by using polling
+    // and automatically closing the watcher if the directory is deleted.
     const path = await this.safeAbsPath(filename);
+    //logger.debug("watching ", { path });
     const watcher = watch(path, options as any);
     const iter = new EventIterator(watcher, "change", {
       maxQueue: options?.maxQueue ?? 2048,
@@ -495,8 +511,27 @@ export class SandboxedFilesystem {
         watcher.close();
       },
     });
+    // see note above -- we ensure here that watcher terminates
+    // if directory is deleted, which is needed to avoid blocking
+    // btrfs snapshot delete.
+    const deletePollInterval = Math.max(
+      MIN_WATCHER_DELETE_POLL_INTERVAL,
+      options?.deletePollInterval ?? WATCHER_DELETE_POLL_INTERVAL,
+    );
+    let interval = setInterval(() => {
+      // using sync since 5x-10x faster and fs we use this on should itself
+      // always be very fast.
+      if (!pathExistsSync(path)) {
+        watcher.close();
+      }
+    }, deletePollInterval);
+
     // AbortController signal can cause this
     watcher.once("close", () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      //logger.debug("stopped watching", { path });
       iter.end();
     });
     return iter;

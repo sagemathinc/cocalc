@@ -32,8 +32,7 @@ we are only ever watching a relatively small number of directories
 with a long interval, so polling is not so bad.
 */
 
-import { watch, WatchOptions } from "chokidar";
-import { FSWatcher } from "fs";
+import { watch } from "chokidar";
 import { join } from "path";
 import { EventEmitter } from "events";
 import { debounce } from "lodash";
@@ -57,7 +56,7 @@ const DEFAULT_POLL_MS = parseInt(
   process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "2000",
 );
 
-const ChokidarOpts: WatchOptions = {
+const ChokidarOpts = {
   persistent: true, // otherwise won't work
   followSymlinks: false, // don't wander about
   disableGlobbing: true, // watch the path as it is, that's it
@@ -77,8 +76,8 @@ const ChokidarOpts: WatchOptions = {
 export class Watcher extends EventEmitter {
   private path: string;
   private exists: boolean;
-  private watchContents?: FSWatcher;
-  private watchExistence?: FSWatcher;
+  private watchContents?;
+  private watchExistence?;
   private debounce_ms: number;
   private debouncedChange: any;
   private log: Function;

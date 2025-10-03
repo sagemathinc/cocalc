@@ -28,6 +28,11 @@ export interface WatchOptions {
   // the extra field ignore:true in the update.  Also, if there are multiple clients with unique set, the
   // other options of all but the first are ignored.
   unique?: boolean;
+
+  // another change from nodejs's fs.watch api -- if the path being watched is deleted,
+  // then the async watcher closes itself.  It does this by polling (using access) the
+  // filesystem every deletePollInterval ms (default: 3000):
+  deletePollInterval?: number;
 }
 
 export function watchServer({
