@@ -73,9 +73,10 @@
     "timetravel",
     "tolerations",
     "undelete",
+    "undeletes",
+    "undeleting",
     "xelatex",
-    "xetex",
-    "undeleting"
+    "xetex"
   ],
   "ignoreWords": [
     "antd",

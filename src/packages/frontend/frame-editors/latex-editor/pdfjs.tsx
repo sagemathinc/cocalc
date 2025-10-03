@@ -36,7 +36,7 @@ import usePinchToZoom, {
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Actions } from "./actions";
+import { Actions, Actions as LatexEditorActions } from "./actions";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
@@ -167,6 +167,7 @@ export function PDFJS({
       });
       return;
     }
+
     if ((evt.key == " " && evt.shiftKey) || evt.key == "PageUp") {
       // left = move a visible page up
       virtuosoRef.current?.scrollBy({
@@ -174,6 +175,7 @@ export function PDFJS({
       });
       return;
     }
+
     if (evt.key == "ArrowRight") {
       // next page
       virtuosoRef.current?.scrollBy({
@@ -184,6 +186,7 @@ export function PDFJS({
       });
       return;
     }
+
     if (evt.key == "ArrowLeft") {
       // previous page
       virtuosoRef.current?.scrollBy({
@@ -720,23 +723,42 @@ export function PDFJS({
     return actions.get_matching_frame({ type: "output" }) != null;
   }, [actions]);
 
+  // Check if we should show the new layout nag banner
+  // Only show in LaTeX editor mode (not in standalone PDF editor)
+  function showNewLayoutNag(): boolean {
+    // Check if actions is from LaTeX editor using instanceof
+    if (!(actions instanceof LatexEditorActions)) {
+      return false;
+    }
+    // Don't show if dismissed or if there's already an output panel
+    if (newLayoutNagDismissed || hasOutputPanel()) {
+      return false;
+    }
+    return true;
+  }
+
   // Handler for dismissing the new layout nag
   function handleDismissLayoutNag() {
     const local_view_state = actions.store.get("local_view_state");
     actions.setState({
       local_view_state: local_view_state.set("new_layout_nag_dismissed", true),
     });
-    actions.save_local_view_state();
+    // save_local_view_state only exists in LaTeX editor actions
+    if (typeof (actions as any).save_local_view_state === "function") {
+      (actions as any).save_local_view_state();
+    }
   }
 
   function handleNewLayoutClick() {
-    const tree = actions._new_frame_tree_layout();
-    actions.replace_frame_tree(tree);
+    // _new_frame_tree_layout only exists in LaTeX editor actions
+    if (typeof (actions as any)._new_frame_tree_layout === "function") {
+      const tree = (actions as any)._new_frame_tree_layout();
+      actions.replace_frame_tree(tree);
+    }
   }
 
   function renderNewLayoutNag(): React.JSX.Element | null {
-    // Don't show if dismissed or if there's already an output panel
-    if (newLayoutNagDismissed || hasOutputPanel()) {
+    if (!showNewLayoutNag()) {
       return null;
     }
 
