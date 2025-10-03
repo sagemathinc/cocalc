@@ -46,7 +46,7 @@ const NVM_VERSION = "0.40.2";
 export function installNode() {
   return `
 rm -rf /cocalc/nvm/
-mkdir  /cocalc/nvm
+mkdir -p /cocalc/nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | NVM_DIR=/cocalc/nvm PROFILE=/dev/null bash
 set +v
 source /cocalc/nvm/nvm.sh
@@ -66,6 +66,7 @@ apt-get remove -y  docker.io docker-doc docker-compose podman-docker containerd 
 apt-get update
 apt-get install -y ca-certificates curl gnupg
 install -m 0755 -d /etc/apt/keyrings
+rm -f /etc/apt/keyrings/docker.gpg
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 

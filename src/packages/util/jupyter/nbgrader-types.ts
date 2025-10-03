@@ -1,3 +1,5 @@
+import { CellType } from "./types";
+
 export interface NBGraderAPIOptions {
   // Project will try to evaluate/autograde for this many milliseconds;
   // if time is exceeded, all additional problems fail and what we graded
@@ -53,7 +55,7 @@ export interface RunNotebookOptions {
 
 // Enough description of what a Jupyter notebook is for our purposes here.
 export interface Cell {
-  cell_type: "code" | "markdown" | "raw";
+  cell_type: CellType;
   execution_count: number;
   metadata?: {
     collapsed?: boolean;

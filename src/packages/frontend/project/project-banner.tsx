@@ -16,7 +16,11 @@ import { TrialBanner } from "./trial-banner";
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 
 export function ProjectWarningBanner() {
-  const { isRunning: projectIsRunning, project_id } = useProjectContext();
+  const {
+    isRunning: projectIsRunning,
+    project_id,
+    is_active,
+  } = useProjectContext();
   const other_settings = useTypedRedux("account", "other_settings");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const project_map = useTypedRedux("projects", "project_map");
@@ -63,14 +67,10 @@ export function ProjectWarningBanner() {
   }
 
   function showNoInternetBanner(): boolean {
+    if (!is_active) return false;
     if (hideAllWarnings()) return false;
-
-    if (dismissedInternetWarning) {
-      return false;
-    }
-    if (noInternet) {
-      return true;
-    }
+    if (dismissedInternetWarning) return false;
+    if (noInternet) return true;
     return false;
   }
 
@@ -116,7 +116,6 @@ export function ProjectWarningBanner() {
 
     return (
       <NoInternetModal
-        project_id={project_id}
         projectSiteLicenses={projectSiteLicenses}
         isPaidStudentPayProject={isPaidStudentPayProject}
         hasComputeServers={hasComputeServers}

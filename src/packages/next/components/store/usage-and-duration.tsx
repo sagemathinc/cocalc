@@ -3,13 +3,18 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { isAcademic } from "@cocalc/util/misc";
-import { Subscription } from "@cocalc/util/licenses/purchase/types";
-import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { Divider, Form, Input, Radio, Space } from "antd";
-import DateRange from "components/misc/date-range";
 import { ReactNode } from "react";
+
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
+import { Subscription } from "@cocalc/util/licenses/purchase/types";
+import { isAcademic, unreachable } from "@cocalc/util/misc";
+import DateRange from "components/misc/date-range";
 import useProfile from "lib/hooks/profile";
+
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
+
+type Duration = "all" | "subscriptions" | "monthly" | "yearly" | "range";
 
 interface Props {
   showExplanations?: boolean;
@@ -17,9 +22,10 @@ interface Props {
   onChange: () => void;
   disabled?: boolean;
   showUsage?: boolean;
-  duration?: "all" | "subscriptions" | "monthly" | "yearly" | "range";
+  duration?: Duration;
   discount?: boolean;
   extraDuration?: ReactNode;
+  source: LicenseSource;
 }
 
 function getTimezoneFromDate(
@@ -35,65 +41,124 @@ function getTimezoneFromDate(
   );
 }
 
-export function UsageAndDuration(props: Props) {
-  const {
-    showExplanations = false,
-    form,
-    onChange,
-    disabled = false,
-    showUsage = true,
-    duration = "all",
-    discount = true,
-    extraDuration,
-  } = props;
-
+export function UsageAndDuration({
+  showExplanations = false,
+  form,
+  onChange,
+  disabled = false,
+  showUsage = true,
+  discount = true,
+  extraDuration,
+  source,
+  duration = "all",
+}: Props) {
   const profile = useProfile();
+
+  function renderUsageExplanation() {
+    if (!showExplanations) return;
+    const ac = (
+      <>Academic users receive a 40% discount off the standard price.</>
+    );
+    switch (source) {
+      case "site-license":
+        return (
+          <>
+            Will this license be used for academic or commercial purposes?
+            {ac}
+          </>
+        );
+      case "course":
+        return ac;
+      default:
+        unreachable(source);
+    }
+  }
+
+  function renderUsageItem() {
+    switch (source) {
+      case "site-license":
+        return (
+          <Radio.Group disabled={disabled}>
+            <Space direction="vertical" style={{ margin: "5px 0" }}>
+              <Radio value={"business"}>
+                Business - for commercial purposes
+              </Radio>
+              <Radio value={"academic"}>
+                Academic - students, teachers, academic researchers, non-profit
+                organizations and hobbyists (40% discount)
+              </Radio>
+            </Space>{" "}
+          </Radio.Group>
+        );
+      case "course":
+        return <>Academic</>;
+
+      default:
+        unreachable(source);
+    }
+  }
 
   function renderUsage() {
     if (!showUsage) return;
-    return (
-      <Form.Item
-        name="user"
-        initialValue={
-          isAcademic(profile?.email_address) ? "academic" : "business"
-        }
-        label={"Usage"}
-        extra={
-          showExplanations ? (
-            <>
-              Will this license be used for academic or commercial purposes?
-              Academic users receive a 40% discount off the standard price.
-            </>
-          ) : undefined
-        }
-      >
-        <Radio.Group disabled={disabled}>
-          <Space direction="vertical" style={{ margin: "5px 0" }}>
-            <Radio value={"business"}>Business - for commercial purposes</Radio>
-            <Radio value={"academic"}>
-              Academic - students, teachers, academic researchers, non-profit
-              organizations and hobbyists (40% discount)
-            </Radio>
-          </Space>{" "}
-        </Radio.Group>
-      </Form.Item>
-    );
+
+    switch (source) {
+      case "course":
+        return (
+          <Form.Item
+            name="user"
+            initialValue="academic"
+            label={"Usage"}
+            extra={renderUsageExplanation()}
+          >
+            <Input type="hidden" value="academic" />
+            Academic
+          </Form.Item>
+        );
+      case "site-license":
+        return (
+          <Form.Item
+            name="user"
+            initialValue={
+              isAcademic(profile?.email_address) ? "academic" : "business"
+            }
+            label={"Usage"}
+            extra={renderUsageExplanation()}
+          >
+            {renderUsageItem()}
+          </Form.Item>
+        );
+      default:
+        unreachable(source);
+    }
   }
 
   function renderRangeSelector(getFieldValue) {
     const period = getFieldValue("period");
-    if (period !== "range") {
-      return;
-    }
+
+    // ensure range is valid even if we aren't going to render this range selector visibly:
+    //   see https://github.com/sagemathinc/cocalc/issues/8461
     let range = getFieldValue("range");
     let invalidRange = range?.[0] == null || range?.[1] == null;
     if (invalidRange) {
-      const start = new Date();
-      const end = new Date(start.valueOf() + 1000 * 60 * 60 * 24 * 30);
-      range = [start, end];
-      form.setFieldsValue({ range });
-      onChange();
+      // Check if we're during initial load and URL has range parameters
+      // If so, don't override with default dates
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasRangeInUrl = urlParams.has("range");
+      if (!hasRangeInUrl) {
+        const start = new Date();
+        const dayMs = 1000 * 60 * 60 * 24;
+        const daysDelta = source === "course" ? 4 * 30 : 30;
+        const end = new Date(start.valueOf() + dayMs * daysDelta);
+        range = [start, end];
+        form.setFieldsValue({ range });
+        onChange();
+      }
     }
+
+    if (period !== "range") {
+      return;
+    }
+
     let suffix;
     try {
       if (!invalidRange) {
@@ -114,14 +179,18 @@ export function UsageAndDuration(props: Props) {
     }
     return (
       <Form.Item
-        label="License Term"
+        label={source === "course" ? "Course Dates" : "License Term"}
         name="range"
         rules={[{ required: true }]}
         help={invalidRange ? "Please enter a valid license range." : ""}
         validateStatus={invalidRange ? "error" : "success"}
         style={{ paddingBottom: "30px" }}
+        extra={source === "course" ? renderDurationExplanation() : undefined}
       >
         <DateRange
+          key={
+            range ? `${range[0]?.getTime()}_${range[1]?.getTime()}` : "no-range"
+          }
           disabled={disabled}
           noPast
           maxDaysInFuture={365 * 4}
@@ -186,44 +255,80 @@ export function UsageAndDuration(props: Props) {
       return extraDuration;
     }
     if (!showExplanations || !discount) return;
-    return (
-      <>
-        You can buy a license either via a subscription or a single purchase for
-        specific dates. Once you purchase a license,{" "}
-        <b>you can always edit it later, or cancel it for a prorated refund</b>{" "}
-        as credit that you can use to purchase something else. Subscriptions
-        will be canceled at the end of the paid for period.{" "}
-        {duration == "range" && (
-          <i>
-            Licenses start and end at the indicated times in your local
-            timezone.
-          </i>
-        )}
-      </>
+
+    const tz = (
+      <i>
+        Licenses start and end at the indicated times in your local timezone.
+      </i>
     );
+
+    switch (source) {
+      case "course":
+        return <>{tz}</>;
+
+      case "site-license":
+        return (
+          <>
+            You can buy a license either via a subscription or a single purchase
+            for specific dates. Once you purchase a license,{" "}
+            <b>
+              you can always edit it later, or cancel it for a prorated refund
+            </b>{" "}
+            as credit that you can use to purchase something else. Subscriptions
+            will be canceled at the end of the paid for period.{" "}
+            {duration == "range" && { tz }}
+          </>
+        );
+      default:
+        unreachable(source);
+    }
+  }
+
+  function renderPeriod() {
+    const init =
+      source === "course"
+        ? "range"
+        : duration === "range"
+          ? "range"
+          : "monthly";
+
+    switch (source) {
+      case "course":
+        return (
+          <Form.Item name="period" initialValue={init} hidden>
+            <Input type="hidden" value="range" />
+          </Form.Item>
+        );
+
+      case "site-license":
+        return (
+          <Form.Item
+            name="period"
+            initialValue={init}
+            label="Period"
+            extra={renderDurationExplanation()}
+          >
+            <Radio.Group disabled={disabled}>
+              <Space direction="vertical" style={{ margin: "5px 0" }}>
+                {renderSubsOptions()}
+                {renderRangeOption()}
+              </Space>
+            </Radio.Group>
+          </Form.Item>
+        );
+
+      default:
+        unreachable(source);
+    }
   }
 
   function renderDuration() {
-    const init = duration === "range" ? "range" : "monthly";
     return (
       <>
         <Form.Item name="range" hidden={true}>
           <Input />
         </Form.Item>
-        <Form.Item
-          name="period"
-          initialValue={init}
-          label="Period"
-          extra={renderDurationExplanation()}
-        >
-          <Radio.Group disabled={disabled}>
-            <Space direction="vertical" style={{ margin: "5px 0" }}>
-              {renderSubsOptions()}
-              {renderRangeOption()}
-            </Space>
-          </Radio.Group>
-        </Form.Item>
-
+        {renderPeriod()}
         {renderRange()}
       </>
     );

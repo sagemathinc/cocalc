@@ -1299,7 +1299,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.set_frame_tree({ id, search });
   }
 
-  async programmatical_goto_line(
+  async programmatically_goto_line(
     line: string | number,
     _cursor?: boolean,
     _focus?: boolean,

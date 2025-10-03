@@ -230,6 +230,13 @@ file_associations["csv"] = {
   opts: {},
 };
 
+file_associations["json"] = {
+  editor: "codemirror",
+  icon: "js-square",
+  opts: { mode: "javascript", indent_unit: 2, tab_size: 2 },
+  name: "JSON",
+};
+
 // At https://cs.lmu.edu/~ray/notes/gasexamples/ they use .s, so I'm also including that.
 // In fact, GCC only works on files if they end in .s.
 file_associations["asm"] = file_associations["s"] = {

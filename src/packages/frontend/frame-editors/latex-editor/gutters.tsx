@@ -87,7 +87,8 @@ function Component({
                   size="small"
                   style={{ marginTop: "5px" }}
                   task={"ran latex"}
-                  error={content}
+                  error={message}
+                  line={content}
                   input={() => {
                     const s = actions._syncstring.to_str();
                     const v = s
@@ -100,7 +101,7 @@ function Component({
                   language={"latex"}
                   extraFileInfo={actions.languageModelExtraFileInfo()}
                   tag={"latex-error-popover"}
-                  prioritize="end"
+                  prioritize="start-end"
                 />
               </>
             )}

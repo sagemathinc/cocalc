@@ -3,11 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { ReactNode } from "react";
+
 import { IconName } from "@cocalc/frontend/components/icon";
 import { Uptime } from "@cocalc/util/consts/site-license";
+import { MAX_DISK_GB } from "@cocalc/util/upgrades/consts";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
-import { ReactNode } from "react";
+import { STANDARD_DISK } from "@cocalc/util/consts/billing";
 
 export type Preset = "standard" | "instructor" | "research";
 
@@ -19,7 +22,7 @@ export const PRESET_MATCH_FIELDS: Record<string, string> = {
   ram: "memory",
   uptime: "idle timeout",
   member: "member hosting",
-};
+} as const;
 
 export interface PresetConfig {
   icon: IconName;
@@ -42,11 +45,10 @@ type PresetEntries = {
 // some constants to keep text and preset in sync
 const STANDARD_CPU = 1;
 const STANDARD_RAM = 4;
-const STANDARD_DISK = 3;
 
 const PRESET_STANDARD_NAME = "Standard";
 
-export const PRESETS: PresetEntries = {
+export const SITE_LICENSE: PresetEntries = {
   standard: {
     icon: "line-chart",
     name: PRESET_STANDARD_NAME,
@@ -149,7 +151,7 @@ export const PRESETS: PresetEntries = {
     ),
     cpu: 1,
     ram: 2 * STANDARD_RAM,
-    disk: 15,
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
     uptime: "medium",
     member: true,
   },
@@ -191,9 +193,63 @@ export const PRESETS: PresetEntries = {
       </>
     ),
     cpu: 2,
-    ram: 10,
-    disk: 10,
+    ram: 2 * STANDARD_RAM,
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
     uptime: "day",
     member: true,
   },
 } as const;
+
+export const COURSE = {
+  standard: {
+    icon: "line-chart",
+    name: PRESET_STANDARD_NAME,
+    descr: "is a good choice for most use cases in a course",
+    expect: [
+      "Run a couple of Jupyter Notebooks at once,",
+      "Edit LaTeX, Markdown, R Documents, and use VS Code,",
+      `${STANDARD_DISK} GB disk space is sufficient to store many files and small datasets.`,
+    ],
+    note: <>Suitable for most courses.</>,
+    details: (
+      <>
+        You can run a couple of Jupyter Notebooks in a project at once,
+        depending on the kernel and memory usage. This quota is fine for editing
+        LaTeX documents, working with Sage Worksheets, using VS Code, and
+        editing all other document types. Also, {STANDARD_DISK} GB of disk space
+        is sufficient to store many files and a few small datasets.
+      </>
+    ),
+    cpu: STANDARD_CPU,
+    ram: STANDARD_RAM,
+    disk: STANDARD_DISK,
+    uptime: "short",
+    member: true,
+  },
+  advanced: {
+    icon: "rocket",
+    name: "Advanced",
+    descr: "provides higher quotas for more intensive course work",
+    expect: [
+      "Run more Jupyter Notebooks simultaneously,",
+      "Handle memory-intensive computations,",
+      "Longer idle timeout for extended work sessions,",
+      "Sufficient resources for advanced coursework.",
+    ],
+    note: <>For intense computations requiring more resources.</>,
+    details: (
+      <>
+        This configuration provides enhanced resources for more demanding
+        coursework. With 1 CPU, 8GB RAM, and a 2-hour idle timeout, students can
+        work on memory-intensive projects and longer computational tasks without
+        interruption. Ideal for advanced programming, data science, and
+        research-oriented courses.
+      </>
+    ),
+    cpu: 1,
+    ram: 8,
+    disk: Math.min(2 * STANDARD_DISK, MAX_DISK_GB),
+    uptime: "medium",
+    member: true,
+  },
+} as const satisfies { [key in "standard" | "advanced"]: PresetConfig };

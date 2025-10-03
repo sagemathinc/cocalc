@@ -101,7 +101,7 @@ export default function Page({
           const offsetY = event.nativeEvent.clientY - divRect.top;
           const x: number = offsetX / scale;
           const y: number = offsetY / scale;
-          actions.synctex_pdf_to_tex(n, x, y);
+          actions.synctex_pdf_to_tex(n, x, y, true); // true = manual sync
         }}
       >
         <CanvasPage

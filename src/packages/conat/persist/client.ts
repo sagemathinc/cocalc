@@ -108,6 +108,7 @@ class PersistStreamClient extends EventEmitter {
           new ConatError(headers?.error, { code: headers?.code }),
         );
         this.close();
+        return;
       }
       if (this.gettingMissed) {
         this.changesWhenGettingMissed.push(updates);
@@ -277,11 +278,13 @@ class PersistStreamClient extends EventEmitter {
   delete = async ({
     timeout,
     seq,
+    seqs,
     last_seq,
     all,
   }: {
     timeout?: number;
     seq?: number;
+    seqs?: number[];
     last_seq?: number;
     all?: boolean;
   }): Promise<{ seqs: number[] }> => {
@@ -290,6 +293,7 @@ class PersistStreamClient extends EventEmitter {
         headers: {
           cmd: "delete",
           seq,
+          seqs,
           last_seq,
           all,
           timeout,

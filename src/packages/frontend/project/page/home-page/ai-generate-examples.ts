@@ -1,3 +1,5 @@
+// cSpell:ignore  fmincon xaringan tsfeatures Koma scrartcl scrbook scrletter scrreprt transposons
+
 export type Example = readonly [
   display: string,
   prompt: string,
@@ -148,7 +150,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "10x10 Multiplication Table",
-      "Generate a 10x10 multiplication table using `[1:10]' .* [1:10]` and exaplain what happend.",
+      "Generate a 10x10 multiplication table using `[1:10]' .* [1:10]` and explain what happened.",
       ["matrix operations"],
     ],
   ],
@@ -183,7 +185,7 @@ export function isSupportedExtension(ext?: string): ext is Ext {
   return typeof ext === "string" && EXTS.includes(ext as any);
 }
 
-export const PAPERSIZE: { [ext in Ext]?: string[] } = {
+export const PAPER_SIZE: { [ext in Ext]?: string[] } = {
   tex: ["Letter (US)", "Legal (US)", "A4 (Europe)", "A5 (Europe)"],
 };
 

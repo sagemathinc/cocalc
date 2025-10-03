@@ -17,6 +17,10 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { map as awaitMap } from "awaiting";
 import { getComputeServers } from "./synctable";
 import { join } from "path";
+import {
+  computeServerManager,
+  type ComputeServerManager,
+} from "@cocalc/conat/compute/manager";
 
 declare var DEBUG: boolean;
 
@@ -388,24 +392,34 @@ export class ComputeActions {
     }
     const course_project_id = store.get("course_project_id");
 
+    let studentAssociations: null | ComputeServerManager = null;
+    // project_client.computeServers can only be used for tabs
+    // for a project that is actually open in the client, so
+    // we use it for the instructor project, but not the student
+    // project, which may not be opened.
     const courseAssociations =
       webapp_client.project_client.computeServers(course_project_id);
 
-    const studentAssociations =
-      webapp_client.project_client.computeServers(target_project_id);
+    try {
+      studentAssociations = computeServerManager({
+        project_id: target_project_id,
+      });
 
-    const ids = await courseAssociations.getServerIdForSubtree(src_path);
-    for (const source in ids) {
-      if (ids[source]) {
-        const tail = source.slice(src_path.length + 1);
-        const path = join(target_path, tail);
-        await studentAssociations.waitUntilReady();
-        // path is on a compute server.
-        studentAssociations.connectComputeServerToPath({
-          id: compute_server_id,
-          path,
-        });
+      const ids = await courseAssociations.getServerIdForSubtree(src_path);
+      for (const source in ids) {
+        if (ids[source]) {
+          const tail = source.slice(src_path.length + 1);
+          const path = join(target_path, tail);
+          await studentAssociations.waitUntilReady();
+          // path is on a compute server.
+          studentAssociations.connectComputeServerToPath({
+            id: compute_server_id,
+            path,
+          });
+        }
       }
+    } finally {
+      studentAssociations?.close();
     }
   };
 }

@@ -17,7 +17,7 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import A from "components/misc/A";
 import { News } from "components/news/news";
-import { NewsWithFuture } from "components/news/types";
+import { NewsWithStatus } from "components/news/types";
 import { useDateStr } from "components/news/useDateStr";
 import { MAX_WIDTH, NOT_FOUND } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
@@ -27,7 +27,7 @@ import withCustomize from "lib/with-customize";
 
 interface Props {
   customize: CustomizeType;
-  news: NewsWithFuture;
+  news: NewsWithStatus;
   timestamp: number; // unix epoch in seconds
   prev?: number;
   next?: number;

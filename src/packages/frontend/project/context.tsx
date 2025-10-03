@@ -32,6 +32,7 @@ export interface ProjectContextState {
   actions?: ProjectActions;
   active_project_tab?: string;
   compute_image: string | undefined;
+  contentSize: { width: number; height: number };
   enabledLLMs: LLMServicesAvailable;
   flipTabs: [number, React.Dispatch<React.SetStateAction<number>>];
   group?: UserGroup;
@@ -47,22 +48,15 @@ export interface ProjectContextState {
   onCoCalcDocker: boolean;
   project_id: string;
   project?: Project;
+  setContentSize: (size: { width: number; height: number }) => void;
   status: ProjectStatus;
 }
 
 export const emptyProjectContext = {
   actions: undefined,
   active_project_tab: undefined,
-  group: undefined,
-  project: undefined,
-  is_active: false,
-  project_id: "",
-  isRunning: undefined,
-  status: INIT_PROJECT_STATE,
-  hasInternet: undefined,
-  flipTabs: [0, () => {}],
-  onCoCalcCom: true,
-  onCoCalcDocker: false,
+  compute_image: undefined,
+  contentSize: { width: 0, height: 0 },
   enabledLLMs: {
     openai: false,
     google: false,
@@ -72,12 +66,22 @@ export const emptyProjectContext = {
     custom_openai: false,
     user: false,
   },
+  flipTabs: [0, () => {}],
+  group: undefined,
+  hasInternet: undefined,
+  is_active: false,
+  isRunning: undefined,
   mainWidthPx: 0,
   manageStarredFiles: {
     starred: [],
     setStarredPath: () => {},
   },
-  compute_image: undefined,
+  onCoCalcCom: true,
+  onCoCalcDocker: false,
+  project: undefined,
+  project_id: "",
+  setContentSize: () => {},
+  status: INIT_PROJECT_STATE,
 } as ProjectContextState;
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -141,10 +145,13 @@ export function useProjectContextProvider({
     userDefinedLLM,
   ]);
 
+  const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
+
   return {
     actions,
     active_project_tab,
     compute_image,
+    contentSize,
     enabledLLMs,
     flipTabs,
     group,
@@ -157,6 +164,7 @@ export function useProjectContextProvider({
     onCoCalcDocker,
     project_id,
     project,
+    setContentSize,
     status,
   };
 }

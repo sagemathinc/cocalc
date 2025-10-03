@@ -17,58 +17,17 @@ import React from "react";
 import htmlReactParser, {
   attributesToProps,
   domToReact,
+  Element,
+  Text,
 } from "html-react-parser";
-import { Element, Text } from "domhandler";
-import stripXSS, { safeAttrValue, whiteList } from "xss";
-import type { IFilterXSSOptions } from "xss";
+import sanitizeHtml from "sanitize-html";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import DefaultMath from "@cocalc/frontend/components/math/ssr";
 import { MathJaxConfig } from "@cocalc/util/mathjax-config";
 import { decodeHTML } from "entities";
 
 const URL_ATTRIBS = ["src", "href", "data"];
-
 const MATH_SKIP_TAGS = new Set<string>(MathJaxConfig.tex2jax.skipTags);
-
-function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
-  // - stripIgnoreTagBody - completely get rid of dangerous HTML
-  //   (otherwise user sees weird mangled style code, when seeing
-  //   nothing would be better).
-  // - whiteList - we need iframes to support 3d graphics; unfortunately this
-  //   isn't safe without a lot more work, so we do NOT enable them.
-  return {
-    stripIgnoreTagBody: true,
-    // SECURITY: whitelist note -- we had tried to explicitly allow mathjax script tags in sanitized html
-    // by whitelisting and scanning.  However, this didn't properly work (perhaps due to some update)
-    // and resulted in a security vulnerability:
-    //    https://github.com/sagemathinc/cocalc/security/advisories/GHSA-8w44-hggw-p5rf
-    // The fix is completley removing any whitelisting of any script tags.  The feature of
-    // mathjax in html is not important enough to support, and too dangerous -- even if it worked,
-    // it would probably be an easy attack vector by just making up fake mathjax.
-    // Due to https://github.com/sagemathinc/cocalc/security/advisories/GHSA-jpjc-pwjv-j9mg
-    // we also remove all use of iframes, which
-    whiteList: {
-      ...whiteList,
-      // DISABLED due to https://github.com/sagemathinc/cocalc/security/advisories/GHSA-jpjc-pwjv-j9mg
-      // iframe: ["src", "srcdoc", "width", "height"],
-      iframe: [],
-      html: [],
-    },
-    safeAttrValue: (tag, name, value) => {
-      // disabled since not sufficiently secure.
-      //       if (tag == "iframe" && name == "srcdoc") {
-      //         // important not to mangle this or it won't work.
-      //         return value;
-      //       }
-      if (urlTransform && URL_ATTRIBS.includes(name)) {
-        // use the url transform
-        return urlTransform(value, tag, name) ?? value;
-      }
-      // fallback to the builtin version
-      return safeAttrValue(tag, name, value, false as any);
-    },
-  };
-}
 
 export default function HTML({
   value,
@@ -82,7 +41,30 @@ export default function HTML({
   const { urlTransform, AnchorTagComponent, noSanitize, MathComponent } =
     useFileContext();
   if (!noSanitize) {
-    value = stripXSS(value, getXSSOptions(urlTransform));
+    value = sanitizeHtml(value, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "iframe"]),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        iframe: [
+          "src",
+          "width",
+          "height",
+          "title",
+          "allow",
+          "allowfullscreen",
+          "referrerpolicy",
+          "loading",
+          "frameborder",
+        ],
+      },
+      allowedIframeHostnames: [
+        "www.youtube.com",
+        "youtube.com",
+        "www.youtube-nocookie.com",
+        "youtube-nocookie.com",
+        "player.vimeo.com",
+      ],
+    });
   }
   if (value.trimLeft().startsWith("<html>")) {
     // Sage output formulas are wrapped in "<html>" for some stupid reason, which
@@ -116,6 +98,7 @@ export default function HTML({
     }
 
     try {
+      if (!(domNode instanceof Element)) return;
       const { name, children, attribs } = domNode;
 
       if (name == "script") {
@@ -140,28 +123,6 @@ export default function HTML({
           <AnchorTagComponent {...attribs}>
             {domToReact(children as any, options)}
           </AnchorTagComponent>
-        );
-      }
-      if (name == "iframe") {
-        // We sandbox and minimize what we allow.  Don't
-        // use {...attribs} due to srcDoc vs srcdoc.
-        // We don't allow setting the style, since that leads
-        // to a lot of attacks (i.e., making the iframe move in a
-        // sneaky way).  We have to allow-same-origin or scripts
-        // won't work at all, which is one of the main uses for
-        // iframes.  A good test is 3d graphics in Sage kernel
-        // Jupyter notebooks.
-        // TODO: Except this is a security issue, since
-        // combining allow-scripts & allow-same-origin makes it
-        // possible to remove a lot of sandboxing.
-        return (
-          <iframe
-            src={attribs.src}
-            srcDoc={attribs.srcdoc}
-            width={attribs.width}
-            height={attribs.height}
-            sandbox="allow-forms allow-scripts allow-same-origin"
-          />
         );
       }
 

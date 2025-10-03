@@ -1,3 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+import type { Uptime } from "@cocalc/util/consts/site-license";
+import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import type {
+  CustomDescription,
+  LicenseSource,
+  Period,
+} from "@cocalc/util/upgrades/shopping";
+
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
 export type Subscription = "no" | "monthly" | "yearly";
@@ -45,15 +58,6 @@ export interface StartEndDatesWithStrings {
   end: Date | string;
 }
 
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: MS-RSL – see LICENSE.md for details
- */
-
-import type { Uptime } from "@cocalc/util/consts/site-license";
-import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import type { CustomDescription, Period } from "../../upgrades/shopping";
-
 interface Version {
   version: string; // it's just a string with no special interpretation.
 }
@@ -81,9 +85,12 @@ interface PurchaseInfoQuota0 {
   run_limit?: number;
 }
 
+type PurchseInfoSource = { source?: LicenseSource };
+
 export type PurchaseInfoQuota = PurchaseInfoQuota0 &
   CustomDescription &
-  StartEndDates;
+  StartEndDates &
+  PurchseInfoSource;
 
 export type PurchaseInfoVoucher = {
   type: "vouchers";

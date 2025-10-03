@@ -1,3 +1,5 @@
+export type CellType = "raw" | "markdown" | "code"; // | "multi"; // multi isn't used
+
 export interface NbconvertParams {
   args: string[];
   directory?: string;
@@ -35,7 +37,6 @@ export interface KernelInfo {
   language_info: LanguageInfo;
   help_links: HelpLink[];
 }
-
 
 export interface KernelSpec {
   name: string;

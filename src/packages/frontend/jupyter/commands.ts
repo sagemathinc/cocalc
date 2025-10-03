@@ -36,6 +36,11 @@ import {
   SPLIT_CELL_ICON,
 } from "./consts";
 
+export const CLEAR_CELL_OUTPUT_LABEL = defineMessage({
+  id: "jupyter.cell-buttonbar-menu.clear-output",
+  defaultMessage: "Clear Output",
+});
+
 export interface KeyboardCommand {
   mode?: NotebookMode;
   which: number;
@@ -147,8 +152,8 @@ export function commands(actions: AllActions): {
       i: "graduation-cap",
       m: defineMessage({
         id: "jupyter.commands.cell_toolbar_create_assignment.label",
-        defaultMessage: "Create Assignment Using NBgrader",
-        description: "Do not translate 'NBGrader'",
+        defaultMessage: "Create Assignment Using nbgrader",
+        description: "Do not translate 'nbgrader'",
       }),
       menu: defineMessage({
         id: "jupyter.commands.cell_toolbar_create_assignment.menu",
@@ -175,10 +180,7 @@ export function commands(actions: AllActions): {
 
     "change cell to code": {
       i: "code-outlined",
-      m: defineMessage({
-        id: "jupyter.commands.change_cell_to_code.label",
-        defaultMessage: "Change Cell to Code",
-      }),
+      m: jupyter.commands.change_cell_to_code,
       k: [{ which: 89, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("code"),
     },
@@ -239,21 +241,14 @@ export function commands(actions: AllActions): {
     },
 
     "change cell to markdown": {
-      m: defineMessage({
-        id: "jupyter.commands.change_cell_to_markdown.label",
-        defaultMessage: "Change Cell to Markdown",
-        description: "Cell in a Jupyter Notebook",
-      }),
+      m: jupyter.commands.change_cell_to_markdown,
+      i: "markdown",
       k: [{ which: 77, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("markdown"),
     },
 
     "change cell to raw": {
-      m: defineMessage({
-        id: "jupyter.commands.change_cell_to_row.label",
-        defaultMessage: "Change Cell to Raw",
-        description: "Cell in a Jupyter Notebook",
-      }),
+      m: jupyter.commands.change_cell_to_raw,
       k: [{ which: 82, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("raw"),
     },
@@ -1495,7 +1490,7 @@ export function commands(actions: AllActions): {
 
     "help - nbgrader in cocalc": {
       i: "external-link",
-      m: "NBgrader in CoCalc",
+      m: "nbgrader in CoCalc",
       f: () => {
         open_new_tab("https://doc.cocalc.com/teaching-nbgrader.html");
       },

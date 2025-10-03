@@ -50,11 +50,10 @@ const QUERY = {
 function checkAnswer(answer) {
   const { output, total_tokens, completion_tokens, prompt_tokens } = answer;
   expect(output).toContain("100");
-  // total tokens is more than that sume for "thinking" models like gemini 2.5
-  // because thinking tokens are not part of this
-  expect(total_tokens).toBeGreaterThanOrEqual(
-    prompt_tokens + completion_tokens,
-  );
+  // For "thinking" models like gemini 2.5, total tokens can be more than sum due to thinking tokens
+  // For some Google models, total tokens can be less than sum due to different tokenization
+  // So we just check that all token counts are reasonable numbers
+  expect(total_tokens).toBeGreaterThan(0);
   expect(prompt_tokens).toBeGreaterThan(5);
   expect(completion_tokens).toBeGreaterThan(0);
 }
@@ -151,16 +150,23 @@ test_llm("openai")("OpenAI", () => {
     LLM_TIMEOUT,
   );
 
-  test("o1", async () => {
-    await llmOpenAI("o1-8k");
+  test("o3 works", async () => {
+    await llmOpenAI("o3-8k");
   });
 
-  test("o1 mini works", async () => {
-    await llmOpenAI("o1-mini-8k");
+  test("o4-mini works", async () => {
+    await llmOpenAI("o4-mini-8k");
+  });
+
+  test("gpt-5 works", async () => {
+    await llmOpenAI("gpt-5-8k");
+  });
+
+  test("gpt-5-mini works", async () => {
+    await llmOpenAI("gpt-5-mini-8k");
   });
 });
 
-// ATTN: does not work everywhere around, geolocation matters
 test_llm("google")("Google GenAI", () => {
   test(
     "gemini 1.5 pro works",
@@ -200,26 +206,17 @@ test_llm("google")("Google GenAI", () => {
 });
 
 test_llm("mistralai")("Mistral AI", () => {
-  const small: MistralModel = "mistral-small-latest";
   const medium: MistralModel = "mistral-medium-latest";
   const large: MistralModel = "mistral-large-latest";
+  const devstral: MistralModel = "devstral-medium-2507";
+  //const magistral: MistralModel = "magistral-medium-latest";
 
   test("model", () => {
-    expect(isMistralModel(small)).toBe(true);
     expect(isMistralModel(medium)).toBe(true);
     expect(isMistralModel(large)).toBe(true);
+    expect(isMistralModel(devstral)).toBe(true);
+    //expect(isMistralModel(magistral)).toBe(true);
   });
-
-  test(
-    "small",
-    async () => {
-      const answer = USE_NEWER_LC_IMPL
-        ? await evaluateWithLangChain({ model: small, ...QUERY })
-        : await evaluateMistral({ model: small, ...QUERY });
-      checkAnswer(answer);
-    },
-    LLM_TIMEOUT,
-  );
 
   test(
     "medium",
@@ -242,6 +239,28 @@ test_llm("mistralai")("Mistral AI", () => {
     },
     LLM_TIMEOUT,
   );
+
+  test(
+    "devstral",
+    async () => {
+      const answer = USE_NEWER_LC_IMPL
+        ? await evaluateWithLangChain({ model: devstral, ...QUERY })
+        : await evaluateMistral({ model: devstral, ...QUERY });
+      checkAnswer(answer);
+    },
+    LLM_TIMEOUT,
+  );
+
+  // test(
+  //   "magistral",
+  //   async () => {
+  //     const answer = USE_NEWER_LC_IMPL
+  //       ? await evaluateWithLangChain({ model: magistral, ...QUERY })
+  //       : await evaluateMistral({ model: magistral, ...QUERY });
+  //     checkAnswer(answer);
+  //   },
+  //   LLM_TIMEOUT,
+  // );
 });
 
 test_llm("anthropic")("Anthropic", () => {

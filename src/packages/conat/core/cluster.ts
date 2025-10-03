@@ -296,9 +296,8 @@ export async function trimClusterStreams(
   if (seqs.length > 0) {
     // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
     logger.debug("trimClusterStream: trimming interest", { seqs });
-    for (const seq of seqs) {
-      await interest.delete({ seq });
-    }
+    await interest.delete({ seqs });
+    logger.debug("trimClusterStream: successfully trimmed interest", { seqs });
   }
 
   // Next deal with sticky -- trim ones where the pattern is no longer of interest.
@@ -335,9 +334,8 @@ export async function trimClusterStreams(
   if (seqs2.length > 0) {
     // [ ] todo -- add to interest.delete a version where it takes an array of sequence numbers
     logger.debug("trimClusterStream: trimming sticky", { seqs2 });
-    for (const seq of seqs2) {
-      await sticky.delete({ seq });
-    }
+    await sticky.delete({ seqs: seqs2 });
+    logger.debug("trimClusterStream: successfully trimmed sticky", { seqs2 });
   }
 
   return { seqsInterest: seqs, seqsSticky: seqs2 };

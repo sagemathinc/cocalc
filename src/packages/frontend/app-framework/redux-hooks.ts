@@ -226,7 +226,7 @@ export function useTypedRedux(
   field: string,
 ) {
   if (typeof a == "string") {
-    return useRedux(a, field);
+    return useRedux([a, field]);
   }
   return useRedux(a.project_id, field);
 }
@@ -289,7 +289,7 @@ export function useRedux(
     }
   }
   if (project_id == null) {
-    return useReduxNamedStore(path);
+    return useReduxNamedStore(typeof path == "string" ? [path] : path);
   }
   if (filename == null) {
     if (!is_valid_uuid_string(project_id)) {

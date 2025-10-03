@@ -1,4 +1,4 @@
-// A dismissable error message that appears when formatting code.
+// A dismissible error message that appears when formatting code.
 
 import { Alert, Button } from "antd";
 import { useMemo } from "react";

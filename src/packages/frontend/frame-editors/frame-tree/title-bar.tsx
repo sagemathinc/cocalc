@@ -8,6 +8,8 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+// cSpell:ignore rescan subframe
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
 import type { MenuProps } from "antd/lib";
@@ -55,7 +57,7 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
-import LanguageModelTitleBarButton from "../llm/title-bar-button";
+import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
 import {
   APPLICATION_MENU,
   COMMANDS,
@@ -205,7 +207,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
 
-  const [showAI, setShowAI] = useState<boolean>(false);
+  const [showAIDialogs, setShowAIDialogs] = useState<{
+    main: boolean;
+    popover: boolean;
+  }>({ main: false, popover: false });
   const [showNewAI, setShowNewAI] = useState<boolean>(false);
 
   const [helpSearch, setHelpSearch] = useState<string>("");
@@ -235,7 +240,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       new ManageCommands({
         props,
         studentProjectFunctionality: student_project_functionality,
-        setShowAI,
+        setShowAI: (val: boolean) =>
+          setShowAIDialogs((prev) => ({ ...prev, main: val })),
         setShowNewAI,
         helpSearch,
         setHelpSearch,
@@ -248,7 +254,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       student_project_functionality,
       helpSearch,
       setHelpSearch,
-      setShowAI,
+      setShowAIDialogs,
       setShowNewAI,
       read_only,
       editorSettings,
@@ -579,7 +585,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
-  function renderAssistant(noLabel): Rendered {
+  function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
@@ -590,11 +596,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       <LanguageModelTitleBarButton
         path={props.path}
         type={props.type}
-        showDialog={showAI}
-        setShowDialog={setShowAI}
+        showDialog={showAIDialogs[where]}
+        setShowDialog={(value: boolean) => {
+          setShowAIDialogs((prev) => ({ ...prev, [where]: value }));
+        }}
         project_id={props.project_id}
         buttonRef={getTourRef("chatgpt")}
-        key={"ai-button"}
+        key={`ai-button-${where}`}
         id={props.id}
         actions={props.actions}
         buttonSize={button_size()}
@@ -641,7 +649,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
-  function renderSaveTimetravelGroup(): Rendered {
+  function renderSaveTimetravelGroup(where: "main" | "popover"): Rendered {
     if (props.type == "chat") {
       // these buttons don't make much sense for side chat.
       return;
@@ -651,7 +659,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     let x;
     if ((x = renderSaveButton(noLabel))) v.push(x);
     if ((x = renderTimeTravel(noLabel))) v.push(x);
-    if ((x = renderAssistant(noLabel))) v.push(x);
+    if ((x = renderAssistant(noLabel, where))) v.push(x);
     if ((x = renderComputeServer(noLabel))) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
@@ -717,8 +725,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
@@ -754,7 +762,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     // seems too horrible right now since it is a selector.
   }
 
-  function renderButtons(style?: CSS, noRefs?): Rendered {
+  function renderButtons(
+    style?: CSS,
+    noRefs?,
+    where: "main" | "popover" = "main",
+  ): Rendered {
     if (!is_active) {
       return (
         <div style={{ display: "flex", width: "100%" }}>
@@ -784,7 +796,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       }
 
       const v: (React.JSX.Element | undefined | null)[] = [];
-      v.push(renderSaveTimetravelGroup());
+      v.push(renderSaveTimetravelGroup(where));
       if (props.title != null) {
         v.push(renderTitle());
       }
@@ -841,7 +853,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
     return (
       <Popover
-        overlayStyle={{ zIndex: 990 }}
+        styles={{ root: { zIndex: 990 } }}
         open={
           props.tab_is_visible && props.is_visible && showMainButtonsPopover
         }
@@ -860,7 +872,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
                   marginRight: "3px",
                 }}
               >
-                {renderButtons({ maxHeight: "50vh", display: "block" }, true)}
+                {renderButtons(
+                  { maxHeight: "50vh", display: "block" },
+                  true,
+                  "popover",
+                )}
               </div>
               <div>
                 {renderFrameControls()}
@@ -1198,11 +1214,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (
       props.page == null ||
       props.pages == null ||
-      manageCommands.isExplicitlyHidden("page")
+      manageCommands.isExplicitlyHidden("page") ||
+      props.type === "output"
     ) {
       // do not render anything unless both page and pages are set
+      // also don't render for latex output panels (they have their own page controls)
+      // but DO render for standalone pdfjs viewers
       return;
     }
+
     let content;
     if (typeof props.pages == "number") {
       // pages contains the number of pages and page must also be a number

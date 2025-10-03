@@ -1,11 +1,13 @@
 import { compute_cost } from "./compute-cost";
 import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
-describe("use the compute-cost function with v1 pricing, no version, and a test version to compute the price of a license", () => {
+const MONTHLY_V1 = 27.15;
+
+describe("compute-cost v1 pricing", () => {
   // This is a monthly business subscription for 3 projects with 1 cpu, 2 GB ram and 3 GB disk,
   // using v1 pricing.  On the website right now it says this should cost:
   //   "Cost: USD $27.15 monthly USD $9.05 per project"
-  const monthly1 = 27.15;
+  const monthly1 = MONTHLY_V1;
   const info1 = {
     version: "1",
     end: new Date("2024-01-06T22:00:02.582Z"),
@@ -33,12 +35,13 @@ describe("use the compute-cost function with v1 pricing, no version, and a test 
     );
   });
 
-  it("computes correct cost when version not given (since version 1 is the default)", () => {
-    const info = { ...info1 };
+  it("computes cost default", () => {
+    const c_v1 = compute_cost(info1);
+    const c_v3 = compute_cost({ ...info1, version: "3" });
     // @ts-ignore
-    delete info["version"];
-    const cost = compute_cost(info);
-    expect(decimalMultiply(cost.cost_sub_month, cost.quantity)).toBe(monthly1);
+    const cWithoutVersion = compute_cost({ ...info1, version: undefined });
+    expect(c_v1).not.toEqual(c_v3);
+    expect(c_v3).toEqual(cWithoutVersion);
   });
 
   it("computes correct cost with a different version of pricing params", () => {
@@ -101,5 +104,45 @@ describe("a couple more consistency checks with prod", () => {
     } as const;
     const cost = compute_cost(info);
     expect(cost.cost).toBe(amount);
+  });
+});
+
+describe("compute-cost v3 pricing", () => {
+  // This is a monthly business subscription for 3 projects with 1 cpu, 2 GB ram and 3 GB disk,
+  // using v3 pricing.
+  const monthly3 = 31.5;
+  const info1 = {
+    version: "3",
+    end: new Date("2024-01-06T22:00:02.582Z"),
+    type: "quota",
+    user: "business",
+    boost: false,
+    start: new Date("2023-12-05T17:15:55.781Z"),
+    upgrade: "custom",
+    quantity: 3,
+    account_id: "6aae57c6-08f1-4bb5-848b-3ceb53e61ede",
+    custom_cpu: 1,
+    custom_ram: 2,
+    custom_disk: 3,
+    subscription: "monthly",
+    custom_member: true,
+    custom_uptime: "short",
+    custom_dedicated_cpu: 0,
+    custom_dedicated_ram: 0,
+  } as const;
+
+  it("computes the cost", () => {
+    const cost1 = compute_cost(info1);
+    expect(decimalMultiply(cost1.cost_sub_month, cost1.quantity)).toBe(
+      monthly3,
+    );
+  });
+
+  it("computes correct cost with a different version of pricing params", () => {
+    const info = { ...info1 };
+    // @ts-ignore
+    info.version = "test_1";
+    const cost = compute_cost(info);
+    expect(decimalMultiply(cost.cost_sub_month, cost.quantity)).toBe(54.3);
   });
 });

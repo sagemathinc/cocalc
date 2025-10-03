@@ -2,6 +2,8 @@
 Use a language model to explain what the code in a cell does.
 */
 
+// cSpell:ignore algpseudocodex algorithmicx formulize
+
 import {
   Alert,
   Button,
@@ -16,22 +18,31 @@ import {
   Tag,
   Tooltip,
 } from "antd";
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 import { Entries } from "type-fest";
 
+import { LanguageSelector } from "@cocalc/frontend/account/i18n-selector";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { A, Paragraph, RawPrompt, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { IntlMessage, labels } from "@cocalc/frontend/i18n";
+import { useLLMHistory } from "@cocalc/frontend/frame-editors/llm/use-llm-history";
+import {
+  IntlMessage,
+  labels,
+  Locale,
+  LOCALIZATIONS,
+} from "@cocalc/frontend/i18n";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -43,12 +54,18 @@ import { capitalize, getRandomColor, unreachable } from "@cocalc/util/misc";
 import { JupyterActions } from "../browser-actions";
 import { CODE_BAR_BTN_STYLE } from "../consts";
 import { cellOutputToText } from "../output-messages/ansi";
+import {
+  CellContextContent,
+  getNonemptyCellContents,
+} from "../util/cell-content";
+import { LLMCellContextSelector } from "./cell-context-selector";
 
 interface Props {
   actions?: JupyterActions;
   id: string;
   style?: CSSProperties;
   llmTools?: LLMTools;
+  cellType: "code" | "markdown";
 }
 
 const CONTENT_WIDTH = 600;
@@ -75,7 +92,8 @@ const TARGET_LANGS = [
 
 type TargetLanguage = (typeof TARGET_LANGS)[number];
 
-const MODES = [
+const MODES_CODE = [
+  "ask",
   "explain",
   "bugfix",
   "modify",
@@ -84,7 +102,17 @@ const MODES = [
   "translate",
 ] as const;
 
-export type Mode = (typeof MODES)[number];
+const MODES_MD = [
+  "ask",
+  "document",
+  "proofread",
+  "formulize",
+  "translate_text",
+] as const;
+
+export type CodeMode = (typeof MODES_CODE)[number];
+export type MarkdownMode = (typeof MODES_MD)[number];
+export type Mode = CodeMode | MarkdownMode;
 
 type PromptGen = ({
   language,
@@ -107,8 +135,14 @@ interface LLMTool {
   prompt: PromptGen;
 }
 
+const ASK_LABEL = defineMessage({
+  id: "jupyter.llm.cell-tool.actions.ask.label",
+  defaultMessage: "Ask",
+  description: "Verb: ask a question about this jupyter cell",
+});
+
 const IMPROVEMENTS = [
-  "code quality", // first entry will be filled in by default, as a convencience
+  "code quality", // first entry will be filled in by default, as a convenience
   "execution speed",
   "memory usage",
   "readability",
@@ -130,16 +164,105 @@ const MODIFICATIONS: Readonly<{ label: string; value: string }[]> = [
   { label: "Function", value: "Wrap the code in a function." },
   {
     label: "Refactor",
-    value: "Rrewrite the code according to best practices.",
+    value: "Rewrite the code according to best practices.",
   },
 ] as const;
 
-const jupytercell = ({ language, kernel_display }) =>
+const jupyterCell = ({ language, kernel_display }) =>
   `provided ${capitalize(
     language,
   )} code in a Jupyter Notebook cell (kernel: "${kernel_display}")`;
 
-const ACTIONS: { [mode in Mode]: LLMTool } = {
+interface LLMInputProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  multiline?: boolean;
+  historyPrompts: string[];
+  isQuerying: boolean;
+}
+
+function LLMInput({
+  label,
+  placeholder,
+  value,
+  onChange,
+  onKeyDown,
+  multiline,
+  historyPrompts,
+  isQuerying,
+}: LLMInputProps) {
+  const inputRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Focus the input and select existing text when the component mounts (dialog opens)
+    if (inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        // Select all existing text if there is any
+        if (value && inputRef.current?.input) {
+          inputRef.current.input.select();
+        }
+      }, 100);
+    }
+  }, []);
+
+  const inputComponent = multiline ? (
+    <Input.TextArea
+      ref={inputRef}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      rows={3}
+      style={{ width: "100%" }}
+    />
+  ) : (
+    <Input
+      ref={inputRef}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      style={{ width: "100%" }}
+    />
+  );
+
+  return (
+    <Flex gap="10px" align="center" style={{ width: "100%" }}>
+      {label}:
+      <Space.Compact
+        style={{ width: "100%", display: "flex", alignItems: "stretch" }}
+      >
+        {inputComponent}
+        <LLMHistorySelector
+          prompts={historyPrompts}
+          onSelect={onChange}
+          disabled={isQuerying}
+          alignSelf="stretch"
+        />
+      </Space.Compact>
+    </Flex>
+  );
+}
+
+const ACTIONS_CODE: { [mode in CodeMode]: LLMTool } = {
+  ask: {
+    icon: "question-circle",
+    label: ASK_LABEL,
+    descr: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.ask.descr",
+      defaultMessage:
+        "Ask a custom question about this cell with optional context from surrounding cells.",
+    }),
+    prompt: ({ language, kernel_display, extra }) =>
+      `Your task is to answer the following question about the ${jupyterCell({
+        language,
+        kernel_display,
+      })}. Use the context from surrounding cells if provided to give a more comprehensive answer.\n\n${extra}`,
+  },
   explain: {
     icon: "sound-outlined",
     label: defineMessage({
@@ -153,7 +276,7 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
     prompt: ({ language, stepByStep, kernel_display }) =>
       `Your task is to give a ${
         stepByStep ? `step-by-step explanation` : `short high-level summary`
-      } of the ${jupytercell({ language, kernel_display })}:`,
+      } of the ${jupyterCell({ language, kernel_display })}:`,
   },
   bugfix: {
     icon: "clean-outlined",
@@ -164,10 +287,10 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
     descr: defineMessage({
       id: "jupyter.llm.cell-tool.actions.bugfix.descr",
       defaultMessage:
-        "Describe the problem of that cell in order to get a bugfixed version.",
+        "Describe the problem in the cell to get a bug-fixed version.",
     }),
     prompt: ({ language, extra, kernel_display }) =>
-      `Your task is to analyze the ${jupytercell({
+      `Your task is to analyze the ${jupyterCell({
         language,
         kernel_display,
       })}. Identify any bugs or errors. Explain the problems you found in the original code and how your fixes address them.${
@@ -187,7 +310,7 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
       defaultMessage: "Modify the code in the cell",
     }),
     prompt: ({ language, extra, kernel_display }) =>
-      `Your task is to modify the ${jupytercell({
+      `Your task is to modify the ${jupyterCell({
         language,
         kernel_display,
       })}. The modification is "${extra}"`,
@@ -203,10 +326,10 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
       defaultMessage: "Improve the code in that cell.",
     }),
     prompt: ({ language, extra, kernel_display }) =>
-      `Your task is to analyze the ${jupytercell({
+      `Your task is to analyze the ${jupyterCell({
         language,
         kernel_display,
-      })}. Identify any areas of improvments. The new code must be functional, efficient, and adhere to best practices. Explain how your code improves it.${
+      })}. Identify any areas of improvements. The new code must be functional, efficient, and adhere to best practices. Explain how your code improves it.${
         extra ? ` In particular, optimize this aspect: "${extra}"` : ""
       }`,
   },
@@ -223,7 +346,7 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
       defaultMessage: "Add documentation",
     }),
     prompt: ({ language, kernel_display }) =>
-      `Your task is to add documentation to the ${jupytercell({
+      `Your task is to add documentation to the ${jupyterCell({
         language,
         kernel_display,
       })}. The new code must be exactly the same. Insert additional documentation comments and rewrite existing comments.`,
@@ -255,10 +378,82 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   },
 } as const;
 
-export function LLMCellTool({ actions, id, style, llmTools }: Props) {
+const ACTIONS_MD: { [mode in MarkdownMode]: LLMTool } = {
+  ask: {
+    icon: "question-circle",
+    label: ASK_LABEL,
+    descr: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.ask.descr",
+      defaultMessage:
+        "Ask a custom question about this cell with optional context from surrounding cells.",
+    }),
+    prompt: ({ extra }) =>
+      `Your task is to answer the following question about the provided Markdown content. Use the context from surrounding cells if provided to give a more comprehensive answer.\n\n${extra}`,
+  },
+  document: {
+    icon: "book",
+    label: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.document.label",
+      defaultMessage: "Document",
+      description:
+        "Label on a button to write a documentation, i.e. to 'document' this",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.document.descr",
+      defaultMessage: "Write a summary about all the cells in the context",
+    }),
+    prompt: ({ extra }) =>
+      `Your task is to write comprehensive documentation based on the notebook context provided. Use the context from surrounding cells to understand the overall analysis or workflow, and enhance the current cell's content accordingly. ${
+        extra ? `Focus specifically on: ${extra}` : ""
+      }`,
+  },
+  proofread: {
+    icon: "check-circle",
+    label: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.proofread.label",
+      defaultMessage: "Proofread",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.proofread.descr",
+      defaultMessage: "Enhance language, fix spelling and grammar errors.",
+    }),
+    prompt: () =>
+      `Your task is to proofread the provided Markdown text. Fix spelling and grammar errors, improve clarity and readability, and enhance the overall language quality while preserving the original meaning and structure.`,
+  },
+  formulize: {
+    icon: "fx",
+    label: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.formulize.label",
+      defaultMessage: "Add Formulas",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.formulize.descr",
+      defaultMessage:
+        "Add mathematical formulas to make text more readable for scientists.",
+    }),
+    prompt: () =>
+      `Your task is to enhance the provided Markdown text by adding appropriate mathematical formulas to make it more readable for scientists. Use LaTeX math notation with $...$ for inline formulas and $$...$$ for display formulas. You can also use equation environments when appropriate. Keep all original content but add relevant mathematical expressions where they would enhance understanding.`,
+  },
+  translate_text: {
+    icon: "global",
+    label: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.translate-text.label",
+      defaultMessage: "Translate",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.cell-tool.actions.md.translate-text.descr",
+      defaultMessage: "Translate the text content to another human language.",
+    }),
+    prompt: ({ target = "Spanish" }) =>
+      `Your task is to translate the provided Markdown text to ${target}. Preserve the Markdown formatting and structure, including any LaTeX formulas, code blocks, and other markup elements. Only translate the actual text content.`,
+  },
+} as const;
+
+export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   const { actions: project_actions, onCoCalcCom } = useProjectContext();
   const intl = useIntl();
   const { project_id, path } = useFrameContext();
+  const frameActions = useNotebookFrameActions();
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [mode, setMode] = useState<Mode | null>(null);
@@ -267,37 +462,117 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   const [extraModify, setExtraModify] = useState<string>(
     MODIFICATIONS[0].value,
   );
-  const [targetLangauge, setTargetLanguage] =
+  const [extraAsk, setExtraAsk] = useState<string>("");
+  const [targetLanguage, setTargetLanguage] =
     useState<TargetLanguage>("Python");
   const [otherLanguage, setOtherLanguage] = useState("");
+  const [targetTextLanguage, setTargetTextLanguage] = useState<Locale>("es"); // Default to Spanish
   const [includeOutput, setIncludeOutput] = useState<boolean>(false);
   const [stepByStep, setStepByStep] = useState<boolean>(true);
   const [message, setMessage] = useState<string>("");
   const [tokens, setTokens] = useState<number>(0);
+  const { prompts: historyPrompts, addPrompt } = useLLMHistory("general");
+
+  // Context selection for document mode
+  const [contextRange, setContextRange] = useState<[number, number]>([-2, 2]);
+  const [cellTypes, setCellTypes] = useState<"all" | "code">("all");
 
   const kernelLanguage = useMemo((): string => {
     const kernel_info = actions?.store.get("kernel_info");
     return kernel_info?.get("language")?.toLowerCase() ?? "python";
   }, [actions?.store.get("kernel_info")]);
 
-  const extra = useMemo(() => {
+  const isMarkdownCell = cellType === "markdown";
+
+  const getAction = (mode: Mode): LLMTool => {
+    if (isMarkdownCell) {
+      return ACTIONS_MD[mode as MarkdownMode];
+    } else {
+      return ACTIONS_CODE[mode as CodeMode];
+    }
+  };
+
+  // Map language codes to full language names for translate_text mode
+  const getLanguageName = (code: string): string => {
+    return LOCALIZATIONS[code as keyof typeof LOCALIZATIONS]?.name ?? code;
+  };
+
+  // Show context selection for:
+  // - ask, bugfix and explain
+  // - document mode (markdown cells only)
+  const showContext: boolean =
+    mode === "ask" ||
+    mode === "explain" ||
+    mode === "bugfix" ||
+    mode === "document";
+
+  const getContextContent = (): CellContextContent => {
+    if (!showContext) return {};
+
+    // contextRange is like [-2, 2], so aboveCount should be 2, belowCount should be 2
+    const aboveCount = Math.abs(contextRange[0]);
+    const belowCount = Math.abs(contextRange[1]);
+
+    return getNonemptyCellContents({
+      actions: frameActions.current,
+      id,
+      cellTypes,
+      lang: kernelLanguage,
+      aboveCount,
+      belowCount,
+    });
+  };
+
+  const extra = (() => {
     switch (mode) {
+      case "ask":
+        return extraAsk;
       case "bugfix":
         return extraBug;
       case "improve":
         return extraImprove;
       case "modify":
         return extraModify;
+      case "document":
+        return extraAsk; // For markdown document mode, reuse the ask input
       default:
         return "";
     }
-  }, [mode, extraBug, extraImprove, extraModify]);
+  })();
+
+  const isSubmitDisabled: boolean = (() => {
+    if (mode == null) return true;
+    switch (mode) {
+      case "ask":
+        return !extraAsk.trim();
+      case "bugfix":
+        return !extraBug.trim();
+      case "improve":
+        return !extraImprove.trim();
+      case "modify":
+        return !extraModify.trim();
+      case "explain":
+        return false;
+      case "document":
+        return false; // Document mode should never be disabled
+      case "translate":
+        return targetLanguage === OTHER_LANG && !otherLanguage.trim();
+      case "translate_text":
+        return !targetTextLanguage;
+      case "proofread":
+      case "formulize":
+        return false;
+      default:
+        unreachable(mode);
+        return false;
+    }
+  })();
 
   useEffect(() => {
     if (mode !== "translate") return;
     // we change the target language to R, if the cell language is python – otherwise target is python
     // we change the target language, if it is the same as the kernel language
-    if (targetLangauge.toLocaleLowerCase() === kernelLanguage) {
+    if (targetLanguage.toLocaleLowerCase() === kernelLanguage) {
       setTargetLanguage(kernelLanguage === "python" ? "R" : "Python");
     }
   }, [mode, kernelLanguage]);
@@ -312,11 +587,14 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     id,
     actions,
     llmTools?.model,
-    includeOutput,
+    cellTypes,
+    contextRange,
     extra,
-    targetLangauge,
+    includeOutput,
     otherLanguage,
     stepByStep,
+    targetLanguage,
+    targetTextLanguage,
   ]);
 
   // end of hooks
@@ -385,11 +663,17 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     const kernel_info = actions.store.get("kernel_info");
     const language = kernel_info.get("language");
     const kernel_display = kernel_info.get("display_name");
-    const prompt = ACTIONS[mode].prompt({
+
+    const prompt = getAction(mode).prompt({
       language,
       kernel_display,
       extra,
-      target: targetLangauge === OTHER_LANG ? otherLanguage : targetLangauge,
+      target:
+        mode === "translate_text"
+          ? getLanguageName(targetTextLanguage)
+          : targetLanguage === OTHER_LANG
+            ? otherLanguage
+            : targetLanguage,
       stepByStep,
     });
 
@@ -403,9 +687,42 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     chunks.push(prompt);
 
     if (!preview) chunks.push(`<details${preview ? " open" : ""}>`);
+
+    // Add context for ask and document modes (inside details)
+    let contextContent: CellContextContent | null = null;
+    if (showContext) {
+      contextContent = getContextContent();
+      if (contextContent.before || contextContent.after) {
+        chunks.push("Context from surrounding cells:");
+
+        if (contextContent.before) {
+          chunks.push("Cells BEFORE current cell:");
+          chunks.push(`<before>\n${contextContent.before}\n</before>`);
+        }
+
+        if (contextContent.after) {
+          chunks.push("Cells AFTER current cell:");
+          chunks.push(`<after>\n${contextContent.after}\n</after>`);
+        }
+
+        chunks.push(""); // Add empty line for separation
+      }
+    }
+
+    // For modes with context, label the current cell content
+    if (
+      contextContent != null &&
+      (contextContent.before || contextContent.after)
+    ) {
+      chunks.push("Current cell content:");
+    }
+
     const input = cell.get("input");
     const delimI = backtickSequence(input);
-    chunks.push(`${delimI}${language}\n${input}\n${delimI}`);
+
+    chunks.push(
+      `${delimI}${isMarkdownCell ? "markdown" : language}\n${input}\n${delimI}`,
+    );
     if (includeOutput) {
       chunks.push("Output:");
       const fullOutput = cellOutputToText(cell);
@@ -430,12 +747,14 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   }
 
   function renderDropdown() {
+    const actions = isMarkdownCell ? ACTIONS_MD : ACTIONS_CODE;
+
     return (
       <Dropdown
         trigger={["click"]}
         mouseLeaveDelay={1.5}
         menu={{
-          items: (Object.entries(ACTIONS) as Entries<typeof ACTIONS>).map(
+          items: (Object.entries(actions) as Entries<typeof actions>).map(
             ([mode, action]) => {
               return {
                 key: mode,
@@ -445,7 +764,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
                     placement={"left"}
                   >
                     <Icon name={action.icon} style={{ marginRight: "5px" }} />{" "}
-                    {intl.formatMessage(action.label)}
+                    {intl.formatMessage(action.label)}…
                   </Tooltip>
                 ),
                 onClick: () => setMode(mode as Mode),
@@ -480,6 +799,15 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   function renderExplanation() {
     if (mode == null) return null;
     switch (mode) {
+      case "ask":
+        return (
+          <Paragraph type="secondary">
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.ask"
+              defaultMessage={`Ask any question about the code in this cell. The language model will analyze the code and provide an answer based on your specific question.`}
+            />
+          </Paragraph>
+        );
       case "improve":
         return (
           <Paragraph type="secondary">
@@ -487,7 +815,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
               id="jupyter.llm.cell-tool.explanation.improve"
               defaultMessage={`The selected language model will analyze the code and suggest
                               improvements. Beware, that the results are not guaranteed to be
-                              correct, nor could cause subtle problmes – review them carefully.`}
+                              correct, nor could cause subtle problems – review them carefully.`}
             />
           </Paragraph>
         );
@@ -528,8 +856,11 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
           <Paragraph type="secondary">
             <FormattedMessage
               id="jupyter.llm.cell-tool.explanation.document"
-              defaultMessage={`The language model will add documentation lines to the code in the
-            cell.`}
+              defaultMessage={
+                isMarkdownCell
+                  ? `The language model will write comprehensive documentation based on the context from surrounding cells and enhance the current cell's content.`
+                  : `The language model will add documentation lines to the code in the cell.`
+              }
             />
           </Paragraph>
         );
@@ -545,35 +876,68 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             />
           </Paragraph>
         );
+      case "proofread":
+        return (
+          <Paragraph type="secondary">
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.proofread"
+              defaultMessage={`The language model will proofread the markdown text, fixing spelling
+                              and grammar errors while enhancing clarity and readability.`}
+            />
+          </Paragraph>
+        );
+      case "formulize":
+        return (
+          <Paragraph type="secondary">
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.formulize"
+              defaultMessage={`The language model will add appropriate mathematical formulas using
+                              LaTeX notation to make the text more readable for scientists.`}
+            />
+          </Paragraph>
+        );
+      case "translate_text":
+        return (
+          <Paragraph type="secondary">
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.translate-text"
+              defaultMessage={`The language model will translate the markdown text to the selected
+                              language while preserving formatting and structure.`}
+            />
+          </Paragraph>
+        );
       default:
         unreachable(mode);
         return null;
     }
   }
 
-  function renderInput(
-    label: string,
-    placeholder: string,
-    extra: string,
-    setExtra: (s: string) => void,
-  ) {
-    if (mode == null) return;
-    return (
-      <Flex gap="10px" align="center" style={{ width: "100%" }}>
-        {label}:
-        <Input
-          value={extra}
-          placeholder={placeholder}
-          onChange={(e) => setExtra(e.target.value)}
-          onKeyDown={handleKeyDown}
-          style={{ width: "100%" }}
-        />
-      </Flex>
-    );
-  }
-
   function renderControls() {
     switch (mode) {
+      case "ask": {
+        const label = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.ask.label",
+          defaultMessage: "Question",
+        });
+        const placeholder = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.ask.placeholder",
+          defaultMessage: `What would you like to know about this ${
+            cellType === "code" ? "code" : "text"
+          }?`,
+        });
+        return (
+          <LLMInput
+            label={label}
+            placeholder={placeholder}
+            value={extraAsk}
+            onChange={setExtraAsk}
+            onKeyDown={handleKeyDown}
+            historyPrompts={historyPrompts}
+            isQuerying={isQuerying}
+          />
+        );
+      }
+
       case "bugfix": {
         const label = intl.formatMessage({
           id: "jupyter.llm.cell-tool.bugfix.label",
@@ -583,7 +947,17 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
           id: "jupyter.llm.cell-tool.bugfix.placeholder",
           defaultMessage: "Describe the problem to fix…",
         });
-        return renderInput(label, placeholder, extraBug, setExtraBug);
+        return (
+          <LLMInput
+            label={label}
+            placeholder={placeholder}
+            value={extraBug}
+            onChange={setExtraBug}
+            onKeyDown={handleKeyDown}
+            historyPrompts={historyPrompts}
+            isQuerying={isQuerying}
+          />
+        );
       }
 
       case "improve": {
@@ -597,7 +971,15 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
         });
         return (
           <>
-            {renderInput(label, placeholder, extraImprove, setExtraImprove)}
+            <LLMInput
+              label={label}
+              placeholder={placeholder}
+              value={extraImprove}
+              onChange={setExtraImprove}
+              onKeyDown={handleKeyDown}
+              historyPrompts={historyPrompts}
+              isQuerying={isQuerying}
+            />
             <Paragraph
               style={{ display: "flex", alignItems: "center", gap: "10px" }}
             >
@@ -630,7 +1012,15 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
         });
         return (
           <>
-            {renderInput(label, placeholder, extraModify, setExtraModify)}
+            <LLMInput
+              label={label}
+              placeholder={placeholder}
+              value={extraModify}
+              onChange={setExtraModify}
+              onKeyDown={handleKeyDown}
+              historyPrompts={historyPrompts}
+              isQuerying={isQuerying}
+            />
             <Paragraph>
               {MODIFICATIONS.map(({ label, value }) => (
                 <Tag
@@ -693,14 +1083,14 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             <Space direction="horizontal">
               <Text>Target language:</Text>
               <Select
-                value={targetLangauge}
+                value={targetLanguage}
                 onChange={(val) => setTargetLanguage(val as TargetLanguage)}
                 options={other.map((l) => {
                   return { key: l, label: l, value: l };
                 })}
                 popupMatchSelectWidth={false}
               />
-              {targetLangauge === OTHER_LANG ? (
+              {targetLanguage === OTHER_LANG ? (
                 <>
                   {intl.formatMessage(labels.other)}:
                   <Input
@@ -715,8 +1105,71 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             </Space>
           </Paragraph>
         );
+
+      case "translate_text":
+        return (
+          <Paragraph>
+            <Space direction="horizontal">
+              <Text>Target language:</Text>
+              <LanguageSelector
+                value={targetTextLanguage}
+                onChange={(lang) => setTargetTextLanguage(lang)}
+                style={{ minWidth: "200px" }}
+              />
+            </Space>
+          </Paragraph>
+        );
+
+      case "document":
+        if (isMarkdownCell) {
+          const label = intl.formatMessage({
+            id: "jupyter.llm.cell-tool.document.label",
+            defaultMessage: "Focus",
+          });
+          const placeholder = intl.formatMessage({
+            id: "jupyter.llm.cell-tool.document.placeholder",
+            defaultMessage:
+              "What should the documentation focus on? (optional)",
+          });
+          return (
+            <LLMInput
+              label={label}
+              placeholder={placeholder}
+              value={extraAsk}
+              onChange={setExtraAsk}
+              onKeyDown={handleKeyDown}
+              historyPrompts={historyPrompts}
+              isQuerying={isQuerying}
+            />
+          );
+        }
+        return null;
+
+      case "proofread":
+      case "formulize":
+      case null:
+        return null; // These modes don't need additional controls
+
+      default:
+        unreachable(mode);
     }
     return null;
+  }
+
+  function renderContextSelection() {
+    if (!showContext) return null;
+
+    return (
+      <LLMCellContextSelector
+        contextRange={contextRange}
+        onContextRangeChange={setContextRange}
+        cellTypes={cellTypes}
+        onCellTypesChange={setCellTypes}
+        currentCellId={id}
+        frameActions={frameActions.current}
+        mode="analysis"
+      />
+    );
   }
 
   function renderContent() {
@@ -735,68 +1188,75 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
       >
         {renderExplanation()}
         {renderControls()}
-        {renderIncludeOutput(model)}
+        {renderContextSelection()}
+        {renderIncludeOutput()}
+        {renderPreviewLLM(model)}
         {renderFooter(model)}
       </Space>
     );
   }
 
-  function renderIncludeOutput(model) {
-    if (llmTools == null) return;
+  function renderIncludeOutput() {
+    if (llmTools == null || isMarkdownCell) return;
     const output_label = defineMessage({
       id: "jupyter.llm.cell-tool.include-output.label",
       defaultMessage: `{include, select, true {Include output} other {No output}}`,
     });
     return (
-      <>
-        <Flex align="center" gap="10px">
-          <Flex flex={0}>
-            <Switch
-              onChange={(val) => setIncludeOutput(val)}
-              unCheckedChildren={intl.formatMessage(output_label, {
-                include: false,
-              })}
-              checkedChildren={intl.formatMessage(output_label, {
-                include: true,
-              })}
-            />
-          </Flex>
-          <Flex flex={1}>
-            <Text type="secondary">
-              <FormattedMessage
-                id="jupyter.llm.cell-tool.include-output.description"
-                defaultMessage={`Including the cell's output helps {name} to
-                                better understand the code, but makes the prompt larger!`}
-                values={{ name: modelToName(llmTools.model) }}
-              />
-            </Text>
-          </Flex>
+      <Flex align="center" gap="10px">
+        <Flex flex={0}>
+          <Switch
+            onChange={(val) => setIncludeOutput(val)}
+            unCheckedChildren={intl.formatMessage(output_label, {
+              include: false,
+            })}
+            checkedChildren={intl.formatMessage(output_label, {
+              include: true,
+            })}
+          />
         </Flex>
-        <Collapse
-          items={[
-            {
-              key: "1",
-              label: (
-                <FormattedMessage
-                  id="jupyter.llm.cell-tool.preview"
-                  defaultMessage={`Click to see what will be sent to {model}.`}
-                  values={{ model: modelToName(model) }}
-                />
-              ),
-              children: (
-                <RawPrompt
-                  input={message}
-                  style={{ border: "none", padding: "0", margin: "0" }}
-                />
-              ),
-            },
-          ]}
-        />
-      </>
+        <Flex flex={1}>
+          <Text type="secondary">
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.include-output.description"
+              defaultMessage={`Including the cell's output helps {name} to
+                              better understand the code, but makes the prompt larger!`}
+              values={{ name: modelToName(llmTools.model) }}
+            />
+          </Text>
+        </Flex>
+      </Flex>
     );
   }
 
-  function renderFooter(model) {
+  function renderPreviewLLM(model: LanguageModel) {
+    if (llmTools == null) return;
+    return (
+      <Collapse
+        items={[
+          {
+            key: "1",
+            label: (
+              <FormattedMessage
+                id="jupyter.llm.cell-tool.preview"
+                defaultMessage={`Click to see what will be sent to {model}.`}
+                values={{ model: modelToName(model) }}
+              />
+            ),
+            children: (
+              <RawPrompt
+                input={message}
+                rawText
+                style={{ border: "none", padding: "0", margin: "0" }}
+              />
+            ),
+          },
+        ]}
+      />
+    );
+  }
+
+  function renderFooter(model: LanguageModel) {
     return (
       <>
         <Paragraph type="secondary">
@@ -827,6 +1287,11 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   async function onConfirm() {
     setIsQuerying(true);
     try {
+      // Add prompt to history based on mode
+      if (mode && extra.trim()) {
+        addPrompt(extra);
+      }
+
       await getExplanation(false);
       track(TRACKING_KEY, {
         action: "submitted",
@@ -842,7 +1307,12 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
           ? {
               language: kernelLanguage,
               target:
-                targetLangauge === OTHER_LANG ? otherLanguage : targetLangauge,
+                targetLanguage === OTHER_LANG ? otherLanguage : targetLanguage,
+            }
+          : null),
+        ...(mode === "translate_text"
+          ? {
+              target: getLanguageName(targetTextLanguage),
             }
           : null),
       });
@@ -875,7 +1345,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
           description={
             "Operate on a specific cell in a Jupyter Notebook. task are words like 'Explain', 'Fix', 'Document', 'Describe', ..."
           }
-          values={{ task: intl.formatMessage(ACTIONS[mode].label) }}
+          values={{ task: intl.formatMessage(getAction(mode).label) }}
         />{" "}
         <LLMSelector
           model={llmTools.model}
@@ -886,7 +1356,13 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     );
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: React.KeyboardEvent) {
+    // Only handle key events from input elements, not from other components like Slider
+    const target = e.target as HTMLElement;
+    if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
+      return;
+    }
+
     switch (e.key) {
       case "Enter":
         onConfirm();
@@ -909,7 +1385,11 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
         footer={(_, { CancelBtn }) => (
           <Space>
             <CancelBtn />
-            <LLMQueryDropdownButton onClick={onConfirm} llmTools={llmTools} />
+            <LLMQueryDropdownButton
+              onClick={onConfirm}
+              llmTools={llmTools}
+              disabled={isSubmitDisabled}
+            />
           </Space>
         )}
       >

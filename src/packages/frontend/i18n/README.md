@@ -4,7 +4,7 @@
 
 Right now, all of this is only for the frontend – the Next.js part could be done similarly, but needs a separate workflow. In particular, on those "next" landing pages there would be additional sections for different languages – here, we translate specific strings in-place.
 
-To get started, you either define messages directly in a `tsx` file in the component or use `./common.ts` for shared messages, etc. Search for e.g. `labels.projects` to see how such defined messages are used. It is generally discuraged to re-use messages, because context usually matters – the exception are short labels and single words, which should actually be consistent across their usage.
+To get started, you either define messages directly in a `tsx` file in the component or use `./common.ts` for messages that are used in multiple places across the application. Search for e.g. `labels.projects` to see how such defined messages are used. It is generally discouraged to re-use messages, because context usually matters – the exception are short labels and single words, which should actually be consistent across their usage. Use `./common.ts` only for messages that need to be shared; component-specific messages should be defined locally in the component file where they are used.
 
 To get a feeling how this works, search in the source code for existing usages. At the end of this file are detailed examples.
 

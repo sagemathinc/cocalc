@@ -21,7 +21,7 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import A from "components/misc/A";
 import { News } from "components/news/news";
-import { NewsWithFuture } from "components/news/types";
+import { NewsWithStatus } from "components/news/types";
 import { useDateStr } from "components/news/useDateStr";
 import Loading from "components/share/loading";
 import { MAX_WIDTH, NOT_FOUND } from "lib/config";
@@ -32,7 +32,7 @@ import withCustomize from "lib/with-customize";
 
 interface Props {
   customize: CustomizeType;
-  news: NewsWithFuture;
+  news: NewsWithStatus;
   prev?: NewsPrevNext;
   next?: NewsPrevNext;
   metadata: {
@@ -42,12 +42,14 @@ interface Props {
     image: string;
     published: string;
     modified: string;
-  }
+  };
 }
 
-const formatNewsTime = (newsDate: NewsWithFuture['date']) => (
-  typeof newsDate === "number" ? dayjs.unix(newsDate) : dayjs(newsDate)
-).toISOString();
+const formatNewsTime = (newsDate: NewsWithStatus["date"]) =>
+  (typeof newsDate === "number"
+    ? dayjs.unix(newsDate)
+    : dayjs(newsDate)
+  ).toISOString();
 
 export default function NewsPage(props: Props) {
   const { customize, news, prev, next, metadata } = props;
@@ -146,17 +148,17 @@ export default function NewsPage(props: Props) {
     <Customize value={customize}>
       <Head title={title} />
       <NextHead>
-        <meta property="og:type" content="article"/>
+        <meta property="og:type" content="article" />
 
-        <meta property="og:title" content={metadata.title}/>
-        <meta property="og:url" content={metadata.url}/>
-        <meta property="og:image" content={metadata.image}/>
+        <meta property="og:title" content={metadata.title} />
+        <meta property="og:url" content={metadata.url} />
+        <meta property="og:image" content={metadata.image} />
 
-        <meta property="article:published_time" content={metadata.published}/>
-        <meta property="article:modified_time" content={metadata.modified}/>
+        <meta property="article:published_time" content={metadata.published} />
+        <meta property="article:modified_time" content={metadata.modified} />
       </NextHead>
       <Layout>
-        <Header/>
+        <Header />
         <Layout.Content
           style={{
             backgroundColor: "white",
@@ -197,10 +199,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     // Extract image URL from parsed Markdown. By converting to HTML first, we
     // automatically add support for HTML that's been embedded into Markdown.
     //
-    const $markdown = markdown_to_cheerio(news.text)
-    const imgSrc = $markdown('img')
-      .first()
-      .attr('src');
+    const $markdown = markdown_to_cheerio(news.text);
+    const imgSrc = $markdown("img").first().attr("src");
 
     // Format published time
     //
@@ -219,10 +219,10 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       ? formatNewsTime(newsModificationTimestamps[0])
       : publishedTime;
 
-    const metadata: Props['metadata'] = {
+    const metadata: Props["metadata"] = {
       title: news.title,
       url: `${siteURL}${slugURL(news)}`,
-      image: imgSrc || '',
+      image: imgSrc || "",
       published: publishedTime,
       modified: modifiedTime,
       author: `${siteName}`,

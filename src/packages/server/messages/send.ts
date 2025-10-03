@@ -3,8 +3,6 @@ Send an internal message via cocalc's internal messaging system.
 */
 
 import { join } from "path";
-
-import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
@@ -13,6 +11,7 @@ import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import type { Message } from "@cocalc/util/db-schema/messages";
 import { getSupportAccountId } from "./support-account";
+import siteUrl from "@cocalc/server/hub/site-url";
 
 const logger = getLogger("server:messages:send");
 
@@ -140,8 +139,7 @@ or [create a support ticket](${await url("support", "new")}).\n\n---\n\n`;
 // Given a URL like /support/new, this returns something like https://cocalc.com/support/new,
 // but for this site.   url("support", "new")
 export async function url(...args) {
-  const { dns } = await getServerSettings();
-  return `https://${dns}${join(basePath, ...args.map((x) => `${x}`))}`;
+  return await siteUrl(join(...args.map((x) => `${x}`)));
 }
 
 export const testMessages: Message[] = [];

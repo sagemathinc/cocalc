@@ -3,6 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import dayjs from "dayjs";
+import { clamp, isDate } from "lodash";
+import { NextRouter } from "next/router";
+
 import { testDedicatedDiskNameBasic } from "@cocalc/util/licenses/check-disk-name-basics";
 import { BOOST, REGULAR } from "@cocalc/util/upgrades/consts";
 import {
@@ -14,21 +18,22 @@ import {
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
 import type { DateRange } from "@cocalc/util/upgrades/shopping";
-import { clamp, isDate } from "lodash";
-import dayjs from "dayjs";
-import { NextRouter } from "next/router";
 import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
-
 // Various support functions for storing quota parameters as a query parameter in the browser URL
 
 export function encodeRange(
-  vals: [Date | string | undefined, Date | string | undefined]
+  vals: [Date | string | undefined, Date | string | undefined],
 ): string {
   const [start, end] = vals;
   if (start == null || end == null) {
     return "";
   }
-  return `${new Date(start).toISOString()}_${new Date(end).toISOString()}`;
+  try {
+    return `${new Date(start).toISOString()}_${new Date(end).toISOString()}`;
+  } catch {
+    // there are a LOT of values for start/end that would throw an error above, e.g., "undefined".
+    return "";
+  }
 }
 
 // the inverse of encodeRange
@@ -75,7 +80,7 @@ const DEDICATED_FIELDS = [
 ] as const;
 
 function getFormFields(
-  type: "regular" | "boost" | "dedicated"
+  type: "regular" | "boost" | "dedicated",
 ): readonly string[] {
   switch (type) {
     case "regular":
@@ -87,14 +92,27 @@ function getFormFields(
 }
 
 export const ALL_FIELDS: Set<string> = new Set(
-  REGULAR_FIELDS.concat(DEDICATED_FIELDS as any).concat(["type" as any])
+  REGULAR_FIELDS.concat(DEDICATED_FIELDS as any).concat([
+    "type",
+    "source",
+  ] as any),
 );
+
+// Global flag to prevent URL encoding during initial page load
+let allowUrlEncoding = false;
+
+export function setAllowUrlEncoding(allow: boolean) {
+  allowUrlEncoding = allow;
+}
 
 export function encodeFormValues(
   router: NextRouter,
   vals: any,
-  type: "regular" | "boost" | "dedicated"
+  type: "regular" | "boost" | "dedicated",
 ): void {
+  if (!allowUrlEncoding) {
+    return;
+  }
   const { query } = router;
   for (const key in vals) {
     if (!getFormFields(type).includes(key)) continue;
@@ -120,7 +138,7 @@ function decodeValue(val): boolean | number | string | DateRange {
 
 function fixNumVal(
   val: any,
-  param: { min: number; max: number; dflt: number }
+  param: { min: number; max: number; dflt: number },
 ): number {
   if (typeof val !== "number") {
     return param.dflt;
@@ -136,7 +154,7 @@ function fixNumVal(
  */
 export function decodeFormValues(
   router: NextRouter,
-  type: "regular" | "boost" | "dedicated"
+  type: "regular" | "boost" | "dedicated",
 ): {
   [key: string]: string | number | boolean;
 } {
@@ -146,9 +164,19 @@ export function decodeFormValues(
   const data = {};
   for (const key in router.query) {
     const val = router.query[key];
-    if (!fields.includes(key)) continue;
-    if (typeof val !== "string") continue;
-    data[key] = key === "range" ? decodeRange(val) : decodeValue(val);
+    if (!fields.includes(key)) {
+      continue;
+    }
+    if (typeof val !== "string") {
+      // Handle non-string values by converting them to string first
+      const stringVal = String(val);
+      const decoded =
+        key === "range" ? decodeRange(stringVal) : decodeValue(stringVal);
+      data[key] = decoded;
+      continue;
+    }
+    const decoded = key === "range" ? decodeRange(val) : decodeValue(val);
+    data[key] = decoded;
   }
 
   // we also have to sanitize the values
