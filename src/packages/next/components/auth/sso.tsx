@@ -9,7 +9,7 @@ import { join } from "path";
 import { CSSProperties, ReactNode, useMemo } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
+import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 import { PRIMARY_SSO } from "@cocalc/util/types/passport-types";
 import { Strategy } from "@cocalc/util/types/sso";
 import Loading from "components/share/loading";
@@ -67,6 +67,7 @@ export default function SSO(props: SSOProps) {
       public: true,
       exclusiveDomains: [],
       doNotHide: true,
+      updateOnLogin: false,
     };
 
     return (

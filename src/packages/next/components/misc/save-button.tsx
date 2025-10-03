@@ -1,12 +1,14 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { cloneDeep, debounce, isEqual } from "lodash";
 import { Alert, Button, Space } from "antd";
-import useIsMounted from "lib/hooks/mounted";
+import { cloneDeep, debounce, isEqual } from "lodash";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+
 import Loading from "components/share/loading";
 import api from "lib/api/post";
+import useIsMounted from "lib/hooks/mounted";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import { SCHEMA } from "@cocalc/util/schema";
 import { keys } from "@cocalc/util/misc";
+import { SCHEMA } from "@cocalc/util/schema";
 
 interface Props {
   edited: any;
@@ -119,7 +121,7 @@ export default function SaveButton({
 
   const doSaveDebounced = useMemo(
     () => debounce(doSave, debounce_ms),
-    [onSave]
+    [onSave],
   );
 
   useEffect(() => {
