@@ -22,6 +22,7 @@ import {
 import { labels } from "@cocalc/frontend/i18n";
 
 import { Actions } from "./actions";
+import { CONTROL_BUTTON_PADDING } from "./output-control-pages";
 
 const ZOOM_SNAP_TARGETS = ZOOM_PERCENTAGES.map((p) => p / 100);
 
@@ -194,6 +195,9 @@ export function ZoomControls({ actions, id, narrow }: ZoomControlsProps) {
     })),
   ];
 
+  // add some padding if now text is shown, otherwise the button is too small
+  const btnStyle = narrow ? { padding: CONTROL_BUTTON_PADDING } : undefined;
+
   return (
     <Space.Compact>
       <Tip title={intl.formatMessage(labels.zoom_in)} placement="top">
@@ -201,6 +205,7 @@ export function ZoomControls({ actions, id, narrow }: ZoomControlsProps) {
           size="small"
           icon={<Icon name="search-plus" />}
           onClick={handleZoomIn}
+          style={btnStyle}
         >
           {!narrow && intl.formatMessage(labels.zoom_in_short)}
         </Button>
@@ -211,6 +216,7 @@ export function ZoomControls({ actions, id, narrow }: ZoomControlsProps) {
           size="small"
           icon={<Icon name="search-minus" />}
           onClick={handleZoomOut}
+          style={btnStyle}
         >
           {!narrow && intl.formatMessage(labels.zoom_out_short)}
         </Button>

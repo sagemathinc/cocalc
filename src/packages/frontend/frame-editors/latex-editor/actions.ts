@@ -57,7 +57,6 @@ import {
   startswith,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import type { DirectoryListingEntry } from "@cocalc/util/types/directory-listing";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { bibtex } from "./bibtex";
 import { clean } from "./clean";
@@ -65,7 +64,6 @@ import { KNITR_EXTS } from "./constants";
 import { count_words } from "./count_words";
 import { update_gutters } from "./gutters";
 import { knitr, knitr_errors, patch_synctex } from "./knitr";
-import { PDFWatcher } from "./pdf-watcher";
 import { IProcessedLatexLog, LatexParser } from "./latex-log-parser";
 import {
   build_command,
@@ -73,6 +71,7 @@ import {
   get_engine_from_config,
   latexmk,
 } from "./latexmk";
+import { PDFWatcher } from "./pdf-watcher";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { pythontex, pythontex_errors } from "./pythontex";
 import { sagetex, sagetex_errors, sagetex_hash } from "./sagetex";

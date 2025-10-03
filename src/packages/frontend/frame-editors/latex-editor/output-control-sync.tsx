@@ -183,7 +183,7 @@ export function SyncControls({
             onClick={() => handleAutoSyncChange("autoSyncInverse")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
           >
-            <Icon name="sync-left" />
+            <Icon unicode={0x21b6} />
           </BSButton>
         </Tip>
         <Tip
@@ -196,7 +196,11 @@ export function SyncControls({
             onClick={() => handleAutoSyncChange("autoSyncForward")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
           >
-            <Icon name="sync-left" rotate="180" />
+            <Icon
+              unicode={0x21b6}
+              rotate="180"
+              style={{ position: "relative", top: "-3px" }}
+            />
           </BSButton>
         </Tip>
         <Tip

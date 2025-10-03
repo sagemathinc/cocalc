@@ -9,14 +9,16 @@ Provides page number input and previous/next page navigation
 */
 
 import { Button, InputNumber, Space } from "antd";
+import { useIntl } from "react-intl";
 
 import { Icon, Tip } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 
 import { Actions } from "./actions";
 
 // Tweak it in such a way, that it looks consistent with ./*-sync.tsx left/right arrows
-const CONTROL_BUTTON_PADDING = "0 14px";
+export const CONTROL_BUTTON_PADDING = "0 14px";
 
 const CONTROL_PAGE_STYLE = {
   display: "flex",
@@ -41,6 +43,8 @@ export function PageNavigationControls({
   currentPage,
   narrow,
 }: PageNavigationControlsProps) {
+  const intl = useIntl();
+
   const flipPage = (direction: 1 | -1) => {
     const newPage =
       direction === 1
@@ -97,7 +101,7 @@ export function PageNavigationControls({
       />
       {!narrow && <> / {totalPages}</>}
       <Space.Compact>
-        <Tip title="Previous Page" placement="top">
+        <Tip title={intl.formatMessage(labels.previous_page)} placement="top">
           <Button
             size="small"
             icon={<Icon name="arrow-up" />}
@@ -107,7 +111,7 @@ export function PageNavigationControls({
           />
         </Tip>
 
-        <Tip title="Next Page" placement="top">
+        <Tip title={intl.formatMessage(labels.next_page)} placement="top">
           <Button
             size="small"
             icon={<Icon name="arrow-down" />}

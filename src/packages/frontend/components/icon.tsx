@@ -748,8 +748,24 @@ export const Icon: React.FC<Props> = (props: Props) => {
   if (!onFrontend) return null;
 
   if (props.unicode != null) {
+    const style: React.CSSProperties = { ...UNICODE_STYLE, ...props.style };
+
+    // Apply CSS transformations for unicode characters
+    if (props.rotate) {
+      style.display = style.display ?? "inline-block";
+      style.transform = `rotate(${props.rotate}deg)`;
+    }
+    if (props.flip) {
+      style.display = style.display ?? "inline-block";
+      const flipTransform =
+        props.flip === "horizontal" ? "scaleX(-1)" : "scaleY(-1)";
+      style.transform = style.transform
+        ? `${style.transform} ${flipTransform}`
+        : flipTransform;
+    }
+
     return (
-      <span style={{ ...UNICODE_STYLE, ...props.style }}>
+      <span style={style}>
         {String.fromCharCode(props.unicode!)}
       </span>
     );

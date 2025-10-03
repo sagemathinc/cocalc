@@ -887,6 +887,16 @@ export const labels = defineMessages({
     defaultMessage: "Balance",
     description: "Short label for a monetary balance on an account",
   },
+  previous_page: {
+    id: "labels.previous_page",
+    defaultMessage: "Previous Page",
+    description: "Navigate to previous page in a document",
+  },
+  next_page: {
+    id: "labels.next_page",
+    defaultMessage: "Next Page",
+    description: "Navigate to next page in a document",
+  },
 });
 
 export const menu = defineMessages({
