@@ -58,8 +58,11 @@ export class Filesystem {
     await this.initDevice();
     await this.mountFilesystem();
     await this.sync();
+    // 'quota enable --simple' has a lot of subtle issues, and maybe isn't for us.
+    // It also resets to zero when you disable then enable, and there is no efficient
+    // way to get the numbers.
     await btrfs({
-      args: ["quota", "enable", "--simple", this.opts.mount],
+      args: ["quota", "enable", this.opts.mount],
     });
     await this.initRustic();
     await this.sync();
