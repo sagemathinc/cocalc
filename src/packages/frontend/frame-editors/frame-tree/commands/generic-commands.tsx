@@ -9,6 +9,7 @@ import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
 import { defineMessage, IntlShape, useIntl } from "react-intl";
+import { DARK_MODE_ICON } from "@cocalc/frontend/account/dark-mode";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -20,6 +21,7 @@ import {
   undo as chatUndo,
 } from "@cocalc/frontend/frame-editors/generic/chat";
 import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
+import { Actions as LatexEditorActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
 import { labels, menu } from "@cocalc/frontend/i18n";
 import { editor } from "@cocalc/frontend/i18n/common";
 import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -328,6 +330,24 @@ addCommands({
         },
       };
     }),
+  },
+  toggle_pdf_dark_mode: {
+    pos: 6,
+    group: "zoom",
+    stayOpenOnClick: true,
+    title: editor.toggle_pdf_dark_mode_title,
+    label: editor.toggle_pdf_dark_mode_label,
+    icon: () => <Icon unicode={DARK_MODE_ICON} />,
+    isVisible: () => {
+      const other_settings = redux
+        .getStore("account")
+        .get("other_settings")
+        ?.toJS();
+      return other_settings?.dark_mode ?? false;
+    },
+    onClick: ({ props }) => {
+      props.actions.toggle_pdf_dark_mode?.(props.id);
+    },
   },
   scrollToTop: {
     group: "scroll",
@@ -1309,9 +1329,12 @@ addCommands({
     children: ({ frameTypeCommands }) => frameTypeCommands(false),
   },
   reset_local_view_state: {
-    alwaysShow: true,
     icon: "layout",
     group: "frame_types",
+    isVisible: ({ props }) =>
+      // always show it, except for the LateX Editor: there we have classic_layout and new_layout
+      props.editor_actions == null ||
+      !(props.editor_actions instanceof LatexEditorActions),
     title: defineMessage({
       id: "command.generic.reset_local_view_state.title",
       defaultMessage: "Reset the layout of all frames to the default",
@@ -1328,11 +1351,21 @@ addCommands({
   new_layout: {
     icon: "layout",
     group: "frame_types",
-    title: defineMessage({
-      id: "command.generic.new_layout.title",
-      defaultMessage:
-        "Switch to a simplified layout with LaTeX source editor and multi-purpose output panel",
-    }),
+    title: ({ props }) => {
+      // Check if this is a LaTeX editor using instanceof
+      const isLatexEditor = props.editor_actions instanceof LatexEditorActions;
+      if (isLatexEditor) {
+        return defineMessage({
+          id: "command.generic.new_layout.title.latex",
+          defaultMessage:
+            "Switch to the new layout with LaTeX source editor and multi-purpose output panel",
+        });
+      }
+      return defineMessage({
+        id: "command.generic.new_layout.title.generic",
+        defaultMessage: "Switch to the new layout",
+      });
+    },
     label: defineMessage({
       id: "command.generic.new_layout.label",
       defaultMessage: "New Layout",
@@ -1342,19 +1375,62 @@ addCommands({
       defaultMessage: "New",
     }),
     isVisible: ({ props }) =>
-      typeof props.actions?._new_latex_frame_tree === "function",
+      typeof props.actions?._new_frame_tree_layout === "function",
     onClick: ({ props }) => {
       try {
-        // Check if this is a LaTeX editor and use its specific layout method
+        // Use the editor's custom layout method if available
         if (
-          props.actions._new_latex_frame_tree &&
-          props.actions.replace_frame_tree_with_custom
+          props.actions._new_frame_tree_layout &&
+          props.actions.replace_frame_tree
         ) {
-          const tree = props.actions._new_latex_frame_tree();
-          props.actions.replace_frame_tree_with_custom(tree);
+          const tree = props.actions._new_frame_tree_layout();
+          props.actions.replace_frame_tree(tree);
         }
       } catch (error) {
         console.error("Error in New Layout:", error);
+      }
+    },
+  },
+  classic_layout: {
+    icon: "layout",
+    group: "frame_types",
+    title: ({ props }) => {
+      // Check if this is a LaTeX editor using instanceof
+      const isLatexEditor = props.editor_actions instanceof LatexEditorActions;
+      if (isLatexEditor) {
+        return defineMessage({
+          id: "command.generic.classic_layout.title.latex",
+          defaultMessage:
+            "Switch to the classic 4-panel layout with separate frames for source, table of contents, errors, PDF, and build log",
+        });
+      }
+      return defineMessage({
+        id: "command.generic.classic_layout.title.generic",
+        defaultMessage: "Switch back to the classic layout",
+      });
+    },
+    label: defineMessage({
+      id: "command.generic.classic_layout.label",
+      defaultMessage: "Classic Layout",
+    }),
+    button: defineMessage({
+      id: "command.generic.classic_layout.button",
+      defaultMessage: "Classic",
+    }),
+    isVisible: ({ props }) =>
+      typeof props.actions?._classic_frame_tree_layout === "function",
+    onClick: ({ props }) => {
+      try {
+        // Use the editor's classic layout method if available
+        if (
+          props.actions._classic_frame_tree_layout &&
+          props.actions.replace_frame_tree
+        ) {
+          const tree = props.actions._classic_frame_tree_layout();
+          props.actions.replace_frame_tree(tree);
+        }
+      } catch (error) {
+        console.error("Error in Classic Layout:", error);
       }
     },
   },

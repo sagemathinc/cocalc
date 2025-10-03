@@ -165,6 +165,7 @@ export interface CodeEditorState {
   derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
+  pdf_dark_mode_disabled?: { [id: string]: boolean };
 }
 
 export class Actions<
@@ -818,11 +819,16 @@ export class Actions<
     }
   }
 
-  _default_frame_tree(): Map<string, any> {
-    let frame_tree = fromJS(this._raw_default_frame_tree()) as Map<string, any>;
+  // Process a raw frame tree: convert to immutable, assign IDs, ensure uniqueness
+  private _process_frame_tree(rawTree: FrameTree): Map<string, any> {
+    let frame_tree = fromJS(rawTree) as Map<string, any>;
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     return frame_tree;
+  }
+
+  _default_frame_tree(): Map<string, any> {
+    return this._process_frame_tree(this._raw_default_frame_tree());
   }
 
   // overload this in derived classes to specify the default layout.
@@ -859,11 +865,9 @@ export class Actions<
     return node.get("data-" + key, def);
   }
 
-  // Reset the frame tree layout to the default.
-  reset_frame_tree(): void {
+  // Common logic to apply a processed frame tree and update state
+  private _apply_frame_tree(tree: Map<string, any>): void {
     let local = this.store.get("local_view_state");
-    // Set the frame tree to a new default frame tree.
-    const tree = this._default_frame_tree();
     local = local.set("frame_tree", tree);
     // Also make some id active, since existing active_id is no longer valid.
     local = local.set("active_id", tree_ops.get_some_leaf_id(tree));
@@ -879,6 +883,16 @@ export class Actions<
         this.store.emit("new-frame", { id, type });
       }
     }
+  }
+
+  // Reset the frame tree layout to the default.
+  reset_frame_tree(): void {
+    this._apply_frame_tree(this._default_frame_tree());
+  }
+
+  // Replace the entire frame tree with a custom tree structure
+  replace_frame_tree(customTree: FrameTree): void {
+    this._apply_frame_tree(this._process_frame_tree(customTree));
   }
 
   set_frame_tree_leafs(obj): void {
@@ -1366,6 +1380,12 @@ export class Actions<
 
   set_zoom(zoom: number, id?: string) {
     this.change_font_size(undefined, id, zoom);
+  }
+
+  toggle_pdf_dark_mode(id: string): void {
+    const next = this.store.get("pdf_dark_mode_disabled")?.toJS() ?? {};
+    next[id] = !(next[id] ?? false);
+    this.setState({ pdf_dark_mode_disabled: next });
   }
 
   /* zoom: 1=100%, 1.5=150%, ...*/

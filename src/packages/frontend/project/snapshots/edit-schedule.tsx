@@ -73,7 +73,7 @@ export default function EditSchedule() {
         <Modal
           title={
             <div style={{ marginBottom: "30px" }}>
-              <Icon name="clock" /> Rolling Automatic Snapshots:{" "}
+              <Icon name="clock" /> Automatic Snapshots:{" "}
               <Switch
                 style={{ marginRight: "15px" }}
                 checkedChildren="Enabled"

@@ -278,6 +278,15 @@ export async function start({
     if (scratch) {
       args.push(mountArg({ source: scratch, target: "/scratch" }));
     }
+    if (config.tmp) {
+      args.push(
+        "--mount",
+        `type=tmpfs,tmpfs-size=${config.tmp},tmpfs-mode=1777,destination=/tmp`,
+      );
+    } else if (scratch) {
+      await mkdir(join(scratch, "tmp"), { recursive: true });
+      args.push(mountArg({ source: join(scratch, "tmp"), target: "/tmp" }));
+    }
 
     for (const key in env) {
       args.push("-e", `${key}=${env[key]}`);

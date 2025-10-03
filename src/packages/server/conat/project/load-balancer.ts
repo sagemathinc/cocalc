@@ -47,19 +47,26 @@ async function getConfig({ project_id }): Promise<Configuration> {
     throw Error(`no project ${project_id}`);
   }
   const { run_quota, image } = rows[0];
-  const memoryLimitsBytes = (run_quota?.memory_limit ?? 1000) * 1_000_000; // in bytes
+  const memoryLimitBytes = (run_quota?.memory_limit ?? 1000) * 1_000_000; // in bytes
   const diskBytes = (run_quota?.disk_quota ?? 1_000) * 1_000_000;
   const config = {
     image,
     secret: await getProjectSecretToken(project_id),
     cpu: run_quota?.cpu_limit ?? 1, // actually a *priority* with higher numbers being higher
-    memory: memoryLimitsBytes,
+    memory: memoryLimitBytes,
     pids: DEFAULT_PID_LIMIT,
     // uses swap if available on the runner; amount is a function of resources
     swap: true,
     // create scratch if supported (no guarantees -- requires btrfs)
     scratch: diskBytes,
     disk: diskBytes,
+    // tempfs is a RAM disk, but can be swapped out (so much more like a normal disk, assuming
+    // the runner has plenty of swap), and only uses memory when it actually gets filled.
+    // "Half of ram" is a common default on Linux systems.  NOTE -- Accounting: tmpfs
+    // pages are charged to the container’s cgroup;
+    // since we set a container memory limit above, tmpfs usage counts against it. Effective
+    // usable tmpfs is min(tmpfs size, container memory limit headroom).
+    tmp: memoryLimitBytes / 2,
   } as Configuration;
 
   logger.debug("config", { project_id, run_quota, config });

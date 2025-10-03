@@ -38,4 +38,8 @@ export interface Configuration {
   disk?: number;
   // if given, a /scratch is mounted in the container of this size in bytes
   scratch?: number;
+  // if given create tmpfs ramdisk using this many bytes; if not given,
+  // but scratch is given, then /tmp is /scratch/tmp; if neither is
+  // given then tmp is part of the rootfs and is backed up (so NOT good).
+  tmp?: number;
 }

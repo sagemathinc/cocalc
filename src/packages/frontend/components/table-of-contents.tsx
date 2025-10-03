@@ -4,17 +4,18 @@
  */
 
 import { List } from "immutable";
-import { Icon, IconName, Loading } from "./index";
-import { CSS, TypedMap } from "../app-framework";
-import { Markdown } from "./markdown";
 import { useMemo } from "react";
+
+import { CSS, TypedMap } from "@cocalc/frontend/app-framework";
+import { Icon, IconName, Loading } from "./index";
+import { Markdown } from "./markdown";
 
 export interface TableOfContentsEntry {
   id: string; // id that is jumped to when entry is clicked -- must be unique across the table of contents
   value: string; // contents of the heading -- a 1-line string formatted using markdown (will be rendered using markdown)
   level?: 1 | 2 | 3 | 4 | 5 | 6; // optional heading size/level
   icon?: IconName; // default "minus" (a dash)
-  number?: number[]; // section numbering, so for "- 1.2.4  A Subsction" this would be [1,2,4]; omitted if not given.
+  number?: number[]; // section numbering, so for "- 1.2.4  A Subsection" this would be [1,2,4]; omitted if not given.
   extra?: any; // this is just passed back to the scrollTo function to provide extra info about how to scroll to this heading.
 }
 
@@ -29,11 +30,16 @@ interface Props {
   showNumbers?: boolean;
   fontSizes?: boolean;
   fontSize?: number;
+  ifEmpty?: React.ReactNode;
 }
 
 export function TableOfContents(props: Props) {
   if (props.contents == null) {
     return <Loading theme="medium" />;
+  }
+
+  if (props.contents.size === 0 && props.ifEmpty != null) {
+    return <>{props.ifEmpty}</>;
   }
 
   return useMemo(() => {

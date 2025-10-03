@@ -13,6 +13,7 @@ import type {
   PDFPageProxy,
 } from "pdfjs-dist/webpack.mjs";
 import { useRef } from "react";
+
 import { SyncHighlight } from "./pdfjs-annotation";
 import CanvasPage from "./pdfjs-canvas-page";
 
@@ -27,6 +28,7 @@ interface PageProps {
   scale: number;
   page: PDFPageProxy;
   syncHighlight?: SyncHighlight;
+  disableDarkMode?: boolean;
 }
 
 export default function Page({
@@ -37,6 +39,7 @@ export default function Page({
   scale,
   page,
   syncHighlight,
+  disableDarkMode = false,
 }: PageProps) {
   const divRef = useRef<HTMLDivElement | null>(null);
 
@@ -109,6 +112,7 @@ export default function Page({
           scale={scale}
           clickAnnotation={clickAnnotation}
           syncHighlight={syncHighlight}
+          disableDarkMode={disableDarkMode}
         />
       </div>
     </div>

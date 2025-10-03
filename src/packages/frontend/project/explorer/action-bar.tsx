@@ -168,9 +168,6 @@ export function ActionBar({
       if (isDisabledSnapshots(name)) {
         return null;
       }
-      if (current_path != SNAPSHOTS && name == "delete") {
-        return null;
-      }
     }
     const obj = file_actions[name];
     const handle_click = (_e: React.MouseEvent) => {

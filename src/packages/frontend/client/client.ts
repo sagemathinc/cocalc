@@ -117,13 +117,13 @@ export const WebappClient = null; // webpack + TS es2020 modules need this
 /*
 Connection events:
    - 'connecting' -- trying to establish a connection
-   - 'connected'  -- succesfully established a connection; data is the protocol as a string
+   - 'connected'  -- successfully established a connection; data is the protocol as a string
    - 'error'      -- called when an error occurs
    - 'output'     -- received some output for stateless execution (not in any session)
    - 'execute_javascript' -- code that server wants client to run (not for a particular session)
    - 'message'    -- emitted when a JSON message is received           on('message', (obj) -> ...)
    - 'data'       -- emitted when raw data (not JSON) is received --   on('data, (id, data) -> )...
-   - 'signed_in'  -- server pushes a succesful sign in to the client (e.g., due to
+   - 'signed_in'  -- server pushes a successful sign in to the client (e.g., due to
                      'remember me' functionality); data is the signed_in message.
    - 'project_list_updated' -- sent whenever the list of projects owned by this user
                      changed; data is empty -- browser could ignore this unless

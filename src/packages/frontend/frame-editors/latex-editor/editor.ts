@@ -116,14 +116,11 @@ const output: EditorDescription = {
     "force_build",
     "clean",
     "stop_build",
-    "sync",
     "decrease_font_size",
     "increase_font_size",
     "zoom_page_width",
     "zoom_page_height",
     "set_zoom",
-    "print",
-    "download_pdf",
   ]),
 } as const;
 

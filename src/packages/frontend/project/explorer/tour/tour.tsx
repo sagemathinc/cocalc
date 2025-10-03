@@ -147,13 +147,15 @@ export default function ExplorerTour({
       target: miscButtonsRef.current,
     },
     {
-      title: "Backups",
+      title: "Snapshots",
       description: (
         <>
-          CoCalc's backups are filesystem snapshots that provide a safety net to
-          recover your work in case of accidental deletion, errors, or file
-          corruption. They allow you to revert to a previous version of any file
-          in your project, minimizing data loss.
+          CoCalc has filesystem snapshots that provide a safety net to recover
+          your work in case of accidental deletion, errors, or file corruption.
+          They allow you to revert to a previous version of any file in your
+          project, minimizing data loss. You can also make manual snapshots that
+          do not get automatically deleted, delete snapshots, and delete files
+          from snapshots to save space.
         </>
       ),
       target: miscButtonsRef.current,

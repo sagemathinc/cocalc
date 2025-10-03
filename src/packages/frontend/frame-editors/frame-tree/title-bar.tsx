@@ -69,6 +69,7 @@ import {
 import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
+import { TITLE_BAR_BORDER } from "./style";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -725,8 +726,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-                ? intl.formatMessage(label)
-                : label
+              ? intl.formatMessage(label)
+              : label
           }
           items={v}
         />
@@ -957,9 +958,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         style={{
           height: button_height(),
           overflow: "hidden",
-          borderRight: "1px solid #d9d9d9",
-          borderTop: "1px solid #d9d9d9",
-          borderBottom: "1px solid #d9d9d9",
+          borderRight: TITLE_BAR_BORDER,
+          borderTop: TITLE_BAR_BORDER,
+          borderBottom: TITLE_BAR_BORDER,
           borderTopRightRadius: "5px",
           borderBottomRightRadius: "5px",
         }}

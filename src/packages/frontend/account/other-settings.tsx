@@ -3,9 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Card, InputNumber } from "antd";
+import { Button, Card, Slider } from "antd";
+import { debounce } from "lodash";
 import { Map } from "immutable";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useMemo } from "react";
+import { defineMessages, FormattedMessage, useIntl } from "react-intl";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -41,13 +43,34 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
-import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
+import {
+  DARK_MODE_ICON,
+  DARK_MODE_KEYS,
+  DARK_MODE_MINS,
+  get_dark_mode_config,
+} from "./dark-mode";
+import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import Messages from "./messages";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
 import { lite } from "@cocalc/frontend/lite";
+
+const DARK_MODE_LABELS = defineMessages({
+  brightness: {
+    id: "account.other-settings.theme.dark_mode.brightness",
+    defaultMessage: "Brightness",
+  },
+  contrast: {
+    id: "account.other-settings.theme.dark_mode.contrast",
+    defaultMessage: "Contrast",
+  },
+  sepia: {
+    id: "account.other-settings.theme.dark_mode.sepia",
+    defaultMessage: "Sepia",
+  },
+});
 
 // See https://github.com/sagemathinc/cocalc/issues/5620
 // There are weird bugs with relying only on mathjax, whereas our
@@ -80,6 +103,16 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   function on_change(name: string, value: any): void {
     redux.getActions("account").set_other_settings(name, value);
   }
+
+  // Debounced version for dark mode sliders to reduce CPU usage
+  const on_change_dark_mode = useMemo(
+    () =>
+      debounce((name: string, value: any) => on_change(name, value), 50, {
+        trailing: true,
+        leading: false,
+      }),
+    [],
+  );
 
   function toggle_global_banner(val: boolean): void {
     if (val) {
@@ -321,7 +354,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   function render_dark_mode(): Rendered {
     const checked = !!props.other_settings.get("dark_mode");
     const config = get_dark_mode_config(props.other_settings.toJS());
-    const label_style = { width: "100px", display: "inline-block" } as const;
     return (
       <div>
         <Checkbox
@@ -353,62 +385,51 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {checked ? (
           <Card
             size="small"
-            title={intl.formatMessage({
-              id: "account.other-settings.theme.dark_mode.configuration",
-              defaultMessage: "Dark Mode Configuration",
-            })}
+            title={
+              <>
+                <Icon unicode={DARK_MODE_ICON} />{" "}
+                {intl.formatMessage({
+                  id: "account.other-settings.theme.dark_mode.configuration",
+                  defaultMessage: "Dark Mode Configuration",
+                })}
+              </>
+            }
           >
-            <span style={label_style}>
-              <FormattedMessage
-                id="account.other-settings.theme.dark_mode.brightness"
-                defaultMessage="Brightness"
-              />
-            </span>
-            <InputNumber
-              min={dark_mode_mins.brightness}
-              max={100}
-              value={config.brightness}
-              onChange={(x) => on_change("dark_mode_brightness", x)}
-            />
-            <br />
-            <span style={label_style}>
-              <FormattedMessage
-                id="account.other-settings.theme.dark_mode.contrast"
-                defaultMessage="Contrast"
-              />
-            </span>
-            <InputNumber
-              min={dark_mode_mins.contrast}
-              max={100}
-              value={config.contrast}
-              onChange={(x) => on_change("dark_mode_contrast", x)}
-            />
-            <br />
-            <span style={label_style}>
-              <FormattedMessage
-                id="account.other-settings.theme.dark_mode.sepia"
-                defaultMessage="Sepia"
-              />
-            </span>
-            <InputNumber
-              min={dark_mode_mins.sepia}
-              max={100}
-              value={config.sepia}
-              onChange={(x) => on_change("dark_mode_sepia", x)}
-            />
-            <br />
-            <span style={label_style}>
-              <FormattedMessage
-                id="account.other-settings.theme.dark_mode.grayscale"
-                defaultMessage="Grayscale"
-              />
-            </span>
-            <InputNumber
-              min={dark_mode_mins.grayscale}
-              max={100}
-              value={config.grayscale}
-              onChange={(x) => on_change("dark_mode_grayscale", x)}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {DARK_MODE_KEYS.map((key) => (
+                <div
+                  key={key}
+                  style={{ display: "flex", gap: 10, alignItems: "center" }}
+                >
+                  <div style={{ width: 100 }}>
+                    {intl.formatMessage(DARK_MODE_LABELS[key])}
+                  </div>
+                  <Slider
+                    min={DARK_MODE_MINS[key]}
+                    max={100}
+                    value={config[key]}
+                    onChange={(x) => on_change_dark_mode(`dark_mode_${key}`, x)}
+                    marks={{
+                      [DARK_MODE_DEFAULTS[key]]: String(
+                        DARK_MODE_DEFAULTS[key],
+                      ),
+                    }}
+                    style={{ flex: 1, width: 0 }}
+                  />
+                  <Button
+                    size="small"
+                    onClick={() =>
+                      on_change_dark_mode(
+                        `dark_mode_${key}`,
+                        DARK_MODE_DEFAULTS[key],
+                      )
+                    }
+                  >
+                    {intl.formatMessage(labels.reset)}
+                  </Button>
+                </div>
+              ))}
+            </div>
           </Card>
         ) : undefined}
       </div>

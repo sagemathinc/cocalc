@@ -48,7 +48,7 @@ export function MiscSideButtons() {
     });
   };
 
-  const handle_backup = (e: MouseEvent): void => {
+  const clickSnapshots = (e: MouseEvent): void => {
     e.preventDefault();
     actions?.open_directory(SNAPSHOTS);
     track("snapshots", { action: "open", where: "explorer" });
@@ -70,12 +70,12 @@ export function MiscSideButtons() {
     );
   }
 
-  function render_backup(): JSX.Element | undefined {
+  function render_snapshots(): JSX.Element | undefined {
     return (
-      <Button bsSize="small" onClick={handle_backup}>
+      <Button bsSize="small" onClick={clickSnapshots}>
         <Icon name="disk-round" />{" "}
         <VisibleLG>
-          <span style={{ fontSize: 12 }}>Backups</span>
+          <span style={{ fontSize: 12 }}>Snapshots</span>
         </VisibleLG>
       </Button>
     );
@@ -176,7 +176,7 @@ export function MiscSideButtons() {
       <div className="pull-right">
         <Space.Compact>
           {render_hidden_toggle()}
-          {!lite && render_backup()}
+          {!lite && render_snapshots()}
           {!lite && <CloneProject project_id={project_id} />}
           {!lite && <TourButton project_id={project_id} />}
         </Space.Compact>

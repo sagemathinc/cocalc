@@ -125,7 +125,7 @@ sudo btrfs subvolume create /mnt/project-$PROJECT_ID
 sudo btrfs qgroup limit 10G /mnt/project-$PROJECT_ID
 
 # Snapshot aggregate group uses the live subvolume ID
-LIVEID=$(sudo btrfs subvolume show /mnt/project-$PROJECT_ID | awk '/ID:/ {print $2}')
+LIVEID=$(sudo btrfs subvolume show /mnt/project-$PROJECT_ID | awk '/Subvolume ID:/ {print $3}')
 
 # Create and limit the snapshots group
 sudo btrfs qgroup create 1/$LIVEID /mnt/
