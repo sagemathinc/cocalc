@@ -18,7 +18,7 @@ export interface ChatOptionsApi {
   account_id?: string;
   project_id?: string;
   path?: string;
-  analytics_cookie?: string;
+  anonymous_id?: string;
   history?: History;
   model?: LanguageModel; // default is defined by server setting default_llm
   tag?: string;

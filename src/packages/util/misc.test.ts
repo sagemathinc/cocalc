@@ -343,3 +343,48 @@ describe("suggest_duplicate_filename", () => {
     expect(dup("asdf-")).toBe("asdf--1");
   });
 });
+
+describe("isValidAnonymousID", () => {
+  const isValid = misc.isValidAnonymousID;
+
+  it("should accept valid IPv4 addresses", () => {
+    expect(isValid("192.168.1.1")).toBe(true);
+    expect(isValid("10.23.66.8")).toBe(true);
+  });
+
+  it("should accept valid IPv6 addresses", () => {
+    expect(isValid("::1")).toBe(true);
+    expect(isValid("2001:db8::1")).toBe(true);
+    expect(isValid("fe80::1")).toBe(true);
+    expect(isValid("2001:0db8:85a3:0000:0000:8a2e:0370:7334")).toBe(true);
+  });
+
+  it("should accept valid UUIDs", () => {
+    expect(isValid("123e4567-e89b-12d3-a456-426614174000")).toBe(true);
+  });
+
+  it("should accept strings with minimum length", () => {
+    expect(isValid("abc")).toBe(true);
+  });
+
+  it("should reject empty strings", () => {
+    expect(isValid("")).toBe(false);
+  });
+
+  it("should reject strings shorter than 3 characters", () => {
+    expect(isValid("ab")).toBe(false);
+  });
+
+  it("should reject null and undefined", () => {
+    expect(isValid(null)).toBe(false);
+    expect(isValid(undefined)).toBe(false);
+  });
+
+  it("should reject non-string types", () => {
+    expect(isValid(123)).toBe(false);
+    expect(isValid(true)).toBe(false);
+    expect(isValid({})).toBe(false);
+    expect(isValid([])).toBe(false);
+    expect(isValid(new Date())).toBe(false);
+  });
+});
