@@ -32,11 +32,13 @@ export async function initSshKeys({
     await writeFile(publicFile, publicKey, { mode: 0o600 });
   }
 
+  let cocalcHostConfig = "";
   for (const { name, host, port, user } of sshServers) {
     // We need "UpdateHostKeys no" because otherwise we see
     //    client_global_hostkeys_prove_confirm: server gave bad signature for RSA key 0: incorrect signature"
     // due to our sshpiperd proxy.
-    const hostConfig = `
+    cocalcHostConfig += `
+
 # Added by CoCalc
 Host ${name}
   User ${user}
@@ -46,18 +48,25 @@ Host ${name}
   UpdateHostKeys no
   IdentityFile ~/${SSH_IDENTITY_FILE}
 `;
-    const configPath = join(home!, ".ssh", "config");
-    let config;
-    try {
-      config = await readFile(configPath, "utf8");
-    } catch {
-      config = "";
-    }
-    if (!config.includes(hostConfig)) {
-      // put at front since only the first with a given name is used by ssh
-      logger.debug(`updating .ssh/config to include host ${name}`);
-      await writeFile(configPath, hostConfig + "\n" + config, { mode: 0o600 });
-    }
+  }
+
+  await mkdir(join(home!, ".ssh", ".cocalc"), { recursive: true, mode: 0o700 });
+  const cocalcConfigPath = join(home!, ".ssh", ".cocalc", "config");
+  await writeFile(cocalcConfigPath, cocalcHostConfig, { mode: 0o600 });
+
+  const configPath = join(home!, ".ssh", "config");
+  let config;
+  try {
+    config = await readFile(configPath, "utf8");
+  } catch {
+    config = "";
+  }
+  if (!config.includes("Include .cocalc/config")) {
+    // put at front since only the first with a given name is used by ssh
+    logger.debug("updating .ssh/config to include custom host config");
+    await writeFile(configPath, "Include .cocalc/config\n\n" + config, {
+      mode: 0o600,
+    });
   }
 }
 export async function sshPublicKey(): Promise<string> {

@@ -42,6 +42,7 @@ describe("create basic mocked project runner service and test", () => {
         running.has(project_id) ? { state: "running" } : { state: "opened" },
       localPath: async ({ project_id }) => `/tmp/${project_id}`,
       move: async () => {},
+      save: async () => {},
     });
   });
 
@@ -94,6 +95,7 @@ describe("create basic mocked project runner service and test", () => {
         running.has(project_id) ? { state: "running" } : { state: "opened" },
       localPath: async ({ project_id }) => `/tmp/${project_id}`,
       move: async () => {},
+      save: async () => {},
     });
 
     const { runners } = await state({ client: client2 });
