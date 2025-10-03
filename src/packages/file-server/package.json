@@ -33,7 +33,6 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
-    "@cocalc/project-runner": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.4.1",
     "awaiting": "^3.0.0",

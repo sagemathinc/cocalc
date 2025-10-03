@@ -11,7 +11,8 @@
     "./conat/sync/*": "./dist/conat/sync/*.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
-    "./auth/tokens/*": "./dist/auth/tokens/*.js"
+    "./auth/tokens/*": "./dist/auth/tokens/*.js",
+    "./podman": "./dist/podman/index.js"
   },
   "keywords": ["utilities", "cocalc"],
   "scripts": {

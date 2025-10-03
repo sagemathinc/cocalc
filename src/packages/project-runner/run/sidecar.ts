@@ -33,7 +33,7 @@ anyways (otherwise, how did they get to that server).
 */
 
 import { build } from "@cocalc/backend/podman/build-container";
-import { podman, starting, stopping } from "./podman";
+import { starting, stopping } from "./podman";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import { dirname, join } from "node:path";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
@@ -41,7 +41,7 @@ import { COCALC_PROJECT_CACHE } from "./env";
 import { getPaths as getOverlayPaths } from "./rootfs";
 import { rsyncProgressRunner } from "./rsync-progress";
 import { initSshKeys } from "@cocalc/backend/ssh/ssh-keys";
-import { mountArg } from "./mounts";
+import { mountArg, podman } from "@cocalc/backend/podman";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";

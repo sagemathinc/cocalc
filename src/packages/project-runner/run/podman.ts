@@ -15,14 +15,14 @@ Maybe.  Perhaps we'll have two modes.
 
 */
 
-import { mountArg, nodePath } from "./mounts";
+import { mountArg } from "@cocalc/backend/podman";
+import { nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
 import { mkdir, readFile } from "node:fs/promises";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
-import { executeCode } from "@cocalc/backend/execute-code";
 import { join } from "path";
 import { mount as mountRootFs, unmount as unmountRootFs } from "./rootfs";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
@@ -47,6 +47,7 @@ import {
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 import { writeStartupScripts } from "./startup-scripts";
+import { podman } from "@cocalc/backend/podman";
 
 const logger = getLogger("project-runner:podman");
 
@@ -436,25 +437,6 @@ export async function stop({
     }
   } finally {
     stopping.delete(project_id);
-  }
-}
-
-// 30 minute timeout (?)
-export async function podman(args: string[], timeout = 30 * 60 * 1000) {
-  logger.debug("podman ", args.join(" "));
-  try {
-    const x = await executeCode({
-      verbose: false,
-      command: "podman",
-      args,
-      err_on_exit: true,
-      timeout,
-    });
-    logger.debug("podman returned ", x);
-    return x;
-  } catch (err) {
-    logger.debug("podman run error: ", err);
-    throw err;
   }
 }
 

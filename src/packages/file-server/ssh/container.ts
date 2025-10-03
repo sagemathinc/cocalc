@@ -10,7 +10,6 @@ import { k8sCpuParser, split } from "@cocalc/util/misc";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { delay } from "awaiting";
-import { mountArg } from "@cocalc/project-runner/run/mounts";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 import { SSHD_CONFIG } from "@cocalc/conat/project/runner/constants";
 import {
@@ -18,7 +17,7 @@ import {
   Ports,
   PORTS,
 } from "@cocalc/conat/project/runner/constants";
-import { podman } from "@cocalc/project-runner/run/podman";
+import { mountArg, podman } from "@cocalc/backend/podman";
 import { sha1 } from "@cocalc/backend/sha1";
 
 const FAIR_CPU_MODE = true;
