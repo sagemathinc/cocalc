@@ -63,6 +63,7 @@ export default function Bootlog({
       style={{
         maxHeight: "300px",
         minWidth: "600px",
+        maxWidth: "800px",
         overflow: "auto",
         background: "white",
         color: "#666",
@@ -144,8 +145,12 @@ function ProgressEntry({
         </Space>
       </Tooltip>
       {error && <hr />}
-      {isRunning && error && type == "save-rootfs" && <Save rootfs home={false} />}
-      {isRunning && error && type == "save-home" && <Save home rootfs={false} />}
+      {isRunning && error && type == "save-rootfs" && (
+        <Save rootfs home={false} />
+      )}
+      {isRunning && error && type == "save-home" && (
+        <Save home rootfs={false} />
+      )}
       <ShowError error={error} style={{ margin: "10px 0" }} />
     </div>
   );

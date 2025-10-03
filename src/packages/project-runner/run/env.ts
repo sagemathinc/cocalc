@@ -2,13 +2,13 @@ import { conatServer } from "@cocalc/backend/data";
 import { join } from "node:path";
 import base_path from "@cocalc/backend/base-path";
 import { COCALC_SRC, COCALC_BIN } from "./mounts";
-//import getLogger from "@cocalc/backend/logger";
+import getLogger from "@cocalc/backend/logger";
 import { inspect } from "./rootfs-base";
 
 // where the project places all its data, relative to HOME. This used by ".smc"
 export const COCALC_PROJECT_CACHE = ".cache/cocalc/project";
 
-//const logger = getLogger("project-runner:run:env");
+const logger = getLogger("project-runner:run:env");
 
 export function dataPath(HOME: string): string {
   return join(HOME, COCALC_PROJECT_CACHE);
@@ -23,12 +23,20 @@ export function secretTokenPath(HOME: string) {
 async function getImageEnv(image): Promise<{ [key: string]: string }> {
   const { Env } = (await inspect(image)).Config;
   const env: { [key: string]: string } = {};
-  for (const line of Env) {
-    const i = line.indexOf("=");
-    if (i == -1) continue;
-    const key = line.slice(0, i);
-    const value = line.slice(i + 1);
-    env[key] = value;
+  try {
+    for (const line of Env) {
+      const i = line.indexOf("=");
+      if (i == -1) continue;
+      const key = line.slice(0, i);
+      const value = line.slice(i + 1);
+      env[key] = value;
+    }
+  } catch (err) {
+    logger.debug(
+      "WARNING: unexpected issue parsing image Config.Env",
+      { Env },
+      err,
+    );
   }
   return env;
 }

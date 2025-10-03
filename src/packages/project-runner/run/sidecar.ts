@@ -509,9 +509,9 @@ export async function save({
   rootfs?: boolean;
   home?: boolean;
 }) {
-  const s = await state({ project_id });
+  const s = await state(project_id);
   if (s != "running") {
-    return;
+    throw Error(`project must be running to save and it is '${s}'`);
   }
   const tasks: any[] = [];
   if (home) {

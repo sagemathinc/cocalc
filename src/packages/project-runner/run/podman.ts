@@ -458,7 +458,10 @@ export async function podman(args: string[], timeout = 30 * 60 * 1000) {
   }
 }
 
-export async function state(project_id, ignoreCache = false): Promise<ProjectState> {
+export async function state(
+  project_id: string,
+  ignoreCache = false,
+): Promise<ProjectState> {
   if (!ignoreCache) {
     if (starting.has(project_id)) {
       return "starting";

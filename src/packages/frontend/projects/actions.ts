@@ -1001,9 +1001,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (project == null) {
       throw Error("unknown project");
     }
-    const runner = webapp_client.conat_client.projectRunner(project_id);
-    // very important to save before cloning!
-    await runner.save();
+    if (project.state?.state == "running") {
+      const runner = webapp_client.conat_client.projectRunner(project_id);
+      // very important to save before cloning!
+      await runner.save();
+    }
     // this clones due to src_project_id
     const new_project_id = await webapp_client.project_client.create({
       title: title ?? `Clone of ${project.title}`,
