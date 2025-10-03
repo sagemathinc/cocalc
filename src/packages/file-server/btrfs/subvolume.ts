@@ -11,6 +11,7 @@ import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { btrfs } from "./util";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -46,12 +47,17 @@ export class Subvolume {
   init = async () => {
     if (!(await exists(this.path))) {
       logger.debug(`creating ${this.name} at ${this.path}`);
-      await sudo({
-        command: "btrfs",
+      await btrfs({
         args: ["subvolume", "create", this.path],
       });
       await this.chown(this.path);
+      const id = await this.getSubvolumeId();
+      await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
     }
+  };
+
+  getSubvolumeId = async (): Promise<number> => {
+    return await getSubvolumeId(this.path);
   };
 
   close = () => {
@@ -91,4 +97,20 @@ export async function subvolume(
   options: Options & { noCache?: boolean },
 ): Promise<Subvolume> {
   return await cache(options);
+}
+
+export async function getSubvolumeField(
+  path: string,
+  field: string,
+): Promise<string> {
+  const { stdout } = await btrfs({
+    args: ["subvolume", "show", path],
+    verbose: false,
+  });
+  // avoid any possibilitiy of a sneaky named snapshot breaking this
+  return stdout.split(`${field}:`)[1].split("\n")[0].trim();
+}
+
+export async function getSubvolumeId(path: string): Promise<number> {
+  return parseInt(await getSubvolumeField(path, "Subvolume ID"));
 }

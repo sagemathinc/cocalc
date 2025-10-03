@@ -35,6 +35,8 @@ export async function sudo(
     ...opts,
     command,
     args,
+    // LC_ALL, etc. so that btrfs output we parse is not in a different language!
+    env: { ...process.env, LC_ALL: "C.UTF-8", LANG: "C.UTF-8" },
   });
 }
 

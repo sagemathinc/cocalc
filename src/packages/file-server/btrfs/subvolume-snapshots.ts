@@ -5,6 +5,7 @@ import { join } from "path";
 import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { ConatError } from "@cocalc/conat/core/client";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { getSubvolumeField, getSubvolumeId } from "./subvolume";
 
 const logger = getLogger("file-server:btrfs:subvolume-snapshots");
 
@@ -54,9 +55,23 @@ export class SubvolumeSnapshots {
     if (readOnly) {
       args.push("-r");
     }
-    args.push(this.subvolume.path, join(this.snapshotsDir, name));
+    const snapshotPath = join(this.snapshotsDir, name);
+    args.push(this.subvolume.path, snapshotPath);
 
     await btrfs({ args });
+
+    // also add snapshot to the snapshot quota group
+    const snapshotId = await getSubvolumeId(snapshotPath);
+    const subvolumeId = await this.subvolume.getSubvolumeId();
+    await btrfs({
+      args: [
+        "qgroup",
+        "assign",
+        `0/${snapshotId}`,
+        `1/${subvolumeId}`,
+        this.subvolume.path,
+      ],
+    });
   };
 
   readdir = async (): Promise<string[]> => {
@@ -89,7 +104,7 @@ export class SubvolumeSnapshots {
     });
   };
 
-  // update the rolling snapshots schedule
+  // update the rolling snapshots scheduleGener
   update = async (counts?: Partial<SnapshotCounts>, opts?) => {
     return await updateRollingSnapshots({ snapshots: this, counts, opts });
   };
@@ -113,10 +128,6 @@ export class SubvolumeSnapshots {
   };
 }
 
-async function getGeneration(path: string): Promise<number> {
-  const { stdout } = await btrfs({
-    args: ["subvolume", "show", path],
-    verbose: false,
-  });
-  return parseInt(stdout.split("Generation:")[1].split("\n")[0].trim());
+export async function getGeneration(path: string): Promise<number> {
+  return parseInt(await getSubvolumeField(path, "Generation"));
 }
