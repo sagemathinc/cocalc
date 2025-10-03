@@ -27,7 +27,7 @@ export class Subvolumes {
     return await subvolume({ filesystem: this.filesystem, name });
   };
 
-  clone = async (source: string, dest: string) => {
+  clone = async (source: string, dest: string): Promise<Subvolume> => {
     logger.debug("clone ", { source, dest });
     if (RESERVED.has(dest)) {
       throw Error(`${dest} is reserved`);

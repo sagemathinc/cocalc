@@ -16,6 +16,7 @@ import { delay } from "awaiting";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { client as filesystemClient } from "@cocalc/conat/files/file-server";
+import { fsSubject, fsClient } from "@cocalc/conat/files/fs";
 
 const log = getLogger("server:projects:create");
 
@@ -69,6 +70,11 @@ export default async function createProject(opts: CreateProjectOptions) {
     // create filesystem for new project as a clone.
     const client = filesystemClient();
     await client.clone({ project_id, src_project_id });
+    // CRITICAL to delete the ssh config info because (1) it's sensitive, but
+    // (2) it'll confuse things on the first startup when mutagen will overwrite
+    // the correct new version, due to a file conflict on init.
+    const fs = fsClient({ subject: fsSubject({ project_id }) });
+    await fs.rm(".ssh/.cocalc", { recursive: true, force: true });
   }
 
   const users =
