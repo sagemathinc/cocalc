@@ -223,3 +223,4 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - ALWAYS prefer editing an existing file to creating a new one
 - REFUSE to modify files when the git repository is on the `master` or `main` branch
 - NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
+- when modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year
