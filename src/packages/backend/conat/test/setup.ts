@@ -206,6 +206,7 @@ export async function waitForConsistentState(
         // now look at everybody else's view of servers[i].
         // @ts-ignore
         const a = servers[i].interest.serialize().patterns;
+        const b = servers[i].sticky;
         const hashServer = servers[i].hash();
         for (let j = 0; j < servers.length; j++) {
           if (i != j) {
@@ -219,8 +220,9 @@ export async function waitForConsistentState(
             }
             const hashLink = link.hash();
             const x = link.interest.serialize().patterns;
+            const y = link.sticky;
             const showInfo = () => {
-              for (const type of ["interest"]) {
+              for (const type of ["interest", "sticky"]) {
                 console.log(
                   `server stream ${type}: `,
                   hashServer[type],
@@ -252,6 +254,8 @@ export async function waitForConsistentState(
                 j,
                 serverInterest: a,
                 linkInterest: x,
+                serverSticky: b,
+                linkSticky: y,
               });
             };
             if (!isEqual(hashServer, hashLink)) {
