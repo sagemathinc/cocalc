@@ -4,6 +4,7 @@ import getLogger from "@cocalc/backend/logger";
 import { join } from "path";
 import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { ConatError } from "@cocalc/conat/core/client";
+import { type SnapshotUsage } from "@cocalc/conat/files/file-server";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import { getSubvolumeField, getSubvolumeId } from "./subvolume";
 
@@ -125,6 +126,23 @@ export class SubvolumeSnapshots {
       join(this.snapshotsDir, s[s.length - 1]),
     );
     return snapGen < pathGen;
+  };
+
+  usage = async (name: string): Promise<SnapshotUsage> => {
+    // btrfs --format=json qgroup show -reF --raw project-eac5b48a-70aa-4401-a54d-0f58c5eb09ba/.snapshots/cocalc
+    const snapshotPath = join(this.snapshotsDir, name);
+    const { stdout } = await btrfs({
+      args: ["--format=json", "qgroup", "show", "-ref", "--raw", snapshotPath],
+    });
+    const x = JSON.parse(stdout);
+    const { referenced, max_referenced, exclusive } = x["qgroup-show"][0];
+    return { name, used: referenced, quota: max_referenced, exclusive };
+  };
+
+  allUsage = async (): Promise<SnapshotUsage[]> => {
+    // get quota/usage information about all snapshots
+    const snaps = await this.readdir();
+    return Promise.all(snaps.map(this.usage));
   };
 }
 

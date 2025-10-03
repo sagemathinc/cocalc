@@ -2,6 +2,7 @@ import { authFirstRequireAccount, authFirstRequireProject } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
+import { type SnapshotUsage } from "@cocalc/conat/files/file-server";
 
 export const projects = {
   createProject: authFirstRequireAccount,
@@ -26,6 +27,7 @@ export const projects = {
   deleteSnapshot: authFirstRequireAccount,
   updateSnapshots: authFirstRequireAccount,
   getSnapshotQuota: authFirstRequireAccount,
+  allSnapshotUsage: authFirstRequireAccount,
 
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
@@ -200,6 +202,8 @@ export interface Projects {
     account_id?: string;
     project_id: string;
   }) => Promise<{ limit: number }>;
+
+  allSnapshotUsage: (opts: { project_id: string }) => Promise<SnapshotUsage[]>;
 
   start: (opts: { account_id: string; project_id: string }) => Promise<void>;
   stop: (opts: { account_id: string; project_id: string }) => Promise<void>;

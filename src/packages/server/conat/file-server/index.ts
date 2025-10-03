@@ -16,6 +16,7 @@ import {
   client as createFileClient,
   type Fileserver,
   type CopyOptions,
+  type SnapshotUsage,
 } from "@cocalc/conat/files/file-server";
 export type { Fileserver };
 import { loadConatConfiguration } from "../configuration";
@@ -176,6 +177,15 @@ async function updateSnapshots({
   await vol.snapshots.update(counts, { limit });
 }
 
+async function allSnapshotUsage({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<SnapshotUsage[]> {
+  const vol = await getVolume(project_id);
+  return await vol.snapshots.allUsage();
+}
+
 let servers: null | { ssh: any; file: any } = null;
 export async function init(_fs?) {
   if (servers != null) {
@@ -231,6 +241,7 @@ export async function init(_fs?) {
     createSnapshot,
     deleteSnapshot,
     updateSnapshots,
+    allSnapshotUsage,
   });
   let ssh;
   if (process.env.COCALC_SSH_SERVER_COUNT != "0") {

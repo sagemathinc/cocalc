@@ -122,6 +122,18 @@ export interface Fileserver {
     // made if counts are too large!
     limit?: number;
   }) => Promise<void>;
+  allSnapshotUsage: (opts: { project_id: string }) => Promise<SnapshotUsage[]>;
+}
+
+export interface SnapshotUsage {
+  // name of this snapshot
+  name: string;
+  // amount of space used by this snapshot in bytes
+  used: number;
+  // amount of space that would be freed by deleting this snapshot
+  exclusive: number;
+  // total quota in bytes across all snapshot
+  quota: number;
 }
 
 export interface Options extends Fileserver {

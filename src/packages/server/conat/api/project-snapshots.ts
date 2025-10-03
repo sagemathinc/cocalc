@@ -68,3 +68,16 @@ export async function getSnapshotQuota({
   await assertCollab({ account_id, project_id });
   return { limit: MAX_SNAPSHOTS_PER_PROJECT };
 }
+
+export async function allSnapshotUsage({
+  account_id,
+  project_id,
+}: {
+  account_id?: string;
+  project_id: string;
+}) {
+  await assertCollab({ account_id, project_id });
+  return await fileServerClient().allSnapshotUsage({
+    project_id,
+  });
+}
