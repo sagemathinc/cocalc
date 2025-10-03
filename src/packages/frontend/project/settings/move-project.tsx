@@ -48,7 +48,8 @@ export default function MoveProject({
         </>
       ) : (
         <>You can move this project to another project runner.</>
-      )}
+      )}{" "}
+      Any files in <code>/scratch</code> will be lost.
     </div>
   );
 

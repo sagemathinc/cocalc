@@ -1,8 +1,11 @@
 export type LocalPathFunction = (opts: {
   project_id: string;
-  // disk quota to set on the path:
-  disk?: number | string;
-}) => Promise<string>;
+  // disk quota to set on the path (in bytes)
+  disk?: number;
+  // if set, create scratch space of this size in bytes and return path
+  // to it as scratch.
+  scratch?: number;
+}) => Promise<{ home: string; scratch?: string }>;
 
 export interface SshServer {
   name: string;
@@ -33,4 +36,6 @@ export interface Configuration {
   pids?: number;
   // disk size in bytes
   disk?: number;
+  // if given, a /scratch is mounted in the container of this size in bytes
+  scratch?: number;
 }

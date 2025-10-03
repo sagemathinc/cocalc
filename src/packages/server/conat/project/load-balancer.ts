@@ -48,6 +48,7 @@ async function getConfig({ project_id }): Promise<Configuration> {
   }
   const { run_quota, image } = rows[0];
   const memoryLimitsBytes = (run_quota?.memory_limit ?? 1000) * 1_000_000; // in bytes
+  const diskBytes = (run_quota?.disk_quota ?? 1_000) * 1_000_000;
   const config = {
     image,
     secret: await getProjectSecretToken(project_id),
@@ -56,7 +57,9 @@ async function getConfig({ project_id }): Promise<Configuration> {
     pids: DEFAULT_PID_LIMIT,
     // uses swap if available on the runner; amount is a function of resources
     swap: true,
-    disk: (run_quota?.disk_quota ?? 1_000) * 1_000_000,
+    // create scratch if supported (no guarantees -- requires btrfs)
+    scratch: diskBytes,
+    disk: diskBytes,
   } as Configuration;
 
   logger.debug("config", { project_id, run_quota, config });

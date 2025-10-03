@@ -44,30 +44,48 @@ let fs: Filesystem | null = null;
 export async function localPath({
   project_id,
   disk,
+  scratch: scratchQuota,
 }: {
   project_id: string;
   // if given, this quota will be set in case of btrfs
-  disk?: number | string;
-}): Promise<string> {
+  disk?: number;
+  // if given, a /scratch with this quota will be created
+  // and mounted in the container as /scratch
+  scratch?: number;
+}): Promise<{ home: string; scratch?: string }> {
   if (projectRunnerMountpoint) {
     fs ??= await filesystem({
       mount: projectRunnerMountpoint,
       rustic: rusticRepo,
     });
-    const vol = await fs.subvolumes.get(`project-${project_id}`);
-    if (disk != null) {
-      await vol.quota.set(disk);
+    let home: string = "",
+      scratch: string | undefined = undefined;
+    const createHome = async () => {
+      const vol = await fs!.subvolumes.get(`project-${project_id}`);
+      if (disk != null) {
+        await vol.quota.set(disk);
+      }
+      home = vol.path;
+    };
+    const createScratch = async () => {
+      if (!scratchQuota) return;
+      const vol = await fs!.subvolumes.get(`scratch-project-${project_id}`);
+      vol.quota.set(scratchQuota);
+      scratch = vol.path;
+    };
+    await Promise.all([createHome(), createScratch()]);
+    if (!home) {
+      throw Error("bug");
     }
-    const { path } = vol;
-    return path;
+    return { home, scratch };
   } else if (process.env.COCALC_PROJECT_PATH) {
     const path = join(process.env.COCALC_PROJECT_PATH, project_id);
     await mkdir(path, { recursive: true });
-    return path;
+    return { home: path };
   }
   const c = getFsClient();
   const { path } = await c.mount({ project_id });
-  return path;
+  return { home: path };
 }
 
 // This is the server that we connect to for files and port forwards, which

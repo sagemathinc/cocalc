@@ -96,13 +96,17 @@ export async function start({
     resetBootlog({ project_id });
     bootlog({ project_id, type: "start-project", progress: 0 });
 
-    const home = await localPath({ project_id, disk: config?.disk });
-    logger.debug("start: got home", { project_id, home });
+    const { home, scratch } = await localPath({
+      project_id,
+      disk: config?.disk,
+      scratch: config?.scratch,
+    });
+    logger.debug("start: home and scratch", { project_id, home, scratch });
     bootlog({
       project_id,
       type: "start-project",
       progress: 5,
-      desc: "got home directory",
+      desc: "got home and scratch directories",
     });
 
     const pod = projectPodName(project_id);
@@ -271,12 +275,15 @@ export async function start({
       );
     }
     args.push(mountArg({ source: home, target: env.HOME }));
+    if (scratch) {
+      args.push(mountArg({ source: scratch, target: "/scratch" }));
+    }
 
     for (const key in env) {
       args.push("-e", `${key}=${env[key]}`);
     }
 
-    args.push(...await podmanLimits(config));
+    args.push(...(await podmanLimits(config)));
 
     // --init = have podman inject a tiny built in init script so we don't get zombies.
     args.push("--init");
@@ -490,7 +497,7 @@ export async function status({ project_id, localPath }) {
   let publicKey: string | undefined = undefined;
   let error: string | undefined = undefined;
   try {
-    const home = await localPath({ project_id });
+    const { home } = await localPath({ project_id });
     publicKey = await readFile(join(home, SSH_IDENTITY_FILE + ".pub"), "utf8");
   } catch (err) {
     if (s != "opened") {
