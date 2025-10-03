@@ -120,7 +120,7 @@ export async function start({
         `role=project`,
         "--label",
         `rootfs_image=${image}`,
-        "--network=pasta",
+        "--network=slirp4netns",
       ]);
     };
 

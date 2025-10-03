@@ -118,6 +118,11 @@ export const start = reuseInFlight(
     // the container is named in a way that is determined by the volume name,
     // but we also use labels.
     args.push("--name", name);
+    // I unfortunately hit multiple times cases where the pasta.avx process
+    // would be pegged forever at 100% cpu, even though everything was
+    // completely idle, so there is definitely a major bug with pasta in
+    // "podman version 5.4.1".
+    args.push("--network", "slirp4netns");
     args.push("--hostname", name);
     args.push(
       "--label",
