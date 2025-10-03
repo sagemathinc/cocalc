@@ -6,6 +6,8 @@
 import { Descriptions, Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
+
 import Backups from "components/landing/backups";
 import Code from "components/landing/code";
 import Collaboration from "components/landing/collaboration";
@@ -21,18 +23,22 @@ import Publishing from "components/landing/publishing";
 import SignIn from "components/landing/sign-in";
 import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
+
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import LatexCollab from "public/features/cocalc-latex-concurrent-editing.png";
-import LatexEditorImage from "public/features/cocalc-latex-editor-2019.png";
+
+import LatexCollab from "public/features/latex-editor-realtime-sync-20251003.png";
 import Sidechat from "public/features/cocalc-latex-side-chat-v2.png";
 import Pythontex from "public/features/cocalc-pythontex.png";
 import Sagetex from "public/features/cocalc-sagetex.png";
 import AIFormula from "public/features/latex-ai-formula.png";
 import CustomCommand from "public/features/latex-custom-command-02.png";
+import LatexDarkMode from "public/features/latex-editor-darkmode-20251003.png";
+import LatexEditorImage from "public/features/latex-editor-main-20251003.png";
 import Knitr from "public/features/latex-editor-rnw-01.png";
 import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
 import Logo from "public/features/latex-logo.svg";
+import LatexPythontex from "public/features/latex-editor-pythontex-20251003.png";
 
 export default function LatexEditor({ customize }) {
   return (
@@ -49,11 +55,11 @@ export default function LatexEditor({ customize }) {
             subtitle={
               <>
                 Focus on writing LaTeX. CoCalc takes care of everything else.
-                <hr />
+                {/*<hr />
                 <A href="https://about.cocalc.com/2023/01/13/cocalcs-online-latex-editor/">
                   Learn much more about LaTeX in CoCalc from this new blog
                   post...
-                </A>
+                </A> */}
               </>
             }
             image={LatexEditorImage}
@@ -218,7 +224,7 @@ export default function LatexEditor({ customize }) {
             anchor="a-computational"
             icon="laptop"
             title="Full computational environment"
-            image={LatexEditorImage}
+            image={LatexPythontex}
             alt="Two browser windows editing the same LaTeX file"
             wide
           >
@@ -478,6 +484,40 @@ export default function LatexEditor({ customize }) {
               It is also possible to{" "}
               <strong>fully customize the compilation command</strong>, so you
               can bring your own shell script or even use a Makefile!
+            </Paragraph>
+          </Info>
+
+          <Info
+            anchor="a-darkmode"
+            icon={
+              <Icon style={{ fontSize: "40px" }} unicode={DARK_MODE_ICON} />
+            }
+            title={"Dark Mode with PDF Support"}
+            image={LatexDarkMode}
+          >
+            <Paragraph>
+              If you like working in{" "}
+              <span
+                style={{
+                  background: "black",
+                  color: "white",
+                  padding: "2px 5px",
+                }}
+              >
+                Dark Mode
+              </span>
+              , feel welcome to CoCalc as well!
+            </Paragraph>
+            <Paragraph>
+              {" "}
+              The <LaTeX /> editor not only supports the usual dark mode
+              funcionality, but also styling the PDF. This means despite that
+              your resulting PDF will be on a white page, you see it with a dark
+              page and bright font characters.{" "}
+            </Paragraph>
+            <Paragraph>
+              There is also a button to quickly disable the PDF dark mode, to
+              double check the actual output.
             </Paragraph>
           </Info>
 

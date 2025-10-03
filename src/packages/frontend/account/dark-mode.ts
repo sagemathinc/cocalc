@@ -10,9 +10,6 @@ import { AccountStore } from "./store";
 
 export const DARK_MODE_KEYS = ["brightness", "contrast", "sepia"] as const;
 
-// Icon unicode character for dark mode toggle (◑ - circle with right half black)
-export const DARK_MODE_ICON = 0x25d1;
-
 type Config = Record<(typeof DARK_MODE_KEYS)[number], number>;
 
 export const DARK_MODE_MINS: Config = {
