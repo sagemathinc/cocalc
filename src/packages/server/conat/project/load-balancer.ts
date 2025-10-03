@@ -47,14 +47,16 @@ async function getConfig({ project_id }): Promise<Configuration> {
     throw Error(`no project ${project_id}`);
   }
   const { run_quota, image } = rows[0];
+  const memoryLimitsBytes = (run_quota?.memory_limit ?? 1000) * 1_000_000; // in bytes
   const config = {
     image,
     secret: await getProjectSecretToken(project_id),
-    cpu: `${(run_quota?.cpu_limit ?? 1) * 1000}m`,
-    memory: `${run_quota?.memory_limit ?? 1000}M`,
+    cpu: run_quota?.cpu_limit ?? 1, // actually a *priority* with higher numbers being higher
+    memory: memoryLimitsBytes,
     pids: DEFAULT_PID_LIMIT,
-    swap: "16Gi", // no clue,
-    disk: `${run_quota?.disk_quota ?? 1000}M`,
+    // uses swap if available on the runner; amount is a function of resources
+    swap: true,
+    disk: (run_quota?.disk_quota ?? 1_000) * 1_000_000,
   } as Configuration;
 
   logger.debug("config", { project_id, run_quota, config });

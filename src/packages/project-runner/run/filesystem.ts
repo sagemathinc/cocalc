@@ -43,15 +43,22 @@ export async function setQuota(project_id: string, size: number | string) {
 let fs: Filesystem | null = null;
 export async function localPath({
   project_id,
+  disk,
 }: {
   project_id: string;
+  // if given, this quota will be set in case of btrfs
+  disk?: number | string;
 }): Promise<string> {
   if (projectRunnerMountpoint) {
     fs ??= await filesystem({
       mount: projectRunnerMountpoint,
       rustic: rusticRepo,
     });
-    const { path } = await fs.subvolumes.get(`project-${project_id}`);
+    const vol = await fs.subvolumes.get(`project-${project_id}`);
+    if (disk != null) {
+      await vol.quota.set(disk);
+    }
+    const { path } = vol;
     return path;
   } else if (process.env.COCALC_PROJECT_PATH) {
     const path = join(process.env.COCALC_PROJECT_PATH, project_id);

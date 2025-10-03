@@ -96,7 +96,7 @@ export async function start({
     resetBootlog({ project_id });
     bootlog({ project_id, type: "start-project", progress: 0 });
 
-    const home = await localPath({ project_id });
+    const home = await localPath({ project_id, disk: config?.disk });
     logger.debug("start: got home", { project_id, home });
     bootlog({
       project_id,
@@ -276,7 +276,7 @@ export async function start({
       args.push("-e", `${key}=${env[key]}`);
     }
 
-    args.push(...podmanLimits(config));
+    args.push(...await podmanLimits(config));
 
     // --init = have podman inject a tiny built in init script so we don't get zombies.
     args.push("--init");

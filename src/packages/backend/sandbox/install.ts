@@ -311,7 +311,6 @@ export async function alreadyInstalled(app: App) {
   if (!(await exists(path))) {
     return false;
   }
-  console.log({ version: await installedVersion(app), VERSION });
   return (await installedVersion(app)) == VERSION;
 }
 

@@ -4,8 +4,9 @@
 import { k8sCpuParser } from "@cocalc/util/misc";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
+import { getContainerSwapSizeMb } from "@cocalc/backend/podman/memory";
 
-export function podmanLimits(config?: Configuration): string[] {
+export async function podmanLimits(config?: Configuration): Promise<string[]> {
   const args: string[] = [];
 
   if (!config) {
@@ -28,10 +29,14 @@ export function podmanLimits(config?: Configuration): string[] {
   // Memory & swap
   if (config.memory != null) {
     args.push(`--memory=${config.memory}`);
-  }
 
-  if (config.swap != null) {
-    args.push(`--memory-swap=${config.swap}`);
+    if (config.swap) {
+      const swap = await getContainerSwapSizeMb(config.memory);
+      if (swap > 0) {
+        // its the SUM:
+        args.push(`--memory-swap=${config.memory + swap}`);
+      }
+    }
   }
 
   // PIDs

@@ -194,7 +194,6 @@ export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 export const account_id: string =
   process.env.COCALC_ACCOUNT_ID ?? FALLBACK_ACCOUNT_UUID;
 
-
 // File server and project runner config:
 export const rusticRepo: string =
   process.env.COCALC_RUSTIC_REPO ?? join(data, "rustic");
@@ -208,8 +207,6 @@ export const fileServerMountpoint: string | undefined =
   process.env.COCALC_FILE_SERVER_MOUNTPOINT;
 export const projectRunnerMountpoint: string | undefined =
   process.env.COCALC_PROJECT_RUNNER_MOUNTPOINT;
-
-
 
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory
