@@ -26,8 +26,9 @@ export interface Options {
   // and a loopback device).
   mount: string;
 
-  // image = optioanlly use a image file at this location for the btrfs filesystem.
-  // This is used for development and in Docker.  It will be created as a sparse image file
+  // image = optionally use a image file at this location for the btrfs filesystem.
+  // This is used for **development** (not a serious deployment).  It will be
+  // created as a sparse image file
   // with given size, and mounted at opts.mount if it does not exist.  If you create
   // it be sure to use mkfs.btrfs to format it.
   image?: string;

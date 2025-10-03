@@ -196,6 +196,14 @@ export const rusticRepo: string =
 export const account_id: string =
   process.env.COCALC_ACCOUNT_ID ?? FALLBACK_ACCOUNT_UUID;
 
+// If given, COCALC_BTRFS_MOUNTPOINT must be the top level mountpoint
+// of a btrfs filesystem that is dedicated to whatever service you're
+// running on this server (e.g., a project runner or the central file-server).
+// If not specified, a sparse image file is created in data/btrfs, which
+// is designed for *development* purposes (not production deployments).
+export const btrfsMountpoint: string | undefined =
+  process.env.COCALC_BTRFS_MOUNTPOINT;
+
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory
 // which is used for actively open sqlite database. Optionally,

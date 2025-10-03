@@ -21,7 +21,7 @@ export type { Fileserver };
 import { loadConatConfiguration } from "../configuration";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
-import { data, rusticRepo } from "@cocalc/backend/data";
+import { btrfsMountpoint, data, rusticRepo } from "@cocalc/backend/data";
 import { join } from "node:path";
 import { mkdir } from "fs/promises";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
@@ -182,23 +182,33 @@ export async function init(_fs?) {
     return servers.ssh.proxyHandlers;
   }
   await loadConatConfiguration();
-  const image = join(data, "btrfs", "image");
-  if (!(await exists(image))) {
-    await mkdir(image, { recursive: true });
-  }
-  const mountPoint = join(data, "btrfs", "mnt");
-  if (!(await exists(mountPoint))) {
-    await mkdir(mountPoint, { recursive: true });
-  }
+  if (_fs != null) {
+    // passing in filesystem (e.g., used for dev work)
+    fs = _fs;
+  } else if (btrfsMountpoint) {
+    // an existing dedicated btrfs filesystem on the server, setup externally somehow:
+    // this is what we should get in production
+    fs = await filesystem({
+      mount: btrfsMountpoint,
+      rustic: rusticRepo,
+    });
+  } else {
+    const image = join(data, "btrfs", "image");
+    if (!(await exists(image))) {
+      await mkdir(image, { recursive: true });
+    }
+    const mountPoint = join(data, "btrfs", "mnt");
+    if (!(await exists(mountPoint))) {
+      await mkdir(mountPoint, { recursive: true });
+    }
 
-  fs =
-    _fs ??
-    (await filesystem({
+    fs = await filesystem({
       image: join(image, "btrfs.img"),
       size: "25G",
       mount: mountPoint,
       rustic: rusticRepo,
-    }));
+    });
+  }
 
   const client = conat();
   const file = await createFileServer({
