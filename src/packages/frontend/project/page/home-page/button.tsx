@@ -5,11 +5,7 @@
 
 import { Button } from "antd";
 
-import {
-  redux,
-  useActions,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
 import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
@@ -18,8 +14,6 @@ import { COLORS } from "@cocalc/util/theme";
 
 export default function HomePageButton({ project_id, active, width }) {
   const actions = useActions({ project_id });
-  const hideActionButtons = useTypedRedux(project_id, "hideActionButtons");
-  if (hideActionButtons) return <></>;
 
   return (
     <Button

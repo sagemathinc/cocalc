@@ -6,9 +6,11 @@
 import { Alert, Button, Card, Flex, Space, Tag, Tooltip } from "antd";
 import { useRouter } from "next/router";
 import { Fragment } from "react";
+import TimeAgo from "timeago-react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
   capitalize,
   getRandomColor,
@@ -24,11 +26,9 @@ import {
 } from "@cocalc/util/types/news";
 import { CSS, Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
-import TimeAgo from "timeago-react";
-import { useDateStr } from "./useDateStr";
 import { useCustomize } from "lib/customize";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { SocialMediaShareLinks } from "../landing/social-media-share-links";
+import { useDateStr } from "./useDateStr";
 
 const STYLE: CSS = {
   borderColor: COLORS.GRAY_M,
@@ -36,8 +36,8 @@ const STYLE: CSS = {
 } as const;
 
 interface Props {
-  // NewsWithFuture with optional future property
-  news: NewsItem & { future?: boolean };
+  // NewsWithStatus with optional future and expired properties
+  news: NewsItem & { future?: boolean; expired?: boolean };
   dns?: string;
   showEdit?: boolean;
   small?: boolean; // limit height, essentially
@@ -55,7 +55,19 @@ export function News(props: Props) {
     historyMode = false,
     onTagClick,
   } = props;
-  const { id, url, tags, title, date, channel, text, future, hide } = news;
+  const {
+    id,
+    url,
+    tags,
+    title,
+    date,
+    channel,
+    text,
+    future,
+    hide,
+    expired,
+    until,
+  } = news;
   const dateStr = useDateStr(news, historyMode);
   const permalink = slugURL(news);
   const { kucalc, siteURL } = useCustomize();
@@ -183,6 +195,28 @@ export function News(props: Props) {
     }
   }
 
+  function renderExpired() {
+    if (expired) {
+      return (
+        <Alert
+          banner
+          type="warning"
+          message={
+            <>
+              Expired news item, not shown to users.
+              {typeof until === "number" && (
+                <>
+                  {" "}
+                  Expired <TimeAgo datetime={new Date(1000 * until)} />.
+                </>
+              )}
+            </>
+          }
+        />
+      );
+    }
+  }
+
   function renderTags() {
     return <TagList mode="news" tags={tags} onTagClick={onTagClick} />;
   }
@@ -269,6 +303,7 @@ export function News(props: Props) {
         </Title>
         {renderFuture()}
         {renderHidden()}
+        {renderExpired()}
         <Markdown value={text} style={{ ...style, minHeight: "20vh" }} />
 
         <Flex align="baseline" justify="space-between" wrap="wrap">
@@ -303,6 +338,7 @@ export function News(props: Props) {
         >
           {renderFuture()}
           {renderHidden()}
+          {renderExpired()}
           <Markdown value={text} style={style} />
         </Card>
       </>

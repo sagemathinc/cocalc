@@ -3,20 +3,26 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cspell:ignore Questionmark
+
 declare let DEBUG;
 
-import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
+import { useEffect, useRef, useState } from "react";
+
+import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
+import { field_cmp, seconds2hms } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
 } from "@cocalc/util/types/project-info/types";
-import { field_cmp, seconds2hms } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
+import { ROOT_STYLE } from "../servers/consts";
 import { RestartProject } from "../settings/restart-project";
 import {
   AboutContent,
@@ -28,7 +34,6 @@ import {
 } from "./components";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 import { DETAILS_BTN_TEXT, SSH_KEYS_DOC } from "./utils";
-import { ROOT_STYLE } from "../servers/consts";
 
 interface Props {
   any_alerts: () => boolean;
@@ -88,6 +93,53 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
     render_cocalc,
     onCellProps,
   } = props;
+
+  const { contentSize } = useProjectContext();
+
+  const problemsRef = useRef<HTMLDivElement>(null);
+  const cgroupRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const explanationRef = useRef<HTMLDivElement>(null);
+  const generalStatusRef = useRef<HTMLDivElement>(null);
+  const [tableHeight, setTableHeight] = useState<number>(400);
+
+  useEffect(() => {
+    const calculateTableHeight = () => {
+      const parentHeight = contentSize.height;
+      if (parentHeight === 0) return; // Wait until contentSize is measured
+
+      let usedHeight = 0;
+
+      // Add height of ProjectProblems component
+      usedHeight += problemsRef.current?.offsetHeight ?? 0;
+
+      // Add height of CGroup component
+      usedHeight += cgroupRef.current?.offsetHeight ?? 0;
+
+      // Add height of header row
+      usedHeight += headerRef.current?.offsetHeight ?? 0;
+
+      // Add height of explanation row if visible
+      usedHeight += explanationRef.current?.offsetHeight ?? 0;
+
+      // Add height of general status row if DEBUG is enabled
+      if (DEBUG) {
+        usedHeight += generalStatusRef.current?.offsetHeight ?? 0;
+      }
+
+      // Add more buffer for table header, margins, and other spacing
+      usedHeight += 100;
+
+      const availableHeight = Math.max(300, parentHeight - usedHeight);
+      setTableHeight(availableHeight);
+    };
+
+    calculateTableHeight();
+
+    // Recalculate on window resize
+    window.addEventListener("resize", calculateTableHeight);
+    return () => window.removeEventListener("resize", calculateTableHeight);
+  }, [show_explanation, ptree, contentSize.height, contentSize.width]);
 
   function render_help() {
     return (
@@ -295,11 +347,16 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
       </Tip>
     );
 
-    const table_style: CSS = { marginBottom: "2rem" };
+    const table_style: CSS = {
+      marginBottom: "2rem",
+    };
 
     return (
       <>
-        <Row style={{ marginBottom: "10px", marginTop: "20px" }}>
+        <Row
+          ref={headerRef}
+          style={{ marginBottom: "10px", marginTop: "20px" }}
+        >
           <Col md={9}>
             <Form layout="inline">
               <Form.Item label="Table of Processes" />
@@ -314,13 +371,14 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
             </Form>
           </Col>
         </Row>
-        <Row>{render_explanation()}</Row>
+        <Row ref={explanationRef}>{render_explanation()}</Row>
         <Row>
           <Table<ProcessRow>
+            key={`table-${contentSize.width}-${contentSize.height}`}
             dataSource={ptree}
             size={"small"}
             pagination={false}
-            scroll={{ y: "65vh" }}
+            scroll={{ y: tableHeight }}
             style={table_style}
             expandable={expandable}
             rowSelection={rowSelection}
@@ -439,7 +497,7 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
       </div>
     );
     return (
-      <Col lg={8} lgOffset={2} md={12} mdOffset={0}>
+      <Col md={12} mdOffset={0}>
         <Alert
           message={msg}
           style={{ margin: "10px 0" }}
@@ -457,14 +515,16 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
 
   function render_general_status() {
     return (
-      <Col md={12} style={{ color: COLORS.GRAY }}>
-        Timestamp:{" "}
-        {info?.timestamp != null ? (
-          <code>{new Date(info.timestamp).toISOString()}</code>
-        ) : (
-          "no timestamp"
-        )}{" "}
-        | Status: <code>{status}</code>
+      <Col md={12}>
+        <div ref={generalStatusRef} style={{ color: COLORS.GRAY }}>
+          Timestamp:{" "}
+          {info?.timestamp != null ? (
+            <code>{new Date(info.timestamp).toISOString()}</code>
+          ) : (
+            "no timestamp"
+          )}{" "}
+          | Status: <code>{status}</code>
+        </div>
       </Col>
     );
   }
@@ -472,15 +532,19 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
   function render_body() {
     return (
       <>
-        <ProjectProblems project_status={project_status} />
-        <CGroup
-          have_cgroup={info?.cgroup != null}
-          cg_info={cg_info}
-          disk_usage={disk_usage}
-          pt_stats={pt_stats}
-          start_ts={start_ts}
-          project_status={project_status}
-        />
+        <div ref={problemsRef}>
+          <ProjectProblems project_status={project_status} />
+        </div>
+        <div ref={cgroupRef}>
+          <CGroup
+            have_cgroup={info?.cgroup != null}
+            cg_info={cg_info}
+            disk_usage={disk_usage}
+            pt_stats={pt_stats}
+            start_ts={start_ts}
+            project_status={project_status}
+          />
+        </div>
         {render_top()}
         {render_modals()}
         {DEBUG && render_general_status()}

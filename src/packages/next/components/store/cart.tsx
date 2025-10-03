@@ -11,26 +11,27 @@ shopping cart experience, so most likely to feel familiar to users and easy
 to use.
 */
 
+import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useState, type JSX } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import type {
+  ProductDescription,
+  ProductType,
+} from "@cocalc/util/db-schema/shopping-cart-items";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { capitalize, isValidUUID } from "@cocalc/util/misc";
-import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
-import { useRouter } from "next/router";
-import { useEffect, useMemo, useState, type JSX } from "react";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
-import type {
-  ProductDescription,
-  ProductType,
-} from "@cocalc/util/db-schema/shopping-cart-items";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -353,9 +354,9 @@ export function DescriptionColumn(props: DCProps) {
   const router = useRouter();
   const { id, description, style, readOnly } = props;
   if (
-    description.type == "disk" ||
-    description.type == "vm" ||
-    description.type == "quota"
+    description.type === "disk" ||
+    description.type === "vm" ||
+    description.type === "quota"
   ) {
     return <DescriptionColumnSiteLicense {...props} />;
   } else if (description.type == "cash-voucher") {
@@ -390,9 +391,9 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   const { id, cost, description, compact, project_id, readOnly } = props;
   if (
     !(
-      description.type == "disk" ||
-      description.type == "vm" ||
-      description.type == "quota"
+      description.type === "disk" ||
+      description.type === "vm" ||
+      description.type === "quota"
     )
   ) {
     throw Error("BUG -- incorrect typing");
@@ -403,7 +404,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
     return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
   }
   const { input } = cost;
-  if (input.type == "cash-voucher") {
+  if (input.type === "cash-voucher") {
     throw Error("incorrect typing");
   }
 
@@ -423,7 +424,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   }
 
   function editableQuota() {
-    if (input.type == "cash-voucher") return null;
+    if (input.type === "cash-voucher") return null;
     return (
       <div>
         <div>{describeQuotaFromInfo(input)}</div>
@@ -433,9 +434,14 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   }
 
   // this could rely an the "type" field, but we rather check the data directly
-  function editPage(): "site-license" | "vouchers" {
-    if (input.type == "cash-voucher") {
+  function editPage(): "site-license" | "vouchers" | "course" {
+    if (input.type === "cash-voucher") {
       return "vouchers";
+    } else if (
+      description.type === "quota" &&
+      description.source === "course"
+    ) {
+      return "course";
     }
     return "site-license";
   }
@@ -451,7 +457,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
       <div style={DESCRIPTION_STYLE}>
         <div style={{ marginBottom: "8px" }}>
           <b>
-            {input.subscription == "no"
+            {input.subscription === "no"
               ? describePeriod({ quota: input })
               : capitalize(input.subscription) + " subscription"}
           </b>

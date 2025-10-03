@@ -5,6 +5,7 @@
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
 import { useEffect, useState, type JSX } from "react";
+
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { COLORS } from "@cocalc/util/theme";
 import Anonymous from "components/misc/anonymous";
@@ -16,28 +17,19 @@ import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
 import Cart from "./cart";
 import Checkout from "./checkout";
-import Processing from "./processing";
 import Congrats from "./congrats";
 import Menu from "./menu";
 import Overview from "./overview";
+import Processing from "./processing";
 import SiteLicense from "./site-license";
 import { StoreInplaceSignInOrUp } from "./store-inplace-signup";
+import { StorePagesTypes } from "./types";
 import Vouchers from "./vouchers";
 
 const { Content } = Layout;
 
 interface Props {
-  page: (
-    | "site-license"
-    | "boost"
-    | "dedicated"
-    | "cart"
-    | "checkout"
-    | "processing"
-    | "congrats"
-    | "vouchers"
-    | undefined
-  )[];
+  page: (StorePagesTypes | undefined)[];
 }
 
 export default function StoreLayout({ page }: Props) {
@@ -131,7 +123,9 @@ export default function StoreLayout({ page }: Props) {
 
     switch (main) {
       case "site-license":
-        return <SiteLicense noAccount={noAccount} />;
+        return <SiteLicense noAccount={noAccount} source="site-license" />;
+      case "course":
+        return <SiteLicense noAccount={noAccount} source="course" />;
       case "cart":
         return requireAccount(Cart);
       case "checkout":

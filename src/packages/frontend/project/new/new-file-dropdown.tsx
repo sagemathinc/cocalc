@@ -3,7 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Button, Space } from "antd";
+import { useIntl } from "react-intl";
 
 import { React } from "@cocalc/frontend/app-framework";
 import {
@@ -15,7 +16,6 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import { EXTs } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { keys } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useIntl } from "react-intl";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { file_options } = require("@cocalc/frontend/editor");
@@ -127,7 +127,7 @@ export function NewFileDropdown({
           className={"pull-right dropdown-splitbutton-left"}
           style={{ marginRight: "5px" }}
         >
-          <Button.Group>
+          <Space.Compact>
             <Button size="large" onClick={() => create_file()}>
               <span>
                 <Icon name="file" /> {title}
@@ -135,7 +135,7 @@ export function NewFileDropdown({
             </Button>
 
             <DropdownMenu size="large" button={button} items={items} />
-          </Button.Group>
+          </Space.Compact>
         </span>
       );
     case "flyout":

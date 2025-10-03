@@ -1,11 +1,13 @@
+import { delay } from "awaiting";
+
 import createProject from "@cocalc/server/projects/create";
 export { createProject };
-import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
+
+import isAdmin from "@cocalc/server/accounts/is-admin";
 import { getProject } from "@cocalc/server/projects/control";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import { delay } from "awaiting";
+import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
 export * from "@cocalc/server/projects/collaborators";
-import isAdmin from "@cocalc/server/accounts/is-admin";
 
 export async function copyPathBetweenProjects(
   opts: UserCopyOptions,
@@ -45,8 +47,8 @@ async function doCopyPathBetweenProjects(opts: UserCopyOptions) {
   }
 }
 
-import { callback2 } from "@cocalc/util/async-utils";
 import { db } from "@cocalc/database";
+import { callback2 } from "@cocalc/util/async-utils";
 
 export async function setQuotas(opts: {
   account_id: string;
@@ -74,4 +76,30 @@ export async function setQuotas(opts: {
   await project?.setAllQuotas();
 }
 
+export async function start({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to start it");
+  }
+  const project = await getProject(project_id);
+  await project.start();
+}
 
+export async function stop({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to stop it");
+  }
+  const project = await getProject(project_id);
+  await project.stop();
+}

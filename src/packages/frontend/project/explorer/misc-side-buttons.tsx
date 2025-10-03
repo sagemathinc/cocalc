@@ -18,8 +18,6 @@ import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
-const SHOW_SERVER_LAUNCHERS = false;
-
 import TourButton from "./tour/button";
 
 const OPEN_MSG = defineMessage({
@@ -176,7 +174,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     // we make sure the url ends with a slash, without messing up the full URL
     const s = base.slice(base.length - 1) === "/" ? "" : "/";
     const url = `${base}${s}${current_path ? "lab/tree/" + current_path : ""}`;
-    const values = { name: SPEC.code.longName };
+    const values = { name: SPEC.jupyterlab.longName };
     const tooltip = intl.formatMessage(OPEN_MSG, values);
     const description = intl.formatMessage(SPEC.jupyterlab.description, values);
     return (
@@ -190,7 +188,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
 
   function render_upload_button(): React.JSX.Element | undefined {
     if (student_project_functionality.disableUploads) {
-      return;
+      return <span />;
     }
     return (
       <Button
@@ -209,12 +207,10 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       style={{ whiteSpace: "nowrap", padding: "0" }}
       className="pull-right"
     >
-      {SHOW_SERVER_LAUNCHERS && (
-        <Space.Compact>
-          {render_jupyterlab_button()}
-          {render_vscode_button()}
-        </Space.Compact>
-      )}
+      <Space.Compact>
+        {render_jupyterlab_button()}
+        {render_vscode_button()}
+      </Space.Compact>
       <Space.Compact>
         {render_upload_button()}
         {render_library_button()}

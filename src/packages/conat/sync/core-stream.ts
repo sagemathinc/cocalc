@@ -936,6 +936,7 @@ export class CoreStream<T = any> extends EventEmitter {
     seq,
     last_seq,
     key,
+    seqs,
   }: {
     // give exactly ONE parameter -- by default nothing happens with no params
     // all: delete everything
@@ -944,6 +945,8 @@ export class CoreStream<T = any> extends EventEmitter {
     last_index?: number;
     // seq: delete message with this sequence number
     seq?: number;
+    // seqs: delete the messages in this array of sequence numbers
+    seqs?: number[];
     // last_seq: delete everything up to and including this sequence number
     last_seq?: number;
     // key: delete the message with this key
@@ -966,6 +969,8 @@ export class CoreStream<T = any> extends EventEmitter {
       }
     } else if (seq != null) {
       opts = { seq };
+    } else if (seqs != null) {
+      opts = { seqs };
     } else if (last_seq != null) {
       opts = { last_seq };
     } else if (key != null) {

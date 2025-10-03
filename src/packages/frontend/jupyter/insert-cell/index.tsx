@@ -12,6 +12,8 @@ buttons in the hover state (even when tacking mouse moves!),
 which is confusing.
 */
 
+// cSpell:ignore aicell
+
 import { Button, Space, Tooltip } from "antd";
 import { ReactNode } from "react";
 
@@ -96,6 +98,68 @@ export function InsertCell({
     classNames.push("cocalc-jupyter-insert-cell-below");
   }
 
+  const isActiveAIGenerator =
+    !hide &&
+    (showAICellGen === position ||
+      (position === "below" && showAICellGen === "replace"));
+
+  function renderControls() {
+    return (
+      <div
+        className="cocalc-jupyter-insert-cell-controls"
+        style={
+          showAICellGen || alwaysShow
+            ? {
+                visibility: "visible",
+                opacity: 1,
+              }
+            : undefined
+        }
+      >
+        <Space size="large">
+          <TinyButton
+            type="code"
+            title="Insert code cell (click line)"
+            handleButtonClick={handleButtonClick}
+          >
+            <Icon name="code" /> Code
+          </TinyButton>
+          <TinyButton
+            type="markdown"
+            title="Insert text cell (shift+click line)"
+            handleButtonClick={handleButtonClick}
+          >
+            <Icon name="pen" /> Text
+          </TinyButton>
+          <TinyButton
+            type="paste"
+            title="Insert clipboard content as cell"
+            handleButtonClick={handleButtonClick}
+          >
+            <Icon name="paste" /> Paste
+          </TinyButton>
+          {showGenerateCell && llmTools && (
+            <TinyButton
+              type="aicell"
+              title="Create code based on your description (alt+click line)"
+              handleButtonClick={handleButtonClick}
+            >
+              <Space>
+                <AIAvatar
+                  backgroundColor={"transparent"}
+                  size={14}
+                  innerStyle={{ color: "default", top: "-2px" }}
+                />
+                Generate...
+              </Space>
+            </TinyButton>
+          )}
+        </Space>
+      </div>
+    );
+  }
+
+  // the AIGenerateCodeCell is only rendered if active – otherwise that dialog is rendered for each cell insertion line
   return (
     <div
       className={classNames.join(" ")}
@@ -105,66 +169,20 @@ export function InsertCell({
       }}
       onClick={showAICellGen ? undefined : handleBarClick}
     >
-      <AIGenerateCodeCell
-        setShowAICellGen={setShowAICellGen}
-        showAICellGen={!hide ? showAICellGen : null}
-        actions={actions}
-        frameActions={frameActions}
-        id={id}
-        llmTools={llmTools}
-      >
-        <div
-          className="cocalc-jupyter-insert-cell-controls"
-          style={
-            showAICellGen || alwaysShow
-              ? {
-                  visibility: "visible",
-                  opacity: 1,
-                }
-              : undefined
-          }
+      {isActiveAIGenerator ? (
+        <AIGenerateCodeCell
+          setShowAICellGen={setShowAICellGen}
+          showAICellGen={showAICellGen}
+          actions={actions}
+          frameActions={frameActions}
+          id={id}
+          llmTools={llmTools}
         >
-          <Space size="large">
-            <TinyButton
-              type="code"
-              title="Insert code cell (click line)"
-              handleButtonClick={handleButtonClick}
-            >
-              <Icon name="code" /> Code
-            </TinyButton>
-            <TinyButton
-              type="markdown"
-              title="Insert text cell (shift+click line)"
-              handleButtonClick={handleButtonClick}
-            >
-              <Icon name="pen" /> Text
-            </TinyButton>
-            <TinyButton
-              type="paste"
-              title="Insert clipboard content as cell"
-              handleButtonClick={handleButtonClick}
-            >
-              <Icon name="paste" /> Paste
-            </TinyButton>
-            {showGenerateCell && llmTools && (
-              <TinyButton
-                type="aicell"
-                title="Create code based on your description (alt+click line)"
-                handleButtonClick={handleButtonClick}
-              >
-                <Space>
-                  <AIAvatar
-                    backgroundColor={"transparent"}
-                    size={14}
-                    innerStyle={{ color: "default", top: "-2px" }}
-                  />
-                  Generate...
-                </Space>
-              </TinyButton>
-            )}
-          </Space>
-        </div>
-      </AIGenerateCodeCell>
+          {renderControls()}
+        </AIGenerateCodeCell>
+      ) : (
+        renderControls()
+      )}
     </div>
   );
 }

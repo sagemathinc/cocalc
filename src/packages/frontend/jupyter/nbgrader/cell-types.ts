@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore testthat autograder ptype testset atol endfunction infty autograded strfind
+
 import { IconName } from "@cocalc/frontend/components/icon";
 import { Metadata } from "./types";
 
@@ -13,7 +15,7 @@ type Language = "python" | "julia" | "r" | "sage" | "octave";
 // defaulting to 1 is probably often a much better choice.
 const DEFAULT_POINTS: number = 1;
 
-interface CelltypeInfo {
+interface CellTypeInfo {
   title: string; // human readable title for this type of cell
   student_title: string;
   student_tip: string;
@@ -258,7 +260,7 @@ assert(strfind("ABC", answer_7) && length(answer_7) == 1)
 assert(answer_7 == "B")
 ### END HIDDEN TESTS`;
 
-export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
+export const CELL_TYPE_INFO_LIST: CellTypeInfo[] = [
   {
     title: "-",
     student_title: "",
@@ -460,12 +462,12 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   },
 ];
 
-export const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
-for (const x of CELLTYPE_INFO_LIST) {
-  if (CELLTYPE_INFO_MAP[x.value] != null) {
+export const CELL_TYPE_INFO_MAP: { [value: string]: CellTypeInfo } = {};
+for (const x of CELL_TYPE_INFO_LIST) {
+  if (CELL_TYPE_INFO_MAP[x.value] != null) {
     throw Error("bug -- values must be unique");
   }
-  CELLTYPE_INFO_MAP[x.value] = x;
+  CELL_TYPE_INFO_MAP[x.value] = x;
 }
 
 // I could implement this with another map hardcoded
@@ -500,7 +502,7 @@ export function state_to_value(state: Metadata): string | undefined {
     multiple_choice,
   });
   if (value_cache[key] != undefined) return value_cache[key];
-  for (const x of CELLTYPE_INFO_LIST) {
+  for (const x of CELL_TYPE_INFO_LIST) {
     if (
       x.grade == grade &&
       x.solution == solution &&
@@ -513,12 +515,12 @@ export function state_to_value(state: Metadata): string | undefined {
     }
   }
   // throwing and error here causes the webapp to crash completely,
-  // but we want to continue showing the probematic notebook.
-  console.warn(`Invalid NBGrader state: "${key}"`);
+  // but we want to continue showing the problematic notebook.
+  console.warn(`Invalid nbgrader state: "${key}"`);
 }
 
 export function value_to_state(value: string): Metadata {
-  const x = CELLTYPE_INFO_MAP[value];
+  const x = CELL_TYPE_INFO_MAP[value];
   if (x == null) {
     throw Error(`unknown value "${value}"`);
   }
@@ -540,7 +542,7 @@ or memorize the syntax of nbgrader...
 export function value_to_template_content(
   value: string,
   language: string | undefined,
-  type: string
+  type: string,
 ): string {
   if (language == null) return "";
   if (value == "instructor") {
@@ -553,7 +555,7 @@ export function value_to_template_content(
     return "YOUR ANSWER HERE";
   }
 
-  const x = CELLTYPE_INFO_MAP[value];
+  const x = CELL_TYPE_INFO_MAP[value];
   if (x == null) {
     throw Error(`unknown value "${value}"`);
   }
@@ -568,5 +570,5 @@ export function value_to_template_content(
 }
 
 export function set_cell_type(value: string) {
-  return CELLTYPE_INFO_MAP[value].cell_type;
+  return CELL_TYPE_INFO_MAP[value].cell_type;
 }

@@ -27,6 +27,7 @@ import type {
   CopyConfigurationOptions,
   CopyConfigurationTargets,
 } from "./configuration/configuration-copying";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
 
 export const PARALLEL_DEFAULT = 5;
 export const MAX_COPY_PARALLEL = 25;
@@ -287,7 +288,11 @@ export class CourseStore extends Store<CourseState> {
     if (settings == null || !settings.get("student_pay")) return null;
     const payInfo = settings.get("payInfo")?.toJS();
     if (!payInfo) return null;
-    return payInfo;
+    // merge in defaults for backward compat if e.g., no version set
+    return {
+      ...DEFAULT_PURCHASE_INFO,
+      ...payInfo,
+    };
   }
 
   public get_datastore(): Datastore {

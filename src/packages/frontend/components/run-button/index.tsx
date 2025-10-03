@@ -85,15 +85,16 @@ export default function RunButton({
   setInfo,
 }: Props) {
   const mode = infoToMode(info);
-  const noRun = NO_RUN.has(mode);
 
   const {
+    disableMarkdownCodebar,
     jupyterApiEnabled,
     project_id,
     path: filename,
     is_visible,
     /*hasOpenAI, */
   } = useFileContext();
+  const noRun = NO_RUN.has(mode) || disableMarkdownCodebar;
   const path = project_id && filename ? path_split(filename).head : undefined;
   const [running, setRunning] = useState<boolean>(false);
   const outputMessagesRef = useRef<object[] | null>(null);
@@ -140,8 +141,9 @@ export default function RunButton({
       setOutput == null ||
       running ||
       !info.trim()
-    )
+    ) {
       return;
+    }
     const { output: messages, kernel: usedKernel } = getFromCache({
       input,
       history,

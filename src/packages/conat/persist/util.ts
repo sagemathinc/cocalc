@@ -2,8 +2,8 @@
 
 Maybe storage available as a service.
 
-This code is similar to the changefeed server, because 
-it provides a changefeed on a given persist storage, 
+This code is similar to the changefeed server, because
+it provides a changefeed on a given persist storage,
 and a way to see values.
 
 DEVELOPMENT:
@@ -21,20 +21,20 @@ TERMINAL 2: In another node session, create a client:
 
 // client also does this periodically to keep subscription alive:
 
-    await renew({user, id }) 
+    await renew({user, id })
 
 TERMINAL 3:
 
 user = {account_id:'00000000-0000-4000-8000-000000000000'}; storage = {path:'a.db'}; const {set,get} = require('@cocalc/backend/conat/persist');  const { messageData } =require("@cocalc/conat/core/client"); 0;
 
    await set({user, storage, messageData:messageData('hi')})
-   
+
    await get({user, storage,  seq:1})
-   
+
    await set({user, storage, key:'bella', messageData:messageData('hi', {headers:{x:10}})})
-   
+
    await get({user, storage,  key:'bella'})
-   
+
 Also getAll using start_seq:
 
    cf = const {id,  stream} = await require('@cocalc/backend/conat/persist').getAll({user, storage, start_seq:10}); for await(const x of stream) { console.log(x) };
@@ -92,6 +92,17 @@ export async function getStream({
     service,
   });
   const path = join(syncFiles.local, storage.path);
-  await ensureContainingDirectoryExists(path);
-  return pstream({ ...storage, path });
+  const archive = syncFiles.archive
+    ? join(syncFiles.archive, storage.path)
+    : undefined;
+  const backup = syncFiles.backup
+    ? join(syncFiles.backup, storage.path)
+    : undefined;
+  const archiveInterval = syncFiles.archiveInterval;
+  await Promise.all(
+    [path, archive, backup]
+      .filter((x) => x)
+      .map(ensureContainingDirectoryExists),
+  );
+  return pstream({ ...storage, path, archive, backup, archiveInterval });
 }

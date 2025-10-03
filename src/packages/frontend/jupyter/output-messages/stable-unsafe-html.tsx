@@ -24,7 +24,7 @@ If for any reason the react element exists or the parent is scrolled, then
 the idle timeout is reset.
 */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import $ from "jquery";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { useStableHtmlContext } from "@cocalc/frontend/jupyter/cell-list";
@@ -86,11 +86,39 @@ export default function StableUnsafeHtml({
   html,
   zIndex = Z_INDEX, // todo: support changing?
 }: Props) {
+  const stableHtmlContext = useStableHtmlContext();
+  if (stableHtmlContext.enabled) {
+    return (
+      <EnabledStableUnsafeHtml
+        docId={docId}
+        html={html}
+        zIndex={zIndex}
+        stableHtmlContext={stableHtmlContext}
+      />
+    );
+  } else {
+    return <DisabledStableUnsafeHtml html={html} />;
+  }
+}
+
+export function DisabledStableUnsafeHtml({ html }) {
+  const elt = useMemo(
+    () => <div style={STYLE} dangerouslySetInnerHTML={{ __html: html }}></div>,
+    [html],
+  );
+  return elt;
+}
+
+export function EnabledStableUnsafeHtml({
+  docId,
+  html,
+  zIndex = Z_INDEX, // todo: support changing?
+  stableHtmlContext,
+}) {
   const divRef = useRef<any>(null);
   const cellOutputDivRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
   const { isVisible, project_id, path, id } = useFrameContext();
-  const stableHtmlContext = useStableHtmlContext();
   const htmlRef = useRef<string>(html);
   const globalKeyRef = useRef<string>(
     sha1(`${project_id}-${id}-${docId}-${path}-${html}`),

@@ -7,11 +7,9 @@
 React component that describes the input of a cell
 */
 
-import { Button } from "antd";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef } from "react";
 import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
@@ -19,14 +17,13 @@ import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/con
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { LLMTools } from "@cocalc/jupyter/types";
+import { CellType } from "@cocalc/util/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { CellButtonBar } from "./cell-buttonbar";
 import { CellHiddenPart } from "./cell-hidden-part";
-import { CellIndexNumber } from "./cell-index-number";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
-import { CODE_BAR_BTN_STYLE, MINI_BUTTONS_STYLE_INNER } from "./consts";
 import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
 
@@ -117,7 +114,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       frameActions.current?.switch_md_cell_to_edit(props.cell.get("id"));
     }
 
-    function options(type: "code" | "markdown" | "raw"): Map<string, any> {
+    function options(type: CellType): Map<string, any> {
       let opt: Map<string, any>;
       switch (type) {
         case "code":
@@ -142,7 +139,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return opt;
     }
 
-    function render_codemirror(type: "code" | "markdown" | "raw"): Rendered {
+    function render_codemirror(type: CellType): Rendered {
       let value = props.cell.get("input");
       if (typeof value != "string") {
         // E.g., if it is null or a weird object.  This shouldn't happen, but typescript doesn't
@@ -188,31 +185,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
-    function render_markdown_edit_button(): Rendered {
-      if (
-        props.actions == null ||
-        props.cell.getIn(["metadata", "editable"]) === false ||
-        props.input_is_readonly
-      ) {
-        return;
-      }
-      return (
-        <div className="hidden-xs">
-          <div style={MINI_BUTTONS_STYLE_INNER}>
-            <Button
-              style={CODE_BAR_BTN_STYLE}
-              size="small"
-              type="text"
-              onClick={handle_md_double_click}
-            >
-              <Icon name="edit" /> Edit
-            </Button>
-            <CellIndexNumber index={props.index} />
-          </div>
-        </div>
-      );
-    }
-
     const fileContext = useFileContext();
 
     const urlTransform = useCallback(
@@ -243,7 +215,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           style={{ width: "100%", wordWrap: "break-word", overflow: "auto" }}
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
-          {render_markdown_edit_button()}
           <MostlyStaticMarkdown
             value={value}
             onChange={(value) => {
@@ -374,7 +345,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           modeSwitchStyle={{ marginRight: "32px" }}
           editBarStyle={{
             paddingRight:
-              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
+              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accommodate cell number. */,
           }}
         />
       );
@@ -419,15 +390,16 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
-    const type = props.cell.get("cell_type") || "code";
+    const cell_type = props.cell.get("cell_type") || "code";
 
     function render_cell_buttonbar() {
-      if (type !== "code" || fileContext.disableExtraButtons) {
+      if (fileContext.disableExtraButtons) {
         return;
       }
       return (
         <CellButtonBar
           id={props.id}
+          cell_type={cell_type}
           index={props.index}
           actions={props.actions}
           cell={props.cell}
@@ -463,8 +435,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             }}
             cocalc-test="cell-input"
           >
-            {render_input_prompt(type)}
-            {render_input_value(type)}
+            {render_input_prompt(cell_type)}
+            {render_input_value(cell_type)}
           </div>
         </div>
       </FileContext.Provider>

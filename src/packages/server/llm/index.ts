@@ -398,22 +398,28 @@ export async function evaluateOpenAI({
 
 export function normalizeOpenAIModel(model): OpenAIModel {
   // the *-8k variants are artificial – the input is already limited/truncated to 8k
-  // convert *-preview and all *-8k to "gpt-4-turbo"
-  if (model.startsWith("gpt-4-turbo")) {
-    model = "gpt-4-turbo";
-  } else if (model.startsWith("gpt-4o-mini")) {
-    model = "gpt-4o-mini";
-  } else if (model.startsWith("gpt-4o")) {
-    model = "gpt-4o";
-  } else if (model.startsWith("o1-mini")) {
-    model = "o1-mini";
-  } else if (model.startsWith("o1")) {
-    model = "o1";
-  } else if (model.startsWith("gpt-4.1-mini")) {
-    model = "gpt-4.1-mini";
-  } else if (model.startsWith("gpt-4.1")) {
-    model = "gpt-4.1";
+  // convert *-preview and all *-8k to their base model names
+  const modelPrefixes = [
+    "gpt-5-mini",
+    "gpt-5",
+    "gpt-4o-mini", 
+    "gpt-4o",
+    "gpt-4-turbo",
+    "gpt-4.1-mini",
+    "gpt-4.1",
+    "o4-mini",
+    "o3",
+    "o1-mini",
+    "o1",
+  ];
+
+  for (const prefix of modelPrefixes) {
+    if (model.startsWith(prefix)) {
+      model = prefix;
+      break;
+    }
   }
+
   if (!isOpenAIModel(model)) {
     throw new Error(`Internal problem normalizing OpenAI model name: ${model}`);
   }

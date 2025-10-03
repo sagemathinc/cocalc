@@ -9,19 +9,17 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 
 import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import { Button, Flex, Tooltip } from "antd";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, r_join } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { path_split, tail, unreachable } from "@cocalc/util/misc";
+import { path_split, tail } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import {
-  ExecuteCodeOutput,
-  ExecuteCodeOutputAsync,
-} from "@cocalc/util/types/execute-code";
+import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
+import { getResourceUsage } from "../rmd-editor/utils";
 import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
 import { use_build_logs } from "./hooks";
@@ -52,6 +50,30 @@ export const Build: React.FC<Props> = React.memo((props) => {
     BUILD_SPECS.latex.label,
   );
   const [error_tab, set_error_tab] = useState<string | null>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  const stderrContainerRef = useRef<HTMLDivElement>(null);
+  const [shownLog, setShownLog] = useState<string>("");
+
+  // Compute whether we have running jobs - this determines UI precedence
+  const hasRunningJobs = useMemo(() => {
+    return (
+      build_logs?.some((job) => {
+        const jobJS: BuildLog = job?.toJS();
+        return jobJS?.type === "async" && jobJS?.status === "running";
+      }) ?? false
+    );
+  }, [build_logs]);
+
+  // Auto-scroll to bottom when log updates
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+    if (stderrContainerRef.current) {
+      stderrContainerRef.current.scrollTop =
+        stderrContainerRef.current.scrollHeight;
+    }
+  }, [shownLog]);
 
   let no_errors = true;
 
@@ -67,14 +89,25 @@ export const Build: React.FC<Props> = React.memo((props) => {
     margin: "0",
   } as const;
 
+  function renderErrorHeader(errorIsInformational: boolean): string {
+    return errorIsInformational ? "Output messages" : "Error output";
+  }
+
   function render_tab_item(
     title: string,
-    value: string,
+    stdout: string,
+    stderr: string,
     error?: boolean,
     job_info_str?: string,
   ): AntdTabItem {
     const err_style = error ? { background: COLORS.ANTD_BG_RED_L } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
+
+    // Determine if stderr is informational (not actual errors)
+    const hasStdout = stdout.trim().length > 0;
+    const hasStderr = stderr.trim().length > 0;
+    const stderrIsInformational = hasStderr && !error;
+
     return Tab({
       key: title,
       eventKey: title,
@@ -93,48 +126,80 @@ export const Build: React.FC<Props> = React.memo((props) => {
               {job_info_str}
             </div>
           ) : undefined}
-          <Ansi>{value}</Ansi>
+          <div
+            style={{ display: "flex", flexDirection: "column", height: "100%" }}
+          >
+            {hasStdout && (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  marginBottom: hasStderr ? "10px" : "0",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: COLORS.GRAY_M,
+                    borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                  }}
+                >
+                  Standard output
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: COLORS.GRAY_LLL,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stdout}</Ansi>
+                </div>
+              </div>
+            )}
+            {hasStderr && (
+              <div
+                style={{ flex: 1, display: "flex", flexDirection: "column" }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: error ? COLORS.ANTD_RED : COLORS.GRAY_M,
+                    borderBottom: `1px solid ${
+                      error ? COLORS.ANTD_RED_WARN : COLORS.GRAY_LL
+                    }`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                  }}
+                >
+                  {renderErrorHeader(stderrIsInformational)}
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: stderrIsInformational
+                      ? COLORS.GRAY_LLL
+                      : COLORS.ANTD_BG_RED_L,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stderr}</Ansi>
+                </div>
+              </div>
+            )}
+          </div>
         </>
       ),
     });
-  }
-
-  function getResourceUsage(
-    stats: ExecuteCodeOutputAsync["stats"] | undefined,
-    type: "peak" | "last",
-  ): string {
-    if (!Array.isArray(stats) || stats.length === 0) {
-      return "";
-    }
-
-    switch (type) {
-      // This is after the job finished. We return the CPU time used and max memory.
-      case "peak": {
-        const max_mem = stats.reduce((cur, val) => {
-          return val.mem_rss > cur ? val.mem_rss : cur;
-        }, 0);
-        // if there is no data (too many processes, etc.) then it is 0.
-        //  That information is misleading and we ignore it
-        if (max_mem > 0) {
-          return ` Peak memory usage: ${max_mem.toFixed(0)} MB.`;
-        }
-        break;
-      }
-
-      // This is while the log updates come in: last known CPU in % and memory usage.
-      case "last": {
-        const { mem_rss, cpu_pct } = stats.slice(-1)[0];
-        if (mem_rss > 0 || cpu_pct > 0) {
-          return ` Resource usage: ${mem_rss.toFixed(
-            0,
-          )} MB memory and ${cpu_pct.toFixed(0)}% CPU.`;
-        }
-        break;
-      }
-      default:
-        unreachable(type);
-    }
-    return "";
   }
 
   function render_log(stage: BuildSpecName): AntdTabItem | undefined {
@@ -143,18 +208,23 @@ export const Build: React.FC<Props> = React.memo((props) => {
     // const y: ExecOutput | undefined = job_infos.get(stage)?.toJS();
 
     if (!x) return;
-    const value = x.stdout ?? "" + x.stderr ?? "";
-    if (!value) return;
+    const stdout = x.stdout ?? "";
+    const stderr = x.stderr ?? "";
+    if (!stdout && !stderr) return;
     // const time: number | undefined = x.get("time");
     // const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
     let job_info_str = "";
-    // if (y != null && y.type === "async") {
+    // Show build time and resource usage if available for async jobs
     if (x.type === "async") {
-      const { elapsed_s, stats } = x; // y
+      const { elapsed_s, stats } = x;
       if (typeof elapsed_s === "number" && elapsed_s > 0) {
         job_info_str = `Build time: ${elapsed_s.toFixed(1)} seconds.`;
       }
-      job_info_str += getResourceUsage(stats, "peak");
+
+      // try to show peak resource usage if stats are available
+      if (stats) {
+        job_info_str += getResourceUsage(stats, "peak");
+      }
     }
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
@@ -168,18 +238,19 @@ export const Build: React.FC<Props> = React.memo((props) => {
         set_error_tab(title);
       }
     }
-    return render_tab_item(title, value, error, job_info_str);
+    return render_tab_item(title, stdout, stderr, error, job_info_str);
   }
 
   function render_clean(): AntdTabItem | undefined {
     const value = build_logs?.getIn(["clean", "output"]) as any;
     if (!value) return;
     const title = "Clean Auxiliary Files";
-    return render_tab_item(title, value);
+    return render_tab_item(title, value, "", false);
   }
 
   function render_logs(): Rendered {
-    if (status) return;
+    // Hide logs when jobs are running - show live output instead
+    if (hasRunningJobs) return;
 
     const items: AntdTabItem[] = [];
 
@@ -229,13 +300,27 @@ export const Build: React.FC<Props> = React.memo((props) => {
     if (!build_logs) return;
     const infos: React.JSX.Element[] = [];
     let isLongRunning = false;
-    let logTail = "";
+    let stdoutTail = "";
+    let stderrTail = "";
+    let errorIsInformational = false;
+
     build_logs.forEach((infoI, key) => {
       const info: ExecuteCodeOutput = infoI?.toJS();
       if (!info || info.type !== "async" || info.status !== "running") return;
       const stats_str = getResourceUsage(info.stats, "last");
       const start = info.start;
-      logTail = tail(info.stdout ?? "" + info.stderr ?? "", 6);
+      stdoutTail = tail(info.stdout ?? "", 100);
+      stderrTail = tail(info.stderr ?? "", 100);
+      // Update state for auto-scrolling effect
+      const combinedLog =
+        stdoutTail +
+        (stderrTail
+          ? `\n--- ${renderErrorHeader(!info.exit_code)} ---\n` + stderrTail
+          : "");
+      if (combinedLog !== shownLog) {
+        setShownLog(combinedLog);
+      }
+      errorIsInformational = !info.exit_code;
       isLongRunning ||=
         typeof start === "number" &&
         webapp_client.server_time() - start > WARN_LONG_RUNNING_S * 1000;
@@ -259,6 +344,9 @@ export const Build: React.FC<Props> = React.memo((props) => {
     });
 
     if (infos.length === 0) return;
+
+    const hasStdout = stdoutTail.trim().length > 0;
+    const hasStderr = stderrTail.trim().length > 0;
 
     return (
       <>
@@ -287,19 +375,109 @@ export const Build: React.FC<Props> = React.memo((props) => {
             </Tooltip>
           </Flex>
         </div>
-        <div style={logStyle}>
+        <div
+          style={{
+            ...logStyle,
+            height: "100%",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <div
             style={{
               fontWeight: "bold",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              flexShrink: 0,
             }}
           >
             {status}
             {"\n"}
           </div>
-          {logTail}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: hasStdout && hasStderr ? "10px" : "0",
+              overflow: "hidden",
+            }}
+          >
+            {hasStdout && (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: COLORS.GRAY_M,
+                    borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                    flexShrink: 0,
+                  }}
+                >
+                  Standard output (stdout)
+                </div>
+                <div
+                  ref={logContainerRef}
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: COLORS.GRAY_LLL,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stdoutTail}</Ansi>
+                </div>
+              </div>
+            )}
+            {hasStderr && (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "bold",
+                    color: COLORS.GRAY_M,
+                    borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+                    paddingBottom: "5px",
+                    marginBottom: "5px",
+                    fontSize: `${font_size * 0.9}px`,
+                    flexShrink: 0,
+                  }}
+                >
+                  {renderErrorHeader(errorIsInformational)} (stderr)
+                </div>
+                <div
+                  ref={stderrContainerRef}
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    background: COLORS.GRAY_LLL,
+                    padding: "5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  <Ansi>{stderrTail}</Ansi>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </>
     );

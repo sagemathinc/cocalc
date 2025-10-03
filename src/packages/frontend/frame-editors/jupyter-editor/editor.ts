@@ -5,9 +5,12 @@
 
 /*
 Spec for editing Jupyter notebooks via a frame tree.
+
+cSpell:ignore JSONIPynb
 */
 
 import { createElement } from "react";
+
 import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
@@ -25,10 +28,10 @@ import { Introspect } from "./introspect/introspect";
 import JSONIPynb from "./json-ipynb";
 import KernelMenuItem from "./kernel-menu-item";
 import { RawIPynb } from "./raw-ipynb";
+import { search } from "./search";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
-import { search } from "./search";
 
 const SNIPPET_ICON_NAME = "magic";
 
@@ -453,7 +456,7 @@ const JUPYTER_MENUS = {
           icon: "dot-circle",
           label: ({ props }) => {
             const actions = props.actions.jupyter_actions;
-            const store = actions.store;
+            const store = actions?.store;
             if (!store) {
               return "Kernels";
             }
@@ -474,7 +477,7 @@ const JUPYTER_MENUS = {
           name: "kernels",
           children: ({ props }) => {
             const actions = props.actions.jupyter_actions;
-            const store = actions.store;
+            const store = actions?.store;
             if (!store) {
               return [];
             }

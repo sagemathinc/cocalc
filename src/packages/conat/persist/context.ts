@@ -19,7 +19,12 @@ export let decompress: (data: Buffer) => Buffer = () => {
   throw Error("must initialize persist context");
 };
 
-export let syncFiles = { local: "", archive: "" };
+export let syncFiles = {
+  local: "",
+  archive: "",
+  archiveInterval: 30_000,
+  backup: "",
+};
 
 export let ensureContainingDirectoryExists: (path: string) => Promise<void> = (
   _path,
@@ -27,18 +32,35 @@ export let ensureContainingDirectoryExists: (path: string) => Promise<void> = (
   throw Error("must initialize persist context");
 };
 
+export let statSync = (_path: string): { mtimeMs: number } => {
+  throw Error("must initialize persist context");
+};
+
+export let copyFileSync = (_src: string, _desc: string): void => {
+  throw Error("must initialize persist context");
+};
+
 export function initContext(opts: {
   betterSqlite3;
   compress: (Buffer) => Buffer;
   decompress: (Buffer) => Buffer;
-  syncFiles: { local: string; archive: string };
+  syncFiles: {
+    local: string;
+    archive: string;
+    archiveInterval: number;
+    backup: string;
+  };
   ensureContainingDirectoryExists: (path: string) => Promise<void>;
+  statSync: (path: string) => { mtimeMs: number };
+  copyFileSync: (src: string, desc: string) => void;
 }) {
   betterSqlite3 = opts.betterSqlite3;
   compress = opts.compress;
   decompress = opts.decompress;
   syncFiles = opts.syncFiles;
   ensureContainingDirectoryExists = opts.ensureContainingDirectoryExists;
+  statSync = opts.statSync;
+  copyFileSync = opts.copyFileSync;
 }
 
 export function createDatabase(...args): Database {

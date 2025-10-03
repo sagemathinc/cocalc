@@ -18,7 +18,7 @@ import IndexList, { DataSource } from "components/landing/index-list";
 import { CSS } from "components/misc";
 import A from "components/misc/A";
 import { TagList } from "components/news/news";
-import type { NewsWithFuture } from "components/news/types";
+import type { NewsWithStatus } from "components/news/types";
 import { useDateStr } from "components/news/useDateStr";
 
 import { MAX_WIDTH } from "lib/config";
@@ -30,8 +30,9 @@ const BODY_STYLE: CSS = {
   maxHeight: "max(300px, 75vh)",
   overflowY: "auto",
 } as const;
+
 interface TitleComponentProps {
-  newsItem: NewsWithFuture;
+  newsItem: NewsWithStatus;
   showHelpTicket?: boolean;
 }
 
@@ -81,8 +82,8 @@ const TitleComponent = ({ newsItem, showHelpTicket }: TitleComponentProps) => (
 
 interface EventsProps {
   customize: CustomizeType;
-  upcomingEvents: NewsWithFuture[];
-  pastEvents: NewsWithFuture[];
+  upcomingEvents: NewsWithStatus[];
+  pastEvents: NewsWithStatus[];
 }
 
 export default function Events({

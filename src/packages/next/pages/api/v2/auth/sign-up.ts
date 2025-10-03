@@ -55,7 +55,11 @@ import {
 } from "lib/api/schema/accounts/sign-up";
 import { SignUpIssues } from "lib/types/sign-up";
 import { getAccount, signUserIn } from "./sign-in";
-import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  MIN_PASSWORD_STRENGTH,
+} from "@cocalc/util/auth";
 
 export async function signUp(req, res) {
   let {
@@ -244,13 +248,13 @@ export function checkObviousConditions({
   if (!email || !isValidEmailAddress(email)) {
     issues.email = `You must provide a valid email address -- '${email}' is not valid.`;
   }
-  if (!password || password.length < 6) {
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
     issues.password = "Your password must not be very easy to guess.";
   } else if (password.length > MAX_PASSWORD_LENGTH) {
     issues.password = `Your password must be at most ${MAX_PASSWORD_LENGTH} characters long.`;
   } else {
     const { score, help } = passwordStrength(password);
-    if (score <= 2) {
+    if (score <= MIN_PASSWORD_STRENGTH) {
       issues.password = help ? help : "Your password is too easy to guess.";
     }
   }

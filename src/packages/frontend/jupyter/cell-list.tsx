@@ -37,6 +37,7 @@ import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 
 interface StableHtmlContextType {
+  enabled?: boolean;
   cellListDivRef?: MutableRefObject<any>;
   scrollOrResize?: { [key: string]: () => void };
 }
@@ -571,7 +572,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   if (use_windowed_list) {
     body = (
-      <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
+      <StableHtmlContext.Provider
+        value={{ cellListDivRef, scrollOrResize, enabled: true }}
+      >
         <div ref={cellListDivRef} className="smc-vfill">
           <Virtuoso
             ref={virtuosoRef}
@@ -723,7 +726,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   return (
     <FileContext.Provider
-      value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
+      value={{
+        ...fileContext,
+        noSanitize: !!trust,
+        HeadingTagComponent,
+        disableMarkdownCodebar: true,
+      }}
     >
       {body}
     </FileContext.Provider>

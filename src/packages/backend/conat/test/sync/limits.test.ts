@@ -246,7 +246,7 @@ describe("create a dstream with limit on the total number of messages, and confi
     s.publish("x".repeat(70));
     await expect(async () => {
       await s.stream.publish("x".repeat(150));
-    }).rejects.toThrowError("max_msg_size");
+    }).rejects.toThrow("max_msg_size");
     await s.config({ max_msg_size: 200 });
     s.publish("x".repeat(150));
     await s.config({ max_msg_size: -1 });

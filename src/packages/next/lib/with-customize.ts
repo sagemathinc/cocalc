@@ -67,7 +67,7 @@ export default async function withCustomize(
   customize.onCoCalcCom = customize.kucalc === KUCALC_COCALC_COM;
   customize.noindex = obj.props?.unlisted ?? false;
   customize.imprintOrPolicies =
-    (customize.imprint ?? "" + customize.policies ?? "") != "";
+    (customize.imprint ?? "") + (customize.policies ?? "") != "";
   customize.serverTime = Date.now();
 
   // this is used for creating new projects from a share

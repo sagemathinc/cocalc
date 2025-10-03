@@ -5,7 +5,7 @@
 
 import { Button, Modal, Space } from "antd";
 import { join } from "path";
-import { defineMessage, FormattedMessage, useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { useState } from "@cocalc/frontend/app-framework";
 import { getNow } from "@cocalc/frontend/app/util";
@@ -14,20 +14,16 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { trunc } from "@cocalc/util/misc";
 import { BUY_A_LICENSE_URL } from "./call-to-support";
+import { useProjectContext } from "./context";
 import { BannerApplySiteLicense } from "./trial-banner";
 
 const MANAGE_LICENSE_URL = join(appBasePath, "/licenses/managed");
 
 const INET_QUOTA_URL = "https://doc.cocalc.com/upgrades.html#internet-access";
 
-const NO_INTERNET_ACCESS = defineMessage({
-  id: "project.no-internet-modal.title",
-  defaultMessage: "No Internet Access",
-});
-
 interface NoInternetBannerProps {
-  project_id: string;
   projectSiteLicenses: string[];
   isPaidStudentPayProject?: boolean;
   hasComputeServers: boolean;
@@ -59,12 +55,9 @@ export function useInternetWarningClosed(
 }
 
 export function NoInternetModal(props: NoInternetBannerProps) {
-  const {
-    project_id,
-    projectSiteLicenses,
-    isPaidStudentPayProject,
-    hasComputeServers,
-  } = props;
+  const { projectSiteLicenses, isPaidStudentPayProject, hasComputeServers } =
+    props;
+  const { project_id, project } = useProjectContext();
   const intl = useIntl();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -143,7 +136,15 @@ export function NoInternetModal(props: NoInternetBannerProps) {
       title={
         <>
           <Icon name="exclamation-triangle" />{" "}
-          {intl.formatMessage(NO_INTERNET_ACCESS)}
+          {intl.formatMessage(
+            {
+              id: "project.no-internet-modal.title",
+              defaultMessage: 'Project "{name}" has no internet access',
+            },
+            {
+              name: trunc(project?.get("title") ?? project_id, 30),
+            },
+          )}
         </>
       }
     >

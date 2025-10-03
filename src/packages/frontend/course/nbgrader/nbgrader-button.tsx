@@ -56,7 +56,7 @@ export function NbgraderButton({ name, assignment_id }: Props) {
     const n = settings.get("nbgrader_parallel") ?? PARALLEL_DEFAULT;
     return (
       <Tip
-        title={`Nbgrader parallel limit: grade ${n} students at once`}
+        title={`nbgrader parallel limit: grade ${n} students at once`}
         tip="This is the max number of students to grade in parallel.  Change this in course configuration."
       >
         <div style={{ marginTop: "5px", fontWeight: 400 }}>
@@ -150,10 +150,10 @@ export function NbgraderButton({ name, assignment_id }: Props) {
     <span>
       {" "}
       <Icon name="cocalc-ring" spin />
-      <Gap /> Nbgrader is running
+      <Gap /> nbgrader is running
     </span>
   ) : (
-    <span>Nbgrader...</span>
+    <span>nbgrader...</span>
   );
   return (
     <div style={{ margin: "5px 0" }}>

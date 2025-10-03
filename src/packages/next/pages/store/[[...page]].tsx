@@ -4,15 +4,16 @@
  */
 
 import { Layout } from "antd";
-import Header from "components/landing/header";
+import Error from "next/error";
+
+import { capitalize } from "@cocalc/util/misc";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
+import Header from "components/landing/header";
 import Store from "components/store";
 import { StorePages } from "components/store/types";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { capitalize } from "@cocalc/util/misc";
-import Error from "next/error";
 
 export default function Preferences({ customize, page, pageNotFound }) {
   const subpage = page[0] != null ? ` - ${capitalize(page[0])}` : "";

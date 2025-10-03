@@ -9,9 +9,9 @@ Display a ? "help" icon, which -- when clicked -- shows a help tip
 
 import { Button, Popover } from "antd";
 import type { TooltipPlacement } from "antd/es/tooltip";
-import { CSSProperties } from "react";
+import { CSSProperties, useState } from "react";
 
-import { CSS, React, useState } from "@cocalc/frontend/app-framework";
+// ATTN: do not import @cocalc/app-framework or components, because this is also used in next!
 import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "./icon";
 
@@ -34,7 +34,7 @@ export const HelpIcon: React.FC<Props> = ({
 }: Props) => {
   const [open, setOpen] = useState<boolean>(false);
 
-  const textStyle: CSS = {
+  const textStyle: CSSProperties = {
     color: COLORS.BS_BLUE_TEXT,
     cursor: "pointer",
     ...style,
@@ -68,8 +68,8 @@ export const HelpIcon: React.FC<Props> = ({
       onOpenChange={setOpen}
     >
       <span style={textStyle}>
+        {extra ? <>{extra} </> : undefined}
         <Icon style={textStyle} name="question-circle" />
-        {extra ? <> {extra}</> : undefined}
       </span>
     </Popover>
   );
