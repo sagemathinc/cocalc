@@ -40,7 +40,7 @@ import basePath from "lib/base-path";
 
 import SAGEMATH_JUPYTER from "public/cocalc-sagemath-2024-11-22-nq8.png";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
-import LatexEditorImage from "public/features/cocalc-latex-editor-2019.png";
+import LatexEditorImage from "public/features/latex-editor-main-20251003.png";
 import RTC from "public/features/cocalc-real-time-jupyter.png";
 import CHATROOM from "/public/features/chatroom.png";
 import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
@@ -579,11 +579,7 @@ function Hello({ customize }) {
           <Trans i18nKey="index:intro-1" components={{ strong: <strong /> }} />
         </Paragraph>
         <Paragraph>
-          <Image
-            alt={t('screenshot')}
-            src={SAGEMATH_JUPYTER}
-            shadow={true}
-          />
+          <Image alt={t("screenshot")} src={SAGEMATH_JUPYTER} shadow={true} />
         </Paragraph>
       </>
     );
