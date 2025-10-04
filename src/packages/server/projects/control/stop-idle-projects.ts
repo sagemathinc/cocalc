@@ -69,7 +69,7 @@ export default function init(getProject: (string) => Project) {
   const stopProject = async (project_id: string) => {
     logger.info(`stopping ${project_id} due to idle timeout`);
     try {
-      (await getProject(project_id)).stop({ force: true });
+      await (await getProject(project_id)).stop({ force: true });
       logger.debug(`stopped ${project_id} successfully`);
     } catch (err) {
       logger.error(`error stopping ${project_id} -- ${err}`);
