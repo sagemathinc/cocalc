@@ -27,7 +27,7 @@ import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
-import Sidechat from "public/features/cocalc-latex-side-chat-v2.png";
+import Sidechat from "public/features/latex-editor-side-chat-20251004.png";
 import Pythontex from "public/features/cocalc-pythontex.png";
 import Sagetex from "public/features/cocalc-sagetex.png";
 import AIFormula from "public/features/latex-ai-formula.png";
@@ -68,8 +68,16 @@ export default function LatexEditor({ customize }) {
           <Pitch
             col1={
               <>
-                <Title level={2}>
-                  No software install required: <small>100% online</small>
+                <Title
+                  level={2}
+                  style={{
+                    minHeight: "60px",
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>No software install required: <small>100% online</small></span>
                 </Title>
                 <Paragraph>
                   <List bordered size="small">
@@ -82,9 +90,9 @@ export default function LatexEditor({ customize }) {
                     </List.Item>
                     <List.Item>
                       <strong>
-                        Periodically <a href="#a-backups">backups</a>
+                        <a href="#a-backups">Periodic backups</a>
                       </strong>{" "}
-                      all your files
+                      of all your files
                     </List.Item>
                     <List.Item>
                       <strong>
@@ -125,46 +133,58 @@ export default function LatexEditor({ customize }) {
             }
             col2={
               <>
-                <Title level={2}>
-                  Working with <LaTeX /> made easy
+                <Title
+                  level={2}
+                  style={{
+                    minHeight: "60px",
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>Working with <LaTeX /> made easy</span>
                 </Title>
                 <Paragraph>
-                  <Descriptions
-                    layout="vertical"
-                    bordered
-                    column={1}
-                    size={"small"}
-                  >
-                    <Descriptions.Item
-                      label="Tired of sending changes back and forth with your
-                      colleagues?"
-                    >
+                  <List bordered size="small">
+                    <List.Item>
                       <strong>
-                        <a href="#a-realtimesync">Collaborate online</a>
+                        <a href="#a-realtimesync">Real-time collaboration</a>
                       </strong>{" "}
-                      without any limits!
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Scared of breaking a document?">
-                      Revert recent changes using{" "}
-                      <a href="#a-timetravel">TimeTravel</a>.
-                    </Descriptions.Item>
-
-                    <Descriptions.Item
-                      label={
-                        <>
-                          Worried about maintaining your <LaTeX /> environment?
-                        </>
-                      }
-                    >
-                      CoCalc takes care of everything.
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Want to work from anywhere?">
-                      You only need a web browser and Internet access, or you
-                      can <A href="/pricing/onprem">run your own server.</A>
-                    </Descriptions.Item>
-                  </Descriptions>
+                      with unlimited collaborators
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-chat">Side-by-side chat</a>
+                      </strong>{" "}
+                      to discuss documents with collaborators and AI
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-timetravel">Complete revision history</a>
+                      </strong>{" "}
+                      to revert any changes
+                    </List.Item>
+                    <List.Item>
+                      <strong>Fully managed <LaTeX /> environment</strong> with
+                      automatic updates
+                    </List.Item>
+                    <List.Item>
+                      <strong>Cloud-based platform</strong> accessible from any
+                      browser
+                    </List.Item>
+                    <List.Item>
+                      <strong>Professional typesetting</strong> with PDF LaTeX,
+                      XeLaTeX, and LuaTeX
+                    </List.Item>
+                    <List.Item>
+                      <strong>Academic writing optimized</strong> for research
+                      papers and theses
+                    </List.Item>
+                    <List.Item>
+                      <strong>Integrated computational tools</strong> for
+                      reproducible research
+                    </List.Item>
+                  </List>
                 </Paragraph>
               </>
             }
@@ -251,7 +271,7 @@ export default function LatexEditor({ customize }) {
             image={LatexDarkMode}
           >
             <Paragraph>
-              If you like working in{" "}
+              CoCalc fully supports{" "}
               <span
                 style={{
                   background: "black",
@@ -260,15 +280,16 @@ export default function LatexEditor({ customize }) {
                 }}
               >
                 Dark Mode
-              </span>
-              , feel welcome to CoCalc as well!
+              </span>{" "}
+              enthusiasts!
             </Paragraph>
             <Paragraph>
               {" "}
               The <LaTeX /> editor not only supports the usual dark mode
-              funcionality, but also styling the PDF. This means despite that
-              your resulting PDF will be on a white page, you see it with a dark
-              page and bright font characters.{" "}
+              functionality, but also styles the PDF viewer. This means that even
+              though your final PDF will have a white background, you can view
+              and edit it with a dark background and bright text for comfortable
+              night-time work.{" "}
             </Paragraph>
             <Paragraph>
               There is also a button to quickly disable the PDF dark mode, to
@@ -592,6 +613,12 @@ export default function LatexEditor({ customize }) {
               for each <LaTeX /> file lets you discuss your content with
               collaborators or give feedback to your students while they are
               working on their assignments.
+            </Paragraph>
+            <Paragraph>
+              <strong>Query AI language models</strong> directly in the chat to
+              get help with your document. Ask questions about LaTeX syntax,
+              request suggestions for improving your writing, or discuss the
+              content of your document with AI assistants.
             </Paragraph>
             <Paragraph>
               Collaborators who are offline will be notified about new messages
