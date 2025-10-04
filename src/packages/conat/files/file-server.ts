@@ -29,6 +29,12 @@ export { type CopyOptions };
 
 const SUBJECT = "file-server";
 
+export interface Sync {
+  // {volume-name}:path/into/volume
+  src: string;
+  dest: string;
+}
+
 export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
 
@@ -59,6 +65,21 @@ export interface Fileserver {
     dest: { project_id: string; path: string };
     options?: CopyOptions;
   }) => Promise<void>;
+
+  /////////////
+  // Sync
+  // Automated realtime bidirectional sync of files between a path
+  // in one project with a path in another project.
+  // It's bidirectional, but conflicts always resolve in favor
+  // of the source.
+  /////////////
+  createSync: (opts: Sync) => Promise<void>;
+
+  // delete the given sync link
+  deleteSync: (opts: Sync) => Promise<void>;
+
+  // list all sync links with src or dest the given volume
+  getSyncs: (opts: { volume: string }) => Promise<Sync[]>;
 
   /////////////
   // BACKUPS

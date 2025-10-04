@@ -19,6 +19,7 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import rustic from "@cocalc/backend/sandbox/rustic";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import { FileSync } from "./sync";
 
 export interface Options {
   // mount = root mountpoint of the btrfs filesystem. If you specify the image
@@ -47,10 +48,12 @@ let mountLock = false;
 export class Filesystem {
   public readonly opts: Options;
   public readonly subvolumes: Subvolumes;
+  public readonly fileSync: FileSync;
 
   constructor(opts: Options) {
     this.opts = opts;
     this.subvolumes = new Subvolumes(this);
+    this.fileSync = new FileSync(this);
   }
 
   init = async () => {
@@ -193,9 +196,6 @@ export class Filesystem {
   };
 
   private initRustic = async () => {
-    if (!this.opts.rustic) {
-      throw Error("rustic repo path or toml must be specified");
-    }
     if (!this.opts.rustic || (await exists(this.opts.rustic))) {
       return;
     }
