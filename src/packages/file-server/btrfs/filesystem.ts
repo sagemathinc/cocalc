@@ -20,6 +20,7 @@ import rustic from "@cocalc/backend/sandbox/rustic";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { FileSync } from "./sync";
+import bees from "./bees";
 
 export interface Options {
   // mount = root mountpoint of the btrfs filesystem. If you specify the image
@@ -49,6 +50,7 @@ export class Filesystem {
   public readonly opts: Options;
   public readonly subvolumes: Subvolumes;
   public readonly fileSync: FileSync;
+  private bees?;
 
   constructor(opts: Options) {
     this.opts = opts;
@@ -69,6 +71,7 @@ export class Filesystem {
     });
     await this.initRustic();
     await this.sync();
+    this.bees = await bees(this.opts.mount);
   };
 
   sync = async () => {
@@ -83,7 +86,9 @@ export class Filesystem {
     });
   };
 
-  close = () => {};
+  close = () => {
+    this.bees?.kill("SIGQUIT");
+  };
 
   private initDevice = async () => {
     if (!this.opts.image) {

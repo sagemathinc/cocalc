@@ -244,6 +244,19 @@ to make a binary with that version
     script: () =>
       `curl -L https://github.com/moparisthebest/static-curl/releases/download/v${SPEC.curl.VERSION}/curl-${arch() == "x64" ? "amd64" : arch()} > ${join(binPath, "curl")} && chmod a+x ${join(binPath, "curl")}`,
   },
+
+  // See https://github.com/sagemathinc/bees-binaries/releases
+  bees: {
+    desc: "Bees dedup binary for Ubuntu with minimal deps",
+    path: join(binPath, "bees"),
+    platforms: ["linux"],
+    VERSION: "2024-10-04a",
+    // https://github.com/sagemathinc/bees-binaries/releases/download/2024-10-04a/bees-2024-10-04a-x86_64-linux-glibc.tar.xz
+    script: () => {
+      const name = `bees-${SPEC.bees.VERSION}-${arch() == "x64" ? "x86_64" : arch()}-linux-glibc`;
+      return `curl -L https://github.com/sagemathinc/bees-binaries/releases/download/${SPEC.bees.VERSION}/${name}.tar.xz | tar -xJ -C ${binPath} --strip-components=2 ${name}/bin/bees`;
+    },
+  },
 };
 
 export const rg = SPEC.rg.path;
@@ -311,7 +324,12 @@ export async function alreadyInstalled(app: App) {
   if (!(await exists(path))) {
     return false;
   }
-  return (await installedVersion(app)) == VERSION;
+  const v = await installedVersion(app);
+  if (v == null) {
+    // no version info
+    return true;
+  }
+  return v == VERSION;
 }
 
 export async function install(

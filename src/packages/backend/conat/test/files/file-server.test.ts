@@ -8,6 +8,8 @@ import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 
 beforeAll(before);
 
+const Stub = (async () => {}) as any;
+
 describe("create basic mocked file server and test it out", () => {
   let client1, client2;
   it("create two clients", () => {
@@ -128,6 +130,12 @@ describe("create basic mocked file server and test it out", () => {
         counts?: Partial<SnapshotCounts>;
         limit?: number;
       }): Promise<void> => {},
+
+      allSnapshotUsage: Stub,
+
+      createSync: Stub,
+      deleteSync: Stub,
+      getSyncs: Stub,
     });
   });
 
