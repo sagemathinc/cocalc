@@ -135,7 +135,7 @@ describe("create basic mocked file server and test it out", () => {
 
       createSync: Stub,
       deleteSync: Stub,
-      getSyncs: Stub,
+      getAllSync: Stub,
     });
   });
 

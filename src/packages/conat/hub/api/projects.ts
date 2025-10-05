@@ -205,6 +205,9 @@ export interface Projects {
 
   allSnapshotUsage: (opts: { project_id: string }) => Promise<SnapshotUsage[]>;
 
+  /////////////
+  // Project Control
+  /////////////
   start: (opts: { account_id: string; project_id: string }) => Promise<void>;
   stop: (opts: { account_id: string; project_id: string }) => Promise<void>;
 

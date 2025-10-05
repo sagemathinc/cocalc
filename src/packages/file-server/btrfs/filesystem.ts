@@ -14,13 +14,14 @@ a = require('@cocalc/file-server/btrfs'); fs = await a.filesystem({image:'/tmp/b
 import refCache from "@cocalc/util/refcache";
 import { mkdirp, btrfs, sudo, ensureMoreLoopbackDevices } from "./util";
 import { Subvolumes } from "./subvolumes";
-import { mkdir } from "fs/promises";
+import { mkdir } from "node:fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import rustic from "@cocalc/backend/sandbox/rustic";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { FileSync } from "./sync";
 import bees from "./bees";
+import { type ChildProcess } from "node:child_process";
 
 export interface Options {
   // mount = root mountpoint of the btrfs filesystem. If you specify the image
@@ -50,7 +51,7 @@ export class Filesystem {
   public readonly opts: Options;
   public readonly subvolumes: Subvolumes;
   public readonly fileSync: FileSync;
-  private bees?;
+  private bees?: ChildProcess;
 
   constructor(opts: Options) {
     this.opts = opts;

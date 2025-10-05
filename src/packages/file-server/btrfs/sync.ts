@@ -4,8 +4,9 @@ Implementation of path sync *inside* volumes on the file server.
 NOTE: I'm aware that we could use bind mounts instead of mutagen
 to accomplish something very similar.  There are a huge list of pros
 and cons to using mutagen versus bind mounts to solve this problem.
-
-
+We've gone with mutagen, since it's entirely in user space (so maximally
+flexible), and doesn't involve any cross filesystem mount issues.
+Basically, for security it's better.
 
 */
 
@@ -65,11 +66,16 @@ function encode({ name, path }: { name: string; path: string }) {
   return `${name}:${path}`;
 }
 
+// enhance MutagenSyncSession with extra data in the Sync object;
+// This is a convenience function to connect mutagen's description
+// of a sync session with the properties we use (src, dest, replica)
+// to define one.
 function addSync(session: MutagenSyncSession): Sync & MutagenSyncSession {
   return {
     ...session,
     src: encode({ name: session.labels?.src ?? "", path: session.alpha.path }),
     dest: encode({ name: session.labels?.dest ?? "", path: session.beta.path }),
+    replica: session.mode == "one-way-replica",
   };
 }
 
@@ -92,7 +98,8 @@ export class FileSync {
     const args = [
       "create",
       "--mode",
-      "two-way-resolved",
+      // no possible conflicts:
+      sync.replica ? "one-way-replica" : "two-way-resolved",
       "--label",
       `src=${src.name}`,
       "--label",

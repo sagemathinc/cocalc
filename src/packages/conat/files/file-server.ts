@@ -26,6 +26,7 @@ import { conat } from "@cocalc/conat/client";
 import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "./fs";
 export { type CopyOptions };
+import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
 
 const SUBJECT = "file-server";
 
@@ -33,6 +34,11 @@ export interface Sync {
   // {volume-name}:path/into/volume
   src: string;
   dest: string;
+
+  // if true, dest is kept as an exact copy of src
+  // and any changes to dest are immediately reverted;
+  // basically, dest acts as a read-only copy of src.
+  replica?: boolean;
 }
 
 export interface Fileserver {
@@ -73,13 +79,17 @@ export interface Fileserver {
   // It's bidirectional, but conflicts always resolve in favor
   // of the source.
   /////////////
-  createSync: (opts: Sync) => Promise<void>;
-
-  // delete the given sync link
-  deleteSync: (opts: Sync) => Promise<void>;
-
+  createSync: (sync: Sync) => Promise<void>;
   // list all sync links with src or dest the given volume
-  getSyncs: (opts: { volume: string }) => Promise<Sync[]>;
+  getAllSyncs: (opts: {
+    name: string;
+  }) => Promise<(MutagenSyncSession & Sync)[]>;
+  getSync: (sync: Sync) => Promise<undefined | (MutagenSyncSession & Sync)>;
+  // delete the given sync link
+  deleteSync: (sync: Sync) => Promise<void>;
+  pauseSync: (sync: Sync) => Promise<void>;
+  flushSync: (sync: Sync) => Promise<void>;
+  resumeSync: (sync: Sync) => Promise<void>;
 
   /////////////
   // BACKUPS

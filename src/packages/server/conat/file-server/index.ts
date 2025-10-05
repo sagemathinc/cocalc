@@ -17,6 +17,7 @@ import {
   type Fileserver,
   type CopyOptions,
   type SnapshotUsage,
+  type Sync,
 } from "@cocalc/conat/files/file-server";
 export type { Fileserver };
 import { loadConatConfiguration } from "../configuration";
@@ -30,6 +31,7 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import * as rustic from "./rustic";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 import { init as initSshServer } from "@cocalc/file-server/ssh/ssh-server";
+import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
 
 const logger = getLogger("server:conat:file-server");
 
@@ -45,6 +47,13 @@ export async function getVolume(project_id) {
     throw Error("file server not initialized");
   }
   return await fs.subvolumes.get(name(project_id));
+}
+
+function getFileSync() {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  return fs.fileSync;
 }
 
 async function mount({
@@ -186,6 +195,33 @@ async function allSnapshotUsage({
   return await vol.snapshots.allUsage();
 }
 
+// File Sync
+async function createSync(sync: Sync): Promise<void> {
+  await getFileSync().create(sync);
+}
+async function deleteSync(sync: Sync): Promise<void> {
+  await getFileSync().terminate(sync);
+}
+async function getAllSyncs(opts: {
+  name: string;
+}): Promise<(Sync & MutagenSyncSession)[]> {
+  return await getFileSync().getAll(opts);
+}
+async function getSync(
+  sync: Sync,
+): Promise<undefined | (Sync & MutagenSyncSession)> {
+  return await getFileSync().get(sync);
+}
+async function pauseSync(sync: Sync): Promise<void> {
+  await getFileSync().pause(sync);
+}
+async function flushSync(sync: Sync): Promise<void> {
+  await getFileSync().flush(sync);
+}
+async function resumeSync(sync: Sync): Promise<void> {
+  await getFileSync().resume(sync);
+}
+
 let servers: null | { ssh: any; file: any } = null;
 export async function init(_fs?) {
   if (servers != null) {
@@ -242,6 +278,15 @@ export async function init(_fs?) {
     deleteSnapshot,
     updateSnapshots,
     allSnapshotUsage,
+
+    // file sync
+    createSync,
+    getAllSyncs,
+    getSync,
+    deleteSync,
+    pauseSync,
+    flushSync,
+    resumeSync,
   });
   let ssh;
   if (process.env.COCALC_SSH_SERVER_COUNT != "0") {
