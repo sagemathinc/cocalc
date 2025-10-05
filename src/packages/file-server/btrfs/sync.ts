@@ -72,6 +72,19 @@ function encode({ name, path }: { name: string; path: string }) {
   return `${name}:${path}`;
 }
 
+// if the absolute path weirdly happened to have the base path twice in it this could
+// break, but I'm not worrying about that right now...
+function makeRelative(path: string, base?: string): string {
+  if (!base) {
+    return path;
+  }
+  const i = path.indexOf(base);
+  if (i == -1) {
+    return path;
+  }
+  return path.slice(i + base.length + 1);
+}
+
 // enhance MutagenSyncSession with extra data in the Sync object;
 // This is a convenience function to connect mutagen's description
 // of a sync session with the properties we use (src, dest, replica)
@@ -79,8 +92,14 @@ function encode({ name, path }: { name: string; path: string }) {
 function addSync(session: MutagenSyncSession): Sync & MutagenSyncSession {
   return {
     ...session,
-    src: encode({ name: session.labels?.src ?? "", path: session.alpha.path }),
-    dest: encode({ name: session.labels?.dest ?? "", path: session.beta.path }),
+    src: encode({
+      name: session.labels?.src ?? "",
+      path: makeRelative(session.alpha.path, session.labels?.src),
+    }),
+    dest: encode({
+      name: session.labels?.dest ?? "",
+      path: makeRelative(session.beta.path, session.labels?.dest),
+    }),
     replica: session.mode == "one-way-replica",
   };
 }
