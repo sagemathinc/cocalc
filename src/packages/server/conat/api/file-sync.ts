@@ -29,12 +29,22 @@ function getProjectId(spec: string): string {
   return project_id;
 }
 
+const COMMANDS = new Set(["flush", "reset", "pause", "resume", "terminate"]);
+
 async function check({
   src,
   dest,
   account_id,
   onlyOne,
-}: Sync & { account_id: string } & { onlyOne?: boolean }) {
+  command,
+}: Sync & { account_id: string } & { onlyOne?: boolean } & {
+  command?: string;
+}) {
+  if (command) {
+    if (!COMMANDS.has(command)) {
+      throw Error(`valid commands are: ${Array.from(COMMANDS).join(", ")}`);
+    }
+  }
   const project_id0 = getProjectId(src);
   const project_id1 = getProjectId(dest);
   if (!onlyOne) {
@@ -59,12 +69,6 @@ export async function create(
   await fileServerClient().createSync(opts);
 }
 
-async function delete0(opts: Sync & { account_id: string }): Promise<void> {
-  await check({ ...opts, onlyOne: true });
-  await fileServerClient().deleteSync(opts);
-}
-export { delete0 as delete };
-
 export async function get(
   opts: Sync & { account_id: string },
 ): Promise<undefined | (MutagenSyncSession & Sync)> {
@@ -72,25 +76,14 @@ export async function get(
   return await fileServerClient().getSync(opts);
 }
 
-export async function pause(
-  opts: Sync & { account_id: string },
-): Promise<void> {
+export async function command(
+  opts: Sync & {
+    account_id: string;
+    command: "flush" | "reset" | "pause" | "resume" | "terminate";
+  },
+): Promise<{ stdout: string; stderr: string; exit_code: number }> {
   await check(opts);
-  await fileServerClient().pauseSync(opts);
-}
-
-export async function flush(
-  opts: Sync & { account_id: string },
-): Promise<void> {
-  await check(opts);
-  await fileServerClient().flushSync(opts);
-}
-
-export async function resume(
-  opts: Sync & { account_id: string },
-): Promise<void> {
-  await check(opts);
-  await fileServerClient().resumeSync(opts);
+  return await fileServerClient().syncCommand(opts.command, opts);
 }
 
 export async function getAll({

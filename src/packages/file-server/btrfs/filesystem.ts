@@ -64,6 +64,7 @@ export class Filesystem {
     await this.initDevice();
     await this.mountFilesystem();
     await this.sync();
+    await this.fileSync.init();
     // 'quota enable --simple' has a lot of subtle issues, and maybe isn't for us.
     // It also resets to zero when you disable then enable, and there is no efficient
     // way to get the numbers.
@@ -89,6 +90,7 @@ export class Filesystem {
 
   close = () => {
     this.bees?.kill("SIGQUIT");
+    this.fileSync.close();
   };
 
   private initDevice = async () => {

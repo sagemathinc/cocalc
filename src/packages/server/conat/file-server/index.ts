@@ -199,8 +199,11 @@ async function allSnapshotUsage({
 async function createSync(sync: Sync): Promise<void> {
   await getFileSync().create(sync);
 }
-async function deleteSync(sync: Sync): Promise<void> {
-  await getFileSync().terminate(sync);
+async function syncCommand(
+  command: "flush" | "reset" | "pause" | "resume" | "terminate",
+  sync: Sync,
+): Promise<{ stdout: string; stderr: string; exit_code: number }> {
+  return await getFileSync().command(command, sync);
 }
 async function getAllSyncs(opts: {
   name: string;
@@ -211,15 +214,6 @@ async function getSync(
   sync: Sync,
 ): Promise<undefined | (Sync & MutagenSyncSession)> {
   return await getFileSync().get(sync);
-}
-async function pauseSync(sync: Sync): Promise<void> {
-  await getFileSync().pause(sync);
-}
-async function flushSync(sync: Sync): Promise<void> {
-  await getFileSync().flush(sync);
-}
-async function resumeSync(sync: Sync): Promise<void> {
-  await getFileSync().resume(sync);
 }
 
 let servers: null | { ssh: any; file: any } = null;
@@ -283,10 +277,7 @@ export async function init(_fs?) {
     createSync,
     getAllSyncs,
     getSync,
-    deleteSync,
-    pauseSync,
-    flushSync,
-    resumeSync,
+    syncCommand,
   });
   let ssh;
   if (process.env.COCALC_SSH_SERVER_COUNT != "0") {

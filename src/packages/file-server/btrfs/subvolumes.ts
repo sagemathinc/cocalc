@@ -8,8 +8,9 @@ import { btrfs } from "./util";
 import { chmod, rename, rm } from "node:fs/promises";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { RUSTIC } from "./subvolume-rustic";
+import { SYNC_STATE } from "./sync";
 
-const RESERVED = new Set([RUSTIC, SNAPSHOTS]);
+const RESERVED = new Set([RUSTIC, SNAPSHOTS, SYNC_STATE]);
 
 const logger = getLogger("file-server:btrfs:subvolumes");
 
@@ -20,8 +21,8 @@ export class Subvolumes {
     this.fs = new SandboxedFilesystem(this.filesystem.opts.mount);
   }
 
-  get = async (name: string): Promise<Subvolume> => {
-    if (RESERVED.has(name)) {
+  get = async (name: string, force = false): Promise<Subvolume> => {
+    if (RESERVED.has(name) && !force) {
       throw Error(`${name} is reserved`);
     }
     return await subvolume({ filesystem: this.filesystem, name });

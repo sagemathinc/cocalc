@@ -85,11 +85,10 @@ export interface Fileserver {
     name: string;
   }) => Promise<(MutagenSyncSession & Sync)[]>;
   getSync: (sync: Sync) => Promise<undefined | (MutagenSyncSession & Sync)>;
-  // delete the given sync link
-  deleteSync: (sync: Sync) => Promise<void>;
-  pauseSync: (sync: Sync) => Promise<void>;
-  flushSync: (sync: Sync) => Promise<void>;
-  resumeSync: (sync: Sync) => Promise<void>;
+  syncCommand: (
+    command: "flush" | "reset" | "pause" | "resume" | "terminate",
+    sync: Sync,
+  ) => Promise<{ stdout: string; stderr: string; exit_code: number }>;
 
   /////////////
   // BACKUPS

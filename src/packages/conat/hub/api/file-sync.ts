@@ -25,23 +25,22 @@ import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
 
 export const fileSync = {
   create: authFirstRequireAccount,
-  delete: authFirstRequireAccount,
   getAll: authFirstRequireAccount,
   get: authFirstRequireAccount,
-  pause: authFirstRequireAccount,
-  flush: authFirstRequireAccount,
-  resume: authFirstRequireAccount,
+  command: authFirstRequireAccount,
 };
 
 export interface FileSync {
   create: (opts: Sync & { account_id: string }) => Promise<void>;
-  delete: (opts: Sync & { account_id: string }) => Promise<void>;
   get: (
     sync: Sync & { account_id: string },
   ) => Promise<undefined | (MutagenSyncSession & Sync)>;
-  pause: (sync: Sync & { account_id: string }) => Promise<void>;
-  flush: (sync: Sync & { account_id: string }) => Promise<void>;
-  resume: (sync: Sync & { account_id: string }) => Promise<void>;
+  command: (
+    sync: Sync & {
+      account_id: string;
+      command: "flush" | "reset" | "pause" | "resume" | "terminate";
+    },
+  ) => Promise<{ stdout: string; stderr: string; exit_code: number }>;
   getAll: (opts: {
     name: string;
     account_id: string;

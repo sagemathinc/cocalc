@@ -18,14 +18,20 @@ import { type Filesystem } from "./filesystem";
 import { sha1 } from "@cocalc/backend/sha1";
 import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
 
+export const SYNC_STATE = "sync-state";
+
 const logger = getLogger("file-server:btrfs:sync");
 
-async function mutagen(args: string[], err_on_exit = true) {
+async function mutagen(
+  args: string[],
+  { HOME, err_on_exit = true }: { HOME: string; err_on_exit?: boolean },
+) {
   return await executeCode({
     command: "mutagen",
     args: ["sync"].concat(args),
     verbose: true,
     err_on_exit,
+    env: { ...process.env, HOME },
   });
 }
 
@@ -84,6 +90,26 @@ function addSync(session: MutagenSyncSession): Sync & MutagenSyncSession {
 export class FileSync {
   constructor(public readonly fs: Filesystem) {}
 
+  init = async () => {
+    await this.mutagen(["daemon", "start"]);
+  };
+
+  close = async () => {
+    try {
+      await this.mutagen(["daemon", "stop"]);
+    } catch (err) {
+      console.warn("Error stopping mutagen daemon", err);
+    }
+  };
+
+  private HOME?: string;
+  private mutagen = async (args: string[], err_on_exit = true) => {
+    if (!this.HOME) {
+      this.HOME = (await this.fs.subvolumes.get(SYNC_STATE, true)).path;
+    }
+    return await mutagen(args, { HOME: this.HOME, err_on_exit });
+  };
+
   create = async (sync: Sync) => {
     const cur = await this.get(sync);
     if (cur != null) {
@@ -105,30 +131,21 @@ export class FileSync {
       "--label",
       `dest=${dest.name}`,
       `--name=${mutagenName(sync)}`,
+      "--watch-polling-interval-alpha=10",
+      "--watch-polling-interval-beta=10",
+      "--symlink-mode=posix-raw",
       alpha,
       beta,
     ];
-    await mutagen(args);
+    await this.mutagen(args);
   };
 
-  terminate = async (sync: Sync) => {
-    logger.debug("terminate", sync);
-    await mutagen(["terminate", mutagenName(sync)]);
-  };
-
-  flush = async (sync: Sync) => {
-    logger.debug("flush", sync);
-    await mutagen(["flush", mutagenName(sync)]);
-  };
-
-  pause = async (sync: Sync) => {
-    logger.debug("pause", sync);
-    await mutagen(["pause", mutagenName(sync)]);
-  };
-
-  resume = async (sync: Sync) => {
-    logger.debug("resume", sync);
-    await mutagen(["resume", mutagenName(sync)]);
+  command = async (
+    command: "flush" | "reset" | "pause" | "resume" | "terminate",
+    sync: Sync,
+  ) => {
+    logger.debug("command: ", command, sync);
+    return await this.mutagen([command, mutagenName(sync)]);
   };
 
   getAll = async ({
@@ -136,28 +153,28 @@ export class FileSync {
   }: {
     name: string;
   }): Promise<(Sync & MutagenSyncSession)[]> => {
-    const { stdout } = await mutagen([
+    const { stdout } = await this.mutagen([
       "list",
       `--label-selector`,
       `src=${name}`,
       "--template",
       "{{json .}}",
     ]);
-    const { stdout: stdout2 } = await mutagen([
+    const { stdout: stdout2 } = await this.mutagen([
       "list",
       `--label-selector`,
       `dest=${name}`,
       "--template",
       "{{json .}}",
     ]);
-    const v = JSON.parse(stdout).conat(JSON.parse(stdout2));
+    const v = JSON.parse(stdout).concat(JSON.parse(stdout2));
     return v.map(addSync);
   };
 
   get = async (
     sync: Sync,
   ): Promise<undefined | (Sync & MutagenSyncSession)> => {
-    const { stdout } = await mutagen(
+    const { stdout } = await this.mutagen(
       ["list", mutagenName(sync), "--template", "{{json .}}"],
       false,
     );
