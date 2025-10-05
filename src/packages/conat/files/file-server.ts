@@ -79,7 +79,7 @@ export interface Fileserver {
   // It's bidirectional, but conflicts always resolve in favor
   // of the source.
   /////////////
-  createSync: (sync: Sync) => Promise<void>;
+  createSync: (sync: Sync & { ignores?: string[] }) => Promise<void>;
   // list all sync links with src or dest the given volume
   getAllSyncs: (opts: {
     name: string;

@@ -16,6 +16,7 @@ import { assertCollab } from "./util";
 import { client as fileServerClient } from "@cocalc/conat/files/file-server";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { resolve } from "node:path";
 
 function getProjectId(spec: string): string {
   const name = spec.split(":")[0];
@@ -30,6 +31,8 @@ function getProjectId(spec: string): string {
 }
 
 const COMMANDS = new Set(["flush", "reset", "pause", "resume", "terminate"]);
+
+const BANNED_PATH_PREFIXES = [".local", ".cache", ".mutagen", ".snapshots"];
 
 async function check({
   src,
@@ -62,11 +65,38 @@ async function check({
   }
 }
 
+function checkPath(spec: string): string[] {
+  const i = spec.indexOf(":");
+  if (i == -1) {
+    throw Error("missing path");
+  }
+  const path = spec.slice(i + 1);
+  if (path != resolve("/", path).slice(1)) {
+    throw Error("invalid path -- must be resolved path relative to HOME");
+  }
+  if (path == "" || path == "." || path == "..") {
+    throw Error("invalid path -- can't be full HOME");
+  }
+  for (const banned of BANNED_PATH_PREFIXES) {
+    if (path == banned || path.startsWith(banned + "/")) {
+      throw Error(`path must not start with '${banned}'`);
+    }
+  }
+  if (path == ".ssh") {
+    return ["/.cocalc"];
+  } else {
+    return [];
+  }
+}
+
 export async function create(
-  opts: Sync & { account_id: string },
+  opts: Sync & { account_id: string; ignores?: string[] },
 ): Promise<void> {
   await check(opts);
-  await fileServerClient().createSync(opts);
+  const ignores = checkPath(opts.src)
+    .concat(checkPath(opts.dest))
+    .concat(opts.ignores ?? []);
+  await fileServerClient().createSync({ ...opts, ignores });
 }
 
 export async function get(

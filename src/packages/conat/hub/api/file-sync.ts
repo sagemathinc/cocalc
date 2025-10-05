@@ -31,7 +31,9 @@ export const fileSync = {
 };
 
 export interface FileSync {
-  create: (opts: Sync & { account_id: string }) => Promise<void>;
+  create: (
+    opts: Sync & { account_id: string; ignores?: string[] },
+  ) => Promise<void>;
   get: (
     sync: Sync & { account_id: string },
   ) => Promise<undefined | (MutagenSyncSession & Sync)>;

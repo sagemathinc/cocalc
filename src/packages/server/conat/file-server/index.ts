@@ -196,7 +196,7 @@ async function allSnapshotUsage({
 }
 
 // File Sync
-async function createSync(sync: Sync): Promise<void> {
+async function createSync(sync: Sync & { ignores?: string[] }): Promise<void> {
   await getFileSync().create(sync);
 }
 async function syncCommand(

@@ -110,7 +110,7 @@ export class FileSync {
     return await mutagen(args, { HOME: this.HOME, err_on_exit });
   };
 
-  create = async (sync: Sync) => {
+  create = async ({ ignores = [], ...sync }: Sync & { ignores?: string[] }) => {
     const cur = await this.get(sync);
     if (cur != null) {
       return;
@@ -134,9 +134,11 @@ export class FileSync {
       "--watch-polling-interval-alpha=10",
       "--watch-polling-interval-beta=10",
       "--symlink-mode=posix-raw",
-      alpha,
-      beta,
     ];
+    for (const ignore of Array.from(new Set(ignores))) {
+      args.push(`--ignore=${ignore}`);
+    }
+    args.push(alpha, beta);
     await this.mutagen(args);
   };
 
