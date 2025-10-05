@@ -1,3 +1,14 @@
+/*
+Implementation of path sync *inside* volumes on the file server.
+
+NOTE: I'm aware that we could use bind mounts instead of mutagen
+to accomplish something very similar.  There are a huge list of pros
+and cons to using mutagen versus bind mounts to solve this problem.
+
+
+
+*/
+
 import getLogger from "@cocalc/backend/logger";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { join, resolve } from "node:path";
