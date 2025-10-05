@@ -34,16 +34,19 @@ export const WATCH_RECREATE_WAIT = 3000;
 
 // Length of time file is locked for reading (so that only
 // one client reads it at a time).
-const READ_LOCK_TIMEOUT = 3000;
+// normal read:
+const READ_LOCK_TIMEOUT = 300;
+// very first time reading it:
+const FIRST_READ_LOCK_TIMEOUT = 2000;
 
 // all clients ignore file changes from when a save starts until this
 // amount of time later, so they avoid loading a file just because it was
 // saved by themself or another client.  This is especially important for
 // large files that can take a long time to save, but also to avoid
 // multiple clients loading a file at once and causing duplication.
-export const IGNORE_ON_SAVE_INTERVAL = 3000;
+export const IGNORE_ON_SAVE_INTERVAL = 300;
 
-// reading file when it changes on disk is deboucned this much, e.g.,
+// reading file when it changes on disk is debounced this much, e.g.,
 // if the file keeps changing you won't see those changes until it
 // stops changing for this long.
 const WATCH_DEBOUNCE = 250;
@@ -159,6 +162,7 @@ export interface SyncOpts0 {
   ignoreOnSaveInterval?: number;
   watchDebounce?: number;
   readLockTimeout?: number;
+  firstReadLockTimeout?: number;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -304,9 +308,13 @@ export class SyncDoc extends EventEmitter {
       async () => {
         try {
           this.emit("handle-file-change");
+          if (this.isClosed()) return;
           await this.readFile();
+          if (this.isClosed()) return;
           await this.stat();
-        } catch {}
+        } catch (err) {
+          console.log("readFileDebounced error", err);
+        }
       },
       this.opts.watchDebounce ?? WATCH_DEBOUNCE,
       {
@@ -2311,19 +2319,27 @@ export class SyncDoc extends EventEmitter {
 
   private lastReadFile: number = 0;
   readFile = reuseInFlight(async (): Promise<void> => {
-    if (this.opts.noSaveToDisk) {
+    if (this.isClosed() || this.opts.noSaveToDisk) {
       return;
     }
     const dbg = this.dbg("readFile");
 
-    let contents;
     try {
       // This lock is *extremely* important when opening the document
       // since it prevents having two identical patches, e.g,. when
       // two clients initialize the doc at the same time, which would
       // result in "doubled content" (when the merge conflict happens).
-      const lock = this.opts.readLockTimeout ?? READ_LOCK_TIMEOUT;
-      contents = await this.fs.readFile(this.path, "utf8", lock);
+      let lock;
+      if (this.lastReadFile) {
+        lock = this.opts.readLockTimeout ?? READ_LOCK_TIMEOUT;
+      } else {
+        lock = this.opts.firstReadLockTimeout ?? FIRST_READ_LOCK_TIMEOUT;
+      }
+      const contents: string = (await this.fs.readFile(
+        this.path,
+        "utf8",
+        lock,
+      )) as string;
       this.lastReadFile = Date.now();
       // console.log(this.client.client.id, "read from disk --isDeleted = false");
       this.isDeleted = false;
@@ -2874,7 +2890,7 @@ export class SyncDoc extends EventEmitter {
     (async () => {
       if (this.fileWatcher != null) {
         this.emit("watching");
-        for await (const { eventType, ignore } of this.fileWatcher) {
+        for await (const { ignore } of this.fileWatcher) {
           if (this.isClosed()) return;
           if (!ignore) {
             // we don't know what's on disk anymore,
@@ -2883,9 +2899,6 @@ export class SyncDoc extends EventEmitter {
             this.readFileDebounced();
           } else {
             this.debouncedStat();
-          }
-          if (eventType == "rename") {
-            break;
           }
         }
         // check if file was deleted

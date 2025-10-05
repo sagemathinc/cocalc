@@ -1523,7 +1523,7 @@ export class Actions<
   public _get_terminal(
     id: string,
     parent: HTMLElement,
-  ): Terminal<CodeEditorState> {
+  ): undefined | Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
 

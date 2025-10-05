@@ -134,8 +134,9 @@ describe("create basic mocked file server and test it out", () => {
       allSnapshotUsage: Stub,
 
       createSync: Stub,
-      deleteSync: Stub,
-      getAllSync: Stub,
+      getAllSyncs: Stub,
+      getSync: Stub,
+      syncCommand: Stub,
     });
   });
 

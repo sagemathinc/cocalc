@@ -64,7 +64,10 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     return number;
   }
 
-  get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  get_terminal(id: string, parent: HTMLElement): undefined | Terminal<T> {
+    if (this.actions == null) {
+      return undefined;
+    }
     const node = this.actions._get_frame_node(id);
 
     if (this.terminals[id] != null) {

@@ -512,7 +512,7 @@ export class SandboxedFilesystem {
       },
     });
     // see note above -- we ensure here that watcher terminates
-    // if directory is deleted, which is needed to avoid blocking
+    // if path is deleted, which is needed to avoid blocking
     // btrfs snapshot delete.
     const deletePollInterval = Math.max(
       MIN_WATCHER_DELETE_POLL_INTERVAL,
@@ -541,6 +541,25 @@ export class SandboxedFilesystem {
     this.assertWritable(path);
     const p = await this.safeAbsPath(path);
     if (lock) {
+      // different semantics with lock set.
+      // (1) only write if it will change the file,
+      // (2) cause all watchers to ignore it for lock ms.
+      try {
+        if (typeof data == "string") {
+          if ((await readFile(p, "utf8")) == data) {
+            // no change
+            return;
+          }
+        } else {
+          // buffer
+          if ((await readFile(p)).equals(data)) {
+            // same buffer
+            return;
+          }
+        }
+      } catch {
+        // file doesn't exist yet
+      }
       this._lockFile(p, lock);
     }
     return await writeFile(p, data);
