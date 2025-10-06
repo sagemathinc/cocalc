@@ -23,3 +23,8 @@ export const SHARE_FLAGS = {
 export const DOC_AI = "https://doc.cocalc.com/ai.html";
 
 export const R_IDE = "R Studio";
+
+// Default font size for account settings and UI elements
+export const DEFAULT_FONT_SIZE = 14;
+// Icon unicode character for dark mode toggle (◑ - circle with right half black)
+export const DARK_MODE_ICON = 0x25d1;

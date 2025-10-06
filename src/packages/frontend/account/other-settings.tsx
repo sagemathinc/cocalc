@@ -4,10 +4,10 @@
  */
 
 import { Button, Card, Slider } from "antd";
-import { debounce } from "lodash";
 import { Map } from "immutable";
+import { debounce } from "lodash";
 import { useMemo } from "react";
-import { defineMessages, FormattedMessage, useIntl } from "react-intl";
+import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -41,15 +41,15 @@ import {
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import {
-  DARK_MODE_ICON,
   DARK_MODE_KEYS,
   DARK_MODE_MINS,
   get_dark_mode_config,
 } from "./dark-mode";
-import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import Messages from "./messages";
 import Tours from "./tours";

@@ -9,7 +9,6 @@ import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
 import { defineMessage, IntlShape, useIntl } from "react-intl";
-import { DARK_MODE_ICON } from "@cocalc/frontend/account/dark-mode";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -29,6 +28,7 @@ import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai
 import { AI_GENERATE_DOC_TAG } from "@cocalc/frontend/project/page/home-page/ai-generate-utils";
 import openSupportTab from "@cocalc/frontend/support/open";
 import userTracking from "@cocalc/frontend/user-tracking";
+import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { filename_extension } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
 import { SEARCH_COMMANDS } from "./const";

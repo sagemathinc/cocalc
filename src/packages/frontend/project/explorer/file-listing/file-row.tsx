@@ -60,6 +60,8 @@ interface Props {
   // Also important for download and preview links!
   computeServerId?: number;
   listing: DirectoryListing;
+  isStarred?: boolean;
+  onToggleStar?: (path: string, starred: boolean) => void;
 }
 
 export function FileRow({
@@ -80,6 +82,8 @@ export function FileRow({
   linkTarget,
   computeServerId,
   listing,
+  isStarred,
+  onToggleStar,
 }: Props) {
   const student_project_functionality = useStudentProjectFunctionality(
     actions.project_id,
@@ -196,6 +200,29 @@ export function FileRow({
     }
   }
 
+  function render_star() {
+    if (!onToggleStar) return null;
+    const path = full_path();
+    const starred = isStarred ?? false;
+    const iconName = starred ? "star-filled" : "star";
+
+    return (
+      <Icon
+        name={iconName}
+        onClick={(e) => {
+          e?.preventDefault();
+          e?.stopPropagation();
+          onToggleStar?.(path, !starred);
+        }}
+        style={{
+          cursor: "pointer",
+          fontSize: "14pt",
+          color: starred ? COLORS.STAR : COLORS.GRAY_L,
+        }}
+      />
+    );
+  }
+
   function full_path() {
     return misc.path_to_file(current_path, name);
   }
@@ -256,12 +283,12 @@ export function FileRow({
       return (
         <TimeAgo
           date={new Date(mtime).toISOString()}
-          style={{ color: "#666" }}
+          style={{ color: COLORS.GRAY_M }}
         />
       );
     } catch (error) {
       return (
-        <div style={{ color: "#666", display: "inline" }}>
+        <div style={{ color: COLORS.GRAY_M, display: "inline" }}>
           Invalid Date Time
         </div>
       );
@@ -385,6 +412,9 @@ export function FileRow({
       <Col sm={2} xs={12} onClick={handle_click}>
         {render_icon()}
       </Col>
+      <Col sm={1} xs={6} style={{ textAlign: "center" }}>
+        {render_star()}
+      </Col>
       <Col sm={10} xs={24} onClick={handle_click}>
         <VisibleXS>
           <span style={{ marginLeft: "16px" }} />
@@ -392,7 +422,7 @@ export function FileRow({
         {render_name()}
       </Col>
       <Col
-        sm={8}
+        sm={7}
         xs={24}
         style={{
           paddingRight:
@@ -404,7 +434,7 @@ export function FileRow({
         </VisibleXS>
         {render_timestamp()}
         {!isDir && (
-          <span className="pull-right" style={{ color: "#666" }}>
+          <span className="pull-right" style={{ color: COLORS.GRAY_M }}>
             {render_download_button(url)}
             {render_view_button(url, name)}
           </span>

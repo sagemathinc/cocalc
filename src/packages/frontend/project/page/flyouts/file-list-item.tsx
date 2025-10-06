@@ -52,12 +52,12 @@ export const FILE_ITEM_OPENED_STYLE: CSS = {
 const FILE_ITEM_ACTIVE_STYLE: CSS = {
   ...FILE_ITEM_OPENED_STYLE,
   color: COLORS.PROJECT.FIXED_LEFT_OPENED,
-};
+} as const;
 
 const FILE_ITEM_ACTIVE_STYLE_2: CSS = {
   ...FILE_ITEM_ACTIVE_STYLE,
   backgroundColor: COLORS.GRAY_L0,
-};
+} as const;
 
 const FILE_ITEM_STYLE: CSS = {
   flex: "1",
@@ -105,7 +105,7 @@ const CLOSE_ICON_STYLE: CSS = {
   top: "1px",
   position: "relative",
   paddingBottom: "1px",
-};
+} as const;
 
 interface Item {
   isOpen?: boolean;
@@ -311,12 +311,23 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
     const icon: IconName = isStarred ? "star-filled" : "star";
 
+    // In "files" mode, always show yellow star when starred
+    // In "active" mode, only show yellow star when file is also open
+    const starColor =
+      mode === "files"
+        ? isStarred
+          ? COLORS.STAR
+          : COLORS.GRAY_L
+        : isStarred && item.isOpen
+          ? COLORS.STAR
+          : COLORS.GRAY_L;
+
     return (
       <Icon
         name={icon}
         style={{
           ...ICON_STYLE,
-          color: isStarred && item.isOpen ? COLORS.STAR : COLORS.GRAY_L,
+          color: starColor,
         }}
         onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();

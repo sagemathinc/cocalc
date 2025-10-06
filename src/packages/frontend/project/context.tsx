@@ -3,7 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Context, createContext, useContext, useMemo, useState } from "react";
+import {
+  Context,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import * as immutable from "immutable";
 import {
   ProjectActions,
   redux,
@@ -122,6 +130,15 @@ export function useProjectContextProvider({
   // This is put here, to only sync the starred files when the project is opened,
   // not each time the active tab is opened!
   const manageStarredFiles = useStarredFilesManager(project_id);
+
+  // Sync starred files from conat to Redux store for use in computed values
+  useEffect(() => {
+    if (actions) {
+      actions.setState({
+        starred_files: immutable.List(manageStarredFiles.starred),
+      });
+    }
+  }, [manageStarredFiles.starred, actions]);
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const onCoCalcCom = kucalc === KUCALC_COCALC_COM;

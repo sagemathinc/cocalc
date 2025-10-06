@@ -95,6 +95,7 @@ export interface ProjectStoreState {
   // Project Files
   activity: any; // immutable,
   file_action?: FileAction;
+  starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
   file_search?: string;
   show_hidden?: boolean;
   show_masked?: boolean;

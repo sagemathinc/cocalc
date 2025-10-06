@@ -32,7 +32,7 @@ export class PDFWatcher {
     this.on_change = on_change;
 
     const { head: directory, tail: pdfFilename } = path_split(this.pdf_path);
-    this.watch_dir = directory || ".";
+    this.watch_dir = directory ?? "";
     this.pdf_filename = pdfFilename;
   }
 

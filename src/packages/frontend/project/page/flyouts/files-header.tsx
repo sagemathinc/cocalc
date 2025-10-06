@@ -217,7 +217,7 @@ export function FilesHeader({
     );
   }
 
-  function renderSortButton(name: string, display: string): React.JSX.Element {
+  function renderSortButton(name: string, display): React.JSX.Element {
     const isActive = activeFileSort.column_name === name;
     const direction = isActive ? (
       <Icon
@@ -395,6 +395,10 @@ export function FilesHeader({
             }}
           >
             <Radio.Group size="small">
+              {renderSortButton(
+                "starred",
+                <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
+              )}
               {renderSortButton("name", "Name")}
               {renderSortButton("size", "Size")}
               {renderSortButton("time", "Time")}
