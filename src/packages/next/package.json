@@ -104,7 +104,7 @@
     "@types/node": "^18.16.14",
     "@types/react": "^19.1.10",
     "@uiw/react-textarea-code-editor": "^3.1.1",
-    "next-rspack": "^15.5.0",
+    "next-rspack": "^15.5.4",
     "node-mocks-http": "^1.14.1"
   }
 }
