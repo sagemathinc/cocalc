@@ -31,7 +31,10 @@ import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 // all files are ready to edit instantly.  It uses more browser memory (of course),
 // and increases server load.  Most users have very few files open at once,
 // so this is probably a major win for power users and has little impact on load.
-const PRELOAD_BACKGROUND_TABS = true;
+// Do NOT set this to true until we have a very good way of dealing with load
+// problems, e.g., a way to easily load with no files open.  Otherwise, you can get
+// stuck due a file taking too long to load, etc.
+const PRELOAD_BACKGROUND_TABS = false;
 
 export interface OpenFileOpts {
   path: string;

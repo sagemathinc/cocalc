@@ -610,6 +610,7 @@ export function fsClient({
       subject: `watch-${subject}`,
       path,
       options,
+      fs: call,
     });
   };
   call.listing = async (path: string) => {

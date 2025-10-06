@@ -10,6 +10,7 @@ import {
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { getLogger } from "@cocalc/conat/client";
 import { type CompressedPatch } from "@cocalc/util/patch";
+import { Stats } from "./fs";
 
 const logger = getLogger("conat:files:watch");
 
@@ -34,7 +35,7 @@ export interface WatchOptions {
   // if true, watcher will close if the path being watched is unlinked.
   closeOnUnlink?: boolean;
 
-  stat?: boolean;
+  stats?: boolean;
 
   patch?: boolean;
 }
@@ -162,7 +163,7 @@ export interface ChangeEvent {
   filename: string;
   ignore?: boolean;
   patch?: CompressedPatch;
-  stat?;
+  stats?;
 }
 
 export async function watchClient({
@@ -170,19 +171,36 @@ export async function watchClient({
   subject,
   path,
   options,
+  fs,
 }: {
   client: ConatClient;
   subject: string;
   path: string;
   options?: WatchOptions;
+  fs?;
 }): Promise<WatchIterator> {
   const socket = client.socket.connect(subject);
-  const iter = new EventIterator(socket, "data", {
-    map: (args) => args[0],
-    onEnd: () => {
-      socket.close();
+  let constants = options?.stats ? await fs?.constants() : undefined;
+  const iter = new EventIterator<ChangeEvent & { stats?: Stats }>(
+    socket,
+    "data",
+    {
+      map: (args) => {
+        if (args[0].stats && constants !== undefined) {
+          const s = args[0].stats;
+          const stats = new Stats(constants);
+          for (const k in s) {
+            stats[k] = s[k];
+          }
+          args[0].stats = stats;
+        }
+        return args[0];
+      },
+      onEnd: () => {
+        socket.close();
+      },
     },
-  });
+  );
   socket.on("closed", () => {
     iter.end();
     delete iter2.ignore;

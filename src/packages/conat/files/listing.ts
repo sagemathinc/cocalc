@@ -81,7 +81,7 @@ export class Listing extends EventEmitter {
   init = async () => {
     const { fs, path } = this.opts;
     // close on unlink is critical so that btrfs snapshots don't get locked when we try to delete them
-    this.watch = await fs.watch(path, { closeOnUnlink: true });
+    this.watch = await fs.watch(path, { closeOnUnlink: true, stats: true });
     const { files, truncated } = await fs.getListing(path);
     this.files = files;
     this.truncated = truncated;
@@ -90,54 +90,67 @@ export class Listing extends EventEmitter {
   };
 
   private handleUpdates = async () => {
-    for await (const { filename } of this.watch) {
-      if (this.files == null || !filename) {
+    for await (const x of this.watch) {
+      if (this.files == null) {
         return;
       }
-      this.update(filename);
+      this.update(x);
     }
   };
 
-  private update = async (filename: string) => {
+  private update = async ({
+    filename,
+    event,
+    stats,
+  }: {
+    filename: string;
+    event;
+    stats;
+  }) => {
+    // console.log("update", { filename, event, stats });
     if (this.files == null) {
       // closed or not initialized yet
       return;
     }
-    try {
-      const stats = await this.opts.fs.lstat(join(this.opts.path, filename));
-      if (this.files == null) {
-        return;
-      }
-      const data: FileData = {
-        mtime: stats.mtimeMs,
-        size: stats.size,
-        type: stats.type,
-      };
-      if (stats.isSymbolicLink()) {
-        // resolve target.
-        data.linkTarget = await this.opts.fs.readlink(
-          join(this.opts.path, filename),
-        );
-        data.isSymLink = true;
-      }
-      if (stats.isDirectory()) {
-        data.isDir = true;
-      }
-      this.files[filename] = data;
-    } catch (err) {
-      if (this.files == null) {
-        return;
-      }
-      if (err.code == "ENOENT") {
-        // file deleted
-        delete this.files[filename];
-      } else {
-        //if (!process.env.COCALC_TEST_MODE) {
-        console.warn("WARNING:", err);
-        // TODO: some other error -- e.g., network down or permissions, so we don't know anything.
-        // Should we retry (?).
-        //}
-        return;
+    if (event.startsWith("unlink")) {
+      delete this.files[filename];
+    } else {
+      try {
+        stats ??= await this.opts.fs.lstat(join(this.opts.path, filename));
+        if (this.files == null) {
+          return;
+        }
+        const data: FileData = {
+          mtime: stats.mtimeMs,
+          size: stats.size,
+          type: stats.type,
+        };
+        if (stats.isSymbolicLink()) {
+          // resolve target.
+          data.linkTarget = await this.opts.fs.readlink(
+            join(this.opts.path, filename),
+          );
+          data.isSymLink = true;
+        }
+        if (stats.isDirectory()) {
+          data.isDir = true;
+        }
+        this.files[filename] = data;
+      } catch (err) {
+        if (this.files == null) {
+          return;
+        }
+        if (err.code == "ENOENT") {
+          // file deleted
+          delete this.files[filename];
+        } else {
+          //if (!process.env.COCALC_TEST_MODE) {
+          console.warn("WARNING:", err);
+          // TODO: some other error -- e.g., network down or permissions, so we don't know anything.
+          // Should we retry (?).
+          //}
+          return;
+        }
       }
     }
     this.emit("change", filename, this.files[filename]);

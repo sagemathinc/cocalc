@@ -9,8 +9,13 @@ import LRU from "lru-cache";
 export { type WatchOptions };
 export type WatchIterator = EventIterator<ChangeEvent>;
 
-//const log = (...args) => console.log(...args);
-const log = (..._args) => {};
+// do NOT use patch for tracking file changes if the file exceeds
+// this size.  The reason is mainly because computing diffs of
+// large files on the server can take a long time!
+const MAX_PATCH_FILE_SIZE = 1_000_000;
+
+const log = (...args) => console.log(...args);
+//const log = (..._args) => {};
 
 export default function watch(
   path: string,
@@ -34,6 +39,7 @@ export default function watch(
 
 class Watcher extends EventEmitter {
   private watcher: ReturnType<typeof chokidarWatch>;
+  private ready: boolean = false;
 
   constructor(
     private path: string,
@@ -45,7 +51,7 @@ class Watcher extends EventEmitter {
       depth: 0,
       ignoreInitial: true,
       followSymlinks: false,
-      alwaysStat: options.stat ?? false,
+      alwaysStat: options.stats ?? false,
       atomic: true,
       usePolling: false,
       awaitWriteFinish: {
@@ -53,8 +59,11 @@ class Watcher extends EventEmitter {
         pollInterval: 70,
       },
     });
-    // log("creating watcher of ", path);
+    log("creating watcher ", path, options);
 
+    this.watcher.once("ready", () => {
+      this.ready = true;
+    });
     this.watcher.on("all", async (...args) => {
       const change = await this.handle(...args);
       if (change !== undefined) {
@@ -63,11 +72,17 @@ class Watcher extends EventEmitter {
     });
   }
 
-  handle = async (event, path, stat): Promise<undefined | ChangeEvent> => {
-    const filename = path.slice(this.path.length + 1);
+  handle = async (event, path, stats): Promise<undefined | ChangeEvent> => {
+    if (!this.ready) {
+      return;
+    }
+    let filename = path.slice(this.path.length);
+    if (filename.startsWith("/")) {
+      filename = filename.slice(1);
+    }
     const x: ChangeEvent = { event, filename };
-    if (this.options.stat) {
-      x.stat = stat;
+    if (this.options.stats) {
+      x.stats = stats;
     }
     if (this.options.closeOnUnlink && path == this.path) {
       this.emit("change", x);
@@ -96,14 +111,30 @@ class Watcher extends EventEmitter {
       // no change
       return;
     }
-    x.patch = make_patch(last, cur);
-    log(path, "change", x.patch);
     this.lastOnDisk.set(path, cur);
+    if (
+      cur.length >= MAX_PATCH_FILE_SIZE ||
+      last.length >= MAX_PATCH_FILE_SIZE
+    ) {
+      // just inform that there is a change
+      log(path, "patch -- file too big (cur)");
+      return x;
+    }
+    // small enough to make a patch
+    log(path, "making a patch with ", last.length, cur.length);
+    const t = Date.now();
+    x.patch = make_patch(last, cur);
+    log(path, "made patch", Date.now() - t, x.patch);
     return x;
   };
 
   close() {
     this.watcher.close();
     this.emit("close");
+    this.removeAllListeners();
+    // @ts-ignore
+    delete this.watcher;
+    // @ts-ignore
+    delete this.ready;
   }
 }
