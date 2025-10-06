@@ -7,6 +7,7 @@ import { Descriptions, Layout, List } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
+import { COLORS } from "@cocalc/util/theme";
 
 import Backups from "components/landing/backups";
 import Code from "components/landing/code";
@@ -27,7 +28,6 @@ import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
-import Sidechat from "public/features/latex-editor-side-chat-20251004.png";
 import Pythontex from "public/features/cocalc-pythontex.png";
 import Sagetex from "public/features/cocalc-sagetex.png";
 import AIFormula from "public/features/latex-ai-formula.png";
@@ -37,6 +37,7 @@ import LatexEditorImage from "public/features/latex-editor-main-20251003.png";
 import LatexPythontex from "public/features/latex-editor-pythontex-20251003.png";
 import LatexCollab from "public/features/latex-editor-realtime-sync-20251003.png";
 import Knitr from "public/features/latex-editor-rnw-01.png";
+import Sidechat from "public/features/latex-editor-side-chat-20251004.png";
 import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
 import Logo from "public/features/latex-logo.svg";
 
@@ -77,7 +78,9 @@ export default function LatexEditor({ customize }) {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span>No software install required: <small>100% online</small></span>
+                  <span>
+                    No software install required: <small>100% online</small>
+                  </span>
                 </Title>
                 <Paragraph>
                   <List bordered size="small">
@@ -142,7 +145,9 @@ export default function LatexEditor({ customize }) {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span>Working with <LaTeX /> made easy</span>
+                  <span>
+                    Working with <LaTeX /> made easy
+                  </span>
                 </Title>
                 <Paragraph>
                   <List bordered size="small">
@@ -165,8 +170,10 @@ export default function LatexEditor({ customize }) {
                       to revert any changes
                     </List.Item>
                     <List.Item>
-                      <strong>Fully managed <LaTeX /> environment</strong> with
-                      automatic updates
+                      <strong>
+                        Fully managed <LaTeX /> environment
+                      </strong>{" "}
+                      with automatic updates
                     </List.Item>
                     <List.Item>
                       <strong>Cloud-based platform</strong> accessible from any
@@ -265,13 +272,19 @@ export default function LatexEditor({ customize }) {
           <Info
             anchor="a-darkmode"
             icon={
-              <Icon style={{ fontSize: "40px" }} unicode={DARK_MODE_ICON} />
+              <Icon
+                style={{ fontSize: "40px", color: "white" }}
+                unicode={DARK_MODE_ICON}
+              />
             }
-            title={"Dark Mode with PDF Support"}
+            title={
+              <span style={{ color: "white" }}>Dark Mode with PDF Support</span>
+            }
             image={LatexDarkMode}
+            style={{ background: "rgb(50, 50, 50)", color: "white" }}
           >
-            <Paragraph>
-              CoCalc fully supports{" "}
+            <Paragraph style={{ color: "white" }}>
+              Love{" "}
               <span
                 style={{
                   background: "black",
@@ -279,21 +292,20 @@ export default function LatexEditor({ customize }) {
                   padding: "2px 5px",
                 }}
               >
-                Dark Mode
-              </span>{" "}
-              enthusiasts!
+                dark mode
+              </span>
+              ? CoCalc has you covered!
             </Paragraph>
-            <Paragraph>
-              {" "}
-              The <LaTeX /> editor not only supports the usual dark mode
-              functionality, but also styles the PDF viewer. This means that even
-              though your final PDF will have a white background, you can view
-              and edit it with a dark background and bright text for comfortable
-              night-time work.{" "}
+            <Paragraph style={{ color: "white" }}>
+              The <LaTeX /> editor features dark UI elements as you'd expect,
+              but goes further by inverting the PDF viewer colors. This means
+              that even though your final PDF will have a white background, you
+              can view and edit it with a dark background and bright text for
+              comfortable night-time work.
             </Paragraph>
-            <Paragraph>
-              There is also a button to quickly disable the PDF dark mode, to
-              double check the actual output.
+            <Paragraph style={{ color: COLORS.GRAY_L }}>
+              NOTE: You can quickly disable this PDF dark mode, to double check
+              the actual output.
             </Paragraph>
           </Info>
 
@@ -503,8 +515,8 @@ export default function LatexEditor({ customize }) {
             title="Forward and Inverse search"
             icon="sync"
             video={[
-              "features/latex-forward-inverse-02.webm",
-              "features/latex-forward-inverse-02.mp4",
+              "features/latex-forward-inverse-20251006.webm",
+              "features/latex-forward-inverse-20251006.mp4",
             ]}
             wide
             alt="Video showing forward and inverse search in a LaTeX document"
@@ -518,11 +530,13 @@ export default function LatexEditor({ customize }) {
             </Paragraph>
             <Paragraph>
               <strong>Forward Search:</strong> Click in your LaTeX source to
-              instantly jump to the corresponding location in the PDF preview.
+              jump to the corresponding location in the PDF preview.
             </Paragraph>
             <Paragraph>
               <strong>Inverse Search:</strong> Double-click anywhere in the PDF
-              to jump back to the exact line in your source code.
+              to jump back to the corresponding location in your source code.
+              You can also enable automatic sync mode to keep your source editor
+              aligned with the PDF as you scroll.
             </Paragraph>
             <Paragraph>
               Powered by{" "}
