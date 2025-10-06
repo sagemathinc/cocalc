@@ -36,6 +36,7 @@ import LatexDarkMode from "public/features/latex-editor-darkmode-20251003.png";
 import LatexEditorImage from "public/features/latex-editor-main-20251003.png";
 import LatexPythontex from "public/features/latex-editor-pythontex-20251003.png";
 import LatexCollab from "public/features/latex-editor-realtime-sync-20251003.png";
+import LaTeXMultiFile from "public/features/latex-editor-multifile-20251006.png";
 import Knitr from "public/features/latex-editor-rnw-01.png";
 import Sidechat from "public/features/latex-editor-side-chat-20251004.png";
 import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
@@ -79,23 +80,33 @@ export default function LatexEditor({ customize }) {
                   }}
                 >
                   <span>
-                    No software install required: <small>100% online</small>
+                    Working with <LaTeX /> made easy
                   </span>
                 </Title>
                 <Paragraph>
                   <List bordered size="small">
                     <List.Item>
                       <strong>Side-by-side preview</strong> with{" "}
-                      <strong>forward and inverse search</strong>
+                      <strong>
+                        <a href="#a-forwardinverse">
+                          forward and inverse search
+                        </a>
+                      </strong>{" "}
+                      (TEX ↔ PDF)
                     </List.Item>
                     <List.Item>
-                      Compiles upon saving and marks errors in the source file
+                      <strong>Automatically compiles upon saving</strong> and
+                      marks problems in the source file
                     </List.Item>
                     <List.Item>
                       <strong>
-                        <a href="#a-backups">Periodic backups</a>
+                        <a href="#a-timetravel">Records every change</a>
                       </strong>{" "}
-                      of all your files
+                      while you type with{" "}
+                      <strong>
+                        <a href="#a-backups">periodic backups</a>
+                      </strong>{" "}
+                      of all files
                     </List.Item>
                     <List.Item>
                       <strong>
@@ -107,28 +118,15 @@ export default function LatexEditor({ customize }) {
                       <strong>
                         <a href="#a-calculations">Runs embedded calculations</a>
                       </strong>{" "}
-                      right inside your document
+                      with support for <a href="#a-sagetex">SageTeX</a>,{" "}
+                      <a href="#a-pythontex">PythonTeX</a> and{" "}
+                      <a href="#a-knitr">Knitr</a>
                     </List.Item>
                     <List.Item>
                       <strong>
-                        <A href="https://doc.cocalc.com/latex-features.html#latex-multi-file-support">
-                          Multi-file support
-                        </A>
+                        <a href="#a-multifile">Multi-file support</a>
                       </strong>{" "}
                       that discovers included files automatically
-                    </List.Item>
-                    <List.Item>
-                      <strong>
-                        <a href="#a-darkmode">Dark mode for PDF</a>
-                      </strong>{" "}
-                      viewing and editing
-                    </List.Item>
-                    <List.Item>
-                      Every{" "}
-                      <strong>
-                        <a href="#a-timetravel">change is recorded</a>
-                      </strong>{" "}
-                      while you type
                     </List.Item>
                   </List>
                 </Paragraph>
@@ -145,9 +143,7 @@ export default function LatexEditor({ customize }) {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span>
-                    Working with <LaTeX /> made easy
-                  </span>
+                  <span>Fully-featured online editor</span>
                 </Title>
                 <Paragraph>
                   <List bordered size="small">
@@ -165,31 +161,31 @@ export default function LatexEditor({ customize }) {
                     </List.Item>
                     <List.Item>
                       <strong>
+                        <a href="#a-darkmode">Dark Mode with PDF support</a>
+                      </strong>{" "}
+                      for comfortable night-time editing
+                    </List.Item>
+                    <List.Item>
+                      <strong>
                         <a href="#a-timetravel">Complete revision history</a>
                       </strong>{" "}
                       to revert any changes
                     </List.Item>
                     <List.Item>
                       <strong>
-                        Fully managed <LaTeX /> environment
+                        <a href="#a-environments">
+                          Fully managed <LaTeX /> environment
+                        </a>
                       </strong>{" "}
-                      with automatic updates
+                      with PDF LaTeX, XeLaTeX, and LuaTeX
                     </List.Item>
                     <List.Item>
-                      <strong>Cloud-based platform</strong> accessible from any
-                      browser
-                    </List.Item>
-                    <List.Item>
-                      <strong>Professional typesetting</strong> with PDF LaTeX,
-                      XeLaTeX, and LuaTeX
-                    </List.Item>
-                    <List.Item>
-                      <strong>Academic writing optimized</strong> for research
-                      papers and theses
-                    </List.Item>
-                    <List.Item>
-                      <strong>Integrated computational tools</strong> for
-                      reproducible research
+                      <strong>
+                        <a href="#a-computational">
+                          Full computational environment
+                        </a>
+                      </strong>{" "}
+                      accessible from any browser
                     </List.Item>
                   </List>
                 </Paragraph>
@@ -304,8 +300,45 @@ export default function LatexEditor({ customize }) {
               comfortable night-time work.
             </Paragraph>
             <Paragraph style={{ color: COLORS.GRAY_L }}>
-              NOTE: You can quickly disable this PDF dark mode, to double check
+              Note: You can quickly disable this PDF dark mode, to double check
               the actual output.
+            </Paragraph>
+          </Info>
+
+          <Info
+            anchor="a-multifile"
+            icon="folder-open"
+            title="Multi-file support"
+            image={LaTeXMultiFile}
+            alt="LaTeX editor showing multiple files with automatic discovery of included files"
+          >
+            <Paragraph>
+              Working with large LaTeX documents often means splitting your
+              content across multiple files using <Code>\include{"{...}"}</Code>{" "}
+              or <Code>\input{"{...}"}</Code> commands.{" "}
+            </Paragraph>
+            <Paragraph strong>
+              CoCalc automatically discovers all included files and makes
+              navigation easy.
+            </Paragraph>
+            <Paragraph>
+              Each entry shows a brief snippet of its beginning, making it easy
+              to identify the right file.
+            </Paragraph>
+            <Paragraph>
+              <strong>
+                <a href="#a-forwardinverse">Inverse search</a>
+              </strong>{" "}
+              works seamlessly with multi-file documents: double-click
+              anywhere in the PDF and CoCalc automatically opens the correct
+              subfile for you.
+            </Paragraph>
+            <Paragraph>
+              Learn more in the{" "}
+              <A href="https://doc.cocalc.com/latex#multi-file-support">
+                multi-file support documentation
+              </A>
+              .
             </Paragraph>
           </Info>
 
@@ -316,7 +349,7 @@ export default function LatexEditor({ customize }) {
               <>
                 <Paragraph>
                   <strong>
-                    Execute Python, Sage or R code directly within your LaTeX
+                    Execute Python, Sage, or R code directly within your LaTeX
                     source
                   </strong>{" "}
                   to automatically generate figures, tables, formulas, and
