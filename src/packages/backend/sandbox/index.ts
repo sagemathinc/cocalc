@@ -127,7 +127,7 @@ export class SandboxedFilesystem {
   private host?: string;
   private lastOnDisk = new LRU<string, string>({
     maxSize: MAX_LAST_ON_DISK,
-    sizeCalculation: (value) => value.length,
+    sizeCalculation: (value) => value.length+1, // must be positive!
     ttl: LAST_ON_DISK_TTL,
   });
 

@@ -9,12 +9,14 @@ import LRU from "lru-cache";
 export { type WatchOptions };
 export type WatchIterator = EventIterator<ChangeEvent>;
 
+const log = (...args) => {}; //console.log(...args);
+
 export default function watch(
   path: string,
   options: WatchOptions,
   lastOnDisk: LRU<string, string>,
 ): WatchIterator {
-  console.log("watch", { path, options });
+  log("watch", { path, options });
   const watcher = new Watcher(path, options, lastOnDisk);
 
   const iter = new EventIterator(watcher, "change", {
@@ -22,7 +24,7 @@ export default function watch(
     overflow: options.overflow,
     map: (args) => args[0],
     onEnd: () => {
-      //console.log("close ", path);
+      //log("close ", path);
       watcher.close();
     },
   });
@@ -46,16 +48,21 @@ class Watcher extends EventEmitter {
       atomic: true,
       usePolling: false,
       awaitWriteFinish: {
-        stabilityThreshold: 300,
-        pollInterval: 100,
+        stabilityThreshold: 150,
+        pollInterval: 70,
       },
     });
-    // console.log("creating watcher of ", path);
+    // log("creating watcher of ", path);
 
-    this.watcher.on("all", this.handle);
+    this.watcher.on("all", async (...args) => {
+      const change = await this.handle(...args);
+      if (change !== undefined) {
+        this.emit("change", change);
+      }
+    });
   }
 
-  handle = async (event, path, stat) => {
+  handle = async (event, path, stat): Promise<undefined | ChangeEvent> => {
     const filename = path.slice(this.path.length + 1);
     const x: ChangeEvent = { event, filename };
     if (this.options.stat) {
@@ -67,33 +74,31 @@ class Watcher extends EventEmitter {
       return;
     }
     if (!this.options.patch) {
-      console.log(path, "patch option not set");
-      this.emit("change", x);
-      return;
+      log(path, "patch option not set", this.options);
+      return x;
     }
 
     const last = this.lastOnDisk.get(path);
     if (last === undefined) {
-      console.log(path, "lastOnDisk not set");
+      log(path, "lastOnDisk not set");
       return x;
     }
     let cur;
     try {
       cur = await readFile(path, "utf8");
     } catch (err) {
-      console.log(path, "read error", err);
-      this.emit("change", x);
-      return;
+      log(path, "read error", err);
+      return x;
     }
     if (last == cur) {
-      console.log(path, "no change");
+      log(path, "no change");
       // no change
       return;
     }
     x.patch = make_patch(last, cur);
-      console.log(path, "change", x.patch);
+    log(path, "change", x.patch);
     this.lastOnDisk.set(path, cur);
-    this.emit("change", x);
+    return x;
   };
 
   close() {

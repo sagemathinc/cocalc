@@ -2881,7 +2881,7 @@ export class SyncDoc extends EventEmitter {
       if (this.fileWatcher != null) {
         this.emit("watching");
         for await (const { event, ignore, patch } of this.fileWatcher) {
-          console.log({ event, ignore, patch, path: this.path });
+          // console.log({ event, ignore, patch, path: this.path });
           if (this.isClosed()) return;
           if (event.startsWith("unlink")) {
             break;
@@ -2889,6 +2889,7 @@ export class SyncDoc extends EventEmitter {
           if (!ignore) {
             if (patch != null) {
               if (patch.length > 0) {
+                this.emit("before-change");
                 const value = this.to_str();
                 const [newValue] = apply_patch(patch, value);
                 this.from_str(newValue);

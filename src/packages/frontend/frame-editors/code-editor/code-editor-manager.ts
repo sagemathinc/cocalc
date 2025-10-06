@@ -76,8 +76,8 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_code_editor(id: string): void {
-    if (this.code_editors[id] == null) {
-      // graceful no-op if no such terminal.
+    if (this.code_editors?.[id] == null) {
+      // graceful no-op if no such terminal or closed
       return;
     }
     this.code_editors[id].close();
