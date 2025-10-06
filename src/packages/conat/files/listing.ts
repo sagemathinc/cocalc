@@ -90,11 +90,7 @@ export class Listing extends EventEmitter {
   };
 
   private handleUpdates = async () => {
-    for await (const { event, filename } of this.watch) {
-      if (event.startsWith("unlink")) {
-        this.close();
-        return;
-      }
+    for await (const { filename } of this.watch) {
       if (this.files == null || !filename) {
         return;
       }
