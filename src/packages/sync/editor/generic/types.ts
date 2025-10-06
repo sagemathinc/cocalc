@@ -10,12 +10,13 @@
 // A Patch is an entry in the patches table, as represented in memory locally here.
 
 import { SyncTable } from "@cocalc/sync/table/synctable";
-
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import type {
   CallConatServiceFunction,
   CreateConatServiceFunction,
 } from "@cocalc/conat/service";
+import { type CompressedPatch } from "@cocalc/util/patch";
+export { type CompressedPatch };
 
 export interface Patch {
   // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just
@@ -77,8 +78,6 @@ export interface Document {
   // how many in this document (length of string number of records in db-doc, etc.)
   count(): number;
 }
-
-export type CompressedPatch = any[];
 
 export interface FileWatcher {
   on: (event: string, handler: Function) => void;

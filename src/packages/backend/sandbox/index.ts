@@ -63,8 +63,9 @@ import {
   unlink,
   utimes,
 } from "node:fs/promises";
-import { move, pathExistsSync } from "fs-extra";
-import { watch } from "node:fs";
+import { move } from "fs-extra";
+import { readFileSync } from "node:fs";
+import { watch } from "chokidar";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { basename, dirname, join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
@@ -83,6 +84,7 @@ import { type CopyOptions } from "@cocalc/conat/files/fs";
 export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
 import getListing, { type Files } from "./get-listing";
+import { make_patch } from "@cocalc/util/patch";
 //import getLogger from "@cocalc/backend/logger";
 
 //const logger = getLogger("sandbox:fs");
@@ -90,9 +92,6 @@ import getListing, { type Files } from "./get-listing";
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
 const MAX_TIMEOUT = 5_000;
-
-const WATCHER_DELETE_POLL_INTERVAL = 3_000;
-const MIN_WATCHER_DELETE_POLL_INTERVAL = 250; //avoid excessive load
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
@@ -118,6 +117,7 @@ const INTERNAL_METHODS = new Set([
   "host",
   "readFileLock",
   "_lockFile",
+  "lastOnDisk",
 ]);
 
 export class SandboxedFilesystem {
@@ -125,6 +125,8 @@ export class SandboxedFilesystem {
   public readonly readonly: boolean;
   public rusticRepo: string;
   private host?: string;
+  private lastOnDisk: { [path: string]: string } = {};
+
   constructor(
     // path should be the path to a FOLDER on the filesystem (not a file)
     public readonly path: string,
@@ -497,70 +499,57 @@ export class SandboxedFilesystem {
     // directory of a project and delete that snapshot -- btrfs won't free
     // the disk space up ever.  Below we change the behavior by using polling
     // and automatically closing the watcher if the directory is deleted.
+
+    // ** [ ] TODO: reimplement directory deletion ==> stop watching somehow, so
+    // deleting snapshots works with btrfs**
     const path = await this.safeAbsPath(filename);
     //logger.debug("watching ", { path });
-    const watcher = watch(path, options as any);
-    const iter = new EventIterator(watcher, "change", {
+    const watcher = watch(path, {
+      ...options,
+      depth: 0,
+      ignoreInitial: true,
+      followSymlinks: false,
+      alwaysStat: false,
+      atomic: true,
+      usePolling: false,
+    });
+    // console.log("creating watcher of ", path);
+    const iter = new EventIterator(watcher, "all", {
       maxQueue: options?.maxQueue ?? 2048,
       overflow: options?.overflow,
       map: (args) => {
-        // exact same api as new fs/promises watch
-        return { eventType: args[0], filename: args[1] };
+        const last = this.lastOnDisk[path];
+        let patch: any = undefined;
+        if (last !== undefined) {
+          const cur = readFileSync(path, "utf8");
+          patch = make_patch(last, cur);
+          this.lastOnDisk[path] = cur;
+        }
+        const eventType = args[0];
+        const filename = args[1].slice(path.length + 1);
+        // console.log({ eventType, filename, patch, path });
+        return {
+          eventType,
+          filename,
+          patch,
+        };
       },
       onEnd: () => {
         watcher.close();
       },
     });
-    // see note above -- we ensure here that watcher terminates
-    // if path is deleted, which is needed to avoid blocking
-    // btrfs snapshot delete.
-    const deletePollInterval = Math.max(
-      MIN_WATCHER_DELETE_POLL_INTERVAL,
-      options?.deletePollInterval ?? WATCHER_DELETE_POLL_INTERVAL,
-    );
-    let interval = setInterval(() => {
-      // using sync since 5x-10x faster and fs we use this on should itself
-      // always be very fast.
-      if (!pathExistsSync(path)) {
-        watcher.close();
-      }
-    }, deletePollInterval);
-
-    // AbortController signal can cause this
-    watcher.once("close", () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-      //logger.debug("stopped watching", { path });
-      iter.end();
-    });
     return iter;
   };
 
-  writeFile = async (path: string, data: string | Buffer, lock?: number) => {
+  writeFile = async (
+    path: string,
+    data: string | Buffer,
+    saveLast?: boolean,
+  ) => {
     this.assertWritable(path);
     const p = await this.safeAbsPath(path);
-    if (lock) {
-      // different semantics with lock set.
-      // (1) only write if it will change the file,
-      // (2) cause all watchers to ignore it for lock ms.
-      try {
-        if (typeof data == "string") {
-          if ((await readFile(p, "utf8")) == data) {
-            // no change
-            return;
-          }
-        } else {
-          // buffer
-          if ((await readFile(p)).equals(data)) {
-            // same buffer
-            return;
-          }
-        }
-      } catch {
-        // file doesn't exist yet
-      }
-      this._lockFile(p, lock);
+    if (saveLast && typeof data == "string") {
+      this.lastOnDisk[p] = data;
     }
     return await writeFile(p, data);
   };

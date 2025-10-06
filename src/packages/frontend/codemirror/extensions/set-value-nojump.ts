@@ -4,7 +4,7 @@
  */
 
 import * as CodeMirror from "codemirror";
-import { diff_main } from "@cocalc/sync/editor/generic/util";
+import { diff_main } from "@cocalc/util/patch";
 
 /*
 Try to set the value of the buffer to something new by replacing just the ranges

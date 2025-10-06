@@ -163,7 +163,7 @@ export interface Filesystem {
   writeFile: (
     path: string,
     data: string | Buffer,
-    lock?: number,
+    saveLast?: boolean,
   ) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
@@ -480,8 +480,8 @@ export async function fsServer({
     ) {
       await (await fs(this.subject)).utimes(path, atime, mtime);
     },
-    async writeFile(path: string, data: string | Buffer, lock?: number) {
-      await (await fs(this.subject)).writeFile(path, data, lock);
+    async writeFile(path: string, data: string | Buffer, saveLast?: boolean) {
+      await (await fs(this.subject)).writeFile(path, data, saveLast);
     },
     // @ts-ignore
     async watch() {

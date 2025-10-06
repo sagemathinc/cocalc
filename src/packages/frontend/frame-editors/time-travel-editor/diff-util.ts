@@ -5,7 +5,7 @@
 
 // Compute a line-level diff between two strings, which
 // is useful when showing a diff between two states.
-import { patch_make } from "@cocalc/sync/editor/generic/util";
+import { patch_make } from "@cocalc/util/patch";
 import { StringCharMapping } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 require("./style.sass");
@@ -21,7 +21,7 @@ function line_diff(v0: string, v1: string): LineDiff {
   const string_mapping = new StringCharMapping();
   const patches = patch_make(
     string_mapping.to_string(v0.split("\n")),
-    string_mapping.to_string(v1.split("\n"))
+    string_mapping.to_string(v1.split("\n")),
   );
   const to_line = string_mapping._to_string;
   return process_line_diff(patches, to_line);
@@ -39,7 +39,7 @@ interface Patch {
 
 function process_line_diff(
   patches: Patch[],
-  to_line: { [c: string]: string }
+  to_line: { [c: string]: string },
 ): LineDiff {
   const lines: string[] = [];
   const type: (-1 | 0 | 1)[] = [];
@@ -78,7 +78,7 @@ function process_line_diff(
         }
         lines.push(to_line[c]);
         gutter.push(
-          `${line_nums[0].padStart(6)} ${line_nums[1].padStart(6)}  ${sign}`
+          `${line_nums[0].padStart(6)} ${line_nums[1].padStart(6)}  ${sign}`,
         );
         type.push(z[0]);
       }
@@ -91,7 +91,7 @@ function process_line_diff(
 export function set_cm_line_diff(
   cm: CodeMirror.Editor,
   v0: string,
-  v1: string
+  v1: string,
 ): void {
   const { lines, type, gutter, chunk_boundaries } = line_diff(v0, v1);
   const s = lines.join("\n");

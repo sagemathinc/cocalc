@@ -4,7 +4,7 @@
  */
 
 import { Operation, Text } from "slate";
-import { diff_main } from "@cocalc/sync/editor/generic/util";
+import { diff_main } from "@cocalc/util/patch";
 import { len } from "@cocalc/util/misc";
 
 export function nextPath(path: number[]): number[] {
@@ -58,7 +58,7 @@ operations.
 export function splitTextNodes(
   node: Text,
   split: Text[],
-  path: number[] // the path to node.
+  path: number[], // the path to node.
 ): Operation[] {
   if (split.length == 0) {
     // easy special case
@@ -129,7 +129,6 @@ is just to keep the operations simple and minimal.
 Also setting to undefined / false-ish for a *text* node property
 is equivalent to not having it regarding everything else.
 */
-
 
 // Get object that will set the properties of before
 // to equal the properties of node, in terms of the

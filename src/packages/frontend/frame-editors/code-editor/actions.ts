@@ -52,7 +52,7 @@ import { log_opened_time } from "@cocalc/frontend/project/open-file";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { SyncDB } from "@cocalc/sync/editor/db";
-import { apply_patch, make_patch } from "@cocalc/sync/editor/generic/util";
+import { apply_patch, make_patch } from "@cocalc/util/patch";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
 import {

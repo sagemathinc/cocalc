@@ -33,10 +33,7 @@ export const DELETED_CHECK_INTERVAL = 750;
 export const WATCH_RECREATE_WAIT = 3000;
 
 // Length of time file is locked for reading (so that only
-// one client reads it at a time).
-// normal read:
-const READ_LOCK_TIMEOUT = 300;
-// very first time reading it:
+// one client reads it at a time), very first time reading it:
 const FIRST_READ_LOCK_TIMEOUT = 2000;
 
 // all clients ignore file changes from when a save starts until this
@@ -105,6 +102,7 @@ import { LegacyHistory } from "./legacy";
 import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
 import { getLogger } from "@cocalc/conat/client";
 import * as remote from "./remote";
+import { apply_patch } from "@cocalc/util/patch";
 
 const DEBUG = false;
 
@@ -2329,10 +2327,8 @@ export class SyncDoc extends EventEmitter {
       // since it prevents having two identical patches, e.g,. when
       // two clients initialize the doc at the same time, which would
       // result in "doubled content" (when the merge conflict happens).
-      let lock;
-      if (this.lastReadFile) {
-        lock = this.opts.readLockTimeout ?? READ_LOCK_TIMEOUT;
-      } else {
+      let lock = 0;
+      if (!this.lastReadFile) {
         lock = this.opts.firstReadLockTimeout ?? FIRST_READ_LOCK_TIMEOUT;
       }
       const contents: string = (await this.fs.readFile(
@@ -2552,8 +2548,7 @@ export class SyncDoc extends EventEmitter {
     try {
       // also lock so no other client can read the file
       // (which is a waste and confusing)
-      const lock = this.opts.ignoreOnSaveInterval ?? IGNORE_ON_SAVE_INTERVAL;
-      await this.fs.writeFile(this.path, value, lock);
+      await this.fs.writeFile(this.path, value, true);
       if (this.isClosed()) return;
       this.lastReadFile = Date.now();
     } catch (err) {
@@ -2890,13 +2885,24 @@ export class SyncDoc extends EventEmitter {
     (async () => {
       if (this.fileWatcher != null) {
         this.emit("watching");
-        for await (const { ignore } of this.fileWatcher) {
+        for await (const { ignore, patch } of this.fileWatcher) {
           if (this.isClosed()) return;
           if (!ignore) {
-            // we don't know what's on disk anymore,
-            this.valueOnDisk = undefined;
-            // and we should find out!
-            this.readFileDebounced();
+            if (patch != null) {
+              if (patch.length > 0) {
+                const value = this.to_str();
+                const [newValue] = apply_patch(patch, value);
+                this.from_str(newValue);
+                this.commit({ emitChangeImmediately: true, file: true });
+                await this.save();
+                this.emit("after-change");
+              }
+            } else {
+              // we don't know what's on disk anymore,
+              this.valueOnDisk = undefined;
+              // and we should find out!
+              this.readFileDebounced();
+            }
           } else {
             this.debouncedStat();
           }
