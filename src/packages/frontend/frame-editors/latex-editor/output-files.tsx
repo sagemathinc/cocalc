@@ -63,7 +63,7 @@ export function OutputFiles({
       path: filePath,
       displayPath,
       isMain: false,
-      summary: fileSummaries[filePath] ?? "Loading...",
+      summary: fileSummaries[filePath] ?? "Summary not available...",
     };
   });
 
