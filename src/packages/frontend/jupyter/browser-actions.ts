@@ -75,6 +75,7 @@ import {
   DELETED_CHECK_INTERVAL,
 } from "@cocalc/sync/editor/generic/sync-doc";
 import { lite } from "@cocalc/frontend/lite";
+import { type WatchIterator } from "@cocalc/conat/files/watch";
 
 const OUTPUT_FPS = 29;
 const DEFAULT_OUTPUT_MESSAGE_LIMIT = 500;
@@ -2085,7 +2086,7 @@ export class JupyterActions extends JupyterActions0 {
   // @cocalc/sync/editor/generic/sync-doc
   // and it seems to work very well.  After writing some more
   // tests, I should refactor it into a separate module that both use.
-  private fileWatcher?;
+  private fileWatcher?: WatchIterator;
   watchIpynb = async () => {
     const done = () => this.isClosed();
     if (done()) return;
@@ -2119,12 +2120,12 @@ export class JupyterActions extends JupyterActions0 {
         if (done()) return true;
         try {
           this.fileWatcher = await fs.watch(this.path, { unique: true });
-          for await (const { eventType, ignore } of this.fileWatcher) {
+          for await (const { event, ignore } of this.fileWatcher) {
             if (done()) return true;
             if (!ignore) {
               await this.loadFromDiskIfChanged();
             }
-            if (eventType == "rename") {
+            if (event == "unlink") {
               break;
             }
           }

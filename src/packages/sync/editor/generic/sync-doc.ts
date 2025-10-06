@@ -93,6 +93,7 @@ import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { LegacyHistory } from "./legacy";
 import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
+import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";
 import * as remote from "./remote";
 import { apply_patch } from "@cocalc/util/patch";
@@ -2847,7 +2848,7 @@ export class SyncDoc extends EventEmitter {
     })();
   };
 
-  private fileWatcher?: any;
+  private fileWatcher?: WatchIterator;
   private initFileWatcher = async () => {
     if (this.opts.noSaveToDisk) {
       return;

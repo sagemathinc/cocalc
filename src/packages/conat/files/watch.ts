@@ -9,6 +9,7 @@ import {
 } from "@cocalc/conat/socket";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { getLogger } from "@cocalc/conat/client";
+import { type CompressedPatch } from "@cocalc/util/patch";
 
 const logger = getLogger("conat:files:watch");
 
@@ -149,13 +150,15 @@ export function watchServer({
   return server;
 }
 
-export type WatchIterator = EventIterator<any> & {
+export type WatchIterator = EventIterator<ChangeEvent> & {
   ignore?: (ignore: number) => Promise<void>;
 };
 
 export interface ChangeEvent {
-  eventType: "change" | "rename";
+  event: "add" | "addDir" | "change" | "unlink" | "unlinkDir";
   filename: string;
+  ignore?: boolean;
+  patch?: CompressedPatch;
 }
 
 export async function watchClient({
