@@ -218,7 +218,10 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function renderSortButton(name: string, display: string): React.JSX.Element {
+  function renderSortButton(
+    name: string,
+    display: string | React.JSX.Element,
+  ): React.JSX.Element {
     const isActive = activeFileSort.get("column_name") === name;
     const direction = isActive ? (
       <Icon
@@ -319,7 +322,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           <FormattedMessage
             id="page.flyouts.files.stale-directory.description"
             defaultMessage={"To update, <A>start this project</A>."}
-            description={"to update the outdated information in a file directory listing of a project"}
+            description={
+              "to update the outdated information in a file directory listing of a project"
+            }
             values={{
               A: (c) => (
                 <a
@@ -386,6 +391,10 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             }}
           >
             <Radio.Group size="small">
+              {renderSortButton(
+                "starred",
+                <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
+              )}
               {renderSortButton("name", "Name")}
               {renderSortButton("size", "Size")}
               {renderSortButton("time", "Time")}
