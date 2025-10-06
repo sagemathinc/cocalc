@@ -9,7 +9,8 @@ import LRU from "lru-cache";
 export { type WatchOptions };
 export type WatchIterator = EventIterator<ChangeEvent>;
 
-const log = (...args) => {}; //console.log(...args);
+//const log = (...args) => console.log(...args);
+const log = (..._args) => {};
 
 export default function watch(
   path: string,
