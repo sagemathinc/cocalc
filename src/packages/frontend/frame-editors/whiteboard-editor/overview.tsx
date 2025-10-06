@@ -12,6 +12,7 @@ import { VirtuosoGrid } from "react-virtuoso";
 
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { State, elementsList } from "./actions";
 import DeletePage from "./delete-page";
 import { useFrameContext } from "./hooks";
@@ -21,7 +22,7 @@ import { Overview as OnePage } from "./tools/navigation";
 export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
-  const size = 15 * (desc?.get("font_size") ?? 14);
+  const size = 15 * (desc?.get("font_size") ?? DEFAULT_FONT_SIZE);
   const isLoaded = useEditor("is_loaded");
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");

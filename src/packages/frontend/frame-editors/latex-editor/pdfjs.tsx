@@ -35,6 +35,7 @@ import usePinchToZoom, {
 } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions, Actions as LatexEditorActions } from "./actions";
 import { dblclick } from "./mouse-click";
@@ -248,7 +249,7 @@ export function PDFJS({
     if (evt.key == "0" && (evt.metaKey || evt.ctrlKey)) {
       actions.set_font_size(
         id,
-        redux.getStore("account").get("font_size") ?? 14,
+        redux.getStore("account").get("font_size") ?? DEFAULT_FONT_SIZE,
       );
       return;
     }
@@ -440,7 +441,8 @@ export function PDFJS({
 
     // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
     if (onZoom) {
-      const fontSize = getFontSize(scale);
+      // For zoom-to-fit, always use DEFAULT_FONT_SIZE as base to avoid account font size dependency
+      const fontSize = scale * DEFAULT_FONT_SIZE;
       onZoom({ fontSize });
     } else {
       actions.set_font_size(id, getFontSize(scale));
@@ -464,7 +466,8 @@ export function PDFJS({
 
     // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
     if (onZoom) {
-      const fontSize = getFontSize(scale);
+      // For zoom-to-fit, always use DEFAULT_FONT_SIZE as base to avoid account font size dependency
+      const fontSize = scale * DEFAULT_FONT_SIZE;
       onZoom({ fontSize });
     } else {
       actions.set_font_size(id, getFontSize(scale));
@@ -840,11 +843,16 @@ export function PDFJS({
     if (zoom !== undefined) {
       return zoom;
     }
-    return font_size / (redux.getStore("account").get("font_size") ?? 14);
+    return (
+      font_size /
+      (redux.getStore("account").get("font_size") ?? DEFAULT_FONT_SIZE)
+    );
   }, [zoom, font_size]);
 
   function getFontSize(scale: number): number {
-    return (redux.getStore("account").get("font_size") ?? 14) * scale;
+    return (
+      (redux.getStore("account").get("font_size") ?? DEFAULT_FONT_SIZE) * scale
+    );
   }
 
   function renderOtherViewers() {

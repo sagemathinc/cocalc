@@ -11,6 +11,7 @@ import { fromJS, List, Map } from "immutable";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay } from "@cocalc/frontend/components";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { path_split } from "@cocalc/util/misc";
 import { CellList } from "./cell-list";
 import { cm_options } from "./cm_options";
@@ -30,7 +31,7 @@ function get_cells(doc): { cells: Map<string, any>; cell_list: List<string> } {
 
 export function HistoryViewer({ project_id, path, doc, font_size }) {
   const default_font_size =
-    font_size ?? useTypedRedux("account", "font_size") ?? 14;
+    font_size ?? useTypedRedux("account", "font_size") ?? DEFAULT_FONT_SIZE;
   const { head: directory } = path_split(path);
   const { cells, cell_list } = get_cells(doc);
 

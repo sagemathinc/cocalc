@@ -28,3 +28,6 @@ export const DOC_AI = "https://doc.cocalc.com/ai.html";
 // to all legal requirements. We thus don't use their trademark
 // anywhere in our frontend.
 export const R_IDE = "R IDE";
+
+// Default font size for account settings and UI elements
+export const DEFAULT_FONT_SIZE = 14;

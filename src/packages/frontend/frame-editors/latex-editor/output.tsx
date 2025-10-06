@@ -40,6 +40,7 @@ import {
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, labels } from "@cocalc/frontend/i18n";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 
 import { TITLE_BAR_BORDER } from "../frame-tree/style";
 import { Actions } from "./actions";
@@ -253,8 +254,8 @@ export function Output(props: OutputProps) {
   // Handle zoom changes from pinch-to-zoom or wheel gestures
   const handleZoomChange = useCallback(
     (data: Data) => {
-      // Convert fontSize to zoom scale (fontSize 14 = 1.0 zoom)
-      const newZoom = data.fontSize / 14;
+      // Convert fontSize to zoom scale (DEFAULT_FONT_SIZE = 1.0 zoom)
+      const newZoom = data.fontSize / DEFAULT_FONT_SIZE;
       const local_view_state = actions.store.get("local_view_state");
       actions.setState({
         local_view_state: local_view_state.setIn([id, "pdf_zoom"], newZoom),
