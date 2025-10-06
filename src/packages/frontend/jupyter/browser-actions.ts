@@ -70,7 +70,6 @@ import {
   js_idx_to_char_idx,
 } from "@cocalc/jupyter/util/misc";
 import {
-  IGNORE_ON_SAVE_INTERVAL,
   WATCH_RECREATE_WAIT,
   DELETED_THRESHOLD,
   DELETED_CHECK_INTERVAL,
@@ -2039,15 +2038,6 @@ export class JupyterActions extends JupyterActions0 {
   public savedVersion: number = 0;
   saveIpynb = async () => {
     if (this.isClosed() || this.syncdb?.get_state() != "ready") return;
-
-    try {
-      await this.fileWatcher?.ignore(
-        this.syncdb.opts.ignoreOnSaveInterval ?? IGNORE_ON_SAVE_INTERVAL,
-      );
-    } catch (err) {
-      console.warn("issue ignoring file watcher", err);
-    }
-    if (this.isClosed()) return;
 
     const before = this.syncdb.last_changed();
     const ipynb = await this.toIpynb();

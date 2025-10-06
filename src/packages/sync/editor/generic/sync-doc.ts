@@ -36,13 +36,6 @@ export const WATCH_RECREATE_WAIT = 3000;
 // one client reads it at a time), very first time reading it:
 const FIRST_READ_LOCK_TIMEOUT = 2000;
 
-// all clients ignore file changes from when a save starts until this
-// amount of time later, so they avoid loading a file just because it was
-// saved by themself or another client.  This is especially important for
-// large files that can take a long time to save, but also to avoid
-// multiple clients loading a file at once and causing duplication.
-export const IGNORE_ON_SAVE_INTERVAL = 300;
-
 // reading file when it changes on disk is debounced this much, e.g.,
 // if the file keeps changing you won't see those changes until it
 // stops changing for this long.
@@ -156,8 +149,6 @@ export interface SyncOpts0 {
   // the 'deleted' event.
   watchRecreateWait?: number;
 
-  // instead of the default IGNORE_ON_SAVE_INTERVAL
-  ignoreOnSaveInterval?: number;
   watchDebounce?: number;
   readLockTimeout?: number;
   firstReadLockTimeout?: number;

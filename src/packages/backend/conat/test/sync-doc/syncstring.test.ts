@@ -148,7 +148,6 @@ describe.only("opening a new syncstring for a file that does NOT exist on disk d
       // very aggressive:
       deletedThreshold: 50,
       deletedCheckInterval: 50,
-      ignoreOnSaveInterval: 50,
       watchRecreateWait: 50,
     });
     s.on("deleted", () => {
