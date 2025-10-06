@@ -25,6 +25,7 @@ type AsyncWatchFunction = any;
 export interface WatchOptions {
   maxQueue?: number;
   overflow?: "ignore" | "throw";
+  signal?;
 
   // if more than one client is actively watching the same path and has unique set,
   // all but one should receive the extra field ignore:true in the update.
