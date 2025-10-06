@@ -188,7 +188,8 @@ export default function Content(props: Props) {
       <Row
         gutter={[20, 30]}
         style={{
-          paddingTop: "12px",
+          paddingTop: "50px",
+          paddingBottom: "50px",
           maxWidth: MAX_WIDTH_LANDING,
           marginTop: "0",
           marginBottom: "0",
