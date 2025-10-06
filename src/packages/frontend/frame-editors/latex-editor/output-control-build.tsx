@@ -12,9 +12,8 @@ import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { useIntl } from "react-intl";
 
-import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
-import { DARK_MODE_ICON } from "@cocalc/frontend/account/dark-mode";
 import { set_account_table } from "@cocalc/frontend/account/util";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COMMANDS } from "@cocalc/frontend/frame-editors/frame-tree/commands";
@@ -24,6 +23,7 @@ import {
   BUILD_ON_SAVE_LABEL,
 } from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
 import { editor, IntlMessage } from "@cocalc/frontend/i18n";
+import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 
 import { Actions } from "./actions";
 
