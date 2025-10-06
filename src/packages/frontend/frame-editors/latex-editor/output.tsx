@@ -369,11 +369,8 @@ export function Output(props: OutputProps) {
               const autoSyncInProgress =
                 actions.store.get("autoSyncInProgress");
               if (autoSyncInProgress) {
-                // Debounce the flag clearing to avoid clearing too early during scrolling
-                clearTimeout((window as any).__autoSyncClearTimeout);
-                (window as any).__autoSyncClearTimeout = setTimeout(() => {
-                  actions.setState({ autoSyncInProgress: false });
-                }, 500); // Wait longer to ensure scrolling has stabilized
+                // Clear immediately to allow next forward sync without delay
+                actions.setState({ autoSyncInProgress: false });
               }
             }}
             onPageDimensions={setPageDimensions}
