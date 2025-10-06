@@ -10,8 +10,6 @@ Absolute and relative paths are considered as relative to the input folder path.
 REFERENCE: We don't use https://github.com/metarhia/sandboxed-fs, but did
 look at the code.
 
-
-
 SECURITY:
 
 The following could be a big problem -- user somehow create or change path to
@@ -85,6 +83,7 @@ export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
 import getListing, { type Files } from "./get-listing";
 import { make_patch } from "@cocalc/util/patch";
+import LRU from "lru-cache";
 //import getLogger from "@cocalc/backend/logger";
 
 //const logger = getLogger("sandbox:fs");
@@ -92,6 +91,11 @@ import { make_patch } from "@cocalc/util/patch";
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
 const MAX_TIMEOUT = 5_000;
+
+// Maximum amount of memory for the "last value on disk" data, which
+// supports a much better "sync with file state on disk" algorithm.
+const MAX_LAST_ON_DISK = 50_000_000; // 50 MB
+const LAST_ON_DISK_TTL = 1000 * 60 * 5; // 5 minutes
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
@@ -125,7 +129,11 @@ export class SandboxedFilesystem {
   public readonly readonly: boolean;
   public rusticRepo: string;
   private host?: string;
-  private lastOnDisk: { [path: string]: string } = {};
+  private lastOnDisk = new LRU<string, string>({
+    maxSize: MAX_LAST_ON_DISK,
+    sizeCalculation: (value) => value.length,
+    ttl: LAST_ON_DISK_TTL,
+  });
 
   constructor(
     // path should be the path to a FOLDER on the filesystem (not a file)
@@ -512,24 +520,28 @@ export class SandboxedFilesystem {
       alwaysStat: false,
       atomic: true,
       usePolling: false,
+      awaitWriteFinish: {
+        stabilityThreshold: 300,
+        pollInterval: 100,
+      },
     });
     // console.log("creating watcher of ", path);
     const iter = new EventIterator(watcher, "all", {
       maxQueue: options?.maxQueue ?? 2048,
       overflow: options?.overflow,
       map: (args) => {
-        const last = this.lastOnDisk[path];
+        const last = this.lastOnDisk.get(path);
         let patch: any = undefined;
         if (last !== undefined) {
           const cur = readFileSync(path, "utf8");
           patch = make_patch(last, cur);
-          this.lastOnDisk[path] = cur;
+          this.lastOnDisk.set(path, cur);
         }
-        const eventType = args[0];
+        const event = args[0];
         const filename = args[1].slice(path.length + 1);
         // console.log({ eventType, filename, patch, path });
         return {
-          eventType,
+          event,
           filename,
           patch,
         };
@@ -549,7 +561,7 @@ export class SandboxedFilesystem {
     this.assertWritable(path);
     const p = await this.safeAbsPath(path);
     if (saveLast && typeof data == "string") {
-      this.lastOnDisk[p] = data;
+      this.lastOnDisk.set(p, data);
     }
     return await writeFile(p, data);
   };
