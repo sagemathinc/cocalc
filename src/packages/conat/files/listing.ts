@@ -80,7 +80,8 @@ export class Listing extends EventEmitter {
 
   init = async () => {
     const { fs, path } = this.opts;
-    this.watch = await fs.watch(path);
+    // close on unlink is critical so that btrfs snapshots don't get locked when we try to delete them
+    this.watch = await fs.watch(path, { closeOnUnlink: true });
     const { files, truncated } = await fs.getListing(path);
     this.files = files;
     this.truncated = truncated;
@@ -89,7 +90,11 @@ export class Listing extends EventEmitter {
   };
 
   private handleUpdates = async () => {
-    for await (const { filename } of this.watch) {
+    for await (const { event, filename } of this.watch) {
+      if (event.startsWith("unlink")) {
+        this.close();
+        return;
+      }
       if (this.files == null || !filename) {
         return;
       }

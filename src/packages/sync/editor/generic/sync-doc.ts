@@ -2877,8 +2877,12 @@ export class SyncDoc extends EventEmitter {
     (async () => {
       if (this.fileWatcher != null) {
         this.emit("watching");
-        for await (const { ignore, patch } of this.fileWatcher) {
+        for await (const { event, ignore, patch } of this.fileWatcher) {
+          // console.log({ event, ignore, patch, path: this.path });
           if (this.isClosed()) return;
+          if (event.startsWith("unlink")) {
+            break;
+          }
           if (!ignore) {
             if (patch != null) {
               if (patch.length > 0) {

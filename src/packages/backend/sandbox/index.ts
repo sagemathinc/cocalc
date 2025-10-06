@@ -495,25 +495,10 @@ export class SandboxedFilesystem {
   };
 
   watch = async (filename: string, options?: WatchOptions) => {
-    // NOTES:
-    // (1) in node v24 they fixed the fs/promises watch to have a queue,
-    // but previous versions were badly implemented so we reimplement it
-    // from scratch using the non-promise watch.  This is very easy because
-    // our EventIterator is so good!
-    // (2) in node because an inode is being watch, if you watch a path
-    // and it is deleted, then the watch hangs forever broken
-    // and can never do anything, but also doesn't close either.  This
-    // is annoying, especially if e.g., we're watching a snapshot
-    // directory of a project and delete that snapshot -- btrfs won't free
-    // the disk space up ever.  Below we change the behavior by using polling
-    // and automatically closing the watcher if the directory is deleted.
-
-    // ** [ ] TODO: reimplement directory deletion ==> stop watching somehow, so
-    // deleting snapshots works with btrfs**
     const path = await this.safeAbsPath(filename);
     //logger.debug("watching ", { path });
+    // console.log("open", { path });
     const watcher = watch(path, {
-      ...options,
       depth: 0,
       ignoreInitial: true,
       followSymlinks: false,
@@ -530,15 +515,24 @@ export class SandboxedFilesystem {
       maxQueue: options?.maxQueue ?? 2048,
       overflow: options?.overflow,
       map: (args) => {
+        const event = args[0];
+        const filename = args[1].slice(path.length + 1);
+        if (options?.closeOnUnlink && args[1] == path) {
+          watcher.close();
+          return { event, filename };
+        }
         const last = this.lastOnDisk.get(path);
         let patch: any = undefined;
         if (last !== undefined) {
-          const cur = readFileSync(path, "utf8");
+          let cur;
+          try {
+            cur = readFileSync(path, "utf8");
+          } catch {
+            cur = "";
+          }
           patch = make_patch(last, cur);
           this.lastOnDisk.set(path, cur);
         }
-        const event = args[0];
-        const filename = args[1].slice(path.length + 1);
         // console.log({ eventType, filename, patch, path });
         return {
           event,
@@ -547,6 +541,7 @@ export class SandboxedFilesystem {
         };
       },
       onEnd: () => {
+        //console.log("close ", path);
         watcher.close();
       },
     });

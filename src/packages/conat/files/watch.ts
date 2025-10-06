@@ -16,24 +16,22 @@ const logger = getLogger("conat:files:watch");
 // (path:string, options:WatchOptions) => AsyncIterator
 type AsyncWatchFunction = any;
 
-// see https://nodejs.org/docs/latest/api/fs.html#fspromiseswatchfilename-options
+// This is NOT the nodejs watcher, but uses
+//   https://github.com/paulmillr/chokidar
+// though we do not allow customization of many options.
+// It basically works like the fs watcher without any options,
+// and for a path recursively watches to a depth of "0", i.e., watches
+// for changes to files in that folder, but no subfolders.
 export interface WatchOptions {
-  persistent?: boolean;
-  recursive?: boolean;
-  encoding?: string;
-  signal?: AbortSignal;
   maxQueue?: number;
   overflow?: "ignore" | "throw";
 
-  // if more than one client is actively watching the same path and has unique set, all but one may receive
-  // the extra field ignore:true in the update.  Also, if there are multiple clients with unique set, the
-  // other options of all but the first are ignored.
+  // if more than one client is actively watching the same path and has unique set,
+  // all but one should receive the extra field ignore:true in the update.
   unique?: boolean;
 
-  // another change from nodejs's fs.watch api -- if the path being watched is deleted,
-  // then the async watcher closes itself.  It does this by polling (using access) the
-  // filesystem every deletePollInterval ms (default: 3000):
-  deletePollInterval?: number;
+  // if true, watcher will close if the path being watched is unlinked.
+  closeOnUnlink?: boolean;
 }
 
 export function watchServer({
