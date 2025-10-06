@@ -66,14 +66,16 @@ export function ListingHeader({ active_file_sort, sort_by }: Props) {
         {render_sort_link("type", "Type", "-4px")}
       </Col>
       <Col sm={1} xs={6} style={{ textAlign: "center" }}>
-        {render_sort_link(
+        {/* Disabled for now due to too many merge conflicts with https://github.com/sagemathinc/cocalc/pull/8613
+       Basically need to rewrite file-listing.tsx to support stars files.
+       render_sort_link(
           "starred",
           <Icon
             name="star-filled"
             style={{ color: COLORS.FG_BLUE, fontSize: "12pt" }}
           />,
           "0px",
-        )}
+        )*/}
       </Col>
       <Col sm={10} xs={24}>
         {render_sort_link("name", "Name", "-4px")}
