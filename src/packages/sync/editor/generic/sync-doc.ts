@@ -2855,7 +2855,10 @@ export class SyncDoc extends EventEmitter {
     }
     // use this.fs interface to watch path for changes -- we try once:
     try {
-      this.fileWatcher = await this.fs.watch(this.path, { unique: true });
+      this.fileWatcher = await this.fs.watch(this.path, {
+        unique: true,
+        patch: true,
+      });
       if (this.isDeleted) {
         await this.readFile();
       }
@@ -2878,7 +2881,7 @@ export class SyncDoc extends EventEmitter {
       if (this.fileWatcher != null) {
         this.emit("watching");
         for await (const { event, ignore, patch } of this.fileWatcher) {
-          // console.log({ event, ignore, patch, path: this.path });
+          console.log({ event, ignore, patch, path: this.path });
           if (this.isClosed()) return;
           if (event.startsWith("unlink")) {
             break;

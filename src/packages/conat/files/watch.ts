@@ -33,6 +33,10 @@ export interface WatchOptions {
 
   // if true, watcher will close if the path being watched is unlinked.
   closeOnUnlink?: boolean;
+
+  stat?: boolean;
+
+  patch?: boolean;
 }
 
 export function watchServer({
@@ -158,6 +162,7 @@ export interface ChangeEvent {
   filename: string;
   ignore?: boolean;
   patch?: CompressedPatch;
+  stat?;
 }
 
 export async function watchClient({

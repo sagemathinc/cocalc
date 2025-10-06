@@ -62,13 +62,9 @@ import {
   utimes,
 } from "node:fs/promises";
 import { move } from "fs-extra";
-import { readFileSync } from "node:fs";
-import { watch } from "chokidar";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { basename, dirname, join, resolve } from "path";
 import { replace_all } from "@cocalc/util/misc";
-import { EventIterator } from "@cocalc/util/event-iterator";
-import { type WatchOptions } from "@cocalc/conat/files/watch";
 import find, { type FindOptions } from "./find";
 import ripgrep, { type RipgrepOptions } from "./ripgrep";
 import fd, { type FdOptions } from "./fd";
@@ -82,8 +78,8 @@ import { type CopyOptions } from "@cocalc/conat/files/fs";
 export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
 import getListing, { type Files } from "./get-listing";
-import { make_patch } from "@cocalc/util/patch";
 import LRU from "lru-cache";
+import watch, { type WatchIterator, type WatchOptions } from "./watch";
 //import getLogger from "@cocalc/backend/logger";
 
 //const logger = getLogger("sandbox:fs");
@@ -494,58 +490,11 @@ export class SandboxedFilesystem {
     await utimes(await this.safeAbsPath(path), atime, mtime);
   };
 
-  watch = async (filename: string, options?: WatchOptions) => {
-    const path = await this.safeAbsPath(filename);
-    //logger.debug("watching ", { path });
-    // console.log("open", { path });
-    const watcher = watch(path, {
-      depth: 0,
-      ignoreInitial: true,
-      followSymlinks: false,
-      alwaysStat: false,
-      atomic: true,
-      usePolling: false,
-      awaitWriteFinish: {
-        stabilityThreshold: 300,
-        pollInterval: 100,
-      },
-    });
-    // console.log("creating watcher of ", path);
-    const iter = new EventIterator(watcher, "all", {
-      maxQueue: options?.maxQueue ?? 2048,
-      overflow: options?.overflow,
-      map: (args) => {
-        const event = args[0];
-        const filename = args[1].slice(path.length + 1);
-        if (options?.closeOnUnlink && args[1] == path) {
-          watcher.close();
-          return { event, filename };
-        }
-        const last = this.lastOnDisk.get(path);
-        let patch: any = undefined;
-        if (last !== undefined) {
-          let cur;
-          try {
-            cur = readFileSync(path, "utf8");
-          } catch {
-            cur = "";
-          }
-          patch = make_patch(last, cur);
-          this.lastOnDisk.set(path, cur);
-        }
-        // console.log({ eventType, filename, patch, path });
-        return {
-          event,
-          filename,
-          patch,
-        };
-      },
-      onEnd: () => {
-        //console.log("close ", path);
-        watcher.close();
-      },
-    });
-    return iter;
+  watch = async (
+    path: string,
+    options: WatchOptions = {},
+  ): Promise<WatchIterator> => {
+    return watch(await this.safeAbsPath(path), options, this.lastOnDisk);
   };
 
   writeFile = async (
