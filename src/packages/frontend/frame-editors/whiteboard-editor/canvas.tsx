@@ -1277,7 +1277,7 @@ export default function Canvas({
     }
 
     if (selectedTool == "pen") {
-      // mousePath is used for the actual path when creating the elemnts,
+      // mousePath is used for the actual path when creating the elements,
       // and is in data coordinates:
       const point = getMousePos(e);
       if (point == null) return;

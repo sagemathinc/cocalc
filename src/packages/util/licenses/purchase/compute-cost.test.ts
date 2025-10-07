@@ -35,13 +35,13 @@ describe("compute-cost v1 pricing", () => {
     );
   });
 
-  it("computes cost throws error when version not given (defaults are DANGEROUS AND CONFUSING)", () => {
-    const info = { ...info1 };
+  it("computes cost default", () => {
+    const c_v1 = compute_cost(info1);
+    const c_v3 = compute_cost({ ...info1, version: "3" });
     // @ts-ignore
-    delete info["version"];
-    expect(() => {
-      compute_cost(info);
-    }).toThrow();
+    const cWithoutVersion = compute_cost({ ...info1, version: undefined });
+    expect(c_v1).not.toEqual(c_v3);
+    expect(c_v3).toEqual(cWithoutVersion);
   });
 
   it("computes correct cost with a different version of pricing params", () => {

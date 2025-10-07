@@ -456,7 +456,7 @@ const JUPYTER_MENUS = {
           icon: "dot-circle",
           label: ({ props }) => {
             const actions = props.actions.jupyter_actions;
-            const store = actions.store;
+            const store = actions?.store;
             if (!store) {
               return "Kernels";
             }
@@ -477,7 +477,7 @@ const JUPYTER_MENUS = {
           name: "kernels",
           children: ({ props }) => {
             const actions = props.actions.jupyter_actions;
-            const store = actions.store;
+            const store = actions?.store;
             if (!store) {
               return [];
             }

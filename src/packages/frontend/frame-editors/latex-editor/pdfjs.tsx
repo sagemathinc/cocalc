@@ -7,25 +7,36 @@
 
 const HIGHLIGHT_TIME_S: number = 6;
 
-import { Alert } from "antd";
+import { Alert, Button } from "antd";
 import { delay } from "awaiting";
 import type { Set as iSet } from "immutable";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack.mjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import {
   redux,
   useActions,
   useIsMountedRef,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
+import {
+  HelpIcon,
+  Icon,
+  Loading,
+  Markdown,
+  Paragraph,
+  Text,
+} from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import usePinchToZoom, {
+  Data,
+} from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Actions, Actions as LatexEditorActions } from "./actions";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
@@ -34,7 +45,7 @@ import Page, { BG_COL, PAGE_GAP } from "./pdfjs-page";
 interface PDFJSProps {
   id: string;
   name: string;
-  actions: any;
+  actions: Actions;
   editor_state: EditorState;
   is_fullscreen: boolean;
   project_id: string;
@@ -44,6 +55,14 @@ interface PDFJSProps {
   is_current: boolean;
   is_visible: boolean;
   status: string;
+  initialPage?: number;
+  onPageInfo?: (currentPage: number, totalPages: number) => void;
+  onViewportInfo?: (page: number, x: number, y: number) => void;
+  onPageDimensions?: (
+    pageDimensions: { width: number; height: number }[],
+  ) => void;
+  zoom?: number; // Optional zoom override (when provided, overrides font_size-based zoom)
+  onZoom?: (data: Data) => void; // Called when zoom changes via pinch/wheel gestures
 }
 
 export function PDFJS({
@@ -58,8 +77,20 @@ export function PDFJS({
   is_current,
   is_visible,
   status,
+  initialPage,
+  onPageInfo,
+  onViewportInfo,
+  onPageDimensions,
+  zoom,
+  onZoom,
 }: PDFJSProps) {
   const { desc } = useFrameContext();
+
+  // Get the dark mode disabled state for this specific frame from Redux store
+  // This allows toggle_pdf_dark_mode action to control dark mode per frame
+  const pdfDarkModeDisabledMap = useRedux(name, "pdf_dark_mode_disabled");
+  const disableDarkMode = pdfDarkModeDisabledMap?.get?.(id) ?? false;
+
   const isMounted = useIsMountedRef();
   const pageActions = useActions("page");
 
@@ -70,6 +101,9 @@ export function PDFJS({
   const mode: undefined | "rmd" = useRedux(name, "mode");
   const derived_file_types: iSet<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
+  const autoSyncInProgress = useRedux(name, "autoSyncInProgress") ?? false;
+  const newLayoutNagDismissed =
+    useRedux([name, "local_view_state", "new_layout_nag_dismissed"]) ?? false;
 
   const [loaded, setLoaded] = useState<boolean>(false);
   const [pages, setPages] = useState<PDFPageProxy[]>([]);
@@ -78,11 +112,41 @@ export function PDFJS({
   const [cursor, setCursor] = useState<"grabbing" | "grab">("grab");
 
   const divRef = useRef<HTMLDivElement>(null);
-  usePinchToZoom({ target: divRef });
+
+  // Configure pinch-to-zoom with appropriate settings
+  const pinchToZoomConfig = {
+    target: divRef,
+    onZoom:
+      onZoom != null
+        ? onZoom
+        : (data) => {
+            // Default behavior: set font size directly when no parent callback provided
+            actions.set_font_size(id, data.fontSize);
+          },
+    ...(zoom != null
+      ? {
+          getFontSize: () => {
+            // Convert current zoom back to fontSize for pinch calculations
+            return zoom * 14;
+          },
+        }
+      : {}),
+  };
+
+  usePinchToZoom(pinchToZoomConfig);
 
   useEffect(() => {
     loadDoc(reload ?? 0);
   }, [reload]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (debouncedViewportInfoRef.current) {
+        clearTimeout(debouncedViewportInfoRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (zoom_page_height == id) doZoomPageHeight();
@@ -109,6 +173,7 @@ export function PDFJS({
       });
       return;
     }
+
     if ((evt.key == " " && evt.shiftKey) || evt.key == "PageUp") {
       // left = move a visible page up
       virtuosoRef.current?.scrollBy({
@@ -116,6 +181,7 @@ export function PDFJS({
       });
       return;
     }
+
     if (evt.key == "ArrowRight") {
       // next page
       virtuosoRef.current?.scrollBy({
@@ -126,6 +192,7 @@ export function PDFJS({
       });
       return;
     }
+
     if (evt.key == "ArrowLeft") {
       // previous page
       virtuosoRef.current?.scrollBy({
@@ -247,6 +314,15 @@ export function PDFJS({
       setPages(pages);
       setMissing(false);
 
+      // Extract page dimensions and call callback
+      if (onPageDimensions) {
+        const pageDimensions = pages.map((page) => {
+          const viewport = page.getViewport({ scale: 1.0 });
+          return { width: viewport.width, height: viewport.height };
+        });
+        onPageDimensions(pageDimensions);
+      }
+
       // documents often don't have pageLabels, but when they do, they are
       // good to show (e.g., in a book the content at the beginning might
       // be in roman numerals).
@@ -263,7 +339,32 @@ export function PDFJS({
         }
       }
       actions.setPages(id, pages0 ?? doc.numPages);
-      actions.setPage(id, desc.get("page") ?? (pages0 == null ? 1 : "1"));
+      const pageToSet =
+        initialPage ?? desc.get("page") ?? (pages0 == null ? 1 : "1");
+      actions.setPage(id, pageToSet);
+
+      // Initial call to set totalPages for PDFControls
+      if (onPageInfo) {
+        const totalPages = doc.numPages;
+        const currentPageNum =
+          typeof pageToSet === "string" ? parseInt(pageToSet) || 1 : pageToSet;
+        onPageInfo(currentPageNum, totalPages);
+      }
+
+      // Restore scroll position after PDF loads, but let Virtuoso scroll hook handle it
+      // if we have saved scroll state, otherwise scroll to initial page
+      const savedScrollState = editor_state.get("scrollState")?.toJS();
+      if (initialPage && initialPage > 1 && !savedScrollState) {
+        // Only use initialPage if we don't have saved scroll state
+        setTimeout(() => {
+          const index =
+            (typeof pageToSet === "string" ? parseInt(pageToSet) : pageToSet) -
+            1;
+          if (virtuosoRef.current && index >= 0) {
+            virtuosoRef.current.scrollToIndex({ index, align: "center" });
+          }
+        }, 100);
+      }
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
       console.log(`WARNING: error loading PDF -- ${err}`);
@@ -316,10 +417,10 @@ export function PDFJS({
       offset: y * getScale() + PAGE_GAP - height / 2,
     });
 
-    // Wait a little before clearing the scroll_pdf_into_view field,
-    // so the yellow highlight bar gets rendered as the page is rendered.
-    await delay(100);
-    actions.setState({ scroll_pdf_into_view: undefined });
+    // Clear the scroll_pdf_into_view flag after a short delay to allow the scroll to complete
+    setTimeout(() => {
+      actions.setState({ scroll_pdf_into_view: undefined });
+    }, 100); // 100ms delay
   }
 
   async function doZoomPageWidth(): Promise<void> {
@@ -336,7 +437,14 @@ export function PDFJS({
     const width = $(divRef.current).width();
     if (width === undefined) return;
     const scale = (width - 10) / page.view[2];
-    actions.set_font_size(id, getFontSize(scale));
+
+    // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
+    if (onZoom) {
+      const fontSize = getFontSize(scale);
+      onZoom({ fontSize });
+    } else {
+      actions.set_font_size(id, getFontSize(scale));
+    }
   }
 
   async function doZoomPageHeight(): Promise<void> {
@@ -353,7 +461,14 @@ export function PDFJS({
     const height = $(divRef.current).height();
     if (height === undefined) return;
     const scale = (height - 10) / page.view[3];
-    actions.set_font_size(id, getFontSize(scale));
+
+    // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
+    if (onZoom) {
+      const fontSize = getFontSize(scale);
+      onZoom({ fontSize });
+    } else {
+      actions.set_font_size(id, getFontSize(scale));
+    }
   }
 
   function doSync(): void {
@@ -387,6 +502,25 @@ export function PDFJS({
   const curPagePosRef = useRef<
     { topOfPage: number; bottomOfPage: number; middle: number } | undefined
   >(undefined);
+
+  // Track last viewport position to avoid unnecessary sync operations
+  const lastViewportRef = useRef<{ page: number; x: number; y: number } | null>(
+    null,
+  );
+
+  // Debounce viewport info reporting to prevent constant triggering during scrolling
+  const debouncedViewportInfoRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Simple viewport info callback
+  const handleViewportInfo = useCallback(
+    (page: number, x: number, y: number) => {
+      if (onViewportInfo) {
+        onViewportInfo(page, x, y);
+      }
+    },
+    [onViewportInfo],
+  );
+
   const updateCurrentPage = useCallback(
     ({ index, offset }) => {
       // We *define* the current page to be whatever page intersects
@@ -418,8 +552,87 @@ export function PDFJS({
       setCurPageIndex(index);
       curPagePosRef.current = { topOfPage, bottomOfPage, middle };
       actions.setPage(id, index + 1);
+
+      // Notify parent component about page change
+      if (onPageInfo && doc) {
+        onPageInfo(index + 1, doc.numPages);
+      }
+
+      // Don't update viewport info if we're currently doing a programmatic scroll for this viewer
+      const isProgrammaticScroll =
+        scroll_pdf_into_view != null && scroll_pdf_into_view.id === id;
+
+      // Calculate and report viewport middle position for sync
+      // Only if we're not currently doing a programmatic scroll
+      if (onViewportInfo && doc && !isProgrammaticScroll) {
+        // Calculate the PDF coordinates for the middle of the viewport
+        // Use the same coordinate system as double-click handling in pdfjs-page.tsx
+        const pageNum = index + 1;
+        const scale = getScale();
+        const viewport = pages[index]?.getViewport({ scale });
+        if (viewport) {
+          // Calculate coordinates exactly like double-click handler does:
+          // offsetX/offsetY are relative to the page div, then divided by scale
+
+          // Middle of the page width in viewer coordinates
+          const offsetX = viewport.width / 2;
+          // Position within the page in viewer coordinates
+          const viewerMiddleY = middle - topOfPage;
+          const offsetY = viewerMiddleY;
+
+          // Convert to PDF coordinates (same as double-click handler)
+          const x = offsetX / scale;
+          const y = offsetY / scale;
+
+          // Debounce viewport info reporting to prevent constant triggering during scrolling
+          const roundedX = Math.round(x);
+          const roundedY = Math.round(y);
+
+          // Clear any existing timeout
+          if (debouncedViewportInfoRef.current) {
+            clearTimeout(debouncedViewportInfoRef.current);
+          }
+
+          // Set new timeout to report viewport info after scrolling stops
+          debouncedViewportInfoRef.current = setTimeout(() => {
+            // Don't trigger sync if already in progress
+            if (autoSyncInProgress) {
+              debouncedViewportInfoRef.current = null;
+              return;
+            }
+
+            const lastViewport = lastViewportRef.current;
+
+            // Only send if coordinates changed significantly (>10px) or page changed
+            if (
+              !lastViewport ||
+              lastViewport.page !== pageNum ||
+              Math.abs(lastViewport.x - roundedX) > 10 ||
+              Math.abs(lastViewport.y - roundedY) > 10
+            ) {
+              lastViewportRef.current = {
+                page: pageNum,
+                x: roundedX,
+                y: roundedY,
+              };
+              // Send viewport info for sync
+              handleViewportInfo(pageNum, roundedX, roundedY);
+            }
+            debouncedViewportInfoRef.current = null;
+          }, 300); // 300ms delay after scrolling stops
+        }
+      }
     },
-    [id, pages, font_size],
+    [
+      id,
+      pages,
+      font_size,
+      onPageInfo,
+      doc,
+      handleViewportInfo,
+      autoSyncInProgress,
+      scroll_pdf_into_view,
+    ],
   );
 
   const getPageIndex = useCallback(() => {
@@ -463,7 +676,7 @@ export function PDFJS({
     const offset = -height / 2 + heightOfPage * percent;
     const x = { index, offset };
     virtuosoRef.current?.scrollToIndex(x);
-  }, [font_size]);
+  }, [zoom, font_size]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: name + id,
@@ -503,10 +716,104 @@ export function PDFJS({
               key={n}
               scale={scale}
               syncHighlight={syncHighlight({ n, id })}
+              disableDarkMode={disableDarkMode}
             />
           );
         }}
         {...virtuosoScroll}
+      />
+    );
+  }
+
+  // Check if there's an output panel in the frame tree
+  const hasOutputPanel = useCallback(() => {
+    return actions.get_matching_frame({ type: "output" }) != null;
+  }, [actions]);
+
+  // Check if we should show the new layout nag banner
+  // Only show in LaTeX editor mode (not in standalone PDF editor)
+  function showNewLayoutNag(): boolean {
+    // Check if actions is from LaTeX editor using instanceof
+    if (!(actions instanceof LatexEditorActions)) {
+      return false;
+    }
+    // Don't show if dismissed or if there's already an output panel
+    if (newLayoutNagDismissed || hasOutputPanel()) {
+      return false;
+    }
+    return true;
+  }
+
+  // Handler for dismissing the new layout nag
+  function handleDismissLayoutNag() {
+    const local_view_state = actions.store.get("local_view_state");
+    actions.setState({
+      local_view_state: local_view_state.set("new_layout_nag_dismissed", true),
+    });
+    // save_local_view_state only exists in LaTeX editor actions
+    if (typeof (actions as any).save_local_view_state === "function") {
+      (actions as any).save_local_view_state();
+    }
+  }
+
+  function handleNewLayoutClick() {
+    // _new_frame_tree_layout only exists in LaTeX editor actions
+    if (typeof (actions as any)._new_frame_tree_layout === "function") {
+      const tree = (actions as any)._new_frame_tree_layout();
+      actions.replace_frame_tree(tree);
+    }
+  }
+
+  function renderNewLayoutNag(): React.JSX.Element | null {
+    if (!showNewLayoutNag()) {
+      return null;
+    }
+
+    return (
+      <Alert
+        banner
+        closable
+        type="info"
+        icon={<Icon name="layout" />}
+        message={
+          <>
+            <Button type="text" size="small" onClick={handleNewLayoutClick}>
+              <Text strong>New Layout Available:</Text>
+            </Button>{" "}
+            it unifies PDF preview, build logs, and more.{" "}
+            <HelpIcon title="About the New Layout">
+              <Paragraph>
+                The new <strong>Output</strong> panel combines everything you
+                need in one unified tabbed interface: PDF preview, build logs,
+                errors and warnings, table of contents, file list, and
+                statistics. You can also mix and match by opening additional
+                panels alongside the new output panel.
+              </Paragraph>
+              <Paragraph>
+                You can easily switch back to the classic layout at any time via
+                the <strong>Frame Menu</strong>. Click on "Source" or "Output"
+                and select "Classic Layout".
+              </Paragraph>
+              <Paragraph>
+                Finally, click on the <Icon name="times" />
+                -Icon on the right to{" "}
+                <Button size="small" onClick={handleDismissLayoutNag}>
+                  dismiss
+                </Button>{" "}
+                this banner for this LaTeX file.
+              </Paragraph>
+            </HelpIcon>{" "}
+            <Button
+              size="small"
+              onClick={handleNewLayoutClick}
+              style={{ marginLeft: "10px" }}
+            >
+              <Text strong>Switch Now</Text>
+            </Button>
+          </>
+        }
+        onClose={handleDismissLayoutNag}
+        style={{ marginBottom: "4px" }}
       />
     );
   }
@@ -519,13 +826,22 @@ export function PDFJS({
         return renderLoading();
       }
     } else {
-      return <div className="smc-vfill">{renderPagesUsingVirtuoso()}</div>;
+      return (
+        <div className="smc-vfill">
+          {renderNewLayoutNag()}
+          {renderPagesUsingVirtuoso()}
+        </div>
+      );
     }
   }
 
   const getScale = useCallback(() => {
+    // If zoom prop is provided, use it directly; otherwise use font_size-based zoom
+    if (zoom !== undefined) {
+      return zoom;
+    }
     return font_size / (redux.getStore("account").get("font_size") ?? 14);
-  }, [font_size]);
+  }, [zoom, font_size]);
 
   function getFontSize(scale: number): number {
     return (redux.getStore("account").get("font_size") ?? 14) * scale;
@@ -618,6 +934,14 @@ export function PDFJS({
         cursor,
         textAlign: "center",
         backgroundColor: !loaded ? "white" : BG_COL,
+        // Disable browser's native touch behaviors to allow our pinch-to-zoom to work
+        touchAction: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+        KhtmlUserSelect: "none",
+        MozUserSelect: "none",
+        msUserSelect: "none",
+        userSelect: "none",
       }}
       ref={divRef}
       onMouseDown={onMouseDown}

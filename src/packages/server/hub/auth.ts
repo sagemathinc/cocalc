@@ -44,7 +44,6 @@ import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
 import safeJsonStringify from "safe-json-stringify";
 import { v4 as uuidv4, v4 } from "uuid";
-
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
@@ -102,6 +101,7 @@ import {
   GoogleStrategyConf,
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
+import siteUrl from "@cocalc/server/hub/site-url";
 
 const logger = getLogger("server:hub:auth");
 
@@ -304,10 +304,8 @@ export class PassportManager {
     await this.init_passport_settings();
     this.check_exclusive_domains_unique();
 
-    const settings = await cb2(this.database.get_server_settings_cached);
-    const dns = settings.dns || DNS;
-    this.site_url = `https://${dns}${base_path}`;
-    this.auth_url = `https://${dns}${path_join(base_path, AUTH_BASE)}`;
+    this.site_url = await siteUrl();
+    this.auth_url = await siteUrl(AUTH_BASE);
     logger.debug(`auth_url='${this.auth_url}'`);
 
     await Promise.all([
@@ -349,9 +347,7 @@ export class PassportManager {
   private async init_email_verification(): Promise<void> {
     // email verification
     this.router.get(`${AUTH_BASE}/verify`, async (req, res) => {
-      const { dns } = await getServerSettings();
-      const path = require("path").join(base_path, "app");
-      const url = `https://${dns}${path}`;
+      const url = await siteUrl("app");
       res.header("Content-Type", "text/html");
       res.header("Cache-Control", "no-cache, no-store");
       if (
@@ -614,8 +610,8 @@ export class PassportManager {
         req.user.profile != null
           ? req.user.profile
           : req.user.attributes != null
-          ? req.user.attributes
-          : req.user;
+            ? req.user.attributes
+            : req.user;
 
       // there are cases, where profile is a JSON string (e.g. oauth2next)
       let profile: passport.Profile;
@@ -853,7 +849,9 @@ export class PassportManager {
 
   // This is not really SSO, but we treat it in a similar way.
   private initImpersonate = () => {
+    logger.debug("initImpersonate");
     this.router.get(`${AUTH_BASE}/impersonate`, (req, res) => {
+      logger.debug("impersonate: handling an auth_token");
       signInUsingImpersonateToken({ req, res });
     });
   };

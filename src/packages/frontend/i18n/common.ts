@@ -40,8 +40,15 @@ export const labels = defineMessages({
   },
   on: {
     id: "labels.on",
-    defaultMessage: "on",
-    description: "single word, something 'on' something else",
+    defaultMessage: "On",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'enabled'.",
+  },
+  off: {
+    id: "labels.off",
+    defaultMessage: "Off",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'disabled'.",
   },
   yes: {
     id: "labels.yes",
@@ -306,6 +313,24 @@ export const labels = defineMessages({
   zoom_out: {
     id: "labels.zoom_out",
     defaultMessage: "Zoom out",
+  },
+  zoom_in_short: {
+    id: "labels.zoom_in_short",
+    defaultMessage: "In",
+    description: "Short label on a button for zooming in",
+  },
+  zoom_out_short: {
+    id: "labels.zoom_out_short",
+    defaultMessage: "Out",
+    description: "Short label on a button for zooming out",
+  },
+  width: {
+    id: "labels.width",
+    defaultMessage: "Width",
+  },
+  height: {
+    id: "labels.height",
+    defaultMessage: "Height",
   },
   reload: {
     id: "labels.reload",
@@ -862,6 +887,16 @@ export const labels = defineMessages({
     defaultMessage: "Balance",
     description: "Short label for a monetary balance on an account",
   },
+  previous_page: {
+    id: "labels.previous_page",
+    defaultMessage: "Previous Page",
+    description: "Navigate to previous page in a document",
+  },
+  next_page: {
+    id: "labels.next_page",
+    defaultMessage: "Next Page",
+    description: "Navigate to next page in a document",
+  },
 });
 
 export const menu = defineMessages({
@@ -974,7 +1009,7 @@ export const editor = defineMessages({
   },
   table_of_contents_short: {
     id: "editor.table_of_contents.short",
-    defaultMessage: "Content",
+    defaultMessage: "Contents",
     description: "Short for Table of Contents",
   },
   table_of_contents_name: {
@@ -996,7 +1031,7 @@ export const editor = defineMessages({
   },
   errors_and_warnings_title_short: {
     id: "editor.errors_and_warning.title.short",
-    defaultMessage: "Errors",
+    defaultMessage: "Problems", // common term for Errors and Warnings
   },
   errors_and_warnings_title: {
     id: "editor.errors_and_warning.title",
@@ -1017,6 +1052,14 @@ export const editor = defineMessages({
   pdf_embed_title: {
     id: "editor.latex.pdf_embed.title",
     defaultMessage: "PDF - Native",
+  },
+  toggle_pdf_dark_mode_title: {
+    id: "editor.toggle_pdf_dark_mode.title",
+    defaultMessage: "Toggle dark mode of PDF off, to see the original file",
+  },
+  toggle_pdf_dark_mode_label: {
+    id: "editor.toggle_pdf_dark_mode.label",
+    defaultMessage: "Toggle PDF Dark Mode",
   },
   latex_source_code_label_name: {
     id: "editor.latex.source_code.name",

@@ -77,6 +77,8 @@ export function get_visible_projects(
   search: string,
   deleted: boolean,
   hidden: boolean,
+  starred: boolean,
+  bookmarkedProjects: string[],
   sort_by: "user_last_active" | "last_edited" | "title" | "state",
 ): string[] {
   const visible_projects: string[] = [];
@@ -92,7 +94,8 @@ export function get_visible_projects(
   project_map.forEach((project, project_id) => {
     if (
       search_match(get_search_info(project_id, project, user_map), words) &&
-      project_is_in_filter(project, deleted, hidden)
+      project_is_in_filter(project, deleted, hidden) &&
+      (!starred || bookmarkedProjects.includes(project_id))
     ) {
       visible_projects.push(project_id);
     }

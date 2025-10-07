@@ -23,6 +23,7 @@ const pdfjsCommands = set([
   "zoom_page_width",
   "zoom_page_height",
   "set_zoom",
+  "toggle_pdf_dark_mode",
 ]);
 
 const pdfjs_canvas: EditorDescription = {
@@ -39,6 +40,7 @@ const pdfjs_canvas: EditorDescription = {
     "zoom_page_width",
     "zoom_page_height",
     "set_zoom",
+    "toggle_pdf_dark_mode",
   ]),
   renderer: "canvas",
 } as const;

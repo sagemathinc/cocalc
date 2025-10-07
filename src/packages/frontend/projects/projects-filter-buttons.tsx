@@ -11,6 +11,7 @@ import { Icon } from "../components";
 export const ProjectsFilterButtons: React.FC = () => {
   const deleted = useTypedRedux("projects", "deleted");
   const hidden = useTypedRedux("projects", "hidden");
+  const starred = useTypedRedux("projects", "starred");
   const actions = useActions("projects");
 
   function render_deleted_button(): React.JSX.Element {
@@ -53,8 +54,29 @@ export const ProjectsFilterButtons: React.FC = () => {
     );
   }
 
+  function render_starred_button(): React.JSX.Element {
+    const style = starred ? "warning" : undefined;
+    return (
+      <Button
+        onClick={() => {
+          actions.display_starred_projects(!starred);
+          user_activity("projects_page", "clicked_starred_filter");
+        }}
+        bsStyle={style}
+        cocalc-test={"starred-filter"}
+      >
+        <Icon
+          name={starred ? "star-filled" : "star"}
+          style={{ width: "1.125em" }}
+        />{" "}
+        Starred
+      </Button>
+    );
+  }
+
   return (
     <ButtonGroup>
+      {render_starred_button()}
       {render_deleted_button()}
       {render_hidden_button()}
     </ButtonGroup>

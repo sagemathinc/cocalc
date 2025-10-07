@@ -192,7 +192,9 @@ import {
   StopFilled,
   StopOutlined,
   StrikethroughOutlined,
+  SwapLeftOutlined,
   SwapOutlined,
+  SwapRightOutlined,
   SyncOutlined,
   TableOutlined,
   TagFilled,
@@ -229,6 +231,8 @@ import {
   XOutlined,
   YoutubeFilled,
   YoutubeOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
 } from "@ant-design/icons";
 
 // Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
@@ -528,8 +532,8 @@ const IconSpec = {
   scheme: { IconFont: "scheme" },
   scissors: ScissorOutlined,
   search: SearchOutlined,
-  "search-minus": MinusOutlined, // we actually use this for zoom
-  "search-plus": PlusOutlined,
+  "search-minus": ZoomOutOutlined,
+  "search-plus": ZoomInOutlined,
   "select-outlined": SelectOutlined,
   settings: SettingOutlined,
   server: CloudServerOutlined,
@@ -597,6 +601,8 @@ const IconSpec = {
   ungroup: { IconFont: "ungroup" },
   "signature-outlined": SignatureOutlined,
   swap: SwapOutlined,
+  "sync-left": SwapLeftOutlined,
+  "sync-right": SwapRightOutlined,
   unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
   user: UserOutlined,
@@ -635,6 +641,8 @@ const IconSpec = {
   "merge-cells-outlined": MergeCellsOutlined,
   "fork-outlined": ForkOutlined,
   "to-top-outlined": ToTopOutlined,
+  "column-width": ColumnWidthOutlined,
+  "column-height": ColumnHeightOutlined,
 } as const;
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
@@ -740,8 +748,24 @@ export const Icon: React.FC<Props> = (props: Props) => {
   if (!onFrontend) return null;
 
   if (props.unicode != null) {
+    const style: React.CSSProperties = { ...UNICODE_STYLE, ...props.style };
+
+    // Apply CSS transformations for unicode characters
+    if (props.rotate) {
+      style.display = style.display ?? "inline-block";
+      style.transform = `rotate(${props.rotate}deg)`;
+    }
+    if (props.flip) {
+      style.display = style.display ?? "inline-block";
+      const flipTransform =
+        props.flip === "horizontal" ? "scaleX(-1)" : "scaleY(-1)";
+      style.transform = style.transform
+        ? `${style.transform} ${flipTransform}`
+        : flipTransform;
+    }
+
     return (
-      <span style={{ ...UNICODE_STYLE, ...props.style }}>
+      <span style={style}>
         {String.fromCharCode(props.unicode!)}
       </span>
     );
