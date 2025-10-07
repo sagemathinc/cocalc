@@ -1780,6 +1780,9 @@ importers:
       '@ant-design/colors':
         specifier: ^6.0.0
         version: 6.0.0
+      '@cocalc/diff-match-patch':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@cocalc/util':
         specifier: workspace:*
         version: 'link:'
@@ -2248,6 +2251,9 @@ packages:
   '@choojs/findup@0.2.1':
     resolution: {integrity: sha512-YstAqNb0MCN8PjdLCDfRsBcGVRN41f3vgLvaI0IrIcBp4AqILRSS0DeWNGkicC+f/zRIPJLc+9RURVSepwvfBw==}
     hasBin: true
+
+  '@cocalc/diff-match-patch@1.0.0':
+    resolution: {integrity: sha512-HC911GKU5TzbOVH6XeGpLNW9BaJxvh1jtRxdrV+ak36+d4FEm4rNif9M/jDFg9sEvosNCp1ZXESlxZ9guhYJ5g==}
 
   '@cocalc/gcloud-pricing-calculator@1.17.0':
     resolution: {integrity: sha512-sQ/76dIdQZMhth+4H8l8+BwkgsFMxb+Lxgpz7gqK0y3whQhkUpEltoZCrc0bHNacy3uxZMOVJhEmT4iZ0pmaBg==}
@@ -12143,6 +12149,8 @@ snapshots:
   '@choojs/findup@0.2.1':
     dependencies:
       commander: 2.20.3
+
+  '@cocalc/diff-match-patch@1.0.0': {}
 
   '@cocalc/gcloud-pricing-calculator@1.17.0':
     dependencies:
