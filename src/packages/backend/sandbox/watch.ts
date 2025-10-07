@@ -55,8 +55,8 @@ class Watcher extends EventEmitter {
       atomic: true,
       usePolling: false,
       awaitWriteFinish: {
-        stabilityThreshold: 150,
-        pollInterval: 70,
+        stabilityThreshold: 500,
+        pollInterval: 90,
       },
     });
     log("creating watcher ", path, options);
