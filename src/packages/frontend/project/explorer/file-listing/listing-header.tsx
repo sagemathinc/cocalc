@@ -6,6 +6,7 @@
 import React from "react";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, Gap, VisibleMDLG } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 import { Col, Row } from "antd";
 
 // TODO: Flatten active_file_sort for easy PureComponent use
@@ -16,7 +17,7 @@ interface Props {
 
 const row_style: React.CSSProperties = {
   cursor: "pointer",
-  color: "#666",
+  color: COLORS.GRAY_M,
   backgroundColor: "#fafafa",
   border: "1px solid #eee",
   borderRadius: "4px",
@@ -31,7 +32,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
 
   function render_sort_link(
     column_name: string,
-    display_name: string,
+    display_name: string | React.JSX.Element,
     marginLeft?,
   ) {
     return (
@@ -45,7 +46,11 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
             e.preventDefault();
             return sort_by(column_name);
           }}
-          style={{ color: "#428bca", fontWeight: "bold" }}
+          style={{
+            color: COLORS.FG_BLUE,
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+          }}
         >
           {display_name}
           <Gap />
@@ -70,10 +75,20 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
       <Col sm={2} xs={6}>
         {render_sort_link("type", "Type", "-4px")}
       </Col>
+      <Col sm={1} xs={6} style={{ textAlign: "center" }}>
+        {render_sort_link(
+          "starred",
+          <Icon
+            name="star-filled"
+            style={{ color: COLORS.FG_BLUE, fontSize: "12pt" }}
+          />,
+          "0px",
+        )}
+      </Col>
       <Col sm={10} xs={24}>
         {render_sort_link("name", "Name", "-4px")}
       </Col>
-      <Col sm={8} xs={12}>
+      <Col sm={7} xs={12}>
         {render_sort_link("time", "Date Modified", "2px")}
         <span className="pull-right">
           {render_sort_link("size", "Size/Download/View")}

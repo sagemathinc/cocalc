@@ -55,6 +55,8 @@ interface Props {
   // if given, include a little 'server' tag in this color, and tooltip etc using id.
   // Also important for download and preview links!
   computeServerId?: number;
+  isStarred?: boolean;
+  onToggleStar?: (path: string, starred: boolean) => void;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
@@ -176,6 +178,29 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     }
   }
 
+  function render_star() {
+    if (!props.onToggleStar) return null;
+    const path = full_path();
+    const starred = props.isStarred ?? false;
+    const iconName = starred ? "star-filled" : "star";
+
+    return (
+      <Icon
+        name={iconName}
+        onClick={(e) => {
+          e?.preventDefault();
+          e?.stopPropagation();
+          props.onToggleStar?.(path, !starred);
+        }}
+        style={{
+          cursor: "pointer",
+          fontSize: "14pt",
+          color: starred ? COLORS.STAR : COLORS.GRAY_L,
+        }}
+      />
+    );
+  }
+
   function full_path() {
     return misc.path_to_file(props.current_path, props.name);
   }
@@ -235,12 +260,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       return (
         <TimeAgo
           date={new Date(props.time * 1000).toISOString()}
-          style={{ color: "#666" }}
+          style={{ color: COLORS.GRAY_M }}
         />
       );
     } catch (error) {
       return (
-        <div style={{ color: "#666", display: "inline" }}>
+        <div style={{ color: COLORS.GRAY_M, display: "inline" }}>
           Invalid Date Time
         </div>
       );
@@ -365,6 +390,9 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       <Col sm={2} xs={12} onClick={handle_click}>
         {render_icon()}
       </Col>
+      <Col sm={1} xs={6} style={{ textAlign: "center" }}>
+        {render_star()}
+      </Col>
       <Col sm={10} xs={24} onClick={handle_click}>
         <VisibleXS>
           <span style={{ marginLeft: "16px" }} />
@@ -372,7 +400,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         {render_name()}
       </Col>
       <Col
-        sm={8}
+        sm={7}
         xs={24}
         style={{
           paddingRight:
@@ -388,7 +416,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
             <DirectorySize size={props.size} />
           </>
         ) : (
-          <span className="pull-right" style={{ color: "#666" }}>
+          <span className="pull-right" style={{ color: COLORS.GRAY_M }}>
             {render_download_button(url)}
             {render_view_button(url, props.name)}
           </span>

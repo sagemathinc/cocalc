@@ -42,10 +42,13 @@ export default function initProxy(opts: Options) {
   const routePath = `${prefix}/:project_id/{*splat}`;
   logger.info("creating proxy server with route pattern", routePath);
 
+  // tcp connections:
   const handleProxy = initRequest(opts);
 
   // Create regex for upgrade handler (still needed for WebSocket matching)
   const proxy_regexp = `^${prefix}\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/.*`;
+
+  // websocket upgrades:
   const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
   // Use Express 5 path syntax with UUID validation middleware

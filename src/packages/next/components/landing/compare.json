@@ -313,6 +313,21 @@
         "papeeria": false
       },
       {
+        "feature": "AI Formula Assistant",
+        "cocalc": {
+          "type": true,
+          "note": "Generate LaTeX formulas from natural language descriptions using AI",
+          "link": "https://cocalc.com/features/latex-editor#a-ai-formula"
+        },
+        "overleaf": {
+          "type": true,
+          "note": "AI Assist add-on generates equations from prompts or images (paid feature with limited free uses)",
+          "link": "https://www.overleaf.com/learn/how-to/AI_Assist"
+        },
+        "authorea": false,
+        "papeeria": false
+      },
+      {
         "feature": "Bibliography",
         "cocalc": {
           "type": true,

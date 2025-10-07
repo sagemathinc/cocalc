@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: February 20, 2025</h2>
+              <h2>Last Updated: October 3, 2025</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -41,7 +41,8 @@ export default function Privacy({ customize }) {
                 Also, please note that, unless we define a term in this Privacy
                 Policy, all capitalized terms used in this Privacy Policy have
                 the same meanings as in our Terms of Service. So, please make
-                sure that you have read and understand our Terms of Service.{" "}
+                sure that you have read and understand our Terms of
+                Service.{" "}
               </p>
               <h1>Revisions to this Privacy Policy</h1>
               <p>
@@ -212,7 +213,8 @@ export default function Privacy({ customize }) {
                         including any Personal Information. If you choose to
                         submit content to any public area of the Site, such
                         content will be considered “public” and will not be
-                        subject to the privacy protections set forth herein.{" "}
+                        subject to the privacy protections set forth
+                        herein.{" "}
                       </p>{" "}
                     </li>{" "}
                   </ul>{" "}
@@ -222,7 +224,8 @@ export default function Privacy({ customize }) {
                     the following information automatically through our Services
                     or other methods of web analysis: your Internet protocol
                     (IP) address, cookie identifiers, details about your browser
-                    or device, and information about how you use the Services.{" "}
+                    or device, and information about how you use the
+                    Services.{" "}
                   </p>{" "}
                   <p>
                     {" "}
@@ -414,7 +417,8 @@ export default function Privacy({ customize }) {
                         direct marketing, marketing research, network and
                         information security, and fraud prevention and any other
                         purpose disclosed to you at the time you provide
-                        Personal Information or otherwise with your consent.{" "}
+                        Personal Information or otherwise with your
+                        consent.{" "}
                       </p>{" "}
                     </li>{" "}
                   </ul>{" "}
@@ -684,7 +688,8 @@ export default function Privacy({ customize }) {
                         physical harm or financial loss or in connection with an
                         investigation or prosecution of suspected or actual
                         illegal activity; or (vii) if we, in good faith, believe
-                        that disclosure is otherwise necessary or advisable.{" "}
+                        that disclosure is otherwise necessary or
+                        advisable.{" "}
                       </p>{" "}
                     </li>{" "}
                     <li>
@@ -813,8 +818,9 @@ export default function Privacy({ customize }) {
                     will use such Personal Information only for
                     employment-related purposes as more fully described above.
                     If Sagemath intends to use this Personal Information for any
-                    other purpose, Sagemath will notify the Individual and
-                    provide an opportunity to opt out of such uses.{" "}
+                    other purpose, Sagemath will contact the Individual and
+                    proceed only after obtaining affirmative express consent
+                    (opt in).{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="do-not-track">
@@ -1045,7 +1051,8 @@ export default function Privacy({ customize }) {
                     Privacy Policy, we will notify you as required by applicable
                     law. You understand and agree that you will be deemed to
                     have accepted the updated Privacy Policy if you continue to
-                    use the Services after the new Privacy Policy takes effect.{" "}
+                    use the Services after the new Privacy Policy takes
+                    effect.{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="california-privacy-rights">
@@ -1265,6 +1272,10 @@ export default function Privacy({ customize }) {
                     <tr>
                       <td>Update: clarify alignment with GDPR</td>
                       <td> 2025-02-20 </td>
+                    </tr>
+                    <tr>
+                      <td>Update: HR data require explicit opt-in for any new use</td>
+                      <td> 2025-10-03 </td>
                     </tr>
                   </tbody>
                 </table>

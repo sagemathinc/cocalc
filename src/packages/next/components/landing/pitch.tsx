@@ -36,6 +36,7 @@ export default function Pitch(props: Props) {
       <Row
         gutter={20}
         style={{ maxWidth: MAX_WIDTH_LANDING, margin: "0 auto" }}
+        align="top"
       >
         <Col lg={12}>{col1}</Col>
         <Col lg={12}>{col2}</Col>
