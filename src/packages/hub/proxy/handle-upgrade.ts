@@ -2,15 +2,14 @@
 
 import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import LRU from "lru-cache";
-
-import basePath from "@cocalc/backend/base-path";
-import getLogger from "@cocalc/hub/logger";
 import { getEventListeners } from "node:events";
-import { proxyConatWebsocket } from "./proxy-conat";
+import getLogger from "@cocalc/hub/logger";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { getTarget } from "./target";
 import { stripBasePath } from "./util";
 import { versionCheckFails } from "./version";
+import { proxyConatWebsocket } from "./proxy-conat";
+import basePath from "@cocalc/backend/base-path";
 
 const LISTENERS_HACK = true;
 

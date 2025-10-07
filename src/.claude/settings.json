@@ -32,7 +32,6 @@
       "Bash(pnpm i18n:*:*)",
       "Bash(pnpm info:*)",
       "Bash(pnpm list:*)",
-      "Bash(pnpm list:*)",
       "Bash(pnpm remove:*)",
       "Bash(pnpm run:*)",
       "Bash(pnpm test:*)",

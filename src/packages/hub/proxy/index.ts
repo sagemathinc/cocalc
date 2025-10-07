@@ -5,11 +5,11 @@
 
 import { Application } from "express";
 
-import base_path from "@cocalc/backend/base-path";
-import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import getLogger from "../logger";
 import initRequest from "./handle-request";
 import initUpgrade from "./handle-upgrade";
+import base_path from "@cocalc/backend/base-path";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
 const logger = getLogger("proxy");
 

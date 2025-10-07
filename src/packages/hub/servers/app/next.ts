@@ -16,10 +16,10 @@ import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/hub/logger";
 import handleRaw from "@cocalc/next/lib/share/handle-raw";
 import { callback2 } from "@cocalc/util/async-utils";
-import { separate_file_extension } from "@cocalc/util/misc";
 import { database } from "../database";
 import createLandingRedirect from "./landing-redirect";
 import shareRedirect from "./share-redirect";
+import { separate_file_extension } from "@cocalc/util/misc";
 
 export default async function init(app: Application) {
   const winston = getLogger("nextjs");
