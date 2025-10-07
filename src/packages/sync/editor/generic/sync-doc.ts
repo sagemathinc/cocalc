@@ -2307,7 +2307,7 @@ export class SyncDoc extends EventEmitter {
     this.emit("metadata-change");
   };
 
-  private lastReadFile: number = 0;
+  private hasReadFile: boolean = false;
   readFile = reuseInFlight(async (): Promise<void> => {
     if (this.isClosed() || this.opts.noSaveToDisk) {
       return;
@@ -2320,7 +2320,7 @@ export class SyncDoc extends EventEmitter {
       // two clients initialize the doc at the same time, which would
       // result in "doubled content" (when the merge conflict happens).
       let lock = 0;
-      if (!this.lastReadFile) {
+      if (!this.hasReadFile) {
         lock = this.opts.firstReadLockTimeout ?? FIRST_READ_LOCK_TIMEOUT;
       }
       const contents: string = (await this.fs.readFile(
@@ -2328,7 +2328,7 @@ export class SyncDoc extends EventEmitter {
         "utf8",
         lock,
       )) as string;
-      this.lastReadFile = Date.now();
+      this.hasReadFile = true;
       // console.log(this.client.client.id, "read from disk --isDeleted = false");
       this.isDeleted = false;
       this.valueOnDisk = contents;
@@ -2370,7 +2370,6 @@ export class SyncDoc extends EventEmitter {
     const prevStats = this.stats;
     this.stats = (await this.fs.stat(this.path)) as Stats;
     this.isDeleted = false; // definitely not deleted since we just stat' it
-    this.lastReadFile = Date.now();
     if (prevStats?.mode != this.stats.mode) {
       // used by clients to track read-only state.
       this.emit("metadata-change");
@@ -2542,7 +2541,6 @@ export class SyncDoc extends EventEmitter {
       // (which is a waste and confusing)
       await this.fs.writeFile(this.path, value, true);
       if (this.isClosed()) return;
-      this.lastReadFile = Date.now();
     } catch (err) {
       if (err.code == "EACCES") {
         try {
@@ -2954,7 +2952,7 @@ export class SyncDoc extends EventEmitter {
 
   private signalIfFileDeleted = async (): Promise<void> => {
     if (this.isClosed()) return;
-    if (!this.lastReadFile) {
+    if (!this.hasReadFile) {
       // can't be a 'deleted' because it doesn't even exist yet.
       return;
     }
