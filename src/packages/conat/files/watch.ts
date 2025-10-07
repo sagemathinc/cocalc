@@ -12,6 +12,9 @@ import { getLogger } from "@cocalc/conat/client";
 import { type CompressedPatch } from "@cocalc/util/patch";
 import { Stats } from "./fs";
 
+const SERVER_KEEP_ALIVE = 15_000;
+const SERVER_KEEP_ALIVE_TIMEOUT = 5_000;
+
 const logger = getLogger("conat:files:watch");
 
 // (path:string, options:WatchOptions) => AsyncIterator
@@ -49,7 +52,10 @@ export function watchServer({
   subject: string;
   watch: AsyncWatchFunction;
 }) {
-  const server: ConatSocketServer = client.socket.listen(subject);
+  const server: ConatSocketServer = client.socket.listen(subject, {
+    keepAlive: SERVER_KEEP_ALIVE,
+    keepAliveTimeout: SERVER_KEEP_ALIVE_TIMEOUT,
+  });
   logger.debug("server: listening on ", { subject });
 
   const unique: { [path: string]: ServerSocket[] } = {};
@@ -88,9 +94,13 @@ export function watchServer({
         for (const s of unique[path]) {
           if (s.state == "ready") {
             if (ignore) {
-              s.write({ ...event, ignore: true });
+              // do not send the change event at all
+              continue;
+              // s.write({ ...event, ignore: true });
             } else {
+              // this one processes the event:
               s.write(event);
+              // the rest will not receive it.
               ignore = true;
             }
           }
@@ -163,6 +173,7 @@ export interface ChangeEvent {
   filename: string;
   ignore?: boolean;
   patch?: CompressedPatch;
+  patchSeq?: number;
   stats?;
 }
 
@@ -202,6 +213,7 @@ export async function watchClient({
     },
   );
   socket.on("closed", () => {
+    console.log("watchClient", path, "CLOSED!");
     iter.end();
     delete iter2.ignore;
   });

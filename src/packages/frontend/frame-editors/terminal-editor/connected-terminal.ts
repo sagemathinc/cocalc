@@ -51,7 +51,7 @@ const SPAWN_TIMEOUT = 5000;
 const EXIT_MESSAGE = "\r\n[Process completed - press any key]\r\n";
 const CONNECTING_MESSAGE = `\r\n\x1b[1;37m[\x1b[0m\x1b[36m CONNECTING{TARGET}... \x1b[0m\x1b[1;37m]\x1b[0m\r\n\r\n`;
 
-const ENABLE_WEBGL = true;
+const ENABLE_WEBGL = false;
 
 interface Path {
   file?: string;

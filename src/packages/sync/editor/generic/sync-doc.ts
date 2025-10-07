@@ -36,11 +36,6 @@ export const WATCH_RECREATE_WAIT = 3000;
 // one client reads it at a time), very first time reading it:
 const FIRST_READ_LOCK_TIMEOUT = 2000;
 
-// reading file when it changes on disk is debounced this much, e.g.,
-// if the file keeps changing you won't see those changes until it
-// stops changing for this long.
-const WATCH_DEBOUNCE = 250;
-
 import {
   COMPUTE_THRESH_MS,
   COMPUTER_SERVER_CURSOR_TYPE,
@@ -60,7 +55,6 @@ import {
   cancel_scheduled,
   once,
   until,
-  asyncDebounce,
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
@@ -96,7 +90,16 @@ import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
 import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";
 import * as remote from "./remote";
-import { apply_patch } from "@cocalc/util/patch";
+import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
+
+// this is used specifically for loading from disk, where the patch
+// explaining the last change on disk gets merged into the live version
+// of the doc, so there is likely to difficulty matching, but we
+// very much don't want to discard the changes:
+const dmpFileWatcher = new DiffMatchPatch({
+  matchThreshold: 1,
+  diffTimeout: 0.5,
+});
 
 const DEBUG = false;
 
@@ -258,7 +261,6 @@ export class SyncDoc extends EventEmitter {
 
   private noAutosave?: boolean;
 
-  private readFileDebounced: Function;
   public isDeleted: boolean = false;
 
   constructor(opts: SyncOpts) {
@@ -293,25 +295,6 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
-
-    this.readFileDebounced = asyncDebounce(
-      async () => {
-        try {
-          this.emit("handle-file-change");
-          if (this.isClosed()) return;
-          await this.readFile();
-          if (this.isClosed()) return;
-          await this.stat();
-        } catch (err) {
-          console.log("readFileDebounced error", err);
-        }
-      },
-      this.opts.watchDebounce ?? WATCH_DEBOUNCE,
-      {
-        leading: false,
-        trailing: true,
-      },
-    );
 
     this.client.once("closed", this.close);
 
@@ -2875,31 +2858,44 @@ export class SyncDoc extends EventEmitter {
 
     // not closed -- so if above succeeds we start watching.
     // if not, we loop waiting for file to be created so we can watch it
+    let expectedSeq = 0;
     (async () => {
       if (this.fileWatcher != null) {
         this.emit("watching");
-        for await (const { event, ignore, patch } of this.fileWatcher) {
-          // console.log({ event, ignore, patch, path: this.path });
+        for await (const { event, ignore, patch, patchSeq } of this
+          .fileWatcher) {
           if (this.isClosed()) return;
           if (event.startsWith("unlink")) {
             break;
           }
           if (!ignore) {
-            if (patch != null) {
-              if (patch.length > 0) {
-                this.emit("before-change");
-                const value = this.to_str();
-                const [newValue] = apply_patch(patch, value);
-                this.from_str(newValue);
-                this.commit({ emitChangeImmediately: true, file: true });
-                await this.save();
-                this.emit("after-change");
-              }
+            if (patch != null && expectedSeq == patchSeq) {
+              // sequence number match and there is a patch
+              this.emit("before-change");
+              const value = this.to_str();
+              const [newValue] = dmpFileWatcher.patch_apply(
+                decompressPatch(patch),
+                value,
+              );
+              this.from_str(newValue);
+              this.commit({ emitChangeImmediately: true, file: true });
+              await this.save();
+              this.emit("after-change");
             } else {
-              // we don't know what's on disk anymore,
+              // we don't know what's on disk anymore, so record
+              // that and reload from disk.  Also, can't use patch because
+              // not given or sequence number doesn't match (e.g., we
+              // refreshed browser, changed to be leader, etc.)
               this.valueOnDisk = undefined;
-              // and we should find out!
-              this.readFileDebounced();
+              try {
+                await this.readFile();
+              } catch {
+                // can't read -- maybe deleted/locked
+                break;
+              }
+            }
+            if (patchSeq != null) {
+              expectedSeq = patchSeq + 1;
             }
           } else {
             this.debouncedStat();

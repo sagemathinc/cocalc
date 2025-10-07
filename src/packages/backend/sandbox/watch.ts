@@ -3,8 +3,20 @@ import { watch as chokidarWatch } from "chokidar";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions, type ChangeEvent } from "@cocalc/conat/files/watch";
 import { EventEmitter } from "events";
-import { make_patch } from "@cocalc/util/patch";
 import LRU from "lru-cache";
+import getLogger from "@cocalc/backend/logger";
+import { DiffMatchPatch, compressPatch } from "@cocalc/util/dmp";
+
+// this is used specifically for loading from disk, where the patch
+// explaining the last change on disk gets merged into the live version
+// of the doc, so there is likely to difficulty matching, but we
+// very much don't want to discard the changes:
+const dmp = new DiffMatchPatch({
+  // running on server so critical to not block long!
+  diffTimeout: 0.15,
+});
+
+const logger = getLogger("sandbox:watch");
 
 export { type WatchOptions };
 export type WatchIterator = EventIterator<ChangeEvent>;
@@ -14,15 +26,15 @@ export type WatchIterator = EventIterator<ChangeEvent>;
 // large files on the server can take a long time!
 const MAX_PATCH_FILE_SIZE = 1_000_000;
 
-const log = (...args) => console.log(...args);
-//const log = (..._args) => {};
+//const log = (...args) => console.log(...args);
+const log = (..._args) => {};
 
 export default function watch(
   path: string,
   options: WatchOptions,
   lastOnDisk: LRU<string, string>,
 ): WatchIterator {
-  log("watch", { path, options });
+  log("watch", path, options);
   const watcher = new Watcher(path, options, lastOnDisk);
 
   const iter = new EventIterator(watcher, "change", {
@@ -30,7 +42,7 @@ export default function watch(
     overflow: options.overflow,
     map: (args) => args[0],
     onEnd: () => {
-      //log("close ", path);
+      log("onEnd:", path);
       watcher.close();
     },
   });
@@ -40,6 +52,7 @@ export default function watch(
 class Watcher extends EventEmitter {
   private watcher: ReturnType<typeof chokidarWatch>;
   private ready: boolean = false;
+  private patchSeq: number = 0;
 
   constructor(
     private path: string,
@@ -53,10 +66,11 @@ class Watcher extends EventEmitter {
       followSymlinks: false,
       alwaysStat: options.stats ?? false,
       atomic: true,
-      usePolling: false,
+      usePolling: true,
+      interval: 250,
       awaitWriteFinish: {
         stabilityThreshold: 500,
-        pollInterval: 90,
+        pollInterval: 150,
       },
     });
     log("creating watcher ", path, options);
@@ -69,6 +83,9 @@ class Watcher extends EventEmitter {
       if (change !== undefined) {
         this.emit("change", change);
       }
+    });
+    this.watcher.on("error", (error) => {
+      logger.debug(path, "got error", error);
     });
   }
 
@@ -121,14 +138,17 @@ class Watcher extends EventEmitter {
       return x;
     }
     // small enough to make a patch
-    log(path, "making a patch with ", last.length, cur.length);
-    const t = Date.now();
-    x.patch = make_patch(last, cur);
-    log(path, "made patch", Date.now() - t, x.patch);
+    //log(path, "making a patch with ", last.length, cur.length);
+    // const t = Date.now();
+    x.patch = compressPatch(dmp.patch_make(last, cur));
+    x.patchSeq = this.patchSeq;
+    this.patchSeq++;
+    //log(path, "made patch", { time: Date.now() - t, seq: x.patchSeq }, x.patch);
     return x;
   };
 
   close() {
+    log(this.path, "close()");
     this.watcher.close();
     this.emit("close");
     this.removeAllListeners();

@@ -22,11 +22,11 @@ dmp.diffTimeout = 0.2;
 export const diff_main = dmp.diff_main.bind(dmp);
 export const patch_make = dmp.patch_make.bind(dmp);
 
-function compress_patch(patch: PatchObject[]): CompressedPatch {
+export function compressPatch(patch: PatchObject[]): CompressedPatch {
   return patch.map((p) => [p.diffs, p.start1, p.start2, p.length1, p.length2]);
 }
 
-function decompress_patch(patch: CompressedPatch): PatchObject[] {
+export function decompressPatch(patch: CompressedPatch): PatchObject[] {
   return patch.map((p) => ({
     diffs: p[0],
     start1: p[1],
@@ -39,7 +39,7 @@ function decompress_patch(patch: CompressedPatch): PatchObject[] {
 // return *a* compressed patch that transforms string s0 into string s1.
 export function make_patch(s0: string, s1: string): CompressedPatch {
   // @ts-ignore
-  return compress_patch(dmp.patch_make(s0, s1));
+  return compressPatch(dmp.patch_make(s0, s1));
 }
 
 // apply a compressed patch to a string.
@@ -50,8 +50,8 @@ export function apply_patch(
 ): [string, boolean] {
   let x;
   try {
-    x = dmp.patch_apply(decompress_patch(patch), s);
-    //console.log('patch_apply ', misc.to_json(decompress_patch(patch)), x)
+    x = dmp.patch_apply(decompressPatch(patch), s);
+    //console.log('patch_apply ', misc.to_json(decompressPatch(patch)), x)
   } catch (err) {
     // If a patch is so corrupted it can't be parsed -- e.g., due to a bug in SMC -- we at least
     // want to make application the identity map (i.e., "best effort"), so
