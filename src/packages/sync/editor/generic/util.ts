@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { type Patch } from "./types";
-export { make_patch, apply_patch } from "@cocalc/util/patch";
-
+import { Patch } from "./types";
 import { cmp_array } from "@cocalc/util/misc";
+export * from "@cocalc/util/dmp";
+import { type CompressedPatch } from "@cocalc/util/dmp";
+export { type CompressedPatch };
 
 export function patch_cmp(a: Patch, b: Patch): number {
   return cmp_array(
@@ -24,21 +25,6 @@ export function time_cmp(a: Date, b: Date): number {
   } else {
     return 0;
   }
-}
-
-// Do a 3-way **string** merge by computing patch that transforms
-// base to remote, then applying that patch to local.
-export function three_way_merge(opts: {
-  base: string;
-  local: string;
-  remote: string;
-}): string {
-  if (opts.base === opts.remote) {
-    // trivial special case...
-    return opts.local;
-  }
-  // @ts-ignore
-  return dmp.patch_apply(dmp.patch_make(opts.base, opts.remote), opts.local)[0];
 }
 
 export function isTestClient(client: any) {
