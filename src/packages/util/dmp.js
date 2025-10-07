@@ -224,7 +224,7 @@ diff_match_patch.prototype.diff_compute_ = function (
   }
 
   // Check to see if the problem can be split in two.
-  var hm = this.diff_halfMatch_(text1, text2);
+  var hm = this.diff_halfMatch_(text1, text2, deadline);
   if (hm) {
     // A half-match was found, sort out the return data.
     var text1_a = hm[0];
@@ -704,7 +704,7 @@ diff_match_patch.prototype.diff_commonOverlap_ = function (text1, text2) {
  *     text2 and the common middle.  Or null if there was no match.
  * @private
  */
-diff_match_patch.prototype.diff_halfMatch_ = function (text1, text2) {
+diff_match_patch.prototype.diff_halfMatch_ = function (text1, text2, deadline) {
   if (this.Diff_Timeout <= 0) {
     // Don't risk returning a non-optimal diff if we have unlimited time.
     return null;
@@ -734,7 +734,12 @@ diff_match_patch.prototype.diff_halfMatch_ = function (text1, text2) {
     var j = -1;
     var best_common = "";
     var best_longtext_a, best_longtext_b, best_shorttext_a, best_shorttext_b;
+    let c = 0;
     while ((j = shorttext.indexOf(seed, j + 1)) != -1) {
+      if (deadline && c % 1023 === 0 && Date.now() > deadline) {
+        return null;
+      }
+      c++;
       var prefixLength = dmp.diff_commonPrefix(
         longtext.substring(i),
         shorttext.substring(j),
@@ -772,6 +777,7 @@ diff_match_patch.prototype.diff_halfMatch_ = function (text1, text2) {
     shorttext,
     Math.ceil(longtext.length / 4),
   );
+  if (hm1 == null) return null;
   // Check again based on the third quarter.
   var hm2 = diff_halfMatchI_(
     longtext,
