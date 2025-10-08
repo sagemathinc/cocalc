@@ -784,13 +784,6 @@ export function commands(actions: AllActions): {
       r: true,
     },
 
-    "nbconvert sagews": {
-      i: "sagemath",
-      m: "Sage Worksheet (.sagews)",
-      f: () => actions.jupyter_actions?.show_nbconvert_dialog("sagews"),
-      r: true,
-    },
-
     "nbgrader validate": {
       i: "graduation-cap",
       t: jupyter.commands.validate_tooltip,
