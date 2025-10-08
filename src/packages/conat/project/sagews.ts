@@ -1,9 +1,4 @@
-/*
-Tests are in
-
-packages/backend/conat/test/juypter/run-code.test.s
-
-*/
+// This is basically a simple version of jupyter/run-code.ts
 
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import {
@@ -13,10 +8,9 @@ import {
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { getLogger } from "@cocalc/conat/client";
 import { Throttle } from "@cocalc/util/throttle";
-export const MAX_MSGS_PER_SECOND = parseInt(
-  process.env.COCALC_JUPYTER_MAX_MSGS_PER_SECOND ?? "20",
-);
-const logger = getLogger("conat:project:jupyter:run-code");
+import { MAX_MSGS_PER_SECOND } from "./jupyter/run-code";
+
+const logger = getLogger("conat:project:sagews");
 
 function getSubject({
   project_id,
@@ -25,87 +19,37 @@ function getSubject({
   project_id: string;
   compute_server_id?: number;
 }) {
-  return `jupyter.project-${project_id}.${compute_server_id}`;
-}
-
-export interface InputCell {
-  id: string;
-  input: string;
-  output?: { [n: string]: OutputMessage | null } | null;
-  state?: "done" | "busy" | "run";
-  exec_count?: number | null;
-  start?: number | null;
-  end?: number | null;
-  cell_type?: "code";
+  return `sagews.project-${project_id}.${compute_server_id}`;
 }
 
 export interface OutputMessage {
-  // id = id of the cell
   id: string;
-  // everything below is exactly from Jupyter
-  metadata?;
-  content?;
-  buffers?;
-  msg_type?: string;
-  done?: boolean;
-  more_output?: boolean;
 }
 
 export interface RunOptions {
-  // syncdb path
+  // path to sagews file
   path: string;
-  // array of input cells to run
-  cells: InputCell[];
-  // if true do not halt running the cells, even if one fails with an error
-  noHalt?: boolean;
-  // the socket is used for raw_input, to communicate between the client
-  // that initiated the request and the server.
-  socket: ServerSocket;
+  input: string;
 }
 
-type JupyterCodeRunner = (
+// a function that takes a path and code to run
+// and returns an async iterator over the outputs.
+type SagewsCodeRunner = (
   opts: RunOptions,
 ) => Promise<AsyncGenerator<OutputMessage, void, unknown>>;
 
-interface OutputHandler {
-  process: (mesg: OutputMessage) => void;
-  done: () => void;
-}
-
-type CreateOutputHandler = (opts: {
-  path: string;
-  cells: InputCell[];
-}) => OutputHandler;
-
-export function jupyterServer({
+export function sagewsServer({
   client,
   project_id,
   compute_server_id = 0,
-  // run takes a path and cells to run and returns an async iterator
-  // over the outputs.
   run,
-  // outputHandler takes a path and returns an OutputHandler, which can be
-  // used to process the output and include it in the notebook.  It is used
-  // as a fallback in case the client that initiated running cells is
-  // disconnected, so output won't be lost.
-  outputHandler,
-  getKernelStatus,
+  getState,
 }: {
   client: ConatClient;
   project_id: string;
   compute_server_id?: number;
-  run: JupyterCodeRunner;
-  outputHandler?: CreateOutputHandler;
-  getKernelStatus: (opts: { path: string }) => Promise<{
-    backend_state:
-      | "failed"
-      | "off"
-      | "spawning"
-      | "starting"
-      | "running"
-      | "closed";
-    kernel_state: "idle" | "busy" | "running";
-  }>;
+  run: SagewsCodeRunner;
+  getState: (opts: { path: string }) => Promise<string>;
 }) {
   const subject = getSubject({ project_id, compute_server_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
@@ -113,7 +57,6 @@ export function jupyterServer({
     keepAliveTimeout: 5000,
   });
   logger.debug("server: listening on ", { subject });
-  const moreOutput: { [path: string]: { [id: string]: any[] } } = {};
 
   server.on("connection", (socket: ServerSocket) => {
     logger.debug("server: got new connection", {
@@ -124,27 +67,17 @@ export function jupyterServer({
     socket.on("request", async (mesg) => {
       const { data } = mesg;
       const { cmd, path } = data;
-      if (cmd == "more") {
-        logger.debug("more output ", { id: data.id });
-        mesg.respondSync(moreOutput[path]?.[data.id]);
-      } else if (cmd == "get-kernel-status") {
-        mesg.respondSync(await getKernelStatus({ path }));
+      if (cmd == "get-state") {
+        mesg.respondSync(await getState({ path }));
       } else if (cmd == "run") {
-        const { cells, noHalt, limit } = data;
+        const { input } = data;
         try {
           mesg.respondSync(null);
-          if (moreOutput[path] == null) {
-            moreOutput[path] = {};
-          }
           await handleRequest({
             socket,
             run,
-            outputHandler,
             path,
-            cells,
-            noHalt,
-            limit,
-            moreOutput: moreOutput[path],
+            input,
           });
         } catch (err) {
           logger.debug("server: failed to handle execute request -- ", err);
@@ -175,23 +108,11 @@ export function jupyterServer({
   return server;
 }
 
-async function handleRequest({
-  socket,
-  run,
-  outputHandler,
-  path,
-  cells,
-  noHalt,
-  limit,
-  moreOutput,
-}) {
-  const runner = await run({ path, cells, noHalt, socket });
+async function handleRequest({ socket, run, path, input }) {
+  const runner = await run({ path, input });
   const output: OutputMessage[] = [];
-  for (const cell of cells) {
-    moreOutput[cell.id] = [];
-  }
   logger.debug(
-    `handleRequest to evaluate ${cells.length} cells with limit=${limit} for path=${path}`,
+    `handleRequest to evaluate input of length ${input.length} path=${path}`,
   );
 
   const throttle = new Throttle<OutputMessage>(MAX_MSGS_PER_SECOND);
@@ -211,63 +132,22 @@ async function handleRequest({
   });
 
   try {
-    let handler: OutputHandler | null = null;
-    let process: ((mesg: any) => void) | null = null;
-
     for await (const mesg of runner) {
       if (socket.state == "closed") {
-        // client socket has closed -- the backend server must take over!
-        if (handler == null || process == null) {
-          logger.debug("socket closed -- server must handle output");
-          if (outputHandler == null) {
-            throw Error("no output handler available");
-          }
-          handler = outputHandler({ path, cells });
-          if (handler == null) {
-            throw Error("bug -- outputHandler must return a handler");
-          }
-          process = (mesg) => {
-            if (handler == null) return;
-            if (limit == null || output.length < limit) {
-              handler.process(mesg);
-            } else {
-              if (output.length == limit) {
-                handler.process({ id: mesg.id, more_output: true });
-                moreOutput[mesg.id] = [];
-              }
-              moreOutput[mesg.id].push(mesg);
-            }
-          };
-
-          for (const prev of output) {
-            process(prev);
-          }
-          output.length = 0;
-        }
-        process(mesg);
+        // client socket has closed -- give up; for sagews we do NOT handle long
+        // running code with browser refresh anymore; if you need that, use Jupyter
+        // or write to a file.
+        return;
       } else {
         if (unhandledClientWriteError) {
           throw unhandledClientWriteError;
         }
         output.push(mesg);
-        if (limit == null || output.length < limit) {
-          throttle.write(mesg);
-        } else {
-          if (output.length == limit) {
-            throttle.write({
-              id: mesg.id,
-              more_output: true,
-            });
-            moreOutput[mesg.id] = [];
-          }
-          // save the more output
-          moreOutput[mesg.id].push(mesg);
-        }
+        throttle.write(mesg);
       }
     }
     // no errors happened, so close up and flush and
     // remaining data immediately:
-    handler?.done();
     if (socket.state != "closed") {
       throttle.flush();
       socket.write(null);
@@ -277,18 +157,13 @@ async function handleRequest({
   }
 }
 
-export class JupyterClient {
+export class SagewsClient {
   private iter?: EventIterator<OutputMessage[]>;
   public readonly socket;
   constructor(
     private client: ConatClient,
     private subject: string,
     private path: string,
-    private stdin: (opts: {
-      id: string;
-      prompt: string;
-      password?: boolean;
-    }) => Promise<string>,
   ) {
     this.socket = this.client.socket.connect(this.subject);
     this.socket.once("close", () => this.iter?.end());
