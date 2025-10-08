@@ -15,6 +15,7 @@ import { defineMessage, useIntl } from "react-intl";
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Icon, Tip } from "@cocalc/frontend/components";
+import { SYNC_FORWARD_ICON, SYNC_INVERSE_ICON } from "@cocalc/util/consts/ui";
 
 import { Actions } from "./actions";
 
@@ -183,7 +184,7 @@ export function SyncControls({
             onClick={() => handleAutoSyncChange("autoSyncInverse")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
           >
-            <Icon unicode={0x21b6} />
+            <Icon unicode={SYNC_INVERSE_ICON} />
           </BSButton>
         </Tip>
         <Tip
@@ -196,11 +197,7 @@ export function SyncControls({
             onClick={() => handleAutoSyncChange("autoSyncForward")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
           >
-            <Icon
-              unicode={0x21b6}
-              rotate="180"
-              style={{ position: "relative", top: "-3px" }}
-            />
+            <Icon unicode={SYNC_FORWARD_ICON} />
           </BSButton>
         </Tip>
         <Tip
