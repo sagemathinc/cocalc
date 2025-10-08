@@ -12,14 +12,14 @@ import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { type Message } from "@cocalc/jupyter/execute/output-handler";
 import { close } from "@cocalc/util/misc";
 
-const DEFAULT_IPYNB = {
+export const DEFAULT_IPYNB = {
   cells: [
     {
       cell_type: "code",
       execution_count: null,
-      metadata: {},
-      outputs: [],
-      source: [],
+      metadata: {} as any,
+      outputs: [] as any[],
+      source: [] as string[],
     },
   ],
   metadata: {
