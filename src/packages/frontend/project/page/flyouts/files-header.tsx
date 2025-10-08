@@ -5,13 +5,12 @@
 
 import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import immutable from "immutable";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
-  redux,
   useAsyncEffect,
   useEffect,
   usePrevious,
@@ -302,49 +301,6 @@ export function FilesHeader({
     );
   }
 
-  function staleListingWarning() {
-    if (projectIsRunning || (directoryFiles?.length ?? 0) === 0) return;
-
-    return (
-      <Alert
-        type="warning"
-        banner
-        showIcon={false}
-        style={{ padding: FLYOUT_PADDING, margin: 0 }}
-        message={
-          <>
-            <Icon name="warning" />{" "}
-            <FormattedMessage
-              id="page.flyouts.files.stale-directory.message"
-              defaultMessage={"stale directory listing"}
-              description={"outdated information in a file directory listing"}
-            />
-          </>
-        }
-        description={
-          <FormattedMessage
-            id="page.flyouts.files.stale-directory.description"
-            defaultMessage={"To update, <A>start this project</A>."}
-            description={
-              "to update the outdated information in a file directory listing of a project"
-            }
-            values={{
-              A: (c) => (
-                <a
-                  onClick={() => {
-                    redux.getActions("projects").start_project(project_id);
-                  }}
-                >
-                  {c}
-                </a>
-              ),
-            }}
-          />
-        }
-      />
-    );
-  }
-
   function renderFileControls() {
     return (
       <div
@@ -503,7 +459,6 @@ export function FilesHeader({
           borderBottom: FIX_BORDER,
         }}
       >
-        {staleListingWarning()}
         {activeFilterWarning()}
         {createFileIfNotExists()}
         {renderFileCreationError()}

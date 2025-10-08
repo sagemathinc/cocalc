@@ -10,9 +10,8 @@
 import { Spin } from "antd";
 import * as immutable from "immutable";
 import { useEffect, useRef } from "react";
-import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
@@ -34,9 +33,8 @@ interface Props {
   shiftIsDown: boolean;
   configuration_main?: MainConfiguration;
   isRunning?: boolean; // true if this project is running
-  stale?: boolean;
   publicFiles: Set<string>;
-  sort_by: (column_name:string) => void;
+  sort_by: (column_name: string) => void;
 }
 
 export function FileListing({
@@ -49,7 +47,6 @@ export function FileListing({
   shiftIsDown,
   configuration_main,
   file_search = "",
-  stale,
   publicFiles,
   sort_by,
 }: Props) {
@@ -151,28 +148,6 @@ export function FileListing({
 
   return (
     <>
-      {stale && (
-        <div
-          style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
-        >
-          <FormattedMessage
-            id="project.explorer.file-listing.stale-warning"
-            defaultMessage={`Showing stale directory listing.
-              To update the directory listing <a>start this project</a>.`}
-            values={{
-              a: (c) => (
-                <a
-                  onClick={() => {
-                    redux.getActions("projects").start_project(project_id);
-                  }}
-                >
-                  {c}
-                </a>
-              ),
-            }}
-          />
-        </div>
-      )}
       <div
         className="smc-vfill"
         style={{
