@@ -213,7 +213,6 @@ export async function watchClient({
     },
   );
   socket.on("closed", () => {
-    console.log("watchClient", path, "CLOSED!");
     iter.end();
     delete iter2.ignore;
   });

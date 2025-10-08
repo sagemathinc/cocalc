@@ -473,7 +473,6 @@ export function Explorer() {
               style={{ marginRight: "5px" }}
               project_id={project_id}
               compute_server_id={compute_server_id}
-              path={current_path}
             />
             {listing != null && (
               <ActionBar

@@ -23,6 +23,7 @@ import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { ActiveHeader } from "./active-header";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
+import DiskUsage from "@cocalc/frontend/project/disk-usage/disk-usage";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -169,7 +170,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
       case "files":
         return (
           <div style={{ width: "100%" }}>
-            <div>
+            <div style={{ display: "flex" }}>
               <SelectComputeServerForFileExplorer
                 size="small"
                 project_id={project_id}
@@ -185,6 +186,10 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 mode={"flyout"}
                 project_id={project_id}
                 className={"cc-project-flyout-path-navigator"}
+              />
+              <DiskUsage
+                project_id={project_id}
+                style={{ marginTop: "-5px" }}
               />
             </div>
             {!!compute_server_id && (

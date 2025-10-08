@@ -70,12 +70,18 @@ export async function setQuotas(opts: {
 export async function getDiskQuota({
   account_id,
   project_id,
+  compute_server_id = 0,
 }: {
   account_id: string;
   project_id: string;
+  compute_server_id?: number;
 }): Promise<{ used: number; size: number }> {
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("user must be a collaborator on project to get quota");
+  }
+  if (compute_server_id) {
+    // I'm not sure how this will work...
+    throw Error(`getDiskQuota: disk quota for compute server not implemented`);
   }
   const client = filesystemClient();
   return await client.getQuota({ project_id });

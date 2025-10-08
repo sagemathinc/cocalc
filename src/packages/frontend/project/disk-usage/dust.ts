@@ -22,14 +22,13 @@ export default async function dust({
   compute_server_id?: number;
   cache?: boolean;
 }) {
-  const k = cache ? key({ project_id, path, compute_server_id }) : "";
+  const k = key({ project_id, path, compute_server_id });
   if (cache && dustCache.has(k)) {
     return dustCache.get(k);
   }
-  console.log("cache miss for ", { k, cache });
   const fs = redux.getProjectActions(project_id).fs(compute_server_id);
   const { stdout, stderr, code } = await fs.dust(path, {
-    options: ["-j", "-x", "-d", "1", "-s", "-o", "b", "-D"],
+    options: ["-j", "-x", "-d", "1", "-s", "-o", "b"],
     timeout: 3000,
   });
   if (code) {
@@ -45,8 +44,6 @@ export default async function dust({
     return { bytes: parseInt(size.slice(0, -1)), path: name.slice(n) };
   });
   const v = { bytes: parseInt(size.slice(0, -1)), children };
-  if (cache) {
-    dustCache.set(k, v);
-  }
+  dustCache.set(k, v);
   return v;
 }

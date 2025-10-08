@@ -1,6 +1,7 @@
 // hook to keep track of disk usage and quota in a project
 
 import dust, { key } from "./dust";
+import getQuota from "./quota";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import { useRef, useState } from "react";
 
@@ -18,6 +19,9 @@ export default function useDiskUsage({
   const [usage, setUsage] = useState<any>(null);
   const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [quota, setQuota] = useState<{ used: number; size: number } | null>(
+    null,
+  );
   const currentRef = useRef<any>(`${project_id}-${path}-${compute_server_id}`);
   currentRef.current = key({ project_id, path, compute_server_id });
 
@@ -31,9 +35,17 @@ export default function useDiskUsage({
         compute_server_id,
         cache: counter == lastCounterRef.current,
       });
-      if (key({ project_id, path, compute_server_id }) == currentRef.current) {
-        setUsage(x);
+      if (!key({ project_id, path, compute_server_id }) == currentRef.current) {
+        return;
       }
+      setUsage(x);
+      setQuota(
+        await getQuota({
+          project_id,
+          compute_server_id,
+          cache: counter == lastCounterRef.current,
+        }),
+      );
     } catch (err) {
       setError(err);
     } finally {
@@ -43,6 +55,7 @@ export default function useDiskUsage({
   }, [project_id, path, compute_server_id, counter]);
 
   return {
+    quota,
     usage,
     loading,
     error,
