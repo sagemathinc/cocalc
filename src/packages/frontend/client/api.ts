@@ -76,7 +76,7 @@ async function callApi(
   }
   if (typeof json == "object" && json.errors) {
     // This is what happens when the api request fails due to schema validation issues.
-    // I.e., this is soemthing we only see in dev mode since the schema stuff is disabled in production.
+    // I.e., this is something we only see in dev mode since the schema stuff is disabled in production.
     throw Error(
       `API Schema Error: ${json.message} ${JSON.stringify(json.errors)}`,
     );
