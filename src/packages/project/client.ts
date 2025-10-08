@@ -42,7 +42,6 @@ import * as data from "./data";
 import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
-import * as sage_session from "./sage_session";
 import synctable_conat from "@cocalc/project/conat/synctable";
 import pubsub from "@cocalc/project/conat/pubsub";
 import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
@@ -553,16 +552,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
   public shell(opts: ExecuteCodeOptionsWithCallback): void {
     execute_code(opts);
-  }
-
-  // return new sage session -- the code that actually calls this is in the @cocalc/sync package
-  // in "packages/sync/editor/generic/evaluator.ts"
-  public sage_session({
-    path,
-  }: {
-    path: string; // the path to the *worksheet* file
-  }): sage_session.SageSessionType {
-    return sage_session.sage_session({ path, client: this });
   }
 
   // Save a blob to the central db blobstore.

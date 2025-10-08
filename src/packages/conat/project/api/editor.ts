@@ -2,11 +2,6 @@ import type { Options as FormatterOptions } from "@cocalc/util/code-formatter";
 
 export const editor = {
   formatString: true,
-
-  printSageWS: true,
-  sagewsStart: true,
-  sagewsStop: true,
-
   createTerminalService: true,
 };
 
@@ -28,10 +23,6 @@ export interface Editor {
     options: FormatterOptions;
     path?: string; // only used for CLANG
   }) => Promise<string>;
-
-  printSageWS: (opts) => Promise<string>;
-  sagewsStart: (path_sagews: string) => Promise<void>;
-  sagewsStop: (path_sagews: string) => Promise<void>;
 
   createTerminalService: (
     termPath: string,

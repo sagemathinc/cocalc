@@ -85,8 +85,6 @@ async function get_sage_info(): Promise<{
   exists: boolean;
   version: number[] | undefined;
 }> {
-  // TODO probably also check if smc_sagews is working? or the sage server?
-  // without sage, sagews files are disabled
   const exists = await have("sage");
   let version: number[] | undefined = undefined;
   if (exists) {

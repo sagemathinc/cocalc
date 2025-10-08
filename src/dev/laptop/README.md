@@ -36,7 +36,6 @@ From the `src/` directory:
 
 From the `src/` directory, run
 
-    pip install --user --upgrade smc_sagews/
     pip install --user --upgrade smc_pyutil/
 
 ## The servers

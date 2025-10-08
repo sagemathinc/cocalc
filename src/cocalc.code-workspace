@@ -26,7 +26,6 @@
       "requirements.txt": true,
       "scripts": true,
       "smc_pyutil": true,
-      "smc_sagews": true,
       ".mypy_cache": true,
       "pnpm-lock.yaml": true
     },
