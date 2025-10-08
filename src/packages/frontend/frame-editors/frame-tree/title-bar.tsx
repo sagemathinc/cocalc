@@ -16,7 +16,6 @@ import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-
 import {
   CSS,
   redux,
@@ -70,6 +69,11 @@ import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { TITLE_BAR_BORDER } from "./style";
+
+const ALWAYS_HIDE_AI = new Set<string>(['sagews']);
+function alwaysHideAi(ext:string) {
+  return ALWAYS_HIDE_AI.has(ext);
+}
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -589,7 +593,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
-      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
+      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id) ||
+      alwaysHideAi(filename_extension(props.path))
     ) {
       return;
     }
@@ -726,8 +731,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
