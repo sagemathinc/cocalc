@@ -37,7 +37,7 @@ export default function DiskUsage({
       style={style}
     >
       <Icon name="disk-round" />
-      {usage != null && !loading && (
+      {usage != null && (
         <Progress
           style={{ width: "40px" }}
           percent={percent}
@@ -45,8 +45,8 @@ export default function DiskUsage({
           showInfo={false}
         />
       )}
-      {usage == null ? <Spin /> : undefined}
-      {usage != null && loading && <Spin />}
+      {usage == null ? <Spin delay={1000} /> : undefined}
+      {usage != null && loading && <Spin delay={1000} />}
     </Button>
   );
 
@@ -64,7 +64,11 @@ export default function DiskUsage({
           <ShowError error={error} setError={setError} />
           <h5 style={{ marginTop: 0 }}>
             <Icon name="disk-round" /> Disk Usage:{" "}
-            {usage == null ? <Spin /> : human_readable_size(usage.bytes)}
+            {usage == null ? (
+              <Spin delay={1000} />
+            ) : (
+              human_readable_size(usage.bytes)
+            )}
             {quota != null && <> out of {human_readable_size(quota.size)} </>}
             <Button
               onClick={() => refresh()}
