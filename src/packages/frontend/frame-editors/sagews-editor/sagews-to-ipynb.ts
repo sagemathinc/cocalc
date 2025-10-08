@@ -77,3 +77,20 @@ function parseCell(raw: string): Cell | null {
   const codes = n.slice(36);
   return { input, id, codes };
 }
+
+export function sagewsToMarkdown(raw: string): string {
+  const ipynb = sagewsToIpynb(raw);
+  let s = "";
+  for (const cell of ipynb.cells) {
+    const input = cell.source.join("");
+    if (!input.trim()) {
+      continue;
+    }
+    if (cell.cell_type != "code") {
+      s += "\n" + cell.source.join("") + "\n";
+    } else {
+      s += "\n```sage\n" + cell.source.join("") + "\n```\n\n\n";
+    }
+  }
+  return s;
+}

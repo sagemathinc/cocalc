@@ -2861,12 +2861,14 @@ export class SyncDoc extends EventEmitter {
         this.emit("watching");
         for await (const { event, ignore, patch, patchSeq } of this
           .fileWatcher) {
+          console.log({ path: this.path, event, patch, patchSeq, expectedSeq });
           if (this.isClosed()) return;
           if (event.startsWith("unlink")) {
             break;
           }
           if (!ignore) {
             if (patch != null && expectedSeq == patchSeq) {
+              console.log(this.path, "loading from disk using patch", patch);
               // sequence number match and there is a patch
               this.emit("before-change");
               const value = this.to_str();
@@ -2876,7 +2878,6 @@ export class SyncDoc extends EventEmitter {
               );
               this.from_str(newValue);
               this.commit({ emitChangeImmediately: true, file: true });
-              await this.save();
               this.emit("after-change");
             } else {
               // we don't know what's on disk anymore, so record
@@ -2884,6 +2885,7 @@ export class SyncDoc extends EventEmitter {
               // not given or sequence number doesn't match (e.g., we
               // refreshed browser, changed to be leader, etc.)
               this.valueOnDisk = undefined;
+              console.log(this.path, "loading from disk directly - no patch");
               try {
                 await this.readFile();
               } catch {
