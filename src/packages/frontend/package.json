@@ -85,7 +85,7 @@
     "csv-parse": "^5.3.6",
     "csv-stringify": "^6.3.0",
     "d3": "^3.5.6",
-    "darkreader": "4.9.95",
+    "darkreader": "4.9.109",
     "dayjs": "^1.11.11",
     "debug": "^4.4.0",
     "direction": "^1.0.4",
@@ -184,6 +184,7 @@
     "i18n:compile": "bash ./i18n/bin/compile.sh",
     "i18n:unused": "bash ./i18n/bin/unused.sh",
     "i18n:delete": "bash ./i18n/bin/delete.sh",
+    "i18n:update": "pnpm i18n:extract && pnpm i18n:upload && pnpm i18n:download && pnpm i18n:compile",
     "spellcheck": "git ls-files \"*.ts\" \"*.tsx\" | xargs cspell --config cspell.json"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",

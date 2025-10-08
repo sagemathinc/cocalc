@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -13,15 +13,18 @@ Combined output panel for LaTeX editor that includes:
 - PDF preview
 - Build log output
 - Errors and warnings
+- Statistics (word count)
+- Sub-files
 With build controls at the top (build, force build, clean, etc.)
 */
 
 // cSpell:ignore EOFPYTHON Estad
 
+import type { CSS } from "@cocalc/frontend/app-framework";
 import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import type { TabsProps } from "antd";
 
-import { List as AntdList, Avatar, Button, Spin, Tabs, Tag } from "antd";
+import { Alert, Button, Spin, Tabs, Tag } from "antd";
 import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
@@ -31,23 +34,27 @@ import {
   Icon,
   TableOfContents,
   TableOfContentsEntryList,
+  Text,
+  Tip,
 } from "@cocalc/frontend/components";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, labels } from "@cocalc/frontend/i18n";
-import { path_split, plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
+
+import { TITLE_BAR_BORDER } from "../frame-tree/style";
 import { Actions } from "./actions";
 import { Build } from "./build";
 import { WORD_COUNT_ICON } from "./constants";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { use_build_logs } from "./hooks";
-import { PDFControls } from "./output-pdf-control";
+import { PDFControls } from "./output-control";
+import { OutputFiles } from "./output-files";
+import { OutputStats } from "./output-stats";
 import { PDFJS } from "./pdfjs";
-import { useTexSummaries } from "./use-summarize";
 import { BuildLogs } from "./types";
+import { useTexSummaries } from "./use-summarize";
+import { OUTPUT_HEADER_STYLE } from "./util";
 
 interface OutputProps {
   id: string;
@@ -64,26 +71,19 @@ interface OutputProps {
   status: string;
 }
 
-type TabType = "pdf" | "contents" | "files" | "build" | "errors" | "stats";
+type TabType = "pdf" | "contents" | "files" | "build" | "problems" | "stats";
 
-interface FileListItem {
-  path: string;
-  displayPath: string;
-  isMain: boolean;
-  summary: string;
-}
+const LABEL_STYLE: CSS = {
+  display: "flex",
+  alignItems: "center",
+  gap: "2px",
+} as const;
 
 const STATS_LABEL = defineMessage({
   id: "latex.output.stats_tab.label",
   defaultMessage: "Stats",
   description:
-    "Short abbreviation for 'Statistics' used as tab label. Should be abbreviated like 'Stats' in English for 'Statistics', 'Stats' in German, or 'Estad' in Spanish - a recognizable short form, not the full word.",
-});
-
-const STATISTICS_HEADER = defineMessage({
-  id: "latex.output.stats.header",
-  defaultMessage: "Statistics",
-  description: "Header text for the statistics section in LaTeX output",
+    "Short abbreviation for 'Statistics' used as tab label. Should be abbreviated like 'Stats' in English for 'Stats' in German, or 'Estad' in Spanish - a recognizable short form, not the full word.",
 });
 
 export function Output(props: OutputProps) {
@@ -148,8 +148,13 @@ export function Output(props: OutputProps) {
   const [homeDir, setHomeDir] = useState<string | null>(null);
 
   // File summaries using the custom hook
-  const { fileSummaries, summariesLoading, refreshSummaries } =
-    useTexSummaries(switch_to_files, project_id, path, homeDir, reload);
+  const { fileSummaries, summariesLoading, refreshSummaries } = useTexSummaries(
+    switch_to_files,
+    project_id,
+    path,
+    homeDir,
+    reload,
+  );
 
   // Word count state
   const [wordCountLoading, setWordCountLoading] = useState<boolean>(false);
@@ -207,6 +212,13 @@ export function Output(props: OutputProps) {
     }
   }, [activeTab, reload, refreshWordCount]);
 
+  // Refresh TOC when contents tab is opened
+  useEffect(() => {
+    if (activeTab === "contents") {
+      actions.updateTableOfContents(true);
+    }
+  }, [activeTab, actions]);
+
   // Sync state with stored values when they change
   React.useEffect(() => {
     setActiveTab(storedTab);
@@ -242,8 +254,8 @@ export function Output(props: OutputProps) {
   // Handle zoom changes from pinch-to-zoom or wheel gestures
   const handleZoomChange = useCallback(
     (data: Data) => {
-      // Convert fontSize to zoom scale (fontSize 14 = 1.0 zoom)
-      const newZoom = data.fontSize / 14;
+      // Convert fontSize to zoom scale (DEFAULT_FONT_SIZE = 1.0 zoom)
+      const newZoom = data.fontSize / DEFAULT_FONT_SIZE;
       const local_view_state = actions.store.get("local_view_state");
       actions.setState({
         local_view_state: local_view_state.setIn([id, "pdf_zoom"], newZoom),
@@ -300,13 +312,12 @@ export function Output(props: OutputProps) {
   }, [build_logs, knitr]);
 
   // No automatic tab switching - let user control tabs manually
-  // Errors are indicated with red exclamation icon only
 
   function renderPdfTab() {
     return {
       key: "pdf",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span style={LABEL_STYLE}>
           <Icon name="file-pdf" />
           PDF
         </span>
@@ -359,11 +370,8 @@ export function Output(props: OutputProps) {
               const autoSyncInProgress =
                 actions.store.get("autoSyncInProgress");
               if (autoSyncInProgress) {
-                // Debounce the flag clearing to avoid clearing too early during scrolling
-                clearTimeout((window as any).__autoSyncClearTimeout);
-                (window as any).__autoSyncClearTimeout = setTimeout(() => {
-                  actions.setState({ autoSyncInProgress: false });
-                }, 500); // Wait longer to ensure scrolling has stabilized
+                // Clear immediately to allow next forward sync without delay
+                actions.setState({ autoSyncInProgress: false });
               }
             }}
             onPageDimensions={setPageDimensions}
@@ -377,52 +385,9 @@ export function Output(props: OutputProps) {
     return {
       key: "contents",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span style={LABEL_STYLE}>
           <Icon name="align-right" />
           {intl.formatMessage(editor.table_of_contents_short)}
-        </span>
-      ),
-      children: (
-        <div className="smc-vfill">
-          <TableOfContents
-            contents={contents}
-            fontSize={uiFontSize}
-            scrollTo={actions.scrollToHeading.bind(actions)}
-          />
-        </div>
-      ),
-    };
-  }
-
-  function renderFilesTab() {
-    // Filter out the main file from the list
-    const subFiles = switch_to_files
-      .filter((filePath) => filePath !== path)
-      .sort();
-    const subFileCount = subFiles.size;
-
-    // Compute the common prefix to strip (directory of main file)
-    const prefix = path_split(path).head;
-    const prefixWithSlash = prefix ? prefix + "/" : "";
-
-    const listData = subFiles.toJS().map((filePath: string) => {
-      const displayPath = filePath.startsWith(prefixWithSlash)
-        ? filePath.slice(prefixWithSlash.length)
-        : filePath;
-      return {
-        path: filePath,
-        displayPath,
-        isMain: false,
-        summary: fileSummaries[filePath] ?? "Loading...",
-      };
-    });
-
-    return {
-      key: "files",
-      label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          {summariesLoading ? <Spin size="small" /> : <Icon name="file" />}
-          Files
         </span>
       ),
       children: (
@@ -434,94 +399,38 @@ export function Output(props: OutputProps) {
             height: "100%",
           }}
         >
-          {/* Fixed header with buttons and file count */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "10px",
-              borderBottom: "1px solid #d9d9d9",
-              backgroundColor: "white",
-              flexShrink: 0,
-            }}
-          >
-            <Button
-              type="primary"
-              size="small"
-              icon={<Icon name="tex-file" />}
-              onClick={() => actions.switch_to_file(path)}
-            >
-              Open Main File
-            </Button>
-
-            <span style={{ color: COLORS.GRAY_M, fontSize: uiFontSize }}>
-              {subFileCount} {plural(subFileCount, "subfile")}
+          <div style={OUTPUT_HEADER_STYLE}>
+            <span style={LABEL_STYLE}>
+              <Icon name="align-right" />
+              {intl.formatMessage(editor.table_of_contents_name)}
             </span>
-
             <Button
               size="small"
               icon={<Icon name="refresh" />}
-              onClick={refreshSummaries}
-              loading={summariesLoading}
-              disabled={summariesLoading}
+              onClick={() => actions.updateTableOfContents(true)}
             >
               {intl.formatMessage(labels.refresh)}
             </Button>
           </div>
-
-          {/* Scrollable list */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "10px",
-            }}
-          >
-            <AntdList
-              size="small"
-              dataSource={listData}
-              renderItem={(item: FileListItem) => (
-                <AntdList.Item
-                  style={{
-                    cursor: "pointer",
-                  }}
-                  onClick={() => actions.switch_to_file(item.path)}
-                >
-                  <AntdList.Item.Meta
-                    avatar={
-                      <Avatar
-                        size="default"
-                        style={{
-                          backgroundColor: "transparent",
-                          color: COLORS.GRAY_D,
-                        }}
-                        icon={<Icon name={filenameIcon(item.path)} />}
-                      />
-                    }
-                    title={
-                      <span
-                        style={{
-                          fontFamily: "monospace",
-                          fontSize: `${uiFontSize}px`,
-                        }}
-                      >
-                        {item.displayPath}
-                      </span>
-                    }
-                    description={
-                      <span
-                        style={{
-                          color: COLORS.GRAY_M,
-                          fontSize: uiFontSize - 2,
-                        }}
-                      >
-                        <StaticMarkdown value={item.summary} />
-                      </span>
-                    }
-                  />
-                </AntdList.Item>
-              )}
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <TableOfContents
+              contents={contents}
+              fontSize={uiFontSize}
+              scrollTo={actions.scrollToHeading.bind(actions)}
+              ifEmpty={
+                <Alert
+                  type="info"
+                  message="Table of Contents is empty"
+                  description={
+                    <>
+                      Add <Text code>{"\\section{...}"}</Text> and{" "}
+                      <Text code>{"\\subsection{...}"}</Text> commands to your
+                      LaTeX document to create a table of contents.
+                    </>
+                  }
+                  style={{ margin: "15px" }}
+                />
+              }
             />
           </div>
         </div>
@@ -533,7 +442,7 @@ export function Output(props: OutputProps) {
     return {
       key: "build",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <span style={LABEL_STYLE}>
           {hasRunningJobs ? <Spin size="small" /> : <Icon name="terminal" />}
           {intl.formatMessage(editor.build_control_and_log_title_short)}
         </span>
@@ -552,108 +461,58 @@ export function Output(props: OutputProps) {
     };
   }
 
-  function renderWordCountTab() {
-    return {
-      key: "stats",
-      label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          {wordCountLoading ? (
-            <Spin size="small" />
-          ) : (
-            <Icon name={WORD_COUNT_ICON} />
-          )}
-          {intl.formatMessage(STATS_LABEL)}
-        </span>
-      ),
-      children: (
-        <div
-          className="smc-vfill"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-          }}
-        >
-          {/* Fixed header with refresh button */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "10px",
-              borderBottom: "1px solid #d9d9d9",
-              backgroundColor: "white",
-              flexShrink: 0,
-            }}
-          >
-            <span
-              style={{
-                color: COLORS.GRAY_M,
-                fontSize: uiFontSize,
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <Icon name={WORD_COUNT_ICON} />
-              {intl.formatMessage(STATISTICS_HEADER)}
-            </span>
+  // Problems are indicated with color coded numbers.
+  // Show only the highest priority counter: errors > warnings > typesetting
+  function renderProblemsCounter(
+    errors: number,
+    warnings: number,
+    typesetting: number,
+  ) {
+    const hasAnyIssues = errors > 0 || warnings > 0 || typesetting > 0;
+    if (!hasAnyIssues) return null;
 
-            <Button
-              size="small"
-              icon={<Icon name="refresh" />}
-              onClick={() => refreshWordCount(true)}
-              loading={wordCountLoading}
-              disabled={wordCountLoading}
-            >
-              {intl.formatMessage(labels.refresh)}
-            </Button>
-          </div>
+    // Determine which counter to show (highest priority)
+    let count: number;
+    let color: string;
+    if (errors > 0) {
+      count = errors;
+      color = "red";
+    } else if (warnings > 0) {
+      count = warnings;
+      color = "orange";
+    } else {
+      count = typesetting;
+      color = "blue";
+    }
 
-          {/* Scrollable statistics content */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "10px",
-            }}
-          >
-            <pre
-              style={{
-                fontSize: `${uiFontSize - 2}px`,
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-                wordWrap: "break-word",
-                margin: 0,
-                color: COLORS.GRAY_D,
-              }}
-            >
-              {wordCount ||
-                "Click refresh to generate word count statistics..."}
-            </pre>
-          </div>
-        </div>
-      ),
-    };
+    // Comprehensive tooltip showing all three counters
+    const tipTitle = intl.formatMessage(
+      {
+        id: "latex.output.problems_counter.tooltip",
+        defaultMessage: `{errors, plural, =0 {No errors} one {# error} other {# errors}},
+        {warnings, plural, =0 {no warnings} one {# warning} other {# warnings}},
+        and {typesetting, plural, =0 {no typesetting problems} one {# typesetting problem} other {# typesetting problems}}`,
+      },
+      { errors, warnings, typesetting },
+    );
+
+    return (
+      <Tip title={tipTitle} placement="top">
+        <Tag color={color}>{count}</Tag>
+      </Tip>
+    );
   }
 
-  function renderErrorsTab() {
+  function renderProblemsTab() {
     const { errors, warnings, typesetting } = errorCounts;
-    const hasAnyIssues = errors > 0 || warnings > 0 || typesetting > 0;
 
     return {
-      key: "errors",
+      key: "problems",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <Icon name="bug" />
+        <span style={LABEL_STYLE}>
+          <Icon name="bug" style={{ marginRight: "0" }} />
           {intl.formatMessage(editor.errors_and_warnings_title_short)}
-          {hasAnyIssues && (
-            <span style={{ display: "flex", gap: "2px" }}>
-              {errors > 0 && <Tag color="red">{errors}</Tag>}
-              {warnings > 0 && <Tag color="orange">{warnings}</Tag>}
-              {typesetting > 0 && <Tag color="blue">{typesetting}</Tag>}
-            </span>
-          )}
+          {renderProblemsCounter(errors, warnings, typesetting)}
         </span>
       ),
       children: (
@@ -674,14 +533,61 @@ export function Output(props: OutputProps) {
     };
   }
 
+  function renderFilesTab() {
+    return {
+      key: "files",
+      label: (
+        <span style={LABEL_STYLE}>
+          {summariesLoading ? <Spin size="small" /> : <Icon name="file" />}
+          Files
+        </span>
+      ),
+      children: (
+        <OutputFiles
+          switch_to_files={switch_to_files}
+          path={path}
+          fileSummaries={fileSummaries}
+          summariesLoading={summariesLoading}
+          refreshSummaries={refreshSummaries}
+          actions={actions}
+          uiFontSize={uiFontSize}
+        />
+      ),
+    };
+  }
+
+  function renderStatsTab() {
+    return {
+      key: "stats",
+      label: (
+        <span style={LABEL_STYLE}>
+          {wordCountLoading ? (
+            <Spin size="small" />
+          ) : (
+            <Icon name={WORD_COUNT_ICON} />
+          )}
+          {intl.formatMessage(STATS_LABEL)}
+        </span>
+      ),
+      children: (
+        <OutputStats
+          wordCountLoading={wordCountLoading}
+          wordCount={wordCount}
+          refreshWordCount={refreshWordCount}
+          uiFontSize={uiFontSize}
+        />
+      ),
+    };
+  }
+
   function renderTabs() {
     const tabItems: NonNullable<TabsProps["items"]> = [
       renderPdfTab(),
       renderContentsTab(),
       ...(switch_to_files?.size > 1 ? [renderFilesTab()] : []),
       renderBuildTab(),
-      renderErrorsTab(),
-      renderWordCountTab(),
+      renderProblemsTab(),
+      renderStatsTab(),
     ];
 
     return (
@@ -690,7 +596,7 @@ export function Output(props: OutputProps) {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          border: "1px solid #d9d9d9",
+          border: TITLE_BAR_BORDER,
           borderRadius: "6px",
           overflow: "hidden",
         }}
@@ -717,7 +623,7 @@ export function Output(props: OutputProps) {
           tabBarStyle={{
             margin: 0,
             padding: "0 8px",
-            borderBottom: "1px solid #d9d9d9",
+            borderBottom: TITLE_BAR_BORDER,
           }}
           items={tabItems}
           className="cocalc-latex-output-tabs"

@@ -28,6 +28,7 @@ import { EditorFunctions } from "@cocalc/frontend/editors/markdown-input/multimo
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
@@ -171,7 +172,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const isMountedRef = useIsMountedRef();
   const id = id0 ?? "";
   const actions = actions0 ?? {};
-  const font_size = font_size0 ?? desc?.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
+  const font_size = font_size0 ?? desc?.get("font_size") ?? DEFAULT_FONT_SIZE; // so possible to use without specifying this.  TODO: should be from account settings
   const [change, setChange] = useState<number>(0);
 
   const editor = useMemo(() => {

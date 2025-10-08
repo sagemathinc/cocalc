@@ -3,9 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Descriptions, Layout } from "antd";
+import { Descriptions, Layout, List } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
+import { COLORS } from "@cocalc/util/theme";
+
 import Backups from "components/landing/backups";
 import Code from "components/landing/code";
 import Collaboration from "components/landing/collaboration";
@@ -21,16 +24,21 @@ import Publishing from "components/landing/publishing";
 import SignIn from "components/landing/sign-in";
 import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
+
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import LatexCollab from "public/features/cocalc-latex-concurrent-editing.png";
-import LatexEditorImage from "public/features/cocalc-latex-editor-2019.png";
-import Sidechat from "public/features/cocalc-latex-side-chat-v2.png";
+
 import Pythontex from "public/features/cocalc-pythontex.png";
 import Sagetex from "public/features/cocalc-sagetex.png";
 import AIFormula from "public/features/latex-ai-formula.png";
 import CustomCommand from "public/features/latex-custom-command-02.png";
+import LatexDarkMode from "public/features/latex-editor-darkmode-20251003.png";
+import LatexEditorImage from "public/features/latex-editor-main-20251003.png";
+import LatexPythontex from "public/features/latex-editor-pythontex-20251003.png";
+import LatexCollab from "public/features/latex-editor-realtime-sync-20251003.png";
+import LaTeXMultiFile from "public/features/latex-editor-multifile-20251006.png";
 import Knitr from "public/features/latex-editor-rnw-01.png";
+import Sidechat from "public/features/latex-editor-side-chat-20251004.png";
 import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
 import Logo from "public/features/latex-logo.svg";
 
@@ -49,11 +57,11 @@ export default function LatexEditor({ customize }) {
             subtitle={
               <>
                 Focus on writing LaTeX. CoCalc takes care of everything else.
-                <hr />
+                {/*<hr />
                 <A href="https://about.cocalc.com/2023/01/13/cocalcs-online-latex-editor/">
                   Learn much more about LaTeX in CoCalc from this new blog
                   post...
-                </A>
+                </A> */}
               </>
             }
             image={LatexEditorImage}
@@ -62,103 +70,124 @@ export default function LatexEditor({ customize }) {
           <Pitch
             col1={
               <>
-                <Title level={2}>
-                  No software install required: <small>100% online</small>
+                <Title
+                  level={2}
+                  style={{
+                    minHeight: "60px",
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>
+                    Working with <LaTeX /> made easy
+                  </span>
                 </Title>
                 <Paragraph>
-                  CoCalc{"'"}s{" "}
-                  <A href="https://doc.cocalc.com/latex.html">
-                    <LaTeX /> editor
-                  </A>{" "}
-                  supports
-                </Paragraph>
-                <Paragraph>
-                  <ul>
-                    <li>
-                      <strong>side-by-side preview</strong> with{" "}
-                      <strong>forward and inverse search</strong>,
-                    </li>
-                    <li>
-                      compiles upon saving and marks errors in the source file,
-                    </li>
-                    <li>
-                      periodically <a href="#a-backups">backups</a> all your
-                      files,
-                    </li>
-                    <li>
-                      an{" "}
+                  <List bordered size="small">
+                    <List.Item>
+                      <strong>Side-by-side preview</strong> with{" "}
+                      <strong>
+                        <a href="#a-forwardinverse">
+                          forward and inverse search
+                        </a>
+                      </strong>{" "}
+                      (TEX ↔ PDF)
+                    </List.Item>
+                    <List.Item>
+                      <strong>Automatically compiles upon saving</strong> and
+                      marks problems in the source file
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-timetravel">Records every change</a>
+                      </strong>{" "}
+                      while you type with{" "}
+                      <strong>
+                        <a href="#a-backups">periodic backups</a>
+                      </strong>{" "}
+                      of all files
+                    </List.Item>
+                    <List.Item>
                       <strong>
                         <a href="#a-ai-formula">AI-powered formula assistant</a>
                       </strong>{" "}
-                      typsets formulas for you
-                    </li>
-                    <li>
+                      typesets formulas for you
+                    </List.Item>
+                    <List.Item>
                       <strong>
-                        <a href="#a-calculations">runs embedded calculations</a>
+                        <a href="#a-calculations">Runs embedded calculations</a>
                       </strong>{" "}
-                      right inside your document,
-                    </li>
-                    <li>
+                      with support for <a href="#a-sagetex">SageTeX</a>,{" "}
+                      <a href="#a-pythontex">PythonTeX</a> and{" "}
+                      <a href="#a-knitr">Knitr</a>
+                    </List.Item>
+                    <List.Item>
                       <strong>
-                        <A href="https://doc.cocalc.com/latex-features.html#latex-multi-file-support">
-                          multi-file support
-                        </A>
+                        <a href="#a-multifile">Multi-file support</a>
                       </strong>{" "}
-                      that discovers included files automatically, and
-                    </li>
-                    <li>
-                      every{" "}
-                      <strong>
-                        <a href="#a-timetravel">change is recorded</a>
-                      </strong>{" "}
-                      while you type.
-                    </li>
-                  </ul>
+                      that discovers included files automatically
+                    </List.Item>
+                  </List>
                 </Paragraph>
               </>
             }
             col2={
               <>
-                <Title level={2}>
-                  Working with <LaTeX /> made easy
+                <Title
+                  level={2}
+                  style={{
+                    minHeight: "60px",
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>Fully-featured online editor</span>
                 </Title>
                 <Paragraph>
-                  <Descriptions
-                    layout="vertical"
-                    bordered
-                    column={1}
-                    size={"small"}
-                  >
-                    <Descriptions.Item
-                      label="Tired of sending changes back and forth with your
-                      colleagues?"
-                    >
+                  <List bordered size="small">
+                    <List.Item>
                       <strong>
-                        <a href="#a-realtimesync">Collaborate online</a>
+                        <a href="#a-realtimesync">Real-time collaboration</a>
                       </strong>{" "}
-                      without any limits!
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Scared of breaking a document?">
-                      Revert recent changes using{" "}
-                      <a href="#a-timetravel">TimeTravel</a>.
-                    </Descriptions.Item>
-
-                    <Descriptions.Item
-                      label={
-                        <>
-                          Worried about maintaining your <LaTeX /> environment?
-                        </>
-                      }
-                    >
-                      CoCalc takes care of everything.
-                    </Descriptions.Item>
-
-                    <Descriptions.Item label="Want to work from anywhere?">
-                      You only need a web browser and Internet access, or you
-                      can <A href="/pricing/onprem">run your own server.</A>
-                    </Descriptions.Item>
-                  </Descriptions>
+                      with unlimited collaborators
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-chat">Side-by-side chat</a>
+                      </strong>{" "}
+                      to discuss documents with collaborators and AI
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-darkmode">Dark Mode with PDF support</a>
+                      </strong>{" "}
+                      for comfortable night-time editing
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-timetravel">Complete revision history</a>
+                      </strong>{" "}
+                      to revert any changes
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-environments">
+                          Fully managed <LaTeX /> environment
+                        </a>
+                      </strong>{" "}
+                      with PDF LaTeX, XeLaTeX, and LuaTeX
+                    </List.Item>
+                    <List.Item>
+                      <strong>
+                        <a href="#a-computational">
+                          Full computational environment
+                        </a>
+                      </strong>{" "}
+                      accessible from any browser
+                    </List.Item>
+                  </List>
                 </Paragraph>
               </>
             }
@@ -167,26 +196,48 @@ export default function LatexEditor({ customize }) {
 
           <SignIn startup={<LaTeX />} />
 
-          <Collaboration image={LatexCollab} />
+          <Collaboration
+            image={LatexCollab}
+            alt="Two users editing the same LaTeX file simultaneously with visible cursors showing real-time collaboration"
+          >
+            <Paragraph>
+              Multiple users can <strong>edit the same file online</strong> at
+              the same time. Changes are{" "}
+              <strong>synchronized in real-time</strong> – you see the cursors
+              and edits of other collaborators as they type.
+            </Paragraph>
+
+            <Paragraph>
+              Share your project privately with{" "}
+              <A href="https://doc.cocalc.com/project-settings.html#about-collaborators">
+                <strong>an unlimited number of collaborators</strong>
+              </A>
+              . Compilation status and PDF output are also synchronized between
+              everyone, ensuring that all collaborators experience the document
+              in exactly the same way.
+            </Paragraph>
+          </Collaboration>
 
           <Info
             anchor="a-ai-formula"
             icon="robot"
             title="AI-powered formula assistant"
             image={AIFormula}
-            alt="Generate LaTeX formulas based on a human readable descriptions via AI"
+            alt="AI formula assistant dialog generating LaTeX formulas from natural language descriptions"
           >
             <Paragraph>
-              CoCalc's extensive integation with various AI language models
-              helps you typesetting formulas.
+              CoCalc's extensive integration with various AI language models
+              helps you typeset formulas.
             </Paragraph>
             <Paragraph>
               You enter a description of your desired formula and{" "}
               <strong>
-                a language model of your choice transforms it into a proper
-                LaTeX formula
+                a language model of your choice transforms it into proper LaTeX
+                code
               </strong>
-              . The descriptions can come in various ways:
+              . The descriptions can come in various forms:
+            </Paragraph>
+            <Paragraph>
               <Descriptions
                 layout="vertical"
                 bordered
@@ -197,11 +248,11 @@ export default function LatexEditor({ customize }) {
                   <Text code>drake equation</Text>
                 </Descriptions.Item>
 
-                <Descriptions.Item label="simple algebraic notation">
+                <Descriptions.Item label="Simple algebraic notation">
                   <Text code>(a+b)^2 = a^2 + 2 a b + b^2</Text>
                 </Descriptions.Item>
 
-                <Descriptions.Item label="Or a combination of both">
+                <Descriptions.Item label="Combination of both">
                   <Text code>
                     integral from 0 to infinity of (1+sin(x))/x^2 dx
                   </Text>
@@ -209,58 +260,147 @@ export default function LatexEditor({ customize }) {
               </Descriptions>
             </Paragraph>
             <Paragraph>
-              Once you got a result you like, click on "Insert" the formula is
-              in your document.
+              Once you have a result you like, click "Insert" to add the formula
+              to your document.
             </Paragraph>
           </Info>
+
+          <Info
+            anchor="a-darkmode"
+            icon={
+              <Icon
+                style={{ fontSize: "40px", color: "white" }}
+                unicode={DARK_MODE_ICON}
+              />
+            }
+            title={
+              <span style={{ color: "white" }}>Dark Mode with PDF Support</span>
+            }
+            image={LatexDarkMode}
+            style={{ background: "rgb(50, 50, 50)", color: "white" }}
+          >
+            <Paragraph style={{ color: "white" }}>
+              Love{" "}
+              <span
+                style={{
+                  background: "black",
+                  color: "white",
+                  padding: "2px 5px",
+                }}
+              >
+                dark mode
+              </span>
+              ? CoCalc has you covered!
+            </Paragraph>
+            <Paragraph style={{ color: "white" }}>
+              The <LaTeX /> editor features dark UI elements as you'd expect,
+              but goes further by inverting the PDF viewer colors. This means
+              that even though your final PDF will have a white background, you
+              can view and edit it with a dark background and bright text for
+              comfortable night-time work.
+            </Paragraph>
+            <Paragraph style={{ color: COLORS.GRAY_L }}>
+              Note: You can quickly disable this PDF dark mode, to double check
+              the actual output.
+            </Paragraph>
+          </Info>
+
+          <Info
+            anchor="a-multifile"
+            icon="folder-open"
+            title="Multi-file support"
+            image={LaTeXMultiFile}
+            alt="LaTeX editor showing multiple files with automatic discovery of included files"
+          >
+            <Paragraph>
+              Working with large LaTeX documents often means splitting your
+              content across multiple files using <Code>\include{"{...}"}</Code>{" "}
+              or <Code>\input{"{...}"}</Code> commands.{" "}
+            </Paragraph>
+            <Paragraph strong>
+              CoCalc automatically discovers all included files and makes
+              navigation easy.
+            </Paragraph>
+            <Paragraph>
+              Each entry shows a brief snippet of its beginning, making it easy
+              to identify the right file.
+            </Paragraph>
+            <Paragraph>
+              <strong>
+                <a href="#a-forwardinverse">Inverse search</a>
+              </strong>{" "}
+              works seamlessly with multi-file documents: double-click
+              anywhere in the PDF and CoCalc automatically opens the correct
+              subfile for you.
+            </Paragraph>
+            <Paragraph>
+              Learn more in the{" "}
+              <A href="https://doc.cocalc.com/latex#multi-file-support">
+                multi-file support documentation
+              </A>
+              .
+            </Paragraph>
+          </Info>
+
+          <Info.Heading
+            anchor="a-calculations"
+            icon="calculator"
+            description={
+              <>
+                <Paragraph>
+                  <strong>
+                    Execute Python, Sage, or R code directly within your LaTeX
+                    source
+                  </strong>{" "}
+                  to automatically generate figures, tables, formulas, and
+                  results. Your computational code lives alongside your prose,
+                  making your paper fully reproducible.
+                </Paragraph>
+                <Paragraph>
+                  CoCalc supports{" "}
+                  <A href="http://doc.sagemath.org/html/en/tutorial/sagetex.html">
+                    SageTeX
+                  </A>
+                  , <A href="https://ctan.org/pkg/pythontex">PythonTeX</A>, and{" "}
+                  <A href="https://yihui.name/knitr/">Knitr</A>. The code runs
+                  during compilation, and the output is automatically included
+                  in your PDF – change your code, recompile, and your document
+                  updates.
+                </Paragraph>
+              </>
+            }
+          >
+            Embed Python, Sage or R code in <LaTeX /> documents
+          </Info.Heading>
 
           <Info
             anchor="a-computational"
             icon="laptop"
             title="Full computational environment"
-            image={LatexEditorImage}
-            alt="Two browser windows editing the same LaTeX file"
+            image={LatexPythontex}
+            alt="LaTeX editor with PythonTeX showing source code and PDF output with a damped oscillation plot"
             wide
           >
             <Paragraph>
-              One thing that sets CoCalc apart from other online <LaTeX />{" "}
-              editors is <strong>full access to computational software</strong>.
-              This means you can seamlessly transition from <em>computing</em>{" "}
-              your results to <em>publishing</em> them.
+              <strong>
+                Stop copying and pasting computational results into your papers.
+              </strong>{" "}
+              CoCalc gives you{" "}
+              <strong>full access to computational software</strong> directly
+              within your <LaTeX /> editor – seamlessly compute your results and
+              publish them in the same environment.
             </Paragraph>
             <Paragraph>
-              CoCalc supports running <A href="/features/python">Python</A>,{" "}
+              Run <A href="/features/python">Python</A>,{" "}
               <A href="http://www.sagemath.org/">SageMath</A>,{" "}
-              <A href="/features/r-statistical-software">
-                R Statistical Software
-              </A>
-              , <A href="/features/julia">Julia</A>, and more in the same
-              project as your <LaTeX /> document.
+              <A href="/features/r-statistical-software">R</A>,{" "}
+              <A href="/features/julia">Julia</A>, and more right alongside your
+              document. All software is pre-installed and maintained – no setup
+              required.
             </Paragraph>
             <Paragraph>
-              Consult the <A href="/software">Available Software page</A> or
-              look at our{" "}
-              <A href="/features/jupyter-notebook">Jupyter Notebook page</A> for
-              more information.{" "}
-            </Paragraph>
-          </Info>
-
-          <Info
-            anchor="a-calculations"
-            textStyleExtra={{ background: "inherit" }}
-            title={
-              <>
-                Run SageMath, Python, or R in <LaTeX />
-              </>
-            }
-            alt="A LaTeX document with embedded SageMath code"
-          >
-            <Paragraph>
-              You can run calculations inside your <LaTeX /> documents! It's
-              possible to embed Sage, R, or Python code in your document to
-              automatically generate text, plots, formulas or tables. The code
-              is evaluated as part of the compilation process and the output
-              will be included in the generated document.
+              Learn more on our <A href="/software">Available Software page</A>{" "}
+              or <A href="/features/jupyter-notebook">Jupyter Notebook page</A>.
             </Paragraph>
           </Info>
 
@@ -276,43 +416,41 @@ export default function LatexEditor({ customize }) {
                 <A href="http://doc.sagemath.org/html/en/tutorial/sagetex.html">
                   SageTeX
                 </A>{" "}
-                lets you embed <A href="https://www.sagemath.org/">SageMath</A>{" "}
-                in your document!
+                brings the power of{" "}
+                <A href="https://www.sagemath.org/">SageMath</A> symbolic
+                computation directly into your LaTeX documents.
               </strong>
             </Paragraph>
             <Paragraph>
-              Write Sage commands like{" "}
+              Write{" "}
               <Code>
                 \sage{"{"}2 + 3{"}"}
               </Code>{" "}
-              in <LaTeX /> and the document will contain "5",{" "}
+              to get "5", use{" "}
               <Code>
                 \sage{"{"}f.taylor(x, 0, 10){"}"}
               </Code>{" "}
-              for the Taylor expansion of a function <em>f</em>, and drawing
-              graphs becomes as simple as{" "}
+              for Taylor expansions, and create plots with{" "}
               <Code>
                 \sageplot{"{"}sin(x^2){"}"}
               </Code>
-              .
-            </Paragraph>
-            <Paragraph>
-              <strong>
-                CoCalc deals with all the underlying details for you:
-              </strong>
+              . CoCalc automatically handles the full compilation pipeline:
             </Paragraph>
             <Paragraph>
               <ul>
-                <li>It runs the initial compilation pass,</li>
                 <li>
-                  uses <A href="https://www.sagemath.org/">SageMath</A> to
-                  compute the text output, graphs and images,
+                  Runs the initial <LaTeX /> compilation pass
                 </li>
                 <li>
-                  and then runs a second compilation pass to produce the final
-                  PDF output.
+                  Executes <A href="https://www.sagemath.org/">SageMath</A> to
+                  compute results, graphs, and images
                 </li>
+                <li>Completes the final compilation to produce your PDF</li>
               </ul>
+            </Paragraph>
+            <Paragraph>
+              No manual intervention required – just write your code and
+              compile.
             </Paragraph>
           </Info>
 
@@ -325,24 +463,26 @@ export default function LatexEditor({ customize }) {
           >
             <Paragraph>
               <strong>
-                <A href="https://ctan.org/pkg/pythontex">PythonTeX</A> allows
-                you to run Python from within a document and typeset the
+                <A href="https://ctan.org/pkg/pythontex">PythonTeX</A> executes
+                Python code within your LaTeX documents and typesets the
                 results.
               </strong>
             </Paragraph>
             <Paragraph>
-              For example,{" "}
+              Use{" "}
               <Code>
                 \py{"{"}2 + 4**2{"}"}
               </Code>{" "}
-              produces "18". You can use all{" "}
-              <A href="/software/python">available python libraries</A> for
-              Python 3, drawing plots via <code>pylab</code>, and use
-              PythonTeX's SymPy support.
+              to compute "18" inline, leverage the entire Python ecosystem
+              including NumPy, SciPy, and Matplotlib for plots, or perform
+              symbolic math with SymPy. Access to{" "}
+              <A href="/software/python">hundreds of Python libraries</A> means
+              you can analyze data, generate visualizations, and format results
+              without leaving your document.
             </Paragraph>
             <Paragraph>
-              Again, CoCalc automatically detects that you want to run PythonTeX
-              and handles all the details for you.{" "}
+              CoCalc automatically detects PythonTeX usage and orchestrates the
+              compilation – you focus on your analysis, not the toolchain.
             </Paragraph>
           </Info>
 
@@ -354,38 +494,35 @@ export default function LatexEditor({ customize }) {
             alt="Editing LaTeX with R/Knitr code"
           >
             <Paragraph>
-              CoCalc's <LaTeX /> editor also supports{" "}
               <strong>
-                <A href="https://yihui.name/knitr/">Knitr</A>
+                <A href="https://yihui.name/knitr/">Knitr</A> brings R
+                statistical computing into your LaTeX workflow.
               </strong>{" "}
-              documents (with filename extension <code>.Rnw</code>). This gives
-              you the ability to embed arbitrary{" "}
-              <A href="https://www.r-project.org/">R Software</A> commands and
-              plots in your <LaTeX /> file.
+              Create <code>.Rnw</code> files that weave together statistical
+              analysis, data visualization, and professional typesetting.
             </Paragraph>
             <Paragraph>
-              Behind the scenes, CoCalc deals with all underlying details for
-              you:
+              Perfect for statistical reports, academic papers, and data-driven
+              research. CoCalc handles everything automatically:
             </Paragraph>
             <Paragraph>
               <ul>
                 <li>
-                  installation and management of{" "}
-                  <A href="/software/r">all R packages</A>,
+                  <A href="/software/r">Thousands of R packages</A>{" "}
+                  pre-installed and maintained
                 </li>
+                <li>Full compilation pipeline from R code to final PDF</li>
                 <li>
-                  orchestrates the full compilation pipeline for <LaTeX /> and
-                  running R, and
-                </li>
-                <li>
-                  reconciles the line numbers of the .Rnw file with the
-                  corresponding .tex document for correct{" "}
                   <A href="#a-forwardinverse">
-                    <strong>forward and inverse search</strong>
-                  </A>
-                  .{" "}
+                    <strong>Forward and inverse search</strong>
+                  </A>{" "}
+                  between <code>.Rnw</code> source and PDF output
                 </li>
               </ul>
+            </Paragraph>
+            <Paragraph>
+              Run your statistical analysis and generate publication-ready
+              documents in one integrated environment.
             </Paragraph>
           </Info>
 
@@ -411,29 +548,33 @@ export default function LatexEditor({ customize }) {
             title="Forward and Inverse search"
             icon="sync"
             video={[
-              "features/latex-forward-inverse-02.webm",
-              "features/latex-forward-inverse-02.mp4",
+              "features/latex-forward-inverse-20251006.webm",
+              "features/latex-forward-inverse-20251006.mp4",
             ]}
             wide
             alt="Video showing forward and inverse search in a LaTeX document"
           >
             <Paragraph>
-              Let CoCalc help you find your way around in large documents!
+              <strong>Navigate effortlessly between source and PDF.</strong>
             </Paragraph>
             <Paragraph>
-              <strong>Forward Search</strong> lets you jump from the <LaTeX />{" "}
-              source to the corresponding part in the rendered preview. This
-              saves you time looking for the output.
+              This speeds up your editing workflow, especially in large
+              documents.
             </Paragraph>
             <Paragraph>
-              <strong>Inverse search</strong> does the opposite: double click on
-              the output and your cursor jumps to the line in the source file
-              for that output.
+              <strong>Forward Search:</strong> Click in your LaTeX source to
+              jump to the corresponding location in the PDF preview.
             </Paragraph>
             <Paragraph>
-              Under the hood, CoCalc uses{" "}
-              <A href="https://github.com/jlaurens/synctex">SyncTeX</A>{" "}
-              seamlessly.
+              <strong>Inverse Search:</strong> Double-click anywhere in the PDF
+              to jump back to the corresponding location in your source code.
+              You can also enable automatic sync mode to keep your source editor
+              aligned with the PDF as you scroll.
+            </Paragraph>
+            <Paragraph>
+              Powered by{" "}
+              <A href="https://github.com/jlaurens/synctex">SyncTeX</A>, working
+              seamlessly in the background.
             </Paragraph>
           </Info>
 
@@ -519,6 +660,12 @@ export default function LatexEditor({ customize }) {
               for each <LaTeX /> file lets you discuss your content with
               collaborators or give feedback to your students while they are
               working on their assignments.
+            </Paragraph>
+            <Paragraph>
+              <strong>Query AI language models</strong> directly in the chat to
+              get help with your document. Ask questions about LaTeX syntax,
+              request suggestions for improving your writing, or discuss the
+              content of your document with AI assistants.
             </Paragraph>
             <Paragraph>
               Collaborators who are offline will be notified about new messages

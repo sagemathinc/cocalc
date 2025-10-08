@@ -70,6 +70,12 @@ export const AUTOBALANCE_DEFAULTS = {
   enabled: true,
 } as AutoBalance;
 
+export const DARK_MODE_DEFAULTS = {
+  brightness: 100,
+  contrast: 90,
+  sepia: 0,
+} as const;
+
 // throw error if not valid
 export function ensureAutoBalanceValid(obj) {
   if (obj == null) {
@@ -501,10 +507,9 @@ Table({
             no_free_warnings: false,
             allow_mentions: true,
             dark_mode: false,
-            dark_mode_brightness: 100,
-            dark_mode_contrast: 90,
-            dark_mode_sepia: 0,
-            dark_mode_grayscale: 0,
+            dark_mode_brightness: DARK_MODE_DEFAULTS.brightness,
+            dark_mode_contrast: DARK_MODE_DEFAULTS.contrast,
+            dark_mode_sepia: DARK_MODE_DEFAULTS.sepia,
             news_read_until: 0,
             hide_project_popovers: false,
             hide_file_popovers: false,

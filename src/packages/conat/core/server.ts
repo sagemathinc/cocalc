@@ -61,23 +61,20 @@ import {
   type ClusterStreams,
   trimClusterStreams,
   createClusterPersistServer,
+  Sticky,
   Interest,
   hashInterest,
+  hashSticky,
 } from "./cluster";
 import { type ConatSocketServer } from "@cocalc/conat/socket";
 import { throttle } from "lodash";
+import { getLogger } from "@cocalc/conat/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { type SysConatServer, sysApiSubject, sysApi } from "./sys";
 import { forkedConatServer } from "./start-server";
-import {
-  stickyChoice,
-  createStickyRouter,
-  getStickyTarget,
-  stickyKey,
-} from "./sticky";
+import { stickyChoice } from "./sticky";
 import { EventEmitter } from "events";
 import { Metrics } from "../types";
-import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("conat:core:server");
 
@@ -106,7 +103,6 @@ export interface StickyUpdate {
   pattern: string;
   subject: string;
   target: string;
-  ttl: number;
 }
 
 interface Update {
@@ -142,11 +138,7 @@ export interface Options {
   // if true, use https when creating an internal client.
   ssl?: boolean;
 
-  // WARNING: **superclusters are NOT implemented yet**.  Maybe they
-  // are a very bad idea and should NOT be implemented. In practice,
-  // when I hit a need for this it's better to just explicitly make
-  // a process with two clients, and use an explicit protocol to
-  // connect the clusters...
+  // WARNING: **superclusters are NOT fully iplemented yet.**
   //
   // if clusterName is set, enable clustering. Each node
   // in the cluster must have a different name. systemAccountPassword
@@ -180,8 +172,6 @@ export class ConatServer extends EventEmitter {
   private getUser: UserFunction;
   private isAllowed: AllowFunction;
   public readonly options: Partial<Options>;
-
-  // cluster = true if and only if this is a cluster:
   private cluster?: boolean;
 
   private sockets: { [id: string]: any } = {};
@@ -191,7 +181,9 @@ export class ConatServer extends EventEmitter {
 
   private subscriptions: { [socketId: string]: Set<string> } = {};
   public interest: Interest = new Patterns();
-  private stickyClient: Client;
+  // the target string is JSON.stringify({ id: string; subject: string }),
+  // which is the socket.io room to send the messages to.
+  public sticky: Sticky = {};
 
   private clusterStreams?: ClusterStreams;
   private clusterLinks: {
@@ -289,7 +281,6 @@ export class ConatServer extends EventEmitter {
     }
     this.initUsage();
     this.io.on("connection", this.handleSocket);
-    this.initSticky();
     this.init();
   }
 
@@ -367,6 +358,7 @@ export class ConatServer extends EventEmitter {
     }
     this.usage?.close();
     this.interest?.close();
+    this.sticky = {};
     this.subscriptions = {};
     this.stats = {};
     this.sockets = {};
@@ -397,14 +389,18 @@ export class ConatServer extends EventEmitter {
   // CLUSTER STREAM
   ////////////////////////////////////
 
-  private publishUpdate = ({ interest }: Update) => {
+  private publishUpdate = (update: Update) => {
     if (this.clusterStreams == null) {
       throw Error("streams must be initialized");
     }
+    const { interest, sticky } = update;
     if (interest !== undefined) {
       this.clusterStreams.interest.publish(interest);
-      this.trimClusterStream();
     }
+    if (sticky !== undefined) {
+      this.clusterStreams.sticky.publish(sticky);
+    }
+    this.trimClusterStream();
   };
 
   private updateClusterStream = (update: Update) => {
@@ -423,11 +419,16 @@ export class ConatServer extends EventEmitter {
   // there is no interest in that pattern.
   private trimClusterStream = throttle(
     async () => {
-      if (this.clusterStreams !== undefined && this.interest !== undefined) {
+      if (
+        this.clusterStreams !== undefined &&
+        this.interest !== undefined &&
+        this.sticky !== undefined
+      ) {
         await trimClusterStreams(
           this.clusterStreams,
           {
             interest: this.interest,
+            sticky: this.sticky,
             links: Object.values(
               this.clusterLinks?.[this.clusterName ?? ""] ?? {},
             ),
@@ -449,45 +450,145 @@ export class ConatServer extends EventEmitter {
     // publish to the stream
     this.updateClusterStream({ interest });
     // update our local state
-    updateInterest(interest, this.interest);
+    updateInterest(interest, this.interest, this.sticky);
   };
 
   ///////////////////////////////////////
   // STICKY QUEUE GROUPS
   ///////////////////////////////////////
 
-  private initSticky = () => {
-    this.stickyClient = this.client({
-      systemAccountPassword: this.options.systemAccountPassword,
-    });
-    if (!this.cluster || this.options.localClusterSize != null) {
-      // not a cluster or a local cluster, so we view THIS server
-      // as the canonical server and it also hosts the
-      // sticky routing service.  The one case where we don't do
-      // this is for a non-local cluster, e.g., deploying on
-      // Kubernetes.
-      createStickyRouter({ client: this.stickyClient });
-    }
-  };
-
-  private stickyCache: { [key: string]: { target: string; expire: number } } =
-    {};
   private updateSticky = (sticky: StickyUpdate) => {
-    // save in the cache
-    this.stickyCache[stickyKey(sticky)] = {
-      target: sticky.target,
-      expire: Date.now() + sticky.ttl,
-    };
+    if (updateSticky(sticky, this.sticky)) {
+      this.updateClusterStream({ sticky });
+    }
   };
 
   private getStickyTarget = ({
     pattern,
     subject,
+    targets: targets0,
   }: {
     pattern: string;
     subject: string;
-  }): string | undefined => {
-    return getStickyTarget({ stickyCache: this.stickyCache, pattern, subject });
+    targets: Set<string>; // the current valid choices as defined by subscribers known via interest graph
+  }) => {
+    if (!this.cluster || this.clusterName == null) {
+      return this.sticky[pattern]?.[subject];
+    }
+    const targets = new Set<string>();
+    const target = this.sticky[pattern]?.[subject];
+    if (target !== undefined && targets0.has(target)) {
+      targets.add(target);
+    }
+    // next check sticky state of other nodes in the cluster
+    const cluster = this.clusterLinks[this.clusterName];
+    for (const id in cluster) {
+      const target = cluster[id].sticky[pattern]?.[subject];
+      if (target !== undefined && targets0.has(target)) {
+        targets.add(target);
+      }
+    }
+    if (targets.size == 0) {
+      return undefined;
+    }
+    if (targets.size == 1) {
+      for (const target of targets) {
+        return target;
+      }
+    }
+
+    // problem: there are distinct mutually incompatible
+    // choices of targets.  This can only happen if at least
+    // two choices were made when the cluster was in an
+    // inconsistent state.
+    // We just take the first in alphabetical order.
+    // Since the sticky maps being used to make
+    // this list of targets is eventually consistent
+    // across the cluster, the same choice of target from
+    // those targets will be made by all nodes.
+    // The main problem with doing this is its slightly more
+    // effort.  The main advantage is that no communication
+    // or coordination between nodes is needed to "fix or agree
+    // on something", and that's a huge advantage!!
+
+    // This choice algorithm is used in saveNonredundantStickyState below!
+    // **Don't change this without changing that!!**
+    return Array.from(targets).sort()[0];
+  };
+
+  private saveNonredundantStickyState = (link: ClusterLink) => {
+    // When a link is about to be closed (e.g., the node died or is lost),
+    // we store its non-redundant sticky state in our own sticky state,
+    // so those routing choices aren't lost.  Hopefully only a single
+    // node in the cluster stores this info (due to the randomness of removing,
+    // it'll be the one that happens to do this first), but if more than one
+    // does, it's just less efficient.
+
+    if (link.clusterName != this.clusterName) {
+      // only worry about nodes in the same cluster
+      return;
+    }
+    const cluster = this.clusterLinks[this.clusterName];
+    const isRedundant = (pattern, subject, target) => {
+      let t = this.sticky[pattern]?.[subject];
+      if (t == target) {
+        // we already have it -- not redundnant
+        return true;
+      }
+
+      for (const id in cluster) {
+        const link = cluster[id];
+        if (id == link.id) {
+          continue;
+        }
+        const s = cluster[id].sticky[pattern]?.subject;
+        if (s !== undefined) {
+          if (s == target) {
+            // someone else has it, so definitely not redundant
+            return true;
+          }
+          if (t === undefined || s < t) {
+            t = s;
+          }
+        }
+      }
+      // nobody else has this mapping... but maybe it's not used
+      // due to other conflicting ones?
+      if (t !== undefined && t < target) {
+        // target wouldn't be used since there's conflicting ones that are smaller
+        return true;
+      }
+      // target *would* be used, but nobody else knows it, so we probably must save it.
+      // Make sure the pattern is still of interest first
+      if (this.interest.hasPattern(pattern)) {
+        // we need it!
+        return false;
+      }
+      for (const id in cluster) {
+        const link = cluster[id];
+        if (id == link.id) {
+          continue;
+        }
+        if (link.interest.hasPattern(pattern)) {
+          return false;
+        }
+      }
+      // nothing in the remaining cluster is subscribed to this pattern, so
+      // no point in preserving this sticky routing info
+      return true;
+    };
+
+    // { [pattern: string]: { [subject: string]: string } }
+    for (const pattern in link.sticky) {
+      const x = link.sticky[pattern];
+      for (const subject in x) {
+        const target = x[subject];
+        if (!isRedundant(pattern, subject, target)) {
+          // we save the assignment
+          this.updateSticky({ pattern, subject, target });
+        }
+      }
+    }
   };
 
   ///////////////////////////////////////
@@ -643,17 +744,12 @@ export class ConatServer extends EventEmitter {
         }
         // send to exactly one in each queue group
         for (const queue in g) {
-          let target;
-          const targets = g[queue];
-          if (queue == STICKY_QUEUE_GROUP) {
-            target = await this.stickyLoadBalance({
-              pattern,
-              subject,
-              targets,
-            });
-          } else {
-            target = this.loadBalance(targets);
-          }
+          const target = this.loadBalance({
+            pattern,
+            subject,
+            queue,
+            targets: g[queue],
+          });
           if (target !== undefined) {
             this.io.to(target).emit(pattern, { subject, data });
             if (!isSilentPattern(pattern)) {
@@ -677,17 +773,12 @@ export class ConatServer extends EventEmitter {
     for (const pattern in clusterInterest) {
       const g = clusterInterest[pattern];
       for (const queue in g) {
-        let t;
-        const targets = g[queue];
-        if (queue == STICKY_QUEUE_GROUP) {
-          t = await this.stickyClusterLoadBalance({
-            pattern,
-            subject,
-            targets,
-          });
-        } else {
-          t = this.clusterLoadBalance(targets);
-        }
+        const t = this.clusterLoadBalance({
+          pattern,
+          subject,
+          queue,
+          targets: g[queue],
+        });
         if (t !== undefined) {
           const { id, target } = t;
           if (id == this.id) {
@@ -733,21 +824,70 @@ export class ConatServer extends EventEmitter {
       link?.client.conn.emit("publish", data1);
     }
 
+    //
+    // TODO: Supercluster routing.  NOT IMPLEMENTED YET
+    //
+    //     // if no matches in local cluster, try the supercluster (if there is one)
+    //     if (count == 0) {
+    //       // nothing in this cluster, so try other clusters
+    //       for (const clusterName in this.clusterLinks) {
+    //         if (clusterName == this.clusterName) continue;
+    //         const links = this.clusterLinks[clusterName];
+    //         for (const id in links) {
+    //           const link = links[id];
+    //           const count2 = link.publish({ subject, data, queueGroups });
+    //           if (count2 > 0) {
+    //             count += count2;
+    //             // once we publish to any other cluster, we are done.
+    //             break;
+    //           }
+    //         }
+    //       }
+    //     }
+
     return count;
   };
 
   ///////////////////////////////////////
   // WHO GETS PUBLISHED MESSAGE:
   ///////////////////////////////////////
-  private loadBalance = (targets: Set<string>): string | undefined => {
+  private loadBalance = ({
+    pattern,
+    subject,
+    queue,
+    targets,
+  }: {
+    pattern: string;
+    subject: string;
+    queue: string;
+    targets: Set<string>;
+  }): string | undefined => {
     if (targets.size == 0) {
       return undefined;
     }
-    return randomChoice(targets);
+    if (queue == STICKY_QUEUE_GROUP) {
+      return stickyChoice({
+        pattern,
+        subject,
+        targets,
+        updateSticky: this.updateSticky,
+        getStickyTarget: this.getStickyTarget,
+      });
+    } else {
+      return randomChoice(targets);
+    }
   };
 
-  clusterLoadBalance = (targets0: {
-    [id: string]: Set<string>;
+  clusterLoadBalance = ({
+    pattern,
+    subject,
+    queue,
+    targets: targets0,
+  }: {
+    pattern: string;
+    subject: string;
+    queue: string;
+    targets: { [id: string]: Set<string> };
   }): { id: string; target: string } | undefined => {
     const targets = new Set<string>();
     for (const id in targets0) {
@@ -755,72 +895,7 @@ export class ConatServer extends EventEmitter {
         targets.add(JSON.stringify({ id, target }));
       }
     }
-    const x = this.loadBalance(targets);
-    if (!x) {
-      return undefined;
-    }
-    return JSON.parse(x);
-  };
-
-  // sticky versions -- these are more complicated and async
-  private stickyLoadBalance = async ({
-    pattern,
-    subject,
-    targets,
-  }: {
-    pattern: string;
-    subject: string;
-    targets: Set<string>;
-  }): Promise<string | undefined> => {
-    if (targets.size == 0) {
-      return undefined;
-    }
-    if (targets.size == 1) {
-      // currently there is a canonical choice
-      for (const target of targets) {
-        return target;
-      }
-    }
-    try {
-      return await stickyChoice({
-        pattern,
-        subject,
-        targets,
-        // client -- so can call the remote sticky router if necessary
-        client: this.stickyClient,
-        // updateSticky & getStickyTarget -- so can consule/update the cache
-        updateSticky: this.updateSticky,
-        getStickyTarget: this.getStickyTarget,
-      });
-    } catch (err) {
-      this.log("WARNING: sticky router is not working", err);
-      // not possible to make assignment, e.g., not able
-      // to connect to the sticky service.  Can and should
-      // happen in case of a split brain (say).  This will
-      // make it so messages stop being delivered and hopefully
-      // client gets an error, and keeps retrying until the
-      // sticky service is back. This is of course the tradeoff
-      // of using a centralized algorithm for sticky routing.
-      return undefined;
-    }
-  };
-
-  stickyClusterLoadBalance = async ({
-    pattern,
-    subject,
-    targets: targets0,
-  }: {
-    pattern: string;
-    subject: string;
-    targets: { [id: string]: Set<string> };
-  }): Promise<{ id: string; target: string } | undefined> => {
-    const targets = new Set<string>();
-    for (const id in targets0) {
-      for (const target of targets0[id]) {
-        targets.add(JSON.stringify({ id, target }));
-      }
-    }
-    const x = await this.stickyLoadBalance({ pattern, subject, targets });
+    const x = this.loadBalance({ pattern, subject, queue, targets });
     if (!x) {
       return undefined;
     }
@@ -1113,10 +1188,7 @@ export class ConatServer extends EventEmitter {
     if (localClusterSize < 2) {
       return;
     }
-    // Spawn additional servers as *separate processes* to form a cluster.
-    // This is mainly used for testing, but is also very useful on
-    // a single powerful machine where we want more routing than a single
-    // nodejs process provides. This cannot do autoscaling though.
+    // spawn additional servers as separate processes to form a cluster
     const port = this.options.port;
     if (!port) {
       throw Error("bug -- port must be set");
@@ -1285,6 +1357,7 @@ export class ConatServer extends EventEmitter {
       return;
     }
 
+    this.saveNonredundantStickyState(link);
     link.close();
     delete this.clusterLinks[link.clusterName][link.id];
     delete this.clusterLinksByAddress[link.address];
@@ -1646,9 +1719,10 @@ export class ConatServer extends EventEmitter {
     return false;
   };
 
-  hash = (): { interest: number } => {
+  hash = (): { interest: number; sticky: number } => {
     return {
       interest: hashInterest(this.interest),
+      sticky: hashSticky(this.sticky),
     };
   };
 }
@@ -1704,7 +1778,11 @@ function getAddress(socket) {
   return socket.handshake.address;
 }
 
-export function updateInterest(update: InterestUpdate, interest: Interest) {
+export function updateInterest(
+  update: InterestUpdate,
+  interest: Interest,
+  sticky: Sticky,
+) {
   const { op, subject, queue, room } = update;
   const groups = interest.get(subject);
   if (op == "add") {
@@ -1732,11 +1810,25 @@ export function updateInterest(update: InterestUpdate, interest: Interest) {
       if (!nonempty) {
         // no interest anymore
         interest.delete(subject);
+        delete sticky[subject];
       }
     }
   } else {
     throw Error(`invalid op ${op}`);
   }
+}
+
+// returns true if this update actually causes a change to sticky
+export function updateSticky(update: StickyUpdate, sticky: Sticky): boolean {
+  const { pattern, subject, target } = update;
+  if (sticky[pattern] === undefined) {
+    sticky[pattern] = {};
+  }
+  if (sticky[pattern][subject] == target) {
+    return false;
+  }
+  sticky[pattern][subject] = target;
+  return true;
 }
 
 function getServerAddress(options: Options) {

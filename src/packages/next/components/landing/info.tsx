@@ -23,7 +23,7 @@ interface Props {
   belowWide?: boolean;
   caption?: ReactNode;
   children: ReactNode;
-  icon?: IconName;
+  icon?: IconName | JSX.Element;
   image?: string | StaticImageData;
   imageComponent?: ReactNode; // if set, this replaces the image!
   level?: TitleProps["level"];
@@ -130,9 +130,9 @@ export default function Info({
         ...textStyle,
       }}
     >
-      {icon && (
+      {icon != null && (
         <span style={{ fontSize: "24pt", marginRight: "5px" }}>
-          <Icon name={icon} />{" "}
+          {typeof icon === "string" ? <Icon name={icon} /> : icon}{" "}
         </span>
       )}
       {title}
@@ -310,10 +310,20 @@ interface HeadingProps {
   style?: CSSProperties;
   textStyle?: CSSProperties;
   level?: TitleProps["level"];
+  anchor?: string;
+  icon?: IconName | JSX.Element;
 }
 
 Info.Heading = (props: HeadingProps) => {
-  const { level = 1, children, description, style, textStyle } = props;
+  const {
+    level = 1,
+    children,
+    description,
+    style,
+    textStyle,
+    anchor,
+    icon,
+  } = props;
   return (
     <div
       style={{
@@ -327,13 +337,19 @@ Info.Heading = (props: HeadingProps) => {
     >
       <Title
         level={level}
+        id={anchor}
         style={{
           color: COLORS.GRAY_D,
           maxWidth: MAX_WIDTH_LANDING,
-          margin: "0 auto",
+          margin: "0 auto 20px auto",
           ...textStyle,
         }}
       >
+        {icon != null && (
+          <span style={{ fontSize: "24pt", marginRight: "5px" }}>
+            {typeof icon === "string" ? <Icon name={icon} /> : icon}{" "}
+          </span>
+        )}
         {children}
       </Title>
       {description && (

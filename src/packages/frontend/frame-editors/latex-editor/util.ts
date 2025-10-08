@@ -10,7 +10,18 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { TITLE_BAR_BORDER } from "../frame-tree/style";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
+
+export const OUTPUT_HEADER_STYLE = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "10px",
+  borderBottom: TITLE_BAR_BORDER,
+  backgroundColor: "white",
+  flexShrink: 0,
+} as const;
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562

@@ -31,7 +31,6 @@ interface Data {
     dark_mode_brightness: number;
     dark_mode_contrast: number;
     dark_mode_sepia: number;
-    dark_mode_grayscale: number;
   };
 }
 
@@ -81,12 +80,6 @@ register({
             <EditNumber
               path="other_settings.dark_mode_sepia"
               title="Sepia"
-              min={0}
-              max={100}
-            />
-            <EditNumber
-              path="other_settings.dark_mode_grayscale"
-              title="Grayscale"
               min={0}
               max={100}
             />

@@ -11,11 +11,15 @@ import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
 import { program as commander, Option } from "commander";
+
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
   pguser as DEFAULT_DB_USER,
+  pgConcurrentWarn as DEFAULT_DB_CONCURRENT_WARN,
+  hubHostname as DEFAULT_HUB_HOSTNAME,
+  agentPort as DEFAULT_AGENT_PORT,
 } from "@cocalc/backend/data";
 import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
@@ -27,10 +31,7 @@ import {
   initConatPersist,
   loadConatConfiguration,
 } from "@cocalc/server/conat";
-import {
-  initConatServer,
-  initStickyRouterService,
-} from "@cocalc/server/conat/socketio";
+import { initConatServer } from "@cocalc/server/conat/socketio";
 import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
@@ -285,15 +286,7 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
-  // UNIQUE SERVICE: THESE ARE THE SERVICES THAT HAVE TO RUN *EXACTLY ONCE*.
   if (program.all || program.mentions) {
-    if (program.mode == "kucalc") {
-      // init kucalc it's critical to have one sticky router service running,
-      // and this is the hub node where we do this. Do NOT do this
-      // if there is no clustering or a local conat cluster, since then
-      // you end up with two sticky routers.
-      initStickyRouterService();
-    }
     // kucalc: for now we just have the hub-mentions servers
     // do the new project pool maintenance, since there is only
     // one hub-stats.
@@ -363,14 +356,14 @@ async function main(): Promise<void> {
     )
     .option(
       "--agent-port <n>",
-      "port for HAProxy agent-check (default: 0 -- do not start)",
+      `port for HAProxy agent-check (default: ${DEFAULT_AGENT_PORT}; 0 means "do not start")`,
       (n) => parseInt(n),
-      0,
+      DEFAULT_AGENT_PORT,
     )
     .option(
       "--hostname [string]",
-      'host of interface to bind to (default: "127.0.0.1")',
-      "127.0.0.1",
+      `host of interface to bind to (default: "${DEFAULT_HUB_HOSTNAME}")`,
+      DEFAULT_HUB_HOSTNAME,
     )
     .option(
       "--database-nodes <string,string,...>",
@@ -418,9 +411,9 @@ async function main(): Promise<void> {
     )
     .option(
       "--db-concurrent-warn <n>",
-      "be very unhappy if number of concurrent db requests exceeds this (default: 300)",
+      `be very unhappy if number of concurrent db requests exceeds this (default: ${DEFAULT_DB_CONCURRENT_WARN})`,
       (n) => parseInt(n),
-      300,
+      DEFAULT_DB_CONCURRENT_WARN,
     )
     .option(
       "--personal",

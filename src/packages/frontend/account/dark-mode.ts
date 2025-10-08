@@ -3,22 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { throttle, isEqual } from "lodash";
+import { isEqual, debounce } from "lodash";
+
+import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { AccountStore } from "./store";
 
-export const dark_mode_mins = {
-  brightness: 20,
-  contrast: 20,
-  sepia: 0,
-  grayscale: 0,
-} as const;
+export const DARK_MODE_KEYS = ["brightness", "contrast", "sepia"] as const;
 
-interface Config {
-  brightness: number;
-  contrast: number;
-  sepia: number;
-  grayscale: number;
-}
+type Config = Record<(typeof DARK_MODE_KEYS)[number], number>;
+
+export const DARK_MODE_MINS: Config = {
+  brightness: 30,
+  contrast: 30,
+  sepia: 0,
+} as const;
 
 // Returns number between 0 and 100.
 function to_number(x: any, default_value: number): number {
@@ -44,25 +42,17 @@ export function get_dark_mode_config(other_settings?: {
   dark_mode_brightness?: number;
   dark_mode_contrast?: number;
   dark_mode_sepia?: number;
-  dark_mode_grayscale?: number;
 }): Config {
-  const brightness = Math.max(
-    dark_mode_mins.brightness,
-    to_number(other_settings?.dark_mode_brightness, 100),
-  );
-  const contrast = Math.max(
-    dark_mode_mins.contrast,
-    to_number(other_settings?.dark_mode_contrast, 90),
-  );
-  const sepia = to_number(
-    other_settings?.dark_mode_sepia,
-    dark_mode_mins.sepia,
-  );
-  const grayscale = to_number(
-    other_settings?.dark_mode_grayscale,
-    dark_mode_mins.grayscale,
-  );
-  return { brightness, contrast, sepia, grayscale };
+  const config = {} as Config;
+
+  for (const key of DARK_MODE_KEYS) {
+    config[key] = Math.max(
+      DARK_MODE_MINS[key],
+      to_number(other_settings?.[`dark_mode_${key}`], DARK_MODE_DEFAULTS[key]),
+    );
+  }
+
+  return config;
 }
 
 let currentDarkMode: boolean = false;
@@ -71,27 +61,35 @@ let last_config: Config | undefined = undefined;
 export function init_dark_mode(account_store: AccountStore): void {
   account_store.on(
     "change",
-    throttle(async () => {
-      const dark_mode = !!account_store.getIn(["other_settings", "dark_mode"]);
-      currentDarkMode = dark_mode;
-      const config = get_dark_mode_config(
-        account_store.get("other_settings")?.toJS(),
-      );
-      if (
-        dark_mode == last_dark_mode &&
-        (!dark_mode || isEqual(last_config, config))
-      ) {
-        return;
-      }
-      const { enable, disable } = await import("darkreader");
-      last_dark_mode = dark_mode;
-      last_config = config;
-      if (dark_mode) {
-        enable(config);
-      } else {
-        disable();
-      }
-    }, 3000),
+    debounce(
+      async () => {
+        const dark_mode = !!account_store.getIn([
+          "other_settings",
+          "dark_mode",
+        ]);
+        currentDarkMode = dark_mode;
+        const config = get_dark_mode_config(
+          account_store.get("other_settings")?.toJS(),
+        );
+        if (
+          dark_mode == last_dark_mode &&
+          (!dark_mode || isEqual(last_config, config))
+        ) {
+          return;
+        }
+        const { enable, disable } = await import("darkreader");
+        last_dark_mode = dark_mode;
+        last_config = config;
+        if (dark_mode) {
+          disable();
+          enable(config);
+        } else {
+          disable();
+        }
+      },
+      1000,
+      { trailing: true, leading: false },
+    ),
   );
 }
 

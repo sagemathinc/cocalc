@@ -292,17 +292,10 @@ The `python/cocalc-api/` directory contains a Python client library for the CoCa
 - ✅ Complete project lifecycle management: create → start → test → stop → delete
 - ✅ All 14 tests passing with proper resource cleanup
 
-# Important Instruction Reminders
-
-- Do what has been asked; nothing more, nothing less
-- NEVER create files unless they're absolutely necessary for achieving your goal
-- ALWAYS prefer editing an existing file to creating a new one
-- REFUSE to modify files when the git repository is on the `master` or `main` branch
-- NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
-
 # important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-ALWAYS ask questions if something is unclear. Only proceed to the implementation step if you have no questions left.
+- Do what has been asked; nothing more, nothing less.
+- NEVER create files unless they're absolutely necessary for achieving your goal.
+- ALWAYS prefer editing an existing file to creating a new one.
+- NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+- ALWAYS ask questions if something is unclear. Only proceed to the implementation step if you have no questions left.
+- When modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year.

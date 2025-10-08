@@ -213,9 +213,6 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
-      pnpm:
-        specifier: ^10.17.1
-        version: 10.17.1
       socket.io:
         specifier: ^4.8.1
         version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
@@ -475,8 +472,8 @@ importers:
         specifier: ^3.5.6
         version: 3.5.17
       darkreader:
-        specifier: 4.9.95
-        version: 4.9.95
+        specifier: 4.9.109
+        version: 4.9.109
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
@@ -1783,6 +1780,9 @@ importers:
       '@ant-design/colors':
         specifier: ^6.0.0
         version: 6.0.0
+      '@cocalc/diff-match-patch':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@cocalc/util':
         specifier: workspace:*
         version: 'link:'
@@ -2251,6 +2251,9 @@ packages:
   '@choojs/findup@0.2.1':
     resolution: {integrity: sha512-YstAqNb0MCN8PjdLCDfRsBcGVRN41f3vgLvaI0IrIcBp4AqILRSS0DeWNGkicC+f/zRIPJLc+9RURVSepwvfBw==}
     hasBin: true
+
+  '@cocalc/diff-match-patch@1.0.0':
+    resolution: {integrity: sha512-HC911GKU5TzbOVH6XeGpLNW9BaJxvh1jtRxdrV+ak36+d4FEm4rNif9M/jDFg9sEvosNCp1ZXESlxZ9guhYJ5g==}
 
   '@cocalc/gcloud-pricing-calculator@1.17.0':
     resolution: {integrity: sha512-sQ/76dIdQZMhth+4H8l8+BwkgsFMxb+Lxgpz7gqK0y3whQhkUpEltoZCrc0bHNacy3uxZMOVJhEmT4iZ0pmaBg==}
@@ -3782,6 +3785,16 @@ packages:
     engines: {node: '>=14'}
     peerDependencies:
       react: ^16.14.0 || >=17
+
+  '@rollup/rollup-linux-x64-gnu@4.44.0':
+    resolution: {integrity: sha512-iUVJc3c0o8l9Sa/qlDL2Z9UP92UZZW1+EmQ4xfjTc1akr0iUFZNfxrXJ/R1T90h/ILm9iXEY6+iPrmYB3pXKjw==}
+    cpu: [x64]
+    os: [linux]
+
+  '@rollup/rollup-win32-x64-msvc@4.44.0':
+    resolution: {integrity: sha512-Q2Mgwt+D8hd5FIPUuPDsvPR7Bguza6yTkJxspDGkZj7tBRn2y4KSWYuIXpftFSjBra76TbKerCV7rgFPQrn+wQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@rspack/binding-darwin-arm64@1.4.5':
     resolution: {integrity: sha512-rK8mJ+85cXrGSTZvr5vqI17TDimAUWYjl0T+JEg5MTqRNbpyovbGHbrrsQyIicwaFOS1wWkaLrBolC/+/FLUeg==}
@@ -6032,8 +6045,8 @@ packages:
   dagre-d3-es@7.0.11:
     resolution: {integrity: sha512-tvlJLyQf834SylNKax8Wkzco/1ias1OPw8DcUMDE7oUIoSEW25riQVuiu/0OWEFqT0cxHT3Pa9/D82Jr47IONw==}
 
-  darkreader@4.9.95:
-    resolution: {integrity: sha512-P3sRqPsOcEs8k/36BEBhVrdY1nYYF03kK6vfQ7oLBzwuCpSanambl6xxsdoW/fyKevSRriBkU4LRmQrUxPIRew==}
+  darkreader@4.9.109:
+    resolution: {integrity: sha512-Jd7a+ywBvV3k6zuA246/BJBKwSl7D2puN16m4ZmULp4lPGJHJoWcc+8Kq2mQthkSrh5Bvn7JhVBcpth9Mm29BQ==}
 
   data-uri-to-buffer@6.0.2:
     resolution: {integrity: sha512-7hvf7/GW8e86rW0ptuwS3OcBGDjIi6SZva7hCyWC0yYry2cOPmLIjXAUHI6DK2HsnwJd9ifmt57i8eV2n4YNpw==}
@@ -9367,11 +9380,6 @@ packages:
     resolution: {integrity: sha512-4UGewrYgqDFw9vV6zNV+ADmPAUAfJPKtGvb/VdpQAx25X5f3xXdGdyOEVFwkl8Hl/tl7+xbeHqSEM+D5/TirUg==}
     engines: {node: '>=10'}
 
-  pnpm@10.17.1:
-    resolution: {integrity: sha512-F8Vg/KSGeulHOjiZrYSogzSRTzeb5G1FXL+S5c9LOdNJhdRS0lg7rxmWf6dstcF7yeJFUp0LmHRXIapyAOyveg==}
-    engines: {node: '>=18.12'}
-    hasBin: true
-
   point-in-polygon@1.1.0:
     resolution: {integrity: sha512-3ojrFwjnnw8Q9242TzgXuTD+eKiutbzyslcq1ydfu82Db2y+Ogbmyrkpv0Hgj31qwT3lbS9+QAAO/pIQM35XRw==}
 
@@ -12142,6 +12150,8 @@ snapshots:
     dependencies:
       commander: 2.20.3
 
+  '@cocalc/diff-match-patch@1.0.0': {}
+
   '@cocalc/gcloud-pricing-calculator@1.17.0':
     dependencies:
       awaiting: 3.0.0
@@ -13980,6 +13990,12 @@ snapshots:
       lodash-es: 4.17.21
       react: 19.1.1
       react-is: 18.3.1
+
+  '@rollup/rollup-linux-x64-gnu@4.44.0':
+    optional: true
+
+  '@rollup/rollup-win32-x64-msvc@4.44.0':
+    optional: true
 
   '@rspack/binding-darwin-arm64@1.4.5':
     optional: true
@@ -16545,9 +16561,12 @@ snapshots:
       d3: 7.9.0
       lodash-es: 4.17.21
 
-  darkreader@4.9.95:
+  darkreader@4.9.109:
     dependencies:
       malevic: 0.20.2
+    optionalDependencies:
+      '@rollup/rollup-linux-x64-gnu': 4.44.0
+      '@rollup/rollup-win32-x64-msvc': 4.44.0
 
   data-uri-to-buffer@6.0.2: {}
 
@@ -20592,8 +20611,6 @@ snapshots:
   plur@4.0.0:
     dependencies:
       irregular-plurals: 3.5.0
-
-  pnpm@10.17.1: {}
 
   point-in-polygon@1.1.0: {}
 
