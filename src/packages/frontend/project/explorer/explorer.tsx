@@ -56,6 +56,7 @@ import { Icon } from "@cocalc/frontend/components";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { getSort, setSort } from "./config";
 import DiskUsage from "@cocalc/frontend/project/disk-usage/disk-usage";
+import { lite } from "@cocalc/frontend/lite";
 
 const FLEX_ROW_STYLE = {
   display: "flex",
@@ -469,11 +470,13 @@ export function Explorer() {
               minWidth: "20em",
             }}
           >
-            <DiskUsage
-              style={{ marginRight: "5px" }}
-              project_id={project_id}
-              compute_server_id={compute_server_id}
-            />
+            {!lite && (
+              <DiskUsage
+                style={{ marginRight: "5px" }}
+                project_id={project_id}
+                compute_server_id={compute_server_id}
+              />
+            )}
             {listing != null && (
               <ActionBar
                 listing={listing}

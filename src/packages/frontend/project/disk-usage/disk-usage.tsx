@@ -127,7 +127,9 @@ export default function DiskUsage({
             <div>
               <hr />
               <div style={{ display: "flex" }}>
-                <div style={{ marginRight: "30px" }}> Overall Hard Quota:</div>
+                <div style={{ marginRight: "30px" }}>
+                  <b>Hard Quota:</b>
+                </div>
                 <Progress
                   style={{ flex: 1 }}
                   percent={Math.round(
@@ -148,7 +150,7 @@ export default function DiskUsage({
                 The value {human_readable_size(quota.used)} may be much lower
                 than the total space you are using, due to compression,
                 deduplication, accounting lag, and other factors, and gives you
-                flexibility to remove files before this project stops working.
+                flexibility to remove files before running out of space.
               </span>
             </div>
           )}

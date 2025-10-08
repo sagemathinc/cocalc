@@ -24,6 +24,7 @@ import { ActiveHeader } from "./active-header";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
 import DiskUsage from "@cocalc/frontend/project/disk-usage/disk-usage";
+import { lite } from "@cocalc/frontend/lite";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -187,10 +188,12 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 project_id={project_id}
                 className={"cc-project-flyout-path-navigator"}
               />
-              <DiskUsage
-                project_id={project_id}
-                style={{ marginTop: "-5px" }}
-              />
+              {!lite && (
+                <DiskUsage
+                  project_id={project_id}
+                  style={{ marginTop: "-5px" }}
+                />
+              )}
             </div>
             {!!compute_server_id && (
               <div style={{ fontSize: "10pt" }}>
