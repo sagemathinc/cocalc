@@ -582,26 +582,6 @@ export class ProjectClient {
     TOUCH_THROTTLE,
   );
 
-  // Print sagews to pdf
-  // The printed version of the file will be created in the same directory
-  // as path, but with extension replaced by ".pdf".
-  // Only used for sagews.
-  print_to_pdf = async ({
-    project_id,
-    path,
-    options,
-    timeout,
-  }: {
-    project_id: string;
-    path: string;
-    timeout?: number; // client timeout -- some things can take a long time to print!
-    options?: any; // optional options that get passed to the specific backend for this file type
-  }): Promise<string> => {
-    return await this.client.conat_client
-      .projectApi({ project_id })
-      .editor.printSageWS({ path, timeout, options });
-  };
-
   create = async (opts: {
     title: string;
     description: string;
