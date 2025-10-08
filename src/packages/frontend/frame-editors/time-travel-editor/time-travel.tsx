@@ -36,7 +36,6 @@ import { OpenFile } from "./open-file";
 import { OpenSnapshots } from "./open-snapshots";
 import { RangeSlider } from "./range-slider";
 import { RevertFile } from "./revert-file";
-import { SagewsDiff } from "./sagews-diff";
 import { Version, VersionRange } from "./version";
 import { HAS_SPECIAL_VIEWER, Viewer } from "./viewer";
 
@@ -279,19 +278,6 @@ export function TimeTravel(props: Props) {
     }
     if (doc0 == null || doc1 == null) {
       return renderLoading();
-    }
-
-    if (docext == "sagews") {
-      return (
-        <SagewsDiff
-          v0={doc0}
-          v1={doc1}
-          path={docpath}
-          project_id={props.project_id}
-          font_size={props.font_size}
-          editor_settings={props.editor_settings}
-        />
-      );
     }
 
     return (

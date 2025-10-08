@@ -884,7 +884,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         if remove_password_hash
                             delete z.password_hash
                     for c in columns
-                        if not z[c]?     # for same semantics as rethinkdb... (for now)
+                        if not z[c]?
                             delete z[c]
                     opts.cb(undefined, z)
 

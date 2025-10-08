@@ -10,7 +10,6 @@ import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-tr
 import { HistoryViewer as JupyterHistoryViewer } from "@cocalc/frontend/jupyter/history-viewer";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import { TextDocument } from "./document";
-import { SagewsCodemirror } from "./sagews-codemirror";
 import { isObjectDoc } from "./view-document";
 
 export const HAS_SPECIAL_VIEWER = new Set([
@@ -68,8 +67,6 @@ export function Viewer({
       return <TasksHistoryViewer {...opts} />;
     case "ipynb":
       return <JupyterHistoryViewer {...opts} />;
-    case "sagews":
-      return <SagewsCodemirror {...opts} />;
     case "md":
       const scale = getScale(font_size);
       return (

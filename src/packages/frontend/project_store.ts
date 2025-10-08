@@ -3,18 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-let wrapped_editors;
-
-// TODO: we should refactor our code to now have these window/document references
-// in *this* file.  This very code (all the redux/store stuff) is used via node.js
-// in projects, so should not reference window or document.
-
-declare let window, document;
-if (typeof window !== "undefined" && window !== null) {
-  // don't import in case not in browser (for testing)
-  wrapped_editors = require("./editors/react-wrapper");
-}
-
 import * as immutable from "immutable";
 import {
   AppRedux,
@@ -59,6 +47,7 @@ import {
 import { type PublicPath } from "@cocalc/util/db-schema/public-paths";
 import { DirectoryListing } from "@cocalc/frontend/project/explorer/types";
 export { FILE_ACTIONS as file_actions, type FileAction, ProjectActions };
+import { SCHEMA, client_db } from "@cocalc/util/schema";
 
 export type ModalInfo = TypedMap<{
   title: string | React.JSX.Element;
@@ -350,9 +339,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       fn: () => {
         const project_id = this.project_id;
         return function (path) {
-          // (this exists because rethinkdb doesn't have compound primary keys)
-          const { SCHEMA, client_db } = require("@cocalc/util/schema");
-          return SCHEMA.public_paths.user_query.set.fields.id(
+          return SCHEMA.public_paths.user_query?.set?.fields.id(
             { project_id, path },
             client_db,
           );
@@ -366,17 +353,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // is in react and has store with a cursors key.
   get_users_cursors = (path, account_id) => {
     const store: any = redux.getEditorStore(this.project_id, path);
-    if (store == null) {
-      // try non-react editor
-      const editors = wrapped_editors.get_editor(this.project_id, path);
-      if (editors && editors.get_users_cursors) {
-        return editors.get_users_cursors(account_id);
-      } else {
-        return undefined;
-      }
-    } else {
-      return store.get("cursors") && store.get("cursors").get(account_id);
-    }
+    return store?.get("cursors") && store.get("cursors").get(account_id);
   };
 
   is_file_open = (path) => {

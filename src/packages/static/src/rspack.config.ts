@@ -224,8 +224,6 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         ".ts",
         ".tsx",
         ".json",
-        ".coffee",
-        ".cjsx",
         ".scss",
         ".sass",
       ],

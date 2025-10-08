@@ -101,7 +101,6 @@ import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { client_db } from "@cocalc/util/schema";
-import { get_editor } from "./editors/react-wrapper";
 import { type FilesystemClient } from "@cocalc/conat/files/fs";
 import {
   getCacheId,
@@ -1220,40 +1219,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // moves to the given line.  Otherwise, does nothing.
   public goto_line(path, line, cursor?: boolean, focus?: boolean): void {
     const actions: any = redux.getEditorActions(this.project_id, path);
-    if (actions == null) {
-      // try non-react editor
-      const editor = get_editor(this.project_id, path);
-      if (
-        editor != null &&
-        typeof editor.programmatical_goto_line === "function"
-      ) {
-        editor.programmatical_goto_line(line);
-        // TODO: For an old non-react editor (basically just sage worksheets at this point!)
-        // we have to just use this flaky hack, since we are going to toss all this
-        // code soon.  This is needed since if editor is just *loading*, should wait until it
-        // finishes before actually jumping to line, but that's not implemented in editor.coffee.
-        setTimeout(() => {
-          editor.programmatical_goto_line(line);
-        }, 1000);
-        setTimeout(() => {
-          editor.programmatical_goto_line(line);
-        }, 2000);
-      }
-    } else if (actions.programmatical_goto_line != null) {
-      actions.programmatical_goto_line(line, cursor, focus);
-    }
+    actions?.programmatical_goto_line?.(line, cursor, focus);
   }
 
   // Called when a file tab is shown.
   private show_file(path): void {
     const a: any = redux.getEditorActions(this.project_id, path);
-    if (a == null) {
-      // try non-react editor
-      const editor = get_editor(this.project_id, path);
-      if (editor != null) editor.show();
-    } else {
-      a.show?.();
-    }
+    a?.show?.();
     const fragmentId = this.open_files?.get(path, "fragmentId");
     if (fragmentId) {
       // have to wait for next render so that local store is updated and
@@ -1268,12 +1240,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // another tab being made active.
   private hide_file(path): void {
     const a: any = redux.getEditorActions(this.project_id, path);
-    if (a == null) {
-      // try non-react editor
-      const editor = get_editor(this.project_id, path);
-      if (editor != null) editor.hide();
-    } else {
-      if (typeof a.hide === "function") a.hide();
+    if (typeof a?.hide === "function") {
+      a.hide();
     }
   }
 

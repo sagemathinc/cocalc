@@ -51,8 +51,7 @@ import { ActiveFlyout } from "./flyouts/active";
 import { shouldOpenFileInNewWindow } from "./utils";
 import { getValidActivityBarOption } from "./activity-bar";
 import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
-
-const { file_options } = require("@cocalc/frontend/editor");
+import { file_options } from "@cocalc/frontend/editor-tmp";
 
 export type FixedTab =
   | "active"
@@ -163,7 +162,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     icon: "microchip",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
-    noLite: true,  // process monitor doesn't work at all yet for some reason
+    noLite: true, // process monitor doesn't work at all yet for some reason
   },
   settings: {
     label: labels.settings,

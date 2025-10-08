@@ -5,14 +5,12 @@
 
 import { Button, type MenuProps, Space } from "antd";
 import { useIntl } from "react-intl";
-
 import { DropdownMenu, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { COLORS } from "@cocalc/util/theme";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
-
-const { file_options } = require("@cocalc/frontend/editor");
+import { file_options } from "@cocalc/frontend/editor-tmp";
 
 interface Props {
   file_search: string;

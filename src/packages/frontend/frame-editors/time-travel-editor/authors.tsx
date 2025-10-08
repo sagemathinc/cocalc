@@ -4,7 +4,7 @@
  */
 
 import { Popover, Tooltip } from "antd";
-const { User } = require("../../users");
+import { User } from "../../users";
 import { Loading, r_join } from "../../components";
 import { TimeTravelActions } from "./actions";
 import {

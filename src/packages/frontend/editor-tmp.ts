@@ -7,6 +7,11 @@ import { filename_extension_notilde, path_split } from "@cocalc/util/misc";
 import { file_associations } from "./file-associations";
 import { icon as file_icon } from "./file-editors";
 
+export function file_icon_class(ext: string) {
+  const assoc = file_options("x." + ext);
+  return assoc.icon;
+}
+
 // Given a text file (defined by content), try to guess
 // what the extension should be.
 function guess_file_extension_type(content: string): string {
@@ -64,4 +69,4 @@ export function file_options(filename: string, content?: string) {
   return x;
 }
 
-export const UNKNOWN_FILE_TYPE_ICON = "question-circle"
+export const UNKNOWN_FILE_TYPE_ICON = "question-circle";

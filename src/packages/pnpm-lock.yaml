@@ -516,9 +516,6 @@ importers:
       codemirror:
         specifier: ^5.65.18
         version: 5.65.20
-      coffeescript:
-        specifier: ^2.5.1
-        version: 2.7.0
       color-map:
         specifier: ^2.0.6
         version: 2.0.6
@@ -1624,21 +1621,9 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
-      cjsx-loader:
-        specifier: ^3.0.0
-        version: 3.0.0
       clean-webpack-plugin:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.101.3)
-      coffee-cache:
-        specifier: ^1.0.2
-        version: 1.0.2
-      coffee-loader:
-        specifier: ^3.0.0
-        version: 3.0.0(coffeescript@2.7.0)(webpack@5.101.3)
-      coffeescript:
-        specifier: ^2.5.1
-        version: 2.7.0
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@1.5.8(@swc/helpers@0.5.15))(webpack@5.101.3)
@@ -5894,9 +5879,6 @@ packages:
   cjs-module-lexer@2.1.0:
     resolution: {integrity: sha512-UX0OwmYRYQQetfrLEZeewIFFI+wSTofC+pMBLNuH3RUuu/xzG1oz84UCEDOSoQlN3fZ4+AzmV50ZYvGqkMh9yA==}
 
-  cjsx-loader@3.0.0:
-    resolution: {integrity: sha512-bek+Ojam3A0QmqrT8GXvRUdo3ynHyPAjBHNZz2A2lSDccMU9GGZ1eNsTc7+cQ/n2H+UhDL8XW/H1wvG8cNLdZA==}
-
   clamp@1.0.1:
     resolution: {integrity: sha512-kgMuFyE78OC6Dyu3Dy7vcx4uy97EIbVxJB/B0eJ3bUNAkwdNcxYzgKltnyADiYwsR7SEqkkUPsEUT//OVS6XMA==}
 
@@ -5964,20 +5946,6 @@ packages:
 
   codemirror@5.65.20:
     resolution: {integrity: sha512-i5dLDDxwkFCbhjvL2pNjShsojoL3XHyDwsGv1jqETUoW+lzpBKKqNTUWgQwVAOa0tUm4BwekT455ujafi8payA==}
-
-  coffee-cache@1.0.2:
-    resolution: {integrity: sha512-sIqhtqg5AOfgVWH8uQ0b0i0rkawDD1icZNOgyYNJOlJBm8RrEzstLeOwgjZPcyVeMq0jNryx2TDL5xcPUo/27A==}
-
-  coffee-loader@3.0.0:
-    resolution: {integrity: sha512-2UPQNXfMAt4RmI/K9VxnLyrXdYdHPHQuEFiGcb70pTsVPmrV9M6Xg3p9ub7t1ettZZqvXUujjHozp22uTfLkzg==}
-    engines: {node: '>= 12.13.0'}
-    peerDependencies:
-      coffeescript: '>= 2.0.0'
-      webpack: ^5.0.0
-
-  coffee-react-transform@4.0.0:
-    resolution: {integrity: sha512-TTedgCCnIR978F1hwiv/aufBMz0e2pMrb8wEwf20X9VDqDvCWokTQx0ioMY/9c9eq7DnC5nb9wKGspF2IzcoFQ==}
-    hasBin: true
 
   coffeescript@2.7.0:
     resolution: {integrity: sha512-hzWp6TUE2d/jCcN67LrW1eh5b/rSDKQK6oD6VMLlggYVUUFexgTH9z3dNYihzX4RMhze5FTUsUmOXViJKFQR/A==}
@@ -9326,9 +9294,6 @@ packages:
     resolution: {integrity: sha512-+NsyUUAZDmo6YVHzL/stxSu3t9YS1iljliy3BSDrXJ/dkn1KYdmtZODGGjLcc9XLgVVpH4KshHB8XmZgMhaBXg==}
     engines: {node: '>=10'}
     hasBin: true
-
-  mkpath@0.1.0:
-    resolution: {integrity: sha512-bauHShmaxVQiEvlrAPWxSPn8spSL8gDVRl11r8vLT4r/KdnknLqtqwQbToZ2Oa8sJkExYY1z6/d+X7pNiqo4yg==}
 
   mlly@1.7.4:
     resolution: {integrity: sha512-qmdSIPC4bDJXgZTCR7XosJiNKySV7O215tsPtDN9iEO/7q/76b/ijtgRu/+epFXSJhijtTCCGp3DWS549P3xKw==}
@@ -17690,11 +17655,6 @@ snapshots:
 
   cjs-module-lexer@2.1.0: {}
 
-  cjsx-loader@3.0.0:
-    dependencies:
-      coffee-react-transform: 4.0.0
-      loader-utils: 0.2.17
-
   clamp@1.0.1: {}
 
   classnames@2.5.1: {}
@@ -17758,17 +17718,6 @@ snapshots:
   co@4.6.0: {}
 
   codemirror@5.65.20: {}
-
-  coffee-cache@1.0.2:
-    dependencies:
-      mkpath: 0.1.0
-
-  coffee-loader@3.0.0(coffeescript@2.7.0)(webpack@5.101.3):
-    dependencies:
-      coffeescript: 2.7.0
-      webpack: 5.101.3
-
-  coffee-react-transform@4.0.0: {}
 
   coffeescript@2.7.0: {}
 
@@ -21877,8 +21826,6 @@ snapshots:
   mkdirp@1.0.4: {}
 
   mkdirp@3.0.1: {}
-
-  mkpath@0.1.0: {}
 
   mlly@1.7.4:
     dependencies:
