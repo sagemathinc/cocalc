@@ -137,6 +137,7 @@ class Watcher extends EventEmitter {
       return;
     }
     this.lastOnDisk.set(path, cur);
+    this.lastOnDiskHash.set(`${path}-${sha1(cur)}`, true);
     if (
       cur.length >= MAX_PATCH_FILE_SIZE ||
       last.length >= MAX_PATCH_FILE_SIZE

@@ -105,7 +105,7 @@ const LAST_ON_DISK_TTL = 1000 * 60 * 5; // 5 minutes
 // way to prevent all the "frequent save while editing" issues,
 // while mostly still mostly allowing collaboration via disk with
 // other editors (e.g., vscode).
-const LAST_ON_DISK_TTL_HASH = 1000 * 7.5;
+const LAST_ON_DISK_TTL_HASH = 1000 * 15;
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
