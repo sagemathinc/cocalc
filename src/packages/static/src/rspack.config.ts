@@ -96,7 +96,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   const date = new Date();
   const BUILD_DATE = date.toISOString();
   const BUILD_TS = date.getTime();
-  const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
+  const COCALC_CLEAN = !!process.env.COCALC_CLEAN;
   const RSPACK_DEV_SERVER =
     NODE_ENV != "production" && !process.env.NO_RSPACK_DEV_SERVER;
 
@@ -106,7 +106,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   console.log(`NODE_ENV            = ${NODE_ENV}`);
   console.log(`MEASURE             = ${MEASURE}`);
   console.log(`OUTPUT              = ${OUTPUT}`);
-  console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
+  console.log(`COCALC_CLEAN        = ${COCALC_CLEAN}`);
   console.log(`RSPACK_DEV_SERVER   = ${RSPACK_DEV_SERVER}`);
 
   const plugins: WebpackPluginInstance[] = [];
@@ -132,7 +132,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
     COCALC_LICENSE,
   });
 
-  if (!middleware && !COCALC_NOCLEAN) {
+  if (!middleware && COCALC_CLEAN) {
     cleanPlugin(registerPlugin, OUTPUT);
   }
 
