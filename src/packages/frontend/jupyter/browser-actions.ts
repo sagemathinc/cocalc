@@ -76,6 +76,12 @@ import {
 } from "@cocalc/sync/editor/generic/sync-doc";
 import { lite } from "@cocalc/frontend/lite";
 import { type WatchIterator } from "@cocalc/conat/files/watch";
+import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
+
+const dmpFileWatcher = new DiffMatchPatch({
+  matchThreshold: 1,
+  diffTimeout: 0.5,
+});
 
 const OUTPUT_FPS = 29;
 const DEFAULT_OUTPUT_MESSAGE_LIMIT = 500;
@@ -92,6 +98,7 @@ export class JupyterActions extends JupyterActions0 {
   public syncdbPath: string;
   private lastCursorMoveTime: number = 0;
   public jupyterEditorActions?;
+  private hasUnsavedChanges: boolean = false;
 
   protected init2(): void {
     this.syncdbPath = syncdbPath(this.path);
@@ -106,8 +113,7 @@ export class JupyterActions extends JupyterActions0 {
       if (this.syncdb == null || this._state === "closed") return;
       const has_uncommitted_changes = this.syncdb.has_uncommitted_changes();
       const has_unsaved_changes =
-        has_uncommitted_changes ||
-        this.savedVersion != this.syncdb.last_changed();
+        has_uncommitted_changes || this.hasUnsavedChanges;
       this.setState({ has_unsaved_changes, has_uncommitted_changes });
       this.store.emit("has-unsaved-changes", has_unsaved_changes);
       if (has_uncommitted_changes) {
@@ -140,6 +146,7 @@ export class JupyterActions extends JupyterActions0 {
       this.update_contents();
       // run progress
       this.updateRunProgress();
+      this.hasUnsavedChanges = true;
     });
 
     this.fetch_jupyter_kernels();
@@ -715,6 +722,7 @@ export class JupyterActions extends JupyterActions0 {
       this.run_all_cells(true);
     }
   }
+
   public async restart_and_run_all(frame_actions?): Promise<void> {
     const intl = await getIntl();
     const STOP = intl.formatMessage(jupyter.editor.restart_and_run_all_stop);
@@ -2016,7 +2024,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   // load the ipynb version of this notebook from disk
-  loadFromDisk = async (mtime?) => {
+  loadFromDisk = async () => {
     const fs = this.syncdb.fs;
     const content = Buffer.from(await fs.readFile(this.path));
     if (content.length == 0) {
@@ -2024,61 +2032,68 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const ipynb = JSON.parse(content.toString());
-    mtime ??= (await this.syncdb.fs.stat(this.path)).mtime.valueOf();
-    this.setIpynbMtime(mtime);
     await this.setToIpynb(ipynb);
+    this.hasUnsavedChanges = false;
     // good time to refresh status
     await this.refreshKernelStatus();
-  };
-
-  private setIpynbMtime = (mtime: number) => {
-    this.syncdb.set({ type: "fs", id: "", mtime });
-    this.syncdb.commit();
   };
 
   public savedVersion: number = 0;
   saveIpynb = async () => {
     if (this.isClosed() || this.syncdb?.get_state() != "ready") return;
 
-    const before = this.syncdb.last_changed();
     const ipynb = await this.toIpynb();
     if (this.isClosed()) return;
 
     const serialize = JSON.stringify(ipynb, undefined, 2);
-    this.syncdb.fs.writeFile(this.path, serialize);
-    const has_unsaved_changes = this.syncdb.last_changed() != before;
-    this.setState({ has_unsaved_changes });
-    this.store.emit("has-unsaved-changes", has_unsaved_changes);
-    const stats = await this.syncdb.fs.stat(this.path);
-    if (this.isClosed()) return;
-
-    const stillNotChanged = this.syncdb.last_changed() == before;
-    this.setIpynbMtime(stats.mtime.valueOf());
-    if (stillNotChanged) {
-      this.savedVersion = this.syncdb.last_changed();
-    } else {
-      this.savedVersion = 0;
-    }
+    this.syncdb.fs.writeFile(this.path, serialize, true);
+    this.hasUnsavedChanges = false;
+    this.setState({ has_unsaved_changes: false });
+    this.store.emit("has-unsaved-changes", false);
   };
 
   private isIpynbDeleted = false;
-  private loadFromDiskIfChanged = async () => {
-    const mtime = this.syncdb.get_one({ type: "fs", id: "" })?.get("mtime");
-    if (mtime == null) {
-      // console.log("load from disk because mtime null");
-      await this.loadFromDisk();
-      return;
+  private expectedPatchSeq = -1;
+  private watchLoadFromDisk = async ({
+    patch,
+    patchSeq,
+  }: { patch?; patchSeq?: number } = {}) => {
+    let usedPatch = false;
+    if (patch != null && this.expectedPatchSeq == patchSeq) {
+      // use patch
+      this.isIpynbDeleted = false;
+      // TODO/NOTE: obviously we're just a **TEXT FILE** and ignoring
+      // the json structure here for patching.  It will not work on anything
+      // nontrivial.  In that case, we waste a few cycles, then fall back
+      // to a full normal load from disk.  We could instead convert everything
+      // to the syncdoc format... but maybe later.
+      const ipynb = await this.toIpynb();
+      const [newValue] = dmpFileWatcher.patch_apply(
+        decompressPatch(patch),
+        JSON.stringify(ipynb, undefined, 2),
+      );
+      try {
+        const ipynb = JSON.parse(newValue);
+        await this.setToIpynb(ipynb);
+        usedPatch = true;
+      } catch (err) {
+        console.log(
+          "WARNING: error loading from disk using patch (fallback to full load)",
+          err,
+        );
+      }
     }
-    const fs = this.syncdb.fs;
-    const stats = await fs.stat(this.path);
-    this.isIpynbDeleted = false;
-
-    if (stats.mtime.valueOf() != mtime) {
-      //       console.log("load from disk because", {
-      //         "stats.mtime": stats.mtime,
-      //         mtime,
-      //       });
-      await this.loadFromDisk();
+    if (!usedPatch) {
+      // full load
+      try {
+        await this.loadFromDisk();
+        this.isIpynbDeleted = false;
+      } catch {
+        this.isIpynbDeleted = true;
+      }
+    }
+    if (patchSeq != null) {
+      this.expectedPatchSeq = patchSeq + 1;
     }
   };
 
@@ -2095,7 +2110,7 @@ export class JupyterActions extends JupyterActions0 {
       async () => {
         if (this.isClosed()) return true;
         try {
-          await this.loadFromDiskIfChanged();
+          await this.watchLoadFromDisk();
           return true;
         } catch (err) {
           console.warn(`Issue watching ipynb file`, err);
@@ -2119,14 +2134,20 @@ export class JupyterActions extends JupyterActions0 {
       async () => {
         if (done()) return true;
         try {
-          this.fileWatcher = await fs.watch(this.path, { unique: true });
-          for await (const { event, ignore } of this.fileWatcher) {
+          this.fileWatcher = await fs.watch(this.path, {
+            unique: true,
+            patch: true,
+          });
+          this.expectedPatchSeq = 0;
+          for await (const { event, ignore, patch, patchSeq } of this
+            .fileWatcher) {
             if (done()) return true;
-            if (!ignore) {
-              await this.loadFromDiskIfChanged();
-            }
             if (event == "unlink") {
+              // deleted
               break;
+            }
+            if (!ignore) {
+              await this.watchLoadFromDisk({ patch, patchSeq });
             }
           }
         } catch {}
