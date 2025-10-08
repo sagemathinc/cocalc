@@ -65,18 +65,15 @@ if 'user' not in list(d.command_options.get("install", {}).keys()):
 # Then, we switched to "cc" as a shortcut for CoCalc, but it's similar to the C compiler.
 # Using "cocalc-*" is easier to discover and remember.
 
+cs = []
+
 for prefix in ['smc', 'cc', 'cocalc']:
     add = cs.append
-    add('%s-sagews2pdf = smc_pyutil.sagews2pdf:main' % prefix)
-    add('%s-sws2sagews = smc_pyutil.sws2sagews:main' % prefix)
     add('%s-new-file   = smc_pyutil.new_file:main' % prefix)
     add('%s-status     = smc_pyutil.status:main' % prefix)
     add('%s-jupyter-no-output= smc_pyutil.jupyter_delete_output:main' % prefix)
-    add('%s-ipynb2sagews = smc_pyutil.ipynb2sagews:main' % prefix)
     add('%s-start        = smc_pyutil.start_smc:main' % prefix)
     add('%s-stop         = smc_pyutil.stop_smc:main' % prefix)
-    add('%s-html2sagews  = smc_pyutil.html2sagews:main' % prefix)
-    add('%s-sagews2ipynb = smc_pyutil.sagews2ipynb:main' % prefix)
 
     # only cc and cocalc prefixes
     if prefix != 'smc':
@@ -104,9 +101,7 @@ setup(
         'Topic :: Mathematics :: Server',
     ],
     keywords='server mathematics cloud',
-    scripts=[
-        'smc_pyutil/bin/smc-sage-server', 'smc_pyutil/bin/cocalc-python3-clean'
-    ],
+    scripts=['smc_pyutil/bin/cocalc-python3-clean'],
     entry_points={'console_scripts': cs},
     include_package_data=True,
     package_data={'smc_pyutil': ['smc_pyutil/templates/*']},
