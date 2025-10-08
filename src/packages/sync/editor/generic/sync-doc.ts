@@ -2534,9 +2534,6 @@ export class SyncDoc extends EventEmitter {
       throw err;
     }
     if (this.isClosed()) return;
-    const lastChanged = this.last_changed();
-    await this.fs.utimes(this.path, lastChanged / 1000, lastChanged / 1000);
-    if (this.isClosed()) return;
     this.valueOnDisk = value;
     this.emit("save-to-disk");
   };
