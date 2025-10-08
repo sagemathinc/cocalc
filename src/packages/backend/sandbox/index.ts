@@ -79,7 +79,9 @@ export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
 import getListing, { type Files } from "./get-listing";
 import LRU from "lru-cache";
+import TTL from "@isaacs/ttlcache";
 import watch, { type WatchIterator, type WatchOptions } from "./watch";
+import { sha1 } from "@cocalc/backend/sha1";
 //import getLogger from "@cocalc/backend/logger";
 
 //const logger = getLogger("sandbox:fs");
@@ -92,6 +94,18 @@ const MAX_TIMEOUT = 5_000;
 // supports a much better "sync with file state on disk" algorithm.
 const MAX_LAST_ON_DISK = 50_000_000; // 50 MB
 const LAST_ON_DISK_TTL = 1000 * 60 * 5; // 5 minutes
+
+// when any frontend browser client saves a file to disk as part
+// of a sync editing session, seeing the file change on disk to
+// equal that exact value (sha1 hash) will NOT trigger a change
+// event for several seconds.  This avoids some edge cases where
+// you type a little, write something to disk, then type a little
+// more and find that what you just types gets reset to what was
+// on disk, or gets doubled (either way). Basically, this is a simple
+// way to prevent all the "frequent save while editing" issues,
+// while mostly still mostly allowing collaboration via disk with
+// other editors (e.g., vscode).
+const LAST_ON_DISK_TTL_HASH = 1000 * 7.5;
 
 interface Options {
   // unsafeMode -- if true, assume security model where user is running this
@@ -118,6 +132,7 @@ const INTERNAL_METHODS = new Set([
   "readFileLock",
   "_lockFile",
   "lastOnDisk",
+  "lastOnDiskHash",
 ]);
 
 export class SandboxedFilesystem {
@@ -127,8 +142,11 @@ export class SandboxedFilesystem {
   private host?: string;
   private lastOnDisk = new LRU<string, string>({
     maxSize: MAX_LAST_ON_DISK,
-    sizeCalculation: (value) => value.length+1, // must be positive!
+    sizeCalculation: (value) => value.length + 1, // must be positive!
     ttl: LAST_ON_DISK_TTL,
+  });
+  private lastOnDiskHash = new TTL<string, boolean>({
+    ttl: LAST_ON_DISK_TTL_HASH,
   });
 
   constructor(
@@ -494,7 +512,12 @@ export class SandboxedFilesystem {
     path: string,
     options: WatchOptions = {},
   ): Promise<WatchIterator> => {
-    return watch(await this.safeAbsPath(path), options, this.lastOnDisk);
+    return watch(
+      await this.safeAbsPath(path),
+      options,
+      this.lastOnDisk,
+      this.lastOnDiskHash,
+    );
   };
 
   writeFile = async (
@@ -506,6 +529,7 @@ export class SandboxedFilesystem {
     const p = await this.safeAbsPath(path);
     if (saveLast && typeof data == "string") {
       this.lastOnDisk.set(p, data);
+      this.lastOnDiskHash.set(`${p}-${sha1(data)}`, true);
     }
     return await writeFile(p, data);
   };

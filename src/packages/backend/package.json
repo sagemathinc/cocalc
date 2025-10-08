@@ -49,6 +49,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@isaacs/ttlcache": "^1.4.1",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^12.4.1",
     "chokidar": "^4.0.3",

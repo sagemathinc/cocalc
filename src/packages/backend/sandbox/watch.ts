@@ -4,8 +4,10 @@ import { EventIterator } from "@cocalc/util/event-iterator";
 import { type WatchOptions, type ChangeEvent } from "@cocalc/conat/files/watch";
 import { EventEmitter } from "events";
 import LRU from "lru-cache";
+import TTL from "@isaacs/ttlcache";
 import getLogger from "@cocalc/backend/logger";
 import { DiffMatchPatch, compressPatch } from "@cocalc/util/dmp";
+import { sha1 } from "@cocalc/backend/sha1";
 
 // this is used specifically for loading from disk, where the patch
 // explaining the last change on disk gets merged into the live version
@@ -33,9 +35,10 @@ export default function watch(
   path: string,
   options: WatchOptions,
   lastOnDisk: LRU<string, string>,
+  lastOnDiskHash: TTL<string, boolean>,
 ): WatchIterator {
   log("watch", path, options);
-  const watcher = new Watcher(path, options, lastOnDisk);
+  const watcher = new Watcher(path, options, lastOnDisk, lastOnDiskHash);
 
   const iter = new EventIterator(watcher, "change", {
     maxQueue: options.maxQueue ?? 2048,
@@ -58,6 +61,7 @@ class Watcher extends EventEmitter {
     private path: string,
     private options: WatchOptions,
     private lastOnDisk: LRU<string, string>,
+    private lastOnDiskHash: TTL<string, boolean>,
   ) {
     super();
     this.watcher = chokidarWatch(path, {
@@ -124,8 +128,12 @@ class Watcher extends EventEmitter {
       return x;
     }
     if (last == cur) {
-      log(path, "no change");
       // no change
+      return;
+    }
+    if (this.lastOnDiskHash.get(`${path}-${sha1(cur)}`)) {
+      // file is equal to a very RECENTLY-saved-by-browser client version,
+      // so not firing event.
       return;
     }
     this.lastOnDisk.set(path, cur);
