@@ -699,9 +699,6 @@ importers:
       superb:
         specifier: ^3.0.0
         version: 3.0.0
-      three-ancient:
-        specifier: npm:three@=0.78.0
-        version: three@0.78.0
       tsd:
         specifier: ^0.22.0
         version: 0.22.0
@@ -11587,9 +11584,6 @@ packages:
     engines: {node: '>=10.18'}
     peerDependencies:
       tslib: ^2
-
-  three@0.78.0:
-    resolution: {integrity: sha512-JIu4XJrBiwN68qb9Vz/0vF1MjhXM5WueBWpRid+wI2gAKlmnseKCNI3srWbBCV7te1bk9X+sw4ASMSMl5Ng98w==}
 
   throttle-debounce@5.0.2:
     resolution: {integrity: sha512-B71/4oyj61iNH0KeCamLuE2rmKuTO5byTOSVwECM5FA7TiAiAW+UqTKZ9ERueC4qvgSttUhdmq1mXC3kJqGX7A==}
@@ -24601,8 +24595,6 @@ snapshots:
   thingies@2.5.0(tslib@2.8.1):
     dependencies:
       tslib: 2.8.1
-
-  three@0.78.0: {}
 
   throttle-debounce@5.0.2: {}
 
