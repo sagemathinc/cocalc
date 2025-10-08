@@ -117,6 +117,7 @@ import {
   DEFAULT_BACKUP_COUNTS,
 } from "@cocalc/util/consts/snapshots";
 import { getSearch } from "@cocalc/frontend/project/explorer/config";
+import dust from "@cocalc/frontend/project/disk-usage/dust";
 
 const { defaults, required } = misc;
 
@@ -2384,6 +2385,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       .conat()
       .fs({ project_id: this.project_id, compute_server_id });
     return this._filesystem[compute_server_id];
+  };
+
+  dust = async (path: string, compute_server_id?: number) => {
+    return await dust({ project_id: this.project_id, path, compute_server_id });
   };
 
   // if available in cache, this returns the filenames in the current directory,
