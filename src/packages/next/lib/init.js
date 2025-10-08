@@ -78,6 +78,17 @@ async function init({ basePath }) {
   winston.info("ready to handle requests:");
   return (req, res) => {
     winston.http(`req.url=${req.url}`);
+    // Express 5 compatibility: Make req.query writable for Next.js
+    // Next.js's apiResolver tries to set req.query, but Express 5 makes it read-only
+    if (req.query !== undefined) {
+      const queryValue = req.query;
+      Object.defineProperty(req, "query", {
+        value: queryValue,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    }
     handle(req, res);
   };
 }

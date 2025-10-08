@@ -11,6 +11,7 @@ import { join } from "path";
 
 // @ts-ignore -- TODO: typescript doesn't like @cocalc/next/init (it is a js file).
 import initNextServer from "@cocalc/next/init";
+
 import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/hub/logger";
 import handleRaw from "@cocalc/next/lib/share/handle-raw";
@@ -54,7 +55,7 @@ export default async function init(app: Application) {
     // 1: The raw static server:
     const raw = join(shareBasePath, "raw");
     app.all(
-      join(raw, "*"),
+      join(raw, "{*splat}"),
       (req: Request, res: Response, next: NextFunction) => {
         // Embedding only enabled for PDF files -- see note above
         const download =
@@ -76,7 +77,7 @@ export default async function init(app: Application) {
     // 2: The download server -- just like raw, but files always get sent via download.
     const download = join(shareBasePath, "download");
     app.all(
-      join(download, "*"),
+      join(download, "{*splat}"),
       (req: Request, res: Response, next: NextFunction) => {
         try {
           handleRaw({
@@ -95,13 +96,16 @@ export default async function init(app: Application) {
     // 3: Redirects for backward compat; unfortunately there's slight
     // overhead for doing this on every request.
 
-    app.all(join(shareBasePath, "*"), shareRedirect(shareBasePath));
+    app.all(join(shareBasePath), shareRedirect(shareBasePath));
+    app.all(join(shareBasePath, "{*splat}"), shareRedirect(shareBasePath));
   }
 
   const landingRedirect = createLandingRedirect();
   app.all(join(basePath, "index.html"), landingRedirect);
-  app.all(join(basePath, "doc*"), landingRedirect);
-  app.all(join(basePath, "policies*"), landingRedirect);
+  app.all(join(basePath, "doc"), landingRedirect);
+  app.all(join(basePath, "doc", "{*splat}"), landingRedirect);
+  app.all(join(basePath, "policies"), landingRedirect);
+  app.all(join(basePath, "policies", "{*splat}"), landingRedirect);
 
   // The next.js server that serves everything else.
   winston.info(
@@ -109,7 +113,7 @@ export default async function init(app: Application) {
   );
 
   // nextjs listens on everything else
-  app.all("*", handler);
+  app.all("{*splat}", handler);
 }
 
 function parseURL(req: Request, base): { id: string; path: string } {
