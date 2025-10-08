@@ -555,7 +555,8 @@ export const labels = defineMessages({
   },
   select: {
     id: "labels.select",
-    defaultMessage: "select",
+    defaultMessage: "Select",
+    description: "Short label on a button in a dialog, to confirm a 'selection'."
   },
   select_a_kernel: {
     id: "labels.select_a_kernel",
