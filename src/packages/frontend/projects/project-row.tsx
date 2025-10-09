@@ -7,7 +7,6 @@
 Render a single project entry, which goes in the list of projects
 */
 
-import { CSSProperties, useEffect } from "react";
 import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
