@@ -68,7 +68,6 @@ class TestJupyterKernels:
 class TestJupyterExecuteViaHub:
     """Tests for executing code via hub.jupyter.execute()."""
 
-    @pytest.mark.skip(reason="hub.jupyter.execute() has timeout issues - use project.system.jupyter_execute() instead")
     def test_execute_simple_sum(self, hub, temporary_project):
         """Test executing a simple sum using the python3 kernel."""
         project_id = temporary_project["project_id"]
@@ -90,7 +89,6 @@ class TestJupyterExecuteViaHub:
         assert "text/plain" in first_output["data"]
         assert first_output["data"]["text/plain"] == "4950"
 
-    @pytest.mark.skip(reason="hub.jupyter.execute() has timeout issues - use project.system.jupyter_execute() instead")
     def test_execute_with_history(self, hub, temporary_project):
         """Test executing code with history context."""
         project_id = temporary_project["project_id"]
@@ -109,7 +107,6 @@ class TestJupyterExecuteViaHub:
         assert "text/plain" in first_output["data"]
         assert first_output["data"]["text/plain"] == "5050"
 
-    @pytest.mark.skip(reason="hub.jupyter.execute() has timeout issues - use project.system.jupyter_execute() instead")
     def test_execute_print_statement(self, hub, temporary_project):
         """Test executing code that prints output."""
         project_id = temporary_project["project_id"]

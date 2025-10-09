@@ -59,8 +59,8 @@ async function main() {
   console.error(`API key created with id=${apiKey.id}: ${apiKey.secret}`);
   console.error(`Last 6 chars: ${apiKey.secret.slice(-6)}`);
 
-  // Output the key for CI
-  process.stdout.write(apiKey.secret);
+  // Output the account_id and API key for CI in format: UUID;api-key
+  process.stdout.write(`${account_id};${apiKey.secret}`);
 }
 
 main().catch((err) => {
