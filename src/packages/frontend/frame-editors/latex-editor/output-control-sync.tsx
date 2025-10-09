@@ -14,7 +14,8 @@ import { defineMessage, useIntl } from "react-intl";
 
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import { useRedux } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Icon, Tip } from "@cocalc/frontend/components";
+import { HelpIcon, Icon, Text, Tip } from "@cocalc/frontend/components";
+import { SYNC_FORWARD_ICON, SYNC_INVERSE_ICON } from "@cocalc/util/consts/ui";
 
 import { Actions } from "./actions";
 
@@ -52,17 +53,17 @@ const SYNC_HELP_MSG = {
     id: "editor.latex.pdf_controls.sync_help.content",
     defaultMessage: `<p><strong>Manual Mode:</strong></p>
 <ul>
-  <li>Use ALT+Return in source document to jump to corresponding PDF location</li>
+  <li>Use <KB>Alt+Return</KB> (<KB>Option+Return</KB> on Mac) in source document to jump to corresponding PDF location</li>
   <li>Double-click in PDF or the "Sync" button for inverse search to source</li>
 </ul>
 <p><strong>Automatic Mode:</strong></p>
 <ul>
-  <li>Forward Sync (→): Syncs automatically from cursor changes in source to PDF</li>
-  <li>Inverse Sync (←): Moving the PDF viewport moves the cursor in source</li>
+  <li>Forward Sync ({forwardIcon}): Syncs automatically from cursor position changes in source to PDF</li>
+  <li>Inverse Sync ({inverseIcon}): Scrolling the PDF changes the cursor position in source</li>
 </ul>
 <p>This functionality uses SyncTeX to coordinate between LaTeX source and PDF output.</p>`,
     description:
-      "Complete explanation of LaTeX sync functionality including manual and automatic modes",
+      "Explanation of LaTeX sync functionality including manual and automatic modes",
   }),
 };
 
@@ -183,7 +184,7 @@ export function SyncControls({
             onClick={() => handleAutoSyncChange("autoSyncInverse")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
           >
-            <Icon unicode={0x21b6} />
+            <Icon unicode={SYNC_INVERSE_ICON} />
           </BSButton>
         </Tip>
         <Tip
@@ -196,11 +197,7 @@ export function SyncControls({
             onClick={() => handleAutoSyncChange("autoSyncForward")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
           >
-            <Icon
-              unicode={0x21b6}
-              rotate="180"
-              style={{ position: "relative", top: "-3px" }}
-            />
+            <Icon unicode={SYNC_FORWARD_ICON} />
           </BSButton>
         </Tip>
         <Tip
@@ -222,7 +219,11 @@ export function SyncControls({
           title={intl.formatMessage(SYNC_HELP_MSG.title)}
           placement="bottomLeft"
         >
-          {intl.formatMessage(SYNC_HELP_MSG.content)}
+          {intl.formatMessage(SYNC_HELP_MSG.content, {
+            forwardIcon: String.fromCharCode(SYNC_FORWARD_ICON),
+            inverseIcon: String.fromCharCode(SYNC_INVERSE_ICON),
+            KB: (ch) => <Text code>{ch}</Text>,
+          })}
         </HelpIcon>
       )}
     </div>
