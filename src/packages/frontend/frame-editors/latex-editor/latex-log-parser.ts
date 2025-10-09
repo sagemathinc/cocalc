@@ -23,6 +23,8 @@ import { trimEnd } from "lodash";
 
 import { normalize as path_normalize } from "path";
 
+import { filename_extension } from "@cocalc/util/misc";
+
 // Define some constants
 const LOG_WRAP_LIMIT = 79;
 const LATEX_WARNING_REGEX = /^LaTeX Warning: (.*)$/;
@@ -32,6 +34,26 @@ const PACKAGE_WARNING_REGEX = /^((?:Package|Class|Module) \b.+\b Warning:.*)$/;
 const LINES_REGEX = /lines? ([0-9]+)/;
 // This is used to parse the package name from the package warnings
 const PACKAGE_REGEX = /^(?:Package|Class|Module) (\b.+\b) Warning/;
+
+// Whitelist of text file extensions that can be used with \input{} or \include{}
+const ALLOWED_DEP_EXTENSIONS = [
+  "bbx",
+  "bib",
+  "bst",
+  "cbx",
+  "cfg",
+  "cls",
+  "def",
+  "lbx",
+  "md",
+  "pgf",
+  "rnw",
+  "rtex",
+  "sty",
+  "tex",
+  "tikz",
+  "txt",
+] as const;
 
 class LogText {
   private lines: string[];
@@ -224,14 +246,25 @@ export class LatexParser {
 
   addDeps(line: string): void {
     line = line.trim();
-    // ignore absolute files
+    // ignore absolute files (starting with /)
     if (line[0] === "/") return;
     if (line[line.length - 1] === "\\") {
       line = line.slice(0, line.length - 1);
     }
-    // we only want to know about tex and bib files
-    const pl = line.toLowerCase(); // could be name.TEX
-    if (!pl.endsWith(".tex") && !pl.endsWith(".bib")) return;
+    // Skip files that contain a colon (like "master.pdf :")
+    if (line.includes(":")) return;
+
+    // Get the file extension (returns empty string if no extension)
+    const ext = filename_extension(line).toLowerCase();
+
+    // If there's an extension, check if it's in the whitelist
+    if (ext) {
+      if (!ALLOWED_DEP_EXTENSIONS.includes(ext as any)) {
+        return;
+      }
+    }
+    // If no extension, include it (files without extensions are allowed)
+
     this.deps.push(line);
   }
 
@@ -306,7 +339,7 @@ export class LatexParser {
     const packageMatch = this.currentLine.match(PACKAGE_REGEX);
     if (!packageMatch) return;
     const packageName = packageMatch[1];
-    // Regex to get rid of the unnecesary (packagename) prefix in most multi-line warnings
+    // Regex to get rid of the unnecessary (packagename) prefix in most multi-line warnings
     const prefixRegex = new RegExp(`(?:\\(${packageName}\\))*[\\s]*(.*)`, "i");
     // After every warning message there's a blank line, let's use it
     while (!!(this.currentLine = this.log.nextLine())) {
