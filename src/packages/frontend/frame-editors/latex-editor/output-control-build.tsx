@@ -22,6 +22,7 @@ import {
   BUILD_ON_SAVE_ICON_ENABLED,
   BUILD_ON_SAVE_LABEL,
 } from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
+import { server_time } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, IntlMessage } from "@cocalc/frontend/i18n";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 
@@ -67,6 +68,10 @@ export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
     set_account_table({ editor_settings: { build_on_save: !buildOnSave } });
   };
 
+  const handleReloadPdf = () => {
+    actions.update_pdf(server_time().valueOf(), true);
+  };
+
   const buildMenuItems: MenuProps["items"] = [
     {
       key: "force-build",
@@ -82,6 +87,12 @@ export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
     },
     {
       type: "divider",
+    },
+    {
+      key: "reload-pdf",
+      label: "Reload PDF",
+      icon: <Icon name="refresh" />,
+      onClick: handleReloadPdf,
     },
     {
       key: "download-pdf",
