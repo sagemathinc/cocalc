@@ -30,7 +30,7 @@
     "debug": "^4.4.0",
     "express": "^4.21.2",
     "formidable": "^3.5.4",
-    "http-proxy-3": "^1.21.1",
+    "http-proxy-3": "^1.22.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "ms": "2.1.2",

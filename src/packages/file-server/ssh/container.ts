@@ -1,5 +1,13 @@
 /*
-Manager container that is the target of ssh.
+Container associated to a project that runs on the file-server:
+
+- runs an openssh server, which is used by the project with mutagen
+  to synchronize all files in /root (the home directory)
+- is an rsync target for the overlayfs upper layer
+- mutagen forwards several ports here:
+   - an ssh server running in the project itself
+   - an http proxy server
+   
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";

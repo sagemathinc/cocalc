@@ -3,13 +3,12 @@ Development
 
 You have to have a server running (say on port 30000).  Then:
 
-
   unset COCALC_PROJECT_ID; PORT=30000 DEBUG_CONSOLE=yes DEBUG=cocalc:*  node
 
   Welcome to [...]
 
   > a = require('@cocalc/backend/conat'); b = require('@cocalc/lite/hub/user-query'); await b.init(a.conat())
-  
+
   > kv = await a.conat().sync.dkv({name:'database'})
 
   > await b.default({query:{accounts:[{email_address:null}]}})
@@ -25,7 +24,7 @@ You have to have a server running (say on port 30000).  Then:
       }
     ]
   }
-  
+
 The implementation below is quite dumb, mainly since it writes the entire
 table every time a row is added or edited.  It should be enough for small
 testing, but needs to be redone, obviously!
