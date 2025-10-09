@@ -31,6 +31,7 @@ type Group = (typeof GROUPS)[number];
 // names of old images, that won't trigger the "upgrade banner", pointing to the most recent end-of-life image of that series
 export const DISMISS_IMG_1804 = "ubuntu1804";
 export const DISMISS_IMG_2004 = "ubuntu2004-eol";
+export const DISMISS_IMG_2204 = "ubuntu2204-eol";
 // names of old images triggering the upgrade banner to 22.04
 export const UBUNTU2004_DEPRECATED = "ubuntu2004";
 export const UBUNTU2004_DEV = "ubuntu2004-dev";
@@ -75,6 +76,13 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Ubuntu 22.04 (until June 2025)",
     descr:
       "Ubuntu 22.04-based software stack, superseded by 24.04 in June 2025",
+    group: "Main",
+  },
+  [DISMISS_IMG_2204]: {
+    order: 1,
+    title: "Ubuntu 22.04 (EndOfLife)",
+    short: "Ubuntu 22.04 (EndOfLife)",
+    descr: "Reached end of life in June 2025",
     group: "Main",
   },
   [UBUNTU2404_DEV]: {
