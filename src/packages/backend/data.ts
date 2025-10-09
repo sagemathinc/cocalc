@@ -181,14 +181,28 @@ export function sslConfigToPsqlEnv(config: SSLConfig): PsqlSSLEnvConfig {
 
 export const root: string = process.env.COCALC_ROOT ?? determineRoot();
 export const data: string = process.env.DATA ?? join(root, "data");
+
+// Database Config
 export const pguser: string = process.env.PGUSER ?? "smc";
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");
 export const pgssl = sslConfigFromCoCalcEnv();
 export const pgdatabase: string =
   process.env.SMC_DB ?? process.env.PGDATABASE ?? "smc";
+
+// Database healthchecks
+export const pgConcurrentWarn: number = parseInt(
+  process.env.COCALC_HEALTH_PG_CONCURRENT_WARN ?? "300",
+);
+
+// Hub server configuration
+export const hubHostname: string =
+  process.env.COCALC_HUB_HOSTNAME ?? "127.0.0.1";
+export const agentPort: number = parseInt(process.env.COCALC_AGENT_PORT ?? "0");
+
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
+
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 
 export const account_id: string =

@@ -52,7 +52,7 @@ import {
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
-import { capitalize, unreachable } from "@cocalc/util/misc";
+import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareEnvironmentInformation } from "./software-env-info";
@@ -113,7 +113,7 @@ export function ComputeImageSelector({
 }: ComputeImageSelectorProps) {
   const intl = useIntl();
 
-  const label = propsLabel ?? capitalize(intl.formatMessage(labels.select));
+  const label = propsLabel ?? intl.formatMessage(labels.select);
 
   // initialize with the given default
   const [nextImg, setNextImg] = useState<string>(current_image);
@@ -407,7 +407,7 @@ export function ComputeImageSelector({
               >
                 <div
                   style={{ flex: "0 0 auto", marginRight: "10px" }}
-                >{`${capitalize(intl.formatMessage(labels.select))}:`}</div>
+                >{`${intl.formatMessage(labels.select)}:`}</div>
                 <div style={{ flex: "1 1 auto" }}>{render_selector()}</div>
               </div>
             </Paragraph>

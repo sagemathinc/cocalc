@@ -50,10 +50,11 @@ export class PDFWatcher {
 
       // Listen for directory changes
       this.directory_listings.on("change", async (paths: string[]) => {
+        if (this.directory_listings == null) return;
         if (paths.includes(this.watch_dir)) {
           try {
             const updatedFiles: DirectoryListingEntry[] | undefined =
-              await this.directory_listings!.get(this.watch_dir);
+              await this.directory_listings.get(this.watch_dir);
             const updatedPdfFile = updatedFiles?.find(
               (f) => f.name === this.pdf_filename,
             );

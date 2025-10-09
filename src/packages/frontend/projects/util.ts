@@ -194,3 +194,25 @@ function project_is_in_filter(
     !!project.getIn(["users", account_id, "hide"]) == hidden
   );
 }
+
+/**
+ * Blend a base color with a user-selected color to create a subtle hint.
+ *
+ * @param custom - The color (hex string or undefined) a user selected for the object
+ * @param base - The base background color to blend with (i.e. the background, default color)
+ * @param brighter - Adjust the opacity, e.g. for even/odd rows
+ */
+export function blendBackgroundColor(
+  custom: string | undefined,
+  base: string,
+  brighter: boolean = false,
+): string {
+  if (!custom) {
+    return base;
+  }
+
+  const opacity = brighter ? 0.09 : 0.05;
+
+  // Uses CSS color-mix() to blend the colors
+  return `color-mix(in srgb, ${custom} ${opacity * 100}%, ${base})`;
+}

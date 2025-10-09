@@ -222,6 +222,32 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   };
 
+  setProjectColor = async (
+    project_id: string,
+    color: string,
+  ): Promise<void> => {
+    if (!(await this.have_project(project_id))) {
+      console.warn(
+        `Can't set project color -- you are not a collaborator on project '${project_id}'.`,
+      );
+      return;
+    }
+    const before = store.getIn(["project_map", project_id, "color"]);
+    if (before === color) return;
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, color });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        color,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, color: before });
+      throw err;
+    }
+  };
+
   // creates and stores image as a blob in the database.
   // stores sha1 of that blog in projects map and also returns
   // the sha1.

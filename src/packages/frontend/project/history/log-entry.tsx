@@ -5,6 +5,7 @@
 import { Space, Tooltip } from "antd";
 import React from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -520,11 +521,40 @@ export const LogEntry: React.FC<Props> = React.memo(
       for (const key in obj) {
         i += 1;
         const value = obj[key];
-        if (key == "image") {
+        if (key === "image") {
           result.push(
             <span key={i}>
               set project image to{" "}
               <img src={value} width="16px" height="16px" />
+            </span>,
+          );
+          continue;
+        }
+        if (key === "color") {
+          const textColor = value ? avatar_fontcolor(value) : "black";
+          result.push(
+            <span key={i}>
+              set{" "}
+              <a
+                onClick={click_set}
+                style={cursor ? selected_item : undefined}
+                href=""
+              >
+                color
+              </a>{" "}
+              to{" "}
+              <span
+                style={{
+                  backgroundColor: value || "transparent",
+                  color: textColor,
+                  padding: "2px 6px",
+                  borderRadius: "3px",
+                  border: value ? "none" : "1px solid " + COLORS.GRAY_L,
+                  fontFamily: "monospace",
+                }}
+              >
+                {value || "(none)"}
+              </span>
             </span>,
           );
           continue;

@@ -5,7 +5,10 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
+import { cloneElement, CSSProperties, useMemo, useState } from "react";
+
 import {
+  CSS,
   redux,
   useActions,
   useRedux,
@@ -15,7 +18,7 @@ import { set_window_title } from "@cocalc/frontend/browser";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import {
   SortableTabs,
-  renderTabBar,
+  SortableTab,
   useItemContext,
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
@@ -25,12 +28,12 @@ import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import { CSSProperties, useMemo, useState } from "react";
 import { useProjectState } from "../project/page/project-state-hook";
 import { useProjectHasInternetAccess } from "../project/settings/has-internet-access-hook";
 import { BuyLicenseForProject } from "../site-licenses/purchase/buy-license-for-project";
+import { blendBackgroundColor } from "./util";
 
-const PROJECT_NAME_STYLE: CSSProperties = {
+const PROJECT_NAME_STYLE: CSS = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -239,6 +242,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
   const projectActions = useActions("projects");
   const activeTopTab = useTypedRedux("page", "active_top_tab");
   const openProjects = useTypedRedux("projects", "open_projects");
+  const project_map = useTypedRedux("projects", "project_map");
 
   const items: TabsProps["items"] = useMemo(() => {
     if (openProjects == null) return [];
@@ -280,13 +284,49 @@ export function ProjectsNav(props: ProjectsNavProps) {
   }
 
   function renderTabBar0(tabBarProps, DefaultTabBar) {
-    return renderTabBar(tabBarProps, DefaultTabBar, {
-      [activeTopTab]: {
-        border: "2px solid #d3d3d3",
-        borderRadius: "8px",
-      },
-      "": { border: "2px solid transparent", borderRadius: "8px" },
-    });
+    return (
+      <DefaultTabBar {...tabBarProps}>
+        {(node) => {
+          const project_id = node.key;
+          const isActive = project_id === activeTopTab;
+          const projectColor = project_map?.getIn([project_id, "color"]) as
+            | string
+            | undefined;
+
+          const wrapperStyle: CSS = {
+            border: isActive
+              ? `2px solid ${projectColor ? projectColor : "#d3d3d3"}`
+              : `2px solid  ${projectColor ? projectColor : "transparent"}`,
+            borderRadius: "8px",
+          };
+
+          // Add background color if project has a color
+          if (projectColor) {
+            // Active tab: lighter/brighter (less color), inactive: darker (more color)
+            wrapperStyle.backgroundColor = blendBackgroundColor(
+              projectColor,
+              isActive ? "white" : COLORS.GRAY_LL,
+              !isActive,
+            );
+          }
+
+          // Clone the node with additional style props to override Ant Design's background
+          const styledNode = cloneElement(node, {
+            style: {
+              ...node.props.style,
+              backgroundColor: wrapperStyle.backgroundColor,
+            },
+          });
+
+          // this is similar to the renderTabBar in sortable-tabs.tsx, but with the above, also styles the background
+          return (
+            <SortableTab key={node.key} id={node.key} style={wrapperStyle}>
+              {styledNode}
+            </SortableTab>
+          );
+        }}
+      </DefaultTabBar>
+    );
   }
 
   return (

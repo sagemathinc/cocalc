@@ -4,9 +4,10 @@
  */
 
 import ShowError from "@cocalc/frontend/components/error";
-import { Alert, Col, Row, Typography } from "antd";
+import { Alert, Button, Col, Modal, Row, Typography } from "antd";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
+
 import {
   redux,
   useAsyncEffect,
@@ -22,6 +23,8 @@ import {
   TextInput,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { ColorPicker } from "@cocalc/frontend/colorpicker";
 import { COLORS } from "@cocalc/util/theme";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
@@ -61,6 +64,12 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
   const hasReadonlyFields = ["student", "shared"].includes(courseProjectType);
   const [error, setError] = useState<string>("");
   const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
+  const [color, setColor] = useState<string | undefined>(
+    project_map?.getIn([project_id, "color"]) as string | undefined,
+  );
+  const [showColorModal, setShowColorModal] = useState<boolean>(false);
+  const [nextColor, setNextColor] = useState<string | undefined>(color);
+
   const { isProjectBookmarked, setProjectBookmarked } = useBookmarkedProjects();
 
   useAsyncEffect(async () => {
@@ -223,17 +232,120 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
           })}
           vertical={isFlyout}
         >
-          <ProjectImage
-            avatarImage={avatarImage}
-            onChange={async (data) => {
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+          >
+            <ProjectImage
+              avatarImage={avatarImage}
+              onChange={async (data) => {
+                try {
+                  await actions.setProjectImage(project_id, data);
+                  setAvatarImage(data.full);
+                } catch (err) {
+                  setError(`Error saving project image: ${err}`);
+                }
+              }}
+            />
+            {avatarImage && (
+              <Button
+                danger
+                onClick={async () => {
+                  try {
+                    await actions.setProjectImage(project_id, {
+                      full: "",
+                      tiny: "",
+                    });
+                    setAvatarImage(undefined);
+                  } catch (err) {
+                    setError(`Error deleting project image: ${err}`);
+                  }
+                }}
+              >
+                Delete Image
+              </Button>
+            )}
+          </div>
+        </LabeledRow>
+        <LabeledRow
+          label={intl.formatMessage({
+            id: "project.settings.about-box.color.label",
+            defaultMessage: "Color (optional)",
+            description:
+              "Optional color for visual identification of the project",
+          })}
+          vertical={isFlyout}
+        >
+          <div style={{ display: "flex", gap: "8px" }}>
+            <Button
+              size="small"
+              style={{
+                flex: 2,
+                backgroundColor: color || "transparent",
+                color: color ? avatar_fontcolor(color) : undefined,
+                border: color ? "none" : undefined,
+              }}
+              onClick={() => {
+                setNextColor(color);
+                setShowColorModal(true);
+              }}
+            >
+              {intl.formatMessage(
+                {
+                  id: "project.settings.about-box.color.button",
+                  defaultMessage:
+                    "{haveColor, select, true {Change Color} other {Select Color}}",
+                  description: "Button label for changing the color",
+                },
+                { haveColor: !!color },
+              )}
+            </Button>
+            {color && (
+              <Button
+                size="small"
+                style={{ flex: 1 }}
+                onClick={async () => {
+                  try {
+                    await actions.setProjectColor(project_id, "");
+                    setColor(undefined);
+                  } catch (err) {
+                    setError(`Error removing project color: ${err}`);
+                  }
+                }}
+              >
+                {intl.formatMessage(labels.remove)}
+              </Button>
+            )}
+          </div>
+          <Modal
+            title={intl.formatMessage({
+              id: "project.settings.about-box.color.modal.title",
+              defaultMessage: "Select Project Color",
+              description: "Title of modal dialog for selecting project color",
+            })}
+            open={showColorModal}
+            okText={intl.formatMessage(labels.select)}
+            onOk={async () => {
               try {
-                await actions.setProjectImage(project_id, data);
-                setAvatarImage(data.full);
+                await actions.setProjectColor(project_id, nextColor ?? "");
+                setColor(nextColor);
+                setShowColorModal(false);
               } catch (err) {
-                setError(`Error saving project image: ${err}`);
+                setError(`Error saving project color: ${err}`);
               }
             }}
-          />
+            onCancel={() => {
+              setShowColorModal(false);
+              setNextColor(color);
+            }}
+          >
+            <ColorPicker
+              color={nextColor}
+              justifyContent="flex-start"
+              onChange={(value) => {
+                setNextColor(value);
+              }}
+            />
+          </Modal>
         </LabeledRow>
         {created && (
           <LabeledRow

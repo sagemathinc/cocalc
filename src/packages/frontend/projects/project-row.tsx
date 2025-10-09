@@ -7,8 +7,10 @@
 Render a single project entry, which goes in the list of projects
 */
 
+import { CSSProperties, useEffect } from "react";
 import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
+  CSS,
   React,
   redux,
   useActions,
@@ -38,6 +40,7 @@ import { Avatar, Button, Tooltip } from "antd";
 import { CSSProperties, useEffect } from "react";
 import { ProjectUsers } from "./project-users";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
+import { blendBackgroundColor } from "./util";
 
 const image_name_style: React.CSSProperties = {
   fontSize: "12px",
@@ -210,11 +213,25 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     e.stopPropagation();
   }
 
-  const project_row_styles: React.CSSProperties = {
-    backgroundColor: (index ?? 0) % 2 ? "#eee" : "white",
+  const color = project.get("color");
+  const borderStyle = color ? `4px solid ${color}` : undefined;
+
+  // Calculate background color with faint hint of project color
+  const isEvenRow = (index ?? 0) % 2 === 1;
+  const baseColor = isEvenRow ? COLORS.GRAY_LL : "white"; // even color same as background in projects-nav.ts ProjectsNav::renderTabBar0
+  const backgroundColor = blendBackgroundColor(color, baseColor, isEvenRow);
+
+  const project_row_styles: CSS = {
+    backgroundColor,
     marginBottom: 0,
     cursor: "pointer",
     wordWrap: "break-word",
+    ...(borderStyle
+      ? {
+          borderLeft: borderStyle,
+          borderRight: borderStyle,
+        }
+      : undefined),
   };
 
   if (project == null) {
