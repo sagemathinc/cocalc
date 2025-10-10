@@ -1337,6 +1337,7 @@
   "project.page.project-licenses.header": "الحصص و{upgrades}",
   "project.page.project-licenses.intro": "التراخيص والترقيات حسب الاستخدام تغير الحصص والميزات المتاحة للمشروع",
   "project.servers.project-servers.description": "يمكنك تشغيل خوادم دفتر ملاحظات مختلفة داخل هذا المشروع بنقرة واحدة. تعمل في نفس البيئة، وتصل إلى نفس الملفات، وتتوقف عندما يتوقف المشروع. يمكنك أيضًا <A>تشغيل خوادمك الخاصة</A>.",
+  "project.settings.about-box.color.label": "اللون (اختياري)",
   "project.settings.about-box.description.label": "الوصف (ماركداون)",
   "project.settings.about-box.image.label": "صورة (اختياري)",
   "project.settings.about-box.name.label": "الاسم (اختياري)",
