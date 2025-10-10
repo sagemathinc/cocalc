@@ -1,12 +1,13 @@
+import type { TourProps } from "antd";
+import { Button, Checkbox, Space, Tour } from "antd";
+import { useState } from "react";
+
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import track from "@cocalc/frontend/user-tracking";
-import type { TourProps } from "antd";
-import { Button, Checkbox, Space, Tour } from "antd";
-import { useState } from "react";
 import collabsImage from "./tour-collabs.png";
 import infoImage from "./tour-info.png";
 import projectsImage from "./tour-projects.png";
@@ -166,10 +167,10 @@ export default function ProjectsPageTour({
     },
   ];
   return (
-    <div>
+    <>
       <Space.Compact style={style}>
         <Button
-          type="primary"
+          type="dashed"
           onClick={() => {
             setOpen(true);
             track("tour", { name: "projects" });
@@ -185,6 +186,6 @@ export default function ProjectsPageTour({
         }}
         steps={steps}
       />
-    </div>
+    </>
   );
 }

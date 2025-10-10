@@ -4,7 +4,7 @@
  */
 
 import { Virtuoso } from "react-virtuoso";
-import { LoadAllProjects } from "./load-all";
+import { LoadAllProjects } from "./projects-load-all";
 import { ProjectRow } from "./project-row";
 
 interface Props {

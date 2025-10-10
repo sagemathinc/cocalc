@@ -5,6 +5,7 @@
 
 import { Tooltip } from "antd";
 import { CSSProperties, useState } from "react";
+
 import { isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
   React,

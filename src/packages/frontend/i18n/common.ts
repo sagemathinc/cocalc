@@ -467,6 +467,11 @@ export const labels = defineMessages({
     defaultMessage:
       "Collaborators are other users, who can access this project. They can view and edit the same files as you.",
   },
+  collaborators: {
+    id: "labels.collaborators",
+    defaultMessage: "Collaborators",
+    description: "Collaborators (people) on a project, working together",
+  },
   chat: {
     id: "labels.chat",
     defaultMessage: "Chat",
@@ -556,7 +561,8 @@ export const labels = defineMessages({
   select: {
     id: "labels.select",
     defaultMessage: "Select",
-    description: "Short label on a button in a dialog, to confirm a 'selection'."
+    description:
+      "Short label on a button in a dialog, to confirm a 'selection'.",
   },
   select_a_kernel: {
     id: "labels.select_a_kernel",
