@@ -16,6 +16,10 @@ const logger = getLogger("socket:server");
 // socket.listen method on ConatClient.
 
 export class ConatSocketServer extends ConatSocketBase {
+  serverSubjectPattern = (): string => {
+    return `${this.subject}.server.*`;
+  };
+
   initTCP() {}
 
   channel(channel: string) {
@@ -32,7 +36,7 @@ export class ConatSocketServer extends ConatSocketBase {
 
   protected async run() {
     this.deleteDeadSockets();
-    const sub = await this.client.subscribe(`${this.subject}.server.*`, {
+    const sub = await this.client.subscribe(this.serverSubjectPattern(), {
       sticky: true,
     });
     if (this.state == "closed") {

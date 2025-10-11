@@ -40,6 +40,11 @@ export class ConatSocketClient extends ConatSocketBase {
     }
   }
 
+  // subject to send messages/data to the socket server.
+  serverSubject = (): string => {
+    return `${this.subject}.server.${this.id}`;
+  };
+
   channel(channel: string) {
     return this.client.socket.connect(this.subject + "." + channel, {
       desc: `${this.desc ?? ""}.channel('${channel}')`,
@@ -68,7 +73,7 @@ export class ConatSocketClient extends ConatSocketBase {
     // request = send a socket request mesg to the server side of the socket
     // either ack what's received or asking for a resend of missing data.
     const request = async (mesg, opts?) =>
-      await this.client.request(`${this.subject}.server.${this.id}`, mesg, {
+      await this.client.request(this.serverSubject(), mesg, {
         ...opts,
         headers: { ...opts?.headers, [SOCKET_HEADER_CMD]: "socket" },
       });
@@ -103,7 +108,7 @@ export class ConatSocketClient extends ConatSocketBase {
       [SOCKET_HEADER_CMD]: cmd,
       id: this.id,
     };
-    const subject = `${this.subject}.server.${this.id}`;
+    const subject = this.serverSubject();
     logger.silly("sendCommandToServer", { cmd, timeout, subject });
     const resp = await this.client.request(subject, null, {
       headers,
@@ -192,8 +197,7 @@ export class ConatSocketClient extends ConatSocketBase {
   }
 
   private sendDataToServer = (mesg) => {
-    const subject = `${this.subject}.server.${this.id}`;
-    this.client.publishSync(subject, null, {
+    this.client.publishSync(this.serverSubject(), null, {
       raw: mesg.raw,
       headers: mesg.headers,
     });
@@ -221,18 +225,16 @@ export class ConatSocketClient extends ConatSocketBase {
 
   request = async (data, options?) => {
     await this.waitUntilReady(options?.timeout);
-    const subject = `${this.subject}.server.${this.id}`;
     if (this.state == "closed") {
       throw Error("closed");
     }
     // console.log("sending request from client ", { subject, data, options });
-    return await this.client.request(subject, data, options);
+    return await this.client.request(this.serverSubject(), data, options);
   };
 
   requestMany = async (data, options?): Promise<Subscription> => {
     await this.waitUntilReady(options?.timeout);
-    const subject = `${this.subject}.server.${this.id}`;
-    return await this.client.requestMany(subject, data, options);
+    return await this.client.requestMany(this.serverSubject(), data, options);
   };
 
   async end({ timeout = 3000 }: { timeout?: number } = {}) {
