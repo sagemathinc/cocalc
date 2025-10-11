@@ -4,6 +4,7 @@ import {
   type Command,
   SOCKET_HEADER_CMD,
   clientSubject,
+  serverStatusSubject,
 } from "./util";
 import { ServerSocket } from "./server-socket";
 import { delay } from "awaiting";
@@ -17,7 +18,7 @@ const logger = getLogger("socket:server");
 
 export class ConatSocketServer extends ConatSocketBase {
   serverSubjectPattern = (): string => {
-    return `${this.subject}.server.*`;
+    return `${this.subject}.server.${this.id}.*`;
   };
 
   initTCP() {}
@@ -34,7 +35,28 @@ export class ConatSocketServer extends ConatSocketBase {
     }
   };
 
+  private createStatusServer = async () => {
+    const sub = await this.client.subscribe(serverStatusSubject(this.subject));
+    if (this.state == "closed") {
+      sub.close();
+      return;
+    }
+    this.once("closed", () => sub.close());
+
+    (async () => {
+      for await (const mesg of sub) {
+        if (this.state == ("closed" as any)) {
+          sub.close();
+          return;
+        }
+        // TODO: may return load info at some point
+        mesg.respondSync({ id: this.id });
+      }
+    })();
+  };
+
   protected async run() {
+    await this.createStatusServer();
     this.deleteDeadSockets();
     const sub = await this.client.subscribe(this.serverSubjectPattern(), {
       sticky: true,

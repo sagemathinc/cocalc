@@ -68,8 +68,16 @@ export interface ConatSocketOptions extends SocketConfiguration {
 
 export const RECONNECT_DELAY = 500;
 
+// here subject = `${this.subject}.server.${this.serverId}.${this.id}` is what
+// comes from the client to start the session, and this function returns
+// `${this.subject}.client.${this.id}`
+// which is what the client is listening on
 export function clientSubject(subject: string) {
   const segments = subject.split(".");
-  segments[segments.length - 2] = "client";
-  return segments.join(".");
+  const clientId = segments[segments.length - 1];
+  return segments.slice(0, -3).join(".") + ".client." + clientId;
+}
+
+export function serverStatusSubject(subject) {
+  return `${subject}.server.status`;
 }

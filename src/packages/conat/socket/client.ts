@@ -10,6 +10,7 @@ import {
   SOCKET_HEADER_CMD,
   DEFAULT_COMMAND_TIMEOUT,
   type ConatSocketOptions,
+  serverStatusSubject,
 } from "./util";
 import { EventIterator } from "@cocalc/util/event-iterator";
 import { keepAlive, KeepAlive } from "./keepalive";
@@ -25,6 +26,7 @@ export class ConatSocketClient extends ConatSocketBase {
   queuedWrites: { data: any; headers?: Headers }[] = [];
   private tcp?: TCP;
   private alive?: KeepAlive;
+  private serverId?: string;
 
   constructor(opts: ConatSocketOptions) {
     super(opts);
@@ -42,7 +44,10 @@ export class ConatSocketClient extends ConatSocketBase {
 
   // subject to send messages/data to the socket server.
   serverSubject = (): string => {
-    return `${this.subject}.server.${this.id}`;
+    if (!this.serverId) {
+      throw Error("no server selected");
+    }
+    return `${this.subject}.server.${this.serverId}.${this.id}`;
   };
 
   channel(channel: string) {
@@ -124,6 +129,16 @@ export class ConatSocketClient extends ConatSocketBase {
     }
   };
 
+  private getServerId = async () => {
+    logger.debug("getting server id");
+    const resp = await this.client.request(
+      serverStatusSubject(this.subject),
+      null,
+    );
+    const { id } = resp.data;
+    this.serverId = id;
+  };
+
   protected async run() {
     if (this.state == "closed") {
       return;
@@ -133,6 +148,8 @@ export class ConatSocketClient extends ConatSocketBase {
     //       `${this.subject}.client.${this.id}`,
     //     );
     try {
+      await this.getServerId();
+
       logger.silly("run: getting subscription");
       const sub = await this.client.subscribe(
         `${this.subject}.client.${this.id}`,
@@ -142,6 +159,7 @@ export class ConatSocketClient extends ConatSocketBase {
         sub.close();
         return;
       }
+      // the disconnect function does this.sub.close()
       this.sub = sub;
       let resp: any = undefined;
       await until(
