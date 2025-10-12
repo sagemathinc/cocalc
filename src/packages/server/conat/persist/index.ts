@@ -1,9 +1,12 @@
 import { loadConatConfiguration } from "../configuration";
-import { initPersistServer } from "@cocalc/backend/conat/persist";
+import {
+  initPersistServer,
+  initLoadBalancer,
+} from "@cocalc/backend/conat/persist";
 import { conatPersistCount } from "@cocalc/backend/data";
 import { createForkedPersistServer } from "./start-server";
-
 import getLogger from "@cocalc/backend/logger";
+import { conat } from "@cocalc/backend/conat";
 
 const logger = getLogger("server:conat:persist");
 
@@ -14,7 +17,9 @@ export async function initConatPersist() {
   if (!conatPersistCount || conatPersistCount <= 1) {
     // only 1, so no need to use separate processes
     await loadConatConfiguration();
-    initPersistServer();
+    const id = "0";
+    initPersistServer({ id });
+    initLoadBalancer({ ids: [id], client: conat() });
     return;
   }
 
@@ -27,10 +32,14 @@ async function createPersistCluster() {
   logger.debug(
     "initPersistServer: creating cluster with",
     conatPersistCount,
-    "nodes",
+    "processes",
   );
+  const ids: string[] = [];
   for (let i = 0; i < conatPersistCount; i++) {
-    logger.debug("initPersistServer: starting node ", i);
-    createForkedPersistServer();
+    const id = `${i}`;
+    ids.push(id);
+    logger.debug("initPersistServer: starting node ", { id });
+    createForkedPersistServer(id);
   }
+  initLoadBalancer({ ids, client: conat() });
 }

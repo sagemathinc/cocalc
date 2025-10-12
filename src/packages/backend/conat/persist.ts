@@ -30,12 +30,14 @@ export { pstream } from "@cocalc/conat/persist/storage";
 import { server } from "@cocalc/conat/persist/server";
 export { server };
 import { conat } from "./conat";
+export { initLoadBalancer } from "@cocalc/conat/persist/load-balancer";
 
 const persistServers: any[] = [];
 
-export function initPersistServer() {
+export function initPersistServer({ id }: { id?: string }) {
   const persistServer = server({
     client: conat({ noCache: persistServers.length > 0 }),
+    id,
   });
   persistServers.push(persistServer);
 }

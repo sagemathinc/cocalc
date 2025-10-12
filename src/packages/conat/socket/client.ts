@@ -27,9 +27,11 @@ export class ConatSocketClient extends ConatSocketBase {
   private tcp?: TCP;
   private alive?: KeepAlive;
   private serverId?: string;
+  private loadBalancer?: (subject:string) => Promise<string>;
 
   constructor(opts: ConatSocketOptions) {
     super(opts);
+    this.loadBalancer = opts.loadBalancer;
     logger.silly("creating a client socket connecting to ", this.subject);
     this.initTCP();
     this.on("ready", () => {
@@ -120,6 +122,7 @@ export class ConatSocketClient extends ConatSocketBase {
       timeout,
       waitForInterest: cmd == "connect", // connect is exactly when other side might not be visible yet.
     });
+
     const value = resp.data;
     logger.silly("sendCommandToServer: got resp", { cmd, value, subject });
     if (value?.error) {
@@ -130,12 +133,18 @@ export class ConatSocketClient extends ConatSocketBase {
   };
 
   private getServerId = async () => {
-    logger.debug("getting server id");
-    const resp = await this.client.request(
-      serverStatusSubject(this.subject),
-      null,
-    );
-    const { id } = resp.data;
+    let id;
+    if (this.loadBalancer != null) {
+      logger.debug("getting server id from load balancer");
+      id = await this.loadBalancer(this.subject);
+    } else {
+      logger.debug("getting server id from socket server");
+      const resp = await this.client.request(
+        serverStatusSubject(this.subject),
+        null,
+      );
+      ({ id } = resp.data);
+    }
     this.serverId = id;
   };
 

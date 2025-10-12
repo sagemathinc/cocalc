@@ -13,7 +13,7 @@ export type Role = "client" | "server";
 // socketio and use those to manage things.  This ping
 // is entirely a "just in case" backup if some event
 // were missed (e.g., a kill -9'd process...)
-export const PING_PONG_INTERVAL = 90000;
+export const PING_PONG_INTERVAL = 45000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond this size result in an exception.
@@ -57,6 +57,11 @@ export interface SocketConfiguration {
   keepAliveTimeout?: number; // default: DEFAULT_KEEP_ALIVE_TIMEOUT}
   // desc = optional, purely for admin/user
   desc?: string;
+  // for a socket client, you can specificy a custom load balancer,
+  // instead of just selecting a random socket server (in case of multiple
+  // socket servers with the same subject). This is used
+  // by the persist server.
+  loadBalancer?: (subject: string) => Promise<string>;
 }
 
 export interface ConatSocketOptions extends SocketConfiguration {

@@ -1471,7 +1471,7 @@ export class Client extends EventEmitter {
   socket = {
     listen: (
       subject: string,
-      opts?: SocketConfiguration,
+      opts?: SocketConfiguration & { id?: string },
     ): ConatSocketServer => {
       if (this.state == "closed") {
         throw Error("closed");
@@ -1485,6 +1485,8 @@ export class Client extends EventEmitter {
         subject,
         role: "server",
         client: this,
+        // ok to use this.id as default since can have at most
+        // one server per client for a given subject
         id: this.id,
         ...opts,
       });
@@ -1497,12 +1499,12 @@ export class Client extends EventEmitter {
 
     connect: (
       subject: string,
-      opts?: SocketConfiguration,
+      opts?: SocketConfiguration & { id?: string },
     ): ConatSocketClient => {
       if (this.state == "closed") {
         throw Error("closed");
       }
-      const id = randomId();
+      const id = opts?.id ?? randomId();
       const client = new ConatSocketClient({
         subject,
         role: "client",

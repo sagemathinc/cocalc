@@ -6,11 +6,12 @@ import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 const logger = getLogger("server:conat:persist:start-persist-node");
 
 async function main() {
-  logger.debug("starting forked persist node in process", process.pid);
-  console.log("starting forked persist node in process", process.pid);
+  const id = process.env.PERSIST_SERVER_ID;
+  logger.debug("starting forked persist node in process", process.pid, { id });
+  console.log("starting forked persist node in process", process.pid, { id });
   addErrorListeners();
   await loadConatConfiguration();
-  await initPersistServer();
+  await initPersistServer({ id });
 }
 
 main();
