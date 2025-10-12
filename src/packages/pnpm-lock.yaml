@@ -192,9 +192,6 @@ importers:
       bufferutil:
         specifier: ^4.0.9
         version: 4.0.9
-      consistent-hash:
-        specifier: ^1.2.2
-        version: 1.2.2
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
@@ -5623,9 +5620,6 @@ packages:
 
   connected@0.0.2:
     resolution: {integrity: sha512-J8DB7618GkIYjc1RCxSdG3vffhhYRwHNEckjOGfwAbabQIMgKsL5c54IaWtisulEwoOEbEODEUak4kyJP2GJ/Q==}
-
-  consistent-hash@1.2.2:
-    resolution: {integrity: sha512-xKAVji9aC80uN/h5u4XXwJ8otOh/D/cm8aryKa7+I0qwoBwxYOYkTiyvgwjUBRn+7CRVEvn/DvJtX1YsEugr0w==}
 
   consola@2.15.3:
     resolution: {integrity: sha512-9vAdYbHj6x2fLKC4+oPH0kFzY/orMZyG2Aj+kNylHxKGJ/Ed4dpNyAQYwJOdqO4zdM7XpVHmyejQDcQHrnuXbw==}
@@ -16067,8 +16061,6 @@ snapshots:
   connect-history-api-fallback@2.0.0: {}
 
   connected@0.0.2: {}
-
-  consistent-hash@1.2.2: {}
 
   consola@2.15.3: {}
 

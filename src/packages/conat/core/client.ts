@@ -268,8 +268,6 @@ const MSGPACK_ENCODER_OPTIONS = {
   ignoreUndefined: true,
 };
 
-export const STICKY_QUEUE_GROUP = "sticky";
-
 export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // A major problem if we allow long polling is that we must always use at most
   // half the chunk size... because there is no way to know if recipients will be
@@ -346,47 +344,6 @@ interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
   queue?: string;
-  // sticky: when a choice from a queue group is made, the same choice is always made
-  // in the future for any message with subject matching subject with the last segment
-  // replaced by a *, until the target for the choice goes away. Setting this just
-  // sets the queue option to the constant string STICKY_QUEUE_GROUP.
-  //
-  // Examples of two subjects matching "except possibly last segments" are
-  //          - foo.bar.lJcBSieLn
-  //          - foo.bar.ZzsDC376ge
-  //
-  // You can put anything random in the last segment and all messages
-  // that match foo.bar.* get the same choice from the queue group.
-  // The idea is that *when* the message with subject foo.bar.lJcBSieLn gets
-  // sent, the backend server selects a target from the queue group to receive
-  // that message.  It remembers the choice, and so long as that target is subscribed,
-  // it sends any message matching foo.bar.* to that same target.
-  // This is used in our implementation of persistent socket connections that
-  // are built on pub/sub.
-
-  // The underlying implementation uses (1) consistent hashing and (2) a stream
-  // to sync state of the servers.
-  //
-  // If the members of the sticky queue group have been stable for a while (e.g., a minute)
-  // then all servers in a local cluster have the same list of subscribers in the sticky
-  // queue group, and using consistent hashing any server will make the same choice of
-  // where to route messages.  If the members of the sticky queue group are dynamically changing,
-  // it is possible for an inconsistent choice to be made.  If this happens, it will be fixed
-  // within a few seconds. During that time, it's possible a virtual conat socket
-  // connection could get created then destroyed a few seconds laters, due to the sticky
-  // assignment changing.
-  //
-  // The following isn't implemented yet -- one idea.  Another idea would be the stickiness
-  // is local to a cluster. Not sure!
-  // Regarding a *supercluster*, if no choice has already been made in any cluster for
-  // a given subject (except last segment), then a choice is made using consistent hashing
-  // from the subscribers in the *nearest* cluster that has at least one subscriber.
-  // If choices are made simultaneously across the supercluster, then it is likely that
-  // they are inconsistent.  As soon as these choices are visible, they are resolved, with
-  // the tie broken using lexicographic sort of the "socketio room" (this is a
-  // random string that is used to send messages to a subscriber).
-
-  sticky?: boolean;
   respond?: Function;
   // timeout to create the subscription -- this may wait *until* you connect before
   // it starts ticking.
@@ -881,7 +838,6 @@ export class Client extends EventEmitter {
     {
       closeWhenOffCalled,
       queue,
-      sticky,
       confirm,
       timeout,
     }: {
@@ -892,9 +848,6 @@ export class Client extends EventEmitter {
 
       // the queue group -- if not given, then one is randomly assigned.
       queue?: string;
-
-      // if true, sets queue to "sticky"
-      sticky?: boolean;
 
       // confirm -- get confirmation back from server that subscription was created
       confirm?: boolean;
@@ -922,22 +875,11 @@ export class Client extends EventEmitter {
       logger.debug(message);
       throw new ConatError(message, { code: 403 });
     }
-    if (sticky) {
-      if (queue) {
-        throw Error("must not specify queue group if sticky is true");
-      }
-      queue = STICKY_QUEUE_GROUP;
-    }
     let sub = this.subs[subject];
     if (sub != null) {
       if (queue && this.queueGroups[subject] != queue) {
         throw Error(
           `client can only have one queue group subscription for a given subject -- subject='${subject}', queue='${queue}'`,
-        );
-      }
-      if (queue == STICKY_QUEUE_GROUP) {
-        throw Error(
-          `can only have one sticky subscription with given subject pattern per client -- subject='${subject}'`,
         );
       }
       sub.refCount += 1;
@@ -1020,7 +962,6 @@ export class Client extends EventEmitter {
     const { sub } = this.subscriptionEmitter(subject, {
       confirm: false,
       closeWhenOffCalled: true,
-      sticky: opts?.sticky,
       queue: opts?.queue,
     });
     return this.subscriptionIterator(sub, opts);
@@ -1035,7 +976,6 @@ export class Client extends EventEmitter {
       confirm: true,
       closeWhenOffCalled: true,
       queue: opts?.queue,
-      sticky: opts?.sticky,
       timeout: opts?.timeout,
     });
     try {

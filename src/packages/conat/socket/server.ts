@@ -58,9 +58,7 @@ export class ConatSocketServer extends ConatSocketBase {
   protected async run() {
     await this.createStatusServer();
     this.deleteDeadSockets();
-    const sub = await this.client.subscribe(this.serverSubjectPattern(), {
-      sticky: true,
-    });
+    const sub = await this.client.subscribe(this.serverSubjectPattern());
     if (this.state == "closed") {
       sub.close();
       return;
