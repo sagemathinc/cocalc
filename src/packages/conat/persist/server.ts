@@ -70,6 +70,7 @@ import { type SetOptions } from "./client";
 import { once } from "@cocalc/util/async-utils";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { getLogger } from "@cocalc/conat/client";
+import { initLoadBalancer } from "./load-balancer";
 
 const logger = getLogger("persist:server");
 
@@ -93,12 +94,15 @@ export function server({
   client,
   messagesThresh = DEFAULT_MESSAGES_THRESH,
   service = SERVICE,
-  id,
+  id = "0",
+  clusterMode,
 }: {
   client: Client;
   messagesThresh?: number;
   service?: string;
   id?: string;
+  // if false, runs it's own internal load balancer that always returns this server
+  clusterMode?: boolean;
 }): ConatSocketServer {
   const log = (...args) => {
     logger.debug(id, service, ...args);
@@ -110,6 +114,10 @@ export function server({
   const subject = `${service}.*`;
   const server: ConatSocketServer = client.socket.listen(subject, { id });
   log("server listening", { subject, id });
+  if (!clusterMode) {
+    log("persist server not in cluster mode, so starting own load balancer");
+    initLoadBalancer({ service, ids: [id], client });
+  }
   const usage = new UsageMonitor({
     maxPerUser: MAX_PER_USER,
     max: MAX_GLOBAL,

@@ -11,7 +11,7 @@ async function main() {
   console.log("starting forked persist node in process", process.pid, { id });
   addErrorListeners();
   await loadConatConfiguration();
-  await initPersistServer({ id });
+  await initPersistServer({ id, clusterMode: true });
 }
 
 main();

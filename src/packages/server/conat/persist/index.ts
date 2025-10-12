@@ -18,7 +18,7 @@ export async function initConatPersist() {
     // only 1, so no need to use separate processes
     await loadConatConfiguration();
     const id = "0";
-    initPersistServer({ id });
+    initPersistServer({ id, clusterMode: true });
     initLoadBalancer({ ids: [id], client: conat() });
     return;
   }

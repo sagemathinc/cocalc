@@ -3,7 +3,7 @@ The persist load balancer listens for requests on the subject
 
    {SERVICE}.{scope}.id
 
-- SERVICE (='persist') - is a constant defined in ./util.ts
+- SERVICE (e.g., 'persist')
 - scope it typically hub or account-...or project-....
 - id is literally that.
 
@@ -34,15 +34,17 @@ const logger = getLogger("persist:load-balancer");
 export function initLoadBalancer({
   client,
   ids,
+  service = SERVICE,
 }: {
   client: Client;
   ids: string[];
+  service?: string;
 }) {
   if (ids.length == 0) {
     throw Error("there must be at least 1 id");
   }
 
-  const subject = `${SERVICE}.*.id`;
+  const subject = `${service}.*.id`;
 
   // I don't think subscription ever randomly throw errors, but this
   // is so important I'm making it extra paranoid:
