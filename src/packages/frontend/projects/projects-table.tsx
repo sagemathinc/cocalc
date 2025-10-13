@@ -23,28 +23,33 @@ import {
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 
-import { ProjectActionsMenu } from "./project-actions-menu";
+import { ProjectActionsMenu } from "./projects-actions-menu";
 import { ProjectRowExpandedContent } from "./project-row-expanded-content";
 import {
   getProjectTableColumns,
   type ProjectTableRecord,
   type SortState,
-} from "./project-table-columns";
+} from "./projects-table-columns";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
 
 interface Props {
   visible_projects: string[];
   height?: number;
+  narrow?: boolean; // if narrow, then remove columns like "Collaborators" to safe space
 }
 
 const PROJECTS_TABLE_SORT_KEY = "projects-table-sort";
 
-export function ProjectsTable({ visible_projects, height = 600 }: Props) {
+export function ProjectsTable({
+  visible_projects,
+  height = 600,
+  narrow = false,
+}: Props) {
   const actions = useActions("projects");
   const project_map = useTypedRedux("projects", "project_map");
   const user_map = useTypedRedux("users", "user_map");
+  const expanded_project_id = useTypedRedux("projects", "expanded_project_id");
   const { isProjectBookmarked, setProjectBookmarked } = useBookmarkedProjects();
-  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
   const [sortState, setSortState] = useState<SortState>({
     columnKey: "last_edited",
     order: "descend",
@@ -119,12 +124,7 @@ export function ProjectsTable({ visible_projects, height = 600 }: Props) {
   };
 
   const handleToggleExpand = (record: ProjectTableRecord) => {
-    const isExpanded = expandedRowKeys.includes(record.project_id);
-    if (isExpanded) {
-      setExpandedRowKeys([]);
-    } else {
-      setExpandedRowKeys([record.project_id]);
-    }
+    actions.toggle_expanded_project(record.project_id);
   };
 
   // Compute all unique collaborators and their information for filtering
@@ -157,8 +157,8 @@ export function ProjectsTable({ visible_projects, height = 600 }: Props) {
         const user = user_map.get(account_id);
         if (!user) return null;
 
-        const first_name = user.get("first_name") || "";
-        const last_name = user.get("last_name") || "";
+        const first_name = user.get("first_name") ?? "";
+        const last_name = user.get("last_name") ?? "";
         const avatar = user.get("avatar_image_tiny");
 
         return {
@@ -181,6 +181,9 @@ export function ProjectsTable({ visible_projects, height = 600 }: Props) {
     return filters;
   }, [visible_projects, project_map, user_map]);
 
+  // Convert expanded_project_id to array format for Ant Design Table
+  const expandedRowKeys = expanded_project_id ? [expanded_project_id] : [];
+
   const columns = getProjectTableColumns(
     handleToggleStar,
     renderActionsMenu,
@@ -188,6 +191,7 @@ export function ProjectsTable({ visible_projects, height = 600 }: Props) {
     handleToggleExpand,
     expandedRowKeys,
     collaboratorFilters,
+    narrow,
   );
 
   const handleRowClick = (record: ProjectTableRecord, e?: React.MouseEvent) => {
@@ -199,14 +203,10 @@ export function ProjectsTable({ visible_projects, height = 600 }: Props) {
 
   const handleExpand = (expanded: boolean, record: ProjectTableRecord) => {
     if (expanded) {
-      setExpandedRowKeys([record.project_id]);
+      actions.set_expanded_project(record.project_id);
     } else {
-      setExpandedRowKeys([]);
+      actions.set_expanded_project(undefined);
     }
-  };
-
-  const handleCloseExpanded = () => {
-    setExpandedRowKeys([]);
   };
 
   const handleTableChange = (_: any, __: any, sorter: any) => {
@@ -229,7 +229,7 @@ export function ProjectsTable({ visible_projects, height = 600 }: Props) {
       dataSource={tableData}
       rowKey="project_id"
       pagination={false}
-      scroll={{ y: height, x: "max-content" }}
+      scroll={{ y: height }}
       onChange={handleTableChange}
       // this makes the table toggle between ascend/descend only, skipping the "not sorted" state
       sortDirections={["ascend", "descend", "ascend"]}
@@ -237,7 +237,6 @@ export function ProjectsTable({ visible_projects, height = 600 }: Props) {
         expandedRowRender: (record) => (
           <ProjectRowExpandedContent
             project_id={record.project_id}
-            onClose={handleCloseExpanded}
           />
         ),
         columnWidth: 48,

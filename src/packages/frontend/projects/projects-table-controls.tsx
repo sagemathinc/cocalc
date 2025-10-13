@@ -26,9 +26,8 @@ import { get_visible_hashtags } from "./util";
 
 const CONTROLS_STYLE: CSS = {
   width: "100%",
-  //padding: "10px",
-  marginBottom: "10px",
-  //backgroundColor: COLORS.GRAY_LLL,
+  marginTop: "10px",
+  marginBottom: 0,
   borderRadius: "4px",
   display: "flex",
   flexDirection: "row",
@@ -51,15 +50,14 @@ export function ProjectsTableControls({
   const search = useTypedRedux("projects", "search");
   const hidden = useTypedRedux("projects", "hidden");
   const deleted = useTypedRedux("projects", "deleted");
-  const starred = useTypedRedux("projects", "starred");
   const selected_hashtags = useTypedRedux("projects", "selected_hashtags");
   const project_map = useTypedRedux("projects", "project_map");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
 
   // Get filter key for current state
   const filter = useMemo(() => {
-    return `${!!hidden}-${!!deleted}-${!!starred}`;
-  }, [hidden, deleted, starred]);
+    return `${!!hidden}-${!!deleted}`;
+  }, [hidden, deleted]);
 
   // Get all available hashtags
   const visible_hashtags = useMemo(() => {

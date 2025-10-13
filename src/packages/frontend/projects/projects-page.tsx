@@ -3,9 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Row, Space } from "antd";
+import { Col, Grid, Row, Space } from "antd";
 import { Map, Set } from "immutable";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 
 // ensure redux stuff (actions and store) are initialized:
@@ -26,12 +26,13 @@ import { COLORS } from "@cocalc/util/theme";
 
 import { NewProjectCreator } from "./create-project";
 import { LoadAllProjects } from "./projects-load-all";
+import { ProjectsOperations } from "./projects-operations";
+import { StarredProjectsBar } from "./projects-starred";
 import { ProjectsTable } from "./projects-table";
 import { ProjectsTableControls } from "./projects-table-controls";
-import { StarredProjectsBar } from "./projects-starred-bar";
 import ProjectsPageTour from "./tour";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
-import { get_visible_projects } from "./util";
+import { getVisibleProjects } from "./util";
 
 const PROJECTS_TITLE_STYLE: CSS = {
   marginTop: "20px",
@@ -45,23 +46,41 @@ const LOADING_STYLE: CSS = {
 
 export const ProjectsPage: React.FC = () => {
   const intl = useIntl();
+  const { bookmarkedProjects } = useBookmarkedProjects();
+
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const project_map = useTypedRedux("projects", "project_map");
+  const user_map = useTypedRedux("users", "user_map");
+
+  const all_projects: string[] = useMemo(
+    () => project_map?.keySeq().toJS() ?? [],
+    [project_map?.size],
+  );
+
+  const screens = Grid.useBreakpoint();
+  const narrow = !screens.lg;
+
+  // Tour
   const searchRef = useRef<any>(null);
   const filtersRef = useRef<any>(null);
   const createNewRef = useRef<any>(null);
   const projectListRef = useRef<any>(null);
+
+  // Calculating table height
+  const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const starredBarRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
+  const operationsRef = useRef<HTMLDivElement>(null);
   const loadAllRef = useRef<HTMLDivElement>(null);
-  const footerRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Elements to account for in height calculation (everything except projectList and footer)
   const refs = [
     titleRef,
     starredBarRef,
     controlsRef,
+    operationsRef,
     loadAllRef,
-    footerRef,
   ] as const;
 
   const [create_project_trigger, set_create_project_trigger] =
@@ -78,32 +97,24 @@ export const ProjectsPage: React.FC = () => {
   // status of filters
   const hidden = !!useTypedRedux("projects", "hidden");
   const deleted = !!useTypedRedux("projects", "deleted");
-  const starred = !!useTypedRedux("projects", "starred");
   const filter = useMemo(() => {
-    return `${!!hidden}-${!!deleted}-${!!starred}`;
-  }, [hidden, deleted, starred]);
+    return `${!!hidden}-${!!deleted}`;
+  }, [hidden, deleted]);
   const search: string = useTypedRedux("projects", "search");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
 
   const selected_hashtags: Map<string, Set<string>> = useTypedRedux(
     "projects",
     "selected_hashtags",
   );
 
-  const { bookmarkedProjects } = useBookmarkedProjects();
-
-  const project_map = useTypedRedux("projects", "project_map");
-  const user_map = useTypedRedux("users", "user_map");
   const visible_projects: string[] = useMemo(() => {
-    return get_visible_projects(
+    return getVisibleProjects(
       project_map,
       user_map,
       selected_hashtags?.get(filter),
       search,
       deleted,
       hidden,
-      starred,
-      bookmarkedProjects,
       "last_edited" /* "user_last_active" was confusing */,
     );
   }, [
@@ -111,25 +122,16 @@ export const ProjectsPage: React.FC = () => {
     user_map,
     deleted,
     hidden,
-    starred,
     filter,
     selected_hashtags,
     search,
-    bookmarkedProjects,
   ]);
-
-  const all_projects: string[] = useMemo(
-    () => project_map?.keySeq().toJS() ?? [],
-    [project_map?.size],
-  );
 
   // Calculate dynamic table height following these steps:
   // 1. Get container's offset from viewport top
-  // 2. Viewport height - offset = available area for the page
-  // 3. Sum heights of fixed elements (title, controls, footer, loadAll button)
-  // 4. Remaining height = available area - fixed elements = table height
-  // 5. Adjust dynamically on resize and when elements appear/disappear
-  useEffect(() => {
+  // 2. Available area = viewport height - offset
+  // 3. Table height = available area - fixed elements - gaps
+  useLayoutEffect(() => {
     const calculateHeight = () => {
       if (!containerRef.current) return;
 
@@ -140,48 +142,50 @@ export const ProjectsPage: React.FC = () => {
       const viewportHeight = window.innerHeight;
       const availableArea = viewportHeight - containerTop;
 
-      // 3. Sum heights of all fixed elements (title, starred bar, controls, loadAll, footer)
+      // 3. Sum heights of all fixed elements (including margins)
       let fixedElementsHeight = 0;
-      const elementHeights: Record<string, number> = {};
-      refs.forEach((ref, idx) => {
+      refs.forEach((ref) => {
         if (ref.current) {
-          const height = ref.current.getBoundingClientRect().height;
-          fixedElementsHeight += height;
-          elementHeights[
-            ["title", "starred", "controls", "loadAll", "footer"][idx]
-          ] = height;
+          const rect = ref.current.getBoundingClientRect();
+          const style = window.getComputedStyle(ref.current);
+          const marginTop = parseFloat(style.marginTop) || 0;
+          const marginBottom = parseFloat(style.marginBottom) || 0;
+          const totalHeight = rect.height + marginTop + marginBottom;
+          fixedElementsHeight += totalHeight;
         }
       });
 
-      // 4. Table height = available area - fixed elements - buffer for spacing
-      // Space has 6 elements total (title, starred, controls, table, loadAll, footer)
-      // So there are 5 gaps of 10px each = 50px
-      // Plus title marginTop (20px) + bottom padding (40px) for breathing room
-      const buffer = 110; // 20px title top + 5 × 10px gaps + 40px bottom padding
-      const calculatedHeight = availableArea - fixedElementsHeight - buffer;
-      const newHeight = Math.max(calculatedHeight, 300); // Minimum 300px
+      // 4. Account for margins on the projectListRef wrapper div
+      let projectListMargins = 0;
+      if (projectListRef.current) {
+        const style = window.getComputedStyle(projectListRef.current);
+        const marginTop = parseFloat(style.marginTop) || 0;
+        const marginBottom = parseFloat(style.marginBottom) || 0;
+        projectListMargins = marginTop + marginBottom;
+      }
 
-      // console.log("[ProjectsPage Height Debug]", {
-      //   viewportHeight,
-      //   containerTop,
-      //   availableArea,
-      //   fixedElementsHeight,
-      //   elementHeights,
-      //   buffer,
-      //   calculatedHeight,
-      //   newHeight,
-      // });
+      // 5. Account for 10px gaps between visible elements from Space component
+      const visibleGaps = refs.length * 10;
+
+      // 6. Add buffer to ensure loadAll button is fully visible
+      const buffer = 80;
+
+      const calculatedHeight =
+        availableArea -
+        fixedElementsHeight -
+        projectListMargins -
+        visibleGaps -
+        buffer;
+
+      // enforce a minimum height
+      const newHeight = Math.max(calculatedHeight, 400);
 
       setTableHeight(newHeight);
     };
 
-    // Initial calculation with requestAnimationFrame for proper timing
     const rafId = requestAnimationFrame(() => {
       calculateHeight();
-      // Multiple retries to handle async rendering on initial load
       setTimeout(calculateHeight, 100);
-      setTimeout(calculateHeight, 300);
-      setTimeout(calculateHeight, 500);
     });
 
     // Set up ResizeObserver to watch for changes
@@ -193,7 +197,6 @@ export const ProjectsPage: React.FC = () => {
     }
 
     // Observe all fixed elements so we detect when they change/disappear
-    // This catches when LoadAllProjects button disappears
     refs.forEach((ref) => {
       if (ref.current) {
         resizeObserver.observe(ref.current);
@@ -237,7 +240,11 @@ export const ProjectsPage: React.FC = () => {
           <Space
             direction="vertical"
             size={10}
-            style={{ width: "100%", display: "flex" }}
+            style={{
+              width: "100%",
+              display: "flex",
+              padding: narrow ? "0 10px 0 10px" : "0",
+            }}
           >
             {/* Title */}
             <div ref={titleRef} style={PROJECTS_TITLE_STYLE}>
@@ -266,11 +273,17 @@ export const ProjectsPage: React.FC = () => {
               />
             </div>
 
+            {/* Bulk Operations (when filters active) */}
+            <div ref={operationsRef}>
+              <ProjectsOperations visible_projects={visible_projects} />
+            </div>
+
             {/* Projects Table */}
             <div ref={projectListRef}>
               <ProjectsTable
                 visible_projects={visible_projects}
                 height={tableHeight}
+                narrow={narrow}
               />
             </div>
 
@@ -279,10 +292,7 @@ export const ProjectsPage: React.FC = () => {
               <LoadAllProjects />
             </div>
 
-            {/* Footer */}
-            <div ref={footerRef}>
-              <Footer />
-            </div>
+            <Footer />
 
             {/* Hidden Create Project Modal */}
             <div style={{ display: "none" }}>

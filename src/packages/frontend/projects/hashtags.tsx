@@ -20,4 +20,4 @@ export const STYLE: React.CSSProperties = {
   background: COLORS.GRAY_LLL,
   borderRadius: "5px",
   marginBottom: "15px",
-} as const
+} as const;

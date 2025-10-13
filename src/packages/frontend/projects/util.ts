@@ -4,6 +4,7 @@
  */
 
 import { Map as immutableMap, Set as immutableSet } from "immutable";
+import { useMemo } from "react";
 
 import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -15,6 +16,8 @@ import {
   search_match,
   search_split,
 } from "@cocalc/util/misc";
+import { EventRecordMap } from "@cocalc/frontend/project/history/types";
+import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 import { ProjectMap } from "./store";
 
 function parse_tags(info): string[] {
@@ -70,15 +73,13 @@ function get_search_info(project_id: string, project, user_map): string {
   return (search_cache[project_id] = s);
 }
 
-export function get_visible_projects(
+export function getVisibleProjects(
   project_map: ProjectMap | undefined,
   user_map,
   hashtags: immutableSet<string> | undefined,
   search: string,
   deleted: boolean,
   hidden: boolean,
-  starred: boolean,
-  bookmarkedProjects: string[],
   sort_by: "user_last_active" | "last_edited" | "title" | "state",
 ): string[] {
   const visible_projects: string[] = [];
@@ -94,8 +95,7 @@ export function get_visible_projects(
   project_map.forEach((project, project_id) => {
     if (
       search_match(get_search_info(project_id, project, user_map), words) &&
-      project_is_in_filter(project, deleted, hidden) &&
-      (!starred || bookmarkedProjects.includes(project_id))
+      project_is_in_filter(project, deleted, hidden)
     ) {
       visible_projects.push(project_id);
     }
@@ -215,4 +215,65 @@ export function blendBackgroundColor(
 
   // Uses CSS color-mix() to blend the colors
   return `color-mix(in srgb, ${custom} ${opacity * 100}%, ${base})`;
+}
+
+export function sortProjectsLastEdited(a, b) {
+  if (!a.last_edited && !b.last_edited) return 0;
+  if (!a.last_edited) return -1;
+  if (!b.last_edited) return 1;
+  return a.last_edited.getTime() - b.last_edited.getTime();
+}
+
+export interface OpenedFile {
+  filename: string;
+  time: Date;
+  account_id: string;
+}
+
+/**
+ * React hook to get recent files from project log with deduplication and optional search filtering
+ *
+ * @param project_log - The project log from redux store
+ * @param max - Maximum number of files to return (default: 100)
+ * @param searchTerm - Optional search term to filter filenames (case-insensitive)
+ * @returns Array of recent opened files
+ */
+export function useRecentFiles(
+  project_log: any,
+  max: number = 100,
+  searchTerm: string = "",
+): OpenedFile[] {
+  return useMemo(() => {
+    if (project_log == null || max === 0) return [];
+
+    const dedupe: string[] = [];
+
+    return project_log
+      .valueSeq()
+      .filter(
+        (entry: EventRecordMap) =>
+          entry.getIn(["event", "filename"]) &&
+          entry.getIn(["event", "event"]) === "open",
+      )
+      .sort((a, b) => getTime(b) - getTime(a))
+      .filter((entry: EventRecordMap) => {
+        const fn = entry.getIn(["event", "filename"]);
+        if (dedupe.includes(fn)) return false;
+        dedupe.push(fn);
+        return true;
+      })
+      .filter((entry: EventRecordMap) =>
+        entry
+          .getIn(["event", "filename"], "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()),
+      )
+      .slice(0, max)
+      .map((entry: EventRecordMap) => ({
+        filename: entry.getIn(["event", "filename"]),
+        time: entry.get("time"),
+        account_id: entry.get("account_id"),
+      }))
+      .toJS() as OpenedFile[];
+  }, [project_log, max, searchTerm]);
 }

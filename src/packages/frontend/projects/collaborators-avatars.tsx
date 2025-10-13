@@ -112,8 +112,8 @@ export function CollaboratorsAvatars({
           <div
             style={{
               ...AVATAR_WRAPPER_STYLE,
-              width: size + 2,
-              height: size + 2,
+              width: size + 4,
+              height: size + 4,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

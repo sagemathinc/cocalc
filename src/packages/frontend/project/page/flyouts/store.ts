@@ -28,13 +28,18 @@ import type { FlyoutActiveStarred } from "./state";
 
 // Starred files are now managed entirely through conat with in-memory state.
 // No local storage dependency - conat handles synchronization and persistence.
-export function useStarredFilesManager(project_id: string) {
+export function useStarredFilesManager(project_id: string, enabled: boolean = true) {
   const [starred, setStarred] = useState<FlyoutActiveStarred>([]);
   const [bookmarks, setBookmarks] = useState<any>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize conat bookmarks once on mount, waiting for authentication
   useAsyncEffect(async () => {
+    if (!enabled) {
+      setIsInitialized(true);
+      return;
+    }
+
     // Wait until account is authenticated
     const store = redux.getStore("account");
     await store.async_wait({
@@ -44,7 +49,7 @@ export function useStarredFilesManager(project_id: string) {
 
     const account_id = store.get_account_id();
     await initializeConatBookmarks(account_id);
-  }, []);
+  }, [enabled]);
 
   async function initializeConatBookmarks(account_id: string) {
     try {

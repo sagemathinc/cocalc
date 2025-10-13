@@ -505,6 +505,11 @@ export const labels = defineMessages({
     defaultMessage: "Recent",
     description: "Something that happened recently",
   },
+  recent_files: {
+    id: "labels.recent_files",
+    defaultMessage: "Recent Files",
+    description: "Recently opened or edited files",
+  },
   files: {
     id: "labels.files",
     defaultMessage: "Files",

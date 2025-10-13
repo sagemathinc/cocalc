@@ -21,6 +21,7 @@ import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 
 import { CollaboratorsAvatars } from "./collaborators-avatars";
+import { sortProjectsLastEdited } from "./util";
 
 // Type check: ensure ComputeStateIcon values are valid IconName values
 export const _x: IconName = "" as ComputeStateIcon;
@@ -86,6 +87,7 @@ export interface ProjectTableRecord {
  * @param onToggleExpand - Callback when expand column is clicked
  * @param expandedRowKeys - Array of expanded row keys to determine icon state
  * @param collaboratorFilters - Array of collaborator filter options
+ * @param narrow - If true, hide the collaborators column to save space
  * @returns Array of column definitions
  */
 export function getProjectTableColumns(
@@ -95,18 +97,51 @@ export function getProjectTableColumns(
   onToggleExpand?: (record: ProjectTableRecord) => void,
   expandedRowKeys?: string[],
   collaboratorFilters?: CollaboratorFilter[],
+  narrow?: boolean,
 ): TableColumnsType<ProjectTableRecord> {
   const columns = [
     {
-      title: <span style={{ marginLeft: "14px" }}>⭐</span>,
+      key: "expand",
+      width: 48,
+      align: "center" as const,
+      onCell: (record) => ({
+        onClick: (e: React.MouseEvent) => {
+          e.stopPropagation(); // Prevent row click
+          onToggleExpand?.(record);
+        },
+        style: {
+          cursor: "pointer",
+          borderLeft: `5px solid ${
+            record.color ? record.color : "transparent"
+          }`,
+        },
+      }),
+      render: (_, { project_id }) => {
+        // Render the expand icon based on whether this row is expanded
+        const isExpanded = expandedRowKeys?.includes(project_id) ?? false;
+        return (
+          <span
+            style={{
+              cursor: "pointer",
+              fontSize: "18px",
+              color: COLORS.GRAY_M,
+            }}
+          >
+            <Icon name={isExpanded ? "minus-square" : "plus-square"} />
+          </span>
+        );
+      },
+    },
+    {
+      title: <span style={{ marginLeft: "18px" }}>⭐</span>,
       dataIndex: "starred",
       key: "starred",
-      width: 70,
+      width: 65,
       align: "center" as const,
-      onCell: ({ project_id }) => ({
+      onCell: (record) => ({
         onClick: (e: React.MouseEvent) => {
           e.stopPropagation(); // Prevent row click when clicking menu
-          onToggleStar(project_id, e);
+          onToggleStar(record.project_id, e);
         },
         style: { cursor: "pointer" },
       }),
@@ -132,33 +167,6 @@ export function getProjectTableColumns(
           />
         </span>
       ),
-    },
-    {
-      key: "expand",
-      width: 48,
-      align: "center" as const,
-      onCell: (record) => ({
-        onClick: (e: React.MouseEvent) => {
-          e.stopPropagation(); // Prevent row click
-          onToggleExpand?.(record);
-        },
-        style: { cursor: "pointer" },
-      }),
-      render: (_, { project_id }) => {
-        // Render the expand icon based on whether this row is expanded
-        const isExpanded = expandedRowKeys?.includes(project_id) ?? false;
-        return (
-          <span
-            style={{
-              cursor: "pointer",
-              fontSize: "18px",
-              color: COLORS.GRAY_M,
-            }}
-          >
-            <Icon name={isExpanded ? "minus-square" : "plus-square"} />
-          </span>
-        );
-      },
     },
     {
       title: <span style={{ paddingLeft: "48px" }}>Project</span>,
@@ -218,49 +226,52 @@ export function getProjectTableColumns(
         );
       },
     },
-    {
-      title: "Collaborators",
-      dataIndex: "collaborators",
-      key: "collaborators",
-      width: 150,
-      filters: collaboratorFilters?.map((cf) => ({
-        text: (
-          <span
-            style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
-          >
-            {cf.avatar ? (
-              <Avatar src={cf.avatar} size={20} />
-            ) : (
-              <Avatar size={20}>{cf.first_name[0]}</Avatar>
-            )}
-            <span>{cf.text}</span>
-          </span>
-        ),
-        value: cf.value,
-        label: cf.text, // Store plain text for searching
-      })),
-      filterMultiple: true,
-      filterSearch: (input, record) => {
-        const searchText = (record as any).label ?? "";
-        return searchText.toLowerCase().includes(input.toLowerCase());
-      },
-      onFilter: (value, record) =>
-        record.collaborators.includes(value as string),
-      render: (collaborators: string[]) => (
-        <CollaboratorsAvatars collaboratorIds={collaborators} size={24} />
-      ),
-    },
+    ...(narrow
+      ? []
+      : [
+          {
+            title: "Collaborators",
+            dataIndex: "collaborators",
+            key: "collaborators",
+            width: 150,
+            filters: collaboratorFilters?.map((cf) => ({
+              text: (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  {cf.avatar ? (
+                    <Avatar src={cf.avatar} size={20} />
+                  ) : (
+                    <Avatar size={20}>{cf.first_name[0]}</Avatar>
+                  )}
+                  <span>{cf.text}</span>
+                </span>
+              ),
+              value: cf.value,
+              label: cf.text, // Store plain text for searching
+            })),
+            filterMultiple: true,
+            filterSearch: (input, record) => {
+              const searchText = (record as any).label ?? "";
+              return searchText.toLowerCase().includes(input.toLowerCase());
+            },
+            onFilter: (value, record) =>
+              record.collaborators.includes(value as string),
+            render: (collaborators: string[]) => (
+              <CollaboratorsAvatars collaboratorIds={collaborators} size={24} />
+            ),
+          },
+        ]),
     {
       title: "Last Edited",
       dataIndex: "last_edited",
       key: "last_edited",
       width: 150,
-      sorter: (a, b) => {
-        if (!a.last_edited && !b.last_edited) return 0;
-        if (!a.last_edited) return -1;
-        if (!b.last_edited) return 1;
-        return a.last_edited.getTime() - b.last_edited.getTime();
-      },
+      sorter: sortProjectsLastEdited,
       sortDirections: SORT_DIRECTIONS,
       sortOrder:
         sortState?.columnKey === "last_edited" ? sortState.order : null,
