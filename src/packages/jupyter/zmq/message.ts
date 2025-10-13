@@ -1,7 +1,7 @@
 /*
 This is from https://github.com/n-riesco/jmp but rewritten in typescript.
 
-The original and all modifications in CoCalc of the code in THIS DIRECTORY 
+The original and all modifications in CoCalc of the code in THIS DIRECTORY
 are: * BSD 3-Clause License *
 
 */
@@ -153,10 +153,10 @@ export class Message {
     if (key) {
       const hmac = crypto.createHmac(scheme, key);
       const encoding = "utf8";
-      hmac.update(Buffer.from(header, encoding));
-      hmac.update(Buffer.from(parent_header, encoding));
-      hmac.update(Buffer.from(metadata, encoding));
-      hmac.update(Buffer.from(content, encoding));
+      hmac.update(Buffer.from(header, encoding) as any);
+      hmac.update(Buffer.from(parent_header, encoding) as any);
+      hmac.update(Buffer.from(metadata, encoding) as any);
+      hmac.update(Buffer.from(content, encoding) as any);
       signature = hmac.digest("hex");
     }
 

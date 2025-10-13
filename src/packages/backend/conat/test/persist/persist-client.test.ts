@@ -20,10 +20,10 @@ import { delay } from "awaiting";
 beforeAll(before);
 
 jest.setTimeout(10000);
-describe("create a persist client stream and test the basic operations", () => {
+describe.only("create a persist client stream and test the basic operations", () => {
   let client, s1;
 
-  it("creates a client and stream", () => {
+  it.only("creates a client and stream", () => {
     client = connect();
     s1 = stream({
       client,
