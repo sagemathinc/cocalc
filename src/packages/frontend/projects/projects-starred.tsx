@@ -181,14 +181,7 @@ export function StarredProjectsBar() {
           </div>
         )}
         <div style={{ fontSize: "12px", color: COLORS.GRAY_L }}>
-          <div>
-            <TimeAgo date={project.last_edited} />
-          </div>
-          {project.state && (
-            <div style={{ marginTop: "4px" }}>
-              <Icon name="server" /> {project.state?.get("state") ?? "stopped"}
-            </div>
-          )}
+          <TimeAgo date={project.last_edited} />
         </div>
       </div>
     );
@@ -223,7 +216,7 @@ export function StarredProjectsBar() {
           }
         }}
       >
-        {trunc(project.title, 20)}
+        {trunc(project.title, 15)}
       </Button>
     );
 

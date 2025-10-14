@@ -35,10 +35,6 @@ import { useBookmarkedProjects } from "./use-bookmarked-projects";
 import { getVisibleProjects } from "./util";
 import { FilenameSearch } from "./filename-search";
 
-const PROJECTS_TITLE_STYLE: CSS = {
-  marginTop: "20px",
-} as const;
-
 const LOADING_STYLE: CSS = {
   fontSize: "40px",
   textAlign: "center",
@@ -247,30 +243,45 @@ export const ProjectsPage: React.FC = () => {
               padding: narrow ? "0 10px 0 10px" : "0",
             }}
           >
-            {/* Title */}
-            <div ref={titleRef} style={PROJECTS_TITLE_STYLE}>
-              <div
+            <div
+              ref={titleRef}
+              style={{
+                marginTop: "20px",
+                display: "flex",
+                width: "100%",
+                gap: "10px",
+                alignItems: "center",
+              }}
+            >
+              <Title
+                level={3}
                 style={{
-                  display: "flex",
-                  width: "100%",
-                  gap: "10px",
-                  alignItems: "center",
+                  flex: "0 1 auto",
+                  marginBottom: "15px",
+                  whiteSpace: "nowrap",
                 }}
               >
-                <Title
-                  level={3}
-                  style={{ flex: "0 1 auto", marginBottom: "15px" }}
-                >
-                  <Icon name="edit" /> {intl.formatMessage(labels.projects)}
-                </Title>
-                <div ref={starredBarRef} style={{ flex: "1 1 auto" }}>
-                  <StarredProjectsBar />
-                </div>
-                <div ref={filenameSearchRef} style={{ flex: "0 1 auto" }}>
-                  <FilenameSearch />
-                </div>
+                <Icon name="edit" /> {intl.formatMessage(labels.projects)}
+              </Title>
+              <div ref={starredBarRef} style={{ flex: "1 1 auto" }}>
+                <StarredProjectsBar />
               </div>
+              {!narrow && (
+                <div ref={filenameSearchRef} style={{ flex: "0 1 auto" }}>
+                  <FilenameSearch
+                    style={{ width: "200px", display: "inline-block" }}
+                  />
+                </div>
+              )}
             </div>
+
+            {narrow && (
+              <div ref={filenameSearchRef} style={{ textAlign: "right" }}>
+                <FilenameSearch
+                  style={{ width: "200px", display: "inline-block" }}
+                />
+              </div>
+            )}
 
             {/* Table Controls (Search, Filters, Create Button) */}
             <div ref={controlsRef}>

@@ -136,17 +136,20 @@ export function getProjectTableColumns(
       title: (
         <Icon
           name="star-filled"
-          style={{ marginLeft: "12px", fontSize: "18px", color: COLORS.YELL_LL }}
+          style={{
+            marginLeft: "12px",
+            fontSize: "18px",
+            color: COLORS.YELL_LL,
+          }}
         />
       ),
       dataIndex: "starred",
       key: "starred",
       width: 60,
       align: "center" as const,
-      onCell: (record) => ({
+      onCell: () => ({
         onClick: (e: React.MouseEvent) => {
           e.stopPropagation(); // Prevent row click when clicking menu
-          onToggleStar(record.project_id, e);
         },
         style: { cursor: "pointer" },
       }),

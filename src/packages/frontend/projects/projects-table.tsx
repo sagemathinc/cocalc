@@ -235,9 +235,7 @@ export function ProjectsTable({
       sortDirections={["ascend", "descend", "ascend"]}
       expandable={{
         expandedRowRender: (record) => (
-          <ProjectRowExpandedContent
-            project_id={record.project_id}
-          />
+          <ProjectRowExpandedContent project_id={record.project_id} />
         ),
         columnWidth: 48,
         expandedRowClassName: "cc-project-expanded-row",
