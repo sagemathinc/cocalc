@@ -14,7 +14,7 @@ import type { SelectProps } from "antd";
 
 import { Button, Input, Select, Space, Switch } from "antd";
 import { Set } from "immutable";
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -37,11 +37,19 @@ const CONTROLS_STYLE: CSS = {
 interface Props {
   visible_projects: string[];
   onCreateProject: () => void;
+  tour: ReactNode;
+  createNewRef: React.RefObject<any>;
+  searchRef: React.RefObject<any>;
+  filtersRef: React.RefObject<any>;
 }
 
 export function ProjectsTableControls({
   visible_projects,
   onCreateProject,
+  tour,
+  createNewRef,
+  searchRef,
+  filtersRef,
 }: Props) {
   const intl = useIntl();
   const actions = useActions("projects");
@@ -77,29 +85,37 @@ export function ProjectsTableControls({
     return selected_hashtags?.get(filter)?.toArray() ?? [];
   }, [selected_hashtags, filter]);
 
-  const handleHashtagChange = (values: string[]) => {
+  function handleHashtagChange(values: string[]) {
     // Update selected hashtags in Redux
     actions.setState({
       selected_hashtags: selected_hashtags?.set(filter, Set(values)),
     });
-  };
+  }
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     actions.setState({ search: e.target.value });
-  };
+  }
+
+  function handlePressEnter() {
+    if (visible_projects.length > 0) {
+      actions.open_project({ project_id: visible_projects[0] });
+    }
+  }
 
   return (
     <Space style={CONTROLS_STYLE} direction="horizontal">
       {/* Left section: Search and Hashtags */}
-      <Space wrap>
+      <Space wrap ref={searchRef}>
         <Input.Search
           placeholder={intl.formatMessage({
             id: "projects.table-controls.search.placeholder",
             defaultMessage: "Search projects...",
           })}
+          autoFocus
           value={search}
           onChange={handleSearchChange}
-          style={{ width: 300 }}
+          onPressEnter={handlePressEnter}
+          style={{ width: 250 }}
           allowClear
         />
 
@@ -109,7 +125,7 @@ export function ProjectsTableControls({
             allowClear
             showSearch
             disabled={hashtagOptions.length === 0}
-            style={{ width: 250 }}
+            style={{ width: 200 }}
             placeholder={intl.formatMessage({
               id: "projects.table-controls.hashtags.placeholder",
               defaultMessage: "Filter by hashtags...",
@@ -122,7 +138,7 @@ export function ProjectsTableControls({
         )}
         {/* Filter switches */}
         {!is_anonymous && (
-          <>
+          <Space ref={filtersRef}>
             <Switch
               checked={hidden}
               onChange={(checked) => actions.display_hidden_projects(checked)}
@@ -147,19 +163,23 @@ export function ProjectsTableControls({
                 defaultMessage: "Deleted",
               })}
             />
-          </>
+          </Space>
         )}
       </Space>
 
       {/* Right section: Create button */}
       {!is_anonymous && (
-        <Button
-          type="primary"
-          onClick={onCreateProject}
-          icon={<Icon name="plus-circle" />}
-        >
-          {intl.formatMessage(labels.create_project)}
-        </Button>
+        <Space>
+          {tour}
+          <Button
+            ref={createNewRef}
+            type="primary"
+            onClick={onCreateProject}
+            icon={<Icon name="plus-circle" />}
+          >
+            {intl.formatMessage(labels.create_project)}
+          </Button>
+        </Space>
       )}
     </Space>
   );

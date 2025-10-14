@@ -33,6 +33,7 @@ import { ProjectsTableControls } from "./projects-table-controls";
 import ProjectsPageTour from "./tour";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
 import { getVisibleProjects } from "./util";
+import { FilenameSearch } from "./filename-search";
 
 const PROJECTS_TITLE_STYLE: CSS = {
   marginTop: "20px",
@@ -48,7 +49,6 @@ export const ProjectsPage: React.FC = () => {
   const intl = useIntl();
   const { bookmarkedProjects } = useBookmarkedProjects();
 
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const project_map = useTypedRedux("projects", "project_map");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -65,6 +65,7 @@ export const ProjectsPage: React.FC = () => {
   const filtersRef = useRef<any>(null);
   const createNewRef = useRef<any>(null);
   const projectListRef = useRef<any>(null);
+  const filenameSearchRef = useRef<any>(null);
 
   // Calculating table height
   const containerRef = useRef<HTMLDivElement>(null);
@@ -248,21 +249,27 @@ export const ProjectsPage: React.FC = () => {
           >
             {/* Title */}
             <div ref={titleRef} style={PROJECTS_TITLE_STYLE}>
-              <Title level={3}>
-                <Icon name="edit" /> {intl.formatMessage(labels.projects)}
-                <ProjectsPageTour
-                  style={{ float: "right" }}
-                  searchRef={searchRef}
-                  filtersRef={filtersRef}
-                  createNewRef={createNewRef}
-                  projectListRef={projectListRef}
-                />
-              </Title>
-            </div>
-
-            {/* Starred Projects Bar */}
-            <div ref={starredBarRef}>
-              {!is_anonymous && <StarredProjectsBar />}
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  gap: "10px",
+                  alignItems: "center",
+                }}
+              >
+                <Title
+                  level={3}
+                  style={{ flex: "0 1 auto", marginBottom: "15px" }}
+                >
+                  <Icon name="edit" /> {intl.formatMessage(labels.projects)}
+                </Title>
+                <div ref={starredBarRef} style={{ flex: "1 1 auto" }}>
+                  <StarredProjectsBar />
+                </div>
+                <div ref={filenameSearchRef} style={{ flex: "0 1 auto" }}>
+                  <FilenameSearch />
+                </div>
+              </div>
             </div>
 
             {/* Table Controls (Search, Filters, Create Button) */}
@@ -270,6 +277,19 @@ export const ProjectsPage: React.FC = () => {
               <ProjectsTableControls
                 visible_projects={visible_projects}
                 onCreateProject={handleCreateProject}
+                createNewRef={createNewRef}
+                searchRef={searchRef}
+                filtersRef={filtersRef}
+                tour={
+                  <ProjectsPageTour
+                    searchRef={searchRef}
+                    filtersRef={filtersRef}
+                    createNewRef={createNewRef}
+                    projectListRef={projectListRef}
+                    filenameSearchRef={filenameSearchRef}
+                    style={{ flex: 0 }}
+                  />
+                }
               />
             </div>
 
@@ -278,7 +298,6 @@ export const ProjectsPage: React.FC = () => {
               <ProjectsOperations visible_projects={visible_projects} />
             </div>
 
-            {/* Projects Table */}
             <div ref={projectListRef}>
               <ProjectsTable
                 visible_projects={visible_projects}
@@ -287,7 +306,6 @@ export const ProjectsPage: React.FC = () => {
               />
             </div>
 
-            {/* Load All Projects Button */}
             <div ref={loadAllRef}>
               <LoadAllProjects />
             </div>

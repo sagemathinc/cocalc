@@ -72,7 +72,7 @@ export function FilenameSearch({}: Props) {
         <div
           style={{
             position: "absolute",
-            zIndex: 1,
+            zIndex: 10,
             background: "white",
             padding: "15px",
             border: "1px solid #ddd",

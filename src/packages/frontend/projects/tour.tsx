@@ -1,5 +1,7 @@
+// cSpell:ignore collabs
+
 import type { TourProps } from "antd";
-import { Button, Checkbox, Space, Tour } from "antd";
+import { Button, Tour } from "antd";
 import { useState } from "react";
 
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
@@ -8,8 +10,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import track from "@cocalc/frontend/user-tracking";
+import { COLORS } from "@cocalc/util/theme";
 import collabsImage from "./tour-collabs.png";
-import infoImage from "./tour-info.png";
 import projectsImage from "./tour-projects.png";
 
 export default function ProjectsPageTour({
@@ -17,6 +19,7 @@ export default function ProjectsPageTour({
   filtersRef,
   projectListRef,
   createNewRef,
+  filenameSearchRef,
   style,
 }) {
   const tours = useRedux("account", "tours");
@@ -36,10 +39,8 @@ export default function ProjectsPageTour({
       description: (
         <div>
           Welcome to <SiteName />
-          's Projects Page! On this page, you'll find several key elements that
-          help you manage and organize your computational work, collaborate with
-          others, and maximize your productivity. Let's take a tour and
-          highlight these elements.
+          's Projects Page! It gives you an overview about all your workspaces,
+          where you have access to.
         </div>
       ),
     },
@@ -51,9 +52,8 @@ export default function ProjectsPageTour({
       ),
       description: (
         <div>
-          To start your work on <SiteName />, click the "Create Project" button.
-          You can specify the project's title, and customize the image and
-          license. Create as many projects as you want!
+          Click the "Create Project" button to instantiate a new workspace. You
+          can specify the project's title, and customize the image and license.
         </div>
       ),
       target: () => createNewRef.current,
@@ -64,21 +64,25 @@ export default function ProjectsPageTour({
           <Icon name="edit" /> Project List
         </>
       ),
-      cover: <img src={infoImage} />,
       description: (
         <div>
           <p>
             The core of the projects page is the list of your projects. Each
-            project is a separate folder containing files, data, and settings
+            project is a separate workspace containing files, data, and settings
             specific to that project. By organizing your work into projects, you
             can easily collaborate with others, manage your files, and maintain
             different environments for various projects.
           </p>
           <p>
             At a glance, you can view important information about each project
-            like a short description, the last time it was edited, and the
-            collaborators involved. This allows you to quickly understand the
-            project's purpose and gauge its progress.
+            like its description, run state, the last time it was edited, and
+            the collaborators involved. An avatar or a color makes it easier to
+            recognize.
+          </p>
+          <p>
+            Finally,{" "}
+            <Icon name="star-filled" style={{ color: COLORS.YELL_L }} />
+            -star a project to add it to the quick access row at the top!
           </p>
         </div>
       ),
@@ -88,7 +92,7 @@ export default function ProjectsPageTour({
     {
       title: (
         <>
-          <Icon name="search" /> Search
+          <Icon name="search" /> Search and Filter
         </>
       ),
       description: (
@@ -106,22 +110,7 @@ export default function ProjectsPageTour({
       ),
       target: () => searchRef.current,
     },
-    {
-      title: (
-        <>
-          <Icon name="users" /> Collaborators & Sharing
-        </>
-      ),
-      cover: <img src={collabsImage} />,
-      description: (
-        <div>
-          Working together is at the heart of <SiteName />. Easily add
-          collaborators to your projects by clicking on the collaborator toggle
-          to the right of each project's description. Collaborators can view,
-          edit, and run calculations in realtime inside the project.
-        </div>
-      ),
-    },
+
     {
       title: "Hidden and Deleted projects",
       description: (
@@ -143,6 +132,31 @@ export default function ProjectsPageTour({
       target: () => filtersRef.current,
     },
     {
+      title: (
+        <>
+          <Icon name="users" /> Collaborators & Sharing
+        </>
+      ),
+      cover: <img src={collabsImage} />,
+      description: (
+        <div>
+          Expand a project via the <Icon name="plus-square" /> icon to see and
+          control collaborators on the project. Collaborators can view, edit,
+          and run calculations in realtime inside the project – just like you!
+        </div>
+      ),
+    },
+    {
+      title: "Filename Search",
+      target: () => filenameSearchRef.current,
+      description: (
+        <div>
+          This search box helps you to find a file you've worked on in the past.
+          It searches through filenames across projects.
+        </div>
+      ),
+    },
+    {
       title: "Thanks!",
       description: (
         <>
@@ -150,35 +164,32 @@ export default function ProjectsPageTour({
           simplifies project management, collaboration, and organization.
           <br />
           <br />
-          <Checkbox
-            onChange={(e) => {
+          <Button
+            type="primary"
+            icon={<Icon name="check" />}
+            onClick={() => {
               const actions = redux.getActions("account");
-              if (e.target.checked) {
-                actions.setTourDone("projects");
-              } else {
-                actions.setTourNotDone("projects");
-              }
+              actions.setTourDone("projects");
             }}
           >
             Hide tour
-          </Checkbox>
+          </Button>
         </>
       ),
     },
   ];
   return (
     <>
-      <Space.Compact style={style}>
-        <Button
-          type="dashed"
-          onClick={() => {
-            setOpen(true);
-            track("tour", { name: "projects" });
-          }}
-        >
-          <Icon name="map" /> Tour
-        </Button>
-      </Space.Compact>
+      <Button
+        type="dashed"
+        style={style}
+        onClick={() => {
+          setOpen(true);
+          track("tour", { name: "projects" });
+        }}
+      >
+        <Icon name="map" /> Tour
+      </Button>
       <Tour
         open={open}
         onClose={() => {

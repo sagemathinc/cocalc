@@ -8,6 +8,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import { trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
 import { blendBackgroundColor, sortProjectsLastEdited } from "./util";
@@ -193,13 +194,8 @@ export function StarredProjectsBar() {
     );
   };
 
-  const truncateTitle = (title: string, maxLength: number = 20) => {
-    if (title.length <= maxLength) return title;
-    return title.substring(0, maxLength) + "...";
-  };
-
   // Helper to render a project button
-  const renderProjectButton = (project: any, showTooltip: boolean = true) => {
+  function renderProjectButton(project: any, showTooltip: boolean = true) {
     // Create background color with faint hint of project color
     const backgroundColor = blendBackgroundColor(project.color, "white", true);
 
@@ -223,11 +219,11 @@ export function StarredProjectsBar() {
         onMouseDown={(e) => {
           // Support middle-click
           if (e.button === 1) {
-            handleProjectClick(project.project_id, e as any);
+            handleProjectClick(project.project_id, e);
           }
         }}
       >
-        {truncateTitle(project.title)}
+        {trunc(project.title, 20)}
       </Button>
     );
 
@@ -244,14 +240,14 @@ export function StarredProjectsBar() {
         {button}
       </Tooltip>
     );
-  };
+  }
 
   // Create dropdown menu items for overflow projects
   const overflowMenuItems = overflowProjects.map((project) => ({
     key: project.project_id,
     label: (
       <div
-        style={{ display: "flex", alignItems: "center", gap: "8px" }}
+        style={{ display: "flex", alignItems: "center", gap: "5px" }}
         onClick={(e) => handleProjectClick(project.project_id, e as any)}
       >
         {project.avatar_image_tiny ? (

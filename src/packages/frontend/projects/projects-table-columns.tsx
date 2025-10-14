@@ -133,10 +133,15 @@ export function getProjectTableColumns(
       },
     },
     {
-      title: <span style={{ marginLeft: "18px" }}>⭐</span>,
+      title: (
+        <Icon
+          name="star-filled"
+          style={{ marginLeft: "12px", fontSize: "18px", color: COLORS.YELL_LL }}
+        />
+      ),
       dataIndex: "starred",
       key: "starred",
-      width: 65,
+      width: 60,
       align: "center" as const,
       onCell: (record) => ({
         onClick: (e: React.MouseEvent) => {
@@ -193,8 +198,15 @@ export function getProjectTableColumns(
               )}
             </div>
             {/* Title and description */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ marginBottom: "2px" }}>
+            <div style={{ flex: 1, minWidth: 0 }} title={record.title}>
+              <div
+                style={{
+                  marginBottom: "2px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {stateIcon && (
                   <Icon
                     name={stateIcon}

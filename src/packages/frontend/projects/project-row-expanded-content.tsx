@@ -42,11 +42,12 @@ import { labels } from "@cocalc/frontend/i18n";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
 import { RestartProject } from "@cocalc/frontend/project/settings/restart-project";
+import { StopProject } from "@cocalc/frontend/project/settings/stop-project";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { ProjectUsers } from "./project-users";
-import { useRecentFiles } from "./util";
+import { OpenedFile, useRecentFiles } from "./util";
 
 interface Props {
   project_id: string;
@@ -66,7 +67,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
   const project_log = useTypedRedux({ project_id }, "project_log");
 
   // Get recent files - always enabled since component only renders when expanded
-  const recentFiles = useRecentFiles(project_log, 100);
+  const recentFiles: OpenedFile[] = useRecentFiles(project_log, 100);
 
   // Get starred files - always enabled since component only renders when expanded
   const { starred } = useStarredFilesManager(project_id, true);
@@ -222,7 +223,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
     <div
       style={{
         margin: "0 0 15px 0",
-        padding: "10px 10px",
+        padding: "0",
         borderRadius: "0 0 5px 5px",
         borderLeft: `5px solid ${color ? color : "transparent"}`,
       }}
@@ -234,111 +235,111 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
             max-height: 50vh;
             overflow-y: auto;
           }
+          .cc-projects-row-expand-descriptions .ant-descriptions-view {
+            border: none !IMPORTANT;
+            border-radius: 0;
+          }
         `}
       </style>
-      {/* Top Row: Action Buttons */}
-      <div
-        style={{
-          marginBottom: "10px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Space>
-          <Button
-            type="text"
-            size="small"
-            onClick={() => openProjectTab("files")}
-            icon={<Icon name={FIXED_PROJECT_TABS.files.icon} />}
-          >
-            {intl.formatMessage(labels.explorer)}
-          </Button>
-          <Dropdown
-            menu={{
-              items: starredFilesMenu,
-              className: "cc-expanded-starred-dropdown",
-            }}
-            trigger={["click"]}
-            placement="bottomLeft"
-          >
-            <Button type="text" size="small" icon={<Icon name="star-filled" />}>
-              Starred <Icon name="caret-down" />
-            </Button>
-          </Dropdown>
-          <Dropdown
-            menu={{
-              items: recentFilesMenu,
-              className: "cc-expanded-recent-dropdown",
-            }}
-            trigger={["click"]}
-            placement="bottomLeft"
-          >
-            <Button
-              type="text"
-              size="small"
-              icon={<Icon name="history" />}
-              onClick={(e) => {
-                e.stopPropagation();
-                // Initialize project_log if not loaded
-                if (project_log == null) {
-                  redux.getProjectStore(project_id).init_table("project_log");
-                }
-              }}
-            >
-              {intl.formatMessage(labels.recent)} <Icon name="caret-down" />
-            </Button>
-          </Dropdown>
-          <Button
-            type="text"
-            size="small"
-            onClick={() => openProjectTab("new")}
-            icon={<Icon name={FIXED_PROJECT_TABS.new.icon} />}
-          >
-            {intl.formatMessage(labels.new)}
-          </Button>
-          <Button
-            type="text"
-            size="small"
-            onClick={() => openProjectTab("log")}
-            icon={<Icon name={FIXED_PROJECT_TABS.log.icon} />}
-          >
-            {displayI18N(FIXED_PROJECT_TABS.log.label)}
-          </Button>
-          <Button
-            type="text"
-            size="small"
-            onClick={() => openProjectTab("users")}
-            icon={<Icon name={FIXED_PROJECT_TABS.users.icon} />}
-          >
-            {displayI18N(FIXED_PROJECT_TABS.users.label)}
-          </Button>
-          <Button
-            type="text"
-            size="small"
-            onClick={() => openProjectTab("servers")}
-            icon={<Icon name={FIXED_PROJECT_TABS.servers.icon} />}
-          >
-            {displayI18N(FIXED_PROJECT_TABS.servers.label)}
-          </Button>
-          <Button
-            type="text"
-            size="small"
-            onClick={openProjectSettings}
-            icon={<Icon name={FIXED_PROJECT_TABS.settings.icon} />}
-          >
-            {displayI18N(FIXED_PROJECT_TABS.settings.label)}
-          </Button>
-        </Space>
-      </div>
-
       <Descriptions
         column={3}
         size="small"
         bordered
         layout="vertical"
         style={{ margin: 0 }}
+        className={"cc-projects-row-expand-descriptions"}
       >
+        <Descriptions.Item label={intl.formatMessage(labels.open)} span={3}>
+          <Space>
+            <Button
+              type="text"
+              size="small"
+              onClick={() => openProjectTab("files")}
+              icon={<Icon name={FIXED_PROJECT_TABS.files.icon} />}
+            >
+              {intl.formatMessage(labels.explorer)}
+            </Button>
+            <Dropdown
+              menu={{
+                items: starredFilesMenu,
+                className: "cc-expanded-starred-dropdown",
+              }}
+              trigger={["click"]}
+              placement="bottomLeft"
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<Icon name="star-filled" />}
+              >
+                Starred <Icon name="caret-down" />
+              </Button>
+            </Dropdown>
+            <Dropdown
+              menu={{
+                items: recentFilesMenu,
+                className: "cc-expanded-recent-dropdown",
+              }}
+              trigger={["click"]}
+              placement="bottomLeft"
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<Icon name="history" />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Initialize project_log if not loaded
+                  if (project_log == null) {
+                    redux.getProjectStore(project_id).init_table("project_log");
+                  }
+                }}
+              >
+                {intl.formatMessage(labels.recent)} <Icon name="caret-down" />
+              </Button>
+            </Dropdown>
+            <Button
+              type="text"
+              size="small"
+              onClick={() => openProjectTab("new")}
+              icon={<Icon name={FIXED_PROJECT_TABS.new.icon} />}
+            >
+              {intl.formatMessage(labels.new)}
+            </Button>
+            <Button
+              type="text"
+              size="small"
+              onClick={() => openProjectTab("log")}
+              icon={<Icon name={FIXED_PROJECT_TABS.log.icon} />}
+            >
+              {displayI18N(FIXED_PROJECT_TABS.log.label)}
+            </Button>
+            <Button
+              type="text"
+              size="small"
+              onClick={() => openProjectTab("users")}
+              icon={<Icon name={FIXED_PROJECT_TABS.users.icon} />}
+            >
+              {displayI18N(FIXED_PROJECT_TABS.users.label)}
+            </Button>
+            <Button
+              type="text"
+              size="small"
+              onClick={() => openProjectTab("servers")}
+              icon={<Icon name={FIXED_PROJECT_TABS.servers.icon} />}
+            >
+              {displayI18N(FIXED_PROJECT_TABS.servers.label)}
+            </Button>
+            <Button
+              type="text"
+              size="small"
+              onClick={openProjectSettings}
+              icon={<Icon name={FIXED_PROJECT_TABS.settings.icon} />}
+            >
+              {displayI18N(FIXED_PROJECT_TABS.settings.label)}
+            </Button>
+          </Space>
+        </Descriptions.Item>
         <Descriptions.Item label="Created">
           {project.get("created") ? (
             <TimeAgo date={project.get("created")} />
@@ -353,11 +354,17 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
             <span style={{ color: COLORS.GRAY }}>Never</span>
           )}
         </Descriptions.Item>
-        <Descriptions.Item label="State">
-          <Space>
-            <ProjectState state={project.get("state")} />
+        <Descriptions.Item label={intl.formatMessage(labels.state)}>
+          <ProjectState state={project.get("state")} />{" "}
+          <Space.Compact>
             <RestartProject project_id={project_id} short={true} size="small" />
-          </Space>
+            <StopProject
+              project_id={project_id}
+              disabled={project.getIn(["state", "state"]) !== "running"}
+              short={true}
+              size="small"
+            />
+          </Space.Compact>
         </Descriptions.Item>
 
         {!is_anonymous && (

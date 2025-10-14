@@ -28,7 +28,10 @@ import type { FlyoutActiveStarred } from "./state";
 
 // Starred files are now managed entirely through conat with in-memory state.
 // No local storage dependency - conat handles synchronization and persistence.
-export function useStarredFilesManager(project_id: string, enabled: boolean = true) {
+export function useStarredFilesManager(
+  project_id: string,
+  enabled: boolean = true,
+) {
   const [starred, setStarred] = useState<FlyoutActiveStarred>([]);
   const [bookmarks, setBookmarks] = useState<any>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -57,6 +60,8 @@ export function useStarredFilesManager(project_id: string, enabled: boolean = tr
         account_id,
         name: CONAT_BOOKMARKS_KEY,
       });
+
+      conatBookmarks.setMaxListeners(100);
 
       setBookmarks(conatBookmarks);
 

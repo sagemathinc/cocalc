@@ -192,6 +192,11 @@ export const labels = defineMessages({
     id: "labels.status",
     defaultMessage: "Status",
   },
+  state: {
+    id: "labels.state",
+    defaultMessage: "State",
+    description: "The state some object is in, e.g. running, stopped, ...",
+  },
   published_files: {
     id: "labels.published_files",
     defaultMessage: "Published",

@@ -29,7 +29,7 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import { COLORS } from "@cocalc/util/theme";
-import { useRecentFiles } from "./util";
+import { OpenedFile, useRecentFiles } from "./util";
 import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
 
 interface Props {
@@ -61,7 +61,7 @@ export function ProjectActionsMenu({ record }: Props) {
     "owner";
 
   // Get recent files - only when menu is open
-  const recentFiles = useRecentFiles(project_log, open ? 100 : 0);
+  const recentFiles: OpenedFile[] = useRecentFiles(project_log, open ? 100 : 0);
 
   // Get starred files - only when menu is open
   const { starred } = useStarredFilesManager(record.project_id, open);
