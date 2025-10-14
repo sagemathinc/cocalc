@@ -263,8 +263,7 @@ export class Sender extends EventEmitter {
       for (const id of missing) {
         const x = this.outgoing[id];
         if (x == null) {
-          // the data does not exist on this client.  This should only happen, e.g.,
-          // on automatic failover with the sticky load balancer... ?
+          // the data does not exist on this client. 
           mesg.respondSync(null, { headers: { error: "nodata" } });
           return;
         }

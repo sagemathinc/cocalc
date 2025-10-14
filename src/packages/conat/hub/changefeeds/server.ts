@@ -32,8 +32,6 @@ export function changefeedServer({
 
   cancelQuery: (uuid: string) => void;
 }): ConatSocketServer {
-  logger.debug("creating changefeed server");
-
   const usage = new UsageMonitor({
     maxPerUser: MAX_PER_ACCOUNT,
     max: MAX_GLOBAL,
@@ -47,9 +45,11 @@ export function changefeedServer({
     keepAlive: SERVER_KEEPALIVE,
     keepAliveTimeout: KEEPALIVE_TIMEOUT,
   });
+  logger.debug("created changefeed server with id", server.id);
 
   server.on("connection", (socket) => {
     const v = socket.subject.split(".")[1];
+    logger.debug(server.id, "connection from ", v);
     if (!v?.startsWith("account-")) {
       socket.write({ error: "only account users can create changefeeds" });
       logger.debug(
@@ -121,19 +121,22 @@ export function changefeedServer({
           account_id,
           cb: (error, update) => {
             // logger.debug("got: ", { error, update });
+            if (error) {
+              error = `error from postgres: "${error}"`;
+            }
             try {
               socket.write({ error, update });
             } catch (err) {
-              // happens if buffer is full or socket is closed.  in both cases, might was well
-              // just close the socket.
-              error = `${err}`;
+              if (`${err}`.includes("closed")) {
+                // expected behavior when other side closed it
+                socket.close();
+                return;
+              }
+              // happens if buffer is full. we just close the socket for now. (TODO?)
+              error = `${error ? error + "; " : ""}unable to send (buffer may be full -- closing) `;
             }
             if (error) {
-              logger.debug(
-                "socket.close: due to error from postgres changefeed",
-                socket.subject,
-                error,
-              );
+              logger.debug(error, socket.subject);
               socket.close();
             }
           },

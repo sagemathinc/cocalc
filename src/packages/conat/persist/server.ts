@@ -70,6 +70,7 @@ import { type SetOptions } from "./client";
 import { once } from "@cocalc/util/async-utils";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
 import { getLogger } from "@cocalc/conat/client";
+import { initLoadBalancer } from "./load-balancer";
 
 const logger = getLogger("persist:server");
 
@@ -93,33 +94,48 @@ export function server({
   client,
   messagesThresh = DEFAULT_MESSAGES_THRESH,
   service = SERVICE,
+  id = "0",
+  clusterMode,
 }: {
   client: Client;
   messagesThresh?: number;
   service?: string;
+  id?: string;
+  // if false, runs it's own internal load balancer that always returns this server
+  clusterMode?: boolean;
 }): ConatSocketServer {
-  logger.debug("server: creating persist server");
+  const log = (...args) => {
+    logger.debug(id, service, ...args);
+  };
+  log("server: creating persist server");
   if (client == null) {
     throw Error("client must be specified");
   }
   const subject = `${service}.*`;
-  const server: ConatSocketServer = client.socket.listen(subject);
-  logger.debug("server: listening on ", { subject });
+  const server: ConatSocketServer = client.socket.listen(subject, { id });
+  log("server listening", { subject, id });
+  if (!clusterMode) {
+    log("persist server not in cluster mode, so starting own load balancer");
+    initLoadBalancer({ service, ids: [id], client });
+  }
   const usage = new UsageMonitor({
     maxPerUser: MAX_PER_USER,
     max: MAX_GLOBAL,
     resource: RESOURCE,
     log: (...args) => {
-      logger.debug(RESOURCE, ...args);
+      log(RESOURCE, ...args);
     },
   });
+
   server.on("close", () => {
+    log("stopping persist server", { id, service });
     usage.close();
   });
 
   server.on("connection", (socket: ServerSocket) => {
-    logger.debug("server: got new connection", {
-      id: socket.id,
+    log("server: got new connection", {
+      id,
+      service,
       subject: socket.subject,
     });
     //     console.log(new Date(), "persist server got connection", {
@@ -134,7 +150,7 @@ export function server({
     let user = "";
     let added = false;
     socket.on("data", async (data) => {
-      // logger.debug("server: got data ", data);
+      // log("server: got data ", data);
       if (stream == null) {
         storage = data.storage;
         changefeed = data.changefeed;
@@ -159,7 +175,7 @@ export function server({
       }
     });
     socket.on("closed", () => {
-      logger.debug("socket closed", socket.subject);
+      log("socket closed", id, socket.subject);
       storage = undefined;
       stream?.close();
       stream = undefined;
@@ -170,7 +186,7 @@ export function server({
 
     socket.on("request", async (mesg) => {
       const request = mesg.headers;
-      // logger.debug("got request", request);
+      // log("got request", request);
 
       try {
         if (error) {
@@ -256,12 +272,12 @@ export function server({
         } else if (request.cmd == "serverId") {
           mesg.respondSync(server.id);
         } else if (request.cmd == "getAll") {
-          logger.debug("getAll", { subject: socket.subject, request });
+          log("getAll", { subject: socket.subject, request });
           // getAll uses requestMany which responds with all matching messages,
           // so no call to mesg.respond here.
           getAll({ stream, mesg, request, messagesThresh });
         } else if (request.cmd == "changefeed") {
-          logger.debug("changefeed", changefeed);
+          log("changefeed", changefeed);
           if (!changefeed) {
             changefeed = true;
             startChangefeed({ socket, stream, messagesThresh });

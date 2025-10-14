@@ -5,11 +5,16 @@ import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
 export { initConatPersist } from "./persist";
-import { conatApiCount, projectRunnerCount } from "@cocalc/backend/data";
+import {
+  conatApiCount,
+  projectRunnerCount,
+  conatChangefeedServerCount,
+} from "@cocalc/backend/data";
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initProjectRunner } from "./project/run";
 import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
 import { init as initFileserver } from "@cocalc/server/conat/file-server";
+import { conat } from "@cocalc/backend/conat";
 
 export { loadConatConfiguration };
 
@@ -17,10 +22,13 @@ const logger = getLogger("server:conat");
 
 export async function initConatChangefeedServer() {
   logger.debug(
-    "initConatChangefeedServer: postgresql database query changefeeds",
+    "initConatChangefeedServer: postgresql database changefeed server",
+    { conatChangefeedServerCount },
   );
   await loadConatConfiguration();
-  initChangefeedServer();
+  for (let i = 0; i < conatChangefeedServerCount; i++) {
+    initChangefeedServer({ client: conat({ noCache: true }) });
+  }
 }
 
 export async function initConatApi() {

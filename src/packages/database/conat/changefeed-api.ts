@@ -31,12 +31,13 @@ import {
 } from "@cocalc/conat/hub/changefeeds";
 import { db } from "@cocalc/database";
 import { conat } from "@cocalc/backend/conat";
+import { type Client } from "@cocalc/conat/core/client";
 
 let server: ConatSocketServer | null = null;
-export function init() {
+export function init({ client }: { client?: Client }) {
   const D = db();
   server = changefeedServer({
-    client: conat(),
+    client: client ?? conat(),
     userQuery: D.user_query.bind(D),
     cancelQuery: (id: string) => D.user_query_cancel_changefeed({ id }),
   });
