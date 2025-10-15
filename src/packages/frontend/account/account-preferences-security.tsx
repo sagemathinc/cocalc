@@ -4,9 +4,13 @@
  */
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import ApiKeys from "./settings/api-keys";
 import GlobalSSHKeys from "./ssh-keys/global-ssh-keys";
+
+// Icon constant for account preferences section
+export const SECURITY_ICON_NAME = "lock";
 
 export function AccountPreferencesSecurity() {
   const is_anonymous = useTypedRedux("account", "is_anonymous");

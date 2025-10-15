@@ -4,7 +4,10 @@
  */
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { OtherSettings } from "./other-settings";
+import { OtherSettings, OTHER_ICON_NAME } from "./other-settings";
+
+// Re-export the icon constant for account preferences section
+export { OTHER_ICON_NAME };
 
 export function AccountPreferencesOther() {
   const other_settings = useTypedRedux("account", "other_settings");

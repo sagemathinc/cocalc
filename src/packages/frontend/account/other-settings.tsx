@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore brandcolors codebar
+
 import { Button, Card, Slider } from "antd";
 import { debounce } from "lodash";
 import { useMemo } from "react";
@@ -44,6 +46,7 @@ import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
+
 import {
   DARK_MODE_KEYS,
   DARK_MODE_MINS,
@@ -54,6 +57,10 @@ import Messages from "./messages";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
+
+// Icon constants for account preferences sections
+export const THEME_ICON_NAME = "highlighter";
+export const OTHER_ICON_NAME = "gear";
 
 // Import the account state type to get the proper other_settings type
 import type { AccountState } from "./types";
@@ -652,7 +659,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     const customize = redux.getStore("customize");
     const enabledLLMs = customize.getEnabledLLMs();
     const anyLLMenabled = Object.values(enabledLLMs).some((v) => v);
-    if (!anyLLMenabled) return null;
+    if (!anyLLMenabled) return <></>;
     return (
       <Panel
         header={
@@ -677,7 +684,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     return <Loading />;
   }
 
-  const mode = props.mode || "full";
+  const mode = props.mode ?? "full";
 
   if (mode === "ai") {
     return render_llm_settings();
@@ -688,7 +695,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       <Panel
         header={
           <>
-            <Icon name="highlighter" />{" "}
+            <Icon name={THEME_ICON_NAME} />{" "}
             <FormattedMessage
               id="account.other-settings.theme"
               defaultMessage="Theme"
@@ -697,7 +704,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           </>
         }
       >
-        {render_dark_mode()}
         {render_antd()}
       </Panel>
     );
@@ -708,7 +714,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       <Panel
         header={
           <>
-            <Icon name="gear" /> Other
+            <Icon name={OTHER_ICON_NAME} /> Other
           </>
         }
       >
@@ -765,7 +771,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       <Panel
         header={
           <>
-            <Icon name="highlighter" />{" "}
+            <Icon name={THEME_ICON_NAME} />{" "}
             <FormattedMessage
               id="account.other-settings.theme"
               defaultMessage="Theme"
@@ -781,7 +787,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       <Panel
         header={
           <>
-            <Icon name="gear" /> Other
+            <Icon name={OTHER_ICON_NAME} /> Other
           </>
         }
       >

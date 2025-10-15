@@ -7,6 +7,7 @@ import { FormattedMessage } from "react-intl";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Icon, Loading } from "@cocalc/frontend/components";
+import { EDITOR_ICON_NAME } from "../account-preferences-editor";
 import { KEYBOARD_VARIANTS } from "@cocalc/frontend/frame-editors/x11-editor/xpra/keyboards";
 import { deep_copy } from "@cocalc/util/misc";
 import { EditorSettingsAutosaveInterval } from "./autosave-interval";
@@ -68,7 +69,7 @@ export function EditorSettings({}) {
     <Panel
       header={
         <>
-          <Icon name="edit" />{" "}
+          <Icon name={EDITOR_ICON_NAME} />{" "}
           <FormattedMessage
             id="account.editor-settings.title"
             defaultMessage="Editor Settings"

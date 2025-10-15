@@ -19,11 +19,24 @@ import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
 
+// Account sub-tab types for type safety
+export const VALID_ACCOUNT_SUB_TYPES = [
+  "profile",
+  "appearance",
+  "editor",
+  "ai",
+  "security",
+  "other",
+  "keyboard",
+] as const;
+export type AccountSubTabType = (typeof VALID_ACCOUNT_SUB_TYPES)[number];
+export type AccountSubTabKey = `account-${AccountSubTabType}`;
+
 // this is incomplete...
 
 export interface AccountState {
   active_page: string;
-  active_sub_tab?: string;
+  active_sub_tab?: AccountSubTabKey;
   user_type: string;
   account_id: string;
   groups?: List<string>;

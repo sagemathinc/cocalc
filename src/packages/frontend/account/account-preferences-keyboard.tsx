@@ -5,6 +5,9 @@
 
 import { KeyboardSettings } from "./keyboard-settings";
 
+// Icon constant for account preferences section
+export const KEYBOARD_ICON_NAME = "keyboard";
+
 export function AccountPreferencesKeyboard() {
   return <KeyboardSettings />;
 }

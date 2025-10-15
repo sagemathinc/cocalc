@@ -5,6 +5,9 @@
 
 import { EditorSettings } from "./editor-settings/editor-settings";
 
+// Icon constant for account preferences section
+export const EDITOR_ICON_NAME = "edit";
+
 export function AccountPreferencesEditor() {
   return <EditorSettings />;
 }

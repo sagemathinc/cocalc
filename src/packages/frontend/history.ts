@@ -12,13 +12,18 @@ The URI schema handled by the single page app is as follows:
         https://cocalc.com/settings
      Admin only page:
         https://cocalc.com/admin
-     Account settings (default):
-        https://cocalc.com/settings/account
+      Account settings (default):
+         https://cocalc.com/settings/account
+      Account sub-tabs:
+         https://cocalc.com/settings/account/profile
+         https://cocalc.com/settings/account/ai
+         https://cocalc.com/settings/account/security
+         etc.
      Billing:
         https://cocalc.com/settings/billing
      Upgrades:
         https://cocalc.com/settings/upgrades
-     Licenes:
+     Licenses:
         https://cocalc.com/settings/licenses
      Support:
         https://cocalc.com/settings/support
@@ -45,11 +50,25 @@ The URI schema handled by the single page app is as follows:
 */
 
 import { join } from "path";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { getNotificationFilterFromFragment } from "./notifications/fragment";
+import {
+  type AccountSubTabType,
+  type AccountSubTabKey,
+  VALID_ACCOUNT_SUB_TYPES,
+} from "@cocalc/frontend/account/types";
+
+// Utility function to safely create account sub-tab key
+function createAccountSubTabKey(subTab: string): AccountSubTabKey | null {
+  if (VALID_ACCOUNT_SUB_TYPES.includes(subTab as AccountSubTabType)) {
+    return `account-${subTab}` as AccountSubTabKey;
+  }
+  return null;
+}
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -153,7 +172,22 @@ export function load_target(
     case "settings":
       redux.getActions("page").set_active_tab("account", false);
       const actions = redux.getActions("account");
-      actions.set_active_tab(segments[1]);
+      if (segments[1] === "account" && segments[2]) {
+        // Handle sub-tabs: settings/account/[sub-tab]
+        actions.set_active_tab("account");
+        const subTabKey = createAccountSubTabKey(segments[2]);
+        if (subTabKey) {
+          actions.setState({ active_sub_tab: subTabKey });
+        } else {
+          // Invalid sub-tab, default to profile
+          actions.setState({
+            active_sub_tab: "account-profile" as AccountSubTabKey,
+          });
+        }
+      } else {
+        // Handle main tabs: settings/[tab]
+        actions.set_active_tab(segments[1]);
+      }
       actions.setFragment(Fragment.decode(hash));
 
       break;
@@ -191,6 +225,7 @@ export function parse_target(target?: string):
   | {
       page: "account";
       tab: "account" | "billing" | "upgrades" | "licenses" | "support";
+      sub_tab?: AccountSubTabKey;
     }
   | {
       page: "notifications";
@@ -210,6 +245,17 @@ export function parse_target(target?: string):
     case "settings":
       switch (segments[1]) {
         case "account":
+          if (segments[2]) {
+            // Handle sub-tabs: settings/account/[sub-tab]
+            const subTabKey = createAccountSubTabKey(segments[2]);
+            return {
+              page: "account",
+              tab: "account",
+              sub_tab: subTabKey || "account-profile", // Default to profile if invalid
+            };
+          } else {
+            return { page: "account", tab: "account" };
+          }
         case "billing":
         case "upgrades":
         case "licenses":

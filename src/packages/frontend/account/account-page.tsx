@@ -15,6 +15,7 @@ and configuration.
 import { Flex, Menu, Space } from "antd";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
+
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import {
   React,
@@ -23,7 +24,8 @@ import {
   useTypedRedux,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { Icon, Loading, Title } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { Footer } from "@cocalc/frontend/customize";
@@ -41,17 +43,45 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { AccountPreferencesProfile } from "./account-preferences-profile";
-import { AccountPreferencesAppearance } from "./account-preferences-appearance";
-import { AccountPreferencesEditor } from "./account-preferences-editor";
 import { AccountPreferencesAI } from "./account-preferences-ai";
-import { AccountPreferencesSecurity } from "./account-preferences-security";
-import { AccountPreferencesOther } from "./account-preferences-other";
-import { AccountPreferencesKeyboard } from "./account-preferences-keyboard";
+import {
+  AccountPreferencesAppearance,
+  APPEARANCE_ICON_NAME,
+} from "./account-preferences-appearance";
+import {
+  AccountPreferencesEditor,
+  EDITOR_ICON_NAME,
+} from "./account-preferences-editor";
+import {
+  AccountPreferencesKeyboard,
+  KEYBOARD_ICON_NAME,
+} from "./account-preferences-keyboard";
+import {
+  AccountPreferencesOther,
+  OTHER_ICON_NAME,
+} from "./account-preferences-other";
+import {
+  ACCOUNT_PROFILE_ICON_NAME,
+  AccountPreferencesProfile,
+} from "./account-preferences-profile";
+import {
+  AccountPreferencesSecurity,
+  SECURITY_ICON_NAME,
+} from "./account-preferences-security";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
+import type { AccountSubTabKey, AccountSubTabType } from "./types";
+import { VALID_ACCOUNT_SUB_TYPES } from "./types";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+
+// Utility function to safely create account sub-tab key
+function createAccountSubTabKey(subTab: string): AccountSubTabKey | null {
+  if (VALID_ACCOUNT_SUB_TYPES.includes(subTab as AccountSubTabType)) {
+    return `account-${subTab}` as AccountSubTabKey;
+  }
+  return null;
+}
 
 // give up on trying to load account info and redirect to landing page.
 // Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
@@ -67,7 +97,8 @@ export const AccountPage: React.FC = () => {
 
   const active_page = useTypedRedux("account", "active_page") ?? "account";
   const active_sub_tab =
-    useTypedRedux("account", "active_sub_tab") ?? "account-profile";
+    useTypedRedux("account", "active_sub_tab") ??
+    ("account-profile" as AccountSubTabKey);
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -88,8 +119,16 @@ export const AccountPage: React.FC = () => {
 
     // Handle sub-tabs under account
     if (key.startsWith("account-")) {
-      redux.getActions("account").setState({ active_sub_tab: key });
-      // Don't change the URL for sub-tabs, stay on /account
+      const subTab = key.replace("account-", "");
+      const subTabKey = createAccountSubTabKey(subTab);
+      if (subTabKey) {
+        redux.getActions("account").setState({
+          active_sub_tab: subTabKey,
+          active_page: "account",
+        });
+        // Update URL to settings/account/[sub-tab]
+        redux.getActions("account").push_state(`/account/${subTab}`);
+      }
       return;
     }
 
@@ -110,38 +149,83 @@ export const AccountPage: React.FC = () => {
         children: [
           {
             key: "account-profile",
-            label: "Account & Profile",
-            children: active_page === "account" && active_sub_tab === "account-profile" && <AccountPreferencesProfile />,
+            label: (
+              <span>
+                <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> Account & Profile
+              </span>
+            ),
+            children: active_page === "account" &&
+              active_sub_tab === "account-profile" && (
+                <AccountPreferencesProfile />
+              ),
           },
           {
             key: "account-appearance",
-            label: "Appearance",
-            children: active_page === "account" && active_sub_tab === "account-appearance" && <AccountPreferencesAppearance />,
+            label: (
+              <span>
+                <Icon name={APPEARANCE_ICON_NAME} /> Appearance
+              </span>
+            ),
+            children: active_page === "account" &&
+              active_sub_tab === "account-appearance" && (
+                <AccountPreferencesAppearance />
+              ),
           },
           {
             key: "account-editor",
-            label: "Editor",
-            children: active_page === "account" && active_sub_tab === "account-editor" && <AccountPreferencesEditor />,
+            label: (
+              <span>
+                <Icon name={EDITOR_ICON_NAME} /> Editor
+              </span>
+            ),
+            children: active_page === "account" &&
+              active_sub_tab === "account-editor" && (
+                <AccountPreferencesEditor />
+              ),
           },
           {
             key: "account-ai",
-            label: "AI",
-            children: active_page === "account" && active_sub_tab === "account-ai" && <AccountPreferencesAI />,
+            label: (
+              <span>
+                <AIAvatar size={16} /> AI
+              </span>
+            ),
+            children: active_page === "account" &&
+              active_sub_tab === "account-ai" && <AccountPreferencesAI />,
           },
           {
             key: "account-security",
-            label: "Security",
-            children: active_page === "account" && active_sub_tab === "account-security" && <AccountPreferencesSecurity />,
+            label: (
+              <span>
+                <Icon name={SECURITY_ICON_NAME} /> Security
+              </span>
+            ),
+            children: active_page === "account" &&
+              active_sub_tab === "account-security" && (
+                <AccountPreferencesSecurity />
+              ),
           },
           {
             key: "account-other",
-            label: "Other",
-            children: active_page === "account" && active_sub_tab === "account-other" && <AccountPreferencesOther />,
+            label: (
+              <span>
+                <Icon name={OTHER_ICON_NAME} /> Other
+              </span>
+            ),
+            children: active_page === "account" &&
+              active_sub_tab === "account-other" && <AccountPreferencesOther />,
           },
           {
             key: "account-keyboard",
-            label: "Keyboard",
-            children: active_page === "account" && active_sub_tab === "account-keyboard" && <AccountPreferencesKeyboard />,
+            label: (
+              <span>
+                <Icon name={KEYBOARD_ICON_NAME} /> Keyboard
+              </span>
+            ),
+            children: active_page === "account" &&
+              active_sub_tab === "account-keyboard" && (
+                <AccountPreferencesKeyboard />
+              ),
           },
         ],
       },
@@ -281,6 +365,44 @@ export const AccountPage: React.FC = () => {
     return items;
   }
 
+  const tabs = getTabs();
+
+  // Process tabs to handle nested children for sub-tabs
+  const children = {};
+  const titles = {};
+  for (const tab of tabs) {
+    if (tab.type == "divider") {
+      continue;
+    }
+    if (tab.key === "account" && Array.isArray(tab.children)) {
+      // Handle sub-tabs for account preferences
+      const subTabs = tab.children;
+      tab.children = subTabs.map((subTab) => ({
+        key: subTab.key,
+        label: subTab.label,
+      }));
+      // Store sub-tab children
+      for (const subTab of subTabs) {
+        children[subTab.key] = subTab.children;
+        titles[subTab.key] = subTab.label;
+      }
+    } else {
+      children[tab.key] = tab.children;
+      titles[tab.key] = tab.label;
+      delete tab.children;
+    }
+  }
+
+  function renderTitle() {
+    return (
+      <Title level={3}>
+        {active_page === "account"
+          ? titles[active_sub_tab]
+          : titles[active_page]}
+      </Title>
+    );
+  }
+
   function renderExtraContent() {
     return (
       <Space>
@@ -313,34 +435,6 @@ export const AccountPage: React.FC = () => {
       );
     }
 
-    const tabs = getTabs();
-
-    // Process tabs to handle nested children for sub-tabs
-    const children = {};
-    const titles = {};
-    for (const tab of tabs) {
-      if (tab.type == "divider") {
-        continue;
-      }
-      if (tab.key === "account" && Array.isArray(tab.children)) {
-        // Handle sub-tabs for account preferences
-        const subTabs = tab.children;
-        tab.children = subTabs.map((subTab) => ({
-          key: subTab.key,
-          label: subTab.label,
-        }));
-        // Store sub-tab children
-        for (const subTab of subTabs) {
-          children[subTab.key] = subTab.children;
-          titles[subTab.key] = subTab.label;
-        }
-      } else {
-        children[tab.key] = tab.children;
-        titles[tab.key] = tab.label;
-        delete tab.children;
-      }
-    }
-
     return (
       <div className="smc-vfill" style={{ flexDirection: "row" }}>
         <div
@@ -359,12 +453,13 @@ export const AccountPage: React.FC = () => {
             <b>Account Configuration</b>
           </div>
           <Menu
+            defaultOpenKeys={["account"]}
+            mode="inline"
+            items={tabs}
             onClick={(e) => {
               handle_select(e.key);
             }}
             selectedKeys={[active_page, active_sub_tab]}
-            mode="vertical"
-            items={tabs}
             style={{ width: 183, background: "#00000005", height: "100vh" }}
           />
         </div>
@@ -377,11 +472,7 @@ export const AccountPage: React.FC = () => {
           }}
         >
           <Flex style={{ marginTop: "5px" }}>
-            <h2>
-              {active_page === "account"
-                ? titles[active_sub_tab]
-                : titles[active_page]}
-            </h2>
+            {renderTitle()}
             <div style={{ flex: 1 }} />
             {renderExtraContent()}
           </Flex>

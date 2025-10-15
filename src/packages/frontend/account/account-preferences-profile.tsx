@@ -4,8 +4,12 @@
  */
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { AccountSettings } from "./settings/account-settings";
+
 import { ProfileSettings } from "./profile-settings";
+import { AccountSettings } from "./settings/account-settings";
+
+// Icon constant for account preferences section
+export const ACCOUNT_PROFILE_ICON_NAME = "user";
 
 export function AccountPreferencesProfile() {
   const account_id = useTypedRedux("account", "account_id");
