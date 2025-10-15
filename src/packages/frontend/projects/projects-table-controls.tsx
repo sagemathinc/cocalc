@@ -19,6 +19,7 @@ import { useIntl } from "react-intl";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
 //import { COLORS } from "@cocalc/util/theme";
 
@@ -109,13 +110,13 @@ export function ProjectsTableControls({
         <Input.Search
           placeholder={intl.formatMessage({
             id: "projects.table-controls.search.placeholder",
-            defaultMessage: "Search projects...",
+            defaultMessage: "Filter projects...",
           })}
           autoFocus
           value={search}
           onChange={handleSearchChange}
           onPressEnter={handlePressEnter}
-          style={{ width: 250 }}
+          style={{ width: IS_MOBILE ? 125 : 250 }}
           allowClear
         />
 
@@ -125,7 +126,7 @@ export function ProjectsTableControls({
             allowClear
             showSearch
             disabled={hashtagOptions.length === 0}
-            style={{ width: 200 }}
+            style={{ width: IS_MOBILE ? 100 : 200 }}
             placeholder={intl.formatMessage({
               id: "projects.table-controls.hashtags.placeholder",
               defaultMessage: "Filter by hashtags...",
@@ -177,7 +178,7 @@ export function ProjectsTableControls({
             onClick={onCreateProject}
             icon={<Icon name="plus-circle" />}
           >
-            {intl.formatMessage(labels.create_project)}
+            {intl.formatMessage(IS_MOBILE ? labels.new : labels.create_project)}
           </Button>
         </Space>
       )}

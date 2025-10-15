@@ -13,9 +13,14 @@
 import type { TableColumnsType } from "antd";
 import type { SortOrder } from "antd/es/table/interface";
 
+import type { IntlShape } from "react-intl";
+
 import { Avatar, Typography } from "antd";
 
 import { Icon, IconName, TimeAgo } from "@cocalc/frontend/components";
+import { TimeElapsed } from "@cocalc/frontend/components/time-elapsed";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { labels } from "@cocalc/frontend/i18n";
 import { ComputeStateIcon } from "@cocalc/util/compute-states";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
@@ -88,50 +93,59 @@ export interface ProjectTableRecord {
  * @param expandedRowKeys - Array of expanded row keys to determine icon state
  * @param collaboratorFilters - Array of collaborator filter options
  * @param narrow - If true, hide the collaborators column to save space
+ * @param filteredCollaborators - Array of currently filtered collaborator account_ids
+ * @param intl - Intl object for i18n
  * @returns Array of column definitions
  */
 export function getProjectTableColumns(
   onToggleStar: (project_id: string, e: React.MouseEvent) => void,
   renderActionsMenu: (record: ProjectTableRecord) => React.ReactNode,
-  sortState?: SortState,
-  onToggleExpand?: (record: ProjectTableRecord) => void,
-  expandedRowKeys?: string[],
-  collaboratorFilters?: CollaboratorFilter[],
-  narrow?: boolean,
+  sortState: SortState,
+  onToggleExpand: (record: ProjectTableRecord) => void,
+  expandedRowKeys: string[],
+  collaboratorFilters: CollaboratorFilter[],
+  narrow: boolean,
+  filteredCollaborators: string[] | null,
+  intl: IntlShape,
 ): TableColumnsType<ProjectTableRecord> {
   const columns = [
-    {
-      key: "expand",
-      width: 48,
-      align: "center" as const,
-      onCell: (record) => ({
-        onClick: (e: React.MouseEvent) => {
-          e.stopPropagation(); // Prevent row click
-          onToggleExpand?.(record);
-        },
-        style: {
-          cursor: "pointer",
-          borderLeft: `5px solid ${
-            record.color ? record.color : "transparent"
-          }`,
-        },
-      }),
-      render: (_, { project_id }) => {
-        // Render the expand icon based on whether this row is expanded
-        const isExpanded = expandedRowKeys?.includes(project_id) ?? false;
-        return (
-          <span
-            style={{
-              cursor: "pointer",
-              fontSize: "18px",
-              color: COLORS.GRAY_M,
-            }}
-          >
-            <Icon name={isExpanded ? "minus-square" : "plus-square"} />
-          </span>
-        );
-      },
-    },
+    // Skip expand column on mobile
+    ...(!IS_MOBILE
+      ? [
+          {
+            key: "expand",
+            width: 48,
+            align: "center" as const,
+            onCell: (record: ProjectTableRecord) => ({
+              onClick: (e: React.MouseEvent) => {
+                e.stopPropagation(); // Prevent row click
+                onToggleExpand(record);
+              },
+              style: {
+                cursor: "pointer",
+                borderLeft: `5px solid ${
+                  record.color ? record.color : "transparent"
+                }`,
+              },
+            }),
+            render: (_: any, { project_id }: ProjectTableRecord) => {
+              // Render the expand icon based on whether this row is expanded
+              const isExpanded = expandedRowKeys.includes(project_id);
+              return (
+                <span
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    color: COLORS.GRAY_M,
+                  }}
+                >
+                  <Icon name={isExpanded ? "minus-square" : "plus-square"} />
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: (
         <Icon
@@ -158,8 +172,8 @@ export function getProjectTableColumns(
         return a.starred === b.starred ? 0 : a.starred ? -1 : 1;
       },
       sortDirections: SORT_DIRECTIONS,
-      sortOrder: sortState?.columnKey === "starred" ? sortState.order : null,
-      render: (starred: boolean, record) => (
+      sortOrder: sortState.columnKey === "starred" ? sortState.order : null,
+      render: (starred: boolean, record: ProjectTableRecord) => (
         <span
           onClick={(e) => {
             e.stopPropagation(); // Don't trigger row click
@@ -177,7 +191,11 @@ export function getProjectTableColumns(
       ),
     },
     {
-      title: <span style={{ paddingLeft: "48px" }}>Project</span>,
+      title: (
+        <span style={{ paddingLeft: "48px" }}>
+          {intl.formatMessage(labels.project)}
+        </span>
+      ),
       dataIndex: "title",
       key: "title",
       sorter: (a, b) => {
@@ -186,8 +204,8 @@ export function getProjectTableColumns(
         return titleA.localeCompare(titleB);
       },
       sortDirections: SORT_DIRECTIONS,
-      sortOrder: sortState?.columnKey === "title" ? sortState.order : null,
-      render: (_, record) => {
+      sortOrder: sortState.columnKey === "title" ? sortState.order : null,
+      render: (_: any, record: ProjectTableRecord) => {
         const stateIcon = getStateIcon(record.state);
         const strong = record.state?.get("state") === "running";
         return (
@@ -249,7 +267,7 @@ export function getProjectTableColumns(
             dataIndex: "collaborators",
             key: "collaborators",
             width: 150,
-            filters: collaboratorFilters?.map((cf) => ({
+            filters: collaboratorFilters.map((cf) => ({
               text: (
                 <span
                   style={{
@@ -270,28 +288,54 @@ export function getProjectTableColumns(
               label: cf.text, // Store plain text for searching
             })),
             filterMultiple: true,
-            filterSearch: (input, record) => {
-              const searchText = (record as any).label ?? "";
+            filteredValue: filteredCollaborators,
+            filterSearch: (
+              input: string,
+              record: { text: React.ReactNode; value: string; label?: string },
+            ) => {
+              const searchText = record.label ?? "";
               return searchText.toLowerCase().includes(input.toLowerCase());
             },
-            onFilter: (value, record) =>
-              record.collaborators.includes(value as string),
-            render: (collaborators: string[]) => (
+            onFilter: (
+              value: string | number | boolean,
+              record: ProjectTableRecord,
+            ) => record.collaborators.includes(value as string),
+            render: (collaborators: ProjectTableRecord["collaborators"]) => (
               <CollaboratorsAvatars collaboratorIds={collaborators} size={24} />
             ),
           },
         ]),
     {
-      title: "Last Edited",
+      title: IS_MOBILE ? (
+        <Icon name="clock" />
+      ) : (
+        intl.formatMessage({
+          id: "projects.table.last-edited",
+          defaultMessage: "Last Edited",
+        })
+      ),
       dataIndex: "last_edited",
       key: "last_edited",
-      width: 150,
+      width: IS_MOBILE ? 80 : 150,
       sorter: sortProjectsLastEdited,
       sortDirections: SORT_DIRECTIONS,
-      sortOrder:
-        sortState?.columnKey === "last_edited" ? sortState.order : null,
-      render: (date: Date | undefined) =>
-        date ? <TimeAgo date={date} /> : null,
+      sortOrder: sortState.columnKey === "last_edited" ? sortState.order : null,
+      render: (date: Date | undefined) => {
+        if (!date) return null;
+        if (IS_MOBILE) {
+          return (
+            <TimeElapsed
+              start_ts={date.valueOf()}
+              interval_s={60}
+              show_seconds={false}
+              show_minutes={false}
+              longform={false}
+            />
+          );
+        } else {
+          return <TimeAgo date={date} />;
+        }
+      },
     },
     {
       title: "",
@@ -303,7 +347,7 @@ export function getProjectTableColumns(
         },
         style: { cursor: "pointer" },
       }),
-      render: (_, record) => renderActionsMenu(record),
+      render: (_: any, record: ProjectTableRecord) => renderActionsMenu(record),
     },
   ];
 

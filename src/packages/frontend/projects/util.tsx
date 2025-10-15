@@ -1,12 +1,18 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { MenuProps } from "antd";
 import { Map as immutableMap, Set as immutableSet } from "immutable";
 import { useMemo } from "react";
 
+import { CSS } from "@cocalc/frontend/app-framework";
+import { Icon, IconName } from "@cocalc/frontend/components";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { isIntlMessage } from "@cocalc/frontend/i18n";
+import { EventRecordMap } from "@cocalc/frontend/project/history/types";
+import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COMPUTE_STATES, ComputeState } from "@cocalc/util/compute-states";
 import {
@@ -15,9 +21,9 @@ import {
   parse_hashtags,
   search_match,
   search_split,
+  trunc_middle,
 } from "@cocalc/util/misc";
-import { EventRecordMap } from "@cocalc/frontend/project/history/types";
-import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
+import { COLORS } from "@cocalc/util/theme";
 import { ProjectMap } from "./store";
 
 function parse_tags(info): string[] {
@@ -52,7 +58,8 @@ function get_search_info(project_id: string, project, user_map): string {
   const compute_state: ComputeState =
     COMPUTE_STATES[project.getIn(["state", "state"], "")];
   const display = compute_state?.display;
-  s += " " + (isIntlMessage(display) ? display.defaultMessage : display ?? "");
+  s +=
+    " " + (isIntlMessage(display) ? display.defaultMessage : (display ?? ""));
   s = s.toLowerCase();
   s = s + " " + hashtags_to_string(parse_tags(s));
   if (user_map != null) {
@@ -276,4 +283,78 @@ export function useRecentFiles(
       }))
       .toJS() as OpenedFile[];
   }, [project_log, max, searchTerm]);
+}
+
+type FileEntry = string | OpenedFile;
+
+/**
+ * React hook to create menu items for file lists (starred or recent files)
+ *
+ * @param files - Array of filenames (strings) or OpenedFile objects
+ * @param options - Configuration options
+ * @param options.emptyLabel - Label to show when files array is empty
+ * @param options.onClick - Optional click handler for each file
+ * @param options.labelStyle - Optional CSS style for the label
+ * @param options.keyPrefix - Optional prefix for menu item keys
+ * @param options.truncLength - Maximum length for truncated filenames (default: 100)
+ * @returns Menu items array for Ant Design Dropdown/Menu
+ */
+export function useFilesMenuItems(
+  files: FileEntry[],
+  options: {
+    emptyLabel: string | React.ReactNode;
+    onClick?: (filename: string) => void;
+    labelStyle?: CSS;
+    keyPrefix?: string;
+    truncLength?: number;
+  },
+): MenuProps["items"] {
+  const {
+    emptyLabel,
+    onClick,
+    labelStyle,
+    keyPrefix = "",
+    truncLength = 100,
+  } = options;
+
+  return useMemo(() => {
+    if (files.length === 0) {
+      return [
+        {
+          key: "empty",
+          label:
+            typeof emptyLabel === "string" ? (
+              <span style={{ color: COLORS.GRAY }}>{emptyLabel}</span>
+            ) : (
+              emptyLabel
+            ),
+          disabled: true,
+        },
+      ];
+    }
+
+    return files.map((file) => {
+      const filename = typeof file === "string" ? file : file.filename;
+      const info = file_options(filename);
+      const icon: IconName = info?.icon ?? "file";
+
+      const label = labelStyle ? (
+        <span style={labelStyle}>{trunc_middle(filename, truncLength)}</span>
+      ) : (
+        trunc_middle(filename, truncLength)
+      );
+
+      const menuItem: any = {
+        key: keyPrefix ? `${keyPrefix}${filename}` : filename,
+        icon: <Icon name={icon} />,
+        label,
+      };
+
+      if (onClick) {
+        menuItem.onClick = () => onClick(filename);
+      }
+
+      return menuItem;
+    });
+  }, [files, emptyLabel, onClick, labelStyle, keyPrefix, truncLength]);
 }

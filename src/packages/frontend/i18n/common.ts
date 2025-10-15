@@ -797,6 +797,10 @@ export const labels = defineMessages({
     id: "labels.last_active",
     defaultMessage: "Last Active",
   },
+  last_edited: {
+    id: "labels.last_edited",
+    defaultMessage: "Last Edited",
+  },
   project_status: {
     id: "labels.project_status",
     defaultMessage: "Project Status",

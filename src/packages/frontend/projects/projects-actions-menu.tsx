@@ -16,21 +16,29 @@
 import type { ProjectTableRecord } from "./projects-table-columns";
 
 import { Dropdown, MenuProps, Modal } from "antd";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
+  CSS,
   redux,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, IconName } from "@cocalc/frontend/components";
-import { file_options } from "@cocalc/frontend/editor-tmp";
+import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
-import { COLORS } from "@cocalc/util/theme";
-import { OpenedFile, useRecentFiles } from "./util";
 import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
+import { OpenedFile, useFilesMenuItems, useRecentFiles } from "./util";
+
+const FILES_SUBMENU_LIST_STYLE: CSS = {
+  maxWidth: "80vw",
+  minWidth: "150px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  display: "inline-block",
+} as const;
 
 interface Props {
   record: ProjectTableRecord;
@@ -48,12 +56,12 @@ export function ProjectActionsMenu({ record }: Props) {
   );
 
   // Initialize project_log when menu opens if not already loaded
-  const handleOpenChange = (newOpen: boolean) => {
+  function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
     if (newOpen && project_log == null) {
       redux.getProjectStore(record.project_id).init_table("project_log");
     }
-  };
+  }
 
   // Check if user is owner of this project
   const isOwner =
@@ -65,6 +73,21 @@ export function ProjectActionsMenu({ record }: Props) {
 
   // Get starred files - only when menu is open
   const { starred } = useStarredFilesManager(record.project_id, open);
+
+  const starredFilesSubmenu: MenuProps["items"] = useFilesMenuItems(starred, {
+    emptyLabel: "No starred files",
+    labelStyle: FILES_SUBMENU_LIST_STYLE,
+    keyPrefix: "starred-file:",
+  });
+
+  const recentFilesSubmenu: MenuProps["items"] = useFilesMenuItems(
+    recentFiles,
+    {
+      emptyLabel: "No recent files",
+      labelStyle: FILES_SUBMENU_LIST_STYLE,
+      keyPrefix: "recent-file:",
+    },
+  );
 
   function openProjectTab(tab: string) {
     actions.open_project({
@@ -159,76 +182,6 @@ export function ProjectActionsMenu({ record }: Props) {
     }
     setOpen(false);
   };
-
-  // Prepare starred files submenu
-  const starredFilesSubmenu: MenuProps["items"] = useMemo(() => {
-    if (starred.length === 0) {
-      return [
-        {
-          key: "empty",
-          label: <span style={{ color: COLORS.GRAY }}>No starred files</span>,
-          disabled: true,
-        },
-      ];
-    }
-
-    return starred.map((filename) => {
-      const info = file_options(filename);
-      const icon: IconName = info?.icon ?? "file";
-      return {
-        key: `starred-file:${filename}`,
-        icon: <Icon name={icon} />,
-        label: (
-          <span
-            style={{
-              maxWidth: "80vw",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              display: "inline-block",
-            }}
-          >
-            {filename}
-          </span>
-        ),
-      };
-    });
-  }, [starred]);
-
-  // Prepare recent files submenu
-  const recentFilesSubmenu: MenuProps["items"] = useMemo(() => {
-    if (recentFiles.length === 0) {
-      return [
-        {
-          key: "empty",
-          label: <span style={{ color: COLORS.GRAY }}>No recent files</span>,
-          disabled: true,
-        },
-      ];
-    }
-
-    return recentFiles.map((file) => {
-      const info = file_options(file.filename);
-      const icon: IconName = info?.icon ?? "file";
-      return {
-        key: `recent-file:${file.filename}`,
-        icon: <Icon name={icon} />,
-        label: (
-          <span
-            style={{
-              maxWidth: "80vw",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              display: "inline-block",
-            }}
-          >
-            {file.filename}
-          </span>
-        ),
-      };
-    });
-  }, [recentFiles]);
 
   const menuItems: MenuProps["items"] = [
     {

@@ -240,15 +240,31 @@ export function StarredProjectsBar() {
     key: project.project_id,
     label: (
       <div
-        style={{ display: "flex", alignItems: "center", gap: "5px" }}
+        style={{
+          alignItems: "center",
+          display: "flex",
+          borderLeft: `5px solid ${
+            project.color ? project.color : "transparent"
+          }`,
+        }}
         onClick={(e) => handleProjectClick(project.project_id, e as any)}
       >
-        {project.avatar_image_tiny ? (
-          <Avatar src={project.avatar_image_tiny} size={20} />
-        ) : (
-          <Icon name="star-filled" style={{ color: COLORS.STAR }} />
-        )}
-        <span>{project.title}</span>
+        <span
+          style={{
+            maxWidth: "50vw",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            paddingLeft: "5px"
+          }}
+        >
+          {project.avatar_image_tiny ? (
+            <Avatar src={project.avatar_image_tiny} size={20} />
+          ) : (
+            <Icon name="star-filled" style={{ color: COLORS.STAR }} />
+          )}{" "}
+          {project.title}
+        </span>
       </div>
     ),
   }));

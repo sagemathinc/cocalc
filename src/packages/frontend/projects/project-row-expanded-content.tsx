@@ -15,7 +15,7 @@
  */
 
 import { Button, Descriptions, Dropdown, MenuProps, Space } from "antd";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -29,7 +29,6 @@ import { AddCollaborators } from "@cocalc/frontend/collaborators";
 import {
   CopyToClipBoard,
   Icon,
-  IconName,
   ProjectState,
   TimeAgo,
 } from "@cocalc/frontend/components";
@@ -37,7 +36,6 @@ import {
   compute_image2basename,
   is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
-import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
@@ -47,7 +45,7 @@ import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { ProjectUsers } from "./project-users";
-import { OpenedFile, useRecentFiles } from "./util";
+import { OpenedFile, useFilesMenuItems, useRecentFiles } from "./util";
 
 interface Props {
   project_id: string;
@@ -71,6 +69,16 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
 
   // Get starred files - always enabled since component only renders when expanded
   const { starred } = useStarredFilesManager(project_id, true);
+
+  const starredFilesMenu: MenuProps["items"] = useFilesMenuItems(starred, {
+    emptyLabel: "No starred files",
+    onClick: openFile,
+  });
+
+  const recentFilesMenu: MenuProps["items"] = useFilesMenuItems(recentFiles, {
+    emptyLabel: "No recent files",
+    onClick: openFile,
+  });
 
   if (!project) {
     return null;
@@ -170,54 +178,6 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
       </div>
     );
   }
-
-  // Prepare starred files menu
-  const starredFilesMenu: MenuProps["items"] = useMemo(() => {
-    if (starred.length === 0) {
-      return [
-        {
-          key: "empty",
-          label: <span style={{ color: COLORS.GRAY }}>No starred files</span>,
-          disabled: true,
-        },
-      ];
-    }
-
-    return starred.map((filename) => {
-      const info = file_options(filename);
-      const icon: IconName = info?.icon ?? "file";
-      return {
-        key: filename,
-        icon: <Icon name={icon} />,
-        label: filename,
-        onClick: () => openFile(filename),
-      };
-    });
-  }, [starred]);
-
-  // Prepare recent files menu
-  const recentFilesMenu: MenuProps["items"] = useMemo(() => {
-    if (recentFiles.length === 0) {
-      return [
-        {
-          key: "empty",
-          label: <span style={{ color: COLORS.GRAY }}>No recent files</span>,
-          disabled: true,
-        },
-      ];
-    }
-
-    return recentFiles.map((file) => {
-      const info = file_options(file.filename);
-      const icon: IconName = info?.icon ?? "file";
-      return {
-        key: file.filename,
-        icon: <Icon name={icon} />,
-        label: file.filename,
-        onClick: () => openFile(file.filename),
-      };
-    });
-  }, [recentFiles]);
 
   return (
     <div

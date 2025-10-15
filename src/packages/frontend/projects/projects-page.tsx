@@ -10,6 +10,7 @@ import { useIntl } from "react-intl";
 
 // ensure redux stuff (actions and store) are initialized:
 import "./actions";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 
 import {
   CSS,
@@ -84,6 +85,11 @@ export const ProjectsPage: React.FC = () => {
     useState<number>(0);
 
   const [tableHeight, setTableHeight] = useState<number>(400);
+
+  // Track filtered collaborators from table
+  const [filteredCollaborators, setFilteredCollaborators] = useState<
+    string[] | null
+  >(null);
 
   // if not shown, trigger a re-calculation
   const allLoaded = !!useTypedRedux(
@@ -210,9 +216,13 @@ export const ProjectsPage: React.FC = () => {
     };
   }, [allLoaded, bookmarkedProjects.length]);
 
-  const handleCreateProject = () => {
+  function handleCreateProject() {
     set_create_project_trigger(create_project_trigger + 1);
-  };
+  }
+
+  function handleClearCollaboratorFilter() {
+    setFilteredCollaborators(null);
+  }
 
   if (project_map == null) {
     if (redux.getStore("account")?.get_user_type() === "public") {
@@ -269,7 +279,10 @@ export const ProjectsPage: React.FC = () => {
               {!narrow && (
                 <div ref={filenameSearchRef} style={{ flex: "0 1 auto" }}>
                   <FilenameSearch
-                    style={{ width: "200px", display: "inline-block" }}
+                    style={{
+                      width: IS_MOBILE ? "100px" : "200px",
+                      display: "inline-block",
+                    }}
                   />
                 </div>
               )}
@@ -278,7 +291,10 @@ export const ProjectsPage: React.FC = () => {
             {narrow && (
               <div ref={filenameSearchRef} style={{ textAlign: "right" }}>
                 <FilenameSearch
-                  style={{ width: "200px", display: "inline-block" }}
+                  style={{
+                    width: IS_MOBILE ? "100px" : "200px",
+                    display: "inline-block",
+                  }}
                 />
               </div>
             )}
@@ -306,7 +322,11 @@ export const ProjectsPage: React.FC = () => {
 
             {/* Bulk Operations (when filters active) */}
             <div ref={operationsRef}>
-              <ProjectsOperations visible_projects={visible_projects} />
+              <ProjectsOperations
+                visible_projects={visible_projects}
+                filteredCollaborators={filteredCollaborators}
+                onClearCollaboratorFilter={handleClearCollaboratorFilter}
+              />
             </div>
 
             <div ref={projectListRef}>
@@ -314,6 +334,8 @@ export const ProjectsPage: React.FC = () => {
                 visible_projects={visible_projects}
                 height={tableHeight}
                 narrow={narrow}
+                filteredCollaborators={filteredCollaborators}
+                onFilteredCollaboratorsChange={setFilteredCollaborators}
               />
             </div>
 

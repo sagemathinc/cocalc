@@ -23,9 +23,15 @@ import RemoveMyself from "./remove-myself";
 
 interface Props {
   visible_projects: string[];
+  filteredCollaborators?: string[] | null;
+  onClearCollaboratorFilter?: () => void;
 }
 
-export function ProjectsOperations({ visible_projects }: Props) {
+export function ProjectsOperations({
+  visible_projects,
+  filteredCollaborators,
+  onClearCollaboratorFilter,
+}: Props) {
   const intl = useIntl();
   const actions = useActions("projects");
 
@@ -47,15 +53,22 @@ export function ProjectsOperations({ visible_projects }: Props) {
     return selected_hashtags?.get(filter)?.toJS() ?? [];
   }, [selected_hashtags, filter]);
 
-  // Only show when filters/search/hashtags are active
+  // Only show when filters/search/hashtags/collaborators are active
   const isFiltered = useMemo(() => {
     return (
       !!deleted ||
       !!hidden ||
       !!search?.trim() ||
-      selected_hashtags_for_filter.length > 0
+      selected_hashtags_for_filter.length > 0 ||
+      (filteredCollaborators && filteredCollaborators.length > 0)
     );
-  }, [deleted, hidden, search, selected_hashtags_for_filter]);
+  }, [
+    deleted,
+    hidden,
+    search,
+    selected_hashtags_for_filter,
+    filteredCollaborators,
+  ]);
 
   // Count owned projects for delete confirmation
   const ownedProjectCount = useMemo(() => {
@@ -90,7 +103,7 @@ export function ProjectsOperations({ visible_projects }: Props) {
   const searchHashtagText = searchHashtagParts.join(" ");
 
   // Handle Clear All Filters
-  const handleClearFilters = () => {
+  function handleClearFilters() {
     // Clear search
     actions.setState({ search: "" });
 
@@ -104,10 +117,13 @@ export function ProjectsOperations({ visible_projects }: Props) {
         selected_hashtags: selected_hashtags.set(filter, Set()),
       });
     }
-  };
+
+    // Clear collaborator filter
+    onClearCollaboratorFilter?.();
+  }
 
   // Handle Hide/Unhide All
-  const handleToggleHide = () => {
+  function handleToggleHide() {
     const description = intl.formatMessage(
       {
         id: "projects.operations.hide.description",
@@ -161,16 +177,31 @@ export function ProjectsOperations({ visible_projects }: Props) {
         }
       },
     });
-  };
+  }
 
   // Handle Delete/Undelete All
-  const handleToggleDelete = () => {
-    const ownedText =
-      ownedProjectCount === 0
-        ? "You do not own any of the listed projects."
-        : ownedProjectCount < visible_projects.length
-          ? `You are the owner of ${ownedProjectCount} of the ${visible_projects.length} listed projects.`
-          : "You are the owner of every listed project.";
+  function handleToggleDelete() {
+    const ownedText = intl.formatMessage(
+      {
+        id: "projects.operations.delete.ownership",
+        defaultMessage: `{ownership, select,
+          none {You do not own any of the listed projects.}
+          some {You are the owner of {ownedCount} of the {totalCount} listed projects.}
+          all {You are the owner of every listed project.}
+          other {}
+          }`,
+      },
+      {
+        ownership:
+          ownedProjectCount === 0
+            ? "none"
+            : ownedProjectCount < visible_projects.length
+              ? "some"
+              : "all",
+        ownedCount: ownedProjectCount,
+        totalCount: visible_projects.length,
+      },
+    );
 
     const description = intl.formatMessage(
       {
@@ -229,10 +260,10 @@ export function ProjectsOperations({ visible_projects }: Props) {
         }
       },
     });
-  };
+  }
 
   // Handle Stop All
-  const handleStopAll = () => {
+  function handleStopAll() {
     Modal.confirm({
       title: intl.formatMessage({
         id: "projects.operations.stop.title",
@@ -257,10 +288,10 @@ export function ProjectsOperations({ visible_projects }: Props) {
         }
       },
     });
-  };
+  }
 
   // Handle Restart All
-  const handleRestartAll = () => {
+  function handleRestartAll() {
     Modal.confirm({
       title: intl.formatMessage({
         id: "projects.operations.restart.title",
@@ -285,7 +316,7 @@ export function ProjectsOperations({ visible_projects }: Props) {
         }
       },
     });
-  };
+  }
 
   return (
     <Alert

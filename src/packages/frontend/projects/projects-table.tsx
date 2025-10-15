@@ -16,6 +16,7 @@
 
 import { Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -35,7 +36,9 @@ import { useBookmarkedProjects } from "./use-bookmarked-projects";
 interface Props {
   visible_projects: string[];
   height?: number;
-  narrow?: boolean; // if narrow, then remove columns like "Collaborators" to safe space
+  narrow: boolean; // if narrow, then remove columns like "Collaborators" to safe space
+  filteredCollaborators: string[] | null;
+  onFilteredCollaboratorsChange: (collaborators: string[] | null) => void;
 }
 
 const PROJECTS_TABLE_SORT_KEY = "projects-table-sort";
@@ -44,7 +47,10 @@ export function ProjectsTable({
   visible_projects,
   height = 600,
   narrow = false,
+  filteredCollaborators,
+  onFilteredCollaboratorsChange,
 }: Props) {
+  const intl = useIntl();
   const actions = useActions("projects");
   const project_map = useTypedRedux("projects", "project_map");
   const user_map = useTypedRedux("users", "user_map");
@@ -192,24 +198,26 @@ export function ProjectsTable({
     expandedRowKeys,
     collaboratorFilters,
     narrow,
+    filteredCollaborators,
+    intl,
   );
 
-  const handleRowClick = (record: ProjectTableRecord, e?: React.MouseEvent) => {
+  function handleRowClick(record: ProjectTableRecord, e?: React.MouseEvent) {
     actions.open_project({
       project_id: record.project_id,
       switch_to: !(e?.button === 1 || e?.ctrlKey || e?.metaKey),
     });
-  };
+  }
 
-  const handleExpand = (expanded: boolean, record: ProjectTableRecord) => {
+  function handleExpand(expanded: boolean, record: ProjectTableRecord) {
     if (expanded) {
       actions.set_expanded_project(record.project_id);
     } else {
       actions.set_expanded_project(undefined);
     }
-  };
+  }
 
-  const handleTableChange = (_: any, __: any, sorter: any) => {
+  function handleTableChange(_: any, filters: any, sorter: any) {
     // Update sort state when columnKey and order are present
     // With sortDirections on Table, it should cycle continuously without clearing
     const { columnKey, order } = sorter;
@@ -218,12 +226,21 @@ export function ProjectsTable({
       setSortState(newSortState);
       set_local_storage(PROJECTS_TABLE_SORT_KEY, newSortState);
     }
-  };
+
+    // Update collaborator filter state
+    if (onFilteredCollaboratorsChange && filters) {
+      const collaboratorsFilter = filters.collaborators;
+      onFilteredCollaboratorsChange(
+        collaboratorsFilter && collaboratorsFilter.length > 0
+          ? collaboratorsFilter
+          : null,
+      );
+    }
+  }
 
   return (
     <Table<ProjectTableRecord>
       virtual
-      bordered
       size="small"
       columns={columns}
       dataSource={tableData}
