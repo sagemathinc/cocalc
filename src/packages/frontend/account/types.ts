@@ -23,6 +23,7 @@ import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
 
 export interface AccountState {
   active_page: string;
+  active_sub_tab?: string;
   user_type: string;
   account_id: string;
   groups?: List<string>;

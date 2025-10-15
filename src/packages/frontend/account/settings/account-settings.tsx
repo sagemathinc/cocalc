@@ -67,7 +67,7 @@ interface Props {
   passports?: Map<string, any>;
   sign_out_error?: string;
   delete_account_error?: string;
-  other_settings?: Map<string, any>;
+  other_settings?: AccountState["other_settings"];
   is_anonymous?: boolean;
   email_enabled?: boolean;
   verify_emails?: boolean;

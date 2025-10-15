@@ -4,7 +4,6 @@
  */
 
 import { Button, Card, Slider } from "antd";
-import { Map } from "immutable";
 import { debounce } from "lodash";
 import { useMemo } from "react";
 import { FormattedMessage, defineMessages, useIntl } from "react-intl";
@@ -56,6 +55,9 @@ import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
 
+// Import the account state type to get the proper other_settings type
+import type { AccountState } from "./types";
+
 const DARK_MODE_LABELS = defineMessages({
   brightness: {
     id: "account.other-settings.theme.dark_mode.brightness",
@@ -85,9 +87,10 @@ export function katexIsEnabled() {
 }
 
 interface Props {
-  other_settings: Map<string, any>;
+  other_settings: AccountState["other_settings"];
   is_stripe_customer: boolean;
   kucalc: string;
+  mode?: "full" | "appearance" | "ai" | "other";
 }
 
 export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
@@ -215,7 +218,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           min={1}
           max={180}
           unit="minutes"
-          number={props.other_settings.get("standby_timeout_m")}
+          number={props.other_settings.get("standby_timeout_m") ?? 30}
         />
       </LabeledRow>
     );
@@ -365,7 +368,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           on_change={(n) => on_change("page_size", n)}
           min={1}
           max={10000}
-          number={props.other_settings.get("page_size")}
+          number={props.other_settings.get("page_size") ?? 50}
         />
       </LabeledRow>
     );
@@ -649,7 +652,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     const customize = redux.getStore("customize");
     const enabledLLMs = customize.getEnabledLLMs();
     const anyLLMenabled = Object.values(enabledLLMs).some((v) => v);
-    if (!anyLLMenabled) return;
+    if (!anyLLMenabled) return null;
     return (
       <Panel
         header={
@@ -673,6 +676,88 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   if (props.other_settings == null) {
     return <Loading />;
   }
+
+  const mode = props.mode || "full";
+
+  if (mode === "ai") {
+    return render_llm_settings();
+  }
+
+  if (mode === "appearance") {
+    return (
+      <Panel
+        header={
+          <>
+            <Icon name="highlighter" />{" "}
+            <FormattedMessage
+              id="account.other-settings.theme"
+              defaultMessage="Theme"
+              description="Visual UI theme of the application"
+            />
+          </>
+        }
+      >
+        {render_dark_mode()}
+        {render_antd()}
+      </Panel>
+    );
+  }
+
+  if (mode === "other") {
+    return (
+      <Panel
+        header={
+          <>
+            <Icon name="gear" /> Other
+          </>
+        }
+      >
+        {render_confirm()}
+        {render_katex()}
+        {render_time_ago_absolute()}
+        {render_global_banner()}
+        {render_mask_files()}
+        {render_hide_project_popovers()}
+        {render_hide_file_popovers()}
+        {render_hide_button_tooltips()}
+        {render_show_symbol_bar_labels()}
+        <Checkbox
+          checked={!!props.other_settings.get("hide_navbar_balance")}
+          onChange={(e) => on_change("hide_navbar_balance", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.hide_navbar_balance"
+            defaultMessage={`<strong>Hide Account Balance</strong> in navigation bar`}
+          />
+        </Checkbox>
+        {render_no_free_warnings()}
+        <Checkbox
+          checked={!!props.other_settings.get("disable_markdown_codebar")}
+          onChange={(e) => {
+            on_change("disable_markdown_codebar", e.target.checked);
+          }}
+        >
+          <FormattedMessage
+            id="account.other-settings.markdown_codebar"
+            defaultMessage={`<strong>Disable the markdown code bar</strong> in all markdown documents.
+            Checking this hides the extra run, copy, and explain buttons in fenced code blocks.`}
+          />
+        </Checkbox>
+        {render_i18n_selector()}
+        {render_vertical_fixed_bar_options()}
+        {render_new_filenames()}
+        {render_default_file_sort()}
+        {render_page_size()}
+        {render_standby_timeout()}
+        <div style={{ height: "10px" }} />
+        <Tours />
+        <Messages />
+        <UseBalance style={{ marginTop: "10px" }} />
+      </Panel>
+    );
+  }
+
+  // mode === "full" - original behavior
   return (
     <>
       {render_llm_settings()}

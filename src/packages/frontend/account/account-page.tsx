@@ -41,7 +41,13 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { AccountPreferences } from "./account-preferences";
+import { AccountPreferencesProfile } from "./account-preferences-profile";
+import { AccountPreferencesAppearance } from "./account-preferences-appearance";
+import { AccountPreferencesEditor } from "./account-preferences-editor";
+import { AccountPreferencesAI } from "./account-preferences-ai";
+import { AccountPreferencesSecurity } from "./account-preferences-security";
+import { AccountPreferencesOther } from "./account-preferences-other";
+import { AccountPreferencesKeyboard } from "./account-preferences-keyboard";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
@@ -49,7 +55,7 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 
 // give up on trying to load account info and redirect to landing page.
 // Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
-// to slow network or some backend failure that times and retires involvin
+// to slow network or some backend failure that times and retires involving
 // changefeeds.
 const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
 
@@ -60,6 +66,8 @@ export const AccountPage: React.FC = () => {
   const isWide = windowWidth > 800;
 
   const active_page = useTypedRedux("account", "active_page") ?? "account";
+  const active_sub_tab =
+    useTypedRedux("account", "active_sub_tab") ?? "account-profile";
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -77,6 +85,14 @@ export const AccountPage: React.FC = () => {
       case "signout":
         return;
     }
+
+    // Handle sub-tabs under account
+    if (key.startsWith("account-")) {
+      redux.getActions("account").setState({ active_sub_tab: key });
+      // Don't change the URL for sub-tabs, stay on /account
+      return;
+    }
+
     redux.getActions("account").set_active_tab(key);
     redux.getActions("account").push_state(`/${key}`);
   }
@@ -91,9 +107,43 @@ export const AccountPage: React.FC = () => {
             {intl.formatMessage(labels.preferences)}
           </span>
         ),
-        children: (active_page == null || active_page === "account") && (
-          <AccountPreferences />
-        ),
+        children: [
+          {
+            key: "account-profile",
+            label: "Account & Profile",
+            children: active_page === "account" && active_sub_tab === "account-profile" && <AccountPreferencesProfile />,
+          },
+          {
+            key: "account-appearance",
+            label: "Appearance",
+            children: active_page === "account" && active_sub_tab === "account-appearance" && <AccountPreferencesAppearance />,
+          },
+          {
+            key: "account-editor",
+            label: "Editor",
+            children: active_page === "account" && active_sub_tab === "account-editor" && <AccountPreferencesEditor />,
+          },
+          {
+            key: "account-ai",
+            label: "AI",
+            children: active_page === "account" && active_sub_tab === "account-ai" && <AccountPreferencesAI />,
+          },
+          {
+            key: "account-security",
+            label: "Security",
+            children: active_page === "account" && active_sub_tab === "account-security" && <AccountPreferencesSecurity />,
+          },
+          {
+            key: "account-other",
+            label: "Other",
+            children: active_page === "account" && active_sub_tab === "account-other" && <AccountPreferencesOther />,
+          },
+          {
+            key: "account-keyboard",
+            label: "Keyboard",
+            children: active_page === "account" && active_sub_tab === "account-keyboard" && <AccountPreferencesKeyboard />,
+          },
+        ],
       },
     ];
     // adds a few conditional tabs
@@ -258,26 +308,37 @@ export const AccountPage: React.FC = () => {
             overflow: "auto",
           }}
         >
-          <AccountPreferences />
+          <AccountPreferencesProfile />
         </div>
       );
     }
 
     const tabs = getTabs();
 
-    // NOTE: This is a bit weird, since I rewrote it form antd Tabs
-    // to an antd Menu, but didn't change any of the above.
-    // Antd Menu has a notion of children and submenus, which we *could*
-    // use but aren't using yet.
+    // Process tabs to handle nested children for sub-tabs
     const children = {};
     const titles = {};
     for (const tab of tabs) {
       if (tab.type == "divider") {
         continue;
       }
-      children[tab.key] = tab.children;
-      titles[tab.key] = tab.label;
-      delete tab.children;
+      if (tab.key === "account" && Array.isArray(tab.children)) {
+        // Handle sub-tabs for account preferences
+        const subTabs = tab.children;
+        tab.children = subTabs.map((subTab) => ({
+          key: subTab.key,
+          label: subTab.label,
+        }));
+        // Store sub-tab children
+        for (const subTab of subTabs) {
+          children[subTab.key] = subTab.children;
+          titles[subTab.key] = subTab.label;
+        }
+      } else {
+        children[tab.key] = tab.children;
+        titles[tab.key] = tab.label;
+        delete tab.children;
+      }
     }
 
     return (
@@ -301,7 +362,7 @@ export const AccountPage: React.FC = () => {
             onClick={(e) => {
               handle_select(e.key);
             }}
-            selectedKeys={[active_page]}
+            selectedKeys={[active_page, active_sub_tab]}
             mode="vertical"
             items={tabs}
             style={{ width: 183, background: "#00000005", height: "100vh" }}
@@ -316,11 +377,17 @@ export const AccountPage: React.FC = () => {
           }}
         >
           <Flex style={{ marginTop: "5px" }}>
-            <h2>{titles[active_page]}</h2>
+            <h2>
+              {active_page === "account"
+                ? titles[active_sub_tab]
+                : titles[active_page]}
+            </h2>
             <div style={{ flex: 1 }} />
             {renderExtraContent()}
           </Flex>
-          {children[active_page]}
+          {active_page === "account"
+            ? children[active_sub_tab]
+            : children[active_page]}
           <Footer />
         </div>
       </div>

@@ -5,10 +5,9 @@
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { AccountSettings } from "./settings/account-settings";
-import TableError from "./table-error";
+import { ProfileSettings } from "./profile-settings";
 
-// Legacy component for backward compatibility - now just renders account settings
-export const AccountPreferences: React.FC = () => {
+export function AccountPreferencesProfile() {
   const account_id = useTypedRedux("account", "account_id");
   const first_name = useTypedRedux("account", "first_name");
   const last_name = useTypedRedux("account", "last_name");
@@ -29,8 +28,7 @@ export const AccountPreferences: React.FC = () => {
   const verify_emails = useTypedRedux("customize", "verify_emails");
 
   return (
-    <div>
-      <TableError />
+    <>
       <AccountSettings
         account_id={account_id}
         first_name={first_name}
@@ -48,6 +46,7 @@ export const AccountPreferences: React.FC = () => {
         strategies={strategies}
         unlisted={unlisted}
       />
-    </div>
+      <ProfileSettings email_address={email_address} />
+    </>
   );
-};
+}
