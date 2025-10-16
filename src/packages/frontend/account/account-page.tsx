@@ -12,6 +12,8 @@ and configuration.
 
 // cSpell:ignore payg
 
+import type { AccountSubTabKey, AccountSubTabType } from "./types";
+
 import { Flex, Menu, Space } from "antd";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
@@ -71,7 +73,6 @@ import {
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
-import type { AccountSubTabKey, AccountSubTabType } from "./types";
 import { VALID_ACCOUNT_SUB_TYPES } from "./types";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 
@@ -151,7 +152,7 @@ export const AccountPage: React.FC = () => {
             key: "account-profile",
             label: (
               <span>
-                <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> Account & Profile
+                <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> Account
               </span>
             ),
             children: active_page === "account" &&
@@ -187,7 +188,7 @@ export const AccountPage: React.FC = () => {
             key: "account-ai",
             label: (
               <span>
-                <AIAvatar size={16} /> AI
+                <AIAvatar size={16} style={{ top: "-5px" }} /> AI
               </span>
             ),
             children: active_page === "account" &&
@@ -460,7 +461,7 @@ export const AccountPage: React.FC = () => {
               handle_select(e.key);
             }}
             selectedKeys={[active_page, active_sub_tab]}
-            style={{ width: 183, background: "#00000005", height: "100vh" }}
+            style={{ width: 250, background: "#00000005", height: "100vh" }}
           />
         </div>
         <div

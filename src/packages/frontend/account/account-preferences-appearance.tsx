@@ -12,6 +12,7 @@ import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import {
@@ -66,30 +67,26 @@ export function AccountPreferencesAppearance() {
     return (
       <Panel
         header={
-          <div
-            style={{
-              color: "rgba(229, 224, 216)",
-              backgroundColor: "rgb(36, 37, 37)",
-              padding: "5px 10px",
-              borderRadius: "3px",
-              display: "inline-block",
-            }}
-          >
+          <>
             <Icon unicode={DARK_MODE_ICON} /> Dark Mode
-          </div>
+          </>
         }
+        styles={{
+          header: {
+            color: COLORS.GRAY_LLL,
+            backgroundColor: COLORS.GRAY_DD,
+          },
+          body: {
+            color: COLORS.GRAY_LLL,
+            backgroundColor: COLORS.GRAY_D,
+          },
+        }}
       >
         <div>
           <Checkbox
             checked={checked}
             onChange={(e) => on_change("dark_mode", e.target.checked)}
-            style={{
-              color: "rgba(229, 224, 216)",
-              backgroundColor: "rgb(36, 37, 37)",
-              marginLeft: "-5px",
-              padding: "5px",
-              borderRadius: "3px",
-            }}
+            style={{ color: COLORS.GRAY_LLL }}
           >
             <FormattedMessage
               id="account.other-settings.theme.dark_mode.compact"

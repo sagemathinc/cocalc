@@ -1,5 +1,6 @@
 import { Button, Flex, Popconfirm, Space, Table, Tag } from "antd";
 import { useEffect, useState } from "react";
+
 import {
   getPaymentMethods,
   setDefaultPaymentMethod as setDefaultPaymentMethodUsingApi,
@@ -12,6 +13,8 @@ import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { capitalize, path_to_title } from "@cocalc/util/misc";
 import { AddPaymentMethodButton } from "./stripe-payment";
 import { AddressButton } from "./address";
+import { UseBalance } from "@cocalc/frontend/account/other-settings";
+import { COLORS } from "@cocalc/util/theme";
 
 type PaymentMethod = any;
 
@@ -140,6 +143,7 @@ export default function PaymentMethods() {
           }}
         />
       )}
+      <UseBalance style={{ marginTop: "20px" }} />
     </div>
   );
 }
@@ -341,7 +345,7 @@ function PaymentTitle({
   isDefault?;
 }) {
   return (
-    <b style={{ fontSize: "12pt", color: "#666" }}>
+    <b style={{ fontSize: "12pt", color: COLORS.GRAY_M }}>
       {icon != null && (
         <Icon name={icon} style={{ width: "25px", color: "darkblue" }} />
       )}{" "}

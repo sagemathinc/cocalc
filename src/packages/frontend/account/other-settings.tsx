@@ -758,7 +758,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         <div style={{ height: "10px" }} />
         <Tours />
         <Messages />
-        <UseBalance style={{ marginTop: "10px" }} />
       </Panel>
     );
   }
@@ -831,7 +830,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         <div style={{ height: "10px" }} />
         <Tours />
         <Messages />
-        <UseBalance style={{ marginTop: "10px" }} />
       </Panel>
     </>
   );

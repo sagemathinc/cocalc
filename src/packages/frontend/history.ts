@@ -174,13 +174,18 @@ export function load_target(
       const actions = redux.getActions("account");
       if (segments[1] === "account" && segments[2]) {
         // Handle sub-tabs: settings/account/[sub-tab]
-        actions.set_active_tab("account");
+        // Don't call set_active_tab here because it will call push_state
+        // and change the URL. Instead, directly set the state.
         const subTabKey = createAccountSubTabKey(segments[2]);
         if (subTabKey) {
-          actions.setState({ active_sub_tab: subTabKey });
+          actions.setState({
+            active_page: "account",
+            active_sub_tab: subTabKey,
+          });
         } else {
           // Invalid sub-tab, default to profile
           actions.setState({
+            active_page: "account",
             active_sub_tab: "account-profile" as AccountSubTabKey,
           });
         }
@@ -251,7 +256,7 @@ export function parse_target(target?: string):
             return {
               page: "account",
               tab: "account",
-              sub_tab: subTabKey || "account-profile", // Default to profile if invalid
+              sub_tab: subTabKey ?? "account-profile", // Default to profile if invalid
             };
           } else {
             return { page: "account", tab: "account" };

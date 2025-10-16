@@ -33,6 +33,7 @@ import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { Gap } from "@cocalc/frontend/components/gap";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { COLORS } from "@cocalc/util/theme";
+import { CSS } from "./app-framework";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -430,21 +431,33 @@ export function Alert(props: AlertProps) {
   );
 }
 
+const PANEL_DEFAULT_STYLES: { header: CSS } = {
+  header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
+} as const;
+
 export function Panel(props: {
   key?;
   style?: React.CSSProperties;
+  styles?: {
+    header?: React.CSSProperties;
+    body?: React.CSSProperties;
+  };
   header?;
   children?: any;
   onClick?;
 }) {
-  const style = { ...{ marginBottom: "20px" }, ...props.style };
+  const style: CSS = { ...{ marginBottom: "20px" }, ...props.style };
+
+  const styles = {
+    ...PANEL_DEFAULT_STYLES,
+    ...props.styles,
+  };
+
   return (
     <AntdCard
       style={style}
       title={props.header}
-      styles={{
-        header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
-      }}
+      styles={styles}
       onClick={props.onClick}
     >
       {props.children}
