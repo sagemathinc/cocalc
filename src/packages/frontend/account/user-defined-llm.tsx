@@ -17,6 +17,7 @@ import { sortBy } from "lodash";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
+  CSS,
   useEffect,
   useState,
   useTypedRedux,
@@ -27,7 +28,6 @@ import {
   Icon,
   RawPrompt,
   Text,
-  Title,
 } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -41,14 +41,16 @@ import {
   toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { trunc, unreachable } from "@cocalc/util/misc";
+import { Panel } from "../antd-bootstrap";
 
 // @cspell:ignore mixtral userdefined
 
 interface Props {
+  style?: CSS;
   on_change: (name: string, value: any) => void;
 }
 
-export function UserDefinedLLMComponent({ on_change }: Props) {
+export function UserDefinedLLMComponent({ style, on_change }: Props) {
   const intl = useIntl();
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
   const other_settings = useTypedRedux("account", "other_settings");
@@ -376,30 +378,40 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
     }
   }
 
-  return (
-    <>
-      <Title level={5}>
-        {title}{" "}
-        <HelpIcon style={{ float: "right" }} maxWidth="300px" title={title}>
-          <FormattedMessage
-            id="account.user-defined-llm.info"
-            defaultMessage={`This allows you to call a {llm} of your own.
+  function renderHelpIcon() {
+    return (
+      <HelpIcon style={{ float: "right" }} maxWidth="300px" title={title}>
+        <FormattedMessage
+          id="account.user-defined-llm.info"
+          defaultMessage={`This allows you to call a {llm} of your own.
             You either need an API key or run it on your own server.
             Make sure to click on "Test" to check, that the communication to the API actually works.
             Most likely, the type you are looking for is "Custom OpenAI" or "Ollama".`}
-            values={{
-              llm: (
-                <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
-                  Large Language Model
-                </A>
-              ),
-            }}
-          />
-        </HelpIcon>
-      </Title>
+          values={{
+            llm: (
+              <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
+                Large Language Model
+              </A>
+            ),
+          }}
+        />
+      </HelpIcon>
+    );
+  }
 
+  return (
+    <Panel
+      style={style}
+      size={"small"}
+      header={
+        <>
+          {title}
+          {renderHelpIcon()}
+        </>
+      }
+    >
       {renderContent()}
-    </>
+    </Panel>
   );
 }
 

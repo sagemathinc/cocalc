@@ -57,15 +57,17 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { getNotificationFilterFromFragment } from "./notifications/fragment";
 import {
-  type AccountSubTabType,
-  type AccountSubTabKey,
-  VALID_ACCOUNT_SUB_TYPES,
+  type PreferencesSubTabType,
+  type PreferencesSubTabKey,
+  VALID_PREFERENCES_SUB_TYPES,
 } from "@cocalc/frontend/account/types";
 
-// Utility function to safely create account sub-tab key
-function createAccountSubTabKey(subTab: string): AccountSubTabKey | null {
-  if (VALID_ACCOUNT_SUB_TYPES.includes(subTab as AccountSubTabType)) {
-    return `account-${subTab}` as AccountSubTabKey;
+// Utility function to safely create preferences sub-tab key
+function createPreferencesSubTabKey(
+  subTab: string,
+): PreferencesSubTabKey | null {
+  if (VALID_PREFERENCES_SUB_TYPES.includes(subTab as PreferencesSubTabType)) {
+    return `preferences-${subTab}` as PreferencesSubTabKey;
   }
   return null;
 }
@@ -172,21 +174,25 @@ export function load_target(
     case "settings":
       redux.getActions("page").set_active_tab("account", false);
       const actions = redux.getActions("account");
-      if (segments[1] === "account" && segments[2]) {
-        // Handle sub-tabs: settings/account/[sub-tab]
-        // Don't call set_active_tab here because it will call push_state
-        // and change the URL. Instead, directly set the state.
-        const subTabKey = createAccountSubTabKey(segments[2]);
+      if (segments[1] === "profile") {
+        // Handle profile: settings/profile
+        actions.setState({
+          active_page: "profile",
+          active_sub_tab: undefined,
+        });
+      } else if (segments[1] === "preferences" && segments[2]) {
+        // Handle preferences sub-tabs: settings/preferences/[sub-tab]
+        const subTabKey = createPreferencesSubTabKey(segments[2]);
         if (subTabKey) {
           actions.setState({
-            active_page: "account",
+            active_page: "preferences",
             active_sub_tab: subTabKey,
           });
         } else {
-          // Invalid sub-tab, default to profile
+          // Invalid sub-tab, default to appearance
           actions.setState({
-            active_page: "account",
-            active_sub_tab: "account-profile" as AccountSubTabKey,
+            active_page: "preferences",
+            active_sub_tab: "preferences-appearance" as PreferencesSubTabKey,
           });
         }
       } else {
@@ -227,17 +233,21 @@ window.onpopstate = (_) => {
 export function parse_target(target?: string):
   | { page: "projects" | "help" | "file-use" | "notifications" | "admin" }
   | { page: "project"; target: string }
+  | { page: "profile" }
+  | {
+      page: "preferences";
+      sub_tab?: PreferencesSubTabKey;
+    }
   | {
       page: "account";
-      tab: "account" | "billing" | "upgrades" | "licenses" | "support";
-      sub_tab?: AccountSubTabKey;
+      tab: "billing" | "upgrades" | "licenses" | "support";
     }
   | {
       page: "notifications";
       tab: "mentions";
     } {
   if (target == undefined) {
-    return { page: "account", tab: "account" };
+    return { page: "profile" };
   }
   const segments = target.split("/");
   switch (segments[0]) {
@@ -249,17 +259,18 @@ export function parse_target(target?: string):
       }
     case "settings":
       switch (segments[1]) {
-        case "account":
+        case "profile":
+          return { page: "profile" };
+        case "preferences":
           if (segments[2]) {
-            // Handle sub-tabs: settings/account/[sub-tab]
-            const subTabKey = createAccountSubTabKey(segments[2]);
+            // Handle sub-tabs: settings/preferences/[sub-tab]
+            const subTabKey = createPreferencesSubTabKey(segments[2]);
             return {
-              page: "account",
-              tab: "account",
-              sub_tab: subTabKey ?? "account-profile", // Default to profile if invalid
+              page: "preferences",
+              sub_tab: subTabKey ?? "preferences-appearance", // Default to appearance if invalid
             };
           } else {
-            return { page: "account", tab: "account" };
+            return { page: "preferences" };
           }
         case "billing":
         case "upgrades":
@@ -267,15 +278,10 @@ export function parse_target(target?: string):
         case "support":
           return {
             page: "account",
-            tab: segments[1] as
-              | "account"
-              | "billing"
-              | "upgrades"
-              | "licenses"
-              | "support",
+            tab: segments[1] as "billing" | "upgrades" | "licenses" | "support",
           };
         default:
-          return { page: "account", tab: "account" };
+          return { page: "profile" };
       }
     case "notifications":
       return { page: "notifications" };
@@ -286,6 +292,6 @@ export function parse_target(target?: string):
     case "admin":
       return { page: "admin" };
     default:
-      return { page: "account", tab: "account" };
+      return { page: "profile" };
   }
 }

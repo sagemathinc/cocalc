@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore userdefined
+
 import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
@@ -19,24 +21,24 @@ import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
 
-// Account sub-tab types for type safety
-export const VALID_ACCOUNT_SUB_TYPES = [
-  "profile",
+// Preferences sub-tab types
+export const VALID_PREFERENCES_SUB_TYPES = [
   "appearance",
   "editor",
-  "ai",
-  "security",
-  "other",
   "keyboard",
+  "ai",
+  "keys",
+  "other",
 ] as const;
-export type AccountSubTabType = (typeof VALID_ACCOUNT_SUB_TYPES)[number];
-export type AccountSubTabKey = `account-${AccountSubTabType}`;
+export type PreferencesSubTabType =
+  (typeof VALID_PREFERENCES_SUB_TYPES)[number];
+export type PreferencesSubTabKey = `preferences-${PreferencesSubTabType}`;
 
 // this is incomplete...
 
 export interface AccountState {
   active_page: string;
-  active_sub_tab?: AccountSubTabKey;
+  active_sub_tab?: PreferencesSubTabKey;
   user_type: string;
   account_id: string;
   groups?: List<string>;

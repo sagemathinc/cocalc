@@ -22,6 +22,7 @@ import {
   Col as AntdCol,
   Modal as AntdModal,
   Row as AntdRow,
+  Switch as AntdSwitch,
   Tabs as AntdTabs,
   TabsProps as AntdTabsProps,
   Space,
@@ -280,6 +281,58 @@ export function Checkbox(props) {
   );
 }
 
+export function Switch(props: {
+  checked?: boolean;
+  onChange?: (e: { target: { checked: boolean } }) => void;
+  disabled?: boolean;
+  style?: CSS;
+  labelStyle?: CSS;
+  children?: any;
+}) {
+  const { style = {}, labelStyle = {} } = props;
+
+  // Default font weight for label
+  const finalLabelStyle: CSS = {
+    fontWeight: 400,
+    ...labelStyle,
+  };
+
+  const handleChange = (checked: boolean) => {
+    if (props.onChange) {
+      // Call onChange with same signature as Checkbox - event object with target.checked
+      props.onChange({ target: { checked } });
+    }
+  };
+
+  return (
+    <div style={{ margin: "15px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          ...style,
+        }}
+      >
+        <AntdSwitch
+          checked={props.checked}
+          onChange={handleChange}
+          disabled={props.disabled}
+        />
+        <span
+          onClick={() => !props.disabled && handleChange(!props.checked)}
+          style={{
+            ...finalLabelStyle,
+            cursor: props.disabled ? "default" : "pointer",
+          }}
+        >
+          {props.children}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function Row(props: any) {
   props = { ...{ gutter: 16 }, ...props };
   return <AntdRow {...props}>{props.children}</AntdRow>;
@@ -445,6 +498,7 @@ export function Panel(props: {
   header?;
   children?: any;
   onClick?;
+  size?: "small";
 }) {
   const style: CSS = { ...{ marginBottom: "20px" }, ...props.style };
 
@@ -459,6 +513,7 @@ export function Panel(props: {
       title={props.header}
       styles={styles}
       onClick={props.onClick}
+      size={props.size}
     >
       {props.children}
     </AntdCard>

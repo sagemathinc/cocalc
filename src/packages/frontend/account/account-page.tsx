@@ -12,7 +12,7 @@ and configuration.
 
 // cSpell:ignore payg
 
-import type { AccountSubTabKey, AccountSubTabType } from "./types";
+import type { PreferencesSubTabKey, PreferencesSubTabType } from "./types";
 
 import { Flex, Menu, Space } from "antd";
 import { useEffect } from "react";
@@ -73,13 +73,15 @@ import {
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
-import { VALID_ACCOUNT_SUB_TYPES } from "./types";
+import { VALID_PREFERENCES_SUB_TYPES } from "./types";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 
-// Utility function to safely create account sub-tab key
-function createAccountSubTabKey(subTab: string): AccountSubTabKey | null {
-  if (VALID_ACCOUNT_SUB_TYPES.includes(subTab as AccountSubTabType)) {
-    return `account-${subTab}` as AccountSubTabKey;
+// Utility function to safely create preferences sub-tab key
+function createPreferencesSubTabKey(
+  subTab: string,
+): PreferencesSubTabKey | null {
+  if (VALID_PREFERENCES_SUB_TYPES.includes(subTab as PreferencesSubTabType)) {
+    return `preferences-${subTab}` as PreferencesSubTabKey;
   }
   return null;
 }
@@ -96,10 +98,12 @@ export const AccountPage: React.FC = () => {
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
 
-  const active_page = useTypedRedux("account", "active_page") ?? "account";
+  const active_page = useTypedRedux("account", "active_page") ?? "profile";
   const active_sub_tab =
     useTypedRedux("account", "active_sub_tab") ??
-    ("account-profile" as AccountSubTabKey);
+    (active_page === "preferences"
+      ? ("preferences-appearance" as PreferencesSubTabKey)
+      : undefined);
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -116,19 +120,27 @@ export const AccountPage: React.FC = () => {
         break;
       case "signout":
         return;
+      case "profile":
+        // Handle profile as standalone page
+        redux.getActions("account").setState({
+          active_page: "profile",
+          active_sub_tab: undefined,
+        });
+        redux.getActions("account").push_state(`/profile`);
+        return;
     }
 
-    // Handle sub-tabs under account
-    if (key.startsWith("account-")) {
-      const subTab = key.replace("account-", "");
-      const subTabKey = createAccountSubTabKey(subTab);
+    // Handle sub-tabs under preferences
+    if (key.startsWith("preferences-")) {
+      const subTab = key.replace("preferences-", "");
+      const subTabKey = createPreferencesSubTabKey(subTab);
       if (subTabKey) {
         redux.getActions("account").setState({
           active_sub_tab: subTabKey,
-          active_page: "account",
+          active_page: "preferences",
         });
-        // Update URL to settings/account/[sub-tab]
-        redux.getActions("account").push_state(`/account/${subTab}`);
+        // Update URL to settings/preferences/[sub-tab]
+        redux.getActions("account").push_state(`/preferences/${subTab}`);
       }
       return;
     }
@@ -139,8 +151,19 @@ export const AccountPage: React.FC = () => {
 
   function getTabs(): any[] {
     const items: any[] = [
+      // Profile as top-level first item
       {
-        key: "account",
+        key: "profile",
+        label: (
+          <span>
+            <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> Profile
+          </span>
+        ),
+        children: active_page === "profile" && <AccountPreferencesProfile />,
+      },
+      // Preferences submenu
+      {
+        key: "preferences",
         label: (
           <span>
             <Icon name="address-card" />{" "}
@@ -149,83 +172,73 @@ export const AccountPage: React.FC = () => {
         ),
         children: [
           {
-            key: "account-profile",
-            label: (
-              <span>
-                <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> Account
-              </span>
-            ),
-            children: active_page === "account" &&
-              active_sub_tab === "account-profile" && (
-                <AccountPreferencesProfile />
-              ),
-          },
-          {
-            key: "account-appearance",
+            key: "preferences-appearance",
             label: (
               <span>
                 <Icon name={APPEARANCE_ICON_NAME} /> Appearance
               </span>
             ),
-            children: active_page === "account" &&
-              active_sub_tab === "account-appearance" && (
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-appearance" && (
                 <AccountPreferencesAppearance />
               ),
           },
           {
-            key: "account-editor",
+            key: "preferences-editor",
             label: (
               <span>
                 <Icon name={EDITOR_ICON_NAME} /> Editor
               </span>
             ),
-            children: active_page === "account" &&
-              active_sub_tab === "account-editor" && (
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-editor" && (
                 <AccountPreferencesEditor />
               ),
           },
           {
-            key: "account-ai",
-            label: (
-              <span>
-                <AIAvatar size={16} style={{ top: "-5px" }} /> AI
-              </span>
-            ),
-            children: active_page === "account" &&
-              active_sub_tab === "account-ai" && <AccountPreferencesAI />,
-          },
-          {
-            key: "account-security",
-            label: (
-              <span>
-                <Icon name={SECURITY_ICON_NAME} /> Security
-              </span>
-            ),
-            children: active_page === "account" &&
-              active_sub_tab === "account-security" && (
-                <AccountPreferencesSecurity />
-              ),
-          },
-          {
-            key: "account-other",
-            label: (
-              <span>
-                <Icon name={OTHER_ICON_NAME} /> Other
-              </span>
-            ),
-            children: active_page === "account" &&
-              active_sub_tab === "account-other" && <AccountPreferencesOther />,
-          },
-          {
-            key: "account-keyboard",
+            key: "preferences-keyboard",
             label: (
               <span>
                 <Icon name={KEYBOARD_ICON_NAME} /> Keyboard
               </span>
             ),
-            children: active_page === "account" &&
-              active_sub_tab === "account-keyboard" && (
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-keyboard" && (
                 <AccountPreferencesKeyboard />
+              ),
+          },
+          {
+            key: "preferences-ai",
+            label: (
+              <span>
+                <AIAvatar size={16} style={{ top: "-5px" }} /> AI
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-ai" && <AccountPreferencesAI />,
+          },
+          {
+            key: "preferences-keys",
+            label: (
+              <span>
+                <Icon name={SECURITY_ICON_NAME} /> API & SSH Keys
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-keys" && (
+                <AccountPreferencesSecurity />
+              ),
+          },
+          {
+            key: "preferences-other",
+            label: (
+              <span>
+                <Icon name={OTHER_ICON_NAME} /> Other
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-other" && (
+                <AccountPreferencesOther />
               ),
           },
         ],
@@ -375,8 +388,8 @@ export const AccountPage: React.FC = () => {
     if (tab.type == "divider") {
       continue;
     }
-    if (tab.key === "account" && Array.isArray(tab.children)) {
-      // Handle sub-tabs for account preferences
+    if (tab.key === "preferences" && Array.isArray(tab.children)) {
+      // Handle sub-tabs for preferences
       const subTabs = tab.children;
       tab.children = subTabs.map((subTab) => ({
         key: subTab.key,
@@ -387,6 +400,11 @@ export const AccountPage: React.FC = () => {
         children[subTab.key] = subTab.children;
         titles[subTab.key] = subTab.label;
       }
+    } else if (tab.key === "profile") {
+      // Handle profile as top-level page
+      children[tab.key] = tab.children;
+      titles[tab.key] = tab.label;
+      delete tab.children;
     } else {
       children[tab.key] = tab.children;
       titles[tab.key] = tab.label;
@@ -397,7 +415,7 @@ export const AccountPage: React.FC = () => {
   function renderTitle() {
     return (
       <Title level={3}>
-        {active_page === "account"
+        {active_page === "preferences" && active_sub_tab
           ? titles[active_sub_tab]
           : titles[active_page]}
       </Title>
@@ -442,6 +460,8 @@ export const AccountPage: React.FC = () => {
           style={{
             background: "#00000005",
             borderRight: "1px solid rgba(5, 5, 5, 0.06)",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           <div
@@ -449,19 +469,28 @@ export const AccountPage: React.FC = () => {
               textAlign: "center",
               margin: "15px 0",
               fontSize: "11pt",
+              flex: "0 1 auto",
             }}
           >
-            <b>Account Configuration</b>
+            <b>{intl.formatMessage(labels.settings)}</b>
           </div>
           <Menu
-            defaultOpenKeys={["account"]}
+            defaultOpenKeys={["preferences"]}
             mode="inline"
             items={tabs}
             onClick={(e) => {
               handle_select(e.key);
             }}
-            selectedKeys={[active_page, active_sub_tab]}
-            style={{ width: 250, background: "#00000005", height: "100vh" }}
+            selectedKeys={
+              active_sub_tab ? [active_page, active_sub_tab] : [active_page]
+            }
+            style={{
+              width: 200,
+              background: "#00000005",
+              flex: "1 1 auto",
+              overflowY: "auto",
+              minHeight: 0,
+            }}
           />
         </div>
         <div
@@ -477,7 +506,7 @@ export const AccountPage: React.FC = () => {
             <div style={{ flex: 1 }} />
             {renderExtraContent()}
           </Flex>
-          {active_page === "account"
+          {active_page === "preferences" && active_sub_tab
             ? children[active_sub_tab]
             : children[active_page]}
           <Footer />

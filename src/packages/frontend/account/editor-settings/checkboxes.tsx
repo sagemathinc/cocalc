@@ -3,11 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { defineMessage, useIntl } from "react-intl";
-import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
+// cSpell:ignore codebar
+
+import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered } from "@cocalc/frontend/app-framework";
+import { Icon, IconName } from "@cocalc/frontend/components";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
-import { capitalize, keys } from "@cocalc/util/misc";
+import { capitalize } from "@cocalc/util/misc";
+import { defineMessage, useIntl } from "react-intl";
 
 const EDITOR_SETTINGS_CHECKBOXES = {
   extra_button_bar: defineMessage({
@@ -37,7 +40,7 @@ const EDITOR_SETTINGS_CHECKBOXES = {
   }),
   electric_chars: defineMessage({
     id: "account.editor-setting.checkbox.electric_chars",
-    defaultMessage: "sometimes reindent current line",
+    defaultMessage: "sometimes re-indent current line",
   }),
   match_brackets: defineMessage({
     id: "account.editor-setting.checkbox.match_brackets",
@@ -89,23 +92,71 @@ const EDITOR_SETTINGS_CHECKBOXES = {
     defaultMessage:
       "render entire Jupyter Notebook instead of just visible part (slower and not recommended)",
   }),
+  disable_markdown_codebar: defineMessage({
+    id: "account.other-settings.markdown_codebar",
+    defaultMessage: `<strong>Disable the markdown code bar</strong> in all markdown documents.
+      Checking this hides the extra run, copy, and explain buttons in fenced code blocks.`,
+  }),
 } as const;
+
+// Type for valid checkbox keys
+type CheckboxKey = keyof typeof EDITOR_SETTINGS_CHECKBOXES;
+
+// Group checkboxes into logical panels
+const DISPLAY_SETTINGS: readonly CheckboxKey[] = [
+  "line_wrapping",
+  "line_numbers",
+  "jupyter_line_numbers",
+  "show_trailing_whitespace",
+  "show_my_other_cursors",
+] as const;
+
+const EDITING_BEHAVIOR: readonly CheckboxKey[] = [
+  "code_folding",
+  "smart_indent",
+  "electric_chars",
+  "spaces_instead_of_tabs",
+  "strip_trailing_whitespace",
+] as const;
+
+const AUTOCOMPLETION: readonly CheckboxKey[] = [
+  "match_brackets",
+  "auto_close_brackets",
+  "match_xml_tags",
+  "auto_close_xml_tags",
+  "auto_close_latex",
+] as const;
+
+const FILE_OPERATIONS: readonly CheckboxKey[] = [
+  "build_on_save",
+  "show_exec_warning",
+] as const;
+
+const JUPYTER_SETTINGS: readonly CheckboxKey[] = [
+  "ask_jupyter_kernel",
+  "disable_jupyter_virtualization",
+] as const;
+
+const UI_ELEMENTS: readonly CheckboxKey[] = [
+  "extra_button_bar",
+  "disable_markdown_codebar",
+] as const;
 
 interface Props {
   editor_settings;
+  other_settings?;
   email_address?: string;
   on_change: Function;
+  on_change_other_settings?: Function;
 }
 
 export function EditorSettingsCheckboxes(props: Props) {
   const intl = useIntl();
 
-  function label_checkbox(
-    name: string,
-    desc: IntlMessage | Rendered,
-  ): Rendered {
+  function renderName(name: CheckboxKey) {
+    if (name === "disable_markdown_codebar") return;
     return (
-      <span>
+      <strong>
         {capitalize(
           name
             .replace(/_/g, " ")
@@ -113,38 +164,71 @@ export function EditorSettingsCheckboxes(props: Props) {
             .replace("xml", "XML")
             .replace("latex", "LaTeX"),
         ) + ": "}
+      </strong>
+    );
+  }
+
+  function label_checkbox(
+    name: CheckboxKey,
+    desc: IntlMessage | Rendered | string,
+  ): Rendered {
+    return (
+      <span>
+        {renderName(name)}
         {isIntlMessage(desc) ? intl.formatMessage(desc) : desc}
       </span>
     );
   }
 
   function render_checkbox(
-    name: string,
-    desc: IntlMessage | Rendered,
+    name: CheckboxKey,
+    desc: IntlMessage | Rendered | string,
   ): Rendered {
-    if (
-      props.email_address?.indexOf("minervaproject.com") != -1 &&
-      name === "jupyter_classic"
-    ) {
-      // Special case -- minerva doesn't get the jupyter classic option, to avoid student confusion.
-      return;
-    }
+    // Special handling for disable_markdown_codebar which is in other_settings
+    const is_other_setting = name === "disable_markdown_codebar";
+    const checked = is_other_setting
+      ? !!props.other_settings?.get(name)
+      : !!props.editor_settings.get(name);
+    const onChange = is_other_setting
+      ? (e) => props.on_change_other_settings?.(name, e.target.checked)
+      : (e) => props.on_change(name, e.target.checked);
+
     return (
-      <Checkbox
-        checked={!!props.editor_settings.get(name)}
-        key={name}
-        onChange={(e) => props.on_change(name, e.target.checked)}
-      >
+      <Switch checked={checked} key={name} onChange={onChange}>
         {label_checkbox(name, desc)}
-      </Checkbox>
+      </Switch>
+    );
+  }
+
+  function renderPanel(
+    header: string,
+    icon: IconName,
+    settingNames: readonly CheckboxKey[],
+  ) {
+    return (
+      <Panel
+        size="small"
+        header={
+          <>
+            <Icon name={icon} /> {header}
+          </>
+        }
+      >
+        {settingNames.map((name) =>
+          render_checkbox(name, EDITOR_SETTINGS_CHECKBOXES[name]),
+        )}
+      </Panel>
     );
   }
 
   return (
-    <span>
-      {keys(EDITOR_SETTINGS_CHECKBOXES).map((name) =>
-        render_checkbox(name, EDITOR_SETTINGS_CHECKBOXES[name]),
-      )}
-    </span>
+    <>
+      {renderPanel("Display Settings", "eye", DISPLAY_SETTINGS)}
+      {renderPanel("Editing Behavior", "edit", EDITING_BEHAVIOR)}
+      {renderPanel("Auto-completion", "code", AUTOCOMPLETION)}
+      {renderPanel("File Operations", "file", FILE_OPERATIONS)}
+      {renderPanel("Jupyter Settings", "jupyter", JUPYTER_SETTINGS)}
+      {renderPanel("UI Elements", "desktop", UI_ELEMENTS)}
+    </>
   );
 }

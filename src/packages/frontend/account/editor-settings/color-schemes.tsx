@@ -3,42 +3,57 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:words lehmer primality mersenne
+
+import { capitalize } from "lodash";
 import { useIntl } from "react-intl";
 
-import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { LabeledRow, SelectorInput } from "@cocalc/frontend/components";
+import { AccountState } from "@cocalc/frontend/account/types";
+import { Button, Panel } from "@cocalc/frontend/antd-bootstrap";
+import { CSS } from "@cocalc/frontend/app-framework";
+import { Icon, LabeledRow, SelectorInput } from "@cocalc/frontend/components";
 import { cm_options } from "@cocalc/frontend/frame-editors/codemirror/cm-options";
+import { labels } from "@cocalc/frontend/i18n";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { AsyncComponent } from "@cocalc/frontend/misc/async-component";
 import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
-import { AccountState } from "../types";
 
 interface Props {
   theme: string;
   on_change: (selected: string) => void;
   editor_settings;
   font_size?: number;
+  style?: CSS;
+  size?: "small";
 }
 
 export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
   const intl = useIntl();
 
+  const title = intl.formatMessage({
+    id: "account.editor-settings.color-schemes.panel_title",
+    defaultMessage: "Editor Color Scheme",
+  });
+
   return (
-    <div>
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.editor-settings.color-schemes.label",
-          defaultMessage: "Editor color scheme",
-        })}
-      >
+    <Panel
+      size={props.size}
+      header={
+        <>
+          <Icon name="file-alt" /> {title}
+        </>
+      }
+      style={props.style}
+    >
+      <LabeledRow label={capitalize(title)}>
         <Button
-          disabled={props.theme == "default"}
+          disabled={props.theme === "default"}
           style={{ float: "right" }}
           onClick={() => {
             props.on_change("default");
           }}
         >
-          Reset
+          {intl.formatMessage(labels.reset)}
         </Button>
         <SelectorInput
           style={{ width: "150px" }}
@@ -52,7 +67,7 @@ export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
         editor_settings={props.editor_settings}
         font_size={props.font_size}
       />
-    </div>
+    </Panel>
   );
 }
 

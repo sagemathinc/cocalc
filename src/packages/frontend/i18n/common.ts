@@ -125,6 +125,11 @@ export const labels = defineMessages({
     defaultMessage: "Change the language of the user interface.",
     description: "Tooltip text of dropdown to change the UI language",
   },
+  account_configuration: {
+    id: "labels.account_configuration",
+    defaultMessage: "Account Configuration",
+    description: "The configuration for the user's account.",
+  },
   email_address: {
     id: "labels.email_address",
     defaultMessage: "Email Address",
@@ -556,7 +561,8 @@ export const labels = defineMessages({
   select: {
     id: "labels.select",
     defaultMessage: "Select",
-    description: "Short label on a button in a dialog, to confirm a 'selection'."
+    description:
+      "Short label on a button in a dialog, to confirm a 'selection'.",
   },
   select_a_kernel: {
     id: "labels.select_a_kernel",
