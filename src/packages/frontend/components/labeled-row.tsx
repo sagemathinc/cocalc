@@ -23,7 +23,7 @@ export const LabeledRow: React.FC<Props> = ({
   style,
   label,
   className,
-  label_cols = 2,
+  label_cols = 3,
   extra,
   extra_cols = 1,
   innerStyle = { marginTop: "8px" },

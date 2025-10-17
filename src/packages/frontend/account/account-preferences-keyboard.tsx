@@ -3,10 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { KeyboardSettings } from "./keyboard-settings";
 
 // Icon constant for account preferences section
-export const KEYBOARD_ICON_NAME = "keyboard";
+export const KEYBOARD_ICON_NAME: IconName = "keyboard";
 
 export function AccountPreferencesKeyboard() {
   return <KeyboardSettings />;

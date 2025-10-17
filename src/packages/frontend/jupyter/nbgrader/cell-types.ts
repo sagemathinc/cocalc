@@ -5,8 +5,9 @@
 
 // cSpell:ignore testthat autograder ptype testset atol endfunction infty autograded strfind
 
-import { IconName } from "@cocalc/frontend/components/icon";
-import { Metadata } from "./types";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
+import type { Metadata } from "./types";
 
 type Language = "python" | "julia" | "r" | "sage" | "octave";
 

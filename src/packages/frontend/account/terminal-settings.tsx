@@ -62,7 +62,7 @@ export function TerminalSettings() {
           {intl.formatMessage(labels.reset)}
         </Button>
         <SelectorInput
-          style={{ width: "150px" }}
+          style={{ width: "250px" }}
           selected={color_scheme}
           options={theme_desc}
           on_change={(color_scheme) =>

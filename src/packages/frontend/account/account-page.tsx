@@ -26,7 +26,7 @@ import {
   useTypedRedux,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Title } from "@cocalc/frontend/components";
+import { Icon, IconName, Loading, Title } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
@@ -63,18 +63,22 @@ import {
   OTHER_ICON_NAME,
 } from "./account-preferences-other";
 import {
+  ACCOUNT_PREFERENCES_ICON_NAME,
   ACCOUNT_PROFILE_ICON_NAME,
   AccountPreferencesProfile,
 } from "./account-preferences-profile";
 import {
   AccountPreferencesSecurity,
-  SECURITY_ICON_NAME,
+  KEYS_ICON_NAME,
 } from "./account-preferences-security";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
+import { SettingsOverview } from "./settings-index";
 import { VALID_PREFERENCES_SUB_TYPES } from "./types";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+
+export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
 
 // Utility function to safely create preferences sub-tab key
 function createPreferencesSubTabKey(
@@ -98,7 +102,7 @@ export const AccountPage: React.FC = () => {
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
 
-  const active_page = useTypedRedux("account", "active_page") ?? "profile";
+  const active_page = useTypedRedux("account", "active_page") ?? "index";
   const active_sub_tab =
     useTypedRedux("account", "active_sub_tab") ??
     (active_page === "preferences"
@@ -113,6 +117,14 @@ export const AccountPage: React.FC = () => {
 
   function handle_select(key: string): void {
     switch (key) {
+      case "settings":
+        // Handle settings overview page
+        redux.getActions("account").setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
+        redux.getActions("account").push_state(`/settings/index`);
+        return;
       case "billing":
         redux.getActions("billing").update_customer();
         break;
@@ -151,12 +163,23 @@ export const AccountPage: React.FC = () => {
 
   function getTabs(): any[] {
     const items: any[] = [
-      // Profile as top-level first item
+      {
+        key: "index",
+        label: (
+          <span style={{ fontWeight: "bold" }}>
+            <Icon name={ACCOUNT_SETTINGS_ICON_NAME} />{" "}
+            {intl.formatMessage(labels.settings)}
+          </span>
+        ),
+        children: active_page === "index" && <SettingsOverview />,
+      },
+      // Profile as second item
       {
         key: "profile",
         label: (
           <span>
-            <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> Profile
+            <Icon name={ACCOUNT_PROFILE_ICON_NAME} />{" "}
+            {intl.formatMessage(labels.profile)}
           </span>
         ),
         children: active_page === "profile" && <AccountPreferencesProfile />,
@@ -166,7 +189,7 @@ export const AccountPage: React.FC = () => {
         key: "preferences",
         label: (
           <span>
-            <Icon name="address-card" />{" "}
+            <Icon name={ACCOUNT_PREFERENCES_ICON_NAME} />{" "}
             {intl.formatMessage(labels.preferences)}
           </span>
         ),
@@ -175,7 +198,8 @@ export const AccountPage: React.FC = () => {
             key: "preferences-appearance",
             label: (
               <span>
-                <Icon name={APPEARANCE_ICON_NAME} /> Appearance
+                <Icon name={APPEARANCE_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.appearance)}
               </span>
             ),
             children: active_page === "preferences" &&
@@ -187,7 +211,8 @@ export const AccountPage: React.FC = () => {
             key: "preferences-editor",
             label: (
               <span>
-                <Icon name={EDITOR_ICON_NAME} /> Editor
+                <Icon name={EDITOR_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.editor)}
               </span>
             ),
             children: active_page === "preferences" &&
@@ -199,7 +224,8 @@ export const AccountPage: React.FC = () => {
             key: "preferences-keyboard",
             label: (
               <span>
-                <Icon name={KEYBOARD_ICON_NAME} /> Keyboard
+                <Icon name={KEYBOARD_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.keyboard)}
               </span>
             ),
             children: active_page === "preferences" &&
@@ -211,7 +237,8 @@ export const AccountPage: React.FC = () => {
             key: "preferences-ai",
             label: (
               <span>
-                <AIAvatar size={16} style={{ top: "-5px" }} /> AI
+                <AIAvatar size={16} style={{ top: "-5px" }} />{" "}
+                {intl.formatMessage(labels.ai)}
               </span>
             ),
             children: active_page === "preferences" &&
@@ -221,7 +248,8 @@ export const AccountPage: React.FC = () => {
             key: "preferences-keys",
             label: (
               <span>
-                <Icon name={SECURITY_ICON_NAME} /> API & SSH Keys
+                <Icon name={KEYS_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.ssh_and_api_keys)}
               </span>
             ),
             children: active_page === "preferences" &&
@@ -233,7 +261,8 @@ export const AccountPage: React.FC = () => {
             key: "preferences-other",
             label: (
               <span>
-                <Icon name={OTHER_ICON_NAME} /> Other
+                <Icon name={OTHER_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.other)}
               </span>
             ),
             children: active_page === "preferences" &&
@@ -274,7 +303,8 @@ export const AccountPage: React.FC = () => {
         key: "payg",
         label: (
           <span>
-            <Icon name="line-chart" /> Pay As You Go
+            <Icon name="line-chart" />{" "}
+            {intl.formatMessage(labels.pay_as_you_go)}
           </span>
         ),
         children: active_page === "payg" && <PayAsYouGoPage />,
@@ -306,7 +336,7 @@ export const AccountPage: React.FC = () => {
         key: "payments",
         label: (
           <span>
-            <Icon name="credit-card" /> Payments
+            <Icon name="credit-card" /> {intl.formatMessage(labels.payments)}
           </span>
         ),
         children: active_page === "payments" && <PaymentsPage />,
@@ -315,7 +345,8 @@ export const AccountPage: React.FC = () => {
         key: "payment-methods",
         label: (
           <span>
-            <Icon name="credit-card" /> Payment Methods
+            <Icon name="credit-card" />{" "}
+            {intl.formatMessage(labels.payment_methods)}
           </span>
         ),
         children: active_page === "payment-methods" && <PaymentMethodsPage />,
@@ -400,8 +431,8 @@ export const AccountPage: React.FC = () => {
         children[subTab.key] = subTab.children;
         titles[subTab.key] = subTab.label;
       }
-    } else if (tab.key === "profile") {
-      // Handle profile as top-level page
+    } else if (tab.key === "settings" || tab.key === "profile") {
+      // Handle settings and profile as top-level pages
       children[tab.key] = tab.children;
       titles[tab.key] = tab.label;
       delete tab.children;
@@ -464,16 +495,6 @@ export const AccountPage: React.FC = () => {
             flexDirection: "column",
           }}
         >
-          <div
-            style={{
-              textAlign: "center",
-              margin: "15px 0",
-              fontSize: "11pt",
-              flex: "0 1 auto",
-            }}
-          >
-            <b>{intl.formatMessage(labels.settings)}</b>
-          </div>
           <Menu
             defaultOpenKeys={["preferences"]}
             mode="inline"

@@ -10,7 +10,13 @@ import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A, HelpIcon, Icon, LabeledRow } from "@cocalc/frontend/components";
+import {
+  A,
+  HelpIcon,
+  Icon,
+  IconName,
+  LabeledRow,
+} from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
@@ -26,7 +32,20 @@ import { OtherSettings } from "./other-settings";
 import { TerminalSettings } from "./terminal-settings";
 
 // Icon constant for account preferences section
-export const APPEARANCE_ICON_NAME = "eye";
+export const APPEARANCE_ICON_NAME: IconName = "eye";
+
+// See https://github.com/sagemathinc/cocalc/issues/5620
+// There are weird bugs with relying only on mathjax, whereas our
+// implementation of katex with a fallback to mathjax works very well.
+// This makes it so katex can't be disabled.
+const ALLOW_DISABLE_KATEX = false;
+
+export function katexIsEnabled() {
+  if (!ALLOW_DISABLE_KATEX) {
+    return true;
+  }
+  return redux.getStore("account")?.getIn(["other_settings", "katex"]) ?? true;
+}
 
 const DARK_MODE_LABELS = defineMessages({
   brightness: {
@@ -68,6 +87,25 @@ export function AccountPreferencesAppearance() {
       }),
     [],
   );
+
+  function render_katex() {
+    if (!ALLOW_DISABLE_KATEX) {
+      return null;
+    }
+    return (
+      <Switch
+        checked={!!other_settings.get("katex")}
+        onChange={(e) => on_change("katex", e.target.checked)}
+      >
+        <FormattedMessage
+          id="account.other-settings.katex"
+          defaultMessage={`<strong>KaTeX:</strong> attempt to render formulas
+              using {katex} (much faster, but missing context menu options)`}
+          values={{ katex: <A href={"https://katex.org/"}>KaTeX</A> }}
+        />
+      </Switch>
+    );
+  }
 
   function renderDarkModePanel(): ReactElement {
     const checked = !!other_settings.get("dark_mode");
@@ -184,7 +222,14 @@ export function AccountPreferencesAppearance() {
           </>
         }
       >
-        <LabeledRow label={intl.formatMessage(labels.language)}>
+        <LabeledRow
+          label={
+            <>
+              <Icon name="translation-outlined" />{" "}
+              {intl.formatMessage(labels.language)}
+            </>
+          }
+        >
           <div>
             <I18NSelector />{" "}
             <HelpIcon title={intl.formatMessage(I18N_TITLE)}>
@@ -192,16 +237,6 @@ export function AccountPreferencesAppearance() {
             </HelpIcon>
           </div>
         </LabeledRow>
-        <Switch
-          checked={!!other_settings.get("time_ago_absolute")}
-          onChange={(e) => on_change("time_ago_absolute", e.target.checked)}
-        >
-          <FormattedMessage
-            id="account.other-settings.time_ago_absolute"
-            defaultMessage={`<strong>Display Timestamps as absolute points in time</strong>
-            instead of relative to the current time`}
-          />
-        </Switch>
         <Switch
           checked={!!other_settings.get("hide_file_popovers")}
           onChange={(e) => on_change("hide_file_popovers", e.target.checked)}
@@ -245,6 +280,16 @@ export function AccountPreferencesAppearance() {
           />
         </Switch>
         <Switch
+          checked={!!other_settings.get("time_ago_absolute")}
+          onChange={(e) => on_change("time_ago_absolute", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.time_ago_absolute"
+            defaultMessage={`<strong>Display Timestamps as absolute points in time</strong>
+            instead of relative to the current time`}
+          />
+        </Switch>
+        <Switch
           checked={!!other_settings.get("hide_navbar_balance")}
           onChange={(e) => on_change("hide_navbar_balance", e.target.checked)}
         >
@@ -253,6 +298,7 @@ export function AccountPreferencesAppearance() {
             defaultMessage={`<strong>Hide Account Balance</strong> in navigation bar`}
           />
         </Switch>
+        {render_katex()}
       </Panel>
     );
   }

@@ -5,28 +5,26 @@
 
 // cSpell:ignore brandcolors codebar
 
-import { Button, Card, Slider } from "antd";
-import { debounce } from "lodash";
-import { useMemo } from "react";
-import { FormattedMessage, defineMessages, useIntl } from "react-intl";
+import { Button } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
-import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
 import {
-  A,
   Icon,
+  IconName,
   LabeledRow,
   Loading,
   NumberInput,
   Paragraph,
   SelectorInput,
-  Text,
+  Text
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { LOCALIZATIONS, labels } from "@cocalc/frontend/i18n";
+import { labels, LOCALIZATIONS } from "@cocalc/frontend/i18n";
 import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
 import {
   ACTIVITY_BAR_EXPLANATION,
@@ -41,60 +39,25 @@ import {
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
-import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 
-import {
-  DARK_MODE_KEYS,
-  DARK_MODE_MINS,
-  get_dark_mode_config,
-} from "./dark-mode";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
 
 // Icon constants for account preferences sections
-export const THEME_ICON_NAME = "highlighter";
-export const OTHER_ICON_NAME = "gear";
+export const THEME_ICON_NAME: IconName = "highlighter";
+export const OTHER_ICON_NAME: IconName = "gear";
 
 // Import the account state type to get the proper other_settings type
 import type { AccountState } from "./types";
-
-const DARK_MODE_LABELS = defineMessages({
-  brightness: {
-    id: "account.other-settings.theme.dark_mode.brightness",
-    defaultMessage: "Brightness",
-  },
-  contrast: {
-    id: "account.other-settings.theme.dark_mode.contrast",
-    defaultMessage: "Contrast",
-  },
-  sepia: {
-    id: "account.other-settings.theme.dark_mode.sepia",
-    defaultMessage: "Sepia",
-  },
-});
-
-// See https://github.com/sagemathinc/cocalc/issues/5620
-// There are weird bugs with relying only on mathjax, whereas our
-// implementation of katex with a fallback to mathjax works very well.
-// This makes it so katex can't be disabled.
-const ALLOW_DISABLE_KATEX = false;
-
-export function katexIsEnabled() {
-  if (!ALLOW_DISABLE_KATEX) {
-    return true;
-  }
-  return redux.getStore("account")?.getIn(["other_settings", "katex"]) ?? true;
-}
 
 interface Props {
   other_settings: AccountState["other_settings"];
   is_stripe_customer: boolean;
   kucalc: string;
-  mode?: "full" | "appearance" | "ai" | "other";
+  mode: "appearance" | "ai" | "other";
 }
 
 export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
@@ -108,16 +71,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   function on_change(name: string, value: any): void {
     redux.getActions("account").set_other_settings(name, value);
   }
-
-  // Debounced version for dark mode sliders to reduce CPU usage
-  const on_change_dark_mode = useMemo(
-    () =>
-      debounce((name: string, value: any) => on_change(name, value), 50, {
-        trailing: true,
-        leading: false,
-      }),
-    [],
-  );
 
   function toggle_global_banner(val: boolean): void {
     if (val) {
@@ -170,25 +123,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         </Switch>
       );
     }
-  }
-
-  function render_katex() {
-    if (!ALLOW_DISABLE_KATEX) {
-      return null;
-    }
-    return (
-      <Switch
-        checked={!!props.other_settings.get("katex")}
-        onChange={(e) => on_change("katex", e.target.checked)}
-      >
-        <FormattedMessage
-          id="account.other-settings.katex"
-          defaultMessage={`<strong>KaTeX:</strong> attempt to render formulas
-              using {katex} (much faster, but missing context menu options)`}
-          values={{ katex: <A href={"https://katex.org/"}>KaTeX</A> }}
-        />
-      </Switch>
-    );
   }
 
   function render_standby_timeout(): Rendered {
@@ -365,93 +299,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           </>
         )}
       </>
-    );
-  }
-
-  function render_dark_mode(): Rendered {
-    const checked = !!props.other_settings.get("dark_mode");
-    const config = get_dark_mode_config(props.other_settings.toJS());
-    return (
-      <div>
-        <Switch
-          checked={checked}
-          onChange={(e) => on_change("dark_mode", e.target.checked)}
-          style={{
-            backgroundColor: "rgb(36, 37, 37)",
-            marginLeft: "-5px",
-            padding: "5px",
-            borderRadius: "3px",
-          }}
-          labelStyle={{
-            color: "rgba(229, 224, 216)",
-          }}
-        >
-          <FormattedMessage
-            id="account.other-settings.theme.dark_mode.compact"
-            defaultMessage={`Dark mode: reduce eye strain by showing a dark background (via {DR})`}
-            values={{
-              DR: (
-                <A
-                  style={{ color: "#e96c4d", fontWeight: 700 }}
-                  href="https://darkreader.org/"
-                >
-                  DARK READER
-                </A>
-              ),
-            }}
-          />
-        </Switch>
-        {checked ? (
-          <Card
-            size="small"
-            title={
-              <>
-                <Icon unicode={DARK_MODE_ICON} />{" "}
-                {intl.formatMessage({
-                  id: "account.other-settings.theme.dark_mode.configuration",
-                  defaultMessage: "Dark Mode Configuration",
-                })}
-              </>
-            }
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              {DARK_MODE_KEYS.map((key) => (
-                <div
-                  key={key}
-                  style={{ display: "flex", gap: 10, alignItems: "center" }}
-                >
-                  <div style={{ width: 100 }}>
-                    {intl.formatMessage(DARK_MODE_LABELS[key])}
-                  </div>
-                  <Slider
-                    min={DARK_MODE_MINS[key]}
-                    max={100}
-                    value={config[key]}
-                    onChange={(x) => on_change_dark_mode(`dark_mode_${key}`, x)}
-                    marks={{
-                      [DARK_MODE_DEFAULTS[key]]: String(
-                        DARK_MODE_DEFAULTS[key],
-                      ),
-                    }}
-                    style={{ flex: 1, width: 0 }}
-                  />
-                  <Button
-                    size="small"
-                    onClick={() =>
-                      on_change_dark_mode(
-                        `dark_mode_${key}`,
-                        DARK_MODE_DEFAULTS[key],
-                      )
-                    }
-                  >
-                    {intl.formatMessage(labels.reset)}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ) : undefined}
-      </div>
     );
   }
 
@@ -676,7 +523,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           size="small"
           header={
             <>
-              <Icon name="dashboard" />{" "}
+              <Icon name="desktop" />{" "}
               <FormattedMessage
                 id="account.other-settings.browser_performance.title"
                 defaultMessage="Browser"
@@ -688,7 +535,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           {render_standby_timeout()}
         </Panel>
 
-        {/* File Explorer */}
         <Panel
           size="small"
           header={
@@ -702,9 +548,9 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           }
         >
           {render_mask_files()}
-          {render_new_filenames()}
           {render_default_file_sort()}
           {render_page_size()}
+          {render_new_filenames()}
         </Panel>
 
         {/* Projects */}
@@ -723,38 +569,18 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           {render_vertical_fixed_bar_options()}
         </Panel>
 
-        {/* Content Display */}
-        <Panel
-          size="small"
-          header={
-            <>
-              <Icon name="file-code" />{" "}
-              <FormattedMessage
-                id="account.other-settings.content_display.title"
-                defaultMessage="Content Display"
-              />
-            </>
-          }
-        >
-          {render_global_banner()}
-          {render_katex()}
-        </Panel>
-
-        {/* Messages */}
         <Panel
           size="small"
           header={
             <>
               <Icon name="mail" />{" "}
-              <FormattedMessage
-                id="account.other-settings.messages.title"
-                defaultMessage="Messages"
-              />
+              <FormattedMessage {...labels.communication} />
             </>
           }
         >
-          {render_no_email_new_messages()}
+          {render_global_banner()}
           {render_no_free_warnings()}
+          {render_no_email_new_messages()}
         </Panel>
 
         {/* Tours at bottom */}
@@ -763,52 +589,12 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  // mode === "full" - original behavior
-  return (
-    <>
-      {render_llm_settings()}
-
-      <Panel
-        header={
-          <>
-            <Icon name={THEME_ICON_NAME} />{" "}
-            <FormattedMessage
-              id="account.other-settings.theme"
-              defaultMessage="Theme"
-              description="Visual UI theme of the application"
-            />
-          </>
-        }
-      >
-        {render_dark_mode()}
-        {render_antd()}
-      </Panel>
-
-      <Panel
-        header={
-          <>
-            <Icon name={OTHER_ICON_NAME} /> Other
-          </>
-        }
-      >
-        {render_confirm()}
-        {render_katex()}
-        {render_global_banner()}
-        {render_mask_files()}
-        {render_no_free_warnings()}
-        {render_no_email_new_messages()}
-        {render_vertical_fixed_bar_options()}
-        {render_new_filenames()}
-        {render_default_file_sort()}
-        {render_page_size()}
-        {render_standby_timeout()}
-        <div style={{ height: "10px" }} />
-        <Tours />
-      </Panel>
-    </>
-  );
+  // mode === "full" no longer exists
+  unreachable(mode);
+  return <></>;
 }
 
+import { unreachable } from "@cocalc/util/misc";
 import UseBalanceTowardSubscriptions from "./balance-toward-subs";
 
 export function UseBalance({ style, minimal }: { style?; minimal? }) {

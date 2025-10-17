@@ -3,13 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 import { ProfileSettings } from "./profile-settings";
 import { AccountSettings } from "./settings/account-settings";
 
 // Icon constant for account preferences section
-export const ACCOUNT_PROFILE_ICON_NAME = "user";
+export const ACCOUNT_PROFILE_ICON_NAME: IconName = "address-card";
+
+export const ACCOUNT_PREFERENCES_ICON_NAME: IconName = "cogs";
 
 export function AccountPreferencesProfile() {
   const account_id = useTypedRedux("account", "account_id");

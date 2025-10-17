@@ -5,12 +5,14 @@
 
 // cSpell:ignore codebar
 
+import { defineMessage, useIntl } from "react-intl";
+
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
+import { BUILD_ON_SAVE_ICON_ENABLED } from "@cocalc/frontend/frame-editors/frame-tree/commands/const";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { capitalize } from "@cocalc/util/misc";
-import { defineMessage, useIntl } from "react-intl";
 
 const EDITOR_SETTINGS_CHECKBOXES = {
   extra_button_bar: defineMessage({
@@ -226,7 +228,11 @@ export function EditorSettingsCheckboxes(props: Props) {
       {renderPanel("Display Settings", "eye", DISPLAY_SETTINGS)}
       {renderPanel("Editing Behavior", "edit", EDITING_BEHAVIOR)}
       {renderPanel("Auto-completion", "code", AUTOCOMPLETION)}
-      {renderPanel("File Operations", "file", FILE_OPERATIONS)}
+      {renderPanel(
+        "File Operations",
+        BUILD_ON_SAVE_ICON_ENABLED,
+        FILE_OPERATIONS,
+      )}
       {renderPanel("Jupyter Settings", "jupyter", JUPYTER_SETTINGS)}
       {renderPanel("UI Elements", "desktop", UI_ELEMENTS)}
     </>

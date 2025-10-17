@@ -174,7 +174,13 @@ export function load_target(
     case "settings":
       redux.getActions("page").set_active_tab("account", false);
       const actions = redux.getActions("account");
-      if (segments[1] === "profile") {
+      if (!segments[1] || segments[1] === "" || segments[1] === "index") {
+        // Handle settings overview: settings/, settings, or settings/index
+        actions.setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
+      } else if (segments[1] === "profile") {
         // Handle profile: settings/profile
         actions.setState({
           active_page: "profile",
@@ -195,9 +201,15 @@ export function load_target(
             active_sub_tab: "preferences-appearance" as PreferencesSubTabKey,
           });
         }
-      } else {
+      } else if (segments[1]) {
         // Handle main tabs: settings/[tab]
         actions.set_active_tab(segments[1]);
+      } else {
+        // No specific tab provided, default to index: settings/ -> settings/index
+        actions.setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
       }
       actions.setFragment(Fragment.decode(hash));
 
@@ -233,7 +245,7 @@ window.onpopstate = (_) => {
 export function parse_target(target?: string):
   | { page: "projects" | "help" | "file-use" | "notifications" | "admin" }
   | { page: "project"; target: string }
-  | { page: "profile" }
+  | { page: "profile" | "settings" }
   | {
       page: "preferences";
       sub_tab?: PreferencesSubTabKey;
@@ -259,6 +271,10 @@ export function parse_target(target?: string):
       }
     case "settings":
       switch (segments[1]) {
+        case undefined:
+        case "":
+        case "index":
+          return { page: "settings" };
         case "profile":
           return { page: "profile" };
         case "preferences":

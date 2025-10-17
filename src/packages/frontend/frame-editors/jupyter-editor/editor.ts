@@ -9,6 +9,8 @@ Spec for editing Jupyter notebooks via a frame tree.
 cSpell:ignore JSONIPynb
 */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { createElement } from "react";
 
 import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
@@ -33,7 +35,7 @@ import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
 
-const SNIPPET_ICON_NAME = "magic";
+const SNIPPET_ICON_NAME: IconName = "magic";
 
 const jupyterCommands = set([
   "about",

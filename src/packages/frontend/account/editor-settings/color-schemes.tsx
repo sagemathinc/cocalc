@@ -56,7 +56,7 @@ export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
           {intl.formatMessage(labels.reset)}
         </Button>
         <SelectorInput
-          style={{ width: "150px" }}
+          style={{ width: "250px" }}
           options={EDITOR_COLOR_SCHEMES}
           selected={props.theme}
           on_change={props.on_change}
