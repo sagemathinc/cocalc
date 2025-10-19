@@ -13,7 +13,7 @@ import { field_cmp, len } from "@cocalc/util/misc";
 export function positions_between(
   before_pos: number | undefined,
   after_pos: number | undefined,
-  num: number
+  num: number,
 ) {
   // Return an array of num equally spaced positions starting after
   // before_pos and ending before after_pos, so
@@ -96,10 +96,10 @@ export function ensure_positions_are_unique(cells?: Map<string, any>) {
 }
 
 export function new_cell_pos(
-  cells: Map<string, any>,
+  cells?: Map<string, any>,
   cell_list: List<string>,
   cur_id: string,
-  delta: -1 | 1
+  delta: -1 | 1,
 ): number {
   /*
     Returns pos for a new cell whose position
@@ -129,8 +129,8 @@ export function new_cell_pos(
       return false; // break iteration
     }
   });
-  const adjacent_pos = cells.getIn([adjacent_id, "pos"]) as number | undefined;
-  const current_pos = cells.getIn([cur_id, "pos"]) as number;
+  const adjacent_pos = cells?.getIn([adjacent_id, "pos"]) as number | undefined;
+  const current_pos = (cells?.getIn([cur_id, "pos"]) ?? 0) as number;
   let pos: number;
   if (adjacent_pos != null) {
     // there is a cell after (or before) cur_id cell
@@ -145,7 +145,7 @@ export function new_cell_pos(
 export function move_selected_cells(
   v?: string[],
   selected?: { [id: string]: true },
-  delta?: number
+  delta?: number,
 ) {
   /*
     - v = ordered js array of all cell id's
