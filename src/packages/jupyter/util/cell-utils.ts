@@ -113,6 +113,9 @@ export function new_cell_pos(
     Returned undefined whenever don't really know what to do; then caller
     just makes up a pos, and it'll get sorted out.
   */
+  if (cells == null) {
+    return 0;
+  }
   let cell_list_0: List<string>;
   if (cell_list == null) {
     cell_list_0 = sorted_cell_list(cells)!;
@@ -129,8 +132,8 @@ export function new_cell_pos(
       return false; // break iteration
     }
   });
-  const adjacent_pos = cells?.getIn([adjacent_id, "pos"]) as number | undefined;
-  const current_pos = (cells?.getIn([cur_id, "pos"]) ?? 0) as number;
+  const adjacent_pos = cells.getIn([adjacent_id, "pos"]) as number | undefined;
+  const current_pos = cells.getIn([cur_id, "pos"]) as number;
   let pos: number;
   if (adjacent_pos != null) {
     // there is a cell after (or before) cur_id cell
