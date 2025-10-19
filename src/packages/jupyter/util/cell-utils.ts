@@ -96,7 +96,7 @@ export function ensure_positions_are_unique(cells?: Map<string, any>) {
 }
 
 export function new_cell_pos(
-  cells?: Map<string, any>,
+  cells: Map<string, any> | undefined,
   cell_list: List<string>,
   cur_id: string,
   delta: -1 | 1,
