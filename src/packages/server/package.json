@@ -97,7 +97,7 @@
     "ms": "2.1.2",
     "nanoid": "^3.3.8",
     "node-zendesk": "^5.0.13",
-    "nodemailer": "^6.9.16",
+    "nodemailer": "^7.0.9",
     "openai": "^5.22.1",
     "parse-domain": "^5.0.0",
     "passport": "^0.6.0",
