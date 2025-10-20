@@ -13,7 +13,7 @@ export type Role = "client" | "server";
 // socketio and use those to manage things.  This ping
 // is entirely a "just in case" backup if some event
 // were missed (e.g., a kill -9'd process...)
-export const PING_PONG_INTERVAL = 90000;
+export const PING_PONG_INTERVAL = 45000;
 
 // We queue up unsent writes, but only up to a point (to not have a huge memory issue).
 // Any write beyond this size result in an exception.
@@ -57,6 +57,11 @@ export interface SocketConfiguration {
   keepAliveTimeout?: number; // default: DEFAULT_KEEP_ALIVE_TIMEOUT}
   // desc = optional, purely for admin/user
   desc?: string;
+  // for a socket client, you can specificy a custom load balancer,
+  // instead of just selecting a random socket server (in case of multiple
+  // socket servers with the same subject). This is used
+  // by the persist server.
+  loadBalancer?: (subject: string) => Promise<string>;
 }
 
 export interface ConatSocketOptions extends SocketConfiguration {
@@ -68,8 +73,16 @@ export interface ConatSocketOptions extends SocketConfiguration {
 
 export const RECONNECT_DELAY = 500;
 
+// here subject = `${this.subject}.server.${this.serverId}.${this.id}` is what
+// comes from the client to start the session, and this function returns
+// `${this.subject}.client.${this.id}`
+// which is what the client is listening on
 export function clientSubject(subject: string) {
   const segments = subject.split(".");
-  segments[segments.length - 2] = "client";
-  return segments.join(".");
+  const clientId = segments[segments.length - 1];
+  return segments.slice(0, -3).join(".") + ".client." + clientId;
+}
+
+export function serverStatusSubject(subject) {
+  return `${subject}.server.status`;
 }

@@ -5,7 +5,10 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
+import { CSSProperties, useMemo, useState } from "react";
+
 import {
+  CSS,
   redux,
   useActions,
   useRedux,
@@ -14,8 +17,8 @@ import {
 import { set_window_title } from "@cocalc/frontend/browser";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import {
+  SortableTab,
   SortableTabs,
-  renderTabBar,
   useItemContext,
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
@@ -25,12 +28,11 @@ import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import { CSSProperties, useMemo, useState } from "react";
 import { useProjectState } from "../project/page/project-state-hook";
 import { useProjectHasInternetAccess } from "../project/settings/has-internet-access-hook";
 import { BuyLicenseForProject } from "../site-licenses/purchase/buy-license-for-project";
 
-const PROJECT_NAME_STYLE: CSSProperties = {
+const PROJECT_NAME_STYLE: CSS = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -173,15 +175,36 @@ function ProjectTab({ project_id }: ProjectTabProps) {
 
   function renderAvatar() {
     const avatar = project?.get("avatar_image_tiny");
-    if (!avatar) return;
-    return (
-      <Avatar
-        style={{ marginTop: "-2px" }}
-        shape="circle"
-        icon={<img src={project.get("avatar_image_tiny")} />}
-        size={20}
-      />
-    );
+    const color = project?.get("color");
+
+    if (avatar) {
+      // Avatar exists: show it with colored border
+      return (
+        <Avatar
+          style={{
+            marginTop: "-2px",
+            border: color ? `2px solid ${color}` : undefined,
+          }}
+          shape="circle"
+          icon={<img src={project.get("avatar_image_tiny")} />}
+          size={20}
+        />
+      );
+    } else if (color) {
+      // No avatar but has color: show colored circle
+      return (
+        <Avatar
+          style={{
+            marginTop: "-2px",
+            backgroundColor: color,
+          }}
+          shape="circle"
+          size={20}
+        />
+      );
+    }
+
+    return undefined;
   }
 
   function onMouseUp(e: React.MouseEvent) {
@@ -239,6 +262,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
   const projectActions = useActions("projects");
   const activeTopTab = useTypedRedux("page", "active_top_tab");
   const openProjects = useTypedRedux("projects", "open_projects");
+  //const project_map = useTypedRedux("projects", "project_map");
 
   const items: TabsProps["items"] = useMemo(() => {
     if (openProjects == null) return [];
@@ -255,14 +279,14 @@ export function ProjectsNav(props: ProjectsNavProps) {
     return openProjects.toJS().map((project_id) => project_id);
   }, [openProjects]);
 
-  const onEdit = (project_id: string, action: "add" | "remove") => {
-    if (action == "add") {
+  function onEdit(project_id: string, action: "add" | "remove") {
+    if (action === "add") {
       actions.set_active_tab("projects");
     } else {
       // close given project
       actions.close_project_tab(project_id);
     }
-  };
+  }
 
   function onDragEnd(event) {
     const { active, over } = event;
@@ -280,13 +304,35 @@ export function ProjectsNav(props: ProjectsNavProps) {
   }
 
   function renderTabBar0(tabBarProps, DefaultTabBar) {
-    return renderTabBar(tabBarProps, DefaultTabBar, {
-      [activeTopTab]: {
-        border: "2px solid #d3d3d3",
-        borderRadius: "8px",
-      },
-      "": { border: "2px solid transparent", borderRadius: "8px" },
-    });
+    return (
+      <DefaultTabBar {...tabBarProps}>
+        {(node) => {
+          const project_id = node.key;
+          const isActive = project_id === activeTopTab;
+
+          const wrapperStyle: CSS = {
+            border: isActive
+              ? `2px solid ${"#d3d3d3"}`
+              : `2px solid  ${"transparent"}`,
+            borderRadius: "8px",
+          };
+
+          // Kept for reference, this allows to tweak the node props directly
+          // const styledNode = cloneElement(node, {
+          //   style: {
+          //     ...node.props.style,
+          //     backgroundColor: wrapperStyle.backgroundColor,
+          //   },
+          // });
+
+          return (
+            <SortableTab key={node.key} id={node.key} style={wrapperStyle}>
+              {node}
+            </SortableTab>
+          );
+        }}
+      </DefaultTabBar>
+    );
   }
 
   return (

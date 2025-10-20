@@ -100,7 +100,7 @@ export interface ProjectStoreState {
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   page_number: number;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
-  file_action?: string; // undefineds is meaningfully none here
+  file_action?: string; // undefined is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
   show_masked?: boolean;

@@ -1337,6 +1337,7 @@
   "project.page.project-licenses.header": "配额和{upgrades}",
   "project.page.project-licenses.intro": "许可证和按需付费升级更改项目的配额和可用功能",
   "project.servers.project-servers.description": "您可以通过一次点击在此项目内运行各种笔记本服务器。它们在相同的环境中运行，访问相同的文件，并在项目停止时停止。您也可以<A>运行您自己的服务器</A>。",
+  "project.settings.about-box.color.label": "颜色（可选）",
   "project.settings.about-box.description.label": "描述 (markdown)",
   "project.settings.about-box.image.label": "图像（可选）",
   "project.settings.about-box.name.label": "姓名（可选）",

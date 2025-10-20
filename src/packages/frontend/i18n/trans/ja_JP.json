@@ -1337,6 +1337,7 @@
   "project.page.project-licenses.header": "クォータと{upgrades}",
   "project.page.project-licenses.intro": "ライセンスおよび従量制アップグレードは、プロジェクトに利用可能なクォータと機能を変更します",
   "project.servers.project-servers.description": "このプロジェクト内で様々なノートブックサーバーをワンクリックで実行できます。それらは同じ環境で動作し、同じファイルにアクセスし、プロジェクトが停止すると停止します。また、<A>自分のサーバーを実行する</A>こともできます。",
+  "project.settings.about-box.color.label": "色（オプション）",
   "project.settings.about-box.description.label": "説明 (markdown)",
   "project.settings.about-box.image.label": "画像（オプション）",
   "project.settings.about-box.name.label": "名前（任意）",

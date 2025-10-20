@@ -64,8 +64,8 @@ importers:
         specifier: ^18.16.14
         version: 18.16.14
       typescript:
-        specifier: ^5.7.3
-        version: 5.7.3
+        specifier: ^5.9.2
+        version: 5.9.3
 
 packages:
 
@@ -217,8 +217,8 @@ packages:
   port-get@1.0.4:
     resolution: {integrity: sha512-B8RcNfc8Ld+7C31DPaKIQz2aO9dqIs+4sUjhxJ2TSjEaidwyxu05WBbm08FJe+qkVvLiQqPbEAfNw1rB7JbjtA==}
 
-  typescript@5.7.3:
-    resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -350,7 +350,7 @@ snapshots:
 
   port-get@1.0.4: {}
 
-  typescript@5.7.3: {}
+  typescript@5.9.3: {}
 
   websocket-sftp@0.8.4:
     dependencies:

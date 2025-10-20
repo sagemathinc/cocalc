@@ -2,7 +2,7 @@
 Stress test pub/sub in various settings:
 
 - single server
-- multiple servers 
+- multiple servers
 - multiple servers with a sticky subscription
 - multiple servers with 800 existing subscriptions
 
@@ -21,7 +21,6 @@ import {
   createConatCluster,
   client,
 } from "@cocalc/backend/conat/test/setup";
-import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 import { waitForSubscription } from "./util";
 
 // These are all very low since results are very low when running
@@ -135,46 +134,6 @@ describe("benchmarking bigger send/receives", () => {
     }
     const recvRate = await f();
     log("received ", recvRate, "messages per second");
-    if (count > 10) {
-      expect(recvRate).toBeGreaterThan(
-        REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
-      );
-    }
-  });
-
-  it(`do a benchmark of send/receiving and STICKY SUB involving ${count} messages`, async () => {
-    const servers = await createConatCluster(2);
-    const [server1, server2] = Object.values(servers);
-    const client1 = server1.client();
-    const client2 = server2.client();
-    const sub = await client1.subscribe("bench", { queue: STICKY_QUEUE_GROUP });
-    await waitForSubscription(server1, "bench");
-    await waitForSubscription(server2, "bench");
-    const f = async () => {
-      const start = Date.now();
-      let i = 0;
-      log(`sticky cluster: receiving ${count} messages`);
-      for await (const _ of sub) {
-        i += 1;
-        if (i >= count) {
-          return Math.ceil((count / (Date.now() - start)) * 1000);
-        }
-      }
-    };
-    const start = Date.now();
-    log(`sticky cluster: sending ${count} messages`);
-    for (let i = 0; i < count; i++) {
-      client2.publishSync("bench", null);
-    }
-    const sendRate = Math.ceil((count / (Date.now() - start)) * 1000);
-    log("sticky cluster: sent", sendRate, "messages per second");
-    if (count > 10) {
-      expect(sendRate).toBeGreaterThan(
-        REQUIRED_CLUSTER_SERVER_SEND_MESSAGES_PER_SECOND,
-      );
-    }
-    const recvRate = await f();
-    log("sticky cluster: received ", recvRate, "messages per second");
     if (count > 10) {
       expect(recvRate).toBeGreaterThan(
         REQUIRED_CLUSTER_SERVER_RECV_MESSAGES_PER_SECOND,
