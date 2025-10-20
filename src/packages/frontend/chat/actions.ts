@@ -57,6 +57,8 @@ import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
 
 const MAX_CHAT_STREAM = 10;
 
+export const ROBOT_THINKING = ":robot: Thinking...";
+
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
   public store?: ChatStore;
@@ -722,15 +724,14 @@ export class ChatActions extends Actions<ChatState> {
       }
     })();
 
-    const thinking = ":robot: Thinking...";
     // prevHistory: in case of regenerate, it's the history *before* we added the "Thinking..." message (which we ignore)
     const { date, prevHistory = [] } =
       tag === "regenerate"
-        ? this.saveHistory(message, thinking, sender_id, true)
+        ? this.saveHistory(message, ROBOT_THINKING, sender_id, true)
         : {
             date: this.sendReply({
               message,
-              reply: thinking,
+              reply: ROBOT_THINKING,
               from: sender_id,
               noNotification: true,
               reply_to,
@@ -780,12 +781,9 @@ export class ChatActions extends Actions<ChatState> {
     // submit question to the given language model
     const id = uuid();
     this.chatStreams.add(id);
-    setTimeout(
-      () => {
-        this.chatStreams.delete(id);
-      },
-      3 * 60 * 1000,
-    );
+    setTimeout(() => {
+      this.chatStreams.delete(id);
+    }, 3 * 60 * 1000);
 
     // construct the LLM history for the given thread
     const history = reply_to ? this.getLLMHistory(reply_to) : undefined;

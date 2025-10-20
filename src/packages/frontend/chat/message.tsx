@@ -5,7 +5,16 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
+import {
+  Badge,
+  Button,
+  Col,
+  Popconfirm,
+  Progress,
+  Row,
+  Space,
+  Tooltip,
+} from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
@@ -30,7 +39,7 @@ import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { ChatActions } from "./actions";
+import { ChatActions, ROBOT_THINKING } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
@@ -251,6 +260,53 @@ export default function Message({
     const author_id = message.get("history")?.first()?.get("author_id");
     return typeof author_id === "string" && isLanguageModelService(author_id);
   }, [message]);
+
+  // Progress bar state for LLM responses
+  const [showProgress, setShowProgress] = useState<boolean>(false);
+  const [progressPercent, setProgressPercent] = useState<number>(0);
+
+  // Track if message is waiting for LLM response
+  const isWaitingForLLM = useMemo(() => {
+    if (!msgWrittenByLLM) return false;
+    const content = newest_content(message);
+    // Check if message is still showing "Thinking..." or is empty
+    return content === ROBOT_THINKING || content.trim() === "";
+  }, [message, msgWrittenByLLM]);
+
+  // Show progress bar after 3 seconds if still waiting, hide when content arrives
+  useEffect(() => {
+    if (isWaitingForLLM) {
+      // Start timer for 3-second delay
+      const delayTimer = setTimeout(() => {
+        setShowProgress(true);
+        setProgressPercent(0);
+
+        // Progress animation: count up to 60 seconds
+        const startTime = Date.now();
+        const progressInterval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000; // seconds
+          const percent = Math.min((elapsed / 60) * 100, 100); // 0-100% over 60 seconds
+          setProgressPercent(Math.floor(percent));
+
+          if (percent >= 100) {
+            clearInterval(progressInterval);
+          }
+        }, 100); // Update every 100ms for smooth animation
+
+        return () => {
+          clearInterval(progressInterval);
+        };
+      }, 3000); // 3-second delay
+
+      return () => {
+        clearTimeout(delayTimer);
+      };
+    } else {
+      // Content arrived, hide progress bar
+      setShowProgress(false);
+      setProgressPercent(0);
+    }
+  }, [isWaitingForLLM]);
 
   useLayoutEffect(() => {
     if (replying) {
@@ -562,7 +618,7 @@ export default function Message({
 
     const feedback = message.getIn(["feedback", account_id]);
     const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
+      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
     const showOtherFeedback = otherFeedback > 0;
 
     return (
@@ -714,6 +770,7 @@ export default function Message({
             ? renderEditMessage()
             : renderMessageBody({ lighten, message_class })}
         </div>
+        {renderLLMProgressBar()}
         {renderHistory()}
         {renderComposeReply()}
       </Col>
@@ -727,6 +784,21 @@ export default function Message({
         <HistoryTitle />
         <History history={message.get("history")} user_map={user_map} />
         <HistoryFooter />
+      </div>
+    );
+  }
+
+  function renderLLMProgressBar() {
+    if (!showProgress) return null;
+
+    return (
+      <div style={{ marginTop: "10px", marginBottom: "10px" }}>
+        <Progress
+          percent={progressPercent}
+          status="active"
+          strokeColor={COLORS.BS_BLUE_BGRND}
+          showInfo={false}
+        />
       </div>
     );
   }
