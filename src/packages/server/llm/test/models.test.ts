@@ -169,13 +169,6 @@ test_llm("openai")("OpenAI", () => {
 
 test_llm("google")("Google GenAI", () => {
   test(
-    "gemini 1.5 pro works",
-    async () => {
-      await llmGoogle("gemini-1.5-pro");
-    },
-    LLM_TIMEOUT,
-  );
-  test(
     "gemini 2.0 flash works",
     async () => {
       await llmGoogle("gemini-2.0-flash-8k");
@@ -397,7 +390,7 @@ describe("User-defined LLMs", () => {
         service: "google",
         display: "Test Gemini Flash",
         endpoint: "",
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         apiKey: googleKey,
       };
 
