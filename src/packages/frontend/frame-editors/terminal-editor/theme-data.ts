@@ -50,23 +50,23 @@ export const COLOR_THEMES = {
   "cocalc-light": {
     comment: "CoCalc Light",
     colors: [
-      "#2d4f8a", // color0: dark blue (based on COCALC_BLUE darkened)
-      "#d97706", // color1: orange/red for errors (based on COCALC_ORANGE darkened)
-      "#5b8e3a", // color2: green
-      "#f59e0b", // color3: yellow/gold (harmonized with COCALC_ORANGE)
-      "#4474c0", // color4: COCALC_BLUE (main text accent)
-      "#8b68a6", // color5: purple
-      "#3e999f", // color6: cyan
-      "#d0d0d0", // color7: light gray
-      "#6e8090", // color8: medium gray
-      "#ea580c", // color9: bright orange (for numbers, based on COCALC_ORANGE)
-      "#7cb342", // color10: bright green
-      "#fcc861", // color11: COCALC_ORANGE (bright yellow/gold)
-      "#6690d2", // color12: lighter blue (from CoCalc theme.ts BLUE)
-      "#b084cc", // color13: bright purple
-      "#50c0c8", // color14: bright cyan
-      "#e8e8e8", // color15: very light gray
-      "#2d4f8a", // foreground: dark blue (main text, based on COCALC_BLUE)
+      "#1a3a6b", // color0: stronger dark blue
+      "#c41c08", // color1: stronger red for errors
+      "#3d6b2f", // color2: stronger green
+      "#d97706", // color3: stronger yellow/gold
+      "#2a5aa6", // color4: BLUE_DD (stronger blue accent)
+      "#663d99", // color5: stronger purple
+      "#0088a0", // color6: stronger cyan
+      "#c0c0c0", // color7: light gray
+      "#606060", // color8: stronger medium gray
+      "#e65100", // color9: stronger bright orange
+      "#558b2f", // color10: stronger bright green
+      "#f39c12", // color11: stronger golden yellow
+      "#4474c0", // color12: COCALC_BLUE (blue accent)
+      "#9d4edd", // color13: stronger bright purple
+      "#0096c7", // color14: stronger bright cyan
+      "#d9d9d9", // color15: lighter gray
+      "#1a3a6b", // foreground: darker blue for main text
       "#fbfbfb", // background
     ],
   },

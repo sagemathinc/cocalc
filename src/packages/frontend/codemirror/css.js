@@ -68,6 +68,9 @@ require("codemirror/theme/yeti.css");
 require("codemirror/theme/yonce.css");
 require("codemirror/theme/zenburn.css");
 
+require("@cocalc/cdn/dist/cm-custom-theme/cocalc-dark.css");
+require("@cocalc/cdn/dist/cm-custom-theme/cocalc-light.css");
+
 require("./mode/mediawiki/mediawiki.css");
 
 // Have to strengthen this to "fight off" the adverse buggy global
