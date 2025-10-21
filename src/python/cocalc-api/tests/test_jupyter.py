@@ -2,7 +2,6 @@
 Tests for Jupyter kernel functionality.
 """
 
-import pytest
 import time
 from typing import Optional
 
