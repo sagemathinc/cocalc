@@ -6,6 +6,7 @@
     "make": "pnpm run build",
     "make-dev": "pnpm run build-dev",
     "build": "./workspaces.py install && ./workspaces.py build && pnpm python-api",
+    "tsc-all": "./workspaces.py tsc --parallel",
     "build-dev": "./workspaces.py install && ./workspaces.py build --dev && pnpm python-api",
     "clean": "rm -rf packages/node_modules && ./workspaces.py clean && cd compute/compute && pnpm clean ",
     "hub": "cd packages/hub && npm run hub-project-dev-nobuild",

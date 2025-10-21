@@ -264,8 +264,16 @@ export let conatSocketioCount = parseInt(
 // number of persist servers (if configured to run)
 export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
 
-// number of api servers (if configured to run)
+// number of api servers (if configured to run). The only reason to increase this
+// is for testing and development.  One is fine for a small server, and for kubernetes
+// we these in separate pods.
 export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
+
+// number of changefeed servers to run in process.  The only reason to increase this
+// is for testing and development.
+export let conatChangefeedServerCount = parseInt(
+  process.env.CONAT_CHANGEFEED_SERVER_COUNT ?? "1",
+);
 
 // if configured, will create a socketio cluster using
 // the cluster adapter, listening on the given port.
