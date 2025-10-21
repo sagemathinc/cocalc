@@ -27,6 +27,7 @@ export const VALID_PREFERENCES_SUB_TYPES = [
   "editor",
   "keyboard",
   "ai",
+  "communication",
   "keys",
   "other",
 ] as const;

@@ -5,7 +5,6 @@
 
 // cSpell:ignore brandcolors codebar
 
-import { Button } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
@@ -19,7 +18,7 @@ import {
   NumberInput,
   Paragraph,
   SelectorInput,
-  Text
+  Text,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
@@ -38,7 +37,6 @@ import {
 } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 
@@ -72,15 +70,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     redux.getActions("account").set_other_settings(name, value);
   }
 
-  function toggle_global_banner(val: boolean): void {
-    if (val) {
-      // this must be "null", not "undefined" – otherwise the data isn't stored in the DB.
-      on_change("show_global_info2", null);
-    } else {
-      on_change("show_global_info2", webapp_client.server_time());
-    }
-  }
-
   //   private render_first_steps(): Rendered {
   //     if (props.kucalc !== KUCALC_COCALC_COM) return;
   //     return (
@@ -92,21 +81,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   //       </Switch>
   //     );
   //   }
-
-  function render_global_banner(): Rendered {
-    return (
-      <Switch
-        checked={!props.other_settings.get("show_global_info2")}
-        onChange={(e) => toggle_global_banner(e.target.checked)}
-      >
-        <FormattedMessage
-          id="account.other-settings.global_banner"
-          defaultMessage={`<strong>Show Announcement Banner</strong>: only shows up if there is a
-        message`}
-        />
-      </Switch>
-    );
-  }
 
   function render_confirm(): Rendered {
     if (!IS_MOBILE) {
@@ -234,71 +208,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           number={props.other_settings.get("page_size") ?? 50}
         />
       </LabeledRow>
-    );
-  }
-
-  function render_no_free_warnings(): Rendered {
-    const isCustomer = props.is_stripe_customer;
-
-    const extra = isCustomer ? (
-      <span>(thanks for being a customer)</span>
-    ) : (
-      <span>(only available to customers)</span>
-    );
-
-    return (
-      <Switch
-        disabled={!isCustomer}
-        checked={!!props.other_settings.get("no_free_warnings")}
-        onChange={(e) => on_change("no_free_warnings", e.target.checked)}
-      >
-        <strong>Hide free warnings</strong>: do{" "}
-        <strong>
-          <i>not</i>
-        </strong>{" "}
-        show a warning banner when using a free trial project {extra}
-      </Switch>
-    );
-  }
-
-  function render_no_email_new_messages(): Rendered {
-    const email_address_verified = useTypedRedux(
-      "account",
-      "email_address_verified",
-    );
-    const email_address = useTypedRedux("account", "email_address");
-    const isVerified = !!email_address_verified?.get(email_address ?? "");
-
-    return (
-      <>
-        <Switch
-          checked={props.other_settings.get("no_email_new_messages")}
-          onChange={(e) => {
-            on_change("no_email_new_messages", e.target.checked);
-          }}
-        >
-          Do NOT send email when you get new{" "}
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              redux.getActions("page").set_active_tab("notifications");
-              redux
-                .getActions("mentions")
-                .set_filter("messages-inbox" as "messages-inbox");
-            }}
-            type="link"
-            size="small"
-          >
-            Internal Messages
-          </Button>
-        </Switch>
-        {!isVerified && !props.other_settings.get("no_email_new_messages") && (
-          <>
-            (NOTE: You must also verify your email address above to get emails
-            about new messages.)
-          </>
-        )}
-      </>
     );
   }
 
@@ -502,12 +411,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         size="small"
         header={
           <>
-            <Icon name={THEME_ICON_NAME} />{" "}
-            <FormattedMessage
-              id="account.other-settings.theme"
-              defaultMessage="Theme"
-              description="Visual UI theme of the application"
-            />
+            <Icon name={THEME_ICON_NAME} /> {intl.formatMessage(labels.theme)}
           </>
         }
       >
@@ -523,11 +427,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           size="small"
           header={
             <>
-              <Icon name="desktop" />{" "}
-              <FormattedMessage
-                id="account.other-settings.browser_performance.title"
-                defaultMessage="Browser"
-              />
+              <Icon name="desktop" /> {intl.formatMessage(labels.browser)}
             </>
           }
         >
@@ -540,10 +440,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           header={
             <>
               <Icon name="folder-open" />{" "}
-              <FormattedMessage
-                id="account.other-settings.file_explorer.title"
-                defaultMessage="File Explorer"
-              />
+              {intl.formatMessage(labels.file_explorer)}
             </>
           }
         >
@@ -558,29 +455,11 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           size="small"
           header={
             <>
-              <Icon name="edit" />{" "}
-              <FormattedMessage
-                id="account.other-settings.projects.title"
-                defaultMessage="Projects"
-              />
+              <Icon name="edit" /> {intl.formatMessage(labels.projects)}
             </>
           }
         >
           {render_vertical_fixed_bar_options()}
-        </Panel>
-
-        <Panel
-          size="small"
-          header={
-            <>
-              <Icon name="mail" />{" "}
-              <FormattedMessage {...labels.communication} />
-            </>
-          }
-        >
-          {render_global_banner()}
-          {render_no_free_warnings()}
-          {render_no_email_new_messages()}
         </Panel>
 
         {/* Tours at bottom */}

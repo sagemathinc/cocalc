@@ -91,9 +91,24 @@ export default function AccountNavTab({ style }: Props) {
     </A>,
     [
       menuItem(
-        "preferences",
-        <A href="/settings/account">Preferences</A>,
+        "profile",
+        <A href="/settings/profile">Profile</A>,
         "address-card",
+      ),
+      menuItem(
+        "preferences",
+        <A href="/settings/preferences/appearance">Preferences</A>,
+        "highlighter",
+      ),
+      menuItem(
+        "communication",
+        <A href="/settings/preferences/communication">Communication</A>,
+        "mail",
+      ),
+      menuItem(
+        "keys",
+        <A href="/settings/preferences/keys">SSH & API Keys</A>,
+        "key",
       ),
       DIVIDER,
       menuItem(
@@ -104,7 +119,7 @@ export default function AccountNavTab({ style }: Props) {
       menuItem("licenses", <A href="/settings/licenses">Licenses</A>, "key"),
       menuItem(
         "payg",
-        <A href="/settings/payg">Pay As You go</A>,
+        <A href="/settings/payg">Pay As You Go</A>,
         "line-chart",
       ),
       DIVIDER,
@@ -116,11 +131,6 @@ export default function AccountNavTab({ style }: Props) {
       menuItem(
         "payments",
         <A href="/settings/payments">Payments</A>,
-        "credit-card",
-      ),
-      menuItem(
-        "payment-methods",
-        <A href="/settings/payment-methods">Payment Methods</A>,
         "credit-card",
       ),
       menuItem(
@@ -185,25 +195,17 @@ export default function AccountNavTab({ style }: Props) {
       );
       yours.push(
         menuItem(
-          "cloud-filesystems",
-          <A href="/settings/cloud-filesystems">Cloud Filesystems</A>,
-          "user",
-        ),
-      );
-      yours.push(
-        menuItem(
           "support",
           <A href="/settings/support">Support Tickets</A>,
-          "user",
+          "medkit",
         ),
       );
+
       if (sshGateway) {
         yours.push(
           menuItem(
             "ssh",
-            <A href={join(basePath, "settings", "ssh-keys")} external>
-              SSH Keys
-            </A>,
+            <A href="settings/preferences/keys">SSH Keys</A>,
             "key",
           ),
         );
@@ -213,24 +215,13 @@ export default function AccountNavTab({ style }: Props) {
         yours.push(
           menuItem(
             "shared",
-            <A
-              href={
-                profile?.name ? `/${name}` : `/share/accounts/${account_id}`
-              }
-              external
-            >
-              Shared Files
-            </A>,
-            "bullhorn",
+            <A href="/settings/public-files">Published Files</A>,
+            "share-square",
           ),
         );
 
         yours.push(
-          menuItem(
-            "stars",
-            <A href="/stars">Starred Files</A>,
-            "star-filled",
-          ),
+          menuItem("stars", <A href="/stars">Starred Files</A>, "star-filled"),
         );
       }
     }

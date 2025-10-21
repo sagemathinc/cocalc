@@ -13,14 +13,13 @@ import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import { labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
 import { APPEARANCE_ICON_NAME } from "./account-preferences-appearance";
+import { COMMUNICATION_ICON_NAME } from "./account-preferences-communication";
 import { EDITOR_ICON_NAME } from "./account-preferences-editor";
 import { KEYBOARD_ICON_NAME } from "./account-preferences-keyboard";
 import { OTHER_ICON_NAME } from "./account-preferences-other";
-import {
-  ACCOUNT_PREFERENCES_ICON_NAME,
-  ACCOUNT_PROFILE_ICON_NAME,
-} from "./account-preferences-profile";
+import { ACCOUNT_PROFILE_ICON_NAME } from "./account-preferences-profile";
 import { KEYS_ICON_NAME } from "./account-preferences-security";
 
 const messages = defineMessages({
@@ -55,6 +54,11 @@ const messages = defineMessages({
   ai: {
     id: "account.settings.overview.ai",
     defaultMessage: "Configure AI assistant settings and integrations.",
+  },
+  communication: {
+    id: "account.settings.overview.communication",
+    defaultMessage:
+      "Manage notification preferences and communication settings.",
   },
   keys: {
     id: "account.settings.overview.keys",
@@ -112,6 +116,14 @@ const CARD_PROPS = {
   style: { width: 300, minWidth: 250 },
 } as const;
 
+const HIGHLIGHTED_CARD_PROPS = {
+  ...CARD_PROPS,
+  style: {
+    ...CARD_PROPS.style,
+    border: `1px solid ${COLORS.BLUE_LLL}`,
+  },
+} as const;
+
 const FLEX_PROPS = {
   wrap: true as const,
   gap: "15px",
@@ -151,15 +163,9 @@ export function SettingsOverview() {
 
   return (
     <div style={{ padding: "20px" }}>
-      <Divider plain>
-        <Icon name={ACCOUNT_PROFILE_ICON_NAME} />{" "}
-        {intl.formatMessage(labels.profile)} and{" "}
-        <Icon name={ACCOUNT_PREFERENCES_ICON_NAME} />{" "}
-        {intl.formatMessage(labels.preferences)}
-      </Divider>
       <Flex {...FLEX_PROPS}>
         <Card
-          {...CARD_PROPS}
+          {...HIGHLIGHTED_CARD_PROPS}
           onClick={() => handleNavigate("settings/profile")}
         >
           <Card.Meta
@@ -169,7 +175,7 @@ export function SettingsOverview() {
           />
         </Card>
         <Card
-          {...CARD_PROPS}
+          {...HIGHLIGHTED_CARD_PROPS}
           onClick={() => handleNavigate("settings/preferences/appearance")}
         >
           <Card.Meta
@@ -210,6 +216,16 @@ export function SettingsOverview() {
         </Card>
         <Card
           {...CARD_PROPS}
+          onClick={() => handleNavigate("settings/preferences/communication")}
+        >
+          <Card.Meta
+            avatar={<Icon name={COMMUNICATION_ICON_NAME} />}
+            title={intl.formatMessage(labels.communication)}
+            description={intl.formatMessage(messages.communication)}
+          />
+        </Card>
+        <Card
+          {...CARD_PROPS}
           onClick={() => handleNavigate("settings/preferences/keys")}
         >
           <Card.Meta
@@ -237,7 +253,7 @@ export function SettingsOverview() {
           </Divider>
           <Flex {...FLEX_PROPS}>
             <Card
-              {...CARD_PROPS}
+              {...HIGHLIGHTED_CARD_PROPS}
               onClick={() => handleNavigate("settings/subscriptions")}
             >
               <Card.Meta
@@ -247,7 +263,7 @@ export function SettingsOverview() {
               />
             </Card>
             <Card
-              {...CARD_PROPS}
+              {...HIGHLIGHTED_CARD_PROPS}
               onClick={() => handleNavigate("settings/licenses")}
             >
               <Card.Meta

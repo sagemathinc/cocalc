@@ -645,8 +645,23 @@ export const labels = defineMessages({
   communication: {
     id: "labels.communication",
     defaultMessage: "Communication",
-    comment:
+    description:
       "How communication happens, showing banners, sending messages, etc.",
+  },
+  browser: {
+    id: "labels.browser",
+    defaultMessage: "Browser",
+    description: "Web browser settings and performance",
+  },
+  file_explorer: {
+    id: "labels.file_explorer",
+    defaultMessage: "File Explorer",
+    description: "File browser and file management interface",
+  },
+  theme: {
+    id: "labels.theme",
+    defaultMessage: "Theme",
+    description: "Visual UI theme of the application",
   },
   downloaded: {
     id: "labels.downloaded",

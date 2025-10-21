@@ -51,6 +51,10 @@ import {
   APPEARANCE_ICON_NAME,
 } from "./account-preferences-appearance";
 import {
+  AccountPreferencesCommunication,
+  COMMUNICATION_ICON_NAME,
+} from "./account-preferences-communication";
+import {
   AccountPreferencesEditor,
   EDITOR_ICON_NAME,
 } from "./account-preferences-editor";
@@ -243,6 +247,19 @@ export const AccountPage: React.FC = () => {
             ),
             children: active_page === "preferences" &&
               active_sub_tab === "preferences-ai" && <AccountPreferencesAI />,
+          },
+          {
+            key: "preferences-communication",
+            label: (
+              <span>
+                <Icon name={COMMUNICATION_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.communication)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-communication" && (
+                <AccountPreferencesCommunication />
+              ),
           },
           {
             key: "preferences-keys",
