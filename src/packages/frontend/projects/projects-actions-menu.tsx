@@ -29,7 +29,12 @@ import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
-import { OpenedFile, useFilesMenuItems, useRecentFiles } from "./util";
+import {
+  OpenedFile,
+  useFilesMenuItems,
+  useRecentFiles,
+  useServersMenuItems,
+} from "./util";
 
 const FILES_SUBMENU_LIST_STYLE: CSS = {
   maxWidth: "80vw",
@@ -87,6 +92,11 @@ export function ProjectActionsMenu({ record }: Props) {
       labelStyle: FILES_SUBMENU_LIST_STYLE,
       keyPrefix: "recent-file:",
     },
+  );
+
+  // Get available servers/apps
+  const serversSubmenu: MenuProps["items"] = useServersMenuItems(
+    record.project_id,
   );
 
   function openProjectTab(tab: string) {
@@ -207,6 +217,13 @@ export function ProjectActionsMenu({ record }: Props) {
       popupClassName: "cc-recent-files-submenu",
     },
     {
+      key: "apps",
+      label: "Apps",
+      icon: <Icon name="server" />,
+      children: serversSubmenu,
+      popupClassName: "cc-apps-submenu",
+    },
+    {
       type: "divider",
     },
     {
@@ -271,7 +288,8 @@ export function ProjectActionsMenu({ record }: Props) {
       <style>
         {`
           .cc-starred-files-submenu .ant-dropdown-menu,
-          .cc-recent-files-submenu .ant-dropdown-menu {
+          .cc-recent-files-submenu .ant-dropdown-menu,
+          .cc-apps-submenu .ant-dropdown-menu {
             max-height: 50vh;
             overflow-y: auto;
           }

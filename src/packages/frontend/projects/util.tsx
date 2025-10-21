@@ -7,23 +7,36 @@ import { MenuProps } from "antd";
 import { Map as immutableMap, Set as immutableSet } from "immutable";
 import { useMemo } from "react";
 
-import { CSS } from "@cocalc/frontend/app-framework";
-import { Icon, IconName } from "@cocalc/frontend/components";
+import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon, IconName, Tip } from "@cocalc/frontend/components";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
+import {
+  SPEC as SERVER_SPEC,
+  serverURL,
+} from "@cocalc/frontend/project/named-server-panel";
 import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
+import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
+import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COMPUTE_STATES, ComputeState } from "@cocalc/util/compute-states";
 import {
+  capitalize,
   cmp,
   cmp_Date,
   parse_hashtags,
   search_match,
   search_split,
   trunc_middle,
+  unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import {
+  NAMED_SERVER_NAMES,
+  NamedServerName,
+} from "@cocalc/util/types/servers";
 import { ProjectMap } from "./store";
 
 function parse_tags(info): string[] {
@@ -357,4 +370,118 @@ export function useFilesMenuItems(
       return menuItem;
     });
   }, [files, emptyLabel, onClick, labelStyle, keyPrefix, truncLength]);
+}
+
+/**
+ * React hook to create menu items for available servers/apps
+ *
+ * @param project_id - The project ID
+ * @param onServerOpen - Optional callback when a server is opened
+ * @returns Menu items array for Ant Design Dropdown/Menu
+ */
+export function useServersMenuItems(
+  project_id: string,
+  onServerOpen?: (serverName: NamedServerName) => void,
+): MenuProps["items"] {
+  const project_map = useTypedRedux("projects", "project_map");
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
+  const available = useAvailableFeatures(project_id);
+
+  return useMemo(() => {
+    // Get the project from the project map
+    const project = project_map?.get(project_id);
+
+    // Check if project is running
+    const isProjectRunning = project?.getIn(["state", "state"]) === "running";
+
+    if (!isProjectRunning) {
+      return [
+        {
+          key: "project-not-running",
+          label: (
+            <Tip title="The project must be running to launch apps">
+              Project not running
+            </Tip>
+          ),
+          disabled: true,
+          icon: <Icon name="server" />,
+        },
+      ];
+    }
+
+    // Get available apps
+    const availableApps: Array<{
+      name: NamedServerName;
+      isAvailable: boolean;
+    }> = [];
+
+    NAMED_SERVER_NAMES.forEach((appName) => {
+      let isAvailable = true;
+
+      // Check if disabled by student project functionality
+      switch (appName) {
+        case "jupyterlab":
+          isAvailable =
+            available.jupyter_lab &&
+            !student_project_functionality.disableJupyterLabServer;
+          break;
+        case "jupyter":
+          isAvailable =
+            available.jupyter_notebook &&
+            !student_project_functionality.disableJupyterClassicServer;
+          break;
+        case "code":
+          isAvailable =
+            available.vscode &&
+            !student_project_functionality.disableVSCodeServer;
+          break;
+        case "pluto":
+          isAvailable =
+            available.julia &&
+            !student_project_functionality.disablePlutoServer;
+          break;
+        case "rserver":
+          isAvailable =
+            available.rserver && !student_project_functionality.disableRServer;
+          break;
+        default:
+          unreachable(appName);
+      }
+
+      availableApps.push({ name: appName, isAvailable });
+    });
+
+    // Filter to only available apps
+    const menuItems = availableApps
+      .filter(({ isAvailable }) => isAvailable)
+      .map(({ name }) => {
+        const spec = SERVER_SPEC[name];
+        const label = spec?.longName ?? `${capitalize(name)} Server`;
+        const icon: IconName = spec?.icon ?? "server";
+
+        return {
+          key: `app:${name}`,
+          label,
+          icon: <Icon name={icon} />,
+          onClick: () => {
+            const url = serverURL(project_id, name);
+            track("launch-server", { name, project_id });
+            window.open(url, "_blank");
+            onServerOpen?.(name);
+          },
+        };
+      });
+
+    return menuItems.length > 0
+      ? menuItems
+      : [
+          {
+            key: "no-apps",
+            label: "No available apps",
+            disabled: true,
+            icon: <Icon name="server" />,
+          },
+        ];
+  }, [project_id, project_map, student_project_functionality, available]);
 }

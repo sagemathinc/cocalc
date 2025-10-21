@@ -45,7 +45,12 @@ import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { ProjectUsers } from "./project-users";
-import { OpenedFile, useFilesMenuItems, useRecentFiles } from "./util";
+import {
+  OpenedFile,
+  useFilesMenuItems,
+  useRecentFiles,
+  useServersMenuItems,
+} from "./util";
 
 interface Props {
   project_id: string;
@@ -79,6 +84,9 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
     emptyLabel: "No recent files",
     onClick: openFile,
   });
+
+  // Get available servers/apps
+  const serversMenu: MenuProps["items"] = useServersMenuItems(project_id);
 
   if (!project) {
     return null;
@@ -191,7 +199,8 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
       <style>
         {`
           .cc-expanded-starred-dropdown,
-          .cc-expanded-recent-dropdown {
+          .cc-expanded-recent-dropdown,
+          .cc-expanded-apps-dropdown {
             max-height: 50vh;
             overflow-y: auto;
           }
@@ -256,6 +265,18 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
                 }}
               >
                 {intl.formatMessage(labels.recent)} <Icon name="caret-down" />
+              </Button>
+            </Dropdown>
+            <Dropdown
+              menu={{
+                items: serversMenu,
+                className: "cc-expanded-apps-dropdown",
+              }}
+              trigger={["click"]}
+              placement="bottomLeft"
+            >
+              <Button type="text" size="small" icon={<Icon name="server" />}>
+                Apps <Icon name="caret-down" />
               </Button>
             </Dropdown>
             <Button
