@@ -12,7 +12,10 @@ and configuration.
 
 // cSpell:ignore payg
 
-import type { PreferencesSubTabKey, PreferencesSubTabType } from "./types";
+import type {
+  PreferencesSubTabKey,
+  PreferencesSubTabType,
+} from "@cocalc/util/types/settings";
 
 import { Flex, Menu, Space } from "antd";
 import { useEffect } from "react";
@@ -79,17 +82,28 @@ import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SettingsOverview } from "./settings-index";
-import { VALID_PREFERENCES_SUB_TYPES } from "./types";
+import { VALID_PREFERENCES_SUB_TYPES } from "@cocalc/util/types/settings";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
+
+// Type for valid menu keys
+type MenuKey =
+  | "settings"
+  | "billing"
+  | "support"
+  | "signout"
+  | "profile"
+  | PreferencesSubTabKey
+  | string;
 
 // Utility function to safely create preferences sub-tab key
 function createPreferencesSubTabKey(
   subTab: string,
 ): PreferencesSubTabKey | null {
   if (VALID_PREFERENCES_SUB_TYPES.includes(subTab as PreferencesSubTabType)) {
-    return `preferences-${subTab}` as PreferencesSubTabKey;
+    const validSubTab = subTab as PreferencesSubTabType;
+    return `preferences-${validSubTab}`;
   }
   return null;
 }
@@ -119,7 +133,7 @@ export const AccountPage: React.FC = () => {
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
 
-  function handle_select(key: string): void {
+  function handle_select(key: MenuKey): void {
     switch (key) {
       case "settings":
         // Handle settings overview page
@@ -147,7 +161,7 @@ export const AccountPage: React.FC = () => {
     }
 
     // Handle sub-tabs under preferences
-    if (key.startsWith("preferences-")) {
+    if (typeof key === "string" && key.startsWith("preferences-")) {
       const subTab = key.replace("preferences-", "");
       const subTabKey = createPreferencesSubTabKey(subTab);
       if (subTabKey) {

@@ -11,6 +11,10 @@ import { join } from "path";
 import { CSSProperties } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  type PreferencesSubTabType,
+  type SettingsPageType,
+} from "@cocalc/util/types/settings";
 import Avatar from "components/account/avatar";
 import {
   menuGroup,
@@ -28,6 +32,16 @@ import { useRouter } from "next/router";
 const DIVIDER = {
   type: "divider",
 } as const;
+
+// Type-safe settings link helper
+type SettingsLink =
+  | `/settings/${SettingsPageType}`
+  | `/settings/preferences/${PreferencesSubTabType}`;
+
+// Helper function to create type-safe settings links with basePath prefix
+function createSettingsLink(path: SettingsLink): string {
+  return join(basePath, path);
+}
 
 interface Props {
   style: CSSProperties;
@@ -84,7 +98,7 @@ export default function AccountNavTab({ style }: Props) {
 
   const configuration = menuGroup(
     "configuration",
-    <A href="/settings">
+    <A href={createSettingsLink("/settings/profile")}>
       <span style={{ color: "#a4acb3" }}>
         <Icon name="wrench" /> Account
       </span>
@@ -92,50 +106,67 @@ export default function AccountNavTab({ style }: Props) {
     [
       menuItem(
         "profile",
-        <A href="/settings/profile">Profile</A>,
+        <A href={createSettingsLink("/settings/profile")}>Profile</A>,
         "address-card",
       ),
       menuItem(
-        "preferences",
-        <A href="/settings/preferences/appearance">Preferences</A>,
+        "settings",
+        <A href={createSettingsLink("/settings/index")}>Settings</A>,
+        "cogs",
+      ),
+      menuItem(
+        "appearance",
+        <A href={createSettingsLink("/settings/preferences/appearance")}>
+          Appearance
+        </A>,
         "highlighter",
       ),
       menuItem(
         "communication",
-        <A href="/settings/preferences/communication">Communication</A>,
+        <A href={createSettingsLink("/settings/preferences/communication")}>
+          Communication
+        </A>,
         "mail",
       ),
       menuItem(
         "keys",
-        <A href="/settings/preferences/keys">SSH & API Keys</A>,
+        <A href={createSettingsLink("/settings/preferences/keys")}>
+          SSH & API Keys
+        </A>,
         "key",
       ),
       DIVIDER,
       menuItem(
         "subscriptions",
-        <A href="/settings/subscriptions">Subscriptions</A>,
+        <A href={createSettingsLink("/settings/subscriptions")}>
+          Subscriptions
+        </A>,
         "calendar",
       ),
-      menuItem("licenses", <A href="/settings/licenses">Licenses</A>, "key"),
+      menuItem(
+        "licenses",
+        <A href={createSettingsLink("/settings/licenses")}>Licenses</A>,
+        "key",
+      ),
       menuItem(
         "payg",
-        <A href="/settings/payg">Pay As You Go</A>,
+        <A href={createSettingsLink("/settings/payg")}>Pay As You Go</A>,
         "line-chart",
       ),
       DIVIDER,
       menuItem(
         "purchases",
-        <A href="/settings/purchases">Purchases</A>,
+        <A href={createSettingsLink("/settings/purchases")}>Purchases</A>,
         "money-check",
       ),
       menuItem(
         "payments",
-        <A href="/settings/payments">Payments</A>,
+        <A href={createSettingsLink("/settings/payments")}>Payments</A>,
         "credit-card",
       ),
       menuItem(
         "statements",
-        <A href="/settings/statements">Statements</A>,
+        <A href={createSettingsLink("/settings/statements")}>Statements</A>,
         "calendar-week",
       ),
     ],
@@ -196,7 +227,7 @@ export default function AccountNavTab({ style }: Props) {
       yours.push(
         menuItem(
           "support",
-          <A href="/settings/support">Support Tickets</A>,
+          <A href={createSettingsLink("/settings/support")}>Support Tickets</A>,
           "medkit",
         ),
       );
@@ -205,7 +236,9 @@ export default function AccountNavTab({ style }: Props) {
         yours.push(
           menuItem(
             "ssh",
-            <A href="settings/preferences/keys">SSH Keys</A>,
+            <A href={createSettingsLink("/settings/preferences/keys")}>
+              SSH Keys
+            </A>,
             "key",
           ),
         );
@@ -215,7 +248,9 @@ export default function AccountNavTab({ style }: Props) {
         yours.push(
           menuItem(
             "shared",
-            <A href="/settings/public-files">Published Files</A>,
+            <A href={createSettingsLink("/settings/public-files")}>
+              Published Files
+            </A>,
             "share-square",
           ),
         );

@@ -13,7 +13,6 @@ import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 import { APPEARANCE_ICON_NAME } from "./account-preferences-appearance";
 import { COMMUNICATION_ICON_NAME } from "./account-preferences-communication";
 import { EDITOR_ICON_NAME } from "./account-preferences-editor";
@@ -21,8 +20,14 @@ import { KEYBOARD_ICON_NAME } from "./account-preferences-keyboard";
 import { OTHER_ICON_NAME } from "./account-preferences-other";
 import { ACCOUNT_PROFILE_ICON_NAME } from "./account-preferences-profile";
 import { KEYS_ICON_NAME } from "./account-preferences-security";
+import {
+  VALID_PREFERENCES_SUB_TYPES,
+  type NavigatePath,
+  type PreferencesSubTabType,
+} from "@cocalc/util/types/settings";
+// import { COLORS } from "@cocalc/util/theme";
 
-const messages = defineMessages({
+const MESSAGES = defineMessages({
   title: {
     id: "account.settings.overview.title",
     defaultMessage: "Settings Overview",
@@ -32,11 +37,6 @@ const messages = defineMessages({
     defaultMessage:
       "Manage your personal information, avatar, and account details.",
   },
-  preferences: {
-    id: "account.settings.overview.preferences",
-    defaultMessage:
-      "Customize your experience by configuring the appearance, editor settings, and other preferences.",
-  },
   appearance: {
     id: "account.settings.overview.appearance",
     defaultMessage:
@@ -45,11 +45,11 @@ const messages = defineMessages({
   editor: {
     id: "account.settings.overview.editor",
     defaultMessage:
-      "Customize code editor behavior, fonts, indentation, and display options.",
+      "Customize code editor behavior, indentation, and content options.",
   },
   keyboard: {
     id: "account.settings.overview.keyboard",
-    defaultMessage: "Keyboard shortcuts and input method preferences.",
+    defaultMessage: "Keyboard shortcuts.",
   },
   ai: {
     id: "account.settings.overview.ai",
@@ -57,8 +57,7 @@ const messages = defineMessages({
   },
   communication: {
     id: "account.settings.overview.communication",
-    defaultMessage:
-      "Manage notification preferences and communication settings.",
+    defaultMessage: "Notification preferences and communication settings.",
   },
   keys: {
     id: "account.settings.overview.keys",
@@ -66,7 +65,7 @@ const messages = defineMessages({
   },
   other: {
     id: "account.settings.overview.other",
-    defaultMessage: "Additional miscellaneous settings and options.",
+    defaultMessage: "Miscellaneous settings and options.",
   },
   billing: {
     id: "account.settings.overview.billing",
@@ -102,7 +101,7 @@ const messages = defineMessages({
   },
   cloud: {
     id: "account.settings.overview.cloud",
-    defaultMessage: "Configure cloud file system connections.",
+    defaultMessage: "Manage cloud file system storage.",
   },
   support: {
     id: "account.settings.overview.support",
@@ -116,13 +115,14 @@ const CARD_PROPS = {
   style: { width: 300, minWidth: 250 },
 } as const;
 
-const HIGHLIGHTED_CARD_PROPS = {
-  ...CARD_PROPS,
-  style: {
-    ...CARD_PROPS.style,
-    border: `1px solid ${COLORS.BLUE_LLL}`,
-  },
-} as const;
+// TODO: highlighting a few cards is a good idea, but better to do this later...
+const HIGHLIGHTED_CARD_PROPS = CARD_PROPS; // = {
+//   ...CARD_PROPS,
+//   style: {
+//     ...CARD_PROPS.style,
+//     border: `2px solid ${COLORS.BLUE_LLL}`,
+//   },
+// } as const;
 
 const FLEX_PROPS = {
   wrap: true as const,
@@ -134,7 +134,7 @@ export function SettingsOverview() {
   const intl = useIntl();
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
-  const handleNavigate = (path: string) => {
+  function handleNavigate(path: NavigatePath) {
     // Use the same navigation pattern as the account page
     const segments = path.split("/").filter(Boolean);
     if (segments[0] === "settings") {
@@ -146,20 +146,22 @@ export function SettingsOverview() {
         redux.getActions("account").push_state(`/profile`);
       } else if (segments[1] === "preferences" && segments[2]) {
         // Handle preferences sub-tabs
-        const subTab = segments[2];
-        const subTabKey = `preferences-${subTab}` as any;
-        redux.getActions("account").setState({
-          active_page: "preferences",
-          active_sub_tab: subTabKey,
-        });
-        redux.getActions("account").push_state(`/preferences/${subTab}`);
+        const subTab = segments[2] as PreferencesSubTabType;
+        if (VALID_PREFERENCES_SUB_TYPES.includes(subTab)) {
+          const subTabKey = `preferences-${subTab}` as const;
+          redux.getActions("account").setState({
+            active_page: "preferences",
+            active_sub_tab: subTabKey,
+          });
+          redux.getActions("account").push_state(`/preferences/${subTab}`);
+        }
       } else {
         // Handle other settings pages
         redux.getActions("account").set_active_tab(segments[1]);
         redux.getActions("account").push_state(`/${segments[1]}`);
       }
     }
-  };
+  }
 
   return (
     <div style={{ padding: "20px" }}>
@@ -171,7 +173,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={ACCOUNT_PROFILE_ICON_NAME} />}
             title={intl.formatMessage(labels.profile)}
-            description={intl.formatMessage(messages.profile)}
+            description={intl.formatMessage(MESSAGES.profile)}
           />
         </Card>
         <Card
@@ -181,7 +183,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={APPEARANCE_ICON_NAME} />}
             title={intl.formatMessage(labels.appearance)}
-            description={intl.formatMessage(messages.appearance)}
+            description={intl.formatMessage(MESSAGES.appearance)}
           />
         </Card>
         <Card
@@ -191,7 +193,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={EDITOR_ICON_NAME} />}
             title={intl.formatMessage(labels.editor)}
-            description={intl.formatMessage(messages.editor)}
+            description={intl.formatMessage(MESSAGES.editor)}
           />
         </Card>
         <Card
@@ -201,7 +203,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={KEYBOARD_ICON_NAME} />}
             title={intl.formatMessage(labels.keyboard)}
-            description={intl.formatMessage(messages.keyboard)}
+            description={intl.formatMessage(MESSAGES.keyboard)}
           />
         </Card>
         <Card
@@ -211,7 +213,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<AIAvatar size={24} />}
             title={intl.formatMessage(labels.ai)}
-            description={intl.formatMessage(messages.ai)}
+            description={intl.formatMessage(MESSAGES.ai)}
           />
         </Card>
         <Card
@@ -221,7 +223,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={COMMUNICATION_ICON_NAME} />}
             title={intl.formatMessage(labels.communication)}
-            description={intl.formatMessage(messages.communication)}
+            description={intl.formatMessage(MESSAGES.communication)}
           />
         </Card>
         <Card
@@ -231,7 +233,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={KEYS_ICON_NAME} />}
             title={intl.formatMessage(labels.ssh_and_api_keys)}
-            description={intl.formatMessage(messages.keys)}
+            description={intl.formatMessage(MESSAGES.keys)}
           />
         </Card>
         <Card
@@ -241,7 +243,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={OTHER_ICON_NAME} />}
             title={intl.formatMessage(labels.other)}
-            description={intl.formatMessage(messages.other)}
+            description={intl.formatMessage(MESSAGES.other)}
           />
         </Card>
       </Flex>
@@ -259,7 +261,7 @@ export function SettingsOverview() {
               <Card.Meta
                 avatar={<Icon name="calendar" />}
                 title={intl.formatMessage(labels.subscriptions)}
-                description={intl.formatMessage(messages.subscriptions)}
+                description={intl.formatMessage(MESSAGES.subscriptions)}
               />
             </Card>
             <Card
@@ -269,7 +271,7 @@ export function SettingsOverview() {
               <Card.Meta
                 avatar={<Icon name="key" />}
                 title={intl.formatMessage(labels.licenses)}
-                description={intl.formatMessage(messages.licenses)}
+                description={intl.formatMessage(MESSAGES.licenses)}
               />
             </Card>
             <Card
@@ -279,7 +281,7 @@ export function SettingsOverview() {
               <Card.Meta
                 avatar={<Icon name="line-chart" />}
                 title={intl.formatMessage(labels.pay_as_you_go)}
-                description={intl.formatMessage(messages.payg)}
+                description={intl.formatMessage(MESSAGES.payg)}
               />
             </Card>
             <Card
@@ -289,7 +291,7 @@ export function SettingsOverview() {
               <Card.Meta
                 avatar={<Icon name="money-check" />}
                 title={intl.formatMessage(labels.purchases)}
-                description={intl.formatMessage(messages.purchases)}
+                description={intl.formatMessage(MESSAGES.purchases)}
               />
             </Card>
             <Card
@@ -299,7 +301,7 @@ export function SettingsOverview() {
               <Card.Meta
                 avatar={<Icon name="credit-card" />}
                 title={intl.formatMessage(labels.payments)}
-                description={intl.formatMessage(messages.payments)}
+                description={intl.formatMessage(MESSAGES.payments)}
               />
             </Card>
             <Card
@@ -309,7 +311,7 @@ export function SettingsOverview() {
               <Card.Meta
                 avatar={<Icon name="calendar-week" />}
                 title={intl.formatMessage(labels.statements)}
-                description={intl.formatMessage(messages.statements)}
+                description={intl.formatMessage(MESSAGES.statements)}
               />
             </Card>
           </Flex>
@@ -327,7 +329,7 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name="share-square" />}
             title={intl.formatMessage(labels.published_files)}
-            description={intl.formatMessage(messages.files)}
+            description={intl.formatMessage(MESSAGES.files)}
           />
         </Card>
 
@@ -339,7 +341,7 @@ export function SettingsOverview() {
             <Card.Meta
               avatar={<Icon name="server" />}
               title={intl.formatMessage(labels.cloud_file_system)}
-              description={intl.formatMessage(messages.cloud)}
+              description={intl.formatMessage(MESSAGES.cloud)}
             />
           </Card>
         )}
@@ -358,7 +360,7 @@ export function SettingsOverview() {
               <Card.Meta
                 avatar={<Icon name="medkit" />}
                 title={intl.formatMessage(labels.support)}
-                description={intl.formatMessage(messages.support)}
+                description={intl.formatMessage(MESSAGES.support)}
               />
             </Card>
           </Flex>

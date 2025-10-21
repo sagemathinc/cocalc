@@ -9,6 +9,7 @@ import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
+import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
@@ -17,23 +18,9 @@ import {
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
-import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
+import { type PreferencesSubTabKey } from "@cocalc/util/types/settings";
 import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
-
-// Preferences sub-tab types
-export const VALID_PREFERENCES_SUB_TYPES = [
-  "appearance",
-  "editor",
-  "keyboard",
-  "ai",
-  "communication",
-  "keys",
-  "other",
-] as const;
-export type PreferencesSubTabType =
-  (typeof VALID_PREFERENCES_SUB_TYPES)[number];
-export type PreferencesSubTabKey = `preferences-${PreferencesSubTabType}`;
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
 // this is incomplete...
 

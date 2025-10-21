@@ -55,12 +55,12 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
-import { getNotificationFilterFromFragment } from "./notifications/fragment";
 import {
-  type PreferencesSubTabType,
   type PreferencesSubTabKey,
+  type PreferencesSubTabType,
   VALID_PREFERENCES_SUB_TYPES,
-} from "@cocalc/frontend/account/types";
+} from "@cocalc/util/types/settings";
+import { getNotificationFilterFromFragment } from "./notifications/fragment";
 
 // Utility function to safely create preferences sub-tab key
 function createPreferencesSubTabKey(
@@ -224,6 +224,7 @@ export function load_target(
     case "file-use":
       // not implemented
       break;
+
     case "admin":
       redux.getActions("page").set_active_tab(segments[0], change_history);
       break;
