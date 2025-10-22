@@ -8,7 +8,7 @@
 // I think this is the correct fix for https://github.com/sagemathinc/cocalc/issues/6285
 // now that we are using antd v5.
 import "antd/dist/reset.css";
-import '@ant-design/v5-patch-for-react-19';
+import "@ant-design/v5-patch-for-react-19";
 
 import { Locale } from "locales/misc";
 
@@ -114,6 +114,9 @@ import "@cocalc/cdn/dist/codemirror/theme/xq-light.css";
 import "@cocalc/cdn/dist/codemirror/theme/yeti.css";
 import "@cocalc/cdn/dist/codemirror/theme/yonce.css";
 import "@cocalc/cdn/dist/codemirror/theme/zenburn.css";
+
+import "@cocalc/cdn/dist/cm-custom-theme/cocalc-dark.css";
+import "@cocalc/cdn/dist/cm-custom-theme/cocalc-light.css";
 
 import "@uiw/react-textarea-code-editor/dist.css";
 

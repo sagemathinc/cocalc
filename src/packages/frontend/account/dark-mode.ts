@@ -58,6 +58,7 @@ export function get_dark_mode_config(other_settings?: {
 let currentDarkMode: boolean = false;
 let last_dark_mode: boolean = false;
 let last_config: Config | undefined = undefined;
+
 export function init_dark_mode(account_store: AccountStore): void {
   account_store.on(
     "change",

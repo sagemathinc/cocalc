@@ -18,7 +18,7 @@ import { Icon, Tip } from "@cocalc/frontend/components";
 import {
   ZOOM_MESSAGES,
   ZOOM_PERCENTAGES,
-} from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
+} from "@cocalc/frontend/frame-editors/frame-tree/commands/const";
 import { labels } from "@cocalc/frontend/i18n";
 
 import { Actions } from "./actions";

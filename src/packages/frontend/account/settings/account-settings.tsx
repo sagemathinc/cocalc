@@ -46,7 +46,9 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, startswith } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
+import { AccountState } from "../types";
 import { DeleteAccount } from "../delete-account";
+import { ACCOUNT_PROFILE_ICON_NAME } from "../account-preferences-profile";
 import { SignOut } from "../sign-out";
 import { set_account_table, ugly_error } from "../util";
 import { EmailAddressSetting } from "./email-address-setting";
@@ -67,7 +69,7 @@ interface Props {
   passports?: Map<string, any>;
   sign_out_error?: string;
   delete_account_error?: string;
-  other_settings?: Map<string, any>;
+  other_settings?: AccountState["other_settings"];
   is_anonymous?: boolean;
   email_enabled?: boolean;
   verify_emails?: boolean;
@@ -473,7 +475,7 @@ export function AccountSettings(props: Readonly<Props>) {
     } else {
       return (
         <>
-          <Icon name="user" /> {intl.formatMessage(labels.account)}
+          <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> {intl.formatMessage(labels.account)}
         </>
       );
     }

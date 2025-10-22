@@ -21,7 +21,7 @@ import {
   BUILD_ON_SAVE_ICON_DISABLED,
   BUILD_ON_SAVE_ICON_ENABLED,
   BUILD_ON_SAVE_LABEL,
-} from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
+} from "@cocalc/frontend/frame-editors/frame-tree/commands/const";
 import { server_time } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, IntlMessage } from "@cocalc/frontend/i18n";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";

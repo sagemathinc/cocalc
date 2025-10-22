@@ -41,6 +41,13 @@ for path, data in deps.items():
     os.symlink(name, dst)
     versions[name] = version
 
+# copy custom codemirror themes
+custom_themes_src = join("..", "cm-custom-theme")
+if exists(custom_themes_src):
+    custom_themes_dst = "cm-custom-theme"
+    copytree(custom_themes_src, custom_themes_dst)
+    print(f"copied custom themes from '{custom_themes_src}' to '{custom_themes_dst}'")
+
 # finally, write the version info such that it can be loaded
 with open('index.js', 'w') as out:
     out.write(f"""

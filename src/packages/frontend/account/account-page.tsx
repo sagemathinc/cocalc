@@ -12,9 +12,15 @@ and configuration.
 
 // cSpell:ignore payg
 
-import { Flex, Menu, Space } from "antd";
-import { useEffect } from "react";
+import type {
+  PreferencesSubTabKey,
+  PreferencesSubTabType,
+} from "@cocalc/util/types/settings";
+
+import { Button, Flex, Menu, Space } from "antd";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
+
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import {
   React,
@@ -23,11 +29,13 @@ import {
   useTypedRedux,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { Icon, IconName, Loading, Title } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { Footer } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
 import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoPage from "@cocalc/frontend/purchases/payg-page";
@@ -41,25 +49,87 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { AccountPreferences } from "./account-preferences";
+import { COLORS } from "@cocalc/util/theme";
+import { VALID_PREFERENCES_SUB_TYPES } from "@cocalc/util/types/settings";
+import { AccountPreferencesAI } from "./account-preferences-ai";
+import {
+  AccountPreferencesAppearance,
+  APPEARANCE_ICON_NAME,
+} from "./account-preferences-appearance";
+import {
+  AccountPreferencesCommunication,
+  COMMUNICATION_ICON_NAME,
+} from "./account-preferences-communication";
+import {
+  AccountPreferencesEditor,
+  EDITOR_ICON_NAME,
+} from "./account-preferences-editor";
+import {
+  AccountPreferencesKeyboard,
+  KEYBOARD_ICON_NAME,
+} from "./account-preferences-keyboard";
+import {
+  AccountPreferencesOther,
+  OTHER_ICON_NAME,
+} from "./account-preferences-other";
+import {
+  ACCOUNT_PREFERENCES_ICON_NAME,
+  ACCOUNT_PROFILE_ICON_NAME,
+  AccountPreferencesProfile,
+} from "./account-preferences-profile";
+import {
+  AccountPreferencesSecurity,
+  KEYS_ICON_NAME,
+} from "./account-preferences-security";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
+import { SettingsOverview } from "./settings-index";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+
+export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
+
+// Type for valid menu keys
+type MenuKey =
+  | "settings"
+  | "billing"
+  | "support"
+  | "signout"
+  | "profile"
+  | PreferencesSubTabKey
+  | string;
+
+// Utility function to safely create preferences sub-tab key
+function createPreferencesSubTabKey(
+  subTab: string,
+): PreferencesSubTabKey | null {
+  if (VALID_PREFERENCES_SUB_TYPES.includes(subTab as PreferencesSubTabType)) {
+    const validSubTab = subTab as PreferencesSubTabType;
+    return `preferences-${validSubTab}`;
+  }
+  return null;
+}
 
 // give up on trying to load account info and redirect to landing page.
 // Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
-// to slow network or some backend failure that times and retires involvin
+// to slow network or some backend failure that times and retires involving
 // changefeeds.
 const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
+  const [hidden, setHidden] = useState(IS_MOBILE);
+  const [openKeys, setOpenKeys] = useState<string[]>(["preferences"]);
 
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
 
-  const active_page = useTypedRedux("account", "active_page") ?? "account";
+  const active_page = useTypedRedux("account", "active_page") ?? "index";
+  const active_sub_tab =
+    useTypedRedux("account", "active_sub_tab") ??
+    (active_page === "preferences"
+      ? ("preferences-appearance" as PreferencesSubTabKey)
+      : undefined);
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -67,8 +137,16 @@ export const AccountPage: React.FC = () => {
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
 
-  function handle_select(key: string): void {
+  function handle_select(key: MenuKey): void {
     switch (key) {
+      case "settings":
+        // Handle settings overview page
+        redux.getActions("account").setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
+        redux.getActions("account").push_state(`/settings/index`);
+        return;
       case "billing":
         redux.getActions("billing").update_customer();
         break;
@@ -76,7 +154,31 @@ export const AccountPage: React.FC = () => {
         break;
       case "signout":
         return;
+      case "profile":
+        // Handle profile as standalone page
+        redux.getActions("account").setState({
+          active_page: "profile",
+          active_sub_tab: undefined,
+        });
+        redux.getActions("account").push_state(`/profile`);
+        return;
     }
+
+    // Handle sub-tabs under preferences
+    if (typeof key === "string" && key.startsWith("preferences-")) {
+      const subTab = key.replace("preferences-", "");
+      const subTabKey = createPreferencesSubTabKey(subTab);
+      if (subTabKey) {
+        redux.getActions("account").setState({
+          active_sub_tab: subTabKey,
+          active_page: "preferences",
+        });
+        // Update URL to settings/preferences/[sub-tab]
+        redux.getActions("account").push_state(`/preferences/${subTab}`);
+      }
+      return;
+    }
+
     redux.getActions("account").set_active_tab(key);
     redux.getActions("account").push_state(`/${key}`);
   }
@@ -84,16 +186,126 @@ export const AccountPage: React.FC = () => {
   function getTabs(): any[] {
     const items: any[] = [
       {
-        key: "account",
+        key: "index",
+        label: (
+          <span style={{ fontWeight: "bold" }}>
+            <Icon name={ACCOUNT_SETTINGS_ICON_NAME} />{" "}
+            {intl.formatMessage(labels.settings)}
+          </span>
+        ),
+        children: active_page === "index" && <SettingsOverview />,
+      },
+      // Profile as second item
+      {
+        key: "profile",
         label: (
           <span>
-            <Icon name="address-card" />{" "}
+            <Icon name={ACCOUNT_PROFILE_ICON_NAME} />{" "}
+            {intl.formatMessage(labels.profile)}
+          </span>
+        ),
+        children: active_page === "profile" && <AccountPreferencesProfile />,
+      },
+      // Preferences submenu
+      {
+        key: "preferences",
+        label: (
+          <span>
+            <Icon name={ACCOUNT_PREFERENCES_ICON_NAME} />{" "}
             {intl.formatMessage(labels.preferences)}
           </span>
         ),
-        children: (active_page == null || active_page === "account") && (
-          <AccountPreferences />
-        ),
+        children: [
+          {
+            key: "preferences-appearance",
+            label: (
+              <span>
+                <Icon name={APPEARANCE_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.appearance)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-appearance" && (
+                <AccountPreferencesAppearance />
+              ),
+          },
+          {
+            key: "preferences-editor",
+            label: (
+              <span>
+                <Icon name={EDITOR_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.editor)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-editor" && (
+                <AccountPreferencesEditor />
+              ),
+          },
+          {
+            key: "preferences-keyboard",
+            label: (
+              <span>
+                <Icon name={KEYBOARD_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.keyboard)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-keyboard" && (
+                <AccountPreferencesKeyboard />
+              ),
+          },
+          {
+            key: "preferences-ai",
+            label: (
+              <span>
+                <AIAvatar size={16} style={{ top: "-5px" }} />{" "}
+                {intl.formatMessage(labels.ai)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-ai" && <AccountPreferencesAI />,
+          },
+          {
+            key: "preferences-communication",
+            label: (
+              <span>
+                <Icon name={COMMUNICATION_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.communication)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-communication" && (
+                <AccountPreferencesCommunication />
+              ),
+          },
+          {
+            key: "preferences-keys",
+            label: (
+              <span>
+                <Icon name={KEYS_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.ssh_and_api_keys)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-keys" && (
+                <AccountPreferencesSecurity />
+              ),
+          },
+          {
+            key: "preferences-other",
+            label: (
+              <span>
+                <Icon name={OTHER_ICON_NAME} />{" "}
+                {intl.formatMessage(labels.other)}
+              </span>
+            ),
+            children: active_page === "preferences" &&
+              active_sub_tab === "preferences-other" && (
+                <AccountPreferencesOther />
+              ),
+          },
+        ],
       },
     ];
     // adds a few conditional tabs
@@ -126,7 +338,8 @@ export const AccountPage: React.FC = () => {
         key: "payg",
         label: (
           <span>
-            <Icon name="line-chart" /> Pay As You Go
+            <Icon name="line-chart" />{" "}
+            {intl.formatMessage(labels.pay_as_you_go)}
           </span>
         ),
         children: active_page === "payg" && <PayAsYouGoPage />,
@@ -158,7 +371,7 @@ export const AccountPage: React.FC = () => {
         key: "payments",
         label: (
           <span>
-            <Icon name="credit-card" /> Payments
+            <Icon name="credit-card" /> {intl.formatMessage(labels.payments)}
           </span>
         ),
         children: active_page === "payments" && <PaymentsPage />,
@@ -167,7 +380,8 @@ export const AccountPage: React.FC = () => {
         key: "payment-methods",
         label: (
           <span>
-            <Icon name="credit-card" /> Payment Methods
+            <Icon name="credit-card" />{" "}
+            {intl.formatMessage(labels.payment_methods)}
           </span>
         ),
         children: active_page === "payment-methods" && <PaymentMethodsPage />,
@@ -231,6 +445,79 @@ export const AccountPage: React.FC = () => {
     return items;
   }
 
+  const tabs = getTabs();
+
+  // Process tabs to handle nested children for sub-tabs
+  const children = {};
+  const titles = {}; // Always store full labels for renderTitle()
+  for (const tab of tabs) {
+    if (tab.type == "divider") {
+      continue;
+    }
+    if (tab.key === "preferences" && Array.isArray(tab.children)) {
+      // Handle sub-tabs for preferences
+      const subTabs = tab.children;
+      tab.children = subTabs.map((subTab) => {
+        // Extract just the icon (first child) from the span when hidden
+        const label = hidden ? (
+          <span style={{ paddingLeft: "5px" }}>
+            {subTab.label.props.children[0]}
+          </span>
+        ) : (
+          subTab.label
+        );
+        return {
+          key: subTab.key,
+          label,
+        };
+      });
+      // Store sub-tab children and full labels
+      for (const subTab of subTabs) {
+        children[subTab.key] = subTab.children;
+        titles[subTab.key] = subTab.label; // Always store original full label
+      }
+    } else if (tab.key === "settings" || tab.key === "profile") {
+      // Handle settings and profile as top-level pages
+      // Store original full label for renderTitle()
+      const originalLabel = tab.label;
+      // Extract just the icon (first child) from the span when hidden
+      tab.label = hidden ? (
+        <span style={{ paddingLeft: "5px" }}>
+          {tab.label.props.children[0]}
+        </span>
+      ) : (
+        tab.label
+      );
+      children[tab.key] = tab.children;
+      titles[tab.key] = originalLabel; // Store original label
+      delete tab.children;
+    } else {
+      // Store original full label for renderTitle()
+      const originalLabel = tab.label;
+      // Extract just the icon (first child) from the span when hidden
+      tab.label = hidden ? (
+        <span style={{ paddingLeft: "5px" }}>
+          {tab.label.props.children[0]}
+        </span>
+      ) : (
+        tab.label
+      );
+      children[tab.key] = tab.children;
+      titles[tab.key] = originalLabel; // Store original label
+      delete tab.children;
+    }
+  }
+
+  function renderTitle() {
+    return (
+      <Title level={3}>
+        {active_page === "preferences" && active_sub_tab
+          ? titles[active_sub_tab]
+          : titles[active_page]}
+      </Title>
+    );
+  }
+
   function renderExtraContent() {
     return (
       <Space>
@@ -258,26 +545,13 @@ export const AccountPage: React.FC = () => {
             overflow: "auto",
           }}
         >
-          <AccountPreferences />
+          <AccountPreferencesProfile />
         </div>
       );
     }
 
-    const tabs = getTabs();
-
-    // NOTE: This is a bit weird, since I rewrote it form antd Tabs
-    // to an antd Menu, but didn't change any of the above.
-    // Antd Menu has a notion of children and submenus, which we *could*
-    // use but aren't using yet.
-    const children = {};
-    const titles = {};
-    for (const tab of tabs) {
-      if (tab.type == "divider") {
-        continue;
-      }
-      children[tab.key] = tab.children;
-      titles[tab.key] = tab.label;
-      delete tab.children;
+    function handleHideToggle() {
+      setHidden(!hidden);
     }
 
     return (
@@ -286,26 +560,54 @@ export const AccountPage: React.FC = () => {
           style={{
             background: "#00000005",
             borderRight: "1px solid rgba(5, 5, 5, 0.06)",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <div
-            style={{
-              textAlign: "center",
-              margin: "15px 0",
-              fontSize: "11pt",
-            }}
-          >
-            <b>Account Configuration</b>
-          </div>
           <Menu
+            defaultOpenKeys={["preferences"]}
+            openKeys={hidden ? ["preferences"] : openKeys}
+            onOpenChange={hidden ? undefined : setOpenKeys}
+            mode="inline"
+            items={tabs}
             onClick={(e) => {
               handle_select(e.key);
             }}
-            selectedKeys={[active_page]}
-            mode="vertical"
-            items={tabs}
-            style={{ width: 183, background: "#00000005", height: "100vh" }}
+            selectedKeys={
+              active_sub_tab ? [active_page, active_sub_tab] : [active_page]
+            }
+            inlineIndent={hidden ? 0 : 24}
+            style={{
+              width: hidden ? 50 : 200,
+              background: "#00000005",
+              flex: "1 1 auto",
+              overflowY: "auto",
+              minHeight: 0,
+              borderBottom: `1px solid ${COLORS.GRAY_DDD}`,
+            }}
           />
+          <Button
+            block
+            size="small"
+            type="text"
+            style={{
+              flex: "0 0 auto",
+              minHeight: 0,
+              textAlign: "left",
+              padding: "15px 0",
+              color: COLORS.GRAY_M,
+            }}
+            onClick={handleHideToggle}
+            icon={
+              <Icon
+                name={
+                  hidden ? "vertical-left-outlined" : "vertical-right-outlined"
+                }
+              />
+            }
+          >
+            {hidden ? "" : "Hide"}
+          </Button>
         </div>
         <div
           className="smc-vfill"
@@ -315,12 +617,14 @@ export const AccountPage: React.FC = () => {
             paddingRight: "15px",
           }}
         >
-          <Flex style={{ marginTop: "5px" }}>
-            <h2>{titles[active_page]}</h2>
+          <Flex style={{ marginTop: "5px" }} wrap>
+            {renderTitle()}
             <div style={{ flex: 1 }} />
             {renderExtraContent()}
           </Flex>
-          {children[active_page]}
+          {active_page === "preferences" && active_sub_tab
+            ? children[active_sub_tab]
+            : children[active_page]}
           <Footer />
         </div>
       </div>
