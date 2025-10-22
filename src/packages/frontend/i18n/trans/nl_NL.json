@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "Onbekend",
   "account.settings.email-verification.verified": "Geverifieerd",
   "account.settings.overview.ai": "AI-assistentinstellingen en integraties configureren.",
-  "account.settings.overview.appearance": "Pas de visuele ervaring aan via kleurenthema's, donkere modus, taal en visuele instellingen.",
+  "account.settings.overview.appearance": "Pas de visuele ervaring aan via kleurthema's, {dark_mode}, taal en visuele instellingen.",
   "account.settings.overview.billing": "Beheer abonnementen, licenties en factuurinformatie.",
   "account.settings.overview.cloud": "Beheer cloud-bestandssysteemopslag.",
   "account.settings.overview.communication": "Meldingsvoorkeuren en communicatie-instellingen.",

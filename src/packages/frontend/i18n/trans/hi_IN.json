@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "अज्ञात",
   "account.settings.email-verification.verified": "सत्यापित",
   "account.settings.overview.ai": "एआई सहायक सेटिंग्स और एकीकरण को कॉन्फ़िगर करें।",
-  "account.settings.overview.appearance": "रंग थीम, डार्क मोड, भाषा, और दृश्य सेटिंग्स के माध्यम से दृश्य अनुभव को अनुकूलित करें।",
+  "account.settings.overview.appearance": "रंग थीम, {dark_mode}, भाषा और दृश्य सेटिंग्स के माध्यम से दृश्य अनुभव को अनुकूलित करें।",
   "account.settings.overview.billing": "सदस्यताओं, लाइसेंसों, और बिलिंग जानकारी का प्रबंधन करें।",
   "account.settings.overview.cloud": "क्लाउड फ़ाइल सिस्टम स्टोरेज प्रबंधित करें।",
   "account.settings.overview.communication": "सूचना प्राथमिकताएँ और संचार सेटिंग्स।",

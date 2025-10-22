@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "Ismeretlen",
   "account.settings.email-verification.verified": "Ellenőrzött",
   "account.settings.overview.ai": "AI asszisztens beállításainak és integrációinak konfigurálása.",
-  "account.settings.overview.appearance": "Testreszabhatja a vizuális élményt színtémák, sötét mód, nyelv és vizuális beállítások segítségével.",
+  "account.settings.overview.appearance": "Testreszabhatja a vizuális élményt színtémák, {dark_mode}, nyelv és vizuális beállítások segítségével.",
   "account.settings.overview.billing": "Kezelje az előfizetéseket, licenceket és számlázási információkat.",
   "account.settings.overview.cloud": "Felhő fájlrendszer tárolásának kezelése.",
   "account.settings.overview.communication": "Értesítési beállítások és kommunikációs beállítások.",

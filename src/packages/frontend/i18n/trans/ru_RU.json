@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "Неизвестно",
   "account.settings.email-verification.verified": "Проверено",
   "account.settings.overview.ai": "Настроить параметры и интеграции AI ассистента.",
-  "account.settings.overview.appearance": "Настройте визуальный опыт с помощью цветовых тем, темного режима, языка и визуальных настроек.",
+  "account.settings.overview.appearance": "Настройте визуальный опыт с помощью цветовых тем, {dark_mode}, языка и визуальных настроек.",
   "account.settings.overview.billing": "Управление подписками, лицензиями и платежной информацией.",
   "account.settings.overview.cloud": "Управление облачным файловым хранилищем.",
   "account.settings.overview.communication": "Настройки уведомлений и связи.",

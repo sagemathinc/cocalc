@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "알 수 없음",
   "account.settings.email-verification.verified": "검증됨",
   "account.settings.overview.ai": "AI 도우미 설정 및 통합 구성.",
-  "account.settings.overview.appearance": "색상 테마, 다크 모드, 언어 및 시각 설정을 통해 시각적 경험을 사용자 정의하세요.",
+  "account.settings.overview.appearance": "색상 테마, {dark_mode}, 언어 및 시각 설정을 통해 시각적 경험을 사용자 정의합니다.",
   "account.settings.overview.billing": "구독, 라이선스 및 결제 정보를 관리합니다.",
   "account.settings.overview.cloud": "클라우드 파일 시스템 스토리지 관리.",
   "account.settings.overview.communication": "알림 환경설정 및 통신 설정",

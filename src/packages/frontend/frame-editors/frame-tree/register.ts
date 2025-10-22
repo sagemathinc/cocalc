@@ -9,10 +9,11 @@ Generic register function -- used by each frame tree editor to register itself w
 Basically, this is like register_file_editor, but much more specialized.
 */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { register_file_editor as general_register_file_editor } from "@cocalc/frontend/file-editors";
 import { redux_name } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/components/icon";
 
 interface AsyncRegister {
   icon?: IconName;

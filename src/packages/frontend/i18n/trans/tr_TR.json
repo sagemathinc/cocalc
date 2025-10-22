@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "Bilinmeyen",
   "account.settings.email-verification.verified": "Doğrulandı",
   "account.settings.overview.ai": "Yapay zeka asistanı ayarlarını ve entegrasyonları yapılandırın.",
-  "account.settings.overview.appearance": "Renk temaları, karanlık mod, dil ve görsel ayarlar aracılığıyla görsel deneyimi özelleştirin.",
+  "account.settings.overview.appearance": "Renk temaları, {dark_mode}, dil ve görsel ayarlar aracılığıyla görsel deneyimi özelleştirin.",
   "account.settings.overview.billing": "Abonelikleri, lisansları ve faturalama bilgilerini yönetin.",
   "account.settings.overview.cloud": "Bulut dosya sistemi depolamasını yönet.",
   "account.settings.overview.communication": "Bildirim tercihleri ve iletişim ayarları.",

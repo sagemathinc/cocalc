@@ -7,7 +7,8 @@
 Spec for whiteboard frame tree editor.
 */
 
-import { IconName } from "@cocalc/frontend/components/icon";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
 import { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";

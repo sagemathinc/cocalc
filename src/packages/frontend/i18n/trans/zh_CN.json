@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "未知",
   "account.settings.email-verification.verified": "已验证",
   "account.settings.overview.ai": "配置 AI 助手设置和集成。",
-  "account.settings.overview.appearance": "通过颜色主题、暗模式、语言和视觉设置自定义视觉体验。",
+  "account.settings.overview.appearance": "通过颜色主题、{dark_mode}、语言和视觉设置自定义视觉体验。",
   "account.settings.overview.billing": "管理订阅、许可证和账单信息。",
   "account.settings.overview.cloud": "管理云文件系统存储。",
   "account.settings.overview.communication": "通知偏好和通信设置。",

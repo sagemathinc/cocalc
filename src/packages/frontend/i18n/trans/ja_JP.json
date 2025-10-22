@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "不明",
   "account.settings.email-verification.verified": "確認済",
   "account.settings.overview.ai": "AIアシスタントの設定と統合を構成します。",
-  "account.settings.overview.appearance": "色のテーマ、ダークモード、言語、視覚設定を通じて視覚体験をカスタマイズする。",
+  "account.settings.overview.appearance": "カラーテーマ、{dark_mode}、言語、視覚設定で視覚体験をカスタマイズする。",
   "account.settings.overview.billing": "サブスクリプション、ライセンス、および請求情報を管理します。",
   "account.settings.overview.cloud": "クラウドファイルシステムストレージを管理する。",
   "account.settings.overview.communication": "通知の設定と通信の設定",

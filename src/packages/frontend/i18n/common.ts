@@ -125,10 +125,35 @@ export const labels = defineMessages({
     defaultMessage: "Change the language of the user interface.",
     description: "Tooltip text of dropdown to change the UI language",
   },
+  account_configuration: {
+    id: "labels.account_configuration",
+    defaultMessage: "Account Configuration",
+    description: "The configuration for the user's account.",
+  },
+  appearance: {
+    id: "labels.appearance",
+    defaultMessage: "Appearance",
+    description: "Visual appearance and theme settings",
+  },
+  profile: {
+    id: "labels.profile",
+    defaultMessage: "Profile",
+    description: "User profile settings and information",
+  },
+  billing: {
+    id: "labels.billing",
+    defaultMessage: "Billing",
+    description: "Billing and payment related settings",
+  },
   email_address: {
     id: "labels.email_address",
     defaultMessage: "Email Address",
     description: "e.g. a label in a form for the email address field",
+  },
+  editor: {
+    id: "labels.editor",
+    defaultMessage: "Editor",
+    description: "Code editor settings and preferences",
   },
   frame_editors_title_bar_save_label: {
     id: "labels.frame-editors.title-bar.save_label",
@@ -232,6 +257,21 @@ export const labels = defineMessages({
     id: "labels.pages",
     defaultMessage: "Pages",
     description: "Pages in a document",
+  },
+  pay_as_you_go: {
+    id: "labels.pay_as_you_go",
+    defaultMessage: "Pay As You Go",
+    description: "Pay-as-you-go billing option",
+  },
+  payment_methods: {
+    id: "labels.payment_methods",
+    defaultMessage: "Payment Methods",
+    description: "Payment methods management",
+  },
+  payments: {
+    id: "labels.payments",
+    defaultMessage: "Payments",
+    description: "Payment history and transactions",
   },
   settings: {
     id: "labels.settings",
@@ -362,6 +402,11 @@ export const labels = defineMessages({
     defaultMessage: "Create a new file with the help of AI",
     description:
       "Tooltip on the menu entry to open the AI Assistant for generating documents",
+  },
+  ai: {
+    id: "labels.ai",
+    defaultMessage: "AI",
+    description: "Artificial Intelligence short abbreviation",
   },
   stop: {
     id: "labels.stop",
@@ -612,6 +657,27 @@ export const labels = defineMessages({
     defaultMessage: "Delete Forever",
     comment: "Short label on a button, to delete an item forever",
   },
+  communication: {
+    id: "labels.communication",
+    defaultMessage: "Communication",
+    description:
+      "How communication happens, showing banners, sending messages, etc.",
+  },
+  browser: {
+    id: "labels.browser",
+    defaultMessage: "Browser",
+    description: "Web browser settings and performance",
+  },
+  file_explorer: {
+    id: "labels.file_explorer",
+    defaultMessage: "File Explorer",
+    description: "File browser and file management interface",
+  },
+  theme: {
+    id: "labels.theme",
+    defaultMessage: "Theme",
+    description: "Visual UI theme of the application",
+  },
   downloaded: {
     id: "labels.downloaded",
     defaultMessage: "downloaded",
@@ -785,9 +851,19 @@ export const labels = defineMessages({
     id: "labels.drafts",
     defaultMessage: "Drafts",
   },
+  keyboard: {
+    id: "labels.keyboard",
+    defaultMessage: "Keyboard",
+    description: "Keyboard settings and shortcuts",
+  },
   keyboard_shortcuts: {
     id: "labels.keyboard_shortcuts",
     defaultMessage: "Keyboard shortcuts",
+  },
+  ssh_and_api_keys: {
+    id: "labels.keys",
+    defaultMessage: "API & SSH Keys",
+    description: "API keys and SSH keys management",
   },
   terms_of_service: {
     id: "labels.terms_of_service",

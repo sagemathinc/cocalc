@@ -10,6 +10,8 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { Spin } from "antd";
 import { useIntl } from "react-intl";
 
@@ -25,7 +27,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ClientContext } from "@cocalc/frontend/client/context";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";

@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "Unbekannt",
   "account.settings.email-verification.verified": "Verifiziert",
   "account.settings.overview.ai": "Konfigurieren Sie die Einstellungen und Integrationen des KI-Assistenten.",
-  "account.settings.overview.appearance": "Passen Sie das visuelle Erlebnis über Farbthemen, den Dunkelmodus, die Sprache und visuelle Einstellungen an.",
+  "account.settings.overview.appearance": "Passen Sie das visuelle Erlebnis durch Farbthemen, {dark_mode}, Sprache und visuelle Einstellungen an.",
   "account.settings.overview.billing": "Verwalten Sie Abonnements, Lizenzen und Abrechnungsinformationen.",
   "account.settings.overview.cloud": "Verwalten Sie den Cloud-Dateisystemspeicher.",
   "account.settings.overview.communication": "Benachrichtigungseinstellungen und Kommunikationseinstellungen.",

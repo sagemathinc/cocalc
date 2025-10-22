@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "Nieznany",
   "account.settings.email-verification.verified": "Zweryfikowany",
   "account.settings.overview.ai": "Skonfiguruj ustawienia i integracje asystenta AI.",
-  "account.settings.overview.appearance": "Dostosuj wrażenia wizualne za pomocą motywów kolorystycznych, trybu ciemnego, języka i ustawień wizualnych.",
+  "account.settings.overview.appearance": "Dostosuj wrażenia wizualne za pomocą motywów kolorystycznych, {dark_mode}, języka i ustawień wizualnych.",
   "account.settings.overview.billing": "Zarządzaj subskrypcjami, licencjami i informacjami rozliczeniowymi.",
   "account.settings.overview.cloud": "Zarządzaj pamięcią masową systemu plików w chmurze.",
   "account.settings.overview.communication": "Preferencje powiadomień i ustawienia komunikacji.",

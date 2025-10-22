@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "غير معروف",
   "account.settings.email-verification.verified": "موثوق",
   "account.settings.overview.ai": "تهيئة إعدادات وتكاملات المساعد الذكي.",
-  "account.settings.overview.appearance": "تخصيص التجربة البصرية عبر ثيمات الألوان، الوضع الداكن، اللغة، والإعدادات البصرية.",
+  "account.settings.overview.appearance": "خصص التجربة المرئية عبر ثيمات الألوان، {dark_mode}، اللغة، والإعدادات المرئية.",
   "account.settings.overview.billing": "إدارة الاشتراكات والتراخيص ومعلومات الفوترة.",
   "account.settings.overview.cloud": "إدارة تخزين نظام الملفات السحابي.",
   "account.settings.overview.communication": "تفضيلات الإشعارات وإعدادات الاتصال.",

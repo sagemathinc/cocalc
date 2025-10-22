@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "Ezezaguna",
   "account.settings.email-verification.verified": "Egiaztatua",
   "account.settings.overview.ai": "Konfiguratu AI laguntzailearen ezarpenak eta integrazioak.",
-  "account.settings.overview.appearance": "Pertsonalizatu ikusizko esperientzia kolore gai, modu ilun, hizkuntza eta ikusizko ezarpenen bidez.",
+  "account.settings.overview.appearance": "Pertsonalizatu ikus-entzunezko esperientzia kolore gaiak, {dark_mode}, hizkuntza eta ikusizko ezarpenak erabiliz.",
   "account.settings.overview.billing": "Kudeatu harpidetzak, lizentziak eta fakturazio-informazioa.",
   "account.settings.overview.cloud": "Kudeatu hodeiko fitxategi-sistemaren biltegiratzea.",
   "account.settings.overview.communication": "Jakinarazpen hobespenak eta komunikazio ezarpenak.",

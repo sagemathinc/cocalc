@@ -117,7 +117,7 @@
   "account.settings.email-verification.unknown": "לא ידוע",
   "account.settings.email-verification.verified": "מאומת",
   "account.settings.overview.ai": "הגדר את הגדרות והאינטגרציות של העוזר ה-AI.",
-  "account.settings.overview.appearance": "התאם את החוויה הוויזואלית באמצעות ערכות צבעים, מצב כהה, שפה והגדרות חזותיות.",
+  "account.settings.overview.appearance": "התאם אישית את החוויה הוויזואלית באמצעות ערכות צבעים, {dark_mode}, שפה והגדרות ויזואליות.",
   "account.settings.overview.billing": "נהל מנויים, רישיונות ומידע חיוב.",
   "account.settings.overview.cloud": "ניהול אחסון מערכת קבצים בענן.",
   "account.settings.overview.communication": "העדפות התראות והגדרות תקשורת",
