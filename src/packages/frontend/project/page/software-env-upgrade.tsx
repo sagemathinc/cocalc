@@ -24,8 +24,11 @@ import {
 import {
   DISMISS_IMG_1804,
   DISMISS_IMG_2004,
+  DISMISS_IMG_2204,
   UBUNTU2004_DEPRECATED,
   UBUNTU2004_DEV,
+  UBUNTU2204,
+  UBUNTU2204_DEV,
 } from "@cocalc/util/compute-images";
 import { FALLBACK_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
@@ -41,10 +44,12 @@ const UPGRADE_STYLE: React.CSSProperties = {
 const DOC_UBUNTU_2004 = "https://doc.cocalc.com/news/ubuntu-2004.html";
 const DOC_UBUNTU_2204 =
   "https://cocalc.com/news/ubuntu-22-04-default-software-environment-9";
+const DOC_UBUNTU_2404 =
+  "https://cocalc.com/news/ubuntu-24-04-based-environment-is-the-default-78";
 const DOC_CHANGE_SOFTWARE_IMAGE =
   "https://doc.cocalc.com/project-settings.html#software-environment";
 
-// we only upgrade from not-frozen 18.04 and 20.04 images to the new default.
+// we only upgrade from not-frozen 18.04, 20.04, and 22.04 images to the new default.
 // do not bother about any other names, including ubuntu1804 and old
 const TO_UPGRADE = [
   FALLBACK_COMPUTE_IMAGE,
@@ -52,6 +57,8 @@ const TO_UPGRADE = [
   "exp",
   UBUNTU2004_DEPRECATED,
   UBUNTU2004_DEV,
+  UBUNTU2204,
+  UBUNTU2204_DEV,
 ] as const;
 
 function useComputeImage(project_id) {
@@ -106,11 +113,13 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
   return useMemo(() => {
     if (hide) return null;
     if (compute_image == null) return null;
-    if (TO_UPGRADE.indexOf(compute_image) == -1) return null;
+    if (!TO_UPGRADE.includes(compute_image)) return null;
     if (is_student_project) return null;
 
-    const only2204 =
-      [UBUNTU2004_DEPRECATED, UBUNTU2004_DEV].indexOf(compute_image) != -1;
+    const only2004 = [UBUNTU2004_DEPRECATED, UBUNTU2004_DEV].includes(
+      compute_image,
+    );
+    const only2204 = [UBUNTU2204, UBUNTU2204_DEV].includes(compute_image);
 
     // just a safety measure, before accessing .title
     if (software_envs == null || default_compute_image == null) return null;
@@ -120,6 +129,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
     for (const key of [
       compute_image,
       UBUNTU2004_DEPRECATED,
+      UBUNTU2204,
       default_compute_image,
     ]) {
       if (software_envs[key] == null) return null;
@@ -127,9 +137,14 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
 
     const oldname = software_envs[compute_image].title;
     const name2004 = software_envs[UBUNTU2004_DEPRECATED].title;
-    const name2204 = software_envs[default_compute_image].title;
+    const name2204 = software_envs[UBUNTU2204].title;
+    const name2404 = software_envs[default_compute_image].title;
 
-    const KEEP_IMAGE = only2204 ? DISMISS_IMG_2004 : DISMISS_IMG_1804;
+    const KEEP_IMAGE = only2204
+      ? DISMISS_IMG_2204
+      : only2004
+      ? DISMISS_IMG_2004
+      : DISMISS_IMG_1804;
 
     async function set_image(image: string) {
       set_updating(true);
@@ -154,10 +169,10 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
             onClick={() => set_image(default_compute_image)}
             bsStyle={"primary"}
           >
-            Upgrade
+            Upgrade to {name2404}
           </Button>
         );
-      } else {
+      } else if (only2004) {
         return (
           <>
             <Button
@@ -170,7 +185,27 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
               onClick={() => set_image(default_compute_image)}
               bsStyle={"primary"}
             >
+              {name2404}
+            </Button>
+          </>
+        );
+      } else {
+        return (
+          <>
+            <Button
+              onClick={() => set_image(DISMISS_IMG_2004)}
+              bsStyle={"default"}
+            >
+              {name2004}
+            </Button>
+            <Button onClick={() => set_image(UBUNTU2204)} bsStyle={"default"}>
               {name2204}
+            </Button>
+            <Button
+              onClick={() => set_image(default_compute_image)}
+              bsStyle={"primary"}
+            >
+              {name2404}
             </Button>
           </>
         );
@@ -191,13 +226,35 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       }
     }
 
-    function render_update_to_2004() {
-      if (only2204) return null;
-      return (
-        <>
-          <A href={DOC_UBUNTU_2004}>{name2004}</A>,{" "}
-        </>
-      );
+    function render_upgrade_options() {
+      if (only2204) {
+        return (
+          <>
+            <strong>
+              <A href={DOC_UBUNTU_2404}>{name2404}</A>
+            </strong>
+          </>
+        );
+      } else if (only2004) {
+        return (
+          <>
+            <A href={DOC_UBUNTU_2004}>{name2004}</A>,{" "}
+            <strong>
+              <A href={DOC_UBUNTU_2404}>{name2404}</A>
+            </strong>
+          </>
+        );
+      } else {
+        return (
+          <>
+            <A href={DOC_UBUNTU_2004}>{name2004}</A>,{" "}
+            <A href={DOC_UBUNTU_2204}>{name2204}</A>, or{" "}
+            <strong>
+              <A href={DOC_UBUNTU_2404}>{name2404}</A>
+            </strong>
+          </>
+        );
+      }
     }
 
     function render_main(): React.JSX.Element {
@@ -213,11 +270,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
               <strong>Software Upgrade Available!</strong>{" "}
               <VisibleMDLG>
                 Upgrade this project's software environment from {oldname} to{" "}
-                {render_update_to_2004()}
-                <strong>
-                  <A href={DOC_UBUNTU_2204}>{name2204}</A>
-                </strong>
-                , or keep it as it is.
+                {render_upgrade_options()}, or keep it as it is.
                 <br />
                 <span style={{ color: COLORS.GRAY }}>
                   You can change this any time in{" "}
