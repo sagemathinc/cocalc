@@ -217,6 +217,11 @@ export const labels = defineMessages({
     id: "labels.status",
     defaultMessage: "Status",
   },
+  state: {
+    id: "labels.state",
+    defaultMessage: "State",
+    description: "The state some object is in, e.g. running, stopped, ...",
+  },
   published_files: {
     id: "labels.published_files",
     defaultMessage: "Published",
@@ -512,6 +517,11 @@ export const labels = defineMessages({
     defaultMessage:
       "Collaborators are other users, who can access this project. They can view and edit the same files as you.",
   },
+  collaborators: {
+    id: "labels.collaborators",
+    defaultMessage: "Collaborators",
+    description: "Collaborators (people) on a project, working together",
+  },
   chat: {
     id: "labels.chat",
     defaultMessage: "Chat",
@@ -544,6 +554,11 @@ export const labels = defineMessages({
     id: "labels.recent",
     defaultMessage: "Recent",
     description: "Something that happened recently",
+  },
+  recent_files: {
+    id: "labels.recent_files",
+    defaultMessage: "Recent Files",
+    description: "Recently opened or edited files",
   },
   files: {
     id: "labels.files",
@@ -857,6 +872,10 @@ export const labels = defineMessages({
   last_active: {
     id: "labels.last_active",
     defaultMessage: "Last Active",
+  },
+  last_edited: {
+    id: "labels.last_edited",
+    defaultMessage: "Last Edited",
   },
   project_status: {
     id: "labels.project_status",

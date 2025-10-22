@@ -58,8 +58,19 @@ export function useAppContextProvider(): AppState {
     }
   }
 
+  function displayI18N(
+    label: string | IntlMessage | ReactNode,
+  ): string | ReactNode {
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
   return {
     formatIntl,
+    displayI18N,
     pageWidthPx,
     pageStyle,
     showActBarLabels,

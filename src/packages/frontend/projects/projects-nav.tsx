@@ -24,7 +24,7 @@ import {
 } from "@cocalc/frontend/components/sortable-tabs";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
+import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-avatar";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
