@@ -96,7 +96,7 @@ export function ensurePositionsAreUnique(cells?: Map<string, any>) {
 }
 
 export function new_cell_pos(
-  cells: Map<string, any>,
+  cells: Map<string, any> | undefined,
   cell_list: List<string>,
   cur_id: string,
   delta: -1 | 1,
@@ -113,6 +113,9 @@ export function new_cell_pos(
     Returned undefined whenever don't really know what to do; then caller
     just makes up a pos, and it'll get sorted out.
   */
+  if (cells == null) {
+    return 0;
+  }
   let cell_list_0: List<string>;
   if (cell_list == null) {
     cell_list_0 = sorted_cell_list(cells)!;
