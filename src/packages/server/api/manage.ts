@@ -27,10 +27,16 @@ import isBanned from "@cocalc/server/accounts/is-banned";
 
 const log = getLogger("server:api:manage");
 
+// API key format: new keys start with this prefix (old ones used "sk_")
+const API_KEY_PREFIX = "sk-";
+
 // Global per user limit to avoid abuse/bugs.  Nobody should ever hit this.
 // Since we use a separate key per compute server, and definitely want some users
 // to create 5K compute servers at once, don't make this too small.
 const MAX_API_KEYS = 100000;
+
+// PostgreSQL SERIAL type max value (32-bit signed integer)
+const MAX_SERIAL = 2147483647;
 
 // Converts any 32-bit nonnegative integer as a 6-character base-62 string.
 function encode62(n: number): string {
@@ -184,8 +190,8 @@ async function createApiKey({
   // We encode the id in the secret so when the user presents the secret we can find the record.
   // Note that passwordHash is NOT a "function" -- due to salt every time you call it, the output is different!
   // Thus we have to do this little trick.
-  // New ones start with sk- and old with sk_.
-  const secret = `sk-${generate(16)}${encode62(id)}`;
+  // New ones start with API_KEY_PREFIX and old with sk_.
+  const secret = `${API_KEY_PREFIX}${generate(16)}${encode62(id)}`;
   const trunc = secret.slice(0, 3) + "..." + secret.slice(-6);
   const hash = passwordHash(secret);
   await pool.query("UPDATE api_keys SET trunc=$1,hash=$2 WHERE id=$3", [
@@ -283,7 +289,13 @@ export async function getAccountWithApiKey(
   log.debug("getAccountWithApiKey");
   const pool = getPool("medium");
 
-  // Check for legacy account api key:
+  // Validate secret format
+  if (!secret || typeof secret !== "string") {
+    log.debug("getAccountWithApiKey: invalid secret - not a string");
+    return;
+  }
+
+  // Check for legacy account api key (format: sk_*)
   if (secret.startsWith("sk_")) {
     const { rows } = await pool.query(
       "SELECT account_id FROM accounts WHERE api_key = $1::TEXT",
@@ -301,8 +313,37 @@ export async function getAccountWithApiKey(
     }
   }
 
-  // Check new api_keys table
-  const id = decode62(secret.slice(-6));
+  // Check new api_keys table (format: {API_KEY_PREFIX}{random_16_chars}{base62_encoded_id})
+  // Expected length: 3 + 16 + 6 = 25 characters minimum
+  if (!secret.startsWith(API_KEY_PREFIX) || secret.length < 9) {
+    log.debug("getAccountWithApiKey: invalid api key format", {
+      startsWithPrefix: secret.startsWith(API_KEY_PREFIX),
+      length: secret.length,
+    });
+    return;
+  }
+
+  // Decode the last 6 characters as base62 to get the ID
+  let id: number;
+  try {
+    id = decode62(secret.slice(-6));
+  } catch (err) {
+    log.debug("getAccountWithApiKey: failed to decode api key id", {
+      suffix: secret.slice(-6),
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return;
+  }
+
+  // Validate that ID is within valid PostgreSQL SERIAL (32-bit) range
+  if (!Number.isInteger(id) || id < 0 || id > MAX_SERIAL) {
+    log.debug("getAccountWithApiKey: decoded id out of valid range", {
+      id,
+      max: MAX_SERIAL,
+    });
+    return;
+  }
+
   const { rows } = await pool.query(
     "SELECT account_id,project_id,hash,expire FROM api_keys WHERE id=$1",
     [id],

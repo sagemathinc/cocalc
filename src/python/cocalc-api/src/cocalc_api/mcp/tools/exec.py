@@ -5,82 +5,56 @@ Provides the 'exec' tool that allows running arbitrary shell commands
 in the target CoCalc project environment.
 """
 
-from typing import Any
-from mcp.types import Tool, TextContent
+from typing import Optional
+
+# Import will happen at end to avoid circular imports
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..mcp_server import mcp as _mcp
 
 
-class ExecTool:
-    """Tool for executing shell commands in a CoCalc project."""
+def register_exec_tool(mcp) -> None:
+    """Register the exec tool with the given FastMCP instance."""
 
-    def __init__(self, project_client):
+    @mcp.tool()
+    async def exec(
+        command: str,
+        args: Optional[list[str]] = None,
+        bash: bool = False,
+        timeout: Optional[int] = None,
+        cwd: Optional[str] = None,
+    ) -> str:
         """
-        Initialize the exec tool.
+        Execute shell commands in a CoCalc project environment.
+
+        A CoCalc project is a containerized Linux environment (Ubuntu-based) where you can run
+        arbitrary command-line tools and scripts. This tool allows you to execute any shell
+        command available in that environment, including:
+        - Programming language interpreters (Python, Node.js, R, Julia, etc.)
+        - System utilities (grep, awk, sed, find, etc.)
+        - Development tools (git, npm, pip, cargo, etc.)
+        - Data processing tools (bc, jq, imagemagick, etc.)
+        - Custom scripts and compiled programs
+
+        The command executes in the project's Linux shell environment with access to the
+        project's file system and all installed packages/tools.
 
         Args:
-            project_client: Initialized Project client from cocalc_api
-        """
-        self.project_client = project_client
-
-    def definition(self) -> Tool:
-        """Return the MCP tool definition."""
-        return Tool(
-            name="exec",
-            description="Execute a shell command in the CoCalc project",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "command": {
-                        "type": "string",
-                        "description": "The command to execute (e.g., 'ls -la', 'python script.py')",
-                    },
-                    "args": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Optional command arguments",
-                    },
-                    "bash": {
-                        "type": "boolean",
-                        "description": "If true, interpret command as bash script",
-                    },
-                    "timeout": {
-                        "type": "integer",
-                        "description": "Timeout in seconds",
-                    },
-                    "cwd": {
-                        "type": "string",
-                        "description": "Working directory (relative to home or absolute)",
-                    },
-                },
-                "required": ["command"],
-            },
-        )
-
-    async def execute(self, arguments: dict[str, Any]) -> list[TextContent]:
-        """
-        Execute the command and return results.
-
-        Args:
-            arguments: Tool arguments from MCP request
+            command: The command to execute (e.g., 'ls -la', 'python script.py', 'echo 2 + 3 | bc')
+            args: Optional list of arguments to pass to the command
+            bash: If true, interpret command as a bash script (enables pipes, redirects, etc.)
+            timeout: Timeout in seconds for command execution
+            cwd: Working directory (relative to home or absolute)
 
         Returns:
-            List of TextContent with stdout, stderr, and exit_code
+            A string containing stdout, stderr, and exit code information
         """
+        from ..mcp_server import get_project_client
+
         try:
-            command = arguments.get("command")
-            args = arguments.get("args")
-            bash = arguments.get("bash", False)
-            timeout = arguments.get("timeout")
-            cwd = arguments.get("cwd")
-
-            if not command:
-                return [
-                    TextContent(
-                        type="text",
-                        text="Error: 'command' parameter is required",
-                    )
-                ]
-
-            result = self.project_client.system.exec(
+            project = get_project_client()
+            result = project.system.exec(
                 command=command,
                 args=args,
                 bash=bash,
@@ -89,13 +63,7 @@ class ExecTool:
             )
 
             output = f"stdout:\n{result['stdout']}\n\nstderr:\n{result['stderr']}\n\nexit_code: {result['exit_code']}"
-
-            return [TextContent(type="text", text=output)]
+            return output
 
         except Exception as e:
-            return [
-                TextContent(
-                    type="text",
-                    text=f"Error executing command: {str(e)}",
-                )
-            ]
+            return f"Error executing command: {str(e)}"

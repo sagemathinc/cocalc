@@ -49,6 +49,12 @@ The `Project` class provides project-specific operations:
 
 - **System**: Execute shell commands and Jupyter code within a specific project
 
+## MCP Server
+
+The CoCalc API includes a **Model Context Protocol (MCP) server** that allows LLMs (like Claude) to interact with CoCalc projects through a standardized protocol.
+
+For detailed setup instructions and usage guide, see [src/cocalc_api/mcp/README.md](src/cocalc_api/mcp/README.md).
+
 ## Authentication
 
 The client supports two types of API keys:

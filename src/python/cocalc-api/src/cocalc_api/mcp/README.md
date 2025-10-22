@@ -20,7 +20,45 @@ export COCALC_HOST="https://cocalc.com"  # optional, defaults to https://cocalc.
 uv run cocalc-mcp-server
 ```
 
-### 3. Use with Claude Desktop
+### 3. Setup with Claude Code CLI
+
+```bash
+# Set your credentials
+export COCALC_API_KEY="sk-your-api-key-here"
+export COCALC_PROJECT_ID="[UUID]"
+export COCALC_API_PATH="/path/to/cocalc/src/python/cocalc-api"
+# OPTIONAL: set the host, defaults to cocalc.com. for development use localhost:5000
+export COCALC_HOST="http://localhost:5000"
+
+# Add the MCP server to Claude Code
+claude mcp add \
+  --transport stdio \
+  cocalc \
+  --env COCALC_API_KEY="$COCALC_API_KEY" \
+  --env COCALC_PROJECT_ID="$COCALC_PROJECT_ID" \
+  --env COCALC_HOST="$COCALC_HOST" \
+  -- uv --directory "$COCALC_API_PATH" run cocalc-mcp-server
+```
+
+Alternatively, using JSON configuration:
+
+```bash
+claude mcp add-json cocalc '{
+  "command": "uv",
+  "args": ["--directory", "/path/to/cocalc/src/python/cocalc-api", "run", "cocalc-mcp-server"],
+  "env": {
+    "COCALC_API_KEY": "sk-your-api-key-here",
+    "COCALC_PROJECT_ID": "[UUID]",
+    "COCALC_HOST": "http://localhost:5000"
+  }
+}'
+```
+
+**Important:**
+- Replace `/path/to/cocalc/src/python/cocalc-api` with the absolute path to your cocalc-api directory.
+- Replace `http://localhost:5000` with your CoCalc instance URL (defaults to `https://cocalc.com` if not set).
+
+### 4. Setup with Claude Desktop
 
 Add to `~/.config/Claude/claude_desktop_config.json`:
 
@@ -29,18 +67,37 @@ Add to `~/.config/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "cocalc": {
       "command": "uv",
-      "args": ["run", "cocalc-mcp-server"],
+      "args": ["--directory", "/path/to/cocalc/src/python/cocalc-api", "run", "cocalc-mcp-server"],
       "env": {
-        "COCALC_API_KEY": "sk-your-api-key",
-        "COCALC_PROJECT_ID": "your-project-uuid",
-        "COCALC_HOST": "https://cocalc.com"
+        "COCALC_API_KEY": "sk-your-api-key-here",
+        "COCALC_PROJECT_ID": "[UUID]",
+        "COCALC_HOST": "http://localhost:5000"
       }
     }
   }
 }
 ```
 
-Then restart Claude Desktop and you'll have access to the CoCalc tools.
+**Important:**
+- Replace `/path/to/cocalc/src/python/cocalc-api` with the absolute path to your cocalc-api directory.
+- Replace `http://localhost:5000` with your CoCalc instance URL (defaults to `https://cocalc.com` if not set).
+
+### 5. Allow MCP Tools in Claude Code Settings
+
+To automatically allow all CoCalc MCP tools without prompts, add this to `.claude/settings.json`:
+
+```json
+{
+  "allowedTools": [
+    "mcp__cocalc__*"
+  ]
+}
+```
+
+This wildcard pattern (`mcp__cocalc__*`) automatically allows:
+- `mcp__cocalc__exec` - Execute shell commands
+- `mcp__cocalc__project_files` - Browse project files
+- Any future tools added to the MCP server
 
 ## Features
 
@@ -77,12 +134,13 @@ src/cocalc_api/mcp/
 ├── README.md                 # This file
 ├── DEVELOPMENT.md            # Architecture & design documentation
 ├── server.py                 # Main MCP server
+├── mcp_server.py            # MCP instance and project client coordination
 ├── __main__.py              # Module entry point
 ├── tools/
 │   ├── exec.py              # Shell command execution tool
 │   └── __init__.py
 └── resources/
-    ├── project_files.py     # File listing resource
+    ├── file_listing.py      # File listing resource
     └── __init__.py
 ```
 

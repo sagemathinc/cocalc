@@ -52,14 +52,12 @@
       "Bash(prettier -w:*)",
       "Bash(psql:*)",
       "Bash(python3:*)",
-<<<<<<< HEAD
       "Bash(uv:*)",
       "Bash(timeout:*)",
-=======
       "Bash(uv sync:*)",
->>>>>>> origin/master
       "WebFetch",
       "WebSearch",
+      "mcp__cocalc__*",
       "mcp__cclsp__find_definition",
       "mcp__cclsp__find_references",
       "mcp__github__get_issue",

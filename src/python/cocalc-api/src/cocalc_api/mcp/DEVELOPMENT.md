@@ -2,342 +2,197 @@
 
 ## Overview
 
-This directory contains the **Model Context Protocol (MCP) server** implementation for the CoCalc API. The MCP server allows LLMs (via clients like Claude Desktop) to interact with CoCalc projects through a standardized protocol.
+This directory contains the **Model Context Protocol (MCP) server** for CoCalc API. It allows LLMs (via Claude Code, Claude Desktop) to interact with CoCalc projects through a standardized protocol.
 
-Learn more about MCP: https://modelcontextprotocol.io/docs/getting-started/intro
+Learn more: https://modelcontextprotocol.io/docs/getting-started/intro
 
-## Architecture
+## Configuration
 
-### Design Principles
+### Required Environment Variables
 
-1. **Single Project Scope**: Each MCP server instance is tied to a specific CoCalc project via `project_id`. This eliminates the need to repeatedly specify which project an operation should run in.
+- **`COCALC_API_KEY`** - API key for CoCalc authentication (format: `sk-...`)
+- **`COCALC_PROJECT_ID`** - UUID of the target CoCalc project
+- **`COCALC_HOST`** (optional) - CoCalc instance URL (default: `https://cocalc.com`)
 
-2. **Configuration via Environment & Config**: Parameters are configured through:
-   - Environment variables (for local development)
-   - MCP server configuration files (for LLM clients like Claude Desktop)
+### Setup Examples
 
-3. **Minimal but Powerful**: Start with essential tools and resources; expand incrementally.
-
-4. **Type-Safe**: Leverage Python type hints and MCP's type system for robust integration.
-
-### Required Configuration
-
-#### Parameters
-
-- **`COCALC_API_KEY`** (required)
-  - The API key for authenticating with CoCalc
-  - Source: Environment variable or MCP config (environment field)
-  - Example: `sk-...`
-
-- **`project_id`** (required)
-  - UUID of the target CoCalc project
-  - Source: Environment variable or MCP config (environment field)
-  - Format: UUID string (e.g., `6e75dbf1-0342-4249-9dce-6b21648656e9`)
-
-- **`COCALC_HOST`** (optional)
-  - Base URL for the CoCalc instance
-  - Default: `https://cocalc.com`
-  - Source: Environment variable or MCP config
-
-#### Example Local Usage
-
+**Local Development:**
 ```bash
 export COCALC_API_KEY="sk-your-api-key-here"
 export COCALC_PROJECT_ID="6e75dbf1-0342-4249-9dce-6b21648656e9"
-export COCALC_HOST="https://cocalc.com"  # Optional
-
+export COCALC_HOST="http://localhost:5000"  # For local CoCalc
 uv run cocalc-mcp-server
 ```
 
-#### Example Claude Desktop Config
+**Claude Code CLI:**
+```bash
+claude mcp add \
+  --transport stdio \
+  cocalc \
+  --env COCALC_API_KEY="sk-your-api-key-here" \
+  --env COCALC_PROJECT_ID="6e75dbf1-0342-4249-9dce-6b21648656e9" \
+  --env COCALC_HOST="http://localhost:5000" \
+  -- uv --directory /path/to/cocalc-api run cocalc-mcp-server
+```
 
+**Claude Desktop:**
 Add to `~/.config/Claude/claude_desktop_config.json`:
-
 ```json
 {
   "mcpServers": {
     "cocalc": {
       "command": "uv",
-      "args": ["run", "cocalc-mcp-server"],
+      "args": ["--directory", "/path/to/cocalc-api", "run", "cocalc-mcp-server"],
       "env": {
         "COCALC_API_KEY": "sk-your-api-key-here",
         "COCALC_PROJECT_ID": "6e75dbf1-0342-4249-9dce-6b21648656e9",
-        "COCALC_HOST": "https://cocalc.com"
+        "COCALC_HOST": "http://localhost:5000"
       }
     }
   }
 }
 ```
 
-## Features
+## Architecture
 
-### Phase 1: MVP (Current Development)
-
-#### Tools
-
-##### 1. `exec` - Execute Shell Commands
-
-Execute arbitrary shell commands in the target CoCalc project.
-
-**Purpose**: Run any command line operation in the project's Linux environment.
-
-**Parameters**:
-- `command` (string, required): Command to execute (e.g., `date -Ins`, `python script.py`)
-- `args` (array of strings, optional): Arguments to pass to the command
-- `bash` (boolean, optional): If true, interpret command as bash script
-- `timeout` (integer, optional): Timeout in seconds
-- `cwd` (string, optional): Working directory (relative to home or absolute)
-
-**Returns**: Object with:
-- `stdout` (string): Command output
-- `stderr` (string): Error output
-- `exit_code` (integer): Process exit code
-
-**Examples**:
-```json
-// Get current date
-{
-  "tool": "exec",
-  "command": "date -Ins"
-}
-
-// Run Python script with arguments
-{
-  "tool": "exec",
-  "command": "python",
-  "args": ["script.py", "--verbose", "input.txt"]
-}
-
-// Execute a bash script
-{
-  "tool": "exec",
-  "command": "for i in {1..5}; do echo \"Iteration $i\"; done",
-  "bash": true
-}
-
-// Run with timeout
-{
-  "tool": "exec",
-  "command": "sleep 100",
-  "timeout": 5
-}
-```
-
-#### Resources
-
-##### 1. `project-files` - File Listing & Browsing
-
-Browse and list files in the project directory structure with filtering and pagination.
-
-**Purpose**: Allow the LLM to understand the project's file structure without running commands.
-
-**URI Scheme**: `cocalc://project-files/{path}`
-
-**Query Parameters**:
-- `path` (string): Directory path to list (relative to home, default: `.`)
-- `glob` (string, optional): Glob pattern to filter files (e.g., `*.py`, `**/*.txt`)
-- `limit` (integer, optional): Maximum number of files to return (default: 100, max: 1000)
-- `recurse` (boolean, optional): Recursively list subdirectories (default: false)
-
-**Returns**: Array of file objects with:
-- `name` (string): Filename
-- `path` (string): Full path relative to home
-- `type` (string): `file` or `directory`
-- `size` (integer): File size in bytes (0 for directories)
-- `modified` (string): Last modified timestamp (ISO 8601)
-
-**Examples**:
-
-```uri
-// List current directory
-cocalc://project-files/
-
-// List Python files with recursion
-cocalc://project-files/?glob=*.py&recurse=true
-
-// List all markdown files, limited to 50 results
-cocalc://project-files/?glob=*.md&limit=50
-
-// Browse a subdirectory
-cocalc://project-files/notebooks?limit=20
-```
-
-**Return Example**:
-```json
-{
-  "uri": "cocalc://project-files/",
-  "contents": [
-    {
-      "name": "script.py",
-      "path": "script.py",
-      "type": "file",
-      "size": 2048,
-      "modified": "2025-10-21T14:30:00Z"
-    },
-    {
-      "name": "data",
-      "path": "data",
-      "type": "directory",
-      "size": 0,
-      "modified": "2025-10-21T14:25:00Z"
-    }
-  ]
-}
-```
-
-## Implementation Structure
+### Module Structure
 
 ```
 src/cocalc_api/mcp/
-├── DEVELOPMENT.md          # This file
-├── __init__.py             # Package initialization
-├── server.py               # Main MCP server entry point
+├── server.py          # Entry point, imports mcp_server
+├── mcp_server.py      # Central coordination hub
 ├── tools/
-│   ├── __init__.py
-│   ├── exec.py            # Shell execution tool
-│   └── base.py            # Base tool class (if needed)
+│   ├── __init__.py    # register_tools(mcp)
+│   └── exec.py        # register_exec_tool(mcp)
 └── resources/
-    ├── __init__.py
-    ├── project_files.py   # File listing resource
-    └── base.py            # Base resource class (if needed)
+    ├── __init__.py    # register_resources(mcp)
+    └── file_listing.py # register_file_listing_resource(mcp)
 ```
 
-### File Responsibilities
+### Initialization Flow
 
-- **`server.py`**: Initializes MCP server, registers tools/resources, handles configuration
-- **`tools/exec.py`**: Implementation of the `exec` tool
-- **`resources/project_files.py`**: Implementation of file listing resource
+1. **`server.py`** imports `mcp_server` module
+2. **`mcp_server.py`** initializes at import time:
+   - Creates `FastMCP("cocalc-api")` instance
+   - Initializes `Project` client (lazy, cached)
+   - Calls `tools.register_tools(mcp)`
+   - Calls `resources.register_resources(mcp)`
+3. **`tools/` and `resources/`** register their handlers with the shared `mcp` object
+4. **`server.py`** calls `mcp.run(transport="stdio")`
 
-## Configuration & Initialization
+### Key Design Decisions
 
-### Server Initialization Flow
+- **Single Project Client**: Initialized once, shared across all tools/resources
+- **FastMCP Framework**: Automatic JSON-RPC handling, clean decorator pattern
+- **No Wrapper Functions**: Tools/resources decorated directly in their modules
+- **Dependency Injection**: mcp object passed to registration functions
+- **Easy Extension**: Add new tool by creating `tools/my_tool.py` with `register_my_tool(mcp)` function
 
-1. **Read Configuration**:
-   - Check environment variables: `COCALC_API_KEY`, `COCALC_PROJECT_ID`, `COCALC_HOST`
-   - Validate all required parameters are set
-   - Initialize HTTP client with auth
+## Available Tools & Resources
 
-2. **Create Project Client**:
-   - Instantiate `Project(api_key, project_id, host)`
-   - Verify project is accessible (ping test)
+### Tools
 
-3. **Register Tools**:
-   - `exec`: Shell command execution
+#### `exec` - Execute Shell Commands
 
-4. **Register Resources**:
-   - `project-files`: File listing
+Execute arbitrary shell commands in the CoCalc project.
 
-5. **Start Server**:
-   - Begin listening for MCP requests
+**Parameters:**
+- `command` (string, required): Command to execute
+- `args` (list, optional): Command arguments
+- `bash` (boolean, optional): Interpret as bash script
+- `timeout` (integer, optional): Timeout in seconds
+- `cwd` (string, optional): Working directory
 
-### Error Handling
+**Returns:** stdout, stderr, and exit_code
 
-- Configuration errors → Exit with clear error message
-- Project authentication errors → Cannot access project
-- Runtime errors in tools → Return error in MCP format
-- Network errors → Retry logic with exponential backoff (future enhancement)
+**Examples:**
+```json
+{"command": "echo 'Hello'"}
+{"command": "python", "args": ["script.py", "--verbose"]}
+{"command": "for i in {1..3}; do echo $i; done", "bash": true}
+```
 
-## Testing Strategy
+### Resources
 
-### Unit Tests
+#### `project-files` - List Files
 
-- **`test_exec.py`**: Test command execution with various inputs
-- **`test_project_files.py`**: Test file listing and filtering
-- **`test_server.py`**: Test server initialization and configuration
+Browse project directory structure.
 
-### Integration Tests
+**URI:** `cocalc://project-files/{path}`
 
-- Full flow: Initialize server → Execute command → List files
-- Error cases: Invalid project_id, auth failures, malformed requests
-- Performance: Large directory listings, recursive traversal
+**Parameters:**
+- `path` (string, optional): Directory path (default: `.`)
 
-### Manual Testing
+**Returns:** Formatted list of files and directories
+
+## Development Workflow
+
+### Adding a New Tool
+
+1. Create `tools/my_tool.py`:
+```python
+def register_my_tool(mcp) -> None:
+    """Register my tool with FastMCP instance."""
+    @mcp.tool()
+    async def my_tool(param: str) -> str:
+        """Tool description."""
+        from ..mcp_server import get_project_client
+        project = get_project_client()
+        # Implementation using project client
+        return result
+```
+
+2. Update `tools/__init__.py`:
+```python
+def register_tools(mcp) -> None:
+    from .exec import register_exec_tool
+    from .my_tool import register_my_tool  # Add this
+
+    register_exec_tool(mcp)
+    register_my_tool(mcp)  # Add this
+```
+
+3. Done! The tool is automatically registered when `mcp_server` imports tools.
+
+### Testing
 
 ```bash
-# Start the MCP server locally
-export COCALC_API_KEY="sk-..."
-export COCALC_PROJECT_ID="..."
-python -m cocalc_api.mcp.server
+# Run MCP server in one terminal
+make mcp
 
-# In another terminal, test with a client (future)
+# Test with another terminal (example)
+python3 << 'EOF'
+import json, subprocess
+proc = subprocess.Popen(['uv', 'run', 'cocalc-mcp-server'], ...)
+init = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {...}}
+proc.stdin.write(json.dumps(init) + '\n')
+# ... test tool calls
+EOF
 ```
+
+## Error Handling
+
+- Configuration errors → Exit with error message
+- Project authentication errors → Connection failure
+- Tool runtime errors → Returned as error in response
+
+## Security Notes
+
+1. **API Keys** - Never commit to version control; use environment variables
+2. **Project Isolation** - Each server instance is bound to one project
+3. **Command Execution** - `exec` tool runs arbitrary commands; verify API key permissions
+4. **File Access** - File listing respects project filesystem permissions
 
 ## Future Enhancements
 
-### Phase 2: File Operations
-
-- **`file-read`** resource: Read file contents
-- **`file-write`** tool: Write/create files
-- **`file-delete`** tool: Delete files
-- **`file-rename`** tool: Rename/move files
-
-### Phase 3: Advanced Features
-
-- **`jupyter-execute`** tool: Run Jupyter code
-- **`git-status`** resource: Git repository status
-- **`project-info`** resource: Project metadata and state
-- **Caching**: Cache directory listings and file metadata
-
-### Phase 4: Optimization
-
-- Connection pooling for multiple concurrent requests
-- Request queuing to prevent project overload
-- Streaming responses for large file operations
-- Metrics collection and logging
-
-## Dependencies
-
-- **`mcp>=1.0`**: Model Context Protocol SDK
-- **`httpx`**: HTTP client (already in project)
-- **`pydantic>=2.0`**: Data validation (via mcp dependency)
-- **`python-dotenv`**: Environment variable loading (via mcp dependency)
-
-## Development Commands
-
-```bash
-# Install development dependencies
-uv pip install -e ".[dev]"
-
-# Run tests
-pytest tests/test_mcp_*.py -v
-
-# Run with debugging
-export COCALC_API_KEY="sk-..."
-export COCALC_PROJECT_ID="..."
-python -m cocalc_api.mcp.server
-
-# Type checking
-mypy src/cocalc_api/mcp/
-
-# Code formatting
-ruff format src/cocalc_api/mcp/
-```
+- File read/write operations
+- Jupyter code execution
+- Git repository operations
+- Directory caching and recursion
+- Rate limiting
 
 ## References
 
-- **MCP Specification**: https://modelcontextprotocol.io/
-- **MCP Python SDK**: https://github.com/modelcontextprotocol/python-sdk
-- **CoCalc API**: See parent directory documentation
-- **Claude Desktop Config**: https://modelcontextprotocol.io/docs/tools/resources
-
-## Security Considerations
-
-1. **API Key Security**: Never commit API keys to version control. Use environment variables or secure config files with restricted permissions (600).
-
-2. **Project Isolation**: Each server instance targets only one project. Different projects require different MCP server instances.
-
-3. **Command Execution**: The `exec` tool runs arbitrary commands in the project. Ensure the API key has appropriate permissions.
-
-4. **File Access**: File listing respects project filesystem permissions. Only files accessible to the project user are listed.
-
-5. **Rate Limiting**: Consider implementing rate limiting in production to prevent overload (future enhancement).
-
-## Next Steps
-
-1. Implement `server.py` with MCP server initialization
-2. Implement `tools/exec.py` with shell command execution
-3. Implement `resources/project_files.py` with file listing
-4. Add comprehensive error handling and validation
-5. Write tests for all components
-6. Document usage examples in README
-7. Test with actual LLM clients (Claude, etc.)
+- **MCP Spec**: https://modelcontextprotocol.io/
+- **FastMCP Docs**: https://github.com/modelcontextprotocol/python-sdk
+- **CoCalc API**: See parent directory README
