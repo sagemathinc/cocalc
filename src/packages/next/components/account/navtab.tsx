@@ -248,12 +248,28 @@ export default function AccountNavTab({ style }: Props) {
         yours.push(
           menuItem(
             "shared",
-            <A href={createSettingsLink("/settings/public-files")}>
-              Published Files
+            <A
+              href={
+                profile?.name ? `/${name}` : `/share/accounts/${account_id}`
+              }
+              external
+            >
+              Shared Files
             </A>,
-            "share-square",
+            "bullhorn",
           ),
         );
+
+        // TODO: redundant with the above?
+        // yours.push(
+        //   menuItem(
+        //     "shared",
+        //     <A href={createSettingsLink("/settings/public-files")}>
+        //       Published Files
+        //     </A>,
+        //     "share-square",
+        //   ),
+        // );
 
         yours.push(
           menuItem("stars", <A href="/stars">Starred Files</A>, "star-filled"),

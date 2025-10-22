@@ -13,6 +13,12 @@ import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import { labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
+import {
+  VALID_PREFERENCES_SUB_TYPES,
+  type NavigatePath,
+  type PreferencesSubTabType,
+} from "@cocalc/util/types/settings";
 import { APPEARANCE_ICON_NAME } from "./account-preferences-appearance";
 import { COMMUNICATION_ICON_NAME } from "./account-preferences-communication";
 import { EDITOR_ICON_NAME } from "./account-preferences-editor";
@@ -20,12 +26,6 @@ import { KEYBOARD_ICON_NAME } from "./account-preferences-keyboard";
 import { OTHER_ICON_NAME } from "./account-preferences-other";
 import { ACCOUNT_PROFILE_ICON_NAME } from "./account-preferences-profile";
 import { KEYS_ICON_NAME } from "./account-preferences-security";
-import {
-  VALID_PREFERENCES_SUB_TYPES,
-  type NavigatePath,
-  type PreferencesSubTabType,
-} from "@cocalc/util/types/settings";
-// import { COLORS } from "@cocalc/util/theme";
 
 const MESSAGES = defineMessages({
   title: {
@@ -40,7 +40,7 @@ const MESSAGES = defineMessages({
   appearance: {
     id: "account.settings.overview.appearance",
     defaultMessage:
-      "Customize the visual experience via color themes, dark mode, language, and visual settings.",
+      "Customize the visual experience via color themes, {dark_mode}, language, and visual settings.",
   },
   editor: {
     id: "account.settings.overview.editor",
@@ -183,7 +183,20 @@ export function SettingsOverview() {
           <Card.Meta
             avatar={<Icon name={APPEARANCE_ICON_NAME} />}
             title={intl.formatMessage(labels.appearance)}
-            description={intl.formatMessage(MESSAGES.appearance)}
+            description={intl.formatMessage(MESSAGES.appearance, {
+              dark_mode: (
+                <span
+                  style={{
+                    backgroundColor: COLORS.GRAY_DD,
+                    color: COLORS.GRAY_LLL,
+                    paddingLeft: "3px",
+                    paddingRight: "3px",
+                  }}
+                >
+                  dark mode
+                </span>
+              ),
+            })}
           />
         </Card>
         <Card

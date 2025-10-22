@@ -289,20 +289,19 @@ export function Switch(props: {
   labelStyle?: CSS;
   children?: any;
 }) {
-  const { style = {}, labelStyle = {} } = props;
-
   // Default font weight for label
-  const finalLabelStyle: CSS = {
+  const labelStyle: CSS = {
     fontWeight: 400,
-    ...labelStyle,
-  };
+    ...props.labelStyle,
+    cursor: props.disabled ? "default" : "pointer",
+  } as const;
 
-  const handleChange = (checked: boolean) => {
+  function handleChange(checked: boolean) {
     if (props.onChange) {
       // Call onChange with same signature as Checkbox - event object with target.checked
       props.onChange({ target: { checked } });
     }
-  };
+  }
 
   return (
     <div style={{ margin: "15px 0" }}>
@@ -311,7 +310,7 @@ export function Switch(props: {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          ...style,
+          ...props.style,
         }}
       >
         <AntdSwitch
@@ -321,10 +320,7 @@ export function Switch(props: {
         />
         <span
           onClick={() => !props.disabled && handleChange(!props.checked)}
-          style={{
-            ...finalLabelStyle,
-            cursor: props.disabled ? "default" : "pointer",
-          }}
+          style={labelStyle}
         >
           {props.children}
         </span>

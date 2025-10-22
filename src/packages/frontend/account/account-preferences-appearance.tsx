@@ -268,18 +268,6 @@ export function AccountPreferencesAppearance() {
           />
         </Switch>
         <Switch
-          checked={!!other_settings.get("show_symbol_bar_labels")}
-          onChange={(e) =>
-            on_change("show_symbol_bar_labels", e.target.checked)
-          }
-        >
-          <FormattedMessage
-            id="account.other-settings.symbol_bar_labels"
-            defaultMessage={`<strong>Show Symbol Bar Labels:</strong>
-            show labels in the frame editor symbol bar`}
-          />
-        </Switch>
-        <Switch
           checked={!!other_settings.get("time_ago_absolute")}
           onChange={(e) => on_change("time_ago_absolute", e.target.checked)}
         >

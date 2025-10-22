@@ -99,6 +99,11 @@ const EDITOR_SETTINGS_CHECKBOXES = {
     defaultMessage: `<strong>Disable the markdown code bar</strong> in all markdown documents.
       Checking this hides the extra run, copy, and explain buttons in fenced code blocks.`,
   }),
+  show_symbol_bar_labels: defineMessage({
+    id: "account.other-settings.symbol_bar_labels",
+    defaultMessage:
+      "<strong>Show Symbol Bar Labels:</strong> show labels in the frame editor symbol bar",
+  }),
 } as const;
 
 // Type for valid checkbox keys
@@ -111,6 +116,7 @@ const DISPLAY_SETTINGS: readonly CheckboxKey[] = [
   "jupyter_line_numbers",
   "show_trailing_whitespace",
   "show_my_other_cursors",
+  "show_symbol_bar_labels",
 ] as const;
 
 const EDITING_BEHAVIOR: readonly CheckboxKey[] = [
@@ -144,6 +150,16 @@ const UI_ELEMENTS: readonly CheckboxKey[] = [
   "disable_markdown_codebar",
 ] as const;
 
+// Settings that come from other_settings instead of editor_settings
+const OTHER_SETTINGS_KEYS: readonly CheckboxKey[] = [
+  "disable_markdown_codebar",
+  "show_symbol_bar_labels",
+] as const;
+
+function isOtherSetting(name: CheckboxKey): boolean {
+  return OTHER_SETTINGS_KEYS.includes(name);
+}
+
 interface Props {
   editor_settings;
   other_settings?;
@@ -156,7 +172,7 @@ export function EditorSettingsCheckboxes(props: Props) {
   const intl = useIntl();
 
   function renderName(name: CheckboxKey) {
-    if (name === "disable_markdown_codebar") return;
+    if (isOtherSetting(name)) return;
     return (
       <strong>
         {capitalize(
@@ -186,8 +202,8 @@ export function EditorSettingsCheckboxes(props: Props) {
     name: CheckboxKey,
     desc: IntlMessage | Rendered | string,
   ): Rendered {
-    // Special handling for disable_markdown_codebar which is in other_settings
-    const is_other_setting = name === "disable_markdown_codebar";
+    // Special handling for settings that are in other_settings
+    const is_other_setting = isOtherSetting(name);
     const checked = is_other_setting
       ? !!props.other_settings?.get(name)
       : !!props.editor_settings.get(name);
