@@ -8,7 +8,7 @@ import { ThemeConfig } from "antd";
 import type { SizeType } from "antd/es/config-provider/SizeContext";
 import { createContext, ReactNode, useContext } from "react";
 
-import type { IntlMessage } from "@cocalc/util/i18n/types";
+import { isIntlMessage, type IntlMessage } from "@cocalc/util/i18n/types";
 import { COLORS } from "@cocalc/util/theme";
 
 import { ACTIVITY_BAR_LABELS_DEFAULT } from "@cocalc/frontend/project/page/activity-bar-consts";
@@ -26,6 +26,7 @@ export interface AppState {
   antdComponentSize?: SizeType;
   antdTheme?: ThemeConfig;
   formatIntl: (msg: IntlMessage | ReactNode | string) => ReactNode | string;
+  displayI18N: (label: string | IntlMessage | ReactNode) => string | ReactNode;
   timeAgoAbsolute?: boolean;
   setTimeAgoAbsolute?: (boolean) => void;
   showActBarLabels?: boolean; // whether to show labels on the vertical fixed bar
@@ -35,6 +36,13 @@ export const DEFAULT_CONTEXT = {
   pageWidthPx: 1000, // gets updated
   pageStyle: calcStyle(false), // gets updated
   formatIntl: () => "Loading…",
+  displayI18N: (label: string | IntlMessage | ReactNode) => {
+    // Fallback when intl is not available
+    if (isIntlMessage(label)) {
+      return label.defaultMessage;
+    }
+    return label;
+  },
   showActBarLabels: ACTIVITY_BAR_LABELS_DEFAULT,
 };
 

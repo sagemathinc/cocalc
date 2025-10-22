@@ -48,11 +48,17 @@ const CARD_STYLE: CSS = { margin: "10px 0" } as const;
 interface Props {
   noProjects: boolean;
   default_value: string;
+  /** Increment this value to trigger the modal to open */
+  open_trigger?: number;
 }
 
 type EditState = "edit" | "view" | "saving";
 
-export function NewProjectCreator({ noProjects, default_value }: Props) {
+export function NewProjectCreator({
+  noProjects,
+  default_value,
+  open_trigger,
+}: Props) {
   const intl = useIntl();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
@@ -97,6 +103,13 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   useEffect(() => {
     set_title_manually(default_value.length > 0);
   }, [default_value.length > 0]);
+
+  // Open modal when open_trigger changes
+  useEffect(() => {
+    if (open_trigger != null && open_trigger > 0) {
+      start_editing();
+    }
+  }, [open_trigger]);
 
   const is_mounted_ref = useIsMountedRef();
 

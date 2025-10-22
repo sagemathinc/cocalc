@@ -5,7 +5,7 @@ Search for any file you've edited in the last year.
 import { Input, Tooltip } from "antd";
 import { useIntl } from "react-intl";
 
-import { useState } from "@cocalc/frontend/app-framework";
+import { CSS, useState } from "@cocalc/frontend/app-framework";
 import api from "@cocalc/frontend/client/api";
 import ShowError from "@cocalc/frontend/components/error";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -15,9 +15,11 @@ import { MAX_FILENAME_SEARCH_RESULTS } from "@cocalc/util/db-schema/projects";
 
 const { Search } = Input;
 
-interface Props {}
+interface Props {
+  style?: CSS;
+}
 
-export function FilenameSearch({}: Props) {
+export function FilenameSearch({ style }: Props) {
   const intl = useIntl();
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -45,7 +47,7 @@ export function FilenameSearch({}: Props) {
   };
 
   return (
-    <div>
+    <div style={style}>
       <Tooltip
         title={`Search filenames of files you edited in the last year.  Use % as wildcard.  At most ${MAX_FILENAME_SEARCH_RESULTS} results shown.`}
       >
@@ -64,15 +66,15 @@ export function FilenameSearch({}: Props) {
             id: "projects.filename-search.placeholder",
             defaultMessage: "Search for filenames you edited...",
           })}
-          enterButton
           onSearch={doSearch}
+          type="default"
         />
       </Tooltip>
       {((results != null && searched == search.trim()) || error) && (
         <div
           style={{
             position: "absolute",
-            zIndex: 1,
+            zIndex: 10,
             background: "white",
             padding: "15px",
             border: "1px solid #ddd",
