@@ -21,6 +21,7 @@ import { refCacheSync } from "@cocalc/util/refcache";
 import { EventEmitter } from "events";
 import { getLogger } from "@cocalc/conat/client";
 import { until } from "@cocalc/util/async-utils";
+import { getPersistServerId } from "./load-balancer";
 
 let DEFAULT_RECONNECT_DELAY = 1500;
 
@@ -76,6 +77,8 @@ class PersistStreamClient extends EventEmitter {
     this.socket = this.client.socket.connect(subject, {
       desc: `persist: ${this.storage.path}`,
       reconnection: false,
+      loadBalancer: async (subject: string) =>
+        await getPersistServerId({ client: this.client, subject }),
     });
     logger.debug("init", this.storage.path, "connecting to ", subject);
     this.socket.write({

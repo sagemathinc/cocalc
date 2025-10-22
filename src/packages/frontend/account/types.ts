@@ -3,10 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore userdefined
+
 import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
+import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
@@ -15,14 +18,15 @@ import {
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
-import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
+import { type PreferencesSubTabKey } from "@cocalc/util/types/settings";
 import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
 // this is incomplete...
 
 export interface AccountState {
   active_page: string;
+  active_sub_tab?: PreferencesSubTabKey;
   user_type: string;
   account_id: string;
   groups?: List<string>;

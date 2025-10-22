@@ -2,7 +2,10 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
-import { SizeType } from "antd/lib/config-provider/SizeContext";
+
+import type { IconName } from "@cocalc/frontend/components/icon";
+import type { SizeType } from "antd/lib/config-provider/SizeContext";
+
 import { Map } from "immutable";
 import { IntlShape } from "react-intl";
 
@@ -12,7 +15,6 @@ import {
   useState,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/components/icon";
 import { labels } from "@cocalc/frontend/i18n";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
@@ -179,8 +181,8 @@ export function immutable_to_list<T, P>(
 ): T extends TypedMap<infer S>
   ? S[]
   : T extends Map<string, infer S>
-    ? S[]
-    : any;
+  ? S[]
+  : any;
 export function immutable_to_list(x: any, primary_key?): any {
   if (x == null || x == undefined) {
     return;

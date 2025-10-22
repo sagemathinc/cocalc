@@ -19,7 +19,7 @@ import { cloneDeep, isEqual } from "lodash";
 import { useEffect, useRef, useState } from "react";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
@@ -31,7 +31,7 @@ import Cost from "./pay-as-you-go/cost";
 import ServiceTag from "./service";
 import { SectionDivider } from "./util";
 
-export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
+export const QUOTA_LIMIT_ICON_NAME: IconName = "ColumnHeightOutlined";
 
 export const PRESETS = [0, 25, 100, 2000];
 export const PRESETS_LLM = [0, 5, 10, 20];

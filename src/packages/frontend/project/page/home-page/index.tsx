@@ -4,11 +4,9 @@
  */
 
 import { Button, Col, Row, Space } from "antd";
-import { ReactNode } from "react";
-import { useIntl } from "react-intl";
 
+import useAppContext from "@cocalc/frontend/app/use-context";
 import { Icon, Title } from "@cocalc/frontend/components";
-import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { COLORS } from "@cocalc/util/theme";
@@ -24,18 +22,8 @@ const BTN_PROPS = {
 } as const;
 
 export default function HomePage() {
-  const intl = useIntl();
+  const { displayI18N: display } = useAppContext();
   const { project_id, actions } = useProjectContext();
-
-  function display(
-    label: string | IntlMessage | ReactNode,
-  ): string | ReactNode {
-    if (isIntlMessage(label)) {
-      return intl.formatMessage(label);
-    } else {
-      return label;
-    }
-  }
 
   return (
     <Row

@@ -22,6 +22,7 @@ import {
   Col as AntdCol,
   Modal as AntdModal,
   Row as AntdRow,
+  Switch as AntdSwitch,
   Tabs as AntdTabs,
   TabsProps as AntdTabsProps,
   Space,
@@ -33,6 +34,7 @@ import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { Gap } from "@cocalc/frontend/components/gap";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { COLORS } from "@cocalc/util/theme";
+import { CSS } from "./app-framework";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -279,6 +281,54 @@ export function Checkbox(props) {
   );
 }
 
+export function Switch(props: {
+  checked?: boolean;
+  onChange?: (e: { target: { checked: boolean } }) => void;
+  disabled?: boolean;
+  style?: CSS;
+  labelStyle?: CSS;
+  children?: any;
+}) {
+  // Default font weight for label
+  const labelStyle: CSS = {
+    fontWeight: 400,
+    ...props.labelStyle,
+    cursor: props.disabled ? "default" : "pointer",
+  } as const;
+
+  function handleChange(checked: boolean) {
+    if (props.onChange) {
+      // Call onChange with same signature as Checkbox - event object with target.checked
+      props.onChange({ target: { checked } });
+    }
+  }
+
+  return (
+    <div style={{ margin: "15px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          ...props.style,
+        }}
+      >
+        <AntdSwitch
+          checked={props.checked}
+          onChange={handleChange}
+          disabled={props.disabled}
+        />
+        <span
+          onClick={() => !props.disabled && handleChange(!props.checked)}
+          style={labelStyle}
+        >
+          {props.children}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function Row(props: any) {
   props = { ...{ gutter: 16 }, ...props };
   return <AntdRow {...props}>{props.children}</AntdRow>;
@@ -430,22 +480,36 @@ export function Alert(props: AlertProps) {
   );
 }
 
+const PANEL_DEFAULT_STYLES: { header: CSS } = {
+  header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
+} as const;
+
 export function Panel(props: {
   key?;
   style?: React.CSSProperties;
+  styles?: {
+    header?: React.CSSProperties;
+    body?: React.CSSProperties;
+  };
   header?;
   children?: any;
   onClick?;
+  size?: "small";
 }) {
-  const style = { ...{ marginBottom: "20px" }, ...props.style };
+  const style: CSS = { ...{ marginBottom: "20px" }, ...props.style };
+
+  const styles = {
+    ...PANEL_DEFAULT_STYLES,
+    ...props.styles,
+  };
+
   return (
     <AntdCard
       style={style}
       title={props.header}
-      styles={{
-        header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
-      }}
+      styles={styles}
       onClick={props.onClick}
+      size={props.size}
     >
       {props.children}
     </AntdCard>

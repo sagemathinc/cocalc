@@ -645,6 +645,8 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   "base16-light": "Base 16 light",
   bespin: "Bespin",
   blackboard: "Blackboard",
+  "cocalc-dark": "CoCalc Dark",
+  "cocalc-light": "CoCalc Light",
   cobalt: "Cobalt",
   colorforth: "Colorforth",
   darcula: "Darcula",

@@ -5,12 +5,14 @@
 
 import { CSS } from "@cocalc/frontend/app-framework";
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 export const TITLE = "Servers";
-export const ICON_NAME = "server";
+export const ICON_NAME: IconName = "server";
 
-export const ICON_USERS = "users";
+export const ICON_USERS: IconName = "users";
 
-export const ICON_UPGRADES = "gears";
+export const ICON_UPGRADES: IconName = "gears";
 
 export const ROOT_STYLE: CSS = {
   paddingLeft: "20px",
