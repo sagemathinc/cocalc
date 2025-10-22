@@ -17,8 +17,8 @@ import type {
   PreferencesSubTabType,
 } from "@cocalc/util/types/settings";
 
-import { Flex, Menu, Space } from "antd";
-import { useEffect } from "react";
+import { Button, Flex, Menu, Space } from "antd";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { SignOut } from "@cocalc/frontend/account/sign-out";
@@ -35,6 +35,7 @@ import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { Footer } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
 import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoPage from "@cocalc/frontend/purchases/payg-page";
@@ -48,6 +49,8 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
+import { COLORS } from "@cocalc/util/theme";
+import { VALID_PREFERENCES_SUB_TYPES } from "@cocalc/util/types/settings";
 import { AccountPreferencesAI } from "./account-preferences-ai";
 import {
   AccountPreferencesAppearance,
@@ -82,7 +85,6 @@ import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SettingsOverview } from "./settings-index";
-import { VALID_PREFERENCES_SUB_TYPES } from "@cocalc/util/types/settings";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
@@ -116,6 +118,8 @@ const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
+  const [hidden, setHidden] = useState(IS_MOBILE);
+  const [openKeys, setOpenKeys] = useState<string[]>(["preferences"]);
 
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
@@ -445,7 +449,7 @@ export const AccountPage: React.FC = () => {
 
   // Process tabs to handle nested children for sub-tabs
   const children = {};
-  const titles = {};
+  const titles = {}; // Always store full labels for renderTitle()
   for (const tab of tabs) {
     if (tab.type == "divider") {
       continue;
@@ -453,23 +457,53 @@ export const AccountPage: React.FC = () => {
     if (tab.key === "preferences" && Array.isArray(tab.children)) {
       // Handle sub-tabs for preferences
       const subTabs = tab.children;
-      tab.children = subTabs.map((subTab) => ({
-        key: subTab.key,
-        label: subTab.label,
-      }));
-      // Store sub-tab children
+      tab.children = subTabs.map((subTab) => {
+        // Extract just the icon (first child) from the span when hidden
+        const label = hidden ? (
+          <span style={{ paddingLeft: "5px" }}>
+            {subTab.label.props.children[0]}
+          </span>
+        ) : (
+          subTab.label
+        );
+        return {
+          key: subTab.key,
+          label,
+        };
+      });
+      // Store sub-tab children and full labels
       for (const subTab of subTabs) {
         children[subTab.key] = subTab.children;
-        titles[subTab.key] = subTab.label;
+        titles[subTab.key] = subTab.label; // Always store original full label
       }
     } else if (tab.key === "settings" || tab.key === "profile") {
       // Handle settings and profile as top-level pages
+      // Store original full label for renderTitle()
+      const originalLabel = tab.label;
+      // Extract just the icon (first child) from the span when hidden
+      tab.label = hidden ? (
+        <span style={{ paddingLeft: "5px" }}>
+          {tab.label.props.children[0]}
+        </span>
+      ) : (
+        tab.label
+      );
       children[tab.key] = tab.children;
-      titles[tab.key] = tab.label;
+      titles[tab.key] = originalLabel; // Store original label
       delete tab.children;
     } else {
+      // Store original full label for renderTitle()
+      const originalLabel = tab.label;
+      // Extract just the icon (first child) from the span when hidden
+      tab.label = hidden ? (
+        <span style={{ paddingLeft: "5px" }}>
+          {tab.label.props.children[0]}
+        </span>
+      ) : (
+        tab.label
+      );
       children[tab.key] = tab.children;
-      titles[tab.key] = tab.label;
+      titles[tab.key] = originalLabel; // Store original label
       delete tab.children;
     }
   }
@@ -516,6 +550,10 @@ export const AccountPage: React.FC = () => {
       );
     }
 
+    function handleHideToggle() {
+      setHidden(!hidden);
+    }
+
     return (
       <div className="smc-vfill" style={{ flexDirection: "row" }}>
         <div
@@ -528,6 +566,8 @@ export const AccountPage: React.FC = () => {
         >
           <Menu
             defaultOpenKeys={["preferences"]}
+            openKeys={hidden ? ["preferences"] : openKeys}
+            onOpenChange={hidden ? undefined : setOpenKeys}
             mode="inline"
             items={tabs}
             onClick={(e) => {
@@ -536,14 +576,38 @@ export const AccountPage: React.FC = () => {
             selectedKeys={
               active_sub_tab ? [active_page, active_sub_tab] : [active_page]
             }
+            inlineIndent={hidden ? 0 : 24}
             style={{
-              width: 200,
+              width: hidden ? 50 : 200,
               background: "#00000005",
               flex: "1 1 auto",
               overflowY: "auto",
               minHeight: 0,
+              borderBottom: `1px solid ${COLORS.GRAY_DDD}`,
             }}
           />
+          <Button
+            block
+            size="small"
+            type="text"
+            style={{
+              flex: "0 0 auto",
+              minHeight: 0,
+              textAlign: "left",
+              padding: "15px 0",
+              color: COLORS.GRAY_M,
+            }}
+            onClick={handleHideToggle}
+            icon={
+              <Icon
+                name={
+                  hidden ? "vertical-left-outlined" : "vertical-right-outlined"
+                }
+              />
+            }
+          >
+            {hidden ? "" : "Hide"}
+          </Button>
         </div>
         <div
           className="smc-vfill"
@@ -553,7 +617,7 @@ export const AccountPage: React.FC = () => {
             paddingRight: "15px",
           }}
         >
-          <Flex style={{ marginTop: "5px" }}>
+          <Flex style={{ marginTop: "5px" }} wrap>
             {renderTitle()}
             <div style={{ flex: 1 }} />
             {renderExtraContent()}
