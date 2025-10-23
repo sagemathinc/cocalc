@@ -8,7 +8,7 @@ import { ReactElement } from "react";
 
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 
-interface EditorLoadErrorComponentProps {
+interface EditorLoadErrorProps {
   path: string;
   error: Error;
 }
@@ -17,9 +17,7 @@ interface EditorLoadErrorComponentProps {
  * Error component shown when editor fails to load.
  * Displays error message with a button to refresh the page.
  */
-export function EditorLoadErrorComponent(
-  props: EditorLoadErrorComponentProps,
-): ReactElement {
+export function EditorLoadError(props: EditorLoadErrorProps): ReactElement {
   const { path, error } = props;
 
   const handleRefresh = () => {

@@ -18,7 +18,7 @@ import {
 import { React } from "@cocalc/frontend/app-framework";
 
 import { alert_message } from "./alerts";
-import { EditorLoadErrorComponent } from "./file-editors-error";
+import { EditorLoadError } from "./file-editors-error";
 
 declare let DEBUG: boolean;
 
@@ -144,7 +144,9 @@ function logFallback(
   is_public: boolean,
 ): void {
   console.warn(
-    `Editor fallback triggered: No editor found for ext '${ext ?? "unknown"}' on path '${path}' (is_public: ${is_public}), using unknown editor catchall`,
+    `Editor fallback triggered: No editor found for ext '${
+      ext ?? "unknown"
+    }' on path '${path}' (is_public: ${is_public}), using unknown editor catchall`,
   );
 }
 
@@ -267,8 +269,7 @@ export async function generateAsync(
           timeout: 10,
         });
         // Return error component with refresh button
-        return () =>
-          React.createElement(EditorLoadErrorComponent, { path, error });
+        return () => React.createElement(EditorLoadError, { path, error });
       }
     }
     return () =>

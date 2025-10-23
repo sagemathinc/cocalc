@@ -89,17 +89,21 @@ if (DEBUG) {
  * Wraps an async data loader with timeout protection and retry logic.
  *
  * Strategy:
- * - If 10 second timeout occurs → retry immediately
+ * - If 15 second timeout occurs → retry immediately
  * - If asyncLoader() fails immediately due to network error → wait 5 seconds → retry
  * - Maximum 3 attempts total
  *
  * This ensures that temporary network hiccups don't silently cause fallback to wrong editor.
  * NOTE: The caller must wrap this with reuseInFlight to prevent duplicate simultaneous loads.
+ *
+ * TEST: refresh CoCalc page, but do not open a complex editor like Jupyter.
+ * Open Chrome debug panel → Network → Network: "Offline"
+ * Then click on the ipynb file and watch the console for the retries and the error popping up.
  */
 function withTimeoutAndRetry<T>(
   asyncLoaderFn: () => Promise<T>,
   ext: string | string[],
-  timeoutMs: number = 10000,
+  timeoutMs: number = 15_000, // wait up to 15 seconds to load all assets
   maxRetries: number = 3,
 ): () => Promise<T> {
   const extStr = Array.isArray(ext) ? ext.join(",") : ext;
@@ -115,11 +119,6 @@ function withTimeoutAndRetry<T>(
             `frame-editor/register: loading ${extStr} (attempt ${attempt}/${maxRetries})`,
           );
         }
-
-        // TEST: Uncomment below to simulate network error for ipynb files
-        // if (extStr === "ipynb") {
-        //   throw new Error("Simulated network error for testing");
-        // }
 
         const result = await Promise.race([
           asyncLoaderFn(),

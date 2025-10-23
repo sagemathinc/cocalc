@@ -110,6 +110,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
+import { EditorLoadError } from "./file-editors-error";
 
 const { defaults, required } = misc;
 
@@ -783,13 +784,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             } catch (err) {
               // Error already reported to user by alert_message in file-editors.ts
               // Show error component in the editor area
-              const { EditorLoadErrorComponent } = await import(
-                "./file-editors-error"
-              );
               if (this.open_files == null) return;
               const error = err as Error;
               info.Editor = () =>
-                require("react").createElement(EditorLoadErrorComponent, {
+                require("react").createElement(EditorLoadError, {
                   path,
                   error,
                 });
@@ -1571,8 +1569,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
+    const currentId = await computeServerAssociations.getServerIdForPath(
+      sidePath,
+    );
     if (currentId != null) {
       // already set
       return;
@@ -2356,8 +2355,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-          ? { compute_server_id: opts.src_compute_server_id }
-          : undefined),
+        ? { compute_server_id: opts.src_compute_server_id }
+        : undefined),
     });
 
     if (opts.only_contents) {
