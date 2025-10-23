@@ -16,6 +16,7 @@ import { React } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { split } from "@cocalc/util/misc";
 import { Actions } from "./actions";
+import { BuildControls } from "./output-control-build";
 import {
   Engine,
   ENGINES,
@@ -166,6 +167,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
         onBlur={() => {
           handle_build_change();
         }}
+        addonBefore={<BuildControls actions={actions} narrow={true} />}
       />
     );
   }
@@ -272,7 +274,14 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
             <Icon name="reload" /> Rescan
           </a>
         </h4>
-        <pre style={{ whiteSpace: "pre-line" }}>{build_command}</pre>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div>
+            <BuildControls actions={actions} narrow={true} />
+          </div>
+          <pre style={{ whiteSpace: "pre-line", flex: 1, margin: 0 }}>
+            {build_command}
+          </pre>
+        </div>
         {renderHardcodedInfo()}
       </>
     );
