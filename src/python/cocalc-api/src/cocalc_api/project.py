@@ -25,7 +25,11 @@ class Project:
         Returns:
             Any: JSON-decoded response from the API.
         """
-        payload: dict[str, Any] = {"name": name, "args": arguments, "project_id": self.project_id}
+        payload: dict[str, Any] = {"name": name, "args": arguments}
+        # Only include project_id if it's not empty. For project-scoped API keys,
+        # the project_id is extracted from the key itself by the backend.
+        if self.project_id:
+            payload["project_id"] = self.project_id
         if timeout is not None:
             payload["timeout"] = timeout
         resp = self.client.post(self.host + "/api/conat/project", json=payload)
@@ -58,6 +62,17 @@ class System:
             >>> import cocalc_api; project = cocalc_api.Project(api_key="sk-...", project_id='...')
             >>> project.ping()
             {'now': 1756489740133}
+
+        """
+        ...
+
+    @api_method("system.test")
+    def test(self) -> dict[str, Any]:
+        """
+        Test the API key and get the project_id.
+
+        Returns:
+            dict: JSON object containing project_id and server_time.
 
         """
         ...

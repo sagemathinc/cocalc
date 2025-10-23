@@ -28,6 +28,7 @@ export const system = {
   configuration: true,
 
   ping: true,
+  test: true,
   exec: true,
 
   signal: true,
@@ -68,6 +69,8 @@ export interface System {
   ) => Promise<Configuration>;
 
   ping: () => Promise<{ now: number }>;
+
+  test: () => Promise<{ project_id: string; server_time: number }>;
 
   exec: (opts: ExecuteCodeOptions) => Promise<ExecuteCodeOutput>;
 

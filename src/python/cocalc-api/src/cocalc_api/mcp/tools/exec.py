@@ -5,13 +5,10 @@ Provides the 'exec' tool that allows running arbitrary shell commands
 in the target CoCalc project environment.
 """
 
-from typing import Optional
-
-# Import will happen at end to avoid circular imports
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..mcp_server import mcp as _mcp
+    pass
 
 
 def register_exec_tool(mcp) -> None:

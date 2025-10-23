@@ -1,7 +1,7 @@
 import httpx
 from typing import Any, Literal, Optional
 from .util import api_method, handle_error
-from .api_types import PingResponse, UserSearchResult, MessageType
+from .api_types import PingResponse, TestResponse, UserSearchResult, MessageType
 from .org import Organizations
 
 
@@ -80,6 +80,19 @@ class System:
 
         Returns:
             PingResponse: JSON object containing the current server time.
+        """
+        raise NotImplementedError
+
+    @api_method("system.test")
+    def test(self) -> TestResponse:
+        """
+        Test the API key and get its scope information.
+
+        Returns:
+            TestResponse: JSON object containing:
+                - account_id (if account-scoped key)
+                - project_id (if project-scoped key)
+                - server_time (current server time in milliseconds since epoch)
         """
         raise NotImplementedError
 

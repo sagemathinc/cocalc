@@ -15,41 +15,61 @@ For detailed architecture and configuration documentation, see mcp_server.py.
 
 Configuration Examples:
 
-1. Local Testing:
+1. Local Testing (Project-Scoped API Key - Recommended):
     export COCALC_API_KEY="sk-..."
-    export COCALC_PROJECT_ID="project-uuid"
     uv run cocalc-mcp-server
 
-2. Claude Desktop config (~/.config/Claude/claude_desktop_config.json):
+2. Local Testing (Account-Scoped API Key):
+    export COCALC_API_KEY="sk-..."
+    uv run cocalc-mcp-server
+
+3. Claude Desktop config (~/.config/Claude/claude_desktop_config.json):
     {
       "mcpServers": {
         "cocalc": {
           "command": "uv",
           "args": ["run", "cocalc-mcp-server"],
           "env": {
-            "COCALC_API_KEY": "sk-...",
-            "COCALC_PROJECT_ID": "..."
+            "COCALC_API_KEY": "sk-..."
           }
         }
       }
     }
 
-3. Claude Code CLI:
+4. Claude Code CLI:
     export COCALC_API_KEY="sk-..."
-    export COCALC_PROJECT_ID="..."
-    export COCALC_HOST="https://cocalc.com"
-    claude mcp add --transport stdio cocalc --env COCALC_API_KEY --env COCALC_PROJECT_ID --env COCALC_HOST -- uv run cocalc-mcp-server
+    claude mcp add --transport stdio cocalc --env COCALC_API_KEY -- uv run cocalc-mcp-server
 """
 
+import os
 import sys
-
-# Import the mcp_server module which initializes and registers everything
-from .mcp_server import mcp  # noqa: F401
 
 
 def main():
     """Entry point for the MCP server."""
-    print("Starting CoCalc API MCP Server...", file=sys.stderr)
+    # Check and display configuration BEFORE importing mcp_server
+    api_key = os.environ.get("COCALC_API_KEY")
+    host = os.environ.get("COCALC_HOST")
+
+    print("Starting CoCalc MCP Server...", file=sys.stderr)
+
+    if not api_key:
+        print("Error: COCALC_API_KEY environment variable is not set", file=sys.stderr)
+        print("Required: COCALC_API_KEY - CoCalc API key (account-scoped or project-scoped)", file=sys.stderr)
+        print("Optional: COCALC_HOST - CoCalc instance URL (defaults to https://cocalc.com)", file=sys.stderr)
+        sys.exit(1)
+
+    print("Configuration:", file=sys.stderr)
+    # Obfuscate API key: show only last 6 characters
+    obfuscated_key = f"*****{api_key[-6:]}" if len(api_key) > 6 else "*****"
+    print(f"  COCALC_API_KEY: {obfuscated_key}", file=sys.stderr)
+    if host:
+        print(f"  COCALC_HOST: {host}", file=sys.stderr)
+
+    # Import the mcp_server module which initializes and registers everything
+    # This must happen AFTER configuration validation
+    from .mcp_server import mcp  # noqa: F401, E402
+
     # mcp is already initialized and has all tools/resources registered
     # We just need to run it
     mcp.run(transport="stdio")

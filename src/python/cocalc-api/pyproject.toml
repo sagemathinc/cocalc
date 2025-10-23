@@ -21,6 +21,7 @@ Issues = "https://github.com/sagemathinc/cocalc/issues"
 
 [project.scripts]
 cocalc-mcp-server = "cocalc_api.mcp.server:main"
+cocalc-mcp-debug = "cocalc_api.mcp.mcp_debug:main"
 
 [tool.mypy]
 python_version = "3.13"

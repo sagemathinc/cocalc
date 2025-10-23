@@ -58,6 +58,11 @@ export default async function handle(req, res) {
       args,
       timeout,
     });
+    // For project-scoped API keys, include the project_id in the response
+    // so the client can discover it
+    if (project_id0 && !resp.project_id) {
+      resp.project_id = project_id0;
+    }
     res.json(resp);
   } catch (err) {
     res.json({ error: err.message });

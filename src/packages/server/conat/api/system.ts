@@ -18,6 +18,26 @@ export function ping() {
   return { now: Date.now() };
 }
 
+export async function test({
+  account_id,
+  project_id,
+}: { account_id?: string; project_id?: string } = {}) {
+  // Return API key scope information and server time
+  // The authFirst decorator determines the scope from the API key and injects
+  // either account_id (for account-scoped keys) or project_id (for project-scoped keys)
+  // into this parameter object.
+  const response: { account_id?: string; project_id?: string; server_time: number } = {
+    server_time: Date.now(),
+  };
+  if (account_id) {
+    response.account_id = account_id;
+  }
+  if (project_id) {
+    response.project_id = project_id;
+  }
+  return response;
+}
+
 export async function terminate() {}
 
 export async function userTracking({

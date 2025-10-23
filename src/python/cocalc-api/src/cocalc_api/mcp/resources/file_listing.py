@@ -6,10 +6,10 @@ files in the project directory structure. This resource helps LLMs discover
 and understand the contents of the CoCalc project filesystem.
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..mcp_server import mcp as _mcp
+    pass
 
 
 def register_file_listing_resource(mcp) -> None:
@@ -62,7 +62,7 @@ def register_file_listing_resource(mcp) -> None:
                     continue
                 parts = line.split()
                 if len(parts) >= 4:
-                    name, size, mtime, ftype = parts[0], parts[1], parts[2], parts[3]
+                    name, size, _, ftype = parts[0], parts[1], parts[2], parts[3]
                     file_type_str = "[DIR]" if ftype == "d" else "[FILE]"
                     formatted_lines.append(f"{file_type_str} {name:30} {size:>10} bytes")
 

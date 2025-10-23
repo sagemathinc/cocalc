@@ -10,48 +10,125 @@ Learn more: https://modelcontextprotocol.io/docs/getting-started/intro
 
 ### Required Environment Variables
 
-- **`COCALC_API_KEY`** - API key for CoCalc authentication (format: `sk-...`)
-- **`COCALC_PROJECT_ID`** - UUID of the target CoCalc project
+- **`COCALC_API_KEY`** - API key for CoCalc authentication (format: `sk-...`, can be account-scoped or project-scoped)
 - **`COCALC_HOST`** (optional) - CoCalc instance URL (default: `https://cocalc.com`)
 
 ### Setup Examples
 
-**Local Development:**
+**Local Development (Recommended: Project-Scoped API Key):**
+
+Create a project-scoped API key in your CoCalc project settings:
+
 ```bash
-export COCALC_API_KEY="sk-your-api-key-here"
-export COCALC_PROJECT_ID="6e75dbf1-0342-4249-9dce-6b21648656e9"
-export COCALC_HOST="http://localhost:5000"  # For local CoCalc
+export COCALC_API_KEY="sk-your-project-api-key-here"
+export COCALC_HOST="http://localhost:5000"  # For local CoCalc, or omit for cocalc.com
 uv run cocalc-mcp-server
 ```
 
-**Claude Code CLI:**
+When started, the server will report:
+
+```
+✓ Connected with project-scoped API key (project: 6e75dbf1-0342-4249-9dce-6b21648656e9)
+```
+
+**Alternative: Account-Scoped API Key:**
+
+Create an account-scoped API key in your CoCalc account settings (Settings → API keys):
+
+```bash
+export COCALC_API_KEY="sk-your-account-api-key-here"
+uv run cocalc-mcp-server
+```
+
+When started, the server will report:
+
+```
+✓ Connected with account-scoped API key (account: d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb)
+```
+
+**Claude Code CLI (Project-Scoped Key - Recommended):**
+
 ```bash
 claude mcp add \
   --transport stdio \
   cocalc \
-  --env COCALC_API_KEY="sk-your-api-key-here" \
-  --env COCALC_PROJECT_ID="6e75dbf1-0342-4249-9dce-6b21648656e9" \
-  --env COCALC_HOST="http://localhost:5000" \
+  --env COCALC_API_KEY="sk-your-project-api-key-here" \
   -- uv --directory /path/to/cocalc-api run cocalc-mcp-server
 ```
 
-**Claude Desktop:**
+**Claude Code CLI (Account-Scoped Key):**
+
+```bash
+claude mcp add \
+  --transport stdio \
+  cocalc \
+  --env COCALC_API_KEY="sk-your-account-api-key-here" \
+  -- uv --directory /path/to/cocalc-api run cocalc-mcp-server
+```
+
+**Claude Desktop (Project-Scoped Key - Recommended):**
+
 Add to `~/.config/Claude/claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
     "cocalc": {
       "command": "uv",
-      "args": ["--directory", "/path/to/cocalc-api", "run", "cocalc-mcp-server"],
+      "args": [
+        "--directory",
+        "/path/to/cocalc-api",
+        "run",
+        "cocalc-mcp-server"
+      ],
       "env": {
-        "COCALC_API_KEY": "sk-your-api-key-here",
-        "COCALC_PROJECT_ID": "6e75dbf1-0342-4249-9dce-6b21648656e9",
-        "COCALC_HOST": "http://localhost:5000"
+        "COCALC_API_KEY": "sk-your-project-api-key-here"
       }
     }
   }
 }
 ```
+
+**Claude Desktop (Account-Scoped Key):**
+
+Add to `~/.config/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "cocalc": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/cocalc-api",
+        "run",
+        "cocalc-mcp-server"
+      ],
+      "env": {
+        "COCALC_API_KEY": "sk-your-account-api-key-here"
+      }
+    }
+  }
+}
+```
+
+## Server Metadata
+
+The MCP server exposes high-level metadata that clients can query to understand what the server provides:
+
+**Server Instructions** - A comprehensive guide to the server's capabilities, usage, and examples. Sent to LLMs to provide context about what tools and resources are available.
+
+**Website URL** - Link to documentation (https://cocalc.com/api/python)
+
+**Protocol Version** - MCP 2025-06-18
+
+Clients can retrieve this metadata using the MCP `initialize` call, which returns:
+- `serverInfo.name` - "cocalc-api"
+- `serverInfo.version` - Version from package metadata
+- `instructions` - High-level guide (see above)
+- `capabilities` - What features the server supports (tools, resources, etc.)
+
+This allows LLM clients to understand the server's purpose and capabilities before making any requests.
 
 ## Architecture
 
@@ -73,12 +150,15 @@ src/cocalc_api/mcp/
 
 1. **`server.py`** imports `mcp_server` module
 2. **`mcp_server.py`** initializes at import time:
-   - Creates `FastMCP("cocalc-api")` instance
+   - Creates `FastMCP("cocalc-api")` instance with:
+     - `instructions` - High-level guide for LLM clients
+     - `website_url` - Link to documentation
    - Initializes `Project` client (lazy, cached)
    - Calls `tools.register_tools(mcp)`
    - Calls `resources.register_resources(mcp)`
 3. **`tools/` and `resources/`** register their handlers with the shared `mcp` object
 4. **`server.py`** calls `mcp.run(transport="stdio")`
+5. When clients connect, the server responds to `initialize` with metadata including instructions
 
 ### Key Design Decisions
 
@@ -97,6 +177,7 @@ src/cocalc_api/mcp/
 Execute arbitrary shell commands in the CoCalc project.
 
 **Parameters:**
+
 - `command` (string, required): Command to execute
 - `args` (list, optional): Command arguments
 - `bash` (boolean, optional): Interpret as bash script
@@ -106,6 +187,7 @@ Execute arbitrary shell commands in the CoCalc project.
 **Returns:** stdout, stderr, and exit_code
 
 **Examples:**
+
 ```json
 {"command": "echo 'Hello'"}
 {"command": "python", "args": ["script.py", "--verbose"]}
@@ -121,6 +203,7 @@ Browse project directory structure.
 **URI:** `cocalc://project-files/{path}`
 
 **Parameters:**
+
 - `path` (string, optional): Directory path (default: `.`)
 
 **Returns:** Formatted list of files and directories
@@ -130,6 +213,7 @@ Browse project directory structure.
 ### Adding a New Tool
 
 1. Create `tools/my_tool.py`:
+
 ```python
 def register_my_tool(mcp) -> None:
     """Register my tool with FastMCP instance."""
@@ -143,6 +227,7 @@ def register_my_tool(mcp) -> None:
 ```
 
 2. Update `tools/__init__.py`:
+
 ```python
 def register_tools(mcp) -> None:
     from .exec import register_exec_tool

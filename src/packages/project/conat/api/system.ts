@@ -2,6 +2,17 @@ export async function ping() {
   return { now: Date.now() };
 }
 
+export async function test({
+  project_id,
+}: {
+  project_id?: string;
+} = {}) {
+  return {
+    project_id: project_id ?? "",
+    server_time: Date.now(),
+  };
+}
+
 export async function terminate() {}
 
 import { handleExecShellCode } from "@cocalc/project/exec_shell_code";

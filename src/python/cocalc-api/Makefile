@@ -11,7 +11,8 @@ help:
 	@echo "  coverage         - Run tests with coverage reporting (HTML + terminal)"
 	@echo "  coverage-report  - Show coverage report in terminal"
 	@echo "  coverage-html    - Generate HTML coverage report only"
-	@echo "  mcp              - Start the MCP server (requires COCALC_API_KEY, COCALC_PROJECT_ID, and COCALC_HOST)"
+	@echo "  mcp              - Start the MCP server (requires COCALC_API_KEY)"
+	@echo "  mcp-debug        - Debug the running MCP server and show tools/resources"
 	@echo "  serve-docs       - Serve documentation locally"
 	@echo "  build-docs       - Build documentation"
 	@echo "  publish          - Build and publish package"
@@ -50,6 +51,9 @@ coverage-html:
 
 mcp:
 	uv run cocalc-mcp-server
+
+mcp-debug:
+	uv run cocalc-mcp-debug
 
 serve-docs:
 	uv run mkdocs serve
