@@ -44,7 +44,8 @@ export function SettingBox({
           <div style={{ whiteSpace: "normal" }}>
             <Title level={4} style={{ display: "flex" }}>
               {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
-              &nbsp;{title}
+              &nbsp;
+              <div>{title}</div>New File or
             </Title>
             {subtitle}
             {/* subtitle must be outside of the Typography.Title -- this is assumed, e.g., in frontend/project/new/project-new-form.tsx */}
