@@ -1870,15 +1870,122 @@ export function get_array_range(arr: any[], value1: any, value2: any): any[] {
   return arr.slice(index1, +index2 + 1 || undefined);
 }
 
+function seconds2hms_years(
+  y: number,
+  d: number,
+  h: number,
+  m: number,
+  s: number,
+  longform: boolean,
+  show_seconds: boolean,
+  show_minutes: boolean = true,
+): string {
+  // Get remaining days after years
+  const remaining_days = d % 365;
+
+  // When show_minutes is false, show only years and days
+  if (!show_minutes) {
+    if (remaining_days === 0) {
+      if (longform) {
+        return `${y} ${plural(y, "year")}`;
+      } else {
+        return `${y}y`;
+      }
+    }
+    if (longform) {
+      return `${y} ${plural(y, "year")} ${remaining_days} ${plural(
+        remaining_days,
+        "day",
+      )}`;
+    } else {
+      return `${y}y${remaining_days}d`;
+    }
+  }
+
+  // When show_minutes is true, include hours and minutes for sub-day portion
+  // Use seconds2hms_days for the remaining days
+  if (remaining_days > 0) {
+    const sub_str = seconds2hms_days(
+      remaining_days,
+      h,
+      m,
+      s,
+      longform,
+      show_seconds,
+      show_minutes,
+    );
+    if (longform) {
+      return `${y} ${plural(y, "year")} ${sub_str}`;
+    } else {
+      return `${y}y${sub_str}`;
+    }
+  } else {
+    // Only years, no remaining days - but may have hours/minutes/seconds
+    // Calculate seconds for just the sub-day portion
+    const h_within_day = h % 24;
+    const sub_day_seconds = h_within_day * 3600 + m * 60 + s;
+    if (sub_day_seconds > 0) {
+      // Call seconds2hms_days with 0 days to get just the hours/minutes/seconds formatting
+      const sub_str = seconds2hms_days(
+        0,
+        h_within_day,
+        m,
+        s,
+        longform,
+        show_seconds,
+        show_minutes,
+      );
+      if (sub_str) {
+        if (longform) {
+          return `${y} ${plural(y, "year")} ${sub_str}`;
+        } else {
+          return `${y}y${sub_str}`;
+        }
+      }
+    }
+    // Only years, nothing else
+    if (longform) {
+      return `${y} ${plural(y, "year")}`;
+    } else {
+      return `${y}y`;
+    }
+  }
+}
+
 function seconds2hms_days(
   d: number,
   h: number,
   m: number,
+  s: number,
   longform: boolean,
+  show_seconds: boolean,
+  show_minutes: boolean = true,
 ): string {
   h = h % 24;
-  const s = h * 60 * 60 + m * 60;
-  const x = s > 0 ? seconds2hms(s, longform, false) : "";
+  // When show_minutes is false and h is 0, don't show anything for the sub-day part
+  if (!show_minutes && h === 0) {
+    if (d === 0) {
+      // No days to show, return empty
+      return "";
+    }
+    if (longform) {
+      return `${d} ${plural(d, "day")}`;
+    } else {
+      return `${d}d`;
+    }
+  }
+  // Calculate total seconds for the sub-day portion
+  const total_secs = h * 60 * 60 + m * 60 + s;
+  // When there are days, use show_seconds for shortform but false for longform (original behavior)
+  const use_show_seconds = d > 0 && longform ? false : show_seconds;
+  const x =
+    total_secs > 0
+      ? seconds2hms(total_secs, longform, use_show_seconds, show_minutes)
+      : "";
+  if (d === 0) {
+    // No days, just return the sub-day portion
+    return x;
+  }
   if (longform) {
     return `${d} ${plural(d, "day")} ${x}`.trim();
   } else {
@@ -1896,7 +2003,11 @@ export function seconds2hms(
   secs: number,
   longform: boolean = false,
   show_seconds: boolean = true,
+  show_minutes: boolean = true,
 ): string {
+  if (show_minutes === false) {
+    show_seconds = false;
+  }
   let s;
   if (!longform && secs < 10) {
     s = round2(secs % 60);
@@ -1908,9 +2019,23 @@ export function seconds2hms(
   const m = Math.floor(secs / 60) % 60;
   const h = Math.floor(secs / 60 / 60);
   const d = Math.floor(secs / 60 / 60 / 24);
+  const y = Math.floor(d / 365);
+  // for more than one year, special routine
+  if (y > 0) {
+    return seconds2hms_years(
+      y,
+      d,
+      h,
+      m,
+      s,
+      longform,
+      show_seconds,
+      show_minutes,
+    );
+  }
   // for more than one day, special routine (ignoring seconds altogether)
   if (d > 0) {
-    return seconds2hms_days(d, h, m, longform);
+    return seconds2hms_days(d, h, m, s, longform, show_seconds, show_minutes);
   }
   if (h === 0 && m === 0 && show_seconds) {
     if (longform) {
@@ -1922,19 +2047,24 @@ export function seconds2hms(
   if (h > 0) {
     if (longform) {
       let ret = `${h} ${plural(h, "hour")}`;
-      if (m > 0) {
+      if (m > 0 && show_minutes) {
         ret += ` ${m} ${plural(m, "minute")}`;
       }
+      // In longform, don't show seconds when there are hours (original behavior)
       return ret;
     } else {
-      if (show_seconds) {
-        return `${h}h${m}m${s}s`;
+      if (show_minutes) {
+        if (show_seconds) {
+          return `${h}h${m}m${s}s`;
+        } else {
+          return `${h}h${m}m`;
+        }
       } else {
-        return `${h}h${m}m`;
+        return `${h}h`;
       }
     }
   }
-  if (m > 0 || !show_seconds) {
+  if ((m > 0 || !show_seconds) && show_minutes) {
     if (show_seconds) {
       if (longform) {
         let ret = `${m} ${plural(m, "minute")}`;
@@ -1951,6 +2081,31 @@ export function seconds2hms(
       } else {
         return `${m}m`;
       }
+    }
+  }
+  // If neither minutes nor seconds are shown, use fallback logic
+  if (!show_minutes && !show_seconds) {
+    // If we have hours, show hours
+    if (h > 0) {
+      if (longform) {
+        return `${h} ${plural(h, "hour")}`;
+      } else {
+        return `${h}h`;
+      }
+    }
+    // If less than 1 hour, fall back to showing minutes
+    if (m > 0) {
+      if (longform) {
+        return `${m} ${plural(m, "minute")}`;
+      } else {
+        return `${m}m`;
+      }
+    }
+    // If less than 1 minute, fall back to showing seconds
+    if (longform) {
+      return `${s} ${plural(s, "second")}`;
+    } else {
+      return `${s}s`;
     }
   }
   return "";

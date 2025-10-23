@@ -1,4 +1,5 @@
-import { IconName } from "@cocalc/frontend/components";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { file_associations } from "@cocalc/frontend/file-associations";
 
 export const NEW_FILETYPE_ICONS = {

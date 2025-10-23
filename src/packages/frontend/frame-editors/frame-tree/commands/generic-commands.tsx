@@ -31,43 +31,14 @@ import userTracking from "@cocalc/frontend/user-tracking";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { filename_extension } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
-import { SEARCH_COMMANDS } from "./const";
-
-// Predefined zoom percentages for consistent zoom options across the application
-export const ZOOM_PERCENTAGES = [50, 85, 100, 115, 125, 150, 200, 400] as const;
-
-// Build on save icon constants - exported for consistent iconography across components
-export const BUILD_ON_SAVE_ICON_ENABLED = "delivered-procedure-outlined";
-export const BUILD_ON_SAVE_ICON_DISABLED = "stop-filled";
-export const BUILD_ON_SAVE_LABEL = defineMessage({
-  id: "command.generic.build_on_save.label",
-  defaultMessage:
-    "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
-});
-
-// Export zoom-related messages for use in other components
-export const ZOOM_MESSAGES = {
-  zoomPageWidth: {
-    title: defineMessage({
-      id: "command.generic.zoom_page_width.title",
-      defaultMessage: "Zoom to page width",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_width.label",
-      defaultMessage: "Zoom to Width",
-    }),
-  },
-  zoomPageHeight: {
-    title: defineMessage({
-      id: "command.generic.zoom_page_height.title",
-      defaultMessage: "Zoom to page height",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_height.label",
-      defaultMessage: "Zoom to Height",
-    }),
-  },
-};
+import {
+  BUILD_ON_SAVE_ICON_DISABLED,
+  BUILD_ON_SAVE_ICON_ENABLED,
+  BUILD_ON_SAVE_LABEL,
+  SEARCH_COMMANDS,
+  ZOOM_MESSAGES,
+  ZOOM_PERCENTAGES,
+} from "./const";
 
 addCommands({
   "split-row": {

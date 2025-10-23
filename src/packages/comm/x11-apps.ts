@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-//import { IconName } from "@cocalc/frontend/components/icon";
 import { R_IDE } from "@cocalc/util/consts/ui";
 
 type App = {

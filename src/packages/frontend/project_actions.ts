@@ -12,6 +12,7 @@ import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { basename, dirname, join } from "path";
 import { defineMessage } from "react-intl";
+import type { IconName } from "@cocalc/frontend/components/icon";
 import {
   computeServerManager,
   type ComputeServerManager,
@@ -26,7 +27,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
-import { IconName } from "@cocalc/frontend/components";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";

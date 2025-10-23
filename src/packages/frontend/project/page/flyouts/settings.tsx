@@ -135,13 +135,13 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
         <Title level={4}>
           Status: <span style={{ float: "right" }}>{renderState()}</span>
         </Title>
-        <Button.Group>
+        <Space.Compact>
           <RestartProject project_id={project_id} />
           <StopProject
             project_id={project_id}
             disabled={status.get("state") !== "running"}
           />
-        </Button.Group>
+        </Space.Compact>
         <ProjectControlError style={{ marginTop: "15px" }} />
       </div>
     );
@@ -180,7 +180,7 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
     });
   }
 
-  function featuresRealodButton() {
+  function featuresReloadButton() {
     return (
       <Tooltip title="Reload features and configuration">
         <Button
@@ -197,7 +197,7 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function renderDatastoreRelaod() {
+  function renderDatastoreReload() {
     return (
       <Tooltip title={`Reload ${DATASTORE_TITLE} information`}>
         <Button
@@ -316,7 +316,7 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
           </>
         ),
         className: "cc-project-flyout-settings-panel",
-        extra: renderDatastoreRelaod(),
+        extra: renderDatastoreReload(),
         children: (
           <Datastore
             project_id={project_id}
@@ -335,7 +335,7 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
         </>
       ),
       style: { borderRadius: 0 },
-      extra: featuresRealodButton(),
+      extra: featuresReloadButton(),
       children: (
         <ProjectCapabilities
           project={project}

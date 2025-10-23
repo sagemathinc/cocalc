@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/components";
+import type { IconName } from "@cocalc/frontend/components/icon";
 
 export const REDUX_NAME = "mentions";
 

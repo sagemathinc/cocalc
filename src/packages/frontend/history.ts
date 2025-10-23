@@ -12,13 +12,18 @@ The URI schema handled by the single page app is as follows:
         https://cocalc.com/settings
      Admin only page:
         https://cocalc.com/admin
-     Account settings (default):
-        https://cocalc.com/settings/account
+      Account settings (default):
+         https://cocalc.com/settings/account
+      Account sub-tabs:
+         https://cocalc.com/settings/account/profile
+         https://cocalc.com/settings/account/ai
+         https://cocalc.com/settings/account/security
+         etc.
      Billing:
         https://cocalc.com/settings/billing
      Upgrades:
         https://cocalc.com/settings/upgrades
-     Licenes:
+     Licenses:
         https://cocalc.com/settings/licenses
      Support:
         https://cocalc.com/settings/support
@@ -45,11 +50,27 @@ The URI schema handled by the single page app is as follows:
 */
 
 import { join } from "path";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import {
+  type PreferencesSubTabKey,
+  type PreferencesSubTabType,
+  VALID_PREFERENCES_SUB_TYPES,
+} from "@cocalc/util/types/settings";
 import { getNotificationFilterFromFragment } from "./notifications/fragment";
+
+// Utility function to safely create preferences sub-tab key
+function createPreferencesSubTabKey(
+  subTab: string,
+): PreferencesSubTabKey | null {
+  if (VALID_PREFERENCES_SUB_TYPES.includes(subTab as PreferencesSubTabType)) {
+    return `preferences-${subTab}` as PreferencesSubTabKey;
+  }
+  return null;
+}
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -153,7 +174,43 @@ export function load_target(
     case "settings":
       redux.getActions("page").set_active_tab("account", false);
       const actions = redux.getActions("account");
-      actions.set_active_tab(segments[1]);
+      if (!segments[1] || segments[1] === "" || segments[1] === "index") {
+        // Handle settings overview: settings/, settings, or settings/index
+        actions.setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
+      } else if (segments[1] === "profile") {
+        // Handle profile: settings/profile
+        actions.setState({
+          active_page: "profile",
+          active_sub_tab: undefined,
+        });
+      } else if (segments[1] === "preferences" && segments[2]) {
+        // Handle preferences sub-tabs: settings/preferences/[sub-tab]
+        const subTabKey = createPreferencesSubTabKey(segments[2]);
+        if (subTabKey) {
+          actions.setState({
+            active_page: "preferences",
+            active_sub_tab: subTabKey,
+          });
+        } else {
+          // Invalid sub-tab, default to appearance
+          actions.setState({
+            active_page: "preferences",
+            active_sub_tab: "preferences-appearance" as PreferencesSubTabKey,
+          });
+        }
+      } else if (segments[1]) {
+        // Handle main tabs: settings/[tab]
+        actions.set_active_tab(segments[1]);
+      } else {
+        // No specific tab provided, default to index: settings/ -> settings/index
+        actions.setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
+      }
       actions.setFragment(Fragment.decode(hash));
 
       break;
@@ -167,6 +224,7 @@ export function load_target(
     case "file-use":
       // not implemented
       break;
+
     case "admin":
       redux.getActions("page").set_active_tab(segments[0], change_history);
       break;
@@ -188,16 +246,21 @@ window.onpopstate = (_) => {
 export function parse_target(target?: string):
   | { page: "projects" | "help" | "file-use" | "notifications" | "admin" }
   | { page: "project"; target: string }
+  | { page: "profile" | "settings" }
+  | {
+      page: "preferences";
+      sub_tab?: PreferencesSubTabKey;
+    }
   | {
       page: "account";
-      tab: "account" | "billing" | "upgrades" | "licenses" | "support";
+      tab: "billing" | "upgrades" | "licenses" | "support";
     }
   | {
       page: "notifications";
       tab: "mentions";
     } {
   if (target == undefined) {
-    return { page: "account", tab: "account" };
+    return { page: "profile" };
   }
   const segments = target.split("/");
   switch (segments[0]) {
@@ -209,22 +272,33 @@ export function parse_target(target?: string):
       }
     case "settings":
       switch (segments[1]) {
-        case "account":
+        case undefined:
+        case "":
+        case "index":
+          return { page: "settings" };
+        case "profile":
+          return { page: "profile" };
+        case "preferences":
+          if (segments[2]) {
+            // Handle sub-tabs: settings/preferences/[sub-tab]
+            const subTabKey = createPreferencesSubTabKey(segments[2]);
+            return {
+              page: "preferences",
+              sub_tab: subTabKey ?? "preferences-appearance", // Default to appearance if invalid
+            };
+          } else {
+            return { page: "preferences" };
+          }
         case "billing":
         case "upgrades":
         case "licenses":
         case "support":
           return {
             page: "account",
-            tab: segments[1] as
-              | "account"
-              | "billing"
-              | "upgrades"
-              | "licenses"
-              | "support",
+            tab: segments[1] as "billing" | "upgrades" | "licenses" | "support",
           };
         default:
-          return { page: "account", tab: "account" };
+          return { page: "profile" };
       }
     case "notifications":
       return { page: "notifications" };
@@ -235,6 +309,6 @@ export function parse_target(target?: string):
     case "admin":
       return { page: "admin" };
     default:
-      return { page: "account", tab: "account" };
+      return { page: "profile" };
   }
 }

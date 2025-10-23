@@ -1,4 +1,6 @@
-import { Button, Card, Checkbox } from "antd";
+import { Button } from "antd";
+
+import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 
@@ -12,9 +14,10 @@ export default function Messages() {
 
   const isVerified = !!email_address_verified?.get(email_address ?? "");
   return (
-    <Card
+    <Panel
+      size={"small"}
       style={{ marginTop: "10px" }}
-      title={
+      header={
         <Button
           onClick={() => {
             redux.getActions("page").set_active_tab("notifications");
@@ -29,7 +32,7 @@ export default function Messages() {
         </Button>
       }
     >
-      <Checkbox
+      <Switch
         checked={other_settings?.get("no_email_new_messages")}
         onChange={(e) => {
           const actions = redux.getActions("account");
@@ -37,13 +40,13 @@ export default function Messages() {
         }}
       >
         Do NOT send email when you get new internal messages
-      </Checkbox>
+      </Switch>
       {!isVerified && !other_settings?.get("no_email_new_messages") && (
         <>
           (NOTE: You must also verify your email address above to get emails
           about new messages.)
         </>
       )}
-    </Card>
+    </Panel>
   );
 }

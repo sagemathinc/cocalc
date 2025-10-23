@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { Map, Set } from "immutable";
 import { ReactNode } from "react";
 import { AccountState } from "@cocalc/frontend/account/types";
-import { IconName } from "@cocalc/frontend/components/icon";
 import { IntlMessage } from "@cocalc/frontend/i18n";
 import type { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 

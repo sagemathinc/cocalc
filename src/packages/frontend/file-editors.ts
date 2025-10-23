@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import {
   filename_extension,
   meta_file,
@@ -14,7 +16,6 @@ import {
 import { React } from "./app-framework";
 
 import { delay } from "awaiting";
-import { IconName } from "./components/icon";
 
 declare let DEBUG: boolean;
 

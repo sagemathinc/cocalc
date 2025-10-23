@@ -1204,10 +1204,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     this.setState({ deleted });
   }
 
-  public display_starred_projects(starred: boolean): void {
-    this.setState({ starred });
-  }
-
   public async load_all_projects(): Promise<void> {
     if (store.get("all_projects_have_been_loaded")) {
       return;
@@ -1226,6 +1222,21 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     selected_hashtags = selected_hashtags.set(filter, hashtags);
     this.setState({ selected_hashtags });
+  }
+
+  // Set which project row is expanded in the projects table
+  public set_expanded_project(project_id?: string): void {
+    this.setState({ expanded_project_id: project_id });
+  }
+
+  // Toggle expanded state for a project row in the projects table
+  public toggle_expanded_project(project_id: string): void {
+    const current = store.get("expanded_project_id");
+    if (current === project_id) {
+      this.setState({ expanded_project_id: undefined });
+    } else {
+      this.setState({ expanded_project_id: project_id });
+    }
   }
 }
 

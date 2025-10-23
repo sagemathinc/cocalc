@@ -5,6 +5,7 @@
 
 import { Card, Typography } from "antd";
 import { CSSProperties, ReactNode } from "react";
+
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
 

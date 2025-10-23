@@ -56,7 +56,6 @@ export interface ProjectsState {
   search: string;
   deleted: boolean;
   hidden: boolean;
-  starred: boolean;
   selected_hashtags: Map<string, Set<string>>;
 
   all_projects_have_been_loaded: boolean;
@@ -66,6 +65,8 @@ export interface ProjectsState {
   project_websockets: Map<string, WebsocketState>;
 
   tableError?: TypedMap<{ error: string; query: any }>;
+
+  expanded_project_id?: string; // the currently expanded project in the projects table
 }
 
 // Define projects store
@@ -900,7 +901,6 @@ const init_store = {
   search: "",
   deleted: false,
   hidden: false,
-  starred: false,
   selected_hashtags: Map<string, Set<string>>(),
 
   all_projects_have_been_loaded: false,
