@@ -7,9 +7,10 @@ import { Text } from "slate";
 import { register } from "../register";
 import { useProcessLinks } from "../hooks";
 import { open_new_tab } from "@cocalc/frontend/misc";
-const linkify = require("linkify-it")();
 import { Link, LINK_STYLE } from "./index";
 import { Tooltip } from "antd";
+
+const linkify = require("linkify-it")();
 
 register({
   slateType: "link",

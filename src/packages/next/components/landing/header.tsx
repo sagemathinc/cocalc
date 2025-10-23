@@ -6,7 +6,6 @@
 import { Button, Layout, Tooltip } from "antd";
 import Link from "next/link";
 import { join } from "path";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SoftwareEnvNames } from "@cocalc/util/consts/software-envs";

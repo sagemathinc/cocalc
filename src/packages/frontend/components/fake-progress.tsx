@@ -23,7 +23,6 @@ export default function FakeProgress({ time }) {
 
   return (
     <Progress
-      type="circle"
       format={() => null}
       percent={percent}
       strokeColor={{ "0%": "#108ee9", "100%": "#87d068" }}

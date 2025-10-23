@@ -8,7 +8,6 @@ import { OptionProps } from "antd/es/select";
 import { fromJS } from "immutable";
 import { sortBy } from "lodash";
 import { useEffect, useState } from "react";
-
 import Logo from "@cocalc/frontend/jupyter/logo";
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import {

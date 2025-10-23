@@ -7,8 +7,13 @@ import { createTimeService } from "@cocalc/conat/service/time";
 export { initConatPersist } from "./persist";
 import {
   conatApiCount,
+  projectRunnerCount,
   conatChangefeedServerCount,
 } from "@cocalc/backend/data";
+import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
+import { init as initProjectRunner } from "./project/run";
+import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
+import { init as initFileserver } from "@cocalc/server/conat/file-server";
 import { conat } from "@cocalc/backend/conat";
 
 export { loadConatConfiguration };
@@ -27,7 +32,10 @@ export async function initConatChangefeedServer() {
 }
 
 export async function initConatApi() {
-  logger.debug("initConatApi: the central api services", { conatApiCount });
+  logger.debug("initConatApi: the central api services", {
+    conatApiCount,
+    projectRunnerCount,
+  });
   await loadConatConfiguration();
 
   // do not block on any of these!
@@ -35,5 +43,17 @@ export async function initConatApi() {
     initAPI();
   }
   initLLM();
+  for (let i = 0; i < projectRunnerCount; i++) {
+    initProjectRunner();
+  }
+  initProjectRunnerLoadBalancer();
   createTimeService();
+}
+
+// returns proxyHandlers
+export async function initConatFileserver() {
+  await loadConatConfiguration();
+  logger.debug("initFileserver");
+  localPathFileserver();
+  return await initFileserver();
 }

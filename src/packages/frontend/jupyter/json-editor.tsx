@@ -18,8 +18,8 @@ import {
   useState,
   usePrevious,
 } from "@cocalc/frontend/app-framework";
-const json_stable = require("json-stable-stringify");
-import { make_patch, apply_patch } from "@cocalc/sync/editor/generic/util";
+import json_stable from "json-stable-stringify";
+import { make_patch, apply_patch } from "@cocalc/util/patch";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";

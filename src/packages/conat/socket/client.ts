@@ -27,7 +27,7 @@ export class ConatSocketClient extends ConatSocketBase {
   private tcp?: TCP;
   private alive?: KeepAlive;
   private serverId?: string;
-  private loadBalancer?: (subject:string) => Promise<string>;
+  private loadBalancer?: (subject: string) => Promise<string>;
 
   constructor(opts: ConatSocketOptions) {
     super(opts);
@@ -103,8 +103,8 @@ export class ConatSocketClient extends ConatSocketBase {
     });
   }
 
-  waitUntilDrain = async () => {
-    await this.tcp?.send.waitUntilDrain();
+  drain = async () => {
+    await this.tcp?.send.drain();
   };
 
   private sendCommandToServer = async (
@@ -251,7 +251,11 @@ export class ConatSocketClient extends ConatSocketBase {
   };
 
   request = async (data, options?) => {
-    await this.waitUntilReady(options?.timeout);
+    try {
+      await this.waitUntilReady(options?.timeout);
+    } catch {
+      throw Error("request timed out");
+    }
     if (this.state == "closed") {
       throw Error("closed");
     }

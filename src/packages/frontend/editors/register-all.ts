@@ -25,10 +25,6 @@ import "../frame-editors/register";
 // Unknown files
 import "./unknown/register";
 
-// All the non-react editors.
-const { register_nonreact_editors } = require("../editor");
-register_nonreact_editors();
-
 // Ensure that we load all the codemirror plugins, modes, etc.
 import "@cocalc/frontend/codemirror/init";
 

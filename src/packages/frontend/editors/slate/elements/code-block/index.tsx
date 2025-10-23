@@ -159,7 +159,6 @@ export const StaticElement: React.FC<RenderElementProps> = ({
                 </Tooltip>
               )}
               <ActionButtons
-                auto
                 size="small"
                 runRef={runRef}
                 input={newValue ?? element.value}

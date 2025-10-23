@@ -19,6 +19,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { BASE_URL } from "@cocalc/frontend/misc";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { defaults, is_array, merge } from "@cocalc/util/misc";
+import { alert_message } from "@cocalc/frontend/alerts";
 
 // very large upload limit -- should be plenty?
 // there is no cost for ingress, and as cocalc is a data platform
@@ -192,7 +193,7 @@ interface FileUploadWrapperProps {
   project_id: string; // The project to upload files to
   dest_path: string; // The path for files to be sent
   config?: object; // All supported dropzone.js config options
-  event_handlers: {
+  event_handlers?: {
     complete?: Function | Function[];
     sending?: Function | Function[];
     removedfile?: Function | Function[];
@@ -245,7 +246,7 @@ export function FileUploadWrapper({
         previewTemplate: ReactDOMServer.renderToStaticMarkup(
           preview_template?.() ?? <DropzonePreview project_id={project_id} />,
         ),
-        addRemoveLinks: event_handlers.removedfile != null,
+        addRemoveLinks: event_handlers?.removedfile != null,
         ...UPLOAD_OPTIONS,
       },
       true,
@@ -309,7 +310,7 @@ export function FileUploadWrapper({
   // from the dropzone.  This is true by default if there is
   // no "removedfile" handler, and false otherwise.
   function close_preview(
-    remove_all: boolean = event_handlers.removedfile == null,
+    remove_all: boolean = event_handlers?.removedfile == null,
   ) {
     if (typeof on_close === "function") {
       on_close();
@@ -381,7 +382,7 @@ export function FileUploadWrapper({
   }
 
   function set_up_events(): void {
-    if (dropzone.current == null) {
+    if (dropzone.current == null || event_handlers == null) {
       return;
     }
 
@@ -540,7 +541,20 @@ export function BlobUpload(props) {
         removedfile: props.event_handlers?.removedfile,
         complete: (file) => {
           if (file.xhr?.responseText) {
-            const { uuid } = JSON.parse(file.xhr.responseText);
+            let uuid;
+            try {
+              ({ uuid } = JSON.parse(file.xhr.responseText));
+            } catch (err) {
+              // this will happen if the server is down/broken, e.g., instead of proper json, we get
+              // back an error from cloudflare.
+              console.warn("WARNING: upload failure", file.xhr.responseText);
+              alert_message({
+                type: "error",
+                message:
+                  "Failed to upload. Server may be down.  Please try again later.",
+              });
+              return;
+            }
             const url = `${BASE_URL}/blobs/${encodeURIComponent(
               file.upload.filename,
             )}?uuid=${uuid}`;

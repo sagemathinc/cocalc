@@ -32,12 +32,12 @@ import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
+  stdin?;
   cm_options: Map<string, any>;
   mode: "edit" | "escape";
   font_size: number;
   id?: string; // redundant, since it's in the cell.
   actions?: JupyterActions;
-  name?: string;
   index?: number; // position of cell in the list of all cells; just used to optimize rendering and for no other reason.
   is_current?: boolean;
   is_selected?: boolean;
@@ -62,12 +62,15 @@ interface Props {
   dragHandle?: React.JSX.Element;
   read_only?: boolean;
   isDragging?: boolean;
+  isPending?: boolean;
+  name?: string;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
   // note: we assume project_id and directory don't change
   return !(
     nextProps.id !== props.id ||
+    nextProps.stdin !== props.stdin ||
     nextProps.index !== props.index ||
     nextProps.cm_options !== props.cm_options ||
     nextProps.cell !== props.cell ||
@@ -91,7 +94,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
       (nextProps.is_current || props.is_current)) ||
     nextProps.dragHandle !== props.dragHandle ||
     nextProps.read_only !== props.read_only ||
-    nextProps.isDragging !== props.isDragging
+    nextProps.isDragging !== props.isDragging ||
+    nextProps.isPending !== props.isPending
   );
 }
 
@@ -138,6 +142,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         computeServerId={props.computeServerId}
         setShowAICellGen={setShowAICellGen}
         dragHandle={props.dragHandle}
+        isPending={props.isPending}
       />
     );
   }
@@ -162,6 +167,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         complete={props.is_current && props.complete != null}
         llmTools={props.llmTools}
         isDragging={props.isDragging}
+        stdin={props.stdin}
       />
     );
   }
@@ -260,10 +266,10 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
 
     // 30px -- make room for InsertCell(above)
     const marginTop = props.isFirst
-      ? "30px"
+      ? "20px"
       : props.actions != null
-        ? "10px"
-        : "20px";
+        ? "0px"
+        : "10px";
 
     const style: React.CSSProperties = {
       border: `1px solid ${color}`,
@@ -271,6 +277,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       borderRight: `10px solid ${color}`,
       borderRadius: "10px",
       position: "relative",
+      padding: "2px 2px 5px 2px",
       // The bigger top margin when in fully read only mode (no props.actions,
       // e.g., timetravel view) is to deal with the fact that the insert cell
       // bar isn't rendered, but some of the controls off
@@ -279,18 +286,16 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       // top margin makes things look very weirdly unbalanced.
       ...(props.cell.get("output") || props.actions == null
         ? {
-            padding: "2px",
             margin:
               props.actions != null
                 ? `${marginTop} 15px 2px 5px`
                 : `${marginTop} 15px 2px 5px`,
           }
         : {
-            padding: "2px 2px 15px 2px",
             margin:
               props.actions != null
-                ? `${marginTop} 15px -15px 5px`
-                : `${marginTop} 15px -15px 5px`,
+                ? `${marginTop} 15px 0 5px`
+                : `${marginTop} 15px 0 5px`,
           }),
     };
 

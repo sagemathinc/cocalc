@@ -30,15 +30,25 @@ import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
 import basePath from "@cocalc/backend/base-path";
 import port from "@cocalc/backend/port";
+import { FALLBACK_ACCOUNT_UUID } from "@cocalc/util/misc";
+// using old version of pkg-dir because of nextjs :-(
+import { sync as packageDirectorySync } from "pkg-dir";
 
-function determineRootFromPath(): string {
-  const cur = __dirname;
-  const search = "/src/";
-  const i = cur.lastIndexOf(search);
-  const root = resolve(cur.slice(0, i + search.length - 1));
+function determineRoot(): string {
+  const pd = packageDirectorySync(__dirname) ?? "/";
+  const root = resolve(pd, "..", "..");
   process.env.COCALC_ROOT = root;
   return root;
 }
+
+// Path to where our special binaries are, e.g., working with the
+// filesystem and also the "open" command.  This is used, e.g.,
+// by cocalc-lite to know what to add to the PATH.
+export const bin = join(
+  packageDirectorySync(__dirname) ?? "/",
+  "node_modules",
+  ".bin",
+);
 
 // Each field value in this interface is to be treated as though it originated from a raw
 // environment variable. These environment variables are used to configure CoCalc's SSL connection
@@ -169,7 +179,7 @@ export function sslConfigToPsqlEnv(config: SSLConfig): PsqlSSLEnvConfig {
   return psqlArgs;
 }
 
-export const root: string = process.env.COCALC_ROOT ?? determineRootFromPath();
+export const root: string = process.env.COCALC_ROOT ?? determineRoot();
 export const data: string = process.env.DATA ?? join(root, "data");
 
 // Database Config
@@ -194,6 +204,23 @@ export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+
+export const account_id: string =
+  process.env.COCALC_ACCOUNT_ID ?? FALLBACK_ACCOUNT_UUID;
+
+// File server and project runner config:
+export const rusticRepo: string =
+  process.env.COCALC_RUSTIC_REPO ?? join(data, "rustic");
+// If given, COCALC_FILE_SERVER_MOUNTPOINT must be the top level mountpoint
+// of a btrfs filesystem that is dedicated to the central file server.
+// If not specified, a sparse image file is created in data/btrfs, which
+// is designed for *development* purposes (not production deployments).
+// Similar remarks for COCALC_PROJECT_RUNNER_MOUNTPOINT, which must also
+// be a dedicated btrfs mountpoint, which will be used by a project runner.
+export const fileServerMountpoint: string | undefined =
+  process.env.COCALC_FILE_SERVER_MOUNTPOINT;
+export const projectRunnerMountpoint: string | undefined =
+  process.env.COCALC_PROJECT_RUNNER_MOUNTPOINT;
 
 // Where the sqlite database files used for sync are stored.
 // The idea is there is one very fast *ephemeral* directory
@@ -269,6 +296,10 @@ export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
 // we these in separate pods.
 export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
 
+export let projectRunnerCount = parseInt(
+  process.env.COCALC_PROJECT_RUNNER_COUNT ?? "1",
+);
+
 // number of changefeed servers to run in process.  The only reason to increase this
 // is for testing and development.
 export let conatChangefeedServerCount = parseInt(
@@ -285,6 +316,17 @@ export let conatClusterHealthPort = parseInt(
 );
 
 export const conatClusterName = process.env.CONAT_CLUSTER_NAME;
+
+// SSH server -- {host, port}:
+export const sshServer: { host: string; port: number } = (() => {
+  const [host, port = "2222"] = (
+    process.env.COCALC_SSH_SERVER ?? "host.containers.internal"
+  ).split(":");
+  return {
+    host: host ? host : "host.containers.internal",
+    port: parseInt(port),
+  };
+})();
 
 // API keys
 

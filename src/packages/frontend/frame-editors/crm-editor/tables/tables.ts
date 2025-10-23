@@ -36,7 +36,6 @@ import "./syncstrings";
 import "./vouchers";
 import "./openai";
 import "./analytics";
-import "./jupyter-api";
 import "./retention";
 
 interface TableDescription {

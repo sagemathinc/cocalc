@@ -134,7 +134,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
 
   function render_load_all_button(): Rendered {
     if (project_log_all != undefined) {
-      return;
+      return <div style={{ height: "1px" }} />;
     }
     return (
       <div style={{ textAlign: "center", padding: "15px" }}>
@@ -152,7 +152,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     }
     const x = log.get(index);
     if (x == undefined) {
-      return;
+      return <div style={{ height: "1px" }} />;
     }
     return (
       <LogEntry

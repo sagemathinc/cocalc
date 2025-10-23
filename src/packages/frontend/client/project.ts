@@ -7,9 +7,7 @@
 Functionality that mainly involves working with a specific project.
 */
 
-import { throttle } from "lodash";
 import { join } from "path";
-
 import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
 import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
 import { projectSubject, EXEC_STREAM_SERVICE } from "@cocalc/conat/names";
@@ -17,7 +15,6 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
-import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { API } from "@cocalc/frontend/project/websocket/api";
 import { connection_to_project } from "@cocalc/frontend/project/websocket/connect";
@@ -44,18 +41,25 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { WebappClient } from "./client";
+import { throttle } from "lodash";
+import { type ProjectApi } from "@cocalc/conat/project/api";
+import { type CopyOptions } from "@cocalc/conat/files/fs";
+
+const TOUCH_THROTTLE = 30_000;
 import { ExecStream } from "./types";
 
 export class ProjectClient {
   private client: WebappClient;
-  private touch_throttle: { [project_id: string]: number } = {};
 
   constructor(client: WebappClient) {
     this.client = client;
   }
 
-  private conatApi = (project_id: string) => {
-    return this.client.conat_client.projectApi({ project_id });
+  conatApi = (project_id: string, compute_server_id = 0): ProjectApi => {
+    return this.client.conat_client.projectApi({
+      project_id,
+      compute_server_id,
+    });
   };
 
   // This can write small text files in one message.
@@ -122,16 +126,10 @@ export class ProjectClient {
     return url;
   };
 
-  copy_path_between_projects = async (opts: {
-    src_project_id: string; // id of source project
-    src_path: string; // relative path of director or file in the source project
-    target_project_id: string; // if of target project
-    target_path?: string; // defaults to src_path
-    overwrite_newer?: boolean; // overwrite newer versions of file at destination (destructive)
-    delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
-    backup?: boolean; // make ~ backup files instead of overwriting changed files
-    timeout?: number; // **timeout in milliseconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-    exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
+  copyPathBetweenProjects = async (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
   }): Promise<void> => {
     await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
   };
@@ -546,93 +544,54 @@ export class ProjectClient {
     },
   );
 
-  touch_project = async (
-    // project_id where activity occurred
-    project_id: string,
-    // optional global id of a compute server (in the given project), in which case we also mark
-    // that compute server as active, which keeps it running in case it has idle timeout configured.
-    compute_server_id?: number,
-  ): Promise<void> => {
-    if (!is_valid_uuid_string(project_id)) {
-      console.warn("WARNING -- touch_project takes a project_id, but got ", {
-        project_id,
-      });
-    }
-    if (compute_server_id) {
-      // this is throttled, etc. and is independent of everything below.
-      touchComputeServer({
-        project_id,
-        compute_server_id,
-        client: this.client,
-      });
-      // that said, we do still touch the project, since if a user is actively
-      // using a compute server, the project should also be considered active.
-    }
-
-    const state = redux.getStore("projects")?.get_state(project_id);
-    if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
-      // not trying to view project as admin so do some checks
-      if (!(await allow_project_to_run(project_id))) return;
-      if (!this.client.is_signed_in()) {
-        // silently ignore if not signed in
+  touch_project = throttle(
+    async (
+      // project_id where activity occured
+      project_id: string,
+      // optional global id of a compute server (in the given project), in which case we also mark
+      // that compute server as active, which keeps it running in case it has idle timeout configured.
+      compute_server_id?: number | null,
+    ): Promise<void> => {
+      if (!is_valid_uuid_string(project_id)) {
+        console.warn("WARNING -- touch_project takes a project_id, but got ", {
+          project_id,
+        });
         return;
       }
-      if (state != "running") {
-        // not running so don't touch (user must explicitly start first)
-        return;
+      if (compute_server_id) {
+        // this is independent of everything below.
+        touchComputeServer({
+          project_id,
+          compute_server_id,
+          client: this.client,
+        });
+        // that said, we do still touch the project, since if a user is actively
+        // using a compute server, the project should also be considered active.
       }
-    }
 
-    // Throttle -- so if this function is called with the same project_id
-    // twice in 3s, it's ignored (to avoid unnecessary network traffic).
-    // Do not make the timeout long, since that can mess up
-    // getting the hub-websocket to connect to the project.
-    const last = this.touch_throttle[project_id];
-    if (last != null && Date.now() - last <= 3000) {
-      return;
-    }
-    this.touch_throttle[project_id] = Date.now();
-    try {
-      await this.client.conat_client.hub.db.touch({ project_id });
-    } catch (err) {
-      // silently ignore; this happens, e.g., if you touch too frequently,
-      // and shouldn't be fatal and break other things.
-      // NOTE: this is a bit ugly for now -- basically the
-      // hub returns an error regarding actually touching
-      // the project (updating the db), but it still *does*
-      // ensure there is a TCP connection to the project.
-    }
-  };
-
-  // Print sagews to pdf
-  // The printed version of the file will be created in the same directory
-  // as path, but with extension replaced by ".pdf".
-  // Only used for sagews.
-  print_to_pdf = async ({
-    project_id,
-    path,
-    options,
-    timeout,
-  }: {
-    project_id: string;
-    path: string;
-    timeout?: number; // client timeout -- some things can take a long time to print!
-    options?: any; // optional options that get passed to the specific backend for this file type
-  }): Promise<string> => {
-    return await this.client.conat_client
-      .projectApi({ project_id })
-      .editor.printSageWS({ path, timeout, options });
-  };
+      try {
+        await this.client.conat_client.hub.db.touch({ project_id });
+      } catch (err) {
+        // 503 would just mean the hub isn't listening yet, so expected
+        // sometimes.
+        if (err.code == 503) {
+          console.log("WARNING: issue touching project", err);
+        }
+      }
+    },
+    TOUCH_THROTTLE,
+  );
 
   create = async (opts: {
     title: string;
     description: string;
     image?: string;
+    rootfs_image?: string;
     start?: boolean;
     // "license_id1,license_id2,..." -- if given, create project with these licenses applied
     license?: string;
-    // never use pool
-    noPool?: boolean;
+    // make exact clone of the files from this project:
+    src_project_id?: string;
   }): Promise<string> => {
     const project_id =
       await this.client.conat_client.hub.projects.createProject(opts);
@@ -650,13 +609,14 @@ export class ProjectClient {
     return (await this.api(opts.project_id)).realpath(opts.path);
   };
 
-  isdir = async ({
+  isDir = async ({
     project_id,
     path,
   }: {
     project_id: string;
     path: string;
   }): Promise<boolean> => {
+    // [ ] TODO: rewrite to use new fs.stat!
     const { stdout, exit_code } = await this.exec({
       project_id,
       command: "file",
@@ -665,21 +625,6 @@ export class ProjectClient {
     });
     return !exit_code && stdout.trim() == "directory";
   };
-
-  ipywidgetsGetBuffer = reuseInFlight(
-    async (
-      project_id: string,
-      path: string,
-      model_id: string,
-      buffer_path: string,
-    ): Promise<ArrayBuffer> => {
-      const actions = redux.getEditorActions(project_id, path);
-      return await actions.jupyter_actions.ipywidgetsGetBuffer(
-        model_id,
-        buffer_path,
-      );
-    },
-  );
 
   // getting, setting, editing, deleting, etc., the  api keys for a project
   api_keys = async (opts: {

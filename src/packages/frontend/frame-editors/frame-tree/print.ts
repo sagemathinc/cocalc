@@ -11,7 +11,7 @@ TODO: refactor with markdown print (?).
 
 import { path_split } from "@cocalc/util/misc";
 import { HTML } from "@cocalc/frontend/components";
-const ReactDOMServer = require("react-dom/server");
+import { renderToStaticMarkup } from "react-dom/server";
 import { React, Redux, redux } from "@cocalc/frontend/app-framework";
 import { BASE_URL } from "@cocalc/frontend/misc";
 import { resource_links_string } from "@cocalc/frontend/misc/resource-links";
@@ -21,12 +21,12 @@ let BLOCKED: boolean | undefined = undefined;
 export function popup(
   url: string,
   width: number = 800,
-  height: number = 640
+  height: number = 640,
 ): any {
   const w: any = window.open(
     url,
     "_blank",
-    `menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=${height},width=${width}`
+    `menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=${height},width=${width}`,
   );
   if (!w || w.closed === undefined) {
     if (BLOCKED || BLOCKED === undefined) {
@@ -36,7 +36,7 @@ export function popup(
     } else {
       // definitely doesn't block -- this happens when window already opened and printing.
       throw Error(
-        "If you have a window already opened printing a document, close it first."
+        "If you have a window already opened printing a document, close it first.",
       );
     }
   }
@@ -60,7 +60,7 @@ export function print_html(opts: PrintOptions): void {
   if (opts.src == "") {
     if (!opts.project_id || !opts.path) {
       throw Error(
-        "BUG project_id and path must be specified if src not given."
+        "BUG project_id and path must be specified if src not given.",
       );
     }
     write_content(w, opts);
@@ -93,9 +93,9 @@ function write_content(w, opts: PrintOptions): void {
     const C = React.createElement(
       Redux,
       { redux } as any,
-      React.createElement(HTML, props)
+      React.createElement(HTML, props),
     );
-    html = ReactDOMServer.renderToStaticMarkup(C);
+    html = renderToStaticMarkup(C);
   } else {
     html = opts.html;
   }

@@ -15,11 +15,11 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
-
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
 import { MIN_DISK_GB } from "@cocalc/util/upgrades/consts";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
+import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
 type Field =
   | "start"
@@ -232,21 +232,23 @@ export default function LicenseEditor({
               />
             ),
           },
-          {
-            key: "custom_cpu",
-            field: "CPU",
-            value: (
-              <InputNumber
-                disabled={disabledFields?.has("custom_cpu")}
-                min={1}
-                max={MAX.cpu}
-                step={1}
-                value={info.custom_cpu}
-                onChange={handleFieldChange("custom_cpu")}
-                addonAfter={"Shared vCPU"}
-              />
-            ),
-          },
+          FAIR_CPU_MODE
+            ? { key: "nothing", value: null }
+            : {
+                key: "custom_cpu",
+                field: "CPU",
+                value: (
+                  <InputNumber
+                    disabled={disabledFields?.has("custom_cpu")}
+                    min={1}
+                    max={MAX.cpu}
+                    step={1}
+                    value={info.custom_cpu}
+                    onChange={handleFieldChange("custom_cpu")}
+                    addonAfter={"Shared vCPU"}
+                  />
+                ),
+              },
           {
             key: "custom_member",
             field: "Member Hosting",

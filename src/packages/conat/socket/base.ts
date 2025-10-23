@@ -116,14 +116,16 @@ export abstract class ConatSocketBase extends EventEmitter {
     }
     if (this.reconnection) {
       setTimeout(() => {
-        this.connect();
+        if (this.state != "closed") {
+          this.connect();
+        }
       }, RECONNECT_DELAY);
     }
   };
 
   connect = async () => {
-    if (this.state != "disconnected") {
-      // already connected
+    if (this.state != "disconnected" || !this.client) {
+      // already connected or closed
       return;
     }
     this.setState("connecting");

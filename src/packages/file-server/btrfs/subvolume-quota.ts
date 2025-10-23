@@ -38,6 +38,11 @@ export class SubvolumeQuota {
     await btrfs({
       args: ["qgroup", "limit", `${size}`, this.subvolume.path],
     });
+    // also set the exact same quota for the total of all snapshots:
+    const id = await this.subvolume.getSubvolumeId();
+    await btrfs({
+      args: ["qgroup", "limit", `${size}`, `1/${id}`, this.subvolume.path],
+    });
   };
 
   du = async () => {

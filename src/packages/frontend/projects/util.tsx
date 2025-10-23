@@ -6,7 +6,6 @@
 import { MenuProps } from "antd";
 import { Map as immutableMap, Set as immutableSet } from "immutable";
 import { useMemo } from "react";
-
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Tip } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -444,6 +443,10 @@ export function useServersMenuItems(
         case "rserver":
           isAvailable =
             available.rserver && !student_project_functionality.disableRServer;
+          break;
+        case "xpra":
+          // this is not yet fully implemented...
+          isAvailable = true;
           break;
         default:
           unreachable(appName);

@@ -300,8 +300,8 @@ export default function SelectServer({
             : `${value}`
         }
         onDropdownVisibleChange={setOpen}
+        popupMatchSelectWidth={350}
         style={{
-          width: open ? "300px" : undefined,
           background,
           color: avatar_fontcolor(background),
           ...style,

@@ -39,7 +39,6 @@ import type { WebpackPluginInstance } from "@rspack/core";
 import { ProvidePlugin } from "@rspack/core";
 import { execSync } from "child_process";
 import { resolve as path_resolve } from "path";
-
 import getLogger from "@cocalc/backend/logger";
 import { versions as CDN_VERSIONS } from "@cocalc/cdn";
 import { version as SMC_VERSION } from "@cocalc/util/smc-version";
@@ -77,7 +76,15 @@ interface Options {
  */
 export default function getConfig({ middleware }: Options = {}): Configuration {
   // Determine the git revision hash:
-  const COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
+  let COCALC_GIT_REVISION;
+  try {
+    COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
+  } catch {
+    // might not have the git repo during the build.
+    // We do NOT depend on this hash for anything; it's just nice to show users/devs.
+    // In lite mode we don't even have a git repo, so don't have this info.
+    COCALC_GIT_REVISION = "N/A";
+  }
   const COCALC_GITHUB_REPO = "https://github.com/sagemathinc/cocalc";
   const COCALC_LICENSE = "custom";
   const OUTPUT = process.env.COCALC_OUTPUT
@@ -89,7 +96,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   const date = new Date();
   const BUILD_DATE = date.toISOString();
   const BUILD_TS = date.getTime();
-  const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
+  const COCALC_CLEAN = !!process.env.COCALC_CLEAN;
   const RSPACK_DEV_SERVER =
     NODE_ENV != "production" && !process.env.NO_RSPACK_DEV_SERVER;
 
@@ -99,7 +106,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   console.log(`NODE_ENV            = ${NODE_ENV}`);
   console.log(`MEASURE             = ${MEASURE}`);
   console.log(`OUTPUT              = ${OUTPUT}`);
-  console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
+  console.log(`COCALC_CLEAN        = ${COCALC_CLEAN}`);
   console.log(`RSPACK_DEV_SERVER   = ${RSPACK_DEV_SERVER}`);
 
   const plugins: WebpackPluginInstance[] = [];
@@ -125,7 +132,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
     COCALC_LICENSE,
   });
 
-  if (!middleware && !COCALC_NOCLEAN) {
+  if (!middleware && COCALC_CLEAN) {
     cleanPlugin(registerPlugin, OUTPUT);
   }
 
@@ -168,7 +175,10 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   const config: Configuration = {
     // this makes things 10x slower:
     //cache: RSPACK_DEV_SERVER || PRODMODE ? false : true,
-    ignoreWarnings: [/Failed to parse source map/],
+    ignoreWarnings: [
+      /Failed to parse source map/,
+      /formItemNode = ReactDOM.findDOMNode/,
+    ],
     devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
     mode: PRODMODE
       ? ("production" as "production")
@@ -214,8 +224,6 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         ".ts",
         ".tsx",
         ".json",
-        ".coffee",
-        ".cjsx",
         ".scss",
         ".sass",
       ],

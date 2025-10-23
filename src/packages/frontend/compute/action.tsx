@@ -51,7 +51,7 @@ export default function getActions({
     const a = ACTION_INFO[action];
     if (!a) continue;
     if (action == "suspend") {
-      if (configuration.cloud != "google-cloud") {
+      if (configuration?.cloud != "google-cloud") {
         continue;
       }
       if (getArchitecture(configuration) == "arm64") {
@@ -61,12 +61,12 @@ export default function getActions({
         continue;
       }
       // must have no gpu and <= 208GB of RAM -- https://cloud.google.com/compute/docs/instances/suspend-resume-instance
-      if (configuration.acceleratorType) {
+      if (configuration?.acceleratorType) {
         continue;
       }
       // [ ] TODO: we don't have an easy way to check the RAM requirement right now.
     }
-    if (!editModal && configuration.ephemeral && action == "stop") {
+    if (!editModal && configuration?.ephemeral && action == "stop") {
       continue;
     }
     const {
@@ -79,10 +79,10 @@ export default function getActions({
       confirmMessage,
       clouds,
     } = a;
-    if (danger && !configuration.ephemeral && !editModal) {
+    if (danger && !configuration?.ephemeral && !editModal) {
       continue;
     }
-    if (clouds && !clouds.includes(configuration.cloud)) {
+    if (clouds && !clouds.includes(configuration?.cloud)) {
       continue;
     }
     v.push(
@@ -179,7 +179,7 @@ function ActionButton({
       }
     }
 
-    if (configuration.cloud == "onprem") {
+    if (configuration?.cloud == "onprem") {
       if (action == "start") {
         setShowOnPremStart(true);
       } else if (action == "stop") {
@@ -231,10 +231,10 @@ function ActionButton({
     >
       <Icon name={icon} /> {label}{" "}
       {doing && (
-        <>
+        <span>
           <div style={{ display: "inline-block", width: "10px" }} />
           <Spin />
-        </>
+        </span>
       )}
     </Button>
   );
@@ -244,7 +244,7 @@ function ActionButton({
         onOpenChange={setPopConfirm}
         placement="right"
         okButtonProps={{
-          disabled: !configuration.ephemeral && danger && !understand,
+          disabled: !configuration?.ephemeral && danger && !understand,
         }}
         title={
           <div>
@@ -269,7 +269,7 @@ function ActionButton({
                 }`}
               />
             )}
-            {!configuration.ephemeral && danger && (
+            {!configuration?.ephemeral && danger && (
               <div>
                 {/* ATTN: Not using a checkbox here to WORKAROUND A BUG IN CHROME that I see after a day or so! */}
                 <Button onClick={() => setUnderstand(!understand)} type="text">
@@ -294,7 +294,7 @@ function ActionButton({
   }
 
   const content = (
-    <>
+    <span>
       {button}
       {showOnPremStart && action == "start" && (
         <OnPremGuide
@@ -303,9 +303,9 @@ function ActionButton({
           configuration={configuration}
           id={id}
           title={
-            <>
+            <div>
               <Icon name="server" /> Connect Your Virtual Machine to CoCalc
-            </>
+            </div>
           }
         />
       )}
@@ -316,9 +316,9 @@ function ActionButton({
           configuration={configuration}
           id={id}
           title={
-            <>
+            <div>
               <Icon name="stop" /> Disconnect Your Virtual Machine from CoCalc
-            </>
+            </div>
           }
         />
       )}
@@ -336,7 +336,7 @@ function ActionButton({
           }
         />
       )}
-    </>
+    </span>
   );
 
   // Do NOT use popover in case we're doing a popconfirm.
@@ -443,7 +443,7 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
               </div>
             }
           />
-          {configuration.gpu && (
+          {configuration?.gpu && (
             <span>
               Since you clicked GPU, you must also have an NVIDIA GPU and the
               Cuda drivers installed and working.{" "}

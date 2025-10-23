@@ -434,15 +434,15 @@ export function getValidLanguageModelName({
   }
 
   for (const free of [true, false]) {
-    const dflt = getDefaultLLM(
+    const defaultModel = getDefaultLLM(
       selectable_llms,
       filter,
       ollama,
       custom_openai,
       free,
     );
-    if (dflt != null) {
-      return dflt;
+    if (defaultModel != null) {
+      return defaultModel;
     }
   }
   return DEFAULT_MODEL;
@@ -908,11 +908,12 @@ export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
 // this is used in purchases/get-service-cost
 // we only need to check for the vendor prefixes, no special cases!
 export function isLanguageModelService(
-  service: string,
+  service?: string,
 ): service is LanguageService {
+  if (!service) return false;
   if (isUserDefinedModel(service)) return true;
   for (const v of LANGUAGE_MODEL_SERVICES) {
-    if (service.startsWith(`${v}-`)) {
+    if (service?.startsWith(`${v}-`)) {
       return true;
     }
   }

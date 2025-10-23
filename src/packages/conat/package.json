@@ -5,14 +5,20 @@
   "exports": {
     "./sync/*": "./dist/sync/*.js",
     "./llm/*": "./dist/llm/*.js",
+    "./files/*": "./dist/files/*.js",
     "./socket": "./dist/socket/index.js",
     "./socket/*": "./dist/socket/*.js",
+    "./sync-doc": "./dist/sync-doc/index.js",
+    "./sync-doc/*": "./dist/sync-doc/*.js",
     "./hub/changefeeds": "./dist/hub/changefeeds/index.js",
     "./hub/api": "./dist/hub/api/index.js",
     "./hub/api/*": "./dist/hub/api/*.js",
     "./compute/*": "./dist/compute/*.js",
+    "./sync-files": "./dist/sync-files/index.js",
     "./service": "./dist/service/index.js",
     "./project/api": "./dist/project/api/index.js",
+    "./project/mutagen": "./dist/project/mutagen/index.js",
+    "./project/terminal": "./dist/project/terminal/index.js",
     "./browser-api": "./dist/browser-api/index.js",
     "./*": "./dist/*.js"
   },
@@ -39,6 +45,7 @@
   "dependencies": {
     "@cocalc/comm": "workspace:*",
     "@cocalc/conat": "workspace:*",
+    "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.4.1",
     "@msgpack/msgpack": "^3.1.1",
@@ -51,14 +58,14 @@
     "js-base64": "^3.7.7",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
+    "mime-types": "^3.0.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "utf-8-validate": "^6.0.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/json-stable-stringify": "^1.0.32",
-    "@types/lodash": "^4.14.202",
+    "@types/lodash": "^4.17.20",
     "@types/node": "^18.16.14"
   },
   "repository": {

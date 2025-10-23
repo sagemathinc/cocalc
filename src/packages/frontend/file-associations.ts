@@ -569,6 +569,21 @@ file_associations["sagews"] = {
   exclude_from_compute_server: true,
 };
 
+// some things in ~/.ssh
+for (const m of ["authorized_keys", "config", "id_ed25519.pub"]) {
+  file_associations["noext-" + m] = {
+    editor: "codemirror",
+    icon: "cogs",
+    opts: {
+      mode: "text",
+      indent_unit: 4,
+      tab_size: 4,
+    },
+    name: "Text",
+    ext: "",
+  };
+}
+
 export function excludeFromComputeServer(path: string): boolean {
   const ext = filename_extension(path);
   const x = file_associations[ext];

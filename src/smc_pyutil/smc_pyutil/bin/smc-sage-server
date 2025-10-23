@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-if which sage >/dev/null; then
-    sage -python -c "from smc_sagews.sage_server_command_line import main; main('$1')"
-fi

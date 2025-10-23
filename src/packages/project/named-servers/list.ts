@@ -24,29 +24,7 @@ type CommandFunction = (
   ip: string,
   port: number,
   basePath: string,
-) => Promise<string>;
-
-// Disables JupyterLab RTC since it is still very buggy, unfortunately.
-/*
-Reported:
-1. The steps I’ve taken:
-* Start a JupyterLabs Notebook server from my project settings
-* In the server, open & edit a Jupyter Notebook w/ Python 3 system-wide kernel
-* (Optional) Shutdown project/close browser tab
-* Walk away, return 30+ minutes later
-* (Optional) Restart project/server
-* Edit already open notebook, try to save/export/download
-
-2. What happened:
-Editing the notebook behaves as usual (code runs), I can access the file system, interact with a terminal, but any changes I make to this already-open notebook won’t save.
-
-I also saw almost exactly this happen in the JupyterLab weekly meeting
-with the latest beta in early November (that was even worse, since refreshing
-maybe didn't even work).
-*/
-
-// If you want to enable it, set the environment variable in Project Settings {"COCALC_JUPYTERLAB_RTC": "true"}
-const JUPYTERLAB_RTC = process.env.COCALC_JUPYTERLAB_RTC === "true";
+) => Promise<string[]>;
 
 // iopub params for jupyter notebook
 const JUPYTERNB_DATA =
@@ -60,7 +38,11 @@ const JUPYTERLAB_DATA =
 const JUPYTERLAB_MSGS =
   process.env.COCALC_JUPYTER_LAB_iopub_msg_rate_limit ?? 50;
 
-async function rserver(_ip: string, port: number, basePath: string) {
+async function rserver(
+  _ip: string,
+  port: number,
+  basePath: string,
+): Promise<string[]> {
   // tmp: this is used to write a small config file and then use it
   const tmp = join(process.env.TMP ?? "/tmp", "rserver");
   await mkdir(tmp, { recursive: true });
@@ -90,65 +72,94 @@ async function rserver(_ip: string, port: number, basePath: string) {
   // watch out, this will be prefixed with #!/bin/sh and piped into stdout/stderr files
   // part from that, rserver must be in the $PATH
   // see note at project/configuration::get_rserver
+  if (!basePath.endsWith("/")) {
+    basePath += "/";
+  }
   return [
     `rserver`,
     `--server-daemonize=0`,
     `--auth-none=1`,
     `--auth-encrypt-password=0`,
     `--server-user=${user}`,
-    `--database-config-file="${db_conf}"`,
-    `--server-data-dir="${data}"`,
-    `--server-working-dir="${process.env.HOME}"`,
+    `--database-config-file=${db_conf}`,
+    `--server-data-dir=${data}`,
+    `--server-working-dir=${process.env.HOME}`,
     `--www-port=${port}`,
-    `--www-root-path="${basePath}/"`, // www-root-path needs the trailing slash and it must be "server", not "port"
-    `--server-pid-file="${join(tmp, "rserver.pid")}"`,
-  ].join(" ");
+    `--www-root-path=${basePath}`,
+    `--server-pid-file=${join(tmp, "rserver.pid")}`,
+    "--auth-minimum-user-id=0",
+  ];
 }
 
 const SPEC: { [name in NamedServerName]: CommandFunction } = {
-  code: async (ip: string, port: number) =>
-    `code-server --bind-addr=${ip}:${port} --auth=none`,
-  jupyter: async (ip: string, port: number, basePath: string) =>
-    [
-      `jupyter notebook`,
-      `--port-retries=0`,
-      `--no-browser`,
-      `--NotebookApp.iopub_data_rate_limit=${JUPYTERNB_DATA}`,
-      `--NotebookApp.iopub_msg_rate_limit=${JUPYTERNB_MSGS}`,
-      // we run Jupyter NB without authentication, because everything is proxied through CoCalc anyway
-      `--NotebookApp.token='' --NotebookApp.password=''`,
-      `--NotebookApp.allow_remote_access=True`,
-      `--NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js`,
-      `--NotebookApp.base_url=${basePath} --ip=${ip} --port=${port}`,
-    ].join(" "),
-  jupyterlab: async (ip: string, port: number, basePath: string) =>
-    [
-      "jupyter lab",
-      `--port-retries=0`, // don't try another port, only the one we specified will work
-      `--no-browser`, // don't open a browser – the UI does this if appliable
-      `--NotebookApp.iopub_data_rate_limit=${JUPYTERLAB_DATA}`,
-      `--NotebookApp.iopub_msg_rate_limit=${JUPYTERLAB_MSGS}`,
-      // we run Jupyter Lab without authentication, because everything is proxied through CoCalc anyway
-      `--NotebookApp.token='' --NotebookApp.password=''`,
-      // additionally to the above, and since several Jupyter Lab across projects might interfere with each other, we disable XSRF protection
-      // see https://github.com/sagemathinc/cocalc/issues/6492
-      `--ServerApp.disable_check_xsrf=True`, // Ref: https://jupyter-server.readthedocs.io/en/latest/other/full-config.html
-      `--NotebookApp.allow_remote_access=True`,
-      `--NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js`,
-      `--NotebookApp.base_url=${basePath}`,
-      `--ip=${ip}`,
-      `--port=${port}`,
-      `${JUPYTERLAB_RTC ? "--collaborative" : ""}`,
-    ].join(" "),
-  pluto: async (ip: string, port: number) =>
-    `echo 'import Pluto; Pluto.run(launch_browser=false, require_secret_for_access=false, host="${ip}", port=${port})' | julia`,
+  xpra: async (ip: string, port: number) => [
+    "xpra",
+    "start",
+    `--bind-tcp=${ip}:${port}`,
+    "--sharing=yes",
+    "--daemon=no",
+    "--start=/usr/bin/xterm",
+  ],
+  code: async (ip: string, port: number) => [
+    `code-server`,
+    `--bind-addr=${ip}:${port}`,
+    `--auth=none`,
+  ],
+
+  jupyter: async (ip: string, port: number, basePath: string) => [
+    `jupyter`,
+    `notebook`,
+    `--allow-root`,
+    `--port-retries=0`,
+    `--no-browser`,
+    `--NotebookApp.iopub_data_rate_limit=${JUPYTERNB_DATA}`,
+    `--NotebookApp.iopub_msg_rate_limit=${JUPYTERNB_MSGS}`,
+    `--NotebookApp.token=`,
+    `--NotebookApp.password=`,
+    `--NotebookApp.allow_remote_access=True`,
+    `--NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js`,
+    `--NotebookApp.base_url=${basePath}`,
+    `--ip=${ip}`,
+    `--port=${port}`,
+  ],
+
+  jupyterlab: async (ip: string, port: number, basePath: string) => [
+    "jupyter",
+    "lab",
+    `--allow-root`,
+    `--port-retries=0`, // don't try another port, only the one we specified will work
+    `--no-browser`, // don't open a browser – the UI does this if appliable
+    `--NotebookApp.iopub_data_rate_limit=${JUPYTERLAB_DATA}`,
+    `--NotebookApp.iopub_msg_rate_limit=${JUPYTERLAB_MSGS}`,
+    `--NotebookApp.token=`,
+    `--NotebookApp.password=`,
+    // additionally to the above, and since several Jupyter Lab across projects might interfere with each other, we disable XSRF protection
+    // see https://github.com/sagemathinc/cocalc/issues/6492
+    `--ServerApp.disable_check_xsrf=True`, // Ref: https://jupyter-server.readthedocs.io/en/latest/other/full-config.html
+    `--NotebookApp.allow_remote_access=True`,
+    `--NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js`,
+    `--NotebookApp.base_url=${basePath}`,
+    `--ip=${ip}`,
+    `--port=${port}`,
+    // could be an option, but requires another package which could be tricky to install... "pip install jupyter_collaboration";
+    // on standard ubuntu 25.04 i got errors trying to install this package.  This should thus be optional and maybe part
+    // of some special container or package or something (?).
+    // TODO: We need to make it easy for users to customize app launchers.
+    // `--collaborative`,
+  ],
+
+  pluto: async (ip: string, port: number) => [
+    `julia`,
+    `-e`,
+    `import Pluto; Pluto.run(launch_browser=false, require_secret_for_access=false, host="${ip}", port=${port})`,
+  ],
   rserver,
 } as const;
 
-export default function getSpec(name: NamedServerName): CommandFunction {
+export default function getSpec(name: string): CommandFunction {
   const spec = SPEC[name];
   if (spec == null) {
-    throw Error(`unknown named server: "${name}"`);
+    throw Error(`unknown application: "${name}"`);
   }
   return spec;
 }
