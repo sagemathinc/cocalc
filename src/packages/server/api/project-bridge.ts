@@ -51,7 +51,12 @@ async function callProject({
     service: "api",
   });
   try {
-    const data = { name, args };
+    // For system.test(), inject project_id into args[0] if not already present
+    let finalArgs = args;
+    if (name === "system.test" && (!args || args.length === 0)) {
+      finalArgs = [{ project_id }];
+    }
+    const data = { name, args: finalArgs };
     // we use waitForInterest because often the project hasn't
     // quite fully started.
     const resp = await client.request(subject, data, {

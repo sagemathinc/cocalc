@@ -9,9 +9,7 @@ def handle_error(x: Any) -> Any:
     return x
 
 
-def api_method(name: str,
-               opts: bool = False,
-               timeout_seconds: bool = False) -> Callable:
+def api_method(name: str, opts: bool = False, timeout_seconds: bool = False) -> Callable:
     """
     Decorator for CoCalcAPI methods.
     Converts arguments (excluding self) into a dict, removes None values,
@@ -32,11 +30,7 @@ def api_method(name: str,
             # Bind args/kwargs to parameter names
             bound = sig.bind(self, *args, **kwargs)
             bound.apply_defaults()
-            args_dict = {
-                k: v
-                for k, v in bound.arguments.items()
-                if k != "self" and v is not None
-            }
+            args_dict = {k: v for k, v in bound.arguments.items() if k != "self" and v is not None}
             if timeout_seconds and 'timeout' in args_dict:
                 timeout = 1000 * args_dict['timeout']
             else:

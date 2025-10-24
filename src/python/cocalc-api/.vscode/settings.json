@@ -1,0 +1,14 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.linting.enabled": true,
+    "python.analysis.extraPaths": ["./src"],
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true
+    },
+    "pylance.insidersChannel": "off",
+    "python.venvFolderPath": ".venv"
+}
