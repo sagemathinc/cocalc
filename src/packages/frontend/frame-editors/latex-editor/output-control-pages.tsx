@@ -88,7 +88,7 @@ export function PageNavigationControls({
   }
 
   return (
-    <div style={CONTROL_PAGE_STYLE}>
+    <div style={CONTROL_PAGE_STYLE} role="region" aria-label="Page navigation">
       <InputNumber
         size="small"
         style={{

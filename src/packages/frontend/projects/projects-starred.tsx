@@ -255,7 +255,7 @@ export function StarredProjectsBar() {
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            paddingLeft: "5px"
+            paddingLeft: "5px",
           }}
         >
           {project.avatar_image_tiny ? (
@@ -270,7 +270,12 @@ export function StarredProjectsBar() {
   }));
 
   return (
-    <div ref={containerRef} style={STARRED_BAR_STYLE}>
+    <div
+      ref={containerRef}
+      style={STARRED_BAR_STYLE}
+      role="region"
+      aria-label={`Starred (${starredProjects.length})`}
+    >
       <Space size="small" ref={spaceRef}>
         {/* Show all buttons during initial measurement, then only visible ones */}
         {(!measurementComplete ? starredProjects : visibleProjects).map(

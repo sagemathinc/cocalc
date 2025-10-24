@@ -103,7 +103,12 @@ export function PDFControls({
   }, []);
 
   return (
-    <div ref={containerRef} style={CONTROL_STYLE}>
+    <div
+      ref={containerRef}
+      style={CONTROL_STYLE}
+      role="region"
+      aria-label="PDF controls"
+    >
       {/* Left side: Build Controls */}
       <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
         <BuildControls actions={actions} id={id} narrow={narrow} />

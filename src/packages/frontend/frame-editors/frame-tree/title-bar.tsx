@@ -1308,6 +1308,14 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
+  function renderI18N(label: string | IntlMessage): string {
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
   let style;
   style = copy(title_bar_style);
   style.background = is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK;
@@ -1334,10 +1342,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   return (
     <>
       <div style={{ opacity: !is_active ? 0.6 : undefined }}>
+        {/* ARIA: region for editor title bar with menus, buttons, and controls */}
         <div
           style={style}
           id={`titlebar-${props.id}`}
           className={"cc-frame-tree-title-bar"}
+          role="region"
+          aria-label={`${renderI18N(props.spec.name)} editor toolbar`}
         >
           {renderMainMenusAndButtons()}
           {is_active && renderConnectionStatus()}

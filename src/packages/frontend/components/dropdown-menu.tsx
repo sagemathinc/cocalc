@@ -77,6 +77,9 @@ export function DropdownMenu({
       id={id}
       size={size}
       type={button ? undefined : "text"}
+      aria-label={
+        typeof title === "string" ? `${title} menu` : title ? `menu` : "menu"
+      }
     >
       {title ? (
         <>

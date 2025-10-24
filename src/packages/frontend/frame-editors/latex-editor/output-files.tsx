@@ -75,6 +75,8 @@ export function OutputFiles({
         flexDirection: "column",
         height: "100%",
       }}
+      role="region"
+      aria-label={`Files: ${path}`}
     >
       {/* Fixed header with buttons and file count */}
       <div style={OUTPUT_HEADER_STYLE}>

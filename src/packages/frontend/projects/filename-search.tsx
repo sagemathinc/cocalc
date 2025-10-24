@@ -47,7 +47,7 @@ export function FilenameSearch({ style }: Props) {
   };
 
   return (
-    <div style={style}>
+    <div style={style} role="region" aria-label="Search">
       <Tooltip
         title={`Search filenames of files you edited in the last year.  Use % as wildcard.  At most ${MAX_FILENAME_SEARCH_RESULTS} results shown.`}
       >

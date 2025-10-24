@@ -452,7 +452,13 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     function render_cols() {
       const data = get_data("row");
       return (
-        <div ref={cols_container_ref} style={data.outer_style}>
+        // ARIA: region for vertical split editor frames
+        <div
+          ref={cols_container_ref}
+          style={data.outer_style}
+          role="region"
+          aria-label={`Vertical split: ${path}`}
+        >
           <div className={"smc-vfill"} style={data.style_first}>
             {render_one(data.first)}
           </div>
@@ -472,10 +478,13 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     function render_rows() {
       const data = get_data("column");
       return (
+        // ARIA: region for horizontal split editor frames
         <div
           className={"smc-vfill"}
           ref={rows_container_ref}
           style={data.outer_style}
+          role="region"
+          aria-label={`Horizontal split: ${path}`}
         >
           <div className={"smc-vfill"} style={data.style_first}>
             {render_one(data.first)}

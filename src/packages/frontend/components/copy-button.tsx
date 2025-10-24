@@ -31,6 +31,8 @@ export default function CopyButton({
         type="text"
         style={style}
         onClick={(e) => e.stopPropagation()}
+        aria-label={copied ? "Copied" : "Copy to clipboard"}
+        aria-live="polite"
       >
         <Icon name={copied ? "check" : "copy"} />
         {noText ? undefined : copied ? "Copied" : "Copy"}

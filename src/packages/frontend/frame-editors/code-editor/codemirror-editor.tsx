@@ -483,7 +483,12 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <div className="smc-vfill cocalc-editor-div" ref={divRef}>
+    <div
+      className="smc-vfill cocalc-editor-div"
+      ref={divRef}
+      role="region"
+      aria-label={`Editor: ${props.path}`}
+    >
       <Path
         project_id={props.project_id}
         path={props.path}

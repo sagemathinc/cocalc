@@ -199,39 +199,47 @@ export function ZoomControls({ actions, id, narrow }: ZoomControlsProps) {
   const btnStyle = narrow ? { padding: CONTROL_BUTTON_PADDING } : undefined;
 
   return (
-    <Space.Compact>
-      <Tip title={intl.formatMessage(labels.zoom_in)} placement="top">
-        <Button
-          size="small"
-          icon={<Icon name="search-plus" />}
-          onClick={handleZoomIn}
-          style={btnStyle}
-        >
-          {!narrow && intl.formatMessage(labels.zoom_in_short)}
-        </Button>
-      </Tip>
+    <div role="region" aria-label="Zoom controls">
+      <Space.Compact>
+        <Tip title={intl.formatMessage(labels.zoom_in)} placement="top">
+          <Button
+            size="small"
+            icon={<Icon name="search-plus" />}
+            onClick={handleZoomIn}
+            style={btnStyle}
+            aria-label={intl.formatMessage(labels.zoom_in)}
+          >
+            {!narrow && intl.formatMessage(labels.zoom_in_short)}
+          </Button>
+        </Tip>
 
-      <Tip title={intl.formatMessage(labels.zoom_out)} placement="top">
-        <Button
-          size="small"
-          icon={<Icon name="search-minus" />}
-          onClick={handleZoomOut}
-          style={btnStyle}
-        >
-          {!narrow && intl.formatMessage(labels.zoom_out_short)}
-        </Button>
-      </Tip>
+        <Tip title={intl.formatMessage(labels.zoom_out)} placement="top">
+          <Button
+            size="small"
+            icon={<Icon name="search-minus" />}
+            onClick={handleZoomOut}
+            style={btnStyle}
+            aria-label={intl.formatMessage(labels.zoom_out)}
+          >
+            {!narrow && intl.formatMessage(labels.zoom_out_short)}
+          </Button>
+        </Tip>
 
-      <Dropdown
-        menu={{ items: zoomMenuItems }}
-        trigger={["click"]}
-        placement="bottomRight"
-      >
-        <Button size="small">
-          {!narrow && `${currentZoomPercentage}%`}
-          <Icon name="caret-down" />
-        </Button>
-      </Dropdown>
-    </Space.Compact>
+        <Dropdown
+          menu={{ items: zoomMenuItems }}
+          trigger={["click"]}
+          placement="bottomRight"
+        >
+          <Button
+            size="small"
+            aria-label={`Zoom: ${currentZoomPercentage}%`}
+            aria-haspopup="menu"
+          >
+            {!narrow && `${currentZoomPercentage}%`}
+            <Icon name="caret-down" />
+          </Button>
+        </Dropdown>
+      </Space.Compact>
+    </div>
   );
 }
