@@ -258,7 +258,12 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (fullscreen && fullscreen !== "project") return;
 
     return (
-      <div style={{ display: "flex", flexDirection: "row" }}>
+      // ARIA: aside element for right sidebar (flyout panel)
+      <aside
+        role="complementary"
+        aria-label="Project sidebar"
+        style={{ display: "flex", flexDirection: "row" }}
+      >
         <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
@@ -270,7 +275,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             oldFlyoutWidth={oldFlyoutWidth}
           />
         </DndContext>
-      </div>
+      </aside>
     );
   }
 
@@ -298,10 +303,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           width={homePageButtonWidth}
         />
         {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+        {/* ARIA: nav element for file tab navigation (2nd level navigation) */}
+        <nav
+          style={{ flex: 1, overflow: "hidden", display: "flex" }}
+          aria-label="Open files"
+        >
           <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
           <ProjectTabs project_id={project_id} />
-        </div>
+        </nav>
       </div>
     );
   }
@@ -343,7 +352,10 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       );
     } else {
       return (
-        <div
+        // ARIA: aside element for activity bar (complementary navigation sidebar)
+        <aside
+          role="complementary"
+          aria-label="Project activity bar"
           style={{
             flex: "0 0 auto",
             display: "flex",
@@ -355,15 +367,18 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           }}
         >
           <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
-        </div>
+        </aside>
       );
     }
   }
 
   function renderMainContent() {
     return (
+      // ARIA: main element for primary editor content
       <div
         ref={mainRef}
+        role="main"
+        aria-label="Editor content"
         style={{
           flex: 1,
           display: "flex",
