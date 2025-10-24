@@ -359,8 +359,9 @@ export const Page: React.FC = () => {
 
   // Children must define their own padding from navbar and screen borders
   // Note that the parent is a flex container
+  // ARIA: main element serves as the primary landmark for the entire application
   const body = (
-    <div
+    <main
       style={PAGE_STYLE}
       onDragOver={(e) => e.preventDefault()}
       onDrop={drop}
@@ -378,7 +379,11 @@ export const Page: React.FC = () => {
       {show_i18n && <I18NBanner />}
       <VerifyEmail />
       {!fullscreen && (
-        <nav className="smc-top-bar" style={topBarStyle}>
+        <nav
+          className="smc-top-bar"
+          style={topBarStyle}
+          aria-label="Main navigation"
+        >
           <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
           {!isNarrow ? (
@@ -398,7 +403,7 @@ export const Page: React.FC = () => {
       <PayAsYouGoModal />
       <PopconfirmModal />
       <SettingsModal />
-    </div>
+    </main>
   );
   return (
     <ClientContext.Provider value={{ client: webapp_client }}>

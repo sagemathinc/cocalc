@@ -323,7 +323,11 @@ export function Output(props: OutputProps) {
         </span>
       ),
       children: (
-        <div className="smc-vfill">
+        <div
+          className="smc-vfill"
+          role="region"
+          aria-label={`PDF preview: ${path}${totalPages > 0 ? ` (${totalPages} pages)` : ""}`}
+        >
           <PDFControls
             actions={actions}
             id={id}
@@ -398,6 +402,8 @@ export function Output(props: OutputProps) {
             flexDirection: "column",
             height: "100%",
           }}
+          role="region"
+          aria-label={`Table of contents: ${path}`}
         >
           <div style={OUTPUT_HEADER_STYLE}>
             <span style={LABEL_STYLE}>
@@ -448,7 +454,11 @@ export function Output(props: OutputProps) {
         </span>
       ),
       children: (
-        <div className="smc-vfill">
+        <div
+          className="smc-vfill"
+          role="region"
+          aria-label={`Build output: ${path}`}
+        >
           <Build
             name={name}
             actions={actions}
@@ -516,7 +526,11 @@ export function Output(props: OutputProps) {
         </span>
       ),
       children: (
-        <div className="smc-vfill">
+        <div
+          className="smc-vfill"
+          role="region"
+          aria-label={`Errors and warnings: ${path}${errors > 0 ? ` (${errors} error${errors !== 1 ? "s" : ""})` : ""}${warnings > 0 ? ` (${warnings} warning${warnings !== 1 ? "s" : ""})` : ""}`}
+        >
           <ErrorsAndWarnings
             id={id}
             name={name}
@@ -575,6 +589,7 @@ export function Output(props: OutputProps) {
           wordCount={wordCount}
           refreshWordCount={refreshWordCount}
           uiFontSize={uiFontSize}
+          path={path}
         />
       ),
     };
@@ -633,7 +648,12 @@ export function Output(props: OutputProps) {
   }
 
   return (
-    <div className="smc-vfill" style={{ position: "relative" }}>
+    <div
+      className="smc-vfill"
+      style={{ position: "relative" }}
+      role="region"
+      aria-label={`LaTeX output: ${path}`}
+    >
       <div
         className="smc-vfill"
         style={{
