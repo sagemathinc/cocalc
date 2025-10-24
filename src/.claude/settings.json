@@ -17,6 +17,7 @@
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
       "Bash(git diff:*)",
+      "Bash(git log:*)",
       "Bash(git push:*)",
       "Bash(grep:*)",
       "Bash(ln:*)",
