@@ -27,6 +27,8 @@ interface Params {
   // I added this to avoid leaks with unit testing, but it may be useful in other contexts, e.g.,
   // avoiding confusion with self-hosted installs.
   noFirstProject?: boolean;
+  // if set, create the first project but do not start it. Only applies if noFirstProject is false.
+  dontStartProject?: boolean;
 }
 
 export default async function createAccount({
@@ -39,6 +41,7 @@ export default async function createAccount({
   signupReason,
   owner_id,
   noFirstProject,
+  dontStartProject,
 }: Params): Promise<void> {
   try {
     log.debug(
@@ -78,6 +81,7 @@ export default async function createAccount({
       account_id,
       tags,
       noFirstProject,
+      dontStartProject,
     });
     await creationActionsDone(account_id);
   } catch (error) {
@@ -85,4 +89,3 @@ export default async function createAccount({
     throw error; // re-throw to bubble up to higher layers if needed
   }
 }
-

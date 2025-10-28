@@ -40,7 +40,7 @@ export default async function handle(req, res) {
       throw Error("must specify project_id or use project-specific api key");
     }
     if (project_id0) {
-      // auth via project_id
+      // auth via project-specific API key
       if (project_id0 != project_id) {
         throw Error("project specific api key must match requested project");
       }
@@ -58,6 +58,11 @@ export default async function handle(req, res) {
       args,
       timeout,
     });
+    // For project-scoped API keys, include the project_id in the response
+    // so the client can discover it
+    if (project_id0 && !resp.project_id) {
+      resp.project_id = project_id0;
+    }
     res.json(resp);
   } catch (err) {
     res.json({ error: err.message });
