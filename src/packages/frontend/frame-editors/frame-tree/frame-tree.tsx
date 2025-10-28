@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore subframe
+
 /*
 FrameTree -- a binary tree of editor frames.
 

@@ -338,16 +338,21 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function render_x(): Rendered {
+    const closeLabel = intl.formatMessage({
+      id: "frame_editors.frame_tree.title_bar.close",
+      defaultMessage:
+        "Close this frame. To restore the default layout, close all frames.",
+      description: "Click this X button to close the frame",
+    });
     return (
-      <Tooltip
-        title={intl.formatMessage({
-          id: "frame_editors.frame_tree.title_bar.close",
-          defaultMessage:
-            "Close this frame. To restore the default layout, close all frames.",
-          description: "Click this X button to close the frame",
-        })}
-      >
-        <Button key={"close"} size="small" type="text" onClick={click_close}>
+      <Tooltip title={closeLabel}>
+        <Button
+          key={"close"}
+          size="small"
+          type="text"
+          onClick={click_close}
+          aria-label={closeLabel}
+        >
           <Icon name={"times"} />
         </Button>
       </Tooltip>
@@ -358,6 +363,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     return (
       <div
         key="control-buttons-group"
+        role="region"
+        aria-label={`Layout controls for ${path_split(props.path).tail}`}
         style={{
           overflow: "hidden",
           display: "inline-block",
@@ -385,14 +392,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   function render_full(): Rendered {
     if (props.is_full) {
+      const minimizeLabel = intl.formatMessage({
+        id: "frame_editors.frame_tree.title_bar.minimize",
+        defaultMessage: "Show all frames",
+        description: "Minimize this frame to show all frames",
+      });
       return (
-        <Tooltip
-          title={intl.formatMessage({
-            id: "frame_editors.frame_tree.title_bar.minimize",
-            defaultMessage: "Show all frames",
-            description: "Minimize this frame to show all frames",
-          })}
-        >
+        <Tooltip title={minimizeLabel}>
           <Button
             disabled={props.is_only}
             key={"full-screen-button"}
@@ -406,20 +412,20 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               color: darkMode ? "yellowgreen" : undefined,
               background: !darkMode ? "yellowgreen" : undefined,
             }}
+            aria-label={minimizeLabel}
           >
             <Icon name={"compress"} />
           </Button>
         </Tooltip>
       );
     } else {
+      const maximizeLabel = intl.formatMessage({
+        id: "frame_editors.frame_tree.title_bar.maximize",
+        defaultMessage: "Show only this frame",
+        description: "Maximize this frame to show only this one",
+      });
       return (
-        <Tooltip
-          title={intl.formatMessage({
-            id: "frame_editors.frame_tree.title_bar.maximize",
-            defaultMessage: "Show only this frame",
-            description: "Maximize this frame to show only this one",
-          })}
-        >
+        <Tooltip title={maximizeLabel}>
           <Button
             disabled={props.is_only}
             key={"full-screen-button"}
@@ -429,6 +435,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               track("set-full");
               props.actions.set_frame_full(props.id);
             }}
+            aria-label={maximizeLabel}
           >
             <Icon name={"expand"} />
           </Button>
@@ -438,10 +445,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function render_split_row(): Rendered {
+    const splitHorizontalLabel = intl.formatMessage(
+      labels.split_frame_horizontally_title,
+    );
     return (
-      <Tooltip
-        title={intl.formatMessage(labels.split_frame_horizontally_title)}
-      >
+      <Tooltip title={splitHorizontalLabel}>
         <Button
           key={"split-row-button"}
           size="small"
@@ -456,6 +464,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               return props.actions.split_frame("row", props.id);
             }
           }}
+          aria-label={splitHorizontalLabel}
         >
           <Icon name="horizontal-split" />
         </Button>
@@ -464,8 +473,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function render_split_col(): Rendered {
+    const splitVerticalLabel = intl.formatMessage(
+      labels.split_frame_vertically_title,
+    );
     return (
-      <Tooltip title={intl.formatMessage(labels.split_frame_vertically_title)}>
+      <Tooltip title={splitVerticalLabel}>
         <Button
           key={"split-col-button"}
           size="small"
@@ -480,6 +492,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               return props.actions.split_frame("col", props.id);
             }
           }}
+          aria-label={splitVerticalLabel}
         >
           <Icon name="vertical-split" />
         </Button>
@@ -726,8 +739,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
@@ -834,7 +847,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     // a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them.
     return (
-      <div
+      <nav
+        aria-label={`${renderI18N(props.spec.name)} editor controls and menus for ${path_split(props.path).tail}`}
         style={{
           flexFlow: "row nowrap",
           display: "flex",
@@ -844,7 +858,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         }}
       >
         {renderButtons()}
-      </div>
+      </nav>
     );
   }
 
@@ -907,6 +921,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               background: showMainButtonsPopover ? "#eee" : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
+            aria-label={`${showMainButtonsPopover ? "Hide" : "Show"} more editor commands`}
+            aria-expanded={showMainButtonsPopover}
           >
             <Icon name="ellipsis" rotate="90" />
           </Button>
@@ -936,7 +952,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       : CONNECTION_STATUS_STYLE;
 
     return (
-      <span style={style} title={props.connection_status}>
+      <span
+        style={style}
+        title={props.connection_status}
+        aria-live="polite"
+        aria-label={`Connection status: ${props.connection_status}`}
+      >
         <ConnectionStatusIcon status={props.connection_status} />
       </span>
     );
@@ -1173,10 +1194,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if (v.length == 0) {
       return null;
     }
+    const ariaLabel =`Symbols and outline for ${path_split(props.path).tail}`
     // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
     if (showSymbolBarLabels) {
       return wrapButtonBarContextMenu(
         <div
+          role="region"
+          aria-label={ariaLabel}
           style={{
             borderBottom: popup ? undefined : "1px solid #ccc",
             background: "#fafafa",
@@ -1188,7 +1212,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       );
     } else {
       return wrapButtonBarContextMenu(
-        <div style={{ marginTop: "3px" }}>{v}</div>,
+        <div
+          role="region"
+          aria-label={ariaLabel}
+          style={{ marginTop: "3px" }}
+        >
+          {v}
+        </div>,
       );
     }
   }

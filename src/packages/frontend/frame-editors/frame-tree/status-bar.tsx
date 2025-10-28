@@ -13,9 +13,12 @@ This is basically used now as "ephemeral messages".
 */
 
 import { CSSProperties } from "react";
+
 import { Icon, Gap } from "@cocalc/frontend/components";
 
-const STYLE = {
+type CSS = CSSProperties;
+
+const STYLE: CSS = {
   opacity: 0.85,
   position: "fixed",
   bottom: "0px",
@@ -29,7 +32,7 @@ const STYLE = {
   fontSize: "9pt",
   background: "#fff",
   boxShadow: "-2px -2px 2px #ccc",
-} as CSSProperties;
+} as const;
 
 interface Props {
   status: string;
@@ -38,11 +41,25 @@ interface Props {
 
 export default function StatusBar({ status, onClear }: Props) {
   return (
-    <div style={STYLE}>
+    <div
+      style={STYLE}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label={`Editor status: ${status}`}
+    >
       <Icon
         name="times"
         onClick={onClear}
         style={{ float: "right", marginTop: "2.5px" }}
+        role="button"
+        tabIndex={0}
+        aria-label="Clear status message"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            onClear();
+          }
+        }}
       />
       {status}
       <Gap />

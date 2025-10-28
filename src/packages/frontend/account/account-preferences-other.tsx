@@ -15,13 +15,15 @@ export function AccountPreferencesOther() {
   const kucalc = useTypedRedux("customize", "kucalc");
 
   return (
-    <OtherSettings
-      other_settings={other_settings}
-      is_stripe_customer={
-        !!stripe_customer?.getIn(["subscriptions", "total_count"])
-      }
-      kucalc={kucalc}
-      mode="other"
-    />
+    <div role="region" aria-label="Other settings">
+      <OtherSettings
+        other_settings={other_settings}
+        is_stripe_customer={
+          !!stripe_customer?.getIn(["subscriptions", "total_count"])
+        }
+        kucalc={kucalc}
+        mode="other"
+      />
+    </div>
   );
 }

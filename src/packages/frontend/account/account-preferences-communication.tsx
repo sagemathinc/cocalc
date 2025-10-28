@@ -114,18 +114,20 @@ export function AccountPreferencesCommunication(): React.JSX.Element {
   }
 
   return (
-    <Panel
-      size="small"
-      header={
-        <>
-          <Icon name={COMMUNICATION_ICON_NAME} />{" "}
-          {intl.formatMessage(labels.communication)}
-        </>
-      }
-    >
-      {render_global_banner()}
-      {render_no_free_warnings()}
-      {render_no_email_new_messages()}
-    </Panel>
+    <div role="region" aria-label="Communication settings">
+      <Panel
+        size="small"
+        header={
+          <>
+            <Icon name={COMMUNICATION_ICON_NAME} />{" "}
+            {intl.formatMessage(labels.communication)}
+          </>
+        }
+      >
+        {render_global_banner()}
+        {render_no_free_warnings()}
+        {render_no_email_new_messages()}
+      </Panel>
+    </div>
   );
 }

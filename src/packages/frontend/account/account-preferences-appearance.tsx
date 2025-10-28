@@ -292,7 +292,7 @@ export function AccountPreferencesAppearance() {
   }
 
   return (
-    <>
+    <div role="region" aria-label="Appearance settings">
       {renderUserInterfacePanel()}
       <OtherSettings
         other_settings={other_settings}
@@ -311,6 +311,6 @@ export function AccountPreferencesAppearance() {
         font_size={font_size}
       />
       <TerminalSettings />
-    </>
+    </div>
   );
 }

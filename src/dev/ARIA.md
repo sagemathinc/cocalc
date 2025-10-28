@@ -1,1307 +1,126 @@
 # ARIA Landmarks and Accessibility in CoCalc Frontend
 
-This document explains how to implement ARIA landmarks in the CoCalc frontend to enable proper landmark-based navigation for assistive technology users (screen readers, keyboard navigation tools, etc.).
+This document explains how to implement ARIA landmarks in the CoCalc frontend to enable proper landmark-based navigation for assistive technology users.
 
 ## What are ARIA Landmarks?
 
-ARIA landmarks are a set of **eight roles** that identify the major sections of a web page. They enable:
-
-1. **Better Navigation** - Screen reader and keyboard users can jump between major page sections
-2. **Semantic Structure** - Clear communication of page organization beyond visual layout
-3. **Accessibility Compliance** - Support for keyboard-based landmark navigation ("landmark mode")
-
-The eight landmark roles are:
+ARIA landmarks identify major page sections for screen reader navigation. The eight landmark roles are:
 
 - **`main`** - Primary content area
-- **`navigation`** - Navigation links and sections
-- **`search`** - Search functionality
-- **`banner`** - Site header/branding area
-- **`contentinfo`** - Footer information
-- **`complementary`** - Supplementary content (sidebars, related info)
-- **`form`** - Form containers
-- **`region`** - Generic labeled sections (requires `aria-label` or `aria-labelledby`)
+- **`navigation`** - Navigation links/sections
+- **`complementary`** - Sidebars, supplementary content
+- **`region`** - Generic sections (requires `aria-label`)
+- **`search`**, **`banner`**, **`contentinfo`**, **`form`** - Specialized roles as needed
 
 ## CoCalc Frontend Structure
 
-The CoCalc frontend has a **three-level hierarchy** of navigation and content areas:
+The frontend has a **three-level hierarchy**:
 
-### Level 1: Application Shell (`app/page.tsx`)
+1. **Application Shell** - Top navigation, project tabs, main content area
+2. **Project Workspace** - File tabs, activity bar, editor, sidebar
+3. **Editor Features** - Toolbars, symbols, content areas
 
-The root of the entire application with top-level navigation:
+## Implementation Guidelines
 
-- **Main navigation bar** - Switches between projects, settings, admin, account
-- **Projects navigation** - Horizontal tabs showing open projects
-- **Main content area** - The currently active project or page
+### Core Principles
 
-### Level 2: Project Workspace (`project/page/page.tsx`)
+1. **Use semantic HTML first** - `<main>`, `<nav>`, `<aside>`, `<footer>` automatically create landmarks
+2. **Use `role="region"` + `aria-label`** for custom sections
+3. **Make labels dynamic and context-aware** - Include relevant details (file names, types, counts)
+4. **Keep labels concise** - Use abbreviations when context is clear (e.g., "PDF (12p): {path}")
+5. **Maximum ~7 landmarks per page** - Avoid landmark overload
 
-Inside each project, a secondary level of structure:
+### Pattern: Labeled Regions
 
-- **File tab bar** - Navigation between open files within the project (2nd level of navigation)
-- **Activity bar** - Vertical sidebar with project tools and features
-- **Editor area** - Main content area for the active file/editor
-- **Flyout panel** - Optional right sidebar for chat, collaborators, etc.
+```tsx
+// Navigation
+<nav aria-label="Settings menu">...</nav>
 
-### Level 3: Editor Features (within `Content` components)
+// Sidebar/supplementary content
+<aside role="complementary" aria-label="Project filters">...</aside>
 
-Inside each editor:
+// Custom sections with role="region"
+<div role="region" aria-label="Editor: script.py">...</div>
+<div role="region" aria-label="Build log: document.tex">...</div>
 
-- **Toolbars and menus** - Editor-specific controls
-- **Symbol bars** - Language-specific panels
-- **Editor content** - The actual file being edited
-
-## Implementing Landmarks in CoCalc
-
-### Best Practices
-
-1. **Maximum 7 landmarks per page** - Too many landmarks reduce their utility
-2. **Every major content section should be within a landmark** - Avoid content outside landmarks
-3. **Use semantic HTML when possible** - `<main>`, `<nav>`, `<aside>`, `<footer>` automatically create landmarks
-4. **Use `aria-label` for distinguishing between similar landmark types** - When you have multiple `<aside>` or `region` elements, labels help users identify which is which
-5. **Meaningful labels** - "Editor content" is better than "main" for a `region`
-
-### Landmark Placement Strategy for CoCalc
-
+// Heading-based labels (alternative to aria-label)
+<h2 id="section-id">My Section</h2>
+<div role="region" aria-labelledby="section-id">...</div>
 ```
-<main>  // Application root - primary content area
 
-  <nav aria-label="Application navigation">
-    // Logo, top-level tabs (projects, settings, admin), account menu
-  </nav>
+### Dynamic Label Examples
 
-  <div>  // Projects navigation bar
-    // Individual project tabs
+- Menu/Navigation: `"Account settings menu"`, `"Open files in {projectName}"`
+- Regions: `"Editor: {filePath}"`, `"Build log: {filePath}"`
+- Sections with counts: `"Projects list (5 total)"`, `"Issues (2e 1w): {path}"`
+- Conditional content: Update aria-label when content changes
+
+## Split Editors with Multiple Frames
+
+When editors are split into multiple frames, use nested regions with clear labels:
+
+- Outer region: describes the split direction and file path
+- Inner regions: describe each frame's content type
+
+Example patterns:
+
+```tsx
+// Outer split container
+<div role="region" aria-label={`Vertical split: ${path}`}>
+  <div role="region" aria-label={`Code: ${path}`}>
+    {/* code frame */}
   </div>
-
-  <div>  // Active project workspace
-
-    <nav aria-label="Open files">
-      // ProjectTabs - file tab bar (2nd level)
-    </nav>
-
-    <div style={{ display: "flex" }}>
-
-      <aside role="complementary" aria-label="Project activity bar">
-        // Activity bar buttons and icons
-      </aside>
-
-      <main role="main" aria-label="Editor content">
-        // Current editor, file content, or project page
-
-        <nav aria-label="Editor toolbar">
-          // Editor-specific controls and commands
-        </nav>
-
-        <div role="region" aria-label="Editor symbols">
-          // Language-specific symbol bar or outline panel
-        </div>
-
-        <div role="region" aria-label="File content">
-          // The actual editor content area
-        </div>
-      </main>
-
-      <aside role="complementary" aria-label="Project sidebar">
-        // Flyout panel - chat, collaborators, etc.
-      </aside>
-
-    </div>
-  </div>
-</main>
-```
-
-## Using ARIA Landmarks in React/TSX
-
-### Basic Semantic HTML Approach
-
-The simplest approach uses semantic HTML elements which automatically create landmarks:
-
-```tsx
-import React from "react";
-
-export const Page: React.FC = () => {
-  return (
-    <main>
-      <nav>{/* Top-level navigation */}</nav>
-
-      <aside>{/* Complementary content */}</aside>
-
-      <footer>{/* Footer information */}</footer>
-    </main>
-  );
-};
-```
-
-### Using aria-label for Clarity
-
-When you have multiple sections of the same type, use `aria-label` to distinguish them. **Make labels dynamic and context-aware** to provide more useful information:
-
-```tsx
-export const ProjectWorkspace: React.FC<{
-  projectName: string;
-  activeFile?: { path: string; type: string };
-}> = ({ projectName, activeFile }) => {
-  return (
-    <main>
-      {/* First level: app navigation */}
-      <nav aria-label="Application navigation">
-        <Logo />
-        <ProjectsNav />
-      </nav>
-
-      {/* Second level: file navigation - include project name for context */}
-      <nav aria-label={`Open files in project: ${projectName}`}>
-        <ProjectTabs />
-      </nav>
-
-      {/* Main workspace layout */}
-      <div style={{ display: "flex", flex: 1 }}>
-        {/* Left sidebar */}
-        <aside
-          role="complementary"
-          aria-label={`Project activity bar for ${projectName}`}
-        >
-          <ActivityBar />
-        </aside>
-
-        {/* Center content - dynamic label with file info */}
-        <main
-          role="main"
-          aria-label={
-            activeFile
-              ? `${activeFile.type} editor: ${activeFile.path}`
-              : "Project content"
-          }
-        >
-          <Editor />
-        </main>
-
-        {/* Right sidebar */}
-        <aside role="complementary" aria-label={`Sidebar for ${projectName}`}>
-          <Flyout />
-        </aside>
-      </div>
-    </main>
-  );
-};
-```
-
-### Using role="region" for Custom Sections
-
-For more specific sub-sections within editors or complex components, use `role="region"` with **dynamic, descriptive `aria-label`** that includes file context:
-
-```tsx
-interface EditorProps {
-  filePath: string;
-  fileType: string; // e.g., "Python", "Jupyter Notebook", "Markdown"
-  fileName: string; // e.g., "analysis.py", "notebook.ipynb"
-}
-
-export const Editor: React.FC<EditorProps> = ({
-  filePath,
-  fileType,
-  fileName,
-}) => {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-      {/* Toolbar section - include file type and name */}
-      <div
-        role="region"
-        aria-label={`${fileType} editor toolbar for ${fileName}`}
-      >
-        <EditorToolbar />
-      </div>
-
-      {/* Symbol/outline panel - specific to file */}
-      <div role="region" aria-label={`Symbols and outline for ${fileName}`}>
-        <SymbolPanel />
-      </div>
-
-      {/* Main editor content - full context */}
-      <div
-        role="region"
-        aria-label={`${fileType} editor: ${filePath}`}
-        className="editor-content"
-      >
-        <CodeEditor />
-      </div>
-    </div>
-  );
-};
-```
-
-**Example dynamic labels for different file types:**
-
-- **Jupyter Notebook** → `"Jupyter Notebook editor: /path/to/analysis.ipynb"`
-- **Python file** → `"Python editor: /path/to/script.py"`
-- **Markdown file** → `"Markdown editor: /path/to/README.md"`
-- **R file** → `"R editor: /path/to/analysis.R"`
-- **Octave/MATLAB** → `"Octave editor: /path/to/compute.m"`
-
-### With Conditional Rendering
-
-```tsx
-export const ProjectPage: React.FC = (props) => {
-  const { showFlyout, flyoutContent } = props;
-
-  return (
-    <main>
-      <nav aria-label="Open files">
-        <FileTabs />
-      </nav>
-
-      <div style={{ display: "flex", flex: 1 }}>
-        <aside role="complementary" aria-label="Activity bar">
-          <ActivityBar />
-        </aside>
-
-        <main role="main" aria-label="Editor">
-          <Content />
-        </main>
-
-        {showFlyout && (
-          <aside role="complementary" aria-label="Project sidebar">
-            {flyoutContent}
-          </aside>
-        )}
-      </div>
-    </main>
-  );
-};
-```
-
-### Using aria-labelledby for Heading Association
-
-You can also reference a heading instead of providing a label:
-
-```tsx
-export const Editor: React.FC = () => {
-  return (
-    <div>
-      <h2 id="editor-toolbar-heading">Formatting</h2>
-      <div role="region" aria-labelledby="editor-toolbar-heading">
-        {/* Toolbar content */}
-      </div>
-    </div>
-  );
-};
-```
-
-## Nested Frame Trees and Split Editors
-
-CoCalc editors can contain **nested frame trees** (defined in `packages/frontend/frame-editors/frame-tree/frame-tree.tsx`), where a single editor window can be split into multiple frames organized in a binary tree structure:
-
-- A frame can be either a **node** (a split with two child frames) or a **leaf** (an actual editor)
-- Nodes have a **direction**: `"col"` (vertical split) or `"row"` (horizontal split)
-- Each frame has a unique `id` and may represent different file types (code editors, output, terminals, etc.)
-
-### Annotating Split Frames with ARIA
-
-When a user splits an editor into multiple frames, use `role="region"` with meaningful labels that describe:
-
-1. **The position in the tree** (left/right or top/bottom)
-2. **The file type(s)** in each frame
-3. **The direction of the split**
-
-**Example: Split Jupyter Notebook (top output, bottom code)**
-
-```tsx
-interface FrameNodeProps {
-  direction: "row" | "col"; // row = horizontal split, col = vertical split
-  filePath: string;
-  fileType: string;
-  firstChildLabel: string;
-  secondChildLabel: string;
-}
-
-export const FrameNode: React.FC<FrameNodeProps> = ({
-  direction,
-  filePath,
-  fileType,
-  firstChildLabel,
-  secondChildLabel,
-}) => {
-  const splitType = direction === "col" ? "vertical split" : "horizontal split";
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: direction === "row" ? "row" : "column",
-        flex: 1,
-      }}
-      role="region"
-      aria-label={`${fileType} editor with ${splitType}: ${filePath}`}
-    >
-      {/* First frame (top or left) */}
-      <div
-        style={{ flex: 0.5 }}
-        role="region"
-        aria-label={`${firstChildLabel} in ${fileType}: ${filePath}`}
-      >
-        {/* First editor/output frame */}
-      </div>
-
-      {/* Drag bar between frames */}
-      <div className="frame-dragbar" />
-
-      {/* Second frame (bottom or right) */}
-      <div
-        style={{ flex: 0.5 }}
-        role="region"
-        aria-label={`${secondChildLabel} in ${fileType}: ${filePath}`}
-      >
-        {/* Second editor/output frame */}
-      </div>
-    </div>
-  );
-};
-```
-
-### Practical Examples
-
-**Jupyter Notebook split vertically (code on left, output on right):**
-
-```tsx
-aria-label={`Jupyter Notebook editor with vertical split: analysis.ipynb`}
-  ├─ aria-label={`Code input in Jupyter: analysis.ipynb`}
-  └─ aria-label={`Output/preview in Jupyter: analysis.ipynb`}
-```
-
-**Python file split horizontally (code on top, terminal on bottom):**
-
-```tsx
-aria-label={`Python editor with horizontal split: script.py`}
-  ├─ aria-label={`Code editor in Python: script.py`}
-  └─ aria-label={`Terminal in Python workspace: script.py`}
-```
-
-**LaTeX document with multiple frames (source, preview, build output):**
-
-```tsx
-aria-label={`LaTeX editor with horizontal split: document.tex`}
-  ├─ aria-label={`LaTeX source in document.tex`}
-  └─ aria-label={`LaTeX preview/build output in document.tex`}
-```
-
-### Implementation Pattern for FrameTree
-
-In `packages/frontend/frame-editors/frame-tree/frame-tree.tsx`, when rendering split frames:
-
-```tsx
-function render_cols() {
-  const data = get_data("row");
-  return (
-    <div
-      ref={cols_container_ref}
-      style={data.outer_style}
-      role="region"
-      aria-label={`Editor frames split vertically: ${path}`}
-    >
-      <div className={"smc-vfill"} style={data.style_first}>
-        {render_one(data.first)}
-      </div>
-      <FrameTreeDragBar
-        actions={actions}
-        containerRef={cols_container_ref}
-        dir={"col"}
-        frame_tree={frame_tree}
-      />
-      <div
-        className={"smc-vfill"}
-        style={data.style_second}
-        role="region"
-        aria-label={`Second frame in split editor: ${path}`}
-      >
-        {render_one(data.second)}
-      </div>
-    </div>
-  );
-}
-
-function render_rows() {
-  const data = get_data("column");
-  return (
-    <div
-      className={"smc-vfill"}
-      ref={rows_container_ref}
-      style={data.outer_style}
-      role="region"
-      aria-label={`Editor frames split horizontally: ${path}`}
-    >
-      <div className={"smc-vfill"} style={data.style_first}>
-        {render_one(data.first)}
-      </div>
-      <FrameTreeDragBar
-        actions={actions}
-        containerRef={rows_container_ref}
-        dir={"row"}
-        frame_tree={frame_tree}
-      />
-      <div
-        className={"smc-vfill"}
-        style={data.style_second}
-        role="region"
-        aria-label={`Second frame in split editor: ${path}`}
-      >
-        {render_one(data.second)}
-      </div>
-    </div>
-  );
-}
-```
-
-### Key Points for Frame Tree Annotations
-
-1. **Use hierarchy** - Outer region describes the split, inner regions describe content
-2. **Include split direction** - "vertical split" vs "horizontal split"
-3. **Include file path** - Screen reader users should know which file is being edited
-4. **Include frame type** - If frames contain different types (code vs output vs terminal)
-5. **Describe position** - "First frame" and "Second frame" help users understand layout
-6. **Dynamic labels** - Update labels when:
-   - The file is changed
-   - Frames are reorganized
-   - New splits are created or removed
-
-## Editor Title Bar and Toolbar Annotations
-
-Each editor frame has a **title bar** (defined in `packages/frontend/frame-editors/frame-tree/title-bar.tsx`) containing menus, buttons, and controls. This should be annotated with ARIA regions to help users navigate the editor interface.
-
-### Title Bar Structure
-
-The title bar contains several distinct sections:
-
-1. **Menus** - Dropdown menus (File, Edit, View, Insert, etc.)
-2. **Action Buttons** - Save, time travel, compute server, AI assistant
-3. **Symbol Bar** - Language-specific symbols (optional second row)
-4. **Frame Controls** - Split, fullscreen, close frame buttons
-5. **Connection Status** - Network/sync status indicator
-
-### Annotating the Title Bar
-
-The entire title bar should be a region describing its purpose and file context:
-
-```tsx
-<div
-  role="region"
-  aria-label={`${fileType} editor toolbar for ${fileName}`}
-  id={`titlebar-${props.id}`}
-  className={"cc-frame-tree-title-bar"}
->
-  {/* Sub-regions below */}
-</div>
-```
-
-### Sub-Sections within the Title Bar
-
-Break down the title bar into logical regions:
-
-```tsx
-interface TitleBarProps {
-  filePath: string;
-  fileName: string;
-  fileType: string; // "Python", "Jupyter Notebook", etc.
-  id: string;
-}
-
-export const EditorTitleBar: React.FC<TitleBarProps> = ({
-  filePath,
-  fileName,
-  fileType,
-  id,
-}) => {
-  return (
-    <div
-      role="region"
-      aria-label={`${fileType} editor toolbar for ${fileName}`}
-      id={`titlebar-${id}`}
-      className={"cc-frame-tree-title-bar"}
-    >
-      {/* Menus section */}
-      <nav aria-label={`Editor menus for ${fileName}`}>
-        {/* File, Edit, View, Insert, Format, etc. menus */}
-      </nav>
-
-      {/* Main action buttons */}
-      <div role="region" aria-label={`Editor controls for ${fileName}`}>
-        {/* Save, time travel, AI, compute server buttons */}
-      </div>
-
-      {/* Symbol bar - language-specific symbols/outline */}
-      <div
-        role="region"
-        aria-label={`Symbols and outline for ${fileName}`}
-        className="symbol-bar"
-      >
-        {/* Language-specific symbols, outline, or tabs */}
-      </div>
-
-      {/* Frame management controls */}
-      <div role="region" aria-label={`Frame controls for ${fileName}`}>
-        {/* Split horizontally, split vertically, fullscreen, close */}
-      </div>
-
-      {/* Connection status */}
-      <div aria-live="polite" aria-label={`Connection status for ${fileName}`}>
-        {/* Connected/disconnected/connecting indicator */}
-      </div>
-    </div>
-  );
-};
-```
-
-### Detailed Sub-Region Annotations
-
-#### 1. Editor Menus
-
-```tsx
-<nav aria-label={`Menus for ${fileType} editor: ${fileName}`} role="navigation">
-  {/* File Menu */}
-  <button aria-haspopup="menu" aria-label="File menu">
-    File
-  </button>
-
-  {/* Edit Menu */}
-  <button aria-haspopup="menu" aria-label="Edit menu">
-    Edit
-  </button>
-
-  {/* View Menu */}
-  <button aria-haspopup="menu" aria-label="View menu">
-    View
-  </button>
-
-  {/* Additional menus based on editor type */}
-  {/* e.g., Insert, Format, Build for LaTeX */}
-</nav>
-```
-
-#### 2. Action Buttons Section
-
-```tsx
-<div role="region" aria-label={`Actions for ${fileName}`}>
-  {/* Save button with status */}
-  <button aria-label={`Save ${fileName} - last saved ${lastSaveTime}`}>
-    <Icon name="save" />
-  </button>
-
-  {/* Time travel / history */}
-  <button aria-label={`View history of ${fileName}`}>
-    <Icon name="history" />
-  </button>
-
-  {/* AI Assistant */}
-  <button aria-label={`AI assistant for ${fileName}`}>
-    <Icon name="sparkles" />
-  </button>
-
-  {/* Compute server selector */}
-  <select aria-label={`Compute server for ${fileName}`}>
-    {/* Server options */}
-  </select>
-
-  {/* More actions menu */}
-  <button aria-haspopup="menu" aria-label={`More actions for ${fileName}`}>
-    ⋮
-  </button>
-</div>
-```
-
-#### 3. Symbol Bar (Language-Specific)
-
-```tsx
-<div
-  role="region"
-  aria-label={`Symbols and outline for ${fileName}`}
-  className="symbol-bar"
->
-  {/* Python: Classes, functions, variables */}
-  {/* Java: Packages, classes, methods */}
-  {/* LaTeX: Sections, subsections, figures */}
-  {/* Markdown: Headers, sections */}
-</div>
-```
-
-#### 4. Frame Controls
-
-```tsx
-<div role="region" aria-label={`Layout controls for ${fileName}`}>
-  {/* Split horizontally (top/bottom) */}
-  <button aria-label={`Split ${fileName} horizontally`}>
-    <Icon name="layout-horiz" />
-  </button>
-
-  {/* Split vertically (left/right) */}
-  <button aria-label={`Split ${fileName} vertically`}>
-    <Icon name="layout-vert" />
-  </button>
-
-  {/* Fullscreen */}
-  <button aria-label={`Fullscreen ${fileName}`}>
-    <Icon name="fullscreen" />
-  </button>
-
-  {/* Close frame */}
-  <button aria-label={`Close ${fileName}`}>
-    <Icon name="times" />
-  </button>
-</div>
-```
-
-#### 5. Connection Status
-
-Use `aria-live="polite"` for status changes that should be announced:
-
-```tsx
-<div
-  aria-live="polite"
-  aria-label={`Connection status for ${fileName}`}
-  role="status"
->
-  {connectionStatus === "connected" && (
-    <span aria-label="Saved to server">✓</span>
-  )}
-  {connectionStatus === "connecting" && (
-    <span aria-label="Saving to server">↻</span>
-  )}
-  {connectionStatus === "disconnected" && (
-    <span aria-label="Not connected to server">✗</span>
-  )}
-</div>
-```
-
-### Implementation in FrameTitleBar
-
-In `packages/frontend/frame-editors/frame-tree/title-bar.tsx`, the main render function (line 1334) should be updated:
-
-```tsx
-return (
-  <>
-    <div
-      role="region"
-      aria-label={`${getFileType(path)} editor toolbar for ${getFileName(path)}`}
-      id={`titlebar-${props.id}`}
-      className={"cc-frame-tree-title-bar"}
-    >
-      {/* Menus with navigation role */}
-      <nav aria-label={`Menus for ${getFileName(path)}`}>
-        {renderMainMenusAndButtons()}
-      </nav>
-
-      {/* Controls section */}
-      <div role="region" aria-label={`Controls for ${getFileName(path)}`}>
-        {is_active && renderConnectionStatus()}
-        {is_active && allButtonsPopover()}
-      </div>
-
-      {/* Symbol bar with descriptive label */}
-      {!showSymbolBarLabels ? (
-        <div role="region" aria-label={`Symbols for ${getFileName(path)}`}>
-          {renderButtonBar()}
-        </div>
-      ) : undefined}
-
-      {/* Frame controls section */}
-      <div role="region" aria-label={`Frame controls for ${getFileName(path)}`}>
-        {renderFrameControls()}
-      </div>
-    </div>
-
-    {/* Optional second row symbol bar */}
-    {showSymbolBarLabels ? (
-      <div role="region" aria-label={`Symbols for ${getFileName(path)}`}>
-        {renderButtonBar()}
-      </div>
-    ) : undefined}
-
-    {renderConfirmBar()}
-    {hasTour && props.is_visible && props.tab_is_visible && (
-      <TitleBarTour refs={tourRefs} />
-    )}
-    {renderComputeServerDocStatus()}
-  </>
-);
-```
-
-### Examples for Different File Types
-
-**Python Editor:**
-
-```
-Python editor toolbar for script.py
-├─ Menus for script.py
-│  ├─ File menu
-│  ├─ Edit menu
-│  ├─ View menu
-│  └─ Run menu
-├─ Controls for script.py
-│  ├─ Save button
-│  ├─ Time travel
-│  └─ Compute server selector
-├─ Symbols for script.py
-│  └─ Classes, functions, variables
-└─ Frame controls for script.py
-   ├─ Split horizontally
-   ├─ Split vertically
-   └─ Close
-```
-
-**Jupyter Notebook:**
-
-```
-Jupyter Notebook editor toolbar for analysis.ipynb
-├─ Menus for analysis.ipynb
-│  ├─ File menu
-│  ├─ Edit menu
-│  ├─ View menu
-│  ├─ Insert menu
-│  └─ Kernel menu
-├─ Controls for analysis.ipynb
-│  ├─ Save button
-│  ├─ Time travel
-│  ├─ AI assistant
-│  └─ Compute server selector
-├─ Symbols for analysis.ipynb
-│  └─ Cell outline/navigation
-└─ Frame controls for analysis.ipynb
-```
-
-**LaTeX Document:**
-
-```
-LaTeX editor toolbar for document.tex
-├─ Menus for document.tex
-│  ├─ File menu
-│  ├─ Edit menu
-│  ├─ View menu
-│  ├─ Insert menu
-│  └─ Build menu
-├─ Controls for document.tex
-│  ├─ Save button
-│  ├─ Build button
-│  ├─ View PDF
-│  └─ Time travel
-├─ Symbols for document.tex
-│  └─ Sections, subsections, figures
-└─ Frame controls for document.tex
-```
-
-### Key Principles for Title Bar Annotation
-
-1. **Use `<nav>` for menus** - Menus are navigation, use semantic `<nav>` or `role="navigation"`
-2. **Use `role="region"` with `aria-label`** for toolbar sections that aren't navigation
-3. **Include file context** - Always mention the filename in button and control labels
-4. **Use `aria-live="polite"`** for status updates (connection, save status)
-5. **Use `aria-haspopup="menu"`** for buttons that open dropdown menus
-6. **Be specific about actions** - "Save script.py" not just "Save"
-7. **Group related controls** - Use regions to group save, time travel, and AI buttons together
-8. **Dynamic labels** - Update labels if the file is renamed or editor type changes
-
-## Jupyter Notebook Cell Annotations
-
-Jupyter notebooks consist of a vertical list of cells, where each cell is either **code** or **markdown**. Each cell should be annotated as a distinct `role="region"` with a clear label including:
-
-1. **Cell number** - Position in the notebook (Cell 1, Cell 2, etc.)
-2. **Cell type** - "Code cell" or "Markdown cell"
-3. **Cell content preview** (optional) - Brief indication of what the cell contains
-
-### Cell Structure
-
-Cells are rendered in `packages/frontend/jupyter/cell-list.tsx` via the `renderCell()` function, which receives:
-
-- `id` - Unique identifier for the cell
-- `index` - The cell's position number (0-indexed)
-- `cell.get("cell_type")` - Either `"code"` or `"markdown"`
-
-### Annotating Individual Cells
-
-Each cell should be wrapped in a `region` with a descriptive label:
-
-```tsx
-// In packages/frontend/jupyter/cell-list.tsx, renderCell function:
-
-interface CellProps {
-  id: string;
-  index: number;
-  cell: any; // immutable Map with cell data
-  filePath: string; // path to the notebook file
-  // ... other props
-}
-
-function renderCell({
-  id,
-  index,
-  isScrolling,
-  isDragging,
-}: {
-  id: string;
-  index?: number;
-  isScrolling?: boolean;
-  isDragging?: boolean;
-}) {
-  const cell = cells.get(id);
-  if (cell == null) return null;
-  if (index == null) {
-    index = cell_list.indexOf(id) ?? 0;
-  }
-
-  const cellType = cell.get("cell_type"); // "code" or "markdown"
-  const cellNumber = index + 1; // Convert to 1-indexed for user readability
-  const notebookFileName = getFileName(path); // Extract filename from path
-
-  const cellLabel =
-    cellType === "code"
-      ? `Code cell ${cellNumber} in ${notebookFileName}`
-      : `Markdown cell ${cellNumber} in ${notebookFileName}`;
-
-  return (
-    <div
-      key={id}
-      role="region"
-      aria-label={cellLabel}
-      id={`cell-${id}`}
-      className="jupyter-cell"
-    >
-      <Cell
-        id={id}
-        index={index}
-        actions={actions}
-        name={name}
-        cm_options={cm_options}
-        cell={cell}
-        is_current={id === cur_id}
-        // ... other props
-      />
-    </div>
-  );
-}
-```
-
-### Cell Container Annotation
-
-The entire cell list should also be annotated as a region:
-
-```tsx
-// In packages/frontend/jupyter/cell-list.tsx, in the CellList component render:
-
-if (use_windowed_list) {
-  body = (
-    <div
-      role="region"
-      aria-label={`Jupyter notebook cells for ${getFileName(path)}`}
-      ref={cellListDivRef}
-      className="smc-vfill"
-    >
-      <Virtuoso
-        ref={virtuosoRef}
-        // ... virtuoso props
-        itemContent={(index) => {
-          // renderCell with proper annotations
-        }}
-      />
-    </div>
-  );
-} else {
-  body = (
-    <div
-      role="region"
-      aria-label={`Jupyter notebook cells for ${getFileName(path)}`}
-      key="cells"
-      className="smc-vfill"
-      ref={cellListDivRef}
-      // ... other props
-    >
-      {v}
-    </div>
-  );
-}
-```
-
-### Detailed Cell Annotation
-
-For better accessibility, you might annotate different parts of each cell:
-
-```tsx
-function renderCell({ id, index }: { id: string; index?: number }) {
-  const cell = cells.get(id);
-  const cellType = cell.get("cell_type"); // "code" or "markdown"
-  const cellNumber = (index ?? 0) + 1;
-  const isCurrent = id === cur_id;
-  const isSelected = sel_ids?.contains(id);
-
-  const cellLabel =
-    cellType === "code"
-      ? `Code cell ${cellNumber}`
-      : `Markdown cell ${cellNumber}`;
-
-  // Add additional context if currently selected or focused
-  let fullLabel = cellLabel;
-  if (isCurrent) {
-    fullLabel += " (active)";
-  }
-  if (isSelected) {
-    fullLabel += " (selected)";
-  }
-
-  return (
-    <div
-      role="region"
-      aria-label={fullLabel}
-      aria-current={isCurrent ? "true" : undefined}
-      id={`cell-${id}`}
-      className={`jupyter-cell ${isSelected ? "selected" : ""}`}
-    >
-      {/* Cell input area */}
-      <div role="region" aria-label={`Input for ${cellLabel}`}>
-        {/* Code editor or markdown editor */}
-      </div>
-
-      {/* Cell output area (for code cells) */}
-      {cellType === "code" && (
-        <div role="region" aria-label={`Output for ${cellLabel}`}>
-          {/* Execution output, plots, etc. */}
-        </div>
-      )}
-
-      {/* Cell metadata/toolbar */}
-      <div
-        role="region"
-        aria-label={`Controls for ${cellLabel}`}
-        className="cell-toolbar"
-      >
-        {/* Delete, run, move up/down buttons, etc. */}
-      </div>
-    </div>
-  );
-}
-```
-
-### Examples for Different Cell Types
-
-**Code Cell #1:**
-
-```
-Code cell 1 (active)
-├─ Input for Code cell 1
-├─ Output for Code cell 1
-└─ Controls for Code cell 1
-```
-
-**Markdown Cell #2:**
-
-```
-Markdown cell 2 (selected)
-├─ Input for Markdown cell 2
-└─ Controls for Markdown cell 2
-```
-
-**Code Cell #3:**
-
-```
-Code cell 3
-├─ Input for Code cell 3
-├─ Output for Code cell 3 (contains plots, tables, etc.)
-└─ Controls for Code cell 3
-```
-
-### Cell Status and Navigation
-
-Cells can have different states that should be reflected in accessibility information:
-
-```tsx
-function getCellAriaLabel(
-  cell: any,
-  index: number,
-  isCurrent: boolean,
-  isSelected: boolean,
-  hasError: boolean,
-): string {
-  const cellType = cell.get("cell_type"); // "code" or "markdown"
-  const cellNumber = index + 1;
-  const typeLabel = cellType === "code" ? "Code cell" : "Markdown cell";
-
-  let label = `${typeLabel} ${cellNumber}`;
-
-  // Add status indicators
-  if (cellType === "code") {
-    const executionCount = cell.get("execution_count");
-    if (executionCount != null) {
-      label += ` (executed ${executionCount})`;
-    } else {
-      label += " (not yet executed)";
-    }
-  }
-
-  if (isCurrent) {
-    label += " (current/active)";
-  }
-
-  if (isSelected) {
-    label += " (selected)";
-  }
-
-  if (hasError) {
-    label += " (has error)";
-  }
-
-  return label;
-}
-```
-
-### Implementation in JupyterEditor
-
-In `packages/frontend/jupyter/main.tsx` and `packages/frontend/jupyter/cell-list.tsx`:
-
-```tsx
-// In cell-list.tsx
-
-export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
-  // ... existing code ...
-
-  function renderCell({
-    id,
-    isScrolling,
-    index,
-    delayRendering,
-    isFirst,
-    isLast,
-    isDragging,
-  }: {
-    id: string;
-    isScrolling?: boolean;
-    index?: number;
-    delayRendering?: number;
-    isFirst?: boolean;
-    isLast?: boolean;
-    isDragging?: boolean;
-  }) {
-    const cell = cells.get(id);
-    if (cell == null) return null;
-    if (index == null) {
-      index = cell_list.indexOf(id) ?? 0;
-    }
-
-    const cellType = cell.get("cell_type");
-    const cellNumber = index + 1;
-    const isCurrent = id === cur_id;
-    const isSelected = sel_ids?.contains(id);
-    const hasError =
-      cellType === "code" &&
-      cell.get("outputs")?.some((o) => o.get("output_type")?.includes("error"));
-
-    const cellLabel = `${
-      cellType === "code" ? "Code" : "Markdown"
-    } cell ${cellNumber}${isCurrent ? " (current)" : ""}${
-      isSelected ? " (selected)" : ""
-    }${hasError ? " (has error)" : ""}`;
-
-    const dragHandle = actions?.store.is_cell_editable(id) ? (
-      <DragHandle
-        id={id}
-        style={
-          {
-            /* ... */
-          }
-        }
-      />
-    ) : undefined;
-
-    return (
-      <div
-        key={id}
-        role="region"
-        aria-label={cellLabel}
-        aria-current={isCurrent ? "true" : undefined}
-        id={`cell-${id}`}
-        className={`jupyter-cell ${isSelected ? "selected" : ""}`}
-      >
-        <Cell
-          id={id}
-          index={index}
-          actions={actions}
-          name={name}
-          cm_options={cm_options}
-          cell={cell}
-          is_current={isCurrent}
-          hook_offset={hook_offset}
-          is_selected={isSelected}
-          is_markdown_edit={md_edit_ids?.contains(id)}
-          mode={mode}
-          font_size={font_size}
-          project_id={project_id}
-          directory={directory}
-          complete={complete}
-          is_focused={is_focused}
-          is_visible={is_visible}
-          more_output={more_output?.get(id)}
-          cell_toolbar={cell_toolbar}
-          trust={trust}
-          is_scrolling={isScrolling}
-          delayRendering={delayRendering}
-          llmTools={llmTools}
-          computeServerId={computeServerId}
-          isFirst={isFirst}
-          isLast={isLast}
-          dragHandle={dragHandle}
-          read_only={read_only}
-          isDragging={isDragging}
-        />
-      </div>
-    );
-  }
-
-  // ... rest of function ...
-};
-```
-
-### Key Principles for Cell Annotation
-
-1. **Cell number should be visible** - Users need to know which cell they're on (Cell 1, Cell 2, etc.)
-2. **Cell type must be specified** - "Code cell" or "Markdown cell" helps users understand the content type
-3. **Current/active cell should be marked** - Use `aria-current="true"` or include "(current)" in label
-4. **Selected cells should be indicated** - Multiple selection support: "(selected)"
-5. **Execution status matters** - Code cells should indicate if they've been executed and if there are errors
-6. **Hierarchy within cells** - Mark input, output, and toolbar areas as sub-regions
-7. **Dynamic updates** - Update labels when:
-   - Cell is selected or deselected
-   - Cell becomes current/active
-   - Cell is executed
-   - Errors occur in execution
-   - Cell content changes significantly
-
-### Example Markup Structure
-
-A complete Jupyter notebook cell in markup:
-
-```tsx
-<div
-  role="region"
-  aria-label="Code cell 5 (current, selected, has error)"
-  aria-current="true"
-  id="cell-uuid-xyz"
-  className="jupyter-cell selected"
->
-  {/* Cell input - code editor */}
-  <div role="region" aria-label="Input for Code cell 5">
-    <CodeMirrorEditor
-    // ... editor props
-    />
-  </div>
-
-  {/* Cell output - results/plots/etc */}
-  <div role="region" aria-label="Output for Code cell 5 (has error)">
-    <div className="cell-output error">{/* Error message and traceback */}</div>
-  </div>
-
-  {/* Cell toolbar - run, delete, etc */}
-  <div role="region" aria-label="Controls for Code cell 5">
-    <button aria-label="Run Code cell 5">
-      <Icon name="play" />
-    </button>
-    <button aria-label="Delete Code cell 5">
-      <Icon name="trash" />
-    </button>
-    {/* More buttons */}
+  <div role="region" aria-label={`Output: ${path}`}>
+    {/* output frame */}
   </div>
 </div>
 ```
 
-## Determining File Types for Dynamic Labels
+Key: Include file path and describe frame contents clearly.
 
-To make `aria-label` dynamic with file type information, use the file extension or metadata. Here's a helper function pattern:
+## Key Components to Annotate
 
-```tsx
-function getFileTypeLabel(filePath: string): string {
-  const ext = filePath.split(".").pop()?.toLowerCase();
+When implementing ARIA landmarks in CoCalc, focus on these key component types:
 
-  const typeMap: Record<string, string> = {
-    ipynb: "Jupyter Notebook",
-    py: "Python",
-    r: "R",
-    m: "Octave",
-    md: "Markdown",
-    txt: "Text",
-    ts: "TypeScript",
-    tsx: "TypeScript React",
-    js: "JavaScript",
-    jsx: "JavaScript React",
-    java: "Java",
-    cpp: "C++",
-    c: "C",
-    h: "C Header",
-    go: "Go",
-    rs: "Rust",
-    // ... add more as needed
-  };
+### 1. Editor Toolbars & Menus
 
-  return typeMap[ext || ""] || "File";
-}
+- Main container: `<div role="region" aria-label="${fileType} editor toolbar for ${fileName}">`
+- Menus: `<nav aria-label="${menuType} menu">`
+- Control buttons: Add `aria-label` with context (e.g., "Save {fileName}", "Build {fileName}")
+- Status indicators: Use `aria-live="polite"` for changes
 
-// Usage:
-const fileType = getFileTypeLabel("/path/to/analysis.ipynb"); // "Jupyter Notebook"
-const ariaLabel = `${fileType} editor: ${filePath}`;
-```
+### 2. Jupyter Notebook Cells
 
-Alternatively, if you have metadata about the editor type:
+- Cell container: `<div role="region" aria-label="Code cell {N} (current, has error)">`
+- Cell input: `<div role="region" aria-label="Input for Code cell {N}">`
+- Cell output: `<div role="region" aria-label="Output for Code cell {N}">`
+- Cell controls: `<div role="region" aria-label="Controls for Code cell {N}">`
 
-```tsx
-function getEditorTypeLabel(editorType: string, filePath: string): string {
-  const fileName = filePath.split("/").pop();
-  const typeLabels: Record<string, string> = {
-    jupyter: "Jupyter Notebook",
-    python: "Python",
-    markdown: "Markdown",
-    terminal: "Terminal",
-    frame: "Frame Editor",
-    // ...
-  };
+Include cell type, number, and status in labels.
 
-  const type = typeLabels[editorType] || "File";
-  return `${type} editor: ${fileName}`;
-}
-```
+### 3. Settings & Preferences Pages
 
-## Implementation Guidelines for CoCalc
+- Main content: `<main role="main" aria-label="Settings management">`
+- Navigation menu: `<nav aria-label="Settings menu">`
+- Section containers: `<div role="region" aria-label="Profile settings">` for each section
+- Form groups: `<div role="region" aria-label="{settingType} configuration">`
 
-1. **Start at the root** (`app/page.tsx:363`) - Replace the outer `<div style={PAGE_STYLE}>` with `<main>`
+### 4. Split Editors
 
-2. **Mark navigation levels with context**:
-   - Top nav: `<nav aria-label="Application navigation">`
-   - File tabs: `<nav aria-label={`Open files in project: ${projectName}`}>`
-   - Include project name and file names in labels for clarity
-
-3. **Identify sidebars dynamically**:
-   - Activity bar → `<aside aria-label={`Project activity bar for ${projectName}`}>`
-   - Flyout panel → `<aside aria-label={`Sidebar for ${projectName}`}>`
-
-4. **Use regions with full context** - In editors:
-   - Main editor: `<div role="region" aria-label={`${fileType} editor: ${filePath}`}>`
-   - Toolbars → `<div role="region" aria-label={`${fileType} editor toolbar for ${fileName}`}>`
-   - Symbol panels → `<div role="region" aria-label={`Symbols and outline for ${fileName}`}>`
-
-5. **Key principle: Context is everything**
-   - Screen reader users benefit from knowing which file is being edited
-   - Include the full path or at least the filename in the label
-   - Include the file type (Python, Jupyter, etc.) for clarity
-   - Avoid generic labels like "Editor" or "Content"
-
-6. **Test with landmark navigation** - Use keyboard shortcuts in screen readers:
-   - NVDA: `R` to jump to next landmark, `Shift+R` for previous
-   - JAWS: `R` to jump to next landmark, `Shift+R` for previous
-   - VoiceOver: Custom gestures depending on browser
+- Outer split container: `<div role="region" aria-label="Vertical split: {path}">`
+- Individual frames: `<div role="region" aria-label="Code: {path}">`, `<div role="region" aria-label="Output: {path}">`
 
 ## Resources
 
 - [W3C WAI ARIA Landmarks](https://www.w3.org/WAI/ARIA/apg/patterns/landmarks/)
 - [MDN: ARIA Landmarks](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles/main_role)
 - [WebAIM: Landmark Regions](https://webaim.org/articles/screenreader_testing/#landmarks)
-- [React Accessibility Guide](https://reactjs.org/docs/accessibility.html)
 
 ## Current Implementation Status
 
-### ✅ Completed - October 2025
+### ✅ Completed Areas - October 2025
 
-All 8 phases of ARIA landmark implementation have been successfully completed and tested:
+The following areas have been successfully implemented with ARIA landmarks and labels:
 
 #### Phase 1: Application Shell
 
@@ -1361,6 +180,522 @@ All 8 phases of ARIA landmark implementation have been successfully completed an
 ✅ Proper semantic HTML and ARIA roles
 ✅ All code formatted with prettier
 ✅ Successful compilation with `pnpm build-dev`
+
+## Remaining Work - Comprehensive Task List
+
+### Phase 9: Account Settings Pages ✅ COMPLETED (Oct 28, 2025)
+
+**Files Modified**:
+
+- `packages/frontend/account/account-page.tsx` - Main account settings layout
+- `packages/frontend/account/account-preferences.tsx` - Preferences wrapper
+- `packages/frontend/account/account-preferences-profile.tsx`
+- `packages/frontend/account/account-preferences-appearance.tsx`
+- `packages/frontend/account/account-preferences-ai.tsx`
+- `packages/frontend/account/account-preferences-communication.tsx`
+- `packages/frontend/account/account-preferences-editor.tsx`
+- `packages/frontend/account/account-preferences-keyboard.tsx`
+- `packages/frontend/account/account-preferences-other.tsx`
+- `packages/frontend/account/account-preferences-security.tsx`
+
+**Changes**:
+
+- ✅ Main layout: `<main role="main" aria-label="Account settings">`
+- ✅ Settings menu: `<nav aria-label="Account settings menu">`
+- ✅ Content regions: `role="region" aria-label="{settingType} settings"`
+- ✅ Menu toggle button: `aria-label="Expand/Collapse menu"`
+- ✅ Preference sub-sections all have region labels
+
+### Phase 10: Editor Frame Infrastructure ✅ COMPLETED
+
+**Priority: HIGH** - Core editor system needs comprehensive ARIA
+
+#### 10a: Frame Tree System
+
+Location: `packages/frontend/frame-editors/frame-tree/`
+
+- [x] **frame-tree.tsx** - Split editor container
+  - [x] ✅ Already had ARIA labels for Vertical/Horizontal splits
+
+- [x] **title-bar.tsx** (38KB - extensive)
+  - [x] Main toolbar: `role="region" aria-label="{fileType} editor toolbar"`
+  - [x] Menu navigation: `<nav aria-label="{fileType} editor controls and menus"`
+  - [x] Control buttons: Added aria-label to all frame control buttons
+  - [x] Symbol/outline bar: `aria-label="Symbols and outline for {fileName}"`
+  - [x] Frame controls: `aria-label="Layout controls for {fileName}"`
+  - [x] Status indicator: `aria-live="polite"` for connection status
+  - [x] More commands button: `aria-label` and `aria-expanded` state
+  - [x] Split/maximize/close buttons: Complete aria-labels
+
+- [x] **editor.tsx** - Editor container
+  - [x] Added `role="application"` with context-aware aria-label
+  - [x] Focus management for keyboard support
+  - [x] Announce editor type and path
+
+- [x] **status-bar.tsx** - File/editor status
+  - [x] Converted to ARIA live region: `role="status"` with `aria-live="polite"`
+  - [x] Added meaningful status labels and clear button accessibility
+  - [x] Icon component enhanced to support ARIA attributes
+
+#### 10b: Individual Editor Types
+
+Location: `packages/frontend/frame-editors/`
+
+**Code Editor**:
+
+- [ ] `code-editor/codemirror-editor.tsx` - Core code editor
+  - [ ] Editor container needs role/label
+  - [ ] Gutter (line numbers) needs aria-label
+  - [ ] Breakpoint indicators need description
+  - [ ] Syntax error markers need aria-label
+
+**Jupyter Notebook Editor**:
+
+- [ ] `jupyter-editor/` - Cell-based notebook
+  - [ ] Cell container: `role="region" aria-label="Code/Markdown cell {N}"`
+  - [ ] Cell input: `role="region" aria-label="Input for cell {N}"`
+  - [ ] Cell output: `role="region" aria-label="Output for cell {N}"`
+  - [ ] Cell toolbar: `role="region" aria-label="Controls for cell {N}"`
+  - [ ] Kernel status: `aria-live="polite"`
+  - [ ] Run state: `aria-busy` when executing
+
+**Markdown Editor**:
+
+- [ ] `markdown-editor/` - Markdown preview/edit
+  - [ ] Preview/Edit toggle: Clear mode indication
+  - [ ] Preview pane: `role="region" aria-label="Markdown preview: {fileName}"`
+
+**LaTeX Editor**:
+
+- [ ] `latex-editor/` - Already partially done, needs refinement
+  - [ ] ✅ PDF preview annotated
+  - [ ] ✅ Build output annotated
+  - [ ] [ ] Build status: Needs aria-live for real-time updates
+  - [ ] [ ] Error navigation: Add keyboard shortcuts for error jumping
+  - [ ] [ ] Sync indicators: Clearer accessibility labels
+
+**Terminal Editor**:
+
+- [ ] `terminal-editor/` - Terminal/console
+  - [ ] Terminal output: `role="region" aria-label="Terminal: {fileName}"`
+  - [ ] Terminal input: Clear input field label
+  - [ ] Output scrolling: Announce new output with aria-live
+  - [ ] Cursor position: Announce when scrolling
+
+**Other Editors** (Lower Priority):
+
+- [ ] `sagews-editor/` - SageWS worksheets
+- [ ] `slides-editor/` - Presentations
+- [ ] `whiteboard-editor/` - Drawing/whiteboard
+- [ ] `csv-editor/` - CSV data tables
+- [ ] `html-editor/` - HTML preview
+- [ ] `pdf-editor/` - PDF viewer
+- [ ] `qmd-editor/` - Quarto markdown
+- [ ] `rmd-editor/` - R markdown
+- [ ] `rst-editor/` - ReStructuredText
+- [ ] `task-editor/` - Task management
+- [ ] `wiki-editor/` - Wiki pages
+- [ ] `x11-editor/` - X11 graphics
+
+### Phase 11: Project Pages ⏳ PENDING
+
+**Priority: HIGH** - Core user interface
+
+#### 11a: Projects List Page
+
+Location: `packages/frontend/projects/`
+
+- [ ] **projects-page.tsx** - Main projects listing
+  - [ ] Page structure: `<main role="main" aria-label="Projects management">`
+  - [ ] Filters section: `role="region" aria-label="Project filters and controls"`
+  - [ ] Projects list: `aria-label="Projects list ({count} total)"`
+  - [ ] List items: Proper list semantics
+
+- [ ] **projects-table.tsx** - Projects data table
+  - [ ] Table: `aria-label="Projects list"`
+  - [ ] Column headers: `<th scope="col">` for proper association
+  - [ ] Sort indicators: `aria-sort="ascending|descending|none"`
+  - [ ] Expandable rows: `aria-expanded` when expanded/collapsed
+  - [ ] Expansion content: `aria-controls` linking to row ID
+
+- [ ] **projects-starred.tsx** - Starred/favorite projects
+  - [ ] Section: `role="region" aria-label="Starred projects ({count})"`
+  - [ ] List structure: Proper semantic list markup
+
+- [ ] **project-row-expanded-content.tsx** - Row details
+  - [ ] Expansion announcement: Update aria-expanded dynamically
+
+#### 11b: Project Page
+
+Location: `packages/frontend/project/page/`
+
+- [ ] **page.tsx** - Main project workspace
+  - [ ] Page structure: `<main role="main" aria-label="Project workspace: {projectName}"`
+  - [ ] Activity bar: `role="tablist"` with tab semantics
+  - [ ] Content area: `role="main" or region` for editor content
+
+- [ ] **activity-bar.tsx** - Left sidebar with features
+  - [ ] Container: `role="tablist" aria-label="Project activity tabs"`
+  - [ ] Each tab: `role="tab"` with `aria-selected` and `aria-controls`
+  - [ ] Tab panels: `role="tabpanel"` with `aria-labelledby`
+
+- [ ] **file-tabs.tsx** - Open files tab bar
+  - [ ] Container: `role="tablist" aria-label="Open files in {projectName}"`
+  - [ ] Tab items: `role="tab"` with aria-selected, aria-controls
+  - [ ] Tab panels: `role="tabpanel" aria-labelledby="tab-{id}"`
+  - [ ] Close buttons: `aria-label="Close {fileName}"`
+
+- [ ] **content.tsx** - Main content area
+  - [ ] Container: `role="main"` or clear region role
+
+#### 11c: Flyouts
+
+Location: `packages/frontend/project/page/flyouts/`
+
+- [ ] **files.tsx** - File explorer
+  - [ ] Tree structure: `role="tree"` with tree item semantics
+  - [ ] Expandable items: `aria-expanded` and `aria-controls`
+  - [ ] Selection: `aria-selected` on selected items
+  - [ ] Keyboard support: Arrow keys for navigation
+
+- [ ] **active.tsx** - Open files list
+  - [ ] List: `role="list"` with `<li>` items
+  - [ ] Current file: `aria-current="true"`
+  - [ ] Unsaved indicator: Clear visual + ARIA label
+
+- [ ] **chat.tsx/collabs.tsx** - Chat/collaboration panel
+  - [ ] Chat log: `role="log" aria-live="polite"`
+  - [ ] Messages: Semantic message structure
+  - [ ] Timestamps: `aria-label` or title attribute
+  - [ ] Input: Clear label for chat input field
+
+- [ ] **log.tsx** - Project/build log
+  - [ ] Log output: `role="region" aria-label="Project log" aria-live="polite"`
+  - [ ] Line-by-line navigation: Keyboard support
+  - [ ] Scrolling: Announce when scrolling to new content
+
+- [ ] **settings.tsx** - Project settings panel
+  - [ ] Form groups: `<fieldset>` with `<legend>`
+  - [ ] Settings: Proper form labeling
+  - [ ] Status: Save status announcements
+
+### Phase 12: App Shell & Navigation ⏳ PENDING
+
+**Priority: HIGH** - Framework for entire app
+
+Location: `packages/frontend/app/`
+
+- [ ] **page.tsx** - Main application container (323 lines)
+  - [ ] Root structure: Ensure proper landmark hierarchy
+  - [ ] Content switching: Announce page changes
+  - [ ] Notification center connection display
+
+- [ ] **nav-tab.tsx** - Top navigation tabs
+  - [ ] Tab items: `role="tab"` with `aria-selected`, `aria-controls`
+  - [ ] Each tab: Clear context (Projects, Account, Admin, etc.)
+  - [ ] Hover/focus states: Visual + ARIA
+
+- [ ] **active-content.tsx** - Content router
+  - [ ] Dynamic content: Announce when switching pages
+  - [ ] Loading states: `aria-busy` indication
+  - [ ] Error states: ARIA alert or live region
+
+- [ ] **Banners** - Informational/warning banners
+  - [ ] All banners: `role="region" aria-label="Information"`
+  - [ ] `i18n-banner.tsx` - Language selection
+  - [ ] `verify-email-banner.tsx` - Email verification
+  - [ ] `version-warning.tsx` - Version alerts
+  - [ ] `insecure-test-mode-banner.tsx` - Test mode warning
+  - [ ] Close buttons: `aria-label="Close"`
+
+- [ ] **Connection Status** - Network status indicator
+  - [ ] Status indicator: `aria-label` with current state
+  - [ ] Updates: `aria-live="polite"` for status changes
+  - [ ] Tooltip text: Accessible to keyboard users
+
+### Phase 13: Forms & Settings ⏳ PENDING
+
+**Priority: MEDIUM**
+
+- [ ] **Profile Settings** (`account/profile-settings.tsx`)
+  - [ ] Form structure: Proper `<label>` elements
+  - [ ] Image upload: Clear button/input labels
+  - [ ] Save button: `aria-label="Save profile"`
+
+- [ ] **SSH Keys** (`account/ssh-keys/`)
+  - [ ] Key list: `role="list"` structure
+  - [ ] Key items: Truncated key + description
+  - [ ] Add/delete buttons: Clear labels
+  - [ ] Form for new keys: Proper fieldset/legend
+
+- [ ] **API Keys** (`account/settings/api-keys.tsx`)
+  - [ ] Key list: Table or list semantics
+  - [ ] Visibility toggle: `aria-pressed` state
+  - [ ] Copy button: State changes (Copy → Copied)
+
+- [ ] **Project Settings** (`project/settings/`)
+  - [ ] Settings form: `<fieldset>` groups
+  - [ ] Input fields: Associated `<label>` elements
+  - [ ] Selection: Dropdown/select aria-labels
+  - [ ] Radio buttons: `fieldset role="group"` with `<legend>`
+  - [ ] Checkboxes: Clear group labels
+
+### Phase 14: Tables & Data Display ⏳ PENDING
+
+**Priority: MEDIUM**
+
+- [ ] **Data Tables** (Generic)
+  - [ ] Table role: `role="grid"` or semantic `<table>`
+  - [ ] Headers: `<th scope="col">` for columns, `scope="row"` for row headers
+  - [ ] Sort buttons: `aria-sort="ascending|descending|none|other"`
+  - [ ] Cell content: Descriptive alt text for icons/abbreviations
+
+- [ ] **Purchases Table** (`purchases/purchases.tsx`)
+  - [ ] Product list: Table with proper headers
+  - [ ] Price/quantity: Clear column purposes
+  - [ ] Actions: Purchase buttons with clear labels
+
+- [ ] **Subscriptions Table** (`purchases/subscriptions.tsx`)
+  - [ ] Active subscriptions: Mark current status visually + ARIA
+  - [ ] Renewal dates: Clear formatting
+  - [ ] Cancel buttons: Confirmation dialogs
+
+### Phase 15: Modals & Dialogs ⏳ PENDING
+
+**Priority: MEDIUM**
+
+- [ ] **Settings Modal** (`app/settings-modal.tsx`)
+  - [ ] Focus trap: Trap focus inside modal
+  - [ ] Close button: `aria-label="Close settings"`
+  - [ ] Title: Proper heading for modal purpose
+  - [ ] Form: Proper form structure within modal
+
+- [ ] **Confirmation Dialogs** (`app/popconfirm-modal.tsx`)
+  - [ ] Message: Clear confirmation text
+  - [ ] Buttons: `aria-label="Confirm action"`, `aria-label="Cancel"`
+  - [ ] Escape key: Support to dismiss
+
+- [ ] **File Dialogs** (`project/explorer/`)
+  - [ ] Ask Filename dialog: Input with label, button
+  - [ ] Directory selector: Keyboard navigation support
+  - [ ] Confirm: Clear action buttons
+
+### Phase 16: Component Library ⏳ PENDING
+
+**Priority: MEDIUM** - Widely used across frontend
+
+Location: `packages/frontend/components/`
+
+- [ ] **Icon** (`icon.tsx` - 25KB)
+  - [ ] Usage audit: Find all icon-only uses without aria-label
+  - [ ] Add: `aria-label` to all interactive icons
+  - [ ] Decorative: Add `aria-hidden="true"` where appropriate
+
+- [ ] **Buttons**
+  - [ ] Copy Button (`copy-button.tsx`)
+    - [ ] ✅ State changes already labeled
+    - [ ] [ ] Ensure aria-live working
+
+  - [ ] Refresh Button (`refresh.tsx`)
+    - [ ] ✅ Basic label present
+    - [ ] [ ] Verify aria-busy state
+
+  - [ ] Close Button (`close-x.tsx`, `close-x2.tsx`)
+    - [ ] ✅ Already converted to semantic buttons
+    - [ ] [ ] Audit all uses for proper labels
+
+- [ ] **Form Inputs**
+  - [ ] Search Input (`search-input.tsx`)
+    - [ ] ✅ Basic label present
+    - [ ] [ ] Help text association
+
+  - [ ] Text Input (`text-input.tsx`)
+    - [ ] ✅ Label present
+    - [ ] [ ] Error indication: aria-invalid, aria-describedby
+
+  - [ ] Select/Dropdown (`selector-input.tsx`)
+    - [ ] Label: `<label>` or aria-label
+    - [ ] Options: Clear option labels
+    - [ ] Current selection: Announcement on change
+
+  - [ ] Date/Time Picker (`date-time-picker.tsx`)
+    - [ ] Input: Clear label with format
+    - [ ] Calendar: Keyboard navigation (arrows, Enter)
+    - [ ] Selected date: aria-current="date" when selected
+
+  - [ ] Color Picker (`color-picker.tsx`)
+    - [ ] Input field: Accessible label
+    - [ ] Palette: Keyboard navigation
+    - [ ] Selected color: aria-current indication
+
+- [ ] **Tables**
+  - [ ] Table of Contents (`table-of-contents.tsx`)
+    - [ ] List structure: `role="list"`
+    - [ ] Expandable: `aria-expanded` on collapsible items
+
+  - [ ] Scrollable List (`scrollable-list.tsx`)
+    - [ ] Container: `role="list"`
+    - [ ] Items: `role="listitem"`
+    - [ ] Selection: `aria-selected` on items
+
+  - [ ] Data Grid (`data-grid/`)
+    - [ ] Grid: `role="grid"` structure
+    - [ ] Cells: Keyboard navigation (arrows)
+    - [ ] Headers: `scope` attribute
+    - [ ] Selection: `aria-selected` states
+
+- [ ] **Alerts & Status**
+  - [ ] Error Display (`error-display.tsx`)
+    - [ ] Container: `role="alert"`
+    - [ ] Message: Clear error text
+
+  - [ ] Loading (`loading.tsx`)
+    - [ ] Spinner: `aria-busy="true"` on parent
+    - [ ] Message: `aria-label="Loading..."`
+
+  - [ ] Tip/Help (`tip.tsx`)
+    - [ ] Container: `role="region" aria-label="Information"`
+    - [ ] Icon: Decorative `aria-hidden="true"`
+
+### Phase 17: Keyboard Navigation ⏳ PENDING
+
+**Priority: MEDIUM** - Enhancement across all components
+
+- [ ] **Tab Order Management**
+  - [ ] Audit tab order in complex pages
+  - [ ] Fix focus management issues
+  - [ ] `tabindex="-1"` for programmatically focused elements
+
+- [ ] **Keyboard Shortcuts**
+  - [ ] Document keyboard shortcuts
+  - [ ] Add keyboard hint to icon buttons
+  - [ ] Escape key: Close modals/menus/flyouts
+  - [ ] Arrow keys: Navigate lists, menus, tabs
+  - [ ] Enter/Space: Activate buttons, toggle checkboxes
+
+- [ ] **Focus Management**
+  - [ ] Focus trap: Modals, dropdowns
+  - [ ] Focus restoration: After modal closes
+  - [ ] Focus announcement: Skip links (if needed)
+  - [ ] Focus visible: CSS for keyboard users
+
+### Phase 18: Live Regions & Announcements ⏳ PENDING
+
+**Priority: MEDIUM** - Dynamic content
+
+- [ ] **Status Updates**
+  - [ ] Save status: File saved, unsaved changes
+  - [ ] Connection status: Connected, disconnected, connecting
+  - [ ] Build status: Building, complete, errors
+  - [ ] Implementation: Use `aria-live="polite"` or `aria-live="assertive"`
+
+- [ ] **Notifications**
+  - [ ] Success messages: `aria-live="polite"`
+  - [ ] Error alerts: `aria-live="assertive" role="alert"`
+  - [ ] Info messages: `aria-live="polite"`
+
+- [ ] **Loading States**
+  - [ ] Indicator: `aria-busy="true"` on container
+  - [ ] Message: "Loading... please wait"
+  - [ ] Progress: `aria-valuenow`, `aria-valuemin`, `aria-valuemax`
+
+### Phase 19: Compute Servers UI ⏳ PENDING
+
+**Priority: LOW** - Advanced feature
+
+Location: `packages/frontend/compute/`
+
+- [ ] **Compute Servers List** (`compute-servers.tsx`)
+  - [ ] List structure: `role="list"`
+  - [ ] Server items: Clear status indicators
+  - [ ] Actions menu: ARIA menu structure
+
+- [ ] **Server Details** (`compute-server.tsx`)
+  - [ ] Tabs: Proper tab structure
+  - [ ] Forms: Fieldset/legend for groups
+  - [ ] Status indicators: aria-live updates
+
+- [ ] **Google Cloud Config** (`google-cloud-config.tsx` - 56KB)
+  - [ ] Form structure: Nested fieldsets/legends
+  - [ ] Inputs: Proper labeling
+  - [ ] Help text: aria-describedby
+
+### Phase 20: Course Management UI ⏳ PENDING
+
+**Priority: LOW** - Feature-specific
+
+Location: `packages/frontend/course/`
+
+- [ ] **Course Configuration** (`configuration/`)
+  - [ ] Settings form: Proper structure
+  - [ ] Tabs/sections: Clear navigation
+
+- [ ] **Assignments** (`assignments/`)
+  - [ ] List: `role="list"` structure
+  - [ ] Due dates: Clear presentation
+  - [ ] Grading: Status indicators
+
+- [ ] **Students** (`students/`)
+  - [ ] Student list: Table or list structure
+  - [ ] Selection: Batch operations
+  - [ ] Status: Grade/submission indicators
+
+### Phase 21: Chat & Messaging ⏳ PENDING
+
+**Priority: MEDIUM** - User-facing feature
+
+Location: `packages/frontend/chat/`
+
+- [ ] **Chat Log** (`chat-log.tsx`)
+  - [ ] Container: `role="log"` with `aria-live="polite"`
+  - [ ] Messages: Proper message structure
+  - [ ] Timestamps: Hidden labels or title attributes
+
+- [ ] **Message** (`message.tsx` - 32KB)
+  - [ ] Author info: Semantic markup
+  - [ ] Links: Proper `<a>` tags with href
+  - [ ] Code blocks: `<pre>` with syntax highlight labels
+  - [ ] Reactions: Icon + text or alt text
+  - [ ] Edited indicator: Clear to screen readers
+
+- [ ] **Input** (`input.tsx`)
+  - [ ] Text field: `<textarea>` or `<input>` with `<label>`
+  - [ ] Submit: Clear send button label
+  - [ ] Attachments: File upload button label
+  - [ ] Formatting: Toolbar with aria-labels
+
+- [ ] **Mentions/Notifications**
+  - [ ] Unread count: Badge with aria-label
+  - [ ] New message: Announcement with aria-live
+
+### Phase 22: Billing & Purchases ⏳ PENDING
+
+**Priority: LOW** - Secondary feature
+
+Location: `packages/frontend/purchases/`
+
+- [ ] **Purchases Page** (`purchases.tsx` - 37KB)
+  - [ ] Product list: Table or grid
+  - [ ] Price display: Clear currency/unit
+  - [ ] Add to cart: Clear action buttons
+  - [ ] Cart: Summary with quantities
+
+- [ ] **Subscriptions** (`subscriptions.tsx`)
+  - [ ] Active subscriptions: Status indication
+  - [ ] Renewal info: Clear dates and costs
+  - [ ] Cancel: Warning dialog
+
+- [ ] **Payments** (`payments.tsx`)
+  - [ ] Transaction list: Table structure
+  - [ ] Details: Expandable rows
+  - [ ] Filtering: Clear filter labels
+
+- [ ] **Balance** (`balance.tsx`, `balance-button.tsx`)
+  - [ ] Amount: Clear label and currency
+  - [ ] Update time: Timestamp clarity
+  - [ ] Button: `aria-label="Account balance: ${amount}"`
+
+---
 
 ## ARIA Label Conciseness Improvements
 
@@ -1917,3 +1252,35 @@ const { label, icon, tooltip, onClick, isRunning } = getRunStopButton();
 - Format button uses aria-busy to indicate when formatting is in progress
 - Markdown button label changes based on current edit state for dynamic feedback
 - Cell timing, compute server info, and LLM tools are contained within this region
+
+## Implementation Notes
+
+### Phase 10 Completion (2025-10-28)
+
+**Components Enhanced**:
+
+1. **title-bar.tsx** (38KB)
+   - `renderMainMenusAndButtons()`: Changed div to `<nav>` with aria-label for menu navigation
+   - `renderButtonBar()`: Added `role="region"` with aria-label for symbols/outline bar
+   - `renderFrameControls()`: Added `role="region"` with aria-label for layout controls
+   - `render_full()`: Added aria-label to maximize/minimize button
+   - `render_split_row()`: Added aria-label to horizontal split button
+   - `render_split_col()`: Added aria-label to vertical split button
+   - `render_x()`: Added aria-label to close button
+   - `allButtonsPopover()`: Added aria-label and aria-expanded to more commands button
+   - `renderConnectionStatus()`: Added aria-live="polite" and aria-label for connection status
+
+2. **editor.tsx**
+   - Main container: Added `role="application"` with context-aware aria-label including editor type and file path
+
+3. **status-bar.tsx**
+   - Main container: Added `role="status"`, `aria-live="polite"`, and `aria-atomic="true"`
+   - Clear button: Made keyboard accessible with keyboard handler
+
+4. **Icon Component Enhancement** (components/icon.tsx)
+   - Added ARIA attribute support to Icon component:
+     - `role`, `aria-label`, `aria-expanded`, `aria-pressed`, `aria-live`, `aria-atomic`, `tabIndex`, `onKeyDown`
+   - Updated both unicode and icon rendering paths to pass through ARIA attributes
+   - Enables Icon component to be used with roles like "button" and dynamic ARIA state
+
+**Build Status**: ✅ Build successful (pnpm build-dev in packages/static)
