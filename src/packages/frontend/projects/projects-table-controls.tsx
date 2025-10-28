@@ -108,6 +108,7 @@ export function ProjectsTableControls({
       {/* Left section: Search and Hashtags */}
       <Space wrap ref={searchRef}>
         <Input.Search
+          aria-label="Filter projects by name"
           placeholder={intl.formatMessage({
             id: "projects.table-controls.search.placeholder",
             defaultMessage: "Filter projects...",
@@ -122,6 +123,7 @@ export function ProjectsTableControls({
 
         {!is_anonymous && (
           <Select
+            aria-label="Filter projects by hashtags"
             mode="multiple"
             allowClear
             showSearch
@@ -141,6 +143,7 @@ export function ProjectsTableControls({
         {!is_anonymous && (
           <Space ref={filtersRef}>
             <Switch
+              aria-label="Show hidden projects"
               checked={hidden}
               onChange={(checked) => actions.display_hidden_projects(checked)}
               checkedChildren={intl.formatMessage({
@@ -153,6 +156,7 @@ export function ProjectsTableControls({
               })}
             />
             <Switch
+              aria-label="Show deleted projects"
               checked={deleted}
               onChange={(checked) => actions.display_deleted_projects(checked)}
               checkedChildren={intl.formatMessage({
@@ -175,6 +179,7 @@ export function ProjectsTableControls({
           <Button
             ref={createNewRef}
             type="primary"
+            aria-label="Create a new project"
             onClick={onCreateProject}
             icon={<Icon name="plus-circle" />}
           >

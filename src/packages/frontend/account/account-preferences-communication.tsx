@@ -117,6 +117,8 @@ export function AccountPreferencesCommunication(): React.JSX.Element {
     <div role="region" aria-label="Communication settings">
       <Panel
         size="small"
+        role="region"
+        aria-label="Notification settings"
         header={
           <>
             <Icon name={COMMUNICATION_ICON_NAME} />{" "}

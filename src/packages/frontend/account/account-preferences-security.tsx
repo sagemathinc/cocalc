@@ -20,7 +20,7 @@ export function AccountPreferencesSecurity() {
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
 
   return (
-    <div role="region" aria-label="Security settings">
+    <div role="region" aria-label="API & SSH Keys">
       {(ssh_gateway || kucalc === KUCALC_COCALC_COM) && <GlobalSSHKeys />}
       {!is_anonymous && <ApiKeys />}
     </div>

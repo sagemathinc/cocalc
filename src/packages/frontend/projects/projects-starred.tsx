@@ -201,6 +201,7 @@ export function StarredProjectsBar() {
       <Button
         className="starred-project-button"
         style={buttonStyle}
+        aria-label={`${project.title}`}
         icon={
           project.avatar_image_tiny ? (
             <Avatar src={project.avatar_image_tiny} size={20} />
@@ -287,7 +288,10 @@ export function StarredProjectsBar() {
             placement="bottomRight"
             trigger={["click"]}
           >
-            <Button icon={<Icon name="ellipsis" />}>
+            <Button
+              aria-label={`${overflowProjects.length} more starred project${overflowProjects.length !== 1 ? "s" : ""}`}
+              icon={<Icon name="ellipsis" />}
+            >
               +{overflowProjects.length}
             </Button>
           </Dropdown>

@@ -38,6 +38,8 @@ export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
   return (
     <Panel
       size={props.size}
+      role="region"
+      aria-label="Editor color scheme settings"
       header={
         <>
           <Icon name="file-alt" /> {title}

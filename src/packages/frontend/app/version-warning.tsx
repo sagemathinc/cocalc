@@ -9,7 +9,7 @@ import { type CSSProperties, useEffect, useState } from "react";
 import { version } from "@cocalc/util/smc-version";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
-const VERSION_WARNING_STYLE = {
+const VERSION_WARNING_STYLE: CSSProperties = {
   fontSize: "12pt",
   position: "fixed",
   left: 12,
@@ -22,7 +22,7 @@ const VERSION_WARNING_STYLE = {
   boxShadow: "8px 8px 4px #888",
   width: "70%",
   marginTop: "1em",
-} as CSSProperties;
+} as const;
 
 export default function VersionWarning() {
   const [closed, setClosed] = useState<boolean>(false);
@@ -34,7 +34,7 @@ export default function VersionWarning() {
 
   useEffect(() => {
     if (minVersion > version) {
-      // immediately and permenantly disconnect user from conat
+      // immediately and permanently disconnect user from conat
       webapp_client.conat_client.permanentlyDisconnect();
     }
   }, [minVersion]);

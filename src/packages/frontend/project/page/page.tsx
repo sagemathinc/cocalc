@@ -27,7 +27,7 @@ import {
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
 import track from "@cocalc/frontend/user-tracking";
-import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
+import { EDITOR_PREFIX, path_to_tab, path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
 import {
@@ -373,12 +373,23 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }
 
   function renderMainContent() {
+    // Find the current file being edited and extract just the filename
+    let currentFilename = active_project_tab;
+    if (open_files_order != null) {
+      const currentPath = open_files_order.find(
+        (path) => !!path && path_to_tab(path) === active_project_tab
+      );
+      if (currentPath) {
+        currentFilename = path_split(currentPath).tail;
+      }
+    }
+
     return (
       // ARIA: main element for primary editor content
       <div
         ref={mainRef}
         role="main"
-        aria-label="Editor content"
+        aria-label={`Content: ${currentFilename}`}
         style={{
           flex: 1,
           display: "flex",

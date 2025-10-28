@@ -15,7 +15,7 @@ export default function GlobalSSHKeys() {
   const ssh_keys = useRedux("account", "ssh_keys");
 
   return (
-    <div style={{ marginTop: "1em" }}>
+    <div role="region" aria-label="SSH keys" style={{ marginTop: "1em" }}>
       <SSHKeyList
         help={
           <Paragraph>

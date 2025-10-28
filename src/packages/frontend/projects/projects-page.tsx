@@ -242,7 +242,7 @@ export const ProjectsPage: React.FC = () => {
       className={"smc-vfill"}
       style={{ overflowY: "auto" }}
       role="main"
-      aria-label="Projects"
+      aria-label="Projects management"
     >
       <Row>
         <Col sm={24} md={24} lg={{ span: 20, offset: 2 }}>
@@ -302,7 +302,11 @@ export const ProjectsPage: React.FC = () => {
             )}
 
             {/* Table Controls (Search, Filters, Create Button) */}
-            <div ref={controlsRef} role="region" aria-label="Controls">
+            <div
+              ref={controlsRef}
+              role="region"
+              aria-label="Project filters and controls"
+            >
               <ProjectsTableControls
                 visible_projects={visible_projects}
                 onCreateProject={handleCreateProject}
@@ -334,7 +338,7 @@ export const ProjectsPage: React.FC = () => {
             <div
               ref={projectListRef}
               role="region"
-              aria-label={`${visible_projects.length} project${visible_projects.length !== 1 ? "s" : ""}`}
+              aria-label={`Projects list (${visible_projects.length} total)`}
             >
               <ProjectsTable
                 visible_projects={visible_projects}

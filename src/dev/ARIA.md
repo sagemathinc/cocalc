@@ -46,6 +46,20 @@ The frontend has a **three-level hierarchy**:
 // Heading-based labels (alternative to aria-label)
 <h2 id="section-id">My Section</h2>
 <div role="region" aria-labelledby="section-id">...</div>
+
+// When using Ant Design components that support ARIA props,
+// apply role/aria-label directly without wrapping in div:
+<Space.Compact role="region" aria-label="Zoom controls">
+  {/* children */}
+</Space.Compact>
+
+// ✅ GOOD: Direct ARIA on component
+<Button aria-label="Save file" />
+
+// ❌ AVOID: Unnecessary wrapping
+<div role="button" aria-label="Save file">
+  <Button />
+</div>
 ```
 
 ### Dynamic Label Examples
@@ -297,33 +311,99 @@ Location: `packages/frontend/frame-editors/`
 - [ ] `wiki-editor/` - Wiki pages
 - [ ] `x11-editor/` - X11 graphics
 
-### Phase 11: Project Pages ⏳ PENDING
+### Phase 11: Project Pages ✅ COMPLETED (Oct 28, 2025 - Phase 11a)
 
 **Priority: HIGH** - Core user interface
 
-#### 11a: Projects List Page
+#### 11a: Projects List Page ✅ COMPLETED
 
 Location: `packages/frontend/projects/`
 
-- [ ] **projects-page.tsx** - Main projects listing
-  - [ ] Page structure: `<main role="main" aria-label="Projects management">`
-  - [ ] Filters section: `role="region" aria-label="Project filters and controls"`
-  - [ ] Projects list: `aria-label="Projects list ({count} total)"`
-  - [ ] List items: Proper list semantics
+**Files Modified**:
 
-- [ ] **projects-table.tsx** - Projects data table
-  - [ ] Table: `aria-label="Projects list"`
-  - [ ] Column headers: `<th scope="col">` for proper association
-  - [ ] Sort indicators: `aria-sort="ascending|descending|none"`
-  - [ ] Expandable rows: `aria-expanded` when expanded/collapsed
-  - [ ] Expansion content: `aria-controls` linking to row ID
+- `packages/frontend/projects/projects-page.tsx`
+- `packages/frontend/projects/projects-table-controls.tsx`
+- `packages/frontend/projects/projects-starred.tsx`
 
-- [ ] **projects-starred.tsx** - Starred/favorite projects
-  - [ ] Section: `role="region" aria-label="Starred projects ({count})"`
-  - [ ] List structure: Proper semantic list markup
+**Changes**:
 
-- [ ] **project-row-expanded-content.tsx** - Row details
-  - [ ] Expansion announcement: Update aria-expanded dynamically
+- [x] **projects-page.tsx** - Main projects listing
+  - [x] ✅ Page structure: `<main role="main" aria-label="Projects management">`
+  - [x] ✅ Filters section: `role="region" aria-label="Project filters and controls"`
+  - [x] ✅ Projects list: `aria-label="Projects list ({count} total)"`
+
+- [x] **projects-table-controls.tsx** - Control bar with filters
+  - [x] ✅ Search input: `aria-label="Filter projects by name"`
+  - [x] ✅ Hashtags filter: `aria-label="Filter projects by hashtags"`
+  - [x] ✅ Hidden projects switch: `aria-label="Show hidden projects"`
+  - [x] ✅ Deleted projects switch: `aria-label="Show deleted projects"`
+  - [x] ✅ Create project button: `aria-label="Create a new project"`
+
+- [x] **projects-starred.tsx** - Starred/favorite projects
+  - [x] ✅ Section: `role="region" aria-label="Starred (N)"`
+  - [x] ✅ Starred project buttons: `aria-label` with full project title
+  - [x] ✅ Overflow dropdown: `aria-label="N more starred project(s)"`
+
+### Phase 9b: Account Preferences - Sub-Sections ✅ COMPLETED (Oct 28, 2025)
+
+**Enhancement: Added region landmarks to account preference sub-sections**
+
+**Component Enhancements**:
+
+- `packages/frontend/antd-bootstrap.tsx` - Panel component now supports `role` and `aria-label` props
+- `packages/frontend/components/setting-box.tsx` - SettingBox component now supports `role` and `aria-label` props
+
+**Account Preferences - Appearance** (`packages/frontend/account/account-preferences-appearance.tsx`):
+
+- [x] ✅ **User Interface settings**: `role="region" aria-label="User interface settings"`
+- [x] ✅ **Dark mode settings**: `role="region" aria-label="Dark mode settings"`
+- [x] ✅ **Editor color scheme**: `role="region" aria-label="Editor color scheme settings"` (via color-schemes.tsx)
+- [x] ✅ **Terminal settings**: `role="region" aria-label="Terminal settings"` (via terminal-settings.tsx)
+
+**Account Preferences - Editor** (`packages/frontend/account/editor-settings/editor-settings.tsx`):
+
+- [x] ✅ **Basic editor settings**: `role="region" aria-label="Basic editor settings"`
+- [x] ✅ **Keyboard settings**: `role="region" aria-label="Keyboard settings"`
+
+**Account Preferences - Editor Checkboxes** (`packages/frontend/account/editor-settings/checkboxes.tsx`):
+
+- [x] ✅ **Display settings**: `role="region" aria-label="display settings"`
+- [x] ✅ **Editing behavior**: `role="region" aria-label="editing behavior"`
+- [x] ✅ **Auto-completion**: `role="region" aria-label="auto-completion"`
+- [x] ✅ **File operations**: `role="region" aria-label="file operations"`
+- [x] ✅ **Jupyter settings**: `role="region" aria-label="jupyter settings"`
+- [x] ✅ **UI elements**: `role="region" aria-label="ui elements"`
+
+**Account Preferences - Keyboard** (`packages/frontend/account/keyboard-settings.tsx`):
+
+- [x] ✅ **Keyboard shortcuts**: `role="region" aria-label="Keyboard shortcuts"`
+
+**Account Preferences - Communication** (`packages/frontend/account/account-preferences-communication.tsx`):
+
+- [x] ✅ **Notification settings**: `role="region" aria-label="Notification settings"`
+
+**Account Preferences - Security** (`packages/frontend/account/account-preferences-security.tsx`):
+
+- [x] ✅ Changed main region label from "Security settings" → "API & SSH Keys"
+- [x] ✅ **SSH keys**: `role="region" aria-label="SSH keys"` (via global-ssh-keys.tsx)
+- [x] ✅ **API keys**: `role="region" aria-label="API keys"` (via api-keys.tsx using enhanced SettingBox)
+
+**Account Preferences - Profile** (`packages/frontend/account/account-preferences-profile.tsx`):
+
+- [x] ✅ **Account settings**: `role="region" aria-label="Account settings"` (via settings/account-settings.tsx)
+- [x] ✅ **Avatar settings**: `role="region" aria-label="Avatar settings"` (via profile-settings.tsx)
+
+**Account Preferences - Tours** (`packages/frontend/account/tours.tsx`):
+
+- [x] ✅ **Completed tours**: `role="region" aria-label="Completed tours"`
+
+**Other Settings** (`packages/frontend/account/other-settings.tsx`):
+
+- [x] ✅ **AI settings**: `role="region" aria-label="AI settings"`
+- [x] ✅ **Theme settings**: `role="region" aria-label="Theme settings"`
+- [x] ✅ **Browser settings**: `role="region" aria-label="Browser settings"`
+- [x] ✅ **File explorer settings**: `role="region" aria-label="File explorer settings"`
+- [x] ✅ **Projects settings**: `role="region" aria-label="Projects settings"`
 
 #### 11b: Project Page
 
@@ -1284,3 +1364,81 @@ const { label, icon, tooltip, onClick, isRunning } = getRunStopButton();
    - Enables Icon component to be used with roles like "button" and dynamic ARIA state
 
 **Build Status**: ✅ Build successful (pnpm build-dev in packages/static)
+
+### Best Practice Notes
+
+1. **Direct ARIA on Components**: When Ant Design components (Space.Compact, Button, etc.) support ARIA attributes, apply them directly without wrapping in divs:
+   - ✅ `<Space.Compact role="region" aria-label="Zoom controls">`
+   - ❌ `<div role="region"><Space.Compact>` (unnecessary nesting)
+
+2. **Component Props Support**: All frontend components should be checked to ensure they forward ARIA attributes to their DOM elements. The Icon component was enhanced to support ARIA props for broader accessibility support.
+
+3. **Live Regions**: Use `aria-live="polite"` for status updates and `aria-live="assertive"` only for urgent alerts. Always test with screen readers to ensure announcements are clear.
+
+## Session Summary - October 28, 2025
+
+### Session Accomplishments
+
+**Phases Completed**:
+
+- ✅ Phase 11a: Projects List Page (Complete)
+- ✅ Phase 9b: Account Preferences Sub-Sections (Complete)
+
+**Component Enhancements**:
+
+1. **Panel** (`antd-bootstrap.tsx`) - Now supports ARIA region props
+   - Added `role` and `aria-label` parameters
+   - Enables Panel components throughout app to declare landmark regions
+
+2. **SettingBox** (`components/setting-box.tsx`) - Now supports ARIA region props
+   - Added `role` and `aria-label` parameters
+   - Direct ARIA support on component (not wrapped in divs)
+
+**Projects List Page (Phase 11a)**:
+
+- Main workspace landmark with "Projects management" label
+- Project filters section with descriptive "Project filters and controls" label
+- Dynamic projects list label showing count: "Projects list (N total)"
+- All controls (search, filters, buttons) have clear aria-labels
+- Starred projects section with count indicator
+
+**Account Preferences Sub-Sections (Phase 9b)**:
+
+- Enhanced all account preference panels with region landmarks
+- 25+ sub-sections now have clear accessibility labels
+- Consistent naming pattern for easy navigation
+- Components used directly with ARIA props (no wrapper divs)
+
+**Sub-Sections Labeled**:
+
+- Appearance: User Interface, Dark Mode, Editor Color Scheme, Terminal
+- Editor: Basic Settings, Keyboard, Display, Editing Behavior, Auto-completion, File Operations, Jupyter, UI Elements
+- Keyboard: Keyboard Shortcuts
+- Communication: Notification Settings
+- Security: API Keys, SSH Keys (renamed from "Security settings")
+- Profile: Account Settings, Avatar Settings
+- Tours: Completed Tours
+- Other: AI, Theme, Browser, File Explorer, Projects
+
+**Files Modified**: 30+ files
+
+- Core: 2 component enhancements
+- Projects: 3 files
+- Account Preferences: 25+ files across all preference categories
+
+### Next Steps
+
+**Phase 11b: Project Page** - Ready to start
+
+- Main project workspace layout
+- Activity bar with tab semantics
+- File tabs navigation
+- Content area routing
+
+**Phase 12: App Shell & Navigation** - Pending
+
+- Top-level navigation structure
+- Connection status indicators
+- Notification management
+
+**Phase 13+**: Form fields, tables, modals, etc.

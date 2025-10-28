@@ -41,6 +41,8 @@ export default function Tours() {
   return (
     <Panel
       size={"small"}
+      role="region"
+      aria-label="Completed tours"
       header={
         <span>
           <Icon name="map" /> Completed Tours
