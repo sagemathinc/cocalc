@@ -5,6 +5,19 @@
 
 import { Avatar, Button, Dropdown, Space, Tooltip } from "antd";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  DndContext,
+  DragEndEvent,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
@@ -27,9 +40,82 @@ const STARRED_BUTTON_STYLE: CSS = {
   whiteSpace: "nowrap",
 } as const;
 
+function DraggableProjectButton({
+  project,
+  showTooltip = true,
+  visibility,
+  isOverlay = false,
+  onProjectClick,
+  renderTooltipContent,
+}: {
+  project: any;
+  showTooltip?: boolean;
+  visibility?: "hidden" | "visible";
+  isOverlay?: boolean;
+  onProjectClick: (
+    project_id: string,
+    e: React.MouseEvent<HTMLElement>,
+  ) => void;
+  renderTooltipContent: (project: any) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useSortable({ id: project.project_id });
+
+  const buttonStyle = {
+    ...STARRED_BUTTON_STYLE,
+    ...(project.color && { borderColor: project.color, borderWidth: 2 }),
+    ...(visibility && { visibility }),
+    ...(isDragging && !isOverlay && { opacity: 0.5 }),
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : undefined,
+  } as const;
+
+  const button = (
+    <Button
+      className="starred-project-button"
+      style={buttonStyle}
+      icon={
+        project.avatar_image_tiny ? (
+          <Avatar src={project.avatar_image_tiny} size={20} />
+        ) : (
+          <Icon name="star-filled" style={{ color: COLORS.STAR }} />
+        )
+      }
+      onClick={(e) => onProjectClick(project.project_id, e)}
+      onMouseDown={(e) => {
+        // Support middle-click
+        if (e.button === 1) {
+          onProjectClick(project.project_id, e);
+        }
+      }}
+      {...attributes}
+      {...listeners}
+      ref={setNodeRef}
+    >
+      {trunc(project.title, 15)}
+    </Button>
+  );
+
+  if (!showTooltip) {
+    return button;
+  }
+
+  return (
+    <Tooltip
+      key={project.project_id}
+      title={renderTooltipContent(project)}
+      placement="bottom"
+    >
+      {button}
+    </Tooltip>
+  );
+}
+
 export function StarredProjectsBar() {
   const actions = useActions("projects");
-  const { bookmarkedProjects } = useBookmarkedProjects();
+  const { bookmarkedProjects, setBookmarkedProjectsOrder } =
+    useBookmarkedProjects();
   const project_map = useTypedRedux("projects", "project_map");
 
   // Get starred projects in bookmarked order (newest bookmarked first)
@@ -56,6 +142,15 @@ export function StarredProjectsBar() {
     // Return projects in their bookmarked order
     return projects;
   }, [bookmarkedProjects, project_map]);
+
+  // Drag and drop sensors
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: { distance: 5 }, // 5px to activate drag
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 100, tolerance: 5 },
+  });
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   // State for tracking how many projects can be shown
   const [visibleCount, setVisibleCount] = useState<number>(0);
@@ -184,6 +279,38 @@ export function StarredProjectsBar() {
     };
   }, [calculateVisibleCount]);
 
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (!over || active.id === over.id) {
+        return;
+      }
+
+      // Find the indices of the dragged and target items
+      const activeIndex = starredProjects.findIndex(
+        (p) => p.project_id === active.id,
+      );
+      const overIndex = starredProjects.findIndex(
+        (p) => p.project_id === over.id,
+      );
+
+      if (activeIndex === -1 || overIndex === -1) {
+        return;
+      }
+
+      // Create new ordered list
+      const newProjects = [...starredProjects];
+      const [movedProject] = newProjects.splice(activeIndex, 1);
+      newProjects.splice(overIndex, 0, movedProject);
+
+      // Update bookmarked projects with new order
+      const newBookmarkedOrder = newProjects.map((p) => p.project_id);
+      setBookmarkedProjectsOrder(newBookmarkedOrder);
+    },
+    [starredProjects, setBookmarkedProjectsOrder],
+  );
+
   const handleProjectClick = (
     project_id: string,
     e: React.MouseEvent<HTMLElement>,
@@ -224,56 +351,6 @@ export function StarredProjectsBar() {
     );
   };
 
-  // Helper to render a project button
-  function renderProjectButton(
-    project: any,
-    showTooltip: boolean = true,
-    visibility?: "hidden" | "visible",
-  ) {
-    const buttonStyle = {
-      ...STARRED_BUTTON_STYLE,
-      ...(project.color && { borderColor: project.color, borderWidth: 2 }),
-      ...(visibility && { visibility }),
-    } as const;
-
-    const button = (
-      <Button
-        className="starred-project-button"
-        style={buttonStyle}
-        icon={
-          project.avatar_image_tiny ? (
-            <Avatar src={project.avatar_image_tiny} size={20} />
-          ) : (
-            <Icon name="star-filled" style={{ color: COLORS.STAR }} />
-          )
-        }
-        onClick={(e) => handleProjectClick(project.project_id, e)}
-        onMouseDown={(e) => {
-          // Support middle-click
-          if (e.button === 1) {
-            handleProjectClick(project.project_id, e);
-          }
-        }}
-      >
-        {trunc(project.title, 15)}
-      </Button>
-    );
-
-    if (!showTooltip) {
-      return button;
-    }
-
-    return (
-      <Tooltip
-        key={project.project_id}
-        title={renderTooltipContent(project)}
-        placement="bottom"
-      >
-        {button}
-      </Tooltip>
-    );
-  }
-
   // Create dropdown menu items for overflow projects
   const overflowMenuItems = overflowProjects.map((project) => ({
     key: project.project_id,
@@ -286,7 +363,10 @@ export function StarredProjectsBar() {
             project.color ? project.color : "transparent"
           }`,
         }}
-        onClick={(e) => handleProjectClick(project.project_id, e as any)}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleProjectClick(project.project_id, e as any);
+        }}
       >
         <span
           style={{
@@ -308,60 +388,83 @@ export function StarredProjectsBar() {
     ),
   }));
 
+  // Get all project IDs for SortableContext
+  const allProjectIds = starredProjects.map((p) => p.project_id);
+
   return (
-    <div
-      ref={containerRef}
-      style={{
-        ...STARRED_BAR_STYLE,
-        minHeight: containerHeight > 0 ? `${containerHeight}px` : undefined,
-      }}
-    >
-      {/* Hidden measurement container - rendered off-screen so it doesn't cause visual flicker */}
-      {measurementPhase && (
+    <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
+      <SortableContext
+        items={allProjectIds}
+        strategy={horizontalListSortingStrategy}
+      >
         <div
-          ref={measurementContainerRef}
+          ref={containerRef}
           style={{
-            position: "fixed",
-            visibility: "hidden",
-            width: containerRef.current?.offsetWidth ?? "100%",
-            display: "flex",
-            gap: "8px",
-            pointerEvents: "none",
-            top: -9999,
-            left: -9999,
+            ...STARRED_BAR_STYLE,
+            minHeight: containerHeight > 0 ? `${containerHeight}px` : undefined,
           }}
         >
-          {starredProjects.map((project) =>
-            renderProjectButton(project, false, "visible"),
+          {/* Hidden measurement container - rendered off-screen so it doesn't cause visual flicker */}
+          {measurementPhase && (
+            <div
+              ref={measurementContainerRef}
+              style={{
+                position: "fixed",
+                visibility: "hidden",
+                width: containerRef.current?.offsetWidth ?? "100%",
+                display: "flex",
+                gap: "8px",
+                pointerEvents: "none",
+                top: -9999,
+                left: -9999,
+              }}
+            >
+              {starredProjects.map((project) => (
+                <DraggableProjectButton
+                  key={project.project_id}
+                  project={project}
+                  showTooltip={false}
+                  visibility="visible"
+                  onProjectClick={handleProjectClick}
+                  renderTooltipContent={renderTooltipContent}
+                />
+              ))}
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Actual visible content - only rendered after measurement phase */}
-      <Space size="small" ref={spaceRef}>
-        {!measurementPhase && (
-          <>
-            {starredProjects
-              .slice(0, visibleCount)
-              .map((project) => renderProjectButton(project))}
-            {/* Show overflow dropdown if there are hidden projects */}
-            {overflowProjects.length > 0 && (
-              <Dropdown
-                menu={{ items: overflowMenuItems }}
-                placement="bottomRight"
-                trigger={["click"]}
-              >
-                <Button
-                  icon={<Icon name="ellipsis" />}
-                  style={{ backgroundColor: "white", marginLeft: "auto" }}
-                >
-                  +{overflowProjects.length}
-                </Button>
-              </Dropdown>
+          {/* Actual visible content - only rendered after measurement phase */}
+          <Space size="small" ref={spaceRef}>
+            {!measurementPhase && (
+              <>
+                {starredProjects.slice(0, visibleCount).map((project) => (
+                  <DraggableProjectButton
+                    key={project.project_id}
+                    project={project}
+                    showTooltip={true}
+                    onProjectClick={handleProjectClick}
+                    renderTooltipContent={renderTooltipContent}
+                  />
+                ))}
+                {/* Show overflow dropdown if there are hidden projects */}
+                {overflowProjects.length > 0 && (
+                  <Dropdown
+                    menu={{ items: overflowMenuItems }}
+                    placement="bottomRight"
+                    trigger={["click"]}
+                  >
+                    <Button
+                      icon={<Icon name="ellipsis" />}
+                      style={{ backgroundColor: "white", marginLeft: "auto" }}
+                    >
+                      +{overflowProjects.length}
+                    </Button>
+                  </Dropdown>
+                )}
+              </>
             )}
-          </>
-        )}
-      </Space>
-    </div>
+          </Space>
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 }

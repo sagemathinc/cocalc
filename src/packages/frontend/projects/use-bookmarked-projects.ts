@@ -141,6 +141,27 @@ export function useBookmarkedProjects() {
     }
   }
 
+  function setBookmarkedProjectsOrder(
+    newBookmarkedProjects: BookmarkedProjects,
+  ) {
+    if (!bookmarks || !isInitialized) {
+      console.warn("Conat bookmarks not yet initialized");
+      return;
+    }
+
+    // Update local state immediately for responsive UI
+    setBookmarkedProjects(newBookmarkedProjects);
+
+    // Store to conat (this will also trigger the change event for other clients)
+    try {
+      bookmarks.set(PROJECTS_KEY, newBookmarkedProjects);
+    } catch (err) {
+      console.warn(`conat bookmark storage warning -- ${err}`);
+      // Revert local state on error
+      setBookmarkedProjects(bookmarkedProjects);
+    }
+  }
+
   function isProjectBookmarked(project_id: string): boolean {
     return bookmarkedProjects.includes(project_id);
   }
@@ -148,6 +169,7 @@ export function useBookmarkedProjects() {
   return {
     bookmarkedProjects,
     setProjectBookmarked,
+    setBookmarkedProjectsOrder,
     isProjectBookmarked,
     isInitialized,
   };
