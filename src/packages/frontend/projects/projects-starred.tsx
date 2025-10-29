@@ -11,7 +11,6 @@ import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
-import { sortProjectsLastEdited } from "./util";
 
 const DROPDOWN_WIDTH = 100; // Width reserved for dropdown button + buffer
 
@@ -33,7 +32,7 @@ export function StarredProjectsBar() {
   const { bookmarkedProjects } = useBookmarkedProjects();
   const project_map = useTypedRedux("projects", "project_map");
 
-  // Get starred projects sorted by title
+  // Get starred projects in bookmarked order (newest bookmarked first)
   const starredProjects = useMemo(() => {
     if (!bookmarkedProjects || !project_map) return [];
 
@@ -54,8 +53,8 @@ export function StarredProjectsBar() {
       })
       .filter((p) => p != null);
 
-    // Sort by last edited, newest first
-    return projects.sort(sortProjectsLastEdited).reverse();
+    // Return projects in their bookmarked order
+    return projects;
   }, [bookmarkedProjects, project_map]);
 
   // State for tracking how many projects can be shown

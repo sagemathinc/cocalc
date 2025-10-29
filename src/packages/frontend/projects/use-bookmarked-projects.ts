@@ -17,7 +17,7 @@ bm.set("projects", ['project_id_1', 'project_id_2'])
 bm.on('change', (e) => console.log('Bookmark change:', e))
  */
 
-import { sortBy, uniq } from "lodash";
+import { uniq } from "lodash";
 import { useEffect, useRef, useState } from "react";
 
 import { redux } from "@cocalc/frontend/app-framework";
@@ -78,7 +78,7 @@ export function useBookmarkedProjects() {
         // Load initial data from conat
         const initialBookmarks = conatBookmarks.get(PROJECTS_KEY) ?? [];
         if (Array.isArray(initialBookmarks)) {
-          setBookmarkedProjects(sortBy(uniq(initialBookmarks)));
+          setBookmarkedProjects(uniq(initialBookmarks));
         }
 
         // Create stable listener function
@@ -90,7 +90,7 @@ export function useBookmarkedProjects() {
           if (changeEvent.key === PROJECTS_KEY) {
             const remoteBookmarks =
               (changeEvent.value as BookmarkedProjects) ?? [];
-            setBookmarkedProjects(sortBy(uniq(remoteBookmarks)));
+            setBookmarkedProjects(uniq(remoteBookmarks));
           }
         };
 
@@ -125,7 +125,7 @@ export function useBookmarkedProjects() {
     }
 
     const next = bookmarked
-      ? sortBy(uniq([...bookmarkedProjects, project_id]))
+      ? uniq([project_id, ...bookmarkedProjects])
       : bookmarkedProjects.filter((p) => p !== project_id);
 
     // Update local state immediately for responsive UI
