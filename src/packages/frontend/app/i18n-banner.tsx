@@ -87,7 +87,12 @@ export const I18NBanner: React.FC<{}> = () => {
   if (!loaded) return;
 
   return (
-    <div style={I18N_BANNER_STYLE}>
+    <div
+      role="region"
+      aria-label="Language selection"
+      aria-live="polite"
+      style={I18N_BANNER_STYLE}
+    >
       <Text strong>
         <Icon name={"translation-outlined"} /> Use <SiteName /> in a different
         language:

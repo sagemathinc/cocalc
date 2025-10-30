@@ -15,6 +15,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
+import { ariaKeyDown } from "./aria";
 import {
   FONT_SIZE_ICONS_NORMAL,
   PageStyle,
@@ -122,12 +123,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         aria-busy={connection_status === "connecting"}
         style={outer_style}
         onClick={connection_click}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            connection_click();
-          }
-        }}
+        onKeyDown={ariaKeyDown(connection_click)}
         tabIndex={0}
       >
         {render_connection_status()}

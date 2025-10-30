@@ -89,6 +89,12 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     project_id,
     "deleted",
   ]);
+  const project_title = useRedux([
+    "projects",
+    "project_map",
+    project_id,
+    "title",
+  ]);
   const projectCtx = useProjectContextProvider({
     project_id,
     is_active,
@@ -377,7 +383,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     let currentFilename = active_project_tab;
     if (open_files_order != null) {
       const currentPath = open_files_order.find(
-        (path) => !!path && path_to_tab(path) === active_project_tab
+        (path) => !!path && path_to_tab(path) === active_project_tab,
       );
       if (currentPath) {
         currentFilename = path_split(currentPath).tail;
@@ -411,7 +417,12 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
   return (
     <ProjectContext.Provider value={projectCtx}>
-      <div className="container-content" style={PAGE_STYLE}>
+      <div
+        className="container-content"
+        role="region"
+        aria-label={`Project: ${project_title ?? project_id}`}
+        style={PAGE_STYLE}
+      >
         <StudentPayUpgrade project_id={project_id} />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />

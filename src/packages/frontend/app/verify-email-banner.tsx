@@ -168,6 +168,7 @@ function VerifyEmailModal({
       open={true}
       onCancel={() => doDismiss()}
       footer={renderFooter()}
+      aria-label="Email verification required"
     >
       {renderBanner()}
     </Modal>

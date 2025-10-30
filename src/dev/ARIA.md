@@ -69,6 +69,65 @@ The frontend has a **three-level hierarchy**:
 - Sections with counts: `"Projects list (5 total)"`, `"Issues (2e 1w): {path}"`
 - Conditional content: Update aria-label when content changes
 
+### Pattern: Keyboard Accessibility for Custom Interactive Elements
+
+When creating interactive elements with `role="button"`, `role="tab"`, or other interactive roles using `<div>` or other non-button elements, you must provide keyboard support via the `ariaKeyDown` utility from `@cocalc/frontend/app/aria`.
+
+**Why this is needed:**
+
+- Native `<button>` elements support Enter and Space keys automatically
+- Custom elements with `role="button"` do not have native keyboard support
+- Screen reader users and keyboard-only users rely on this keyboard behavior
+
+**Usage pattern:**
+
+```tsx
+import { ariaKeyDown } from "@cocalc/frontend/app/aria";
+
+// For button-like divs
+<div
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={ariaKeyDown(handleClick)}
+  aria-label="Delete item"
+>
+  Delete
+</div>
+
+// For tab-like divs
+<div
+  role="tab"
+  tabIndex={0}
+  onClick={handleSelect}
+  onKeyDown={ariaKeyDown(handleSelect)}
+  aria-selected={isActive}
+>
+  Tab label
+</div>
+```
+
+**What ariaKeyDown does:**
+
+- Activates the handler when Enter or Space keys are pressed
+- Prevents default browser behavior (form submission, page scroll)
+- Provides the same keyboard experience as native buttons
+- Single source of truth for this common accessibility pattern
+
+**Implementation note:**
+Always use `ariaKeyDown` when you have:
+
+- `role="button"`, `role="tab"`, or other interactive roles on non-button elements
+- An `onClick` handler that should also work with keyboard
+- A `tabIndex={0}` to make the element focusable
+
+See `packages/frontend/app/aria.tsx` for the implementation and usage in:
+
+- `packages/frontend/app/nav-tab.tsx` - Navigation tabs
+- `packages/frontend/app/connection-indicator.tsx` - Status indicator
+- `packages/frontend/app/notifications.tsx` - Notification badges
+- `packages/frontend/frame-editors/frame-tree/status-bar.tsx` - Status bar close button
+
 ## Split Editors with Multiple Frames
 
 When editors are split into multiple frames, use nested regions with clear labels:
@@ -412,8 +471,9 @@ Location: `packages/frontend/project/page/`
 **Completed** ✅:
 
 - [x] **page.tsx** - Main project workspace
-  - [x] Main content area: `<div role="main" aria-label="Content: {currentFilename}">` (line 389-392)
-  - [x] Activity bar sidebar: `<aside role="complementary" aria-label="Project activity bar">` (line 356-371)
+  - [x] Root container: `<div role="region" aria-label="Project: {projectTitle}">` (line 420-425)
+  - [x] Main content area: `<div role="main" aria-label="Content: {currentFilename}">` (line 395-404)
+  - [x] Activity bar sidebar: `<aside role="complementary" aria-label="Project activity bar">` (line 362-376)
   - [x] File tabs navigation: `<nav aria-label="Open files">` (line 307-313)
   - [x] Flyout sidebar: `<aside role="complementary" aria-label="Project sidebar">` (line 262-278)
 
@@ -503,28 +563,42 @@ Location: `packages/frontend/app/`
 - `packages/frontend/app/connection-indicator.tsx` - Status live region with i18n labels
 - `packages/frontend/i18n/common.ts` - Added labels.connected
 
-#### **P1 - Important Improvements** ⏳ PENDING
+#### **P1 - Important Improvements** ✅ COMPLETED
 
-- [ ] **active-content.tsx** - Content router
-  - [ ] Dynamic content: Announce when switching pages
-  - [ ] Loading states: `aria-busy` indication
-  - [ ] Error states: ARIA alert or live region
+- [x] **active-content.tsx** - Content router
+  - [x] Decision: Each active content page should have its own aria-labels (not wrapped in single region)
+  - [x] Left as `<>{v}</>` - ProjectPage, ProjectsPage, AccountPage, etc. handle their own landmarks
 
-- [ ] **Banners** - Informational/warning banners (5 files)
-  - [ ] All banners: `role="region" aria-label="..."`
-  - [ ] `i18n-banner.tsx` - Language selection
-  - [ ] `verify-email-banner.tsx` - Email verification
-  - [ ] `version-warning.tsx` - Version alerts
-  - [ ] `insecure-test-mode-banner.tsx` - Test mode warning
-  - [ ] `warnings.tsx` - Cookie/storage warnings
+- [x] **Banners** - Informational/warning banners (5 files)
+  - [x] **i18n-banner.tsx** - `role="region" aria-label="Language selection" aria-live="polite"`
+  - [x] **verify-email-banner.tsx** - `aria-label="Email verification required"` on Modal
+  - [x] **version-warning.tsx** - `role="region" aria-label="Version warning"` with dynamic aria-live (assertive if critical)
+  - [x] **insecure-test-mode-banner.tsx** - `role="region" aria-label="Test mode warning" aria-live="assertive"` on Alert
+  - [x] **warnings.tsx** - Both CookieWarning and LocalStorageWarning:
+    - `role="region" aria-label="Cookie warning" aria-live="assertive"`
+    - `role="region" aria-label="Local storage warning" aria-live="assertive"`
 
-- [ ] **Notifications** - Notification indicators
-  - [ ] Notification badges: `aria-label` with count
-  - [ ] Live region: `aria-live="polite"` for count changes
+- [x] **notifications.tsx** - Notification indicators with keyboard support
+  - [x] Added `getAriaLabel()` function for dynamic labels:
+    - Bell: `"File use notifications: {count} new"`
+    - Notifications: `"Messages and mentions: {unreadMessages} unread, {count} mentions, {newsUnread} news"`
+  - [x] Added `role="button"` for keyboard accessibility
+  - [x] Added `aria-live="polite"` to announce count changes
+  - [x] Added `tabIndex={0}` and `onKeyDown` for Enter/Space activation
 
-- [ ] **projects-nav.tsx** - Project tabs navigation
-  - [ ] Container: `aria-label="Open projects"`
-  - [ ] Tab semantics already handled by Ant Design Tabs
+- [x] **projects-nav.tsx** - Project tabs navigation
+  - [x] Added `aria-label="Open projects"` to Ant Design Tabs container
+  - [x] Tab semantics already handled by Ant Design Tabs component
+
+**Files Modified (P1)**:
+
+- `packages/frontend/app/i18n-banner.tsx`
+- `packages/frontend/app/verify-email-banner.tsx`
+- `packages/frontend/app/version-warning.tsx`
+- `packages/frontend/app/warnings.tsx`
+- `packages/frontend/app/insecure-test-mode-banner.tsx`
+- `packages/frontend/app/notifications.tsx`
+- `packages/frontend/projects/projects-nav.tsx`
 
 ### Phase 13: Forms & Settings ⏳ PENDING
 

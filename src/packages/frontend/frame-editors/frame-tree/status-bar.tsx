@@ -15,6 +15,7 @@ This is basically used now as "ephemeral messages".
 import { CSSProperties } from "react";
 
 import { Icon, Gap } from "@cocalc/frontend/components";
+import { ariaKeyDown } from "@cocalc/frontend/app/aria";
 
 type CSS = CSSProperties;
 
@@ -55,11 +56,7 @@ export default function StatusBar({ status, onClear }: Props) {
         role="button"
         tabIndex={0}
         aria-label="Clear status message"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            onClear();
-          }
-        }}
+        onKeyDown={ariaKeyDown(onClear)}
       />
       {status}
       <Gap />

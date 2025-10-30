@@ -9,6 +9,7 @@ import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
+import { ariaKeyDown } from "./aria";
 import { TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 
 const ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE;
@@ -143,12 +144,7 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
   return (
     <div
       onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick();
-        }
-      }}
+      onKeyDown={ariaKeyDown(onClick)}
       role={props.role ?? "button"}
       aria-label={props["aria-label"]}
       tabIndex={0}

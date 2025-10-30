@@ -360,6 +360,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
             type={"editable-card"}
             renderTabBar={renderTabBar0}
             items={items}
+            aria-label="Open projects"
           />
         </SortableTabs>
       )}

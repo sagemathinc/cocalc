@@ -112,7 +112,12 @@ export default function VersionWarning() {
   }
 
   return (
-    <div style={style}>
+    <div
+      role="region"
+      aria-label="Version warning"
+      aria-live={version < minVersion ? "assertive" : "polite"}
+      style={style}
+    >
       {render_suggested()}
       {render_critical()}
     </div>

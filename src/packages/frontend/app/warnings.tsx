@@ -25,7 +25,12 @@ const WARNING_STYLE = {
 
 export function CookieWarning() {
   return (
-    <div style={WARNING_STYLE}>
+    <div
+      role="region"
+      aria-label="Cookie warning"
+      aria-live="assertive"
+      style={WARNING_STYLE}
+    >
       <Icon name="warning" /> You <em>must</em> enable cookies to use{" "}
       <SiteName />.
     </div>
@@ -39,7 +44,12 @@ const STORAGE_WARNING_STYLE = {
 
 export function LocalStorageWarning() {
   return (
-    <div style={STORAGE_WARNING_STYLE}>
+    <div
+      role="region"
+      aria-label="Local storage warning"
+      aria-live="assertive"
+      style={STORAGE_WARNING_STYLE}
+    >
       <Icon name="warning" /> You <em>must</em> enable local storage to use{" "}
       <SiteName />
       {get_browser() === "safari"
