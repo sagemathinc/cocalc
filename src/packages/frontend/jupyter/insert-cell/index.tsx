@@ -43,6 +43,12 @@ export interface InsertCellProps {
   showAICellGen: Position;
   setShowAICellGen: (show: Position) => void;
   alwaysShow?: boolean;
+  mode?: "normal" | "single"; // "single" = single-file editor mode
+  onInsertCell?: (
+    cellId: string,
+    type: "code" | "markdown",
+    position: "above" | "below",
+  ) => void; // Callback for single-file mode
 }
 
 export interface InsertCellState {
@@ -59,7 +65,11 @@ export function InsertCell({
   showAICellGen,
   setShowAICellGen,
   alwaysShow,
+  mode = "normal",
+  onInsertCell,
 }: InsertCellProps) {
+  // Get frameActions from context hook
+  // In single mode, frameActions is not used directly since onInsertCell callback handles insertion
   const frameActions = useNotebookFrameActions();
 
   const showGenerateCell = redux
@@ -71,16 +81,26 @@ export function InsertCell({
     e.stopPropagation();
     const type =
       e.shiftKey || e.ctrlKey || e.altKey || e.metaKey ? "markdown" : "code";
-    insertCell({ frameActions, actions, type, id, position });
+
+    if (mode === "single" && onInsertCell) {
+      onInsertCell(id, type, position);
+    } else {
+      insertCell({ frameActions, actions, type, id, position });
+    }
   }
 
   function handleButtonClick(e, type: TinyButtonType) {
     e.preventDefault();
     e.stopPropagation();
+
     switch (type) {
       case "code":
       case "markdown":
-        insertCell({ frameActions, actions, type, id, position });
+        if (mode === "single" && onInsertCell) {
+          onInsertCell(id, type, position);
+        } else {
+          insertCell({ frameActions, actions, type, id, position });
+        }
         break;
       case "paste":
         pasteCell({ frameActions, actions, id, position });
