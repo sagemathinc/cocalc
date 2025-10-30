@@ -41,17 +41,27 @@ function renderImage({
     padding: src ? undefined : "15px",
     textAlign: "center",
   } as React.CSSProperties;
+
+  const handleError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    console.warn("[Jupyter Image] Failed to load image:", src);
+    if (on_error) {
+      on_error(event);
+    }
+  };
+
   if (on_error != null) {
-    props["onError"] = on_error;
+    props["onError"] = handleError;
   }
   if (!src) {
     return (
       <div {...props}>
-        <Spin delay={1000} />
+        <Spin delay={500} />
       </div>
     );
   }
-  return <img {...props} alt="Image in a Jupyter notebook" />;
+  return (
+    <img {...props} alt="Image in a Jupyter notebook" onError={handleError} />
+  );
 }
 
 export function Image(props: ImageProps) {

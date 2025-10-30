@@ -42,14 +42,198 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm build` - Build and compile a specific package
   - For packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
-- To typecheck the frontend, it is best to run `cd packages/static && pnpm build` - this implicitly compiles the frontend and reports TypeScript errors
+- **TypeScript checking (frontend)**:
+  - Quick check: `cd packages/frontend && pnpm tsc` - Runs TypeScript type checker only (no compilation, but takes several minutes and reports all TS errors)
+  - Full compile: `cd packages/static && pnpm build-dev` - Compiles the frontend and reports TypeScript errors (use this as the authoritative build)
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
 - After TypeScript or `*.tsx` changes, run `pnpm build` in the relevant package directory
-  - When editing the frontend, run `pnpm build-dev` in `packages/static` (this implicitly builds the frontend)
+  - **When editing the frontend, ALWAYS run `pnpm build-dev` in `packages/static`** (this implicitly builds the frontend)
+    - This is the authoritative way to build and test frontend changes
+    - Example: `cd packages/static && pnpm build-dev`
+    - Do NOT just run `pnpm build` in packages/frontend alone
+
+## Build Dependencies & Compilation Order
+
+CoCalc is a monorepo with multiple interdependent packages. The build order matters: dependencies must be
+compiled before packages that depend on them.
+
+**Build orchestration:** The build process is managed by `workspaces.py` script (root level). See
+[workspaces.py](workspaces.py#L105-L135) for the explicit package build order.
+
+### Root-Level Build Commands
+
+For convenience, the root `package.json` provides shortcuts that use `workspaces.py`:
+
+| Command          | Purpose                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| `pnpm build-dev` | Clean build with all dev dependencies (same as `pnpm make-dev`) |
+| `pnpm build`     | Production build (same as `pnpm make`)                          |
+| `pnpm clean`     | Clean all build artifacts and node_modules                      |
+| `pnpm tsc-all`   | Run TypeScript type checking across all packages in parallel    |
+
+**For a clean development build from scratch:**
+
+```bash
+pnpm clean
+pnpm build-dev
+```
+
+This runs from the root directory:
+
+1. `workspaces.py clean` - Removes dist and node_modules
+2. `workspaces.py install` - Reinstalls dependencies
+3. `workspaces.py build --dev` - Builds all packages in dependency order
+4. `pnpm python-api` - Builds Python API
+
+### Dependency Map
+
+**Base Packages (no internal dependencies):**
+
+- **util** - Shared utilities, types, and database schema used by all other packages
+- **conat** - Pub/sub messaging framework (browser and Node.js compatible)
+- **comm** - Communication layer between project and frontend
+- **sync** - Real-time synchronization framework
+
+**Backend/Data Packages:**
+
+- **backend** - Backend functionality (depends on: util, conat)
+- **database** - PostgreSQL database layer and queries (depends on: backend, conat, util)
+
+**Frontend Packages:**
+
+- **frontend** - React UI components and pages (depends on: assets, cdn, comm, conat, jupyter, sync, util)
+- **static** - Build system and webpack bundler for frontend (depends on: assets, backend, cdn, frontend, util)
+
+**Server Packages:**
+
+- **hub** - Main HTTP server and orchestrator (depends on: assets, backend, cdn, conat, database, next, server, static, util)
+- **next** - Next.js API server (depends on: backend, util)
+
+**Other Packages:**
+
+- **assets** - Static assets (images, fonts, etc.)
+- **cdn** - CDN utilities
+- **jupyter** - Jupyter notebook support
+- **server** - Base server utilities
+- **sync-client**, **sync-fs** - Synchronization clients
+
+### Compilation Workflow
+
+**Simple approach (RECOMMENDED):** From the root directory, run:
+
+```bash
+pnpm clean && pnpm build-dev
+```
+
+This will:
+
+- Clean all build artifacts
+- Reinstall dependencies
+- Build all packages in the correct dependency order (via `workspaces.py`)
+- Handle all the complexity for you
+
+If you only need to rebuild after changing code (not dependencies), just run:
+
+```bash
+pnpm build-dev
+```
+
+from the root directory.
+
+**Manual approach (if needed):** If you want to rebuild only specific packages:
+
+#### When modifying `util`
+
+1. Build the util package: `cd packages/util && pnpm build`
+2. Rebuild all dependents: From root, run `pnpm build-dev`
+
+Or just use `pnpm clean && pnpm build-dev` from root to be safe.
+
+#### When modifying `backend` or `database`
+
+1. Build the modified package: `cd packages/backend && pnpm build` or `cd packages/database && pnpm build`
+2. Rebuild everything: `pnpm build-dev` from root
+
+#### When modifying `frontend` code
+
+**IMPORTANT:** For frontend development, use these commands:
+
+- **For development builds:** `cd packages/static && pnpm build-dev`
+  - This compiles the entire frontend application
+  - The `static` package is the build coordinator for the web application
+  - It automatically compiles dependencies as needed
+  - Run this after making changes to see them in the dev server
+
+- **For TypeScript checking:** `cd packages/frontend && pnpm tsc`
+  - Quick type checking without full compilation
+  - Reports all TypeScript errors in the frontend code
+  - Much faster than full build (takes several minutes)
+
+#### When modifying `conat`, `comm`, or `sync`
+
+1. Build the modified package: `cd packages/[package] && pnpm build`
+2. Rebuild everything: `pnpm build-dev` from root
+
+### Frontend Development Quick Commands
+
+**REMEMBER: To build frontend changes, use `pnpm build-dev` in `packages/static`, NOT `packages/frontend`!**
+
+```bash
+# Check TypeScript errors in frontend (fast)
+cd packages/frontend && pnpm tsc
+
+# Build frontend for development (includes compilation) ⭐️ MOST COMMON COMMAND
+cd packages/static && pnpm build-dev
+
+# Full rebuild from scratch (from root)
+pnpm clean && pnpm build-dev
+```
+
+### Build Dependency Order (for reference)
+
+The authoritative build order is defined in [workspaces.py:105-135](workspaces.py#L105-L135) in the
+`all_packages()` function. The order includes:
+
+- **cdn** - packages/hub assumes this is built
+- **util** - foundational
+- **sync**, **sync-client**, **sync-fs** - synchronization
+- **conat** - pub/sub framework
+- **backend** - backend functionality
+- **api-client**, **jupyter**, **comm** - communication
+- **project**, **assets** - project management and assets
+- **frontend** - (static depends on frontend; frontend depends on assets)
+- **static** - (packages/hub assumes this is built)
+- **server** - (packages/next assumes this is built)
+- **database** - (packages/next assumes this is built)
+- **file-server**
+- **next** - Next.js server
+- **hub** - (hub won't build if next isn't already built)
+
+**You don't need to follow this manually.** The `workspaces.py` script handles it automatically. Just run
+`pnpm build-dev` from the root directory.
+
+### Quick Reference for Common Tasks
+
+**Frontend Development (most common):**
+
+| Task                       | Command                                | Notes                                   |
+| -------------------------- | -------------------------------------- | --------------------------------------- |
+| **Check TS errors (FAST)** | `cd packages/frontend && pnpm tsc`     | Does NOT compile, just checks types     |
+| **Build for dev**          | `cd packages/static && pnpm build-dev` | Full compilation, run this to test code |
+| **Clean dev build**        | `pnpm clean && pnpm build-dev` (root)  | When dependencies change                |
+
+**Other Tasks:**
+
+| Task                                   | Command                        | Why                                          |
+| -------------------------------------- | ------------------------------ | -------------------------------------------- |
+| Full rebuild from scratch (START HERE) | `pnpm clean && pnpm build-dev` | From root; uses workspaces.py                |
+| Edit util types/code                   | `pnpm clean && pnpm build-dev` | util is foundational; affects all dependents |
+| Edit backend/database                  | `pnpm clean && pnpm build-dev` | Rebuild to ensure all deps are correct       |
+| Check TypeScript errors everywhere     | `pnpm tsc-all`                 | Parallel type checking from root             |
 
 ## Architecture Overview
 
@@ -115,6 +299,8 @@ CoCalc is organized as a monorepo with key packages:
 - **pnpm**: Package manager and workspace management
 - **Jest**: Testing framework
 - **SASS**: CSS preprocessing
+- **CodeMirror 5**: Existing text editor (code, latex, markdown files)
+- **CodeMirror 6**: Modern editor for new features (see [CODEMIRROR6_SETUP.md](dev/CODEMIRROR6_SETUP.md) for Jupyter single-file view)
 
 ### Database Schema
 
@@ -157,7 +343,6 @@ CoCalc is organized as a monorepo with key packages:
 - When creating a new file, run `git add [filename]` to track the file.
 - Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
-
 
 ## React-intl / Internationalization (i18n)
 
