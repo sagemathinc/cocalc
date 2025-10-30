@@ -27,6 +27,9 @@ interface Props {
   on_click?: () => void;
   style?: CSS;
   tooltip?: string;
+  // ARIA attributes for tab semantics
+  role?: string;
+  "aria-label"?: string;
 }
 
 export const NavTab: React.FC<Props> = React.memo((props: Props) => {
@@ -140,6 +143,15 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role={props.role ?? "button"}
+      aria-label={props["aria-label"]}
+      tabIndex={0}
       style={outer_style}
       className={TOP_BAR_ELEMENT_CLASS}
     >

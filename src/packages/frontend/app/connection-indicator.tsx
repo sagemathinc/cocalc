@@ -68,6 +68,19 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         : {}),
     } as const;
 
+    function getConnectionLabel() {
+      switch (connection_status) {
+        case "connected":
+          return intl.formatMessage(labels.connected);
+        case "connecting":
+          return intl.formatMessage(labels.connecting);
+        case "disconnected":
+          return intl.formatMessage(labels.disconnected);
+        default:
+          return "Connection status unknown";
+      }
+    }
+
     function render_connection_status() {
       if (connection_status === "connected") {
         return (
@@ -103,12 +116,22 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     return (
       <div
         className={TOP_BAR_ELEMENT_CLASS}
+        role="status"
+        aria-label={getConnectionLabel()}
+        aria-live="polite"
+        aria-busy={connection_status === "connecting"}
         style={outer_style}
         onClick={connection_click}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            connection_click();
+          }
+        }}
+        tabIndex={0}
       >
         {render_connection_status()}
       </div>
     );
   },
 );
-

@@ -468,39 +468,63 @@ Location: `packages/frontend/project/page/flyouts/`
   - [ ] Settings: Proper form labeling
   - [ ] Status: Save status announcements
 
-### Phase 12: App Shell & Navigation ⏳ PENDING
+### Phase 12: App Shell & Navigation ✅ P0 COMPLETED | P1 PENDING
 
 **Priority: HIGH** - Framework for entire app
 
 Location: `packages/frontend/app/`
 
-- [ ] **page.tsx** - Main application container (323 lines)
-  - [ ] Root structure: Ensure proper landmark hierarchy
-  - [ ] Content switching: Announce page changes
-  - [ ] Notification center connection display
+#### **P0 - Critical Foundation** ✅ COMPLETED
 
-- [ ] **nav-tab.tsx** - Top navigation tabs
-  - [ ] Tab items: `role="tab"` with `aria-selected`, `aria-controls`
-  - [ ] Each tab: Clear context (Projects, Account, Admin, etc.)
-  - [ ] Hover/focus states: Visual + ARIA
+- [x] **page.tsx** - Main application container
+  - [x] Root `<main role="main" aria-label="{site_name} application">` (line 368-369)
+  - [x] Dynamic label uses customizable site_name from customize store
+  - [x] Fallback to SITE_NAME constant from @cocalc/util/theme
+  - [x] Right nav region: `role="region" aria-label="Top navigation controls"` (line 292-293)
+
+- [x] **nav-tab.tsx** - Top navigation tabs with keyboard support
+  - [x] NavTab component: Added optional `role` and `aria-label` props
+  - [x] Made keyboard accessible: `tabIndex={0}` + `onKeyDown` for Enter/Space
+  - [x] Default `role="button"` with override capability
+  - [x] Supports all navigation items: Projects, Account, Admin, Help, Sign In
+
+- [x] **connection-indicator.tsx** - Network status live region
+  - [x] Status indicator: `role="status"` (line 119)
+  - [x] Live region: `aria-live="polite"` to announce connection changes (line 121)
+  - [x] Busy state: `aria-busy={true}` when connecting (line 122)
+  - [x] Dynamic label: `aria-label={getConnectionLabel()}` showing current state (line 120)
+  - [x] Keyboard support: `tabIndex={0}` + Enter/Space activation
+  - [x] Added `labels.connected` to i18n/common.ts for proper translation
+
+**Files Modified**:
+
+- `packages/frontend/app/page.tsx` - Root structure with site_name and right-nav region
+- `packages/frontend/app/nav-tab.tsx` - ARIA props and keyboard accessibility
+- `packages/frontend/app/connection-indicator.tsx` - Status live region with i18n labels
+- `packages/frontend/i18n/common.ts` - Added labels.connected
+
+#### **P1 - Important Improvements** ⏳ PENDING
 
 - [ ] **active-content.tsx** - Content router
   - [ ] Dynamic content: Announce when switching pages
   - [ ] Loading states: `aria-busy` indication
   - [ ] Error states: ARIA alert or live region
 
-- [ ] **Banners** - Informational/warning banners
-  - [ ] All banners: `role="region" aria-label="Information"`
+- [ ] **Banners** - Informational/warning banners (5 files)
+  - [ ] All banners: `role="region" aria-label="..."`
   - [ ] `i18n-banner.tsx` - Language selection
   - [ ] `verify-email-banner.tsx` - Email verification
   - [ ] `version-warning.tsx` - Version alerts
   - [ ] `insecure-test-mode-banner.tsx` - Test mode warning
-  - [ ] Close buttons: `aria-label="Close"`
+  - [ ] `warnings.tsx` - Cookie/storage warnings
 
-- [ ] **Connection Status** - Network status indicator
-  - [ ] Status indicator: `aria-label` with current state
-  - [ ] Updates: `aria-live="polite"` for status changes
-  - [ ] Tooltip text: Accessible to keyboard users
+- [ ] **Notifications** - Notification indicators
+  - [ ] Notification badges: `aria-label` with count
+  - [ ] Live region: `aria-live="polite"` for count changes
+
+- [ ] **projects-nav.tsx** - Project tabs navigation
+  - [ ] Container: `aria-label="Open projects"`
+  - [ ] Tab semantics already handled by Ant Design Tabs
 
 ### Phase 13: Forms & Settings ⏳ PENDING
 

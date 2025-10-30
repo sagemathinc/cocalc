@@ -725,6 +725,12 @@ export const labels = defineMessages({
     description:
       "Short label, telling the user a possible connection has not been established.",
   },
+  connected: {
+    id: "labels.connected",
+    defaultMessage: "Connected",
+    description:
+      "Short label, telling the user the connection has been established.",
+  },
   connection: {
     id: "labels.connection",
     defaultMessage: "Connection",
