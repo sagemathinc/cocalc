@@ -75,6 +75,7 @@ function DraggableProjectButton({
     <Button
       className="starred-project-button"
       style={buttonStyle}
+      aria-label={`${project.title}`}
       icon={
         project.avatar_image_tiny ? (
           <Avatar src={project.avatar_image_tiny} size={20} />
@@ -403,6 +404,8 @@ export function StarredProjectsBar() {
             ...STARRED_BAR_STYLE,
             minHeight: containerHeight > 0 ? `${containerHeight}px` : undefined,
           }}
+          role="region"
+          aria-label={`Starred (${starredProjects.length})`}
         >
           {/* Hidden measurement container - rendered off-screen so it doesn't cause visual flicker */}
           {measurementPhase && (
@@ -453,6 +456,7 @@ export function StarredProjectsBar() {
                     trigger={["click"]}
                   >
                     <Button
+                      aria-label={`${overflowProjects.length} more starred project${overflowProjects.length !== 1 ? "s" : ""}`}
                       icon={<Icon name="ellipsis" />}
                       style={{ backgroundColor: "white", marginLeft: "auto" }}
                     >

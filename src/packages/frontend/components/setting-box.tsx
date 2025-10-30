@@ -20,11 +20,13 @@ interface Props {
   children?: ReactNode;
   style?: CSSProperties;
   bodyStyle?: CSSProperties;
+  role?: string;
+  "aria-label"?: string;
 }
 
-const STYLE = {
+const STYLE: CSSProperties = {
   marginBottom: "20px",
-} as CSSProperties;
+} as const;
 
 export function SettingBox({
   icon,
@@ -35,6 +37,8 @@ export function SettingBox({
   children,
   style,
   bodyStyle,
+  role,
+  "aria-label": ariaLabel,
 }: Props) {
   return (
     // type inner for the gray background in the header
@@ -54,6 +58,8 @@ export function SettingBox({
       type="inner"
       style={{ ...STYLE, ...style }}
       styles={{ body: bodyStyle }}
+      role={role}
+      aria-label={ariaLabel}
     >
       {children}
     </Card>

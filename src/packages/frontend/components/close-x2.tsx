@@ -15,6 +15,9 @@ interface Props {
 const DEFAULT_STYLE: CSS = {
   cursor: "pointer",
   fontSize: "13pt",
+  border: "none",
+  background: "transparent",
+  padding: 0,
 };
 
 function isSame(prev, next) {
@@ -31,9 +34,15 @@ export const CloseX2: React.FC<Props> = React.memo((props: Props) => {
     return null;
   } else {
     return (
-      <div className={"pull-right lighten"} style={style} onClick={close}>
+      <button
+        type="button"
+        className={"pull-right lighten"}
+        style={style}
+        onClick={close}
+        aria-label="Close"
+      >
         <Icon name={"times"} />
-      </div>
+      </button>
     );
   }
 }, isSame);

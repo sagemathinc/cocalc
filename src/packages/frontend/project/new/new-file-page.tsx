@@ -348,7 +348,7 @@ export default function NewFilePage(props: Props) {
       show_header
       icon={"plus-circle"}
       title={
-        <>
+        <span>
           &nbsp;
           <FormattedMessage
             id="project.new-file-page.title"
@@ -405,7 +405,7 @@ export default function NewFilePage(props: Props) {
               />
             </div>
           </Modal>
-        </>
+        </span>
       }
       subtitle={
         <div>
@@ -516,6 +516,8 @@ export default function NewFilePage(props: Props) {
             availableFeatures={availableFeatures}
             filename={filename}
             filenameChanged={filenameChanged}
+            role="region"
+            aria-label="File type selection"
           >
             <Tip
               title={"Download files from the Internet"}

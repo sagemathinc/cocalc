@@ -113,6 +113,8 @@ export function AccountPreferencesAppearance() {
     return (
       <Panel
         size="small"
+        role="region"
+        aria-label="Dark mode settings"
         header={
           <>
             <Icon unicode={DARK_MODE_ICON} /> Dark Mode
@@ -212,6 +214,8 @@ export function AccountPreferencesAppearance() {
     return (
       <Panel
         size="small"
+        role="region"
+        aria-label="User interface settings"
         header={
           <>
             <Icon name="desktop" />{" "}
@@ -292,7 +296,7 @@ export function AccountPreferencesAppearance() {
   }
 
   return (
-    <>
+    <div role="region" aria-label="Appearance settings">
       {renderUserInterfacePanel()}
       <OtherSettings
         other_settings={other_settings}
@@ -311,6 +315,6 @@ export function AccountPreferencesAppearance() {
         font_size={font_size}
       />
       <TerminalSettings />
-    </>
+    </div>
   );
 }

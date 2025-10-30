@@ -27,7 +27,7 @@ import {
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
 import track from "@cocalc/frontend/user-tracking";
-import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
+import { EDITOR_PREFIX, path_to_tab, path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
 import {
@@ -88,6 +88,12 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     "project_map",
     project_id,
     "deleted",
+  ]);
+  const project_title = useRedux([
+    "projects",
+    "project_map",
+    project_id,
+    "title",
   ]);
   const projectCtx = useProjectContextProvider({
     project_id,
@@ -258,7 +264,12 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (fullscreen && fullscreen !== "project") return;
 
     return (
-      <div style={{ display: "flex", flexDirection: "row" }}>
+      // ARIA: aside element for right sidebar (flyout panel)
+      <aside
+        role="complementary"
+        aria-label="Project sidebar"
+        style={{ display: "flex", flexDirection: "row" }}
+      >
         <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
@@ -270,7 +281,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             oldFlyoutWidth={oldFlyoutWidth}
           />
         </DndContext>
-      </div>
+      </aside>
     );
   }
 
@@ -298,10 +309,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           width={homePageButtonWidth}
         />
         {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+        {/* ARIA: nav element for file tab navigation (2nd level navigation) */}
+        <nav
+          style={{ flex: 1, overflow: "hidden", display: "flex" }}
+          aria-label="Open files"
+        >
           <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
           <ProjectTabs project_id={project_id} />
-        </div>
+        </nav>
       </div>
     );
   }
@@ -343,7 +358,10 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       );
     } else {
       return (
-        <div
+        // ARIA: aside element for activity bar (complementary navigation sidebar)
+        <aside
+          role="complementary"
+          aria-label="Project activity bar"
           style={{
             flex: "0 0 auto",
             display: "flex",
@@ -355,15 +373,29 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           }}
         >
           <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
-        </div>
+        </aside>
       );
     }
   }
 
   function renderMainContent() {
+    // Find the current file being edited and extract just the filename
+    let currentFilename = active_project_tab;
+    if (open_files_order != null) {
+      const currentPath = open_files_order.find(
+        (path) => !!path && path_to_tab(path) === active_project_tab,
+      );
+      if (currentPath) {
+        currentFilename = path_split(currentPath).tail;
+      }
+    }
+
     return (
+      // ARIA: main element for primary editor content
       <div
         ref={mainRef}
+        role="main"
+        aria-label={`Content: ${currentFilename}`}
         style={{
           flex: 1,
           display: "flex",
@@ -385,7 +417,12 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
   return (
     <ProjectContext.Provider value={projectCtx}>
-      <div className="container-content" style={PAGE_STYLE}>
+      <div
+        className="container-content"
+        role="region"
+        aria-label={`Project: ${project_title ?? project_id}`}
+        style={PAGE_STYLE}
+      >
         <StudentPayUpgrade project_id={project_id} />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />

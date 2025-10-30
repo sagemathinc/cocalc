@@ -475,7 +475,8 @@ export function AccountSettings(props: Readonly<Props>) {
     } else {
       return (
         <>
-          <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> {intl.formatMessage(labels.account)}
+          <Icon name={ACCOUNT_PROFILE_ICON_NAME} />{" "}
+          {intl.formatMessage(labels.account)}
         </>
       );
     }
@@ -620,7 +621,7 @@ will no longer work (automatic redirects are not implemented), so change with ca
   }
 
   return (
-    <Panel header={render_header()}>
+    <Panel header={render_header()} role="region" aria-label="Account settings">
       {render_anonymous_warning()}
       {render_terms_of_service()}
       {render_name()}

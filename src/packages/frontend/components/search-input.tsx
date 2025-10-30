@@ -149,6 +149,8 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       disabled={props.disabled}
       enterButton={props.buttonAfter}
       status={props.status}
+      aria-label="Search"
+      aria-describedby="search-help"
     />
   );
 });

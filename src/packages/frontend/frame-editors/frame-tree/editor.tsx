@@ -200,7 +200,12 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     }
 
     return (
-      <div className="smc-vfill cc-frame-tree-editor" ref={frameRootRef}>
+      <div
+        className="smc-vfill cc-frame-tree-editor"
+        ref={frameRootRef}
+        role="application"
+        aria-label={`${editor_spec.name || name} editor for ${path}`}
+      >
         {formatError && (
           <FormatError formatError={formatError} formatInput={formatInput} />
         )}

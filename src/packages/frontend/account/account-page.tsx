@@ -555,8 +555,14 @@ export const AccountPage: React.FC = () => {
     }
 
     return (
-      <div className="smc-vfill" style={{ flexDirection: "row" }}>
-        <div
+      <main
+        className="smc-vfill"
+        style={{ flexDirection: "row" }}
+        role="main"
+        aria-label="Account settings"
+      >
+        <nav
+          aria-label="Account settings menu"
           style={{
             background: "#00000005",
             borderRight: "1px solid rgba(5, 5, 5, 0.06)",
@@ -598,6 +604,7 @@ export const AccountPage: React.FC = () => {
               color: COLORS.GRAY_M,
             }}
             onClick={handleHideToggle}
+            aria-label={hidden ? "Expand menu" : "Collapse menu"}
             icon={
               <Icon
                 name={
@@ -608,9 +615,15 @@ export const AccountPage: React.FC = () => {
           >
             {hidden ? "" : "Hide"}
           </Button>
-        </div>
+        </nav>
         <div
           className="smc-vfill"
+          role="region"
+          aria-label={
+            active_page === "preferences" && active_sub_tab
+              ? `${titles[active_sub_tab]?.props?.children?.[1] || active_sub_tab} settings`
+              : `${titles[active_page]?.props?.children?.[1] || active_page} settings`
+          }
           style={{
             overflow: "auto",
             paddingLeft: "15px",
@@ -627,12 +640,12 @@ export const AccountPage: React.FC = () => {
             : children[active_page]}
           <Footer />
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="smc-vfill">
+    <div className="smc-vfill" role="main" aria-label="Account page">
       {is_logged_in && !get_api_key ? (
         render_logged_in_view()
       ) : (
