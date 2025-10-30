@@ -184,6 +184,10 @@ interface Props0 {
   flyout?: FixedTab;
   condensed?: boolean;
   showLabel?: boolean; // only relevant for the vertical activity bar. still showing alert tags!
+  // ARIA attributes for tab semantics
+  role?: string;
+  "aria-selected"?: boolean;
+  "aria-controls"?: string;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -215,10 +219,10 @@ export function FileTab(props: Readonly<Props>) {
   // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
     !onCoCalcDocker && name === "info"
-      ? project_status
+      ? (project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
-          .toJS() ?? []
+          .toJS() ?? [])
       : [];
 
   const other_settings = useTypedRedux("account", "other_settings");
@@ -303,8 +307,8 @@ export function FileTab(props: Readonly<Props>) {
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
         : active_flyout == null
-        ? COLORS.GRAY_L
-        : COLORS.GRAY_L0;
+          ? COLORS.GRAY_L
+          : COLORS.GRAY_L0;
     const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
 
     return (
@@ -368,7 +372,7 @@ export function FileTab(props: Readonly<Props>) {
 
   const icon =
     path != null
-      ? file_options(path)?.icon ?? "code-o"
+      ? (file_options(path)?.icon ?? "code-o")
       : FIXED_PROJECT_TABS[name!].icon;
 
   const tags =
@@ -466,6 +470,9 @@ export function FileTab(props: Readonly<Props>) {
       cocalc-test={label}
       onClick={click}
       onMouseUp={onMouseUp}
+      role={props.role}
+      aria-selected={props["aria-selected"]}
+      aria-controls={props["aria-controls"]}
     >
       <div
         style={{

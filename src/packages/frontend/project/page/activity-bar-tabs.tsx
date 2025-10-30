@@ -227,6 +227,9 @@ export function VerticalFixedTabs({
         flyout={name}
         condensed={condensed}
         showLabel={showActBarLabels}
+        role="tab"
+        aria-selected={isActive}
+        aria-controls={`activity-panel-${name}`}
       />
     );
     if (tab != null) items.push(tab);
@@ -261,6 +264,8 @@ export function VerticalFixedTabs({
   return (
     <div
       ref={parent}
+      role="tablist"
+      aria-label="Project activity tabs"
       style={{
         display: "flex",
         flexDirection: "column",

@@ -22,7 +22,14 @@ import { FileTab } from "./file-tab";
 
 const MIN_WIDTH = 48;
 
-function Label({ path, project_id, label }) {
+interface LabelProps {
+  path: string;
+  project_id: string;
+  label: string;
+  isActive?: boolean;
+}
+
+function Label({ path, project_id, label, isActive }: LabelProps) {
   const { width } = useItemContext();
   const { active } = useSortable({ id: project_id });
   return (
@@ -37,6 +44,9 @@ function Label({ path, project_id, label }) {
           ? { width: Math.max(MIN_WIDTH, width + 15), marginRight: "-10px" }
           : undefined),
       }}
+      role="tab"
+      aria-selected={isActive ?? false}
+      aria-controls={`content-${path.replace(/[^a-zA-Z0-9-]/g, "-")}`}
     />
   );
 }
@@ -82,15 +92,21 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
 
   const labels = file_tab_labels(paths);
   const items: TabsProps["items"] = [];
+  const activeKey = activeTab.startsWith(EDITOR_PREFIX)
+    ? pathToKey(activeTab.slice(EDITOR_PREFIX.length))
+    : "";
 
   for (let index = 0; index < labels.length; index++) {
+    const pathKey = pathToKey(paths[index]);
+    const isActive = pathKey === activeKey;
     items.push({
-      key: pathToKey(paths[index]),
+      key: pathKey,
       label: (
         <Label
           path={paths[index]}
           project_id={project_id}
           label={labels[index]}
+          isActive={isActive}
         />
       ),
     });
@@ -128,10 +144,6 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     });
   }
 
-  const activeKey = activeTab.startsWith(EDITOR_PREFIX)
-    ? pathToKey(activeTab.slice(EDITOR_PREFIX.length))
-    : "";
-
   function onDragStart(event) {
     if (actions == null) return;
     if (event?.active?.id != activeKey) {
@@ -164,6 +176,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
           actions.set_active_tab(path_to_tab(keyToPath(key)));
         }}
         popupClassName={"cocalc-files-tabs-more"}
+        aria-label="Open files"
       />
     </SortableTabs>
   );

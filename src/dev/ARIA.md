@@ -405,28 +405,37 @@ Location: `packages/frontend/projects/`
 - [x] ✅ **File explorer settings**: `role="region" aria-label="File explorer settings"`
 - [x] ✅ **Projects settings**: `role="region" aria-label="Projects settings"`
 
-#### 11b: Project Page
+#### 11b: Project Page ✅ COMPLETED
 
 Location: `packages/frontend/project/page/`
 
-- [ ] **page.tsx** - Main project workspace
-  - [ ] Page structure: `<main role="main" aria-label="Project workspace: {projectName}"`
-  - [ ] Activity bar: `role="tablist"` with tab semantics
-  - [ ] Content area: `role="main" or region` for editor content
+**Completed** ✅:
 
-- [ ] **activity-bar.tsx** - Left sidebar with features
-  - [ ] Container: `role="tablist" aria-label="Project activity tabs"`
-  - [ ] Each tab: `role="tab"` with `aria-selected` and `aria-controls`
-  - [ ] Tab panels: `role="tabpanel"` with `aria-labelledby`
+- [x] **page.tsx** - Main project workspace
+  - [x] Main content area: `<div role="main" aria-label="Content: {currentFilename}">` (line 389-392)
+  - [x] Activity bar sidebar: `<aside role="complementary" aria-label="Project activity bar">` (line 356-371)
+  - [x] File tabs navigation: `<nav aria-label="Open files">` (line 307-313)
+  - [x] Flyout sidebar: `<aside role="complementary" aria-label="Project sidebar">` (line 262-278)
 
-- [ ] **file-tabs.tsx** - Open files tab bar
-  - [ ] Container: `role="tablist" aria-label="Open files in {projectName}"`
-  - [ ] Tab items: `role="tab"` with aria-selected, aria-controls
-  - [ ] Tab panels: `role="tabpanel" aria-labelledby="tab-{id}"`
-  - [ ] Close buttons: `aria-label="Close {fileName}"`
+- [x] **Activity Bar** (`activity-bar-tabs.tsx` / `VerticalFixedTabs` component)
+  - [x] Container: `role="tablist" aria-label="Project activity tabs"` (line 267-268)
+  - [x] Each tab button: `role="tab"`, `aria-selected={isActive}`, `aria-controls="activity-panel-{name}"` (line 230-232)
 
-- [ ] **content.tsx** - Main content area
-  - [ ] Container: `role="main"` or clear region role
+- [x] **File Tabs** (`file-tabs.tsx` / `FileTabs` component)
+  - [x] Container: Ant Design `<Tabs>` with `aria-label="Open files"` (line 167)
+  - [x] Tab items: `role="tab"` with `aria-selected={isActive}`, `aria-controls="content-{tabId}"` (Label component)
+  - [x] Tab panels: Ant Design Tabs handles tab panel semantics automatically
+
+- [x] **Content Switching** (`content.tsx`)
+  - [x] Each content section: `role="tabpanel"` with dynamic `aria-label` based on active tab (line 119-120)
+  - [x] Labels cover all tab types: home, files, new, log, search, servers, settings, info, users, upgrades, editor paths
+
+**Files Modified**:
+
+- `packages/frontend/project/page/file-tab.tsx` - Added ARIA props to FileTab component interface and body div
+- `packages/frontend/project/page/activity-bar-tabs.tsx` - Added role="tablist" and ARIA attributes to VerticalFixedTabs
+- `packages/frontend/project/page/file-tabs.tsx` - Added ARIA props to Label component and Tabs aria-label
+- `packages/frontend/project/page/content.tsx` - Added role="tabpanel" with dynamic aria-label labels
 
 #### 11c: Flyouts
 
