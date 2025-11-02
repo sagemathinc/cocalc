@@ -53,6 +53,9 @@ const CONNECTING_MESSAGE = `\r\n\x1b[1;37m[\x1b[0m\x1b[36m CONNECTING{TARGET}...
 
 const ENABLE_WEBGL = false;
 
+const CPR_RESPONSE_REGEX = /\x1b\[\??\d+;\d+R/g;
+const MAX_CPR_BUFFER = 64;
+
 interface Path {
   file?: string;
   directory?: string;
@@ -91,6 +94,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private render_buffer: string = "";
   private history: string = "";
+  private cprResponseBuffer: string = "";
 
   public is_visible: boolean = false;
   public element: HTMLElement;
@@ -214,8 +218,30 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     });
 
     this.terminal.onData((data) => {
-      if (this.ignoreData) return; // gets handled by onKey if it is actually typed
-      handleData(data);
+      if (!this.ignoreData) {
+        this.cprResponseBuffer = "";
+        handleData(data);
+        return;
+      }
+      if (!this.cprResponseBuffer && !data.includes("\x1b[")) {
+        // No pending CPR and nothing resembling a CPR start, so ignore.
+        return;
+      }
+      this.cprResponseBuffer += data;
+      CPR_RESPONSE_REGEX.lastIndex = 0;
+      let match: RegExpExecArray | null;
+      let processedUpto = 0;
+      while ((match = CPR_RESPONSE_REGEX.exec(this.cprResponseBuffer)) != null) {
+        handleData(match[0]);
+        processedUpto = match.index + match[0].length;
+      }
+      if (processedUpto > 0) {
+        this.cprResponseBuffer = this.cprResponseBuffer.slice(processedUpto);
+      } else if (this.cprResponseBuffer.length > MAX_CPR_BUFFER) {
+        this.cprResponseBuffer = this.cprResponseBuffer.slice(
+          -MAX_CPR_BUFFER,
+        );
+      }
     });
 
     this.initKeyHandler();
