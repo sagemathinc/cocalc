@@ -95,6 +95,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private render_buffer: string = "";
   private history: string = "";
   private cprResponseBuffer: string = "";
+  private historyReplayDepth: number = 0;
+  private historyBufferIncludesReplay: boolean = false;
 
   public is_visible: boolean = false;
   public element: HTMLElement;
@@ -221,6 +223,10 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (!this.ignoreData) {
         this.cprResponseBuffer = "";
         handleData(data);
+        return;
+      }
+      if (this.historyReplayDepth > 0) {
+        this.cprResponseBuffer = "";
         return;
       }
       if (!this.cprResponseBuffer && !data.includes("\x1b[")) {
@@ -363,7 +369,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
       this.terminal.reset();
       this.compute_server_id = await this.getComputeServerId();
-      this.handleDataFromProject(
+      await this.handleDataFromProject(
         CONNECTING_MESSAGE.replace(
           "{TARGET}",
           lite
@@ -384,11 +390,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         },
       });
       this.pty = pty;
-      pty.socket.on("data", this.handleDataFromProject);
+      pty.socket.on("data", (data) => {
+        void this.handleDataFromProject(data);
+      });
 
       pty.on("exit", async () => {
         if (this.isClosed()) return;
-        this.handleDataFromProject(EXIT_MESSAGE);
+        await this.handleDataFromProject(EXIT_MESSAGE);
         this.ptyExited = true;
         pty?.close();
       });
@@ -459,7 +467,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.set_connection_status("connected");
         this.terminal.reset();
         if (history) {
-          this.handleDataFromProject(history);
+          await this.handleDataFromProject(history, { fromHistory: true });
         }
         pty.socket.write(this.writeBuffer.join(""));
         this.writeBuffer.length = 0;
@@ -515,17 +523,33 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   private lastReceivedData: number = 0;
-  private handleDataFromProject = (data: any): void => {
+  private handleDataFromProject = async (
+    data: any,
+    opts?: { fromHistory?: boolean },
+  ): Promise<void> => {
     this.lastReceivedData = Date.now();
     this.assert_not_closed();
     if (!data || typeof data != "string") {
       return;
     }
     this.activity();
+    const fromHistory = opts?.fromHistory === true;
     if (this.is_paused) {
+      if (fromHistory) {
+        this.historyBufferIncludesReplay = true;
+      }
       this.render_buffer += data;
-    } else {
-      this.render(data);
+      return;
+    }
+    if (fromHistory) {
+      this.historyReplayDepth++;
+    }
+    try {
+      await this.render(data);
+    } finally {
+      if (fromHistory && this.historyReplayDepth > 0) {
+        this.historyReplayDepth--;
+      }
     }
   };
 
@@ -795,8 +819,25 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   unpause = (): void => {
     this.is_paused = false;
-    this.render(this.render_buffer);
+    const data = this.render_buffer;
+    const replayHistory = this.historyBufferIncludesReplay;
     this.render_buffer = "";
+    this.historyBufferIncludesReplay = false;
+    if (!data) {
+      return;
+    }
+    if (replayHistory) {
+      this.historyReplayDepth++;
+    }
+    void (async () => {
+      try {
+        await this.render(data);
+      } finally {
+        if (replayHistory && this.historyReplayDepth > 0) {
+          this.historyReplayDepth--;
+        }
+      }
+    })();
   };
 
   private updateCwd = asyncDebounce(
