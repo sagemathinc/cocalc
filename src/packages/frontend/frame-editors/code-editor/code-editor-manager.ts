@@ -25,19 +25,25 @@ export class CodeEditor {
   }
 
   async init(): Promise<void> {
-    const ext = filename_extension(this.path);
-    let editor = get_file_editor(ext, false);
-    if (editor == null) {
-      // fallback to text
-      editor = get_file_editor("txt", false);
+    try {
+      const ext = filename_extension(this.path);
+      let editor = get_file_editor(ext, false);
+      if (editor == null) {
+        // fallback to text
+        editor = get_file_editor("txt", false);
+      }
+      let name: string;
+      if (editor.init != null) {
+        name = editor.init(this.path, redux, this.project_id);
+      } else {
+        name = await editor.initAsync(this.path, redux, this.project_id);
+      }
+      this.actions = redux.getActions(name) as unknown as Actions; // definitely right
+    } catch (err) {
+      console.error(`Failed to initialize editor for ${this.path}: ${err}`);
+      // Alert is shown at higher level in file-editors.ts
+      throw err;
     }
-    let name: string;
-    if (editor.init != null) {
-      name = editor.init(this.path, redux, this.project_id);
-    } else {
-      name = await editor.initAsync(this.path, redux, this.project_id);
-    }
-    this.actions = redux.getActions(name) as unknown as Actions; // definitely right
   }
 
   close(): void {

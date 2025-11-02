@@ -4,7 +4,7 @@
  */
 
 import ShowError from "@cocalc/frontend/components/error";
-import { Alert, Button, Col, Modal, Row, Typography } from "antd";
+import { Alert, Button, Col, Flex, Modal, Row, Typography } from "antd";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -392,10 +392,16 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
     return (
       <SettingBox
         title={
-          <>
-            {intl.formatMessage(labels.about)} &nbsp;
+          <Flex
+            justify="space-between"
+            align="center"
+            wrap
+            gap="10px"
+            style={{ width: "100%" }}
+          >
+            {intl.formatMessage(labels.about)}
             <ProjectTitle project_id={project_id} noClick />
-          </>
+          </Flex>
         }
         icon="file-alt"
       >
