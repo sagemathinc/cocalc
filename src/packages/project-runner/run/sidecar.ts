@@ -4,16 +4,14 @@ This sidecar solves an otherwise VERY tricky problem!
 PROBLEM: We want to allow users to run fairly arbitrary root filesystem
 images. In particular, those images might not include an ssh client -- in fact,
 the default minimal images from Ubuntu, SUSE, and everybody else do NOT
-include ssh. Mutagen fundamentally requires that we have an ssh client.
-(For security reasons often container images do NOT want ssh installed.)
+include ssh.  (For security reasons often container images do NOT want
+ssh installed, even if it were small.) ReflectSync fundamentally requires
+that we have ssh and rsync clients.
 
-SOLUTION:  Instead of running mutagen only under the main root filesystem where
-ssh might not be present (and might even be complicated to install), we
+SOLUTION:  Instead of running reflect under the main root filesystem where
+ssh/rsync might not be present (and might even be complicated to install), we
 instead create a Linux sidecar, which does have ssh installed.
-It starts the mutagen daemon on startup.  Because it's in the same pod,
-all the mutagen commands in the main pod suddenly "just work", because
-they all use the daemon!  There's one caveat -- if you don't have ssh installed
-and you stop/start the daemon, then of course things break. Deal with it.
+It starts the reflect daemon on startup.
 
 ROOTFS AND OVERLAYFS: This code also implements scripts that do backup/restore
 for rootfs over rsync AND preserve uid/gid/etc., all safely entirely rootless
