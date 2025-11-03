@@ -125,8 +125,8 @@ importers:
         specifier: ^15.1.3
         version: 15.1.3
       reflect-sync:
-        specifier: ^0.8.4
-        version: 0.8.4
+        specifier: ^0.8.6
+        version: 0.8.6
       rimraf:
         specifier: ^5.0.5
         version: 5.0.10
@@ -4741,8 +4741,8 @@ packages:
   '@types/node@22.18.13':
     resolution: {integrity: sha512-Bo45YKIjnmFtv6I1TuC8AaHBbqXtIo+Om5fE4QiU1Tj8QR/qt+8O3BAtOimG5IFmwaWiPmB3Mv3jtYzBA4Us2A==}
 
-  '@types/node@24.9.2':
-    resolution: {integrity: sha512-uWN8YqxXxqFMX2RqGOrumsKeti4LlmIMIyV0lgut4jx7KQBcBiW6vkDtIBvHnHIquwNfJhk8v2OtmO8zXWHfPA==}
+  '@types/node@24.10.0':
+    resolution: {integrity: sha512-qzQZRBqkFsYyaSWXuEHc2WR9c0a0CXwiE5FWUvn7ZM+vdy1uZLfCunD38UzhuB7YN/J11ndbDBcTmOdxJo9Q7A==}
 
   '@types/nodemailer@6.4.21':
     resolution: {integrity: sha512-Eix+sb/Nj28MNnWvO2X1OLrk5vuD4C9SMnb2Vf4itWnxphYeSceqkFX7IdmxTzn+dvmnNz7paMbg4Uc60wSfJg==}
@@ -10663,8 +10663,8 @@ packages:
   reflect-metadata@0.2.2:
     resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
 
-  reflect-sync@0.8.4:
-    resolution: {integrity: sha512-cJr5d/bLKIsdqrzrm7Kd5saJyeb+fz8cG4+gEbhP+7Lmm8gSXNc8VEzflAVLLfp9RhKS8r8nR1zSmJEvhAtYJA==}
+  reflect-sync@0.8.6:
+    resolution: {integrity: sha512-kV6943dpZqXx4M/IDFWhsozoh/bc76fsMvyOeB0bCNOp4zdoMfuzsbVfr26acMjPv70ya9qcbLRpKcNyAukVCw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -16003,7 +16003,7 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@24.9.2':
+  '@types/node@24.10.0':
     dependencies:
       undici-types: 7.16.0
 
@@ -20532,7 +20532,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.9.2
+      '@types/node': 24.10.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -23061,7 +23061,7 @@ snapshots:
 
   reflect-metadata@0.2.2: {}
 
-  reflect-sync@0.8.4:
+  reflect-sync@0.8.6:
     dependencies:
       '@nodelib/fs.walk': 3.0.1
       ascii-table3: 1.0.1

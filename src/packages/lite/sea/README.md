@@ -26,10 +26,10 @@ scp it to root@[server]
 
 Start it
 
-Use mutagen to setup port forward to your laptop:
+Setup port forward to your laptop (e.g., using reflect-sync):
 
 ```sh
-wstein@lite:~/build/sea/cocalc$ mutagen forward create -n wdev tcp::9000 root@35.212.230.72:tcp::42513 
+wstein@lite:~/build/sea/cocalc$ reflect forward create -n wdev 9000 root@35.212.230.72:42513 
 Created session fwrd_R1STMVOKmnS2Q3W4ic0YP5slUOBpWvyJq96KQgYXMfw                
 wstein@lite:~/build/sea/cocalc$ 
 ```

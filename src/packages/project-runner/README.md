@@ -52,12 +52,12 @@ right now. TODO: we should have a notion of account and give the
 project-runner only what subjects it needs, once we know what
 they are.
 
-Using mutagen on the machine running cocalc (serving on port 9001 say),
+Using reflect-sync on the machine running cocalc (serving on port 9001 say),
 forward two ports from the main conat server to the new GCP node (say 34.53.6.50):
 
 ```sh
-mutagen forward create 34.53.6.50:tcp::2222 tcp::2222
-mutagen forward create 34.53.6.50:tcp::9001 tcp::9001
+reflect forward create 34.53.6.50:2222 :2222
+reflect forward create 34.53.6.50:9001 :9001
 ```
 
 Use this script to run it from this directory:

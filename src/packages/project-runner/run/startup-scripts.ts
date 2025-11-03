@@ -36,8 +36,9 @@ ln -sf $(which sftp-server) /usr/libexec/sftp-server || true
 const START_PROJECT_FORWARDS_SH = `#!/usr/bin/env bash
 set -ev
 
-mutagen forward list sshd  2>/dev/null || mutagen forward create --name=sshd  file-server:tcp::${PORTS.sshd}  tcp::\${COCALC_SSHD_PORT:=22}
+reflect forward list sshd  2>/dev/null || reflect forward create --name=sshd  file-server:${PORTS.sshd}  localhost:\${COCALC_SSHD_PORT:=22}
 
-mutagen forward list proxy 2>/dev/null || mutagen forward create --name=proxy file-server:tcp::${PORTS.proxy} tcp::\${COCALC_PROXY_PORT:=80}
+reflect forward list proxy 2>/dev/null || reflect forward create --name=proxy file-server:${PORTS.proxy} localhost:\${COCALC_SSHD_PORT:=80}
 
+reflect daemon start
 `;

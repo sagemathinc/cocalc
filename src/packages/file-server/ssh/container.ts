@@ -4,10 +4,10 @@ Container associated to a project that runs on the file-server:
 - runs an openssh server, which is used by the project with mutagen
   to synchronize all files in /root (the home directory)
 - is an rsync target for the overlayfs upper layer
-- mutagen forwards several ports here:
+- reflect forwards several ports here:
    - an ssh server running in the project itself
    - an http proxy server
-   
+
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -55,7 +55,7 @@ PermitRootLogin yes
 PubkeyAuthentication yes
 AuthorizedKeysFile ${SSHD_CONFIG}/authorized_keys
 AllowTcpForwarding yes
-GatewayPorts no
+GatewayPorts clientspecified
 X11Forwarding no
 X11UseLocalhost no
 PermitTTY yes
