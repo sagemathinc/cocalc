@@ -2520,9 +2520,14 @@ export class SyncDoc extends EventEmitter {
     this.last_save_to_disk_time = new Date();
     this.emit("before-save-to-disk");
     try {
-      // also lock so no other client can read the file
-      // (which is a waste and confusing)
-      await this.fs.writeFile(this.path, value, true);
+      // saveLast = lock so no other client can read the file
+      // (which is a waste and confusing).
+      // writeFileDelta so efficient even if file is huge.
+      await this.fs.writeFileDelta(this.path, value, {
+        baseContents: this.valueOnDisk,
+        encoding: "utf8",
+        saveLast: true,
+      });
       if (this.isClosed()) return;
     } catch (err) {
       if (err.code == "EACCES") {
@@ -2861,7 +2866,7 @@ export class SyncDoc extends EventEmitter {
         this.emit("watching");
         for await (const { event, ignore, patch, patchSeq } of this
           .fileWatcher) {
-          console.log({ path: this.path, event, patch, patchSeq, expectedSeq });
+          // console.log({ path: this.path, event, patch, patchSeq, expectedSeq });
           if (this.isClosed()) return;
           if (event.startsWith("unlink")) {
             break;
@@ -2885,7 +2890,7 @@ export class SyncDoc extends EventEmitter {
               // not given or sequence number doesn't match (e.g., we
               // refreshed browser, changed to be leader, etc.)
               this.valueOnDisk = undefined;
-              console.log(this.path, "loading from disk directly - no patch");
+              // console.log(this.path, "loading from disk directly - no patch");
               try {
                 await this.readFile();
               } catch {

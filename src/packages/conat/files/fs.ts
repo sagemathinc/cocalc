@@ -191,7 +191,7 @@ export interface Filesystem {
     data: string | Buffer | PatchWriteRequest,
     saveLast?: boolean,
   ) => Promise<void>;
-  writeFileDelta?: (
+  writeFileDelta: (
     path: string,
     content: string | Buffer,
     options?: WriteFileDeltaOptions,
@@ -600,7 +600,6 @@ async function writeFileDeltaImpl(
     await writeFile(path, content, saveLast);
     return;
   }
-
   try {
     const sha = await sha256Hex(baseContents, encoding);
     await writeFile(

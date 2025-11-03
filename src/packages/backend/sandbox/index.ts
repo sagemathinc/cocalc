@@ -75,7 +75,10 @@ import { type ExecOutput } from "./exec";
 import { rusticRepo } from "@cocalc/backend/data";
 import ouch, { type OuchOptions } from "./ouch";
 import cpExec from "./cp";
-import { type CopyOptions, type PatchWriteRequest } from "@cocalc/conat/files/fs";
+import {
+  type CopyOptions,
+  type PatchWriteRequest,
+} from "@cocalc/conat/files/fs";
 export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
 import getListing, { type Files } from "./get-listing";
@@ -607,6 +610,11 @@ export class SandboxedFilesystem {
     }
     return await writeFile(p, data);
   };
+
+  writeFileDelta = async (..._args) => {
+    // this is just to make typescript happy
+    throw Error("not implemented");
+  };
 }
 
 export class SandboxError extends Error {
@@ -648,5 +656,8 @@ function isPatchRequest(data: unknown): data is PatchWriteRequest {
     return false;
   }
   const candidate = data as PatchWriteRequest & { [key: string]: unknown };
-  return typeof candidate.patch !== "undefined" && typeof candidate.sha256 === "string";
+  return (
+    typeof candidate.patch !== "undefined" &&
+    typeof candidate.sha256 === "string"
+  );
 }
