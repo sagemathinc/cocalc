@@ -103,8 +103,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private autoResponseBuffer: string = "";
   private historyReplayDepth: number = 0;
   private historyBufferIncludesReplay: boolean = false;
-  private pendingUserInput: number = 0;
-  private warnedMissingUserHook = false;
 
   public is_visible: boolean = false;
   public element: HTMLElement;
@@ -152,18 +150,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
     this.terminal = new XTerminal(this.get_xtermjs_options());
     this.terminal.options.allowProposedApi = true;
-    const core: any = (this.terminal as any)?._core;
-    const onUserInput = core?.coreService?.onUserInput;
-    if (typeof onUserInput === "function") {
-      onUserInput(() => {
-        this.pendingUserInput += 1;
-      });
-    } else if (!this.warnedMissingUserHook) {
-      this.warnedMissingUserHook = true;
-      console.warn(
-        "CoCalc terminal: unable to hook xterm.js user input events. Auto-response filtering may fail until the API is updated.",
-      );
-    }
 
     this.webLinksAddon = new WebLinksAddon(handleLink);
     this.terminal.loadAddon(this.webLinksAddon);
@@ -222,18 +208,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       // to type "123456789" repeatedly by running your fingers
       // accross the number row of the keyboard.  Often 4 gets
       // dropped while the output of 123 get processed.
-      if (this.pendingUserInput > 0) {
-        this.pendingUserInput -= 1;
-      }
       handleData(key, "user");
     });
 
     this.terminal.onData((data) => {
-      const isUserInput =
-        this.pendingUserInput > 0
-          ? ((this.pendingUserInput -= 1), true)
-          : false;
-      if (isUserInput) {
+      if (!this.ignoreData) {
         this.autoResponseBuffer = "";
         handleData(data, "user");
         return;
@@ -583,6 +562,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     if (this.historyReplayDepth > 0) {
       this.autoResponseBuffer = "";
+      return;
+    }
+    if (
+      !data.includes("\x1b") &&
+      !data.includes("\x9b") &&
+      !this.autoResponseBuffer.includes("\x1b") &&
+      !this.autoResponseBuffer.includes("\x9b")
+    ) {
       return;
     }
     this.autoResponseBuffer += data;
