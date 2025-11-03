@@ -327,7 +327,10 @@ export async function start({
     await Promise.all([
       f(initFileSync, "file sync"),
       f(async () => await initSshServer(name), "ssh server"),
-      f(async () => await initForwards(name), "port forwards"),
+      f(
+        async () => await initForwards(sidecarContainerName(project_id)),
+        "port forwards",
+      ),
     ]);
 
     bootlog({
