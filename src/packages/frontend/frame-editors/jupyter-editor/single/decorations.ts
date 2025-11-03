@@ -25,6 +25,7 @@ import {
   MarkdownDisplayWidget,
   MarkdownEditWidget,
   RawDisplayWidget,
+  type MarkdownWidgetContext,
 } from "./markdown-widgets";
 import type { CellMapping } from "./state";
 
@@ -76,6 +77,13 @@ export function computeOutputDecorations(
       const isEditing = mdEditIds.has(cellId);
       const sourceText = source.join("\n");
 
+      // Context for markdown widgets (includes insert cell callback)
+      const mdContext: MarkdownWidgetContext = {
+        actions: context.actions,
+        project_id: context.project_id,
+        onInsertCell: context.onInsertCell,
+      };
+
       if (isEditing) {
         widget = new MarkdownEditWidget(
           cellId,
@@ -92,19 +100,37 @@ export function computeOutputDecorations(
           14,
           context.project_id,
           context.directory,
+          context.view,
+          mdContext,
         );
       } else {
-        widget = new MarkdownDisplayWidget(cellId, sourceText, () => {
-          // Enter edit mode on double-click
-          if (onToggleMarkdownEdit) {
-            onToggleMarkdownEdit(cellId, true);
-          }
-        });
+        widget = new MarkdownDisplayWidget(
+          cellId,
+          sourceText,
+          () => {
+            // Enter edit mode on double-click
+            if (onToggleMarkdownEdit) {
+              onToggleMarkdownEdit(cellId, true);
+            }
+          },
+          context.view,
+          mdContext,
+        );
       }
     } else if (cellType === "raw") {
       // Raw cell: show plaintext display
       const sourceText = source.join("\n");
-      widget = new RawDisplayWidget(cellId, sourceText);
+      const mdContext: MarkdownWidgetContext = {
+        actions: context.actions,
+        project_id: context.project_id,
+        onInsertCell: context.onInsertCell,
+      };
+      widget = new RawDisplayWidget(
+        cellId,
+        sourceText,
+        context.view,
+        mdContext,
+      );
     } else {
       // Code cell: show output widget (existing logic)
       widget = new OutputWidget(cellId, outputs ?? [], cellType, context);
@@ -203,6 +229,13 @@ export function createOutputDecorationsField(
               const isEditing = mdEditIds.has(cellId);
               const sourceText = source.join("\n");
 
+              // Context for markdown widgets (includes insert cell callback)
+              const mdContext: MarkdownWidgetContext = {
+                actions: context.actions,
+                project_id: context.project_id,
+                onInsertCell: context.onInsertCell,
+              };
+
               if (isEditing) {
                 widget = new MarkdownEditWidget(
                   cellId,
@@ -219,19 +252,37 @@ export function createOutputDecorationsField(
                   14,
                   context.project_id,
                   context.directory,
+                  context.view,
+                  mdContext,
                 );
               } else {
-                widget = new MarkdownDisplayWidget(cellId, sourceText, () => {
-                  // Enter edit mode on double-click
-                  if (onToggleMarkdownEdit) {
-                    onToggleMarkdownEdit(cellId, true);
-                  }
-                });
+                widget = new MarkdownDisplayWidget(
+                  cellId,
+                  sourceText,
+                  () => {
+                    // Enter edit mode on double-click
+                    if (onToggleMarkdownEdit) {
+                      onToggleMarkdownEdit(cellId, true);
+                    }
+                  },
+                  context.view,
+                  mdContext,
+                );
               }
             } else if (cellType === "raw") {
               // Raw cell: show plaintext display
               const sourceText = source.join("\n");
-              widget = new RawDisplayWidget(cellId, sourceText);
+              const mdContext: MarkdownWidgetContext = {
+                actions: context.actions,
+                project_id: context.project_id,
+                onInsertCell: context.onInsertCell,
+              };
+              widget = new RawDisplayWidget(
+                cellId,
+                sourceText,
+                context.view,
+                mdContext,
+              );
             } else {
               // Code cell: show output widget
               widget = new OutputWidget(

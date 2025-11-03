@@ -35,6 +35,7 @@ import {
   createOutputDecorationsField,
   outputsChangedEffect,
 } from "./decorations";
+import type { OutputWidgetContext } from "./output";
 import {
   createCellExecutionKeyHandler,
   createMarkerProtectionFilter,
@@ -71,6 +72,8 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
     StateField<RangeSet<Decoration>> | null | undefined
   >(undefined);
   const lastCellsRef = useRef<Map<string, any> | null>(null);
+  // Context ref that can be updated after view is created
+  const contextRef = useRef<OutputWidgetContext>({});
   const [hasEditor, setHasEditor] = useState(false);
   // Trigger to re-check data when store changes
   const [storeUpdateTrigger, setStoreUpdateTrigger] = useState(0);
@@ -281,53 +284,53 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
     mappingsRef.current = mappings;
     lastCellsRef.current = cells; // Track cells for change detection
 
+    // Callback for inserting cells in single-file mode
+    // This is defined before creating the output field so it can be passed to OutputWidget
+    const handleInsertCell = (
+      cellId: string,
+      type: "code" | "markdown",
+      position: "above" | "below",
+    ) => {
+      // In single-file mode, use insert_cell_adjacent directly (non-deprecated API)
+      // instead of the insertCell utility which requires NotebookFrameActions
+      try {
+        const delta = position === "above" ? (-1 as const) : (1 as const);
+        const newCellId = props.actions.insert_cell_adjacent(cellId, delta);
+
+        // Set cell type if needed
+        if (type === "markdown") {
+          props.actions.set_cell_type(newCellId, "markdown");
+        }
+      } catch (error) {
+        console.error("[SingleFileEditor] Error inserting cell:", error);
+      }
+    };
+
     // Create the output decoration field with mappings reference (only once)
+    // Now includes insert cell widget as part of the OutputWidget
     if (!outputDecoFieldRef.current) {
+      // Initialize context (view will be added after EditorView is created)
+      contextRef.current = {
+        actions: props.actions,
+        name: props.actions.name,
+        project_id: props.project_id,
+        directory: props.path,
+        // Insert cell context - now part of output widget
+        onInsertCell: handleInsertCell,
+        // view will be set below after EditorView is created
+      };
+
       outputDecoFieldRef.current = createOutputDecorationsField(
         mappingsRef,
-        {
-          actions: props.actions,
-          name: props.actions.name,
-          project_id: props.project_id,
-          directory: props.path,
-        },
+        contextRef.current,
         mdEditIdsRef,
         toggleMarkdownEdit,
       );
     }
 
-    // Create the insert-cell decoration field (only once)
-    if (!insertCellDecoFieldRef.current) {
-      // Callback for inserting cells in single-file mode
-      const handleInsertCell = (
-        cellId: string,
-        type: "code" | "markdown",
-        position: "above" | "below",
-      ) => {
-        // In single-file mode, use insert_cell_adjacent directly (non-deprecated API)
-        // instead of the insertCell utility which requires NotebookFrameActions
-        try {
-          const delta = position === "above" ? (-1 as const) : (1 as const);
-          const newCellId = props.actions.insert_cell_adjacent(cellId, delta);
-
-          // Set cell type if needed
-          if (type === "markdown") {
-            props.actions.set_cell_type(newCellId, "markdown");
-          }
-        } catch (error) {
-          console.error("[SingleFileEditor] Error inserting cell:", error);
-        }
-      };
-
-      insertCellDecoFieldRef.current = createInsertCellDecorationsField(
-        mappingsRef,
-        {
-          actions: props.actions,
-          project_id: props.project_id,
-          onInsertCell: handleInsertCell,
-        },
-      );
-    }
+    // Note: We no longer need a separate insertCellDecoFieldRef since the insert cell widget
+    // is now rendered as part of the OutputWidget (in output.tsx)
+    // This simplifies the decoration model and fixes gutter alignment issues
 
     // Create the CodeMirror editor
     const state = EditorState.create({
@@ -338,7 +341,7 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
         syntaxHighlighting(defaultHighlightStyle),
         python(),
         outputDecoFieldRef.current,
-        insertCellDecoFieldRef.current,
+        // Insert cell widget is now part of OutputWidget, no separate decoration field needed
         createMarkerProtectionFilter(), // Prevent deletion of output marker lines
         createCellExecutionKeyHandler(
           mappingsRef,
@@ -375,6 +378,9 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
       state,
       parent: containerRef.current,
     });
+
+    // Add view to context so widgets can request measurement updates
+    contextRef.current.view = viewRef.current;
 
     setHasEditor(true);
 

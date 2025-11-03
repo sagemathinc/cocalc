@@ -50,7 +50,6 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
       outputs,
     } = mapping;
     const hasOutputs = (outputs?.length ?? 0) > 0;
-    const totalInputLines = inputRange.to - inputRange.from;
 
     // Generate cell label based on type
     let cellLabel: string;
@@ -64,7 +63,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
       outLabel = hasOutputs ? `Out[${cellNum}]` : undefined;
     } else if (cellType === "markdown") {
       // Markdown cell: show "Md"
-      cellLabel = "Md";
+      cellLabel = "MD";
       outLabel = undefined; // Markdown cells don't have outputs
     } else {
       // Raw cell: show "Raw"
@@ -75,7 +74,6 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
     // Mark all input lines
     for (let line = inputRange.from; line < inputRange.to; line++) {
       const lineInCell = line - inputRange.from + 1;
-      const isLastLineOfCell = lineInCell === totalInputLines;
 
       markers.set(line, {
         cellId,
@@ -84,8 +82,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
         inputLineNum: consecutiveInputLineNum, // Consecutive numbering, skipping output markers
         isFirstLineOfCell: lineInCell === 1,
         isOutputMarker: false,
-        // Show Out[N] label on the last input line (only for code cells with outputs)
-        outLabel: isLastLineOfCell ? outLabel : undefined,
+        // Out[N] label is now shown on the output marker line instead of here
         hasOutputs,
         cellState: state,
       });
@@ -93,7 +90,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
     }
 
     // Mark the output marker line (still needed for positioning output widgets)
-    // But don't add it to the gutter (output marker lines are invisible ZWS characters)
+    // Now we DO show it in the gutter for cells with outputs (to align output widgets)
     markers.set(outputMarkerLine, {
       cellId,
       cellType,
@@ -101,6 +98,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
       inputLineNum: 0,
       isFirstLineOfCell: true,
       isOutputMarker: true,
+      outLabel: hasOutputs ? outLabel : undefined, // Show Out[N] on output marker line if outputs exist
       hasOutputs,
       cellState: state,
     });
@@ -127,9 +125,11 @@ export function createCellGutterWithLabels(
       const docLines = view.state.doc.lines;
 
       lineMarkers.forEach((marker, lineNum) => {
-        // Skip output marker lines (they are invisible ZWS characters)
+        // For output marker lines, always show gutter entry to account for:
+        // 1. Output widgets (for cells with outputs)
+        // 2. Insert cell widget (appears below every cell's output marker)
         if (marker.isOutputMarker) {
-          return;
+          // Continue - we need gutter space for insert cell widget even if no outputs
         }
 
         try {
@@ -148,6 +148,7 @@ export function createCellGutterWithLabels(
             marker.hasOutputs,
             marker.cellState,
             actions,
+            marker.isOutputMarker, // Pass flag to indicate this is an output marker
           );
           markers.push([line.from, gutterMarker]);
         } catch {
@@ -182,11 +183,41 @@ class CellLabelMarker extends GutterMarker {
     readonly hasOutputs?: boolean,
     readonly cellState?: CellState,
     readonly actions?: JupyterActions,
+    readonly isOutputMarker: boolean = false,
   ) {
     super();
   }
 
   toDOM(): HTMLElement {
+    // Special handling for output marker lines
+    // These lines are invisible (ZWS) but get replaced by the OutputWidget
+    // which now includes both the outputs AND the insert cell widget
+    if (this.isOutputMarker) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "jupyter-cell-label-wrapper";
+      wrapper.setAttribute("data-cell-id", this.cellId);
+
+      // For output marker lines, show Out[N] label if cell has outputs
+      if (this.outLabel) {
+        const outRow = document.createElement("div");
+        outRow.className = "jupyter-cell-label-row";
+
+        const outSpan = document.createElement("span");
+        outSpan.textContent = this.outLabel;
+        outSpan.className = "jupyter-cell-out-label";
+
+        const spacer = document.createElement("span");
+        spacer.className = "jupyter-cell-line-spacer";
+
+        outRow.appendChild(outSpan);
+        outRow.appendChild(spacer);
+        wrapper.appendChild(outRow);
+      }
+
+      return wrapper;
+    }
+
+    // Normal input line handling
     const wrapper = document.createElement("div");
     wrapper.className = "jupyter-cell-label-wrapper";
     wrapper.setAttribute("data-cell-id", this.cellId);
@@ -368,6 +399,7 @@ class CellLabelMarker extends GutterMarker {
 
   eq(other: CellLabelMarker): boolean {
     // Important: cellState is checked because it affects whether we show icon or text
+    // Also check isOutputMarker because it changes what we render (output marker vs input line)
     return (
       other.cellId === this.cellId &&
       other.cellType === this.cellType &&
@@ -376,7 +408,8 @@ class CellLabelMarker extends GutterMarker {
       other.isFirst === this.isFirst &&
       other.outLabel === this.outLabel &&
       other.hasOutputs === this.hasOutputs &&
-      other.cellState === this.cellState
+      other.cellState === this.cellState &&
+      other.isOutputMarker === this.isOutputMarker
     );
   }
 }

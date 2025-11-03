@@ -11,29 +11,51 @@ Supports two modes:
 - Edit mode: MarkdownInput (WYSIWYG + plaintext editor)
 */
 
+import type { EditorView } from "@codemirror/view";
 import { WidgetType } from "@codemirror/view";
 import { createRoot, Root } from "react-dom/client";
 
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
+import { InsertCell } from "@cocalc/frontend/jupyter/insert-cell";
+import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+
+export interface MarkdownWidgetContext {
+  actions?: JupyterActions;
+  project_id?: string;
+  onInsertCell?: (
+    cellId: string,
+    type: "code" | "markdown",
+    position: "above" | "below",
+  ) => void;
+}
 
 /**
  * Widget that renders a markdown cell in display mode.
  * Shows formatted markdown with checkboxes and math support.
  * Double-click to enter edit mode.
+ * Includes insert-cell widget below for consistency with OutputWidget.
  */
 export class MarkdownDisplayWidget extends WidgetType {
-  private root: Root | null = null;
+  private roots: Root[] = [];
 
   constructor(
     private cellId: string,
     private source: string,
     private onDoubleClick: () => void,
+    private view?: EditorView,
+    private context?: MarkdownWidgetContext,
   ) {
     super();
   }
 
   toDOM(): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.width = "100%";
+
+    // Markdown content container
     const container = document.createElement("div");
     container.className = "jupyter-markdown-display-widget";
     container.setAttribute("data-cell-id", this.cellId);
@@ -41,25 +63,64 @@ export class MarkdownDisplayWidget extends WidgetType {
     container.ondblclick = () => this.onDoubleClick();
 
     // Render using MostlyStaticMarkdown
-    this.root = createRoot(container);
-    this.root.render(
+    const root = createRoot(container);
+    root.render(
       <MostlyStaticMarkdown value={this.source} onChange={undefined} />,
     );
+    this.roots.push(root);
 
-    return container;
+    wrapper.appendChild(container);
+
+    // Include insert-cell widget below markdown, just like OutputWidget
+    if (this.context?.actions) {
+      const insertCellDiv = document.createElement("div");
+      insertCellDiv.className = "jupyter-insert-cell-widget";
+      insertCellDiv.style.width = "100%";
+      insertCellDiv.style.height = "14px";
+      insertCellDiv.style.flex = "0 0 auto";
+
+      const insertCellRoot = createRoot(insertCellDiv);
+      insertCellRoot.render(
+        <InsertCell
+          id={this.cellId}
+          position="below"
+          actions={this.context.actions}
+          project_id={this.context.project_id}
+          llmTools={undefined}
+          mode="single"
+          onInsertCell={this.context.onInsertCell}
+          showAICellGen={null}
+          setShowAICellGen={() => {}}
+          alwaysShow={false}
+        />,
+      );
+      this.roots.push(insertCellRoot);
+      wrapper.appendChild(insertCellDiv);
+    }
+
+    // Request measure after React has rendered the markdown content
+    if (this.view) {
+      queueMicrotask(() => {
+        if (this.view) {
+          this.view.requestMeasure();
+        }
+      });
+    }
+
+    return wrapper;
   }
 
   destroy(): void {
-    // Clean up React root when the widget is destroyed
+    // Clean up React roots when the widget is destroyed
     queueMicrotask(() => {
-      if (this.root) {
+      for (const root of this.roots) {
         try {
-          this.root.unmount();
+          root.unmount();
         } catch (e) {
           console.warn("[MarkdownDisplayWidget] Error during unmount:", e);
         }
-        this.root = null;
       }
+      this.roots = [];
     });
   }
 
@@ -72,13 +133,14 @@ export class MarkdownDisplayWidget extends WidgetType {
  * Widget that renders a markdown cell in edit mode.
  * Shows MarkdownInput with WYSIWYG and plaintext editing.
  * Shift+Enter to save, Return for newline.
+ * Includes insert-cell widget below for consistency with OutputWidget.
  *
  * Note: Mentions popup may not display correctly inside CodeMirror widgets
  * due to z-index and overflow issues with the widget container.
  * See: https://github.com/codemirror/CodeMirror/issues/...
  */
 export class MarkdownEditWidget extends WidgetType {
-  private root: Root | null = null;
+  private roots: Root[] = [];
 
   constructor(
     private cellId: string,
@@ -87,11 +149,19 @@ export class MarkdownEditWidget extends WidgetType {
     private fontSize: number = 14,
     private projectId?: string,
     private path?: string,
+    private view?: EditorView,
+    private context?: MarkdownWidgetContext,
   ) {
     super();
   }
 
   toDOM(): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.width = "100%";
+
+    // Markdown edit container
     const container = document.createElement("div");
     container.className = "jupyter-markdown-edit-widget";
     container.setAttribute("data-cell-id", this.cellId);
@@ -100,8 +170,8 @@ export class MarkdownEditWidget extends WidgetType {
     container.style.overflow = "visible";
 
     // Render using MarkdownInput
-    this.root = createRoot(container);
-    this.root.render(
+    const root = createRoot(container);
+    root.render(
       <MarkdownInput
         value={this.source}
         onChange={(_value) => {
@@ -119,21 +189,60 @@ export class MarkdownEditWidget extends WidgetType {
         path={this.path}
       />,
     );
+    this.roots.push(root);
 
-    return container;
+    wrapper.appendChild(container);
+
+    // Include insert-cell widget below markdown, just like OutputWidget
+    if (this.context?.actions) {
+      const insertCellDiv = document.createElement("div");
+      insertCellDiv.className = "jupyter-insert-cell-widget";
+      insertCellDiv.style.width = "100%";
+      insertCellDiv.style.height = "14px";
+      insertCellDiv.style.flex = "0 0 auto";
+
+      const insertCellRoot = createRoot(insertCellDiv);
+      insertCellRoot.render(
+        <InsertCell
+          id={this.cellId}
+          position="below"
+          actions={this.context.actions}
+          project_id={this.context.project_id}
+          llmTools={undefined}
+          mode="single"
+          onInsertCell={this.context.onInsertCell}
+          showAICellGen={null}
+          setShowAICellGen={() => {}}
+          alwaysShow={false}
+        />,
+      );
+      this.roots.push(insertCellRoot);
+      wrapper.appendChild(insertCellDiv);
+    }
+
+    // Request measure after React has rendered the markdown editor
+    if (this.view) {
+      queueMicrotask(() => {
+        if (this.view) {
+          this.view.requestMeasure();
+        }
+      });
+    }
+
+    return wrapper;
   }
 
   destroy(): void {
-    // Clean up React root when the widget is destroyed
+    // Clean up React roots when the widget is destroyed
     queueMicrotask(() => {
-      if (this.root) {
+      for (const root of this.roots) {
         try {
-          this.root.unmount();
+          root.unmount();
         } catch (e) {
           console.warn("[MarkdownEditWidget] Error during unmount:", e);
         }
-        this.root = null;
       }
+      this.roots = [];
     });
   }
 
@@ -145,16 +254,27 @@ export class MarkdownEditWidget extends WidgetType {
 /**
  * Widget that renders a raw cell.
  * Shows plaintext (no special rendering).
+ * Includes insert-cell widget below for consistency with OutputWidget.
  */
 export class RawDisplayWidget extends WidgetType {
+  private roots: Root[] = [];
+
   constructor(
     private cellId: string,
     private source: string,
+    private view?: EditorView,
+    private context?: MarkdownWidgetContext,
   ) {
     super();
   }
 
   toDOM(): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.width = "100%";
+
+    // Raw content container
     const container = document.createElement("div");
     container.className = "jupyter-raw-widget";
     container.setAttribute("data-cell-id", this.cellId);
@@ -165,7 +285,59 @@ export class RawDisplayWidget extends WidgetType {
     container.style.backgroundColor = "#f5f5f5";
     container.textContent = this.source;
 
-    return container;
+    wrapper.appendChild(container);
+
+    // Include insert-cell widget below raw, just like OutputWidget
+    if (this.context?.actions) {
+      const insertCellDiv = document.createElement("div");
+      insertCellDiv.className = "jupyter-insert-cell-widget";
+      insertCellDiv.style.width = "100%";
+      insertCellDiv.style.height = "14px";
+      insertCellDiv.style.flex = "0 0 auto";
+
+      const insertCellRoot = createRoot(insertCellDiv);
+      insertCellRoot.render(
+        <InsertCell
+          id={this.cellId}
+          position="below"
+          actions={this.context.actions}
+          project_id={this.context.project_id}
+          llmTools={undefined}
+          mode="single"
+          onInsertCell={this.context.onInsertCell}
+          showAICellGen={null}
+          setShowAICellGen={() => {}}
+          alwaysShow={false}
+        />,
+      );
+      this.roots.push(insertCellRoot);
+      wrapper.appendChild(insertCellDiv);
+    }
+
+    // Request measure (for consistency, though raw widgets are simpler)
+    if (this.view) {
+      queueMicrotask(() => {
+        if (this.view) {
+          this.view.requestMeasure();
+        }
+      });
+    }
+
+    return wrapper;
+  }
+
+  destroy(): void {
+    // Clean up React roots when the widget is destroyed
+    queueMicrotask(() => {
+      for (const root of this.roots) {
+        try {
+          root.unmount();
+        } catch (e) {
+          console.warn("[RawDisplayWidget] Error during unmount:", e);
+        }
+      }
+      this.roots = [];
+    });
   }
 
   ignoreEvent(): boolean {

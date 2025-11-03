@@ -10,23 +10,28 @@
 .jupyter-single-file-editor
   font-family: monospace
 
-  // Output widget container
+  // Output widget container - flex layout for proper height handling
   .jupyter-output-widget
     margin: 0
-    padding: 8px 12px
-    background-color: colors.$COL_GRAY_LLL
-    border-left: 3px solid colors.$COL_GRAY_L
-    border-radius: 0 4px 4px 0
-    overflow-x: auto
+    padding: 0
+    background-color: #ffffff
+    display: flex
+    flex-direction: column
 
     &[data-cell-id]
-      display: block
+      display: flex
+      flex-direction: column
 
   // Individual output item
   .jupyter-output-item
     margin: 4px 0
-    padding: 4px 0
+    padding: 8px 12px
     line-height: 1.4
+    background-color: colors.$COL_GRAY_LLL
+    border-left: 3px solid colors.$COL_GRAY_L
+    border-radius: 0 4px 4px 0
+    flex: 0 0 auto
+    overflow-x: auto
 
     &:first-child
       margin-top: 0
@@ -118,19 +123,17 @@
 
   // Gutter styles for cell labels (In[N]/Out[N])
   .jupyter-cell-label-wrapper
-    display: flex
-    flex-direction: column
-    gap: 0
     font-family: monospace
     font-size: calc(var(--editor-font-size, 14px) - 1px)
     user-select: none
     margin-left: 5px
-    margin-top: 10px
     // Always reserve space for state indicator line to avoid indentation shift
     border-left: 3px solid transparent
     padding-left: 12px
-    // Ensure wrapper fills full line height in gutter for continuous state line
-    height: 100%
+    // Let content flow naturally - each row sizes to its content
+    display: block
+    line-height: 1
+    height: 100% // necessary, to make the left border line look as "one" line
 
   .jupyter-cell-label-row
     display: flex
@@ -223,13 +226,10 @@
     min-width: 30px
     font-size: 0.9em
     margin-left: -20px
-    top: 2px
-    position: relative
 
   .jupyter-cell-line-spacer
     min-width: 30px
     margin-left: -20px
-    margin-top: 10px
 
   // Cell execution state indicators - vertical line on the left side of gutter
   // Running state: orange with blinking animation (actively executing)
@@ -255,6 +255,7 @@
     background-color: transparent
     opacity: 0.6
     transition: opacity 150ms ease
+    flex: 0 0 auto
 
     &:hover
       opacity: 1
