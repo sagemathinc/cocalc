@@ -61,6 +61,138 @@ const sessions: { [id: string]: any } = {};
 const history: { [id: string]: string } = {};
 const sizes: { [id: string]: { rows: number; cols: number }[] } = {};
 
+type TerminalMessageKind = "user" | "auto";
+
+interface TerminalIncomingMessage {
+  data: string;
+  kind: TerminalMessageKind;
+}
+
+interface PendingMessage {
+  message: TerminalIncomingMessage;
+  socket: ServerSocket;
+}
+
+const sessionMembers: Record<string, Set<string>> = {};
+const sessionLeaders: Record<string, string> = {};
+const sessionLeaderActivity: Record<string, number> = {};
+
+const sessionKey = (subject: string, sessionId: string) =>
+  `${subject}::${sessionId}`;
+
+const LEADER_INACTIVITY_MS = parseInt(
+  process.env.COCALC_TERMINAL_LEADER_TIMEOUT_MS ?? "10000",
+);
+
+function setLeader(subject: string, sessionId: string, socketId: string) {
+  const key = sessionKey(subject, sessionId);
+  sessionLeaders[key] = socketId;
+  sessionLeaderActivity[key] = Date.now();
+}
+
+function addSessionMember(
+  subject: string,
+  sessionId: string,
+  socketId: string,
+) {
+  const key = sessionKey(subject, sessionId);
+  sessionMembers[key] ??= new Set();
+  sessionMembers[key].add(socketId);
+  if (!sessionLeaders[key]) {
+    setLeader(subject, sessionId, socketId);
+  }
+}
+
+function removeSessionMember(
+  subject: string,
+  sessionId: string,
+  socketId: string,
+) {
+  const key = sessionKey(subject, sessionId);
+  const members = sessionMembers[key];
+  if (members == null) {
+    return;
+  }
+  members.delete(socketId);
+  if (members.size === 0) {
+    delete sessionMembers[key];
+    delete sessionLeaders[key];
+    delete sessionLeaderActivity[key];
+    return;
+  }
+  if (sessionLeaders[key] === socketId) {
+    const next = members.values().next();
+    if (next.done) {
+      delete sessionLeaders[key];
+      delete sessionLeaderActivity[key];
+    } else {
+      setLeader(subject, sessionId, next.value);
+    }
+  }
+}
+
+function isLeader(
+  subject: string,
+  sessionId: string | null,
+  socketId: string,
+): boolean {
+  if (!sessionId) {
+    return true;
+  }
+  const key = sessionKey(subject, sessionId);
+  return sessionLeaders[key] === socketId;
+}
+
+function recordLeaderActivity(subject: string, sessionId: string | null) {
+  if (!sessionId) return;
+  const key = sessionKey(subject, sessionId);
+  sessionLeaderActivity[key] = Date.now();
+}
+
+function maybePromoteLeader(
+  subject: string,
+  sessionId: string | null,
+  socketId: string,
+): boolean {
+  if (!sessionId) {
+    return false;
+  }
+  const key = sessionKey(subject, sessionId);
+  const last = sessionLeaderActivity[key] ?? 0;
+  if (sessionLeaders[key] && Date.now() - last < LEADER_INACTIVITY_MS) {
+    return false;
+  }
+  if (!sessionLeaders[key] || sessionLeaders[key] !== socketId) {
+    setLeader(subject, sessionId, socketId);
+    return true;
+  }
+  return false;
+}
+
+function normalizeIncoming(data: any): TerminalIncomingMessage | null {
+  if (data == null) {
+    return null;
+  }
+  if (typeof data === "string") {
+    return { data, kind: "user" };
+  }
+  if (Buffer.isBuffer(data)) {
+    return { data: data.toString("utf8"), kind: "user" };
+  }
+  if (typeof data === "object") {
+    if (Array.isArray(data)) {
+      return normalizeIncoming(data.join(""));
+    }
+    const payload = data as Record<string, any>;
+    if (typeof payload.data === "string") {
+      const kind: TerminalMessageKind =
+        payload.kind === "auto" ? "auto" : "user";
+      return { data: payload.data, kind };
+    }
+  }
+  return null;
+}
+
 export function terminalServer({
   client,
   project_id,
@@ -107,24 +239,70 @@ export function terminalServer({
     });
 
     let sessionId: string | null = null;
+    const updateSessionId = (nextId: string | null) => {
+      if (sessionId === nextId) {
+        return;
+      }
+      if (sessionId) {
+        removeSessionMember(subject, sessionId, socket.id);
+      }
+      sessionId = nextId;
+      if (sessionId) {
+        addSessionMember(subject, sessionId, socket.id);
+      }
+    };
     let pty: any = null;
     let wpty: Writable | null = null;
-    let buffer: string[] = [];
+    const buffer: PendingMessage[] = [];
     const setPty = (p) => {
       pty = p;
       wpty = p == null ? null : createPtyWritable(p);
       buffer.length = 0;
     };
     socket.on("data", (data) => {
-      buffer.push(data);
+      const message = normalizeIncoming(data);
+      if (message == null) {
+        return;
+      }
+      buffer.push({ message, socket });
       processBuffer();
     });
 
     const processBuffer = reuseInFlight(async () => {
       while (buffer.length > 0 && wpty != null) {
+        const entry = buffer.shift();
+        if (entry == null) {
+          break;
+        }
+        const { message, socket: origin } = entry;
+        if (!message.data) {
+          continue;
+        }
+        if (sessionId) {
+          if (isLeader(subject, sessionId, origin.id)) {
+            recordLeaderActivity(subject, sessionId);
+          } else if (
+            message.kind === "auto" &&
+            maybePromoteLeader(subject, sessionId, origin.id)
+          ) {
+            logger.debug(
+              "terminal: promoting socket to leader due to inactivity",
+              {
+                subject,
+                sessionId,
+                newLeader: origin.id,
+              },
+            );
+          }
+        }
+        if (
+          message.kind === "auto" &&
+          !isLeader(subject, sessionId, origin.id)
+        ) {
+          continue;
+        }
         try {
-          const data = buffer.shift()!;
-          await writeToWritablePty(wpty, data);
+          await writeToWritablePty(wpty, message.data);
         } catch (err) {
           logger.debug("server: writeToWritablePty", err);
           return;
@@ -180,8 +358,8 @@ export function terminalServer({
           pty?.destroy();
           if (sessionId) {
             delete sessions[sessionId];
-            sessionId = null;
           }
+          updateSessionId(null);
           setPty(null);
           return;
 
@@ -223,9 +401,7 @@ export function terminalServer({
           removeListeners();
           let { command, args, options = {} } = data;
           const { id } = options ?? {};
-          if (id) {
-            sessionId = id;
-          }
+          updateSessionId(id ?? null);
           if (id && sessions[id] != null) {
             setPty(sessions[id]);
           } else {
@@ -263,8 +439,8 @@ export function terminalServer({
             setPty(null);
             if (sessionId) {
               delete sessions[sessionId];
-              sessionId = null;
             }
+            updateSessionId(null);
             try {
               await socket.request({ cmd: "exit" });
             } catch {}
@@ -292,6 +468,7 @@ export function terminalServer({
 
     socket.on("closed", () => {
       logger.debug("socket closed", { id: socket.id });
+      updateSessionId(null);
     });
   });
 
