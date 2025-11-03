@@ -10,15 +10,16 @@
 4. [Implementation Details](#implementation-details)
 5. [Output Widget Design](#output-widget-design)
 6. [Multi-Cell Type Support](#multi-cell-type-support)
-7. [Marker Line Protection](#marker-line-protection)
-8. [CodeMirror 6 Setup](#codemirror-6-setup)
-9. [Technical Decisions](#technical-decisions)
-10. [Cell Mapping Algorithm](#cell-mapping-algorithm)
-11. [Handling Edge Cases](#handling-edge-cases)
-12. [Testing Strategy](#testing-strategy)
-13. [Migration & Adoption](#migration--adoption)
-14. [Future Enhancements](#future-enhancements)
-15. [Glossary](#glossary)
+7. [Zero-Width Space (ZWS) Marker Design & Content Safety](#zero-width-space-zws-marker-design--content-safety)
+8. [Marker Line Protection](#marker-line-protection)
+9. [CodeMirror 6 Setup](#codemirror-6-setup)
+10. [Technical Decisions](#technical-decisions)
+11. [Cell Mapping Algorithm](#cell-mapping-algorithm)
+12. [Handling Edge Cases](#handling-edge-cases)
+13. [Testing Strategy](#testing-strategy)
+14. [Migration & Adoption](#migration--adoption)
+15. [Future Enhancements](#future-enhancements)
+16. [Glossary](#glossary)
 
 ---
 
@@ -687,6 +688,186 @@ These components are reused from the regular Jupyter implementation:
 
 ---
 
+## Zero-Width Space (ZWS) Marker Design & Content Safety
+
+### Design Philosophy: Markers as Invisible Placeholders
+
+The Jupyter single-file view uses **Zero-Width Space (U+200B) characters as invisible markers** to delimit cell boundaries and separate cell content from output widgets. This section explains the design rationale and corruption prevention mechanisms.
+
+### Five Core Principles
+
+#### 1. **Markers as Output Placeholders**
+
+ZWS + type char markers (`⁠c`, `⁠m`, `⁠r`) serve as invisible placeholders that indicate where outputs, markdown widgets, or raw widgets appear in the document:
+
+- Each cell has exactly one marker line at its end (after source code)
+- The marker is invisible but programmatically detectable
+- When rendered, CodeMirror decorations replace the marker with output widgets
+- The marker line prevents content bleeding between cells
+
+**Document structure:**
+```
+[Cell 1 source lines...]
+⁠c                        ← Marker: invisible placeholder for output widget
+[Output widget renders here]
+
+[Cell 2 source lines...]
+⁠c                        ← Marker: invisible placeholder for output widget
+[Output widget renders here]
+```
+
+#### 2. **Copy/Paste With Markers Creates New Cells**
+
+When users copy and paste a range containing markers, the document/notebook structure should automatically create corresponding cells at marker positions:
+
+**Example:**
+```
+User selects and copies:
+[Cell content]
+⁠c
+[Another cell content]
+⁠c
+
+User pastes into a new notebook:
+→ Two new cells are created at the marker positions
+```
+
+**Implementation note**: This is a potential future feature; current implementation focuses on preventing corruption rather than leveraging markers for cell creation.
+
+#### 3. **Backspace at Cell End Merges Cells**
+
+When a user deletes the last character in a cell (at the end of the last line), the marker line is encountered. The marker protection filter silently suppresses this deletion:
+
+- User presses backspace at end of cell input
+- Filter detects attempt to delete/overwrite marker
+- **Change is suppressed** (silently ignored, not blocked with a beep)
+- Result: User sees marker as immovable boundary (like in traditional notebooks)
+
+**Design choice**: This mirrors Jupyter notebook behavior where users cannot delete cell boundaries.
+
+#### 4. **ZWS Never Appears in Stored Content**
+
+A critical invariant: **Zero-Width Space characters MUST NEVER be part of saved cell content in the notebook store.**
+
+- ZWS is **internal to the editor only**
+- When syncing cell content back to store, ZWS characters are stripped
+- When loading cell content from store, ZWS is NOT expected
+- Violation of this principle causes corruption (see principle #5)
+
+**Sync pipeline:**
+```
+Notebook Store (never contains ZWS)
+  ↓ [Load cell content]
+Jupyter single editor
+  ↓ [Build document with markers]
+CodeMirror Document (contains ZWS markers + content)
+  ↓ [User edits]
+CodeMirror Document (modified content)
+  ↓ [Extract cell content, strip ZWS]
+Notebook Store (never contains ZWS) ✓
+```
+
+#### 5. **Defensive Stripping of ZWS in Content**
+
+To protect against accidental or malicious ZWS content entering the system, the codebase implements **two layers of defensive stripping**:
+
+**Layer 1: Strip ZWS from cell source during document building** (`state.ts` lines 98-117)
+
+When `buildDocumentFromNotebook()` reads cell content from the store, it sanitizes it:
+
+```typescript
+sourceLines = sourceLines.map((line) => {
+  if (line.includes(ZERO_WIDTH_SPACE)) {
+    const cleaned = line.replace(/\u200b/g, "");
+    console.warn("[jupyter-single] DEFENSIVE: Stripped ZWS from cell source",
+      "cell:", cellId,
+      "original length:", line.length,
+      "cleaned length:", cleaned.length,
+    );
+    return cleaned;
+  }
+  return line;
+});
+```
+
+**Why this is needed**: If corrupted content (containing ZWS) somehow enters the store, this strips it before building the document.
+
+**Layer 2: Strip ZWS from cell content during extraction** (`editor.tsx` lines 805-834)
+
+When syncing changes back to the store, extracted cell content is validated:
+
+```typescript
+const line = currentDoc.line(lineNum + 1).text;
+if (line.startsWith(ZERO_WIDTH_SPACE)) {
+  console.warn("[jupyter-single] WARNING: Marker line found in cell input extraction!",
+    "cell:", mapping.cellId,
+    "line:", lineNum,
+  );
+  continue; // Skip marker line - never include in cell content
+}
+docLines.push(line);
+```
+
+**Why this is needed**: Prevents marker lines from being included in extracted content and synced to store.
+
+### Design Trade-Offs
+
+#### Consequence: Users Cannot Use ZWS in Code
+
+Since ZWS characters are automatically stripped, users **cannot enter ZWS characters in cell content**:
+
+```python
+# If user types code containing ZWS (very rare):
+x = "\u200b"  # The ZWS will be stripped during sync
+# After round-trip through editor, becomes:
+x = ""        # ZWS removed, leaving empty string
+```
+
+**Justification:**
+- ZWS is an invisible character with no practical use in code
+- Stripping prevents a class of corruption bugs
+- The visual/functional impact is negligible (no code uses ZWS intentionally)
+- Marker integrity is more important than supporting an esoteric Unicode character
+
+#### Corruption Vicious Cycle (Prevented)
+
+Without Layer 1 defensive stripping, a vicious cycle could occur:
+
+```
+1. Corrupted marker somehow gets into cell content: "2+2\n⁠c⁠c⁠c"
+2. Extract cell content → includes the marker: "2+2\n⁠c⁠c⁠c"
+3. Sync to store → store now has corrupted content
+4. Rebuild document → reads corrupted content "2+2\n⁠c⁠c⁠c"
+5. Add new marker → "2+2\n⁠c⁠c⁠c" + new marker = "⁠c⁠c⁠c⁠c" (doubled!)
+6. Repeat → markers keep growing: ⁠c⁠c⁠c⁠c, ⁠c⁠c⁠c⁠c⁠c, etc.
+```
+
+**Both defensive layers break this cycle:**
+- Layer 1: Strips corrupted markers when reading from store
+- Layer 2: Prevents markers from being included in extracts
+
+Together they ensure clean markers are always created, never corrupted or duplicated.
+
+### Logging & Diagnostics
+
+When ZWS stripping occurs, detailed logs help diagnose issues:
+
+```
+[jupyter-single] DEFENSIVE: Stripped ZWS from cell source
+  cell: 90cecb
+  original length: 10
+  cleaned length: 5
+
+[jupyter-single] WARNING: Marker line found in cell input extraction!
+  cell: 90cecb
+  line: 5
+  content: "⁠c⁠c⁠c⁠c"
+```
+
+These logs indicate the system encountered corrupted or unexpected ZWS content and successfully recovered.
+
+---
+
 ## Marker Line Protection
 
 ### The Problem: Can Users Delete Output Widgets?
@@ -1102,6 +1283,113 @@ When editing markdown cells (double-click to enter edit mode), the mention popup
 
 ---
 
+## Cell Execution & Cursor Management
+
+### Cursor Placement After Cell Execution
+
+When a user evaluates a cell with **Shift+Return**, the cursor placement behavior depends on whether it's the last cell:
+
+#### Rule 1: Non-Last Cell Execution
+- After executing a cell that is NOT the last cell in the notebook
+- **Expected behavior**: Cursor should jump to the beginning of the next cell's input
+- This enables flowing through the notebook with consecutive Shift+Return presses
+
+**Example:**
+```
+Cell 1: 1+1[cursor]  →  Shift+Return  →  Execution output shown
+                                           Cursor moves to Cell 2 start
+Cell 2: [cursor]2+2  ←  Cursor appears here
+```
+
+#### Rule 2: Last Cell Execution
+- After executing the LAST cell in the notebook
+- **Expected behavior**:
+  1. A new empty cell should be inserted below the current cell
+  2. Cursor should be placed in the new cell's input area
+  3. User can immediately start typing in the new cell
+
+**Example:**
+```
+Cell 1: 1+1
+Cell 2: 2+2[cursor]  →  Shift+Return  →  Execution output shown
+                                           New empty Cell 3 inserted
+                                           Cursor moves to Cell 3
+Cell 3: [cursor]      ←  New empty cell created
+```
+
+### Benefits
+
+✅ **Linear notebook flow**: Users can work through a notebook linearly with repeated Shift+Return
+✅ **Natural editing experience**: Never stuck at the last cell, always have next cell ready
+✅ **Reduces friction**: No need to manually insert new cells after executing the last one
+✅ **Matches Jupyter behavior**: Compatible with how traditional Jupyter notebooks work
+
+### Implementation Requirements
+
+1. **Track cell positions**: Know which cell is currently executing
+2. **Detect last cell**: Determine if executed cell is the last one in the notebook
+3. **Cursor manipulation**: Move cursor to specific positions:
+   - Beginning of next cell's input (for non-last cells)
+   - New cell's input area (for last cell)
+4. **Cell insertion**: When last cell is executed:
+   - Create new empty code cell
+   - Insert it after the current cell in the notebook store
+   - Rebuild document structure
+   - Update cell mappings
+   - Move cursor to new cell's input
+
+### Testing Requirements
+
+#### Test 1: Cursor jumps to next cell
+**Setup**: Notebook with 2+ cells
+```
+Cell 1: 1+1
+Cell 2: 2+2
+```
+**Action**: Click in Cell 1, press Shift+Return
+**Expected**:
+- Cell 1 executes, shows output "2"
+- Cursor appears at beginning of Cell 2
+- User can start typing immediately
+
+#### Test 2: New cell inserted on last cell execution
+**Setup**: Notebook with 1 cell
+```
+Cell 1: 1+1
+```
+**Action**: Click in Cell 1, press Shift+Return
+**Expected**:
+- Cell 1 executes, shows output "2"
+- New empty Cell 2 is inserted below
+- Cursor appears in Cell 2 (ready for input)
+- Can immediately type in Cell 2
+
+#### Test 3: Multiple cells with cursor flow
+**Setup**: Notebook with 3 cells
+```
+Cell 1: x = 10
+Cell 2: y = x + 5
+Cell 3: x + y
+```
+**Action**: Execute each cell in sequence with Shift+Return
+**Expected**:
+- Execute Cell 1 → cursor jumps to Cell 2 start
+- Execute Cell 2 → cursor jumps to Cell 3 start
+- Execute Cell 3 → new Cell 4 created, cursor jumps to it
+- Cell 4 is empty and ready for input
+
+#### Test 4: Cursor positioning accuracy
+**Setup**: Multi-line cell
+```
+Cell 1: def foo(x):
+        return x * 2
+        [cursor at end]
+```
+**Action**: Press Shift+Return
+**Expected**: Cursor jumps to beginning of next cell (not at end of Cell 1)
+
+---
+
 ## Future Enhancements
 
 1. **Fix mentions in markdown cells**: Implement proper positioning/display of mention popup in edit mode
@@ -1113,6 +1401,7 @@ When editing markdown cells (double-click to enter edit mode), the mention popup
 7. **Smart output updates**: Detect incremental output changes and update only affected cells
 8. **Editable outputs**: Allow users to clear outputs, delete outputs selectively
 9. **Output history**: Show previous outputs when re-executing cells
+10. **Cell execution history**: Track execution order and timing for better debugging
 
 ---
 

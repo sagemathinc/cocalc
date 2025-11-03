@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 
 - Everything is written in TypeScript code
 - Indentation: 2-spaces
-- Run `prettier -w [filename]` after modifying a file (ts, tsx, md, json, ...) to format it correctly.
+- Run `pnpm exec prettier -w [filename]` after modifying a file (ts, tsx, md, json, ...) to format it correctly.
 - All .js and .ts files are formatted by the tool prettier
 - Add suitable types when you write code
 - Follow DRY principles!
@@ -34,7 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `pnpm test` - Run full test suite
 - `pnpm depcheck` - Check for dependency issues
 - `python3 ./scripts/check_npm_packages.py` - Check npm package consistency across packages
-- `prettier -w [filename]` to format the style of a file after editing it
+- `pnpm exec prettier -w [filename]` to format the style of a file after editing it
 - After creating a file, run `git add [filename]` to start tracking it
 
 ### Package-Specific Commands
@@ -49,7 +49,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 
 ### Development
 
-- **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
+- **IMPORTANT**: Always run `pnpm exec prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
 - After TypeScript or `*.tsx` changes, run `pnpm build` in the relevant package directory
   - **When editing the frontend, ALWAYS run `pnpm build-dev` in `packages/static`** (this implicitly builds the frontend)
     - This is the authoritative way to build and test frontend changes

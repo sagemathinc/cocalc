@@ -24,16 +24,19 @@ import { OutputWidget, type OutputWidgetContext } from "./output";
 import {
   MarkdownDisplayWidget,
   MarkdownEditWidget,
-  RawDisplayWidget,
   type MarkdownWidgetContext,
 } from "./markdown-widgets";
+import { RawDisplayWidget } from "./raw-widget";
 import type { CellMapping } from "./state";
 
 /**
- * StateEffect to signal that cell outputs have changed.
+ * Create a StateEffectType to signal that cell outputs have changed.
+ * This is created per-editor-instance to avoid cross-notebook interference.
  * Carries a Set of cell IDs that actually changed to avoid recomputing all decorations.
  */
-export const outputsChangedEffect = StateEffect.define<Set<string>>();
+export function createOutputsChangedEffect() {
+  return StateEffect.define<Set<string>>();
+}
 
 /**
  * Compute output decorations from cell mappings.
@@ -51,12 +54,14 @@ export function computeOutputDecorations(
   const decorations: Array<[Decoration, number, number]> = [];
   const mdEditIds = mdEditIdsRef?.current ?? new Set<string>();
 
+  let skippedCount = 0;
   for (const mapping of mappings) {
     const { cellId, outputs, cellType, outputMarkerLine, source } = mapping;
 
     // Bounds check: ensure marker line exists (in case it was deleted)
     if (outputMarkerLine + 1 > state.doc.lines) {
       // Line doesn't exist, skip this decoration
+      skippedCount++;
       continue;
     }
 
@@ -156,6 +161,12 @@ export function computeOutputDecorations(
  * StateField for managing output decorations.
  * Automatically recomputes when document or mappings change.
  * Handles code cells (with outputs), markdown cells (with display/edit widgets), and raw cells.
+ *
+ * @param mappingsRef - Reference to current cell mappings
+ * @param context - Output widget context
+ * @param mdEditIdsRef - Reference to set of markdown cells in edit mode
+ * @param onToggleMarkdownEdit - Callback when markdown edit mode is toggled
+ * @param outputsChangedEffect - Local StateEffectType instance for this editor (prevents cross-notebook interference)
  */
 export function createOutputDecorationsField(
   mappingsRef: {
@@ -164,6 +175,7 @@ export function createOutputDecorationsField(
   context: OutputWidgetContext = {},
   mdEditIdsRef?: { current: Set<string> },
   onToggleMarkdownEdit?: (cellId: string, isEdit: boolean) => void,
+  outputsChangedEffect?: ReturnType<typeof createOutputsChangedEffect>,
 ): StateField<RangeSet<Decoration>> {
   // Cache decorations by cellId to reuse them when outputs don't change
   const decorationCache = new Map<
@@ -184,9 +196,12 @@ export function createOutputDecorationsField(
 
     update(decorations, tr) {
       // Extract which cells actually had output changes
-      const changedCellIds = tr.effects
-        .filter((e) => e.is(outputsChangedEffect))
-        .flatMap((e) => Array.from(e.value));
+      // Only process effects if outputsChangedEffect was provided
+      const changedCellIds = outputsChangedEffect
+        ? tr.effects
+            .filter((e) => e.is(outputsChangedEffect))
+            .flatMap((e) => Array.from(e.value))
+        : [];
 
       if (changedCellIds.length > 0) {
         // Recompute decorations, but reuse cached ones for unchanged cells

@@ -39,7 +39,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
   const markers = new Map<number, LineMarker>();
   let consecutiveInputLineNum = 1;
 
-  mappings.forEach((mapping, cellIndex) => {
+  mappings.forEach((mapping) => {
     const {
       cellType,
       cellId,
@@ -56,11 +56,20 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
     let outLabel: string | undefined;
 
     if (cellType === "code") {
-      // Code cell: show In[N]
-      const cellNum = execCount ?? cellIndex + 1;
-      cellLabel = `In[${cellNum}]`;
-      // Show Out[N] on last line for code cells (only those with outputs)
-      outLabel = hasOutputs ? `Out[${cellNum}]` : undefined;
+      // Code cell: show In[N] or In[ ] for unexecuted cells
+      const cellNum = execCount;
+      if (cellNum != null) {
+        cellLabel = `In[${cellNum}]`;
+      } else {
+        // Cell not yet executed: show placeholder space instead of fallback to line number
+        cellLabel = "In[ ]";
+      }
+      // Show Out[N] on last line for code cells that have been executed (have execCount)
+      // BUT only if the cell is not currently running/queued (to avoid overlap with In[N])
+      const isRunning =
+        state === "busy" || state === "run" || state === "start";
+      outLabel =
+        execCount != null && !isRunning ? `Out[${execCount}]` : undefined;
     } else if (cellType === "markdown") {
       // Markdown cell: show "Md"
       cellLabel = "MD";
@@ -74,6 +83,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
     // Mark all input lines
     for (let line = inputRange.from; line < inputRange.to; line++) {
       const lineInCell = line - inputRange.from + 1;
+      const isLastLine = line === inputRange.to - 1;
 
       markers.set(line, {
         cellId,
@@ -82,7 +92,8 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
         inputLineNum: consecutiveInputLineNum, // Consecutive numbering, skipping output markers
         isFirstLineOfCell: lineInCell === 1,
         isOutputMarker: false,
-        // Out[N] label is now shown on the output marker line instead of here
+        // Show Out[N] on the last input line of code cells that have been executed
+        outLabel: isLastLine ? outLabel : undefined,
         hasOutputs,
         cellState: state,
       });
@@ -90,7 +101,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
     }
 
     // Mark the output marker line (still needed for positioning output widgets)
-    // Now we DO show it in the gutter for cells with outputs (to align output widgets)
+    // Show Out[N] for cells that have been executed (have execCount)
     markers.set(outputMarkerLine, {
       cellId,
       cellType,
@@ -98,7 +109,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
       inputLineNum: 0,
       isFirstLineOfCell: true,
       isOutputMarker: true,
-      outLabel: hasOutputs ? outLabel : undefined, // Show Out[N] on output marker line if outputs exist
+      outLabel, // Show Out[N] on output marker line if cell has been executed
       hasOutputs,
       cellState: state,
     });

@@ -30,15 +30,20 @@ import {
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { JupyterEditorActions } from "../actions";
 import { createCellGutterWithLabels } from "./cell-gutter";
-import { createInsertCellDecorationsField } from "./cell-insertion";
 import {
   createOutputDecorationsField,
-  outputsChangedEffect,
+  createOutputsChangedEffect,
 } from "./decorations";
 import type { OutputWidgetContext } from "./output";
 import {
+  cellMergeEffect,
   createCellExecutionKeyHandler,
+  createCellMergingFilter,
   createMarkerProtectionFilter,
+  createPasteDetectionFilter,
+  createRangeDeletionFilter,
+  pasteDetectionEffect,
+  rangeDeletionEffect,
 } from "./filters";
 import { buildDocumentFromNotebook, type CellMapping } from "./state";
 import { getCellsInRange, ZERO_WIDTH_SPACE } from "./utils";
@@ -68,9 +73,8 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
   const outputDecoFieldRef = useRef<
     StateField<RangeSet<Decoration>> | null | undefined
   >(undefined);
-  const insertCellDecoFieldRef = useRef<
-    StateField<RangeSet<Decoration>> | null | undefined
-  >(undefined);
+  // Local StateEffect instance - prevents cross-notebook interference when multiple notebooks are open
+  const outputsChangedEffectRef = useRef(createOutputsChangedEffect());
   const lastCellsRef = useRef<Map<string, any> | null>(null);
   // Context ref that can be updated after view is created
   const contextRef = useRef<OutputWidgetContext>({});
@@ -84,8 +88,17 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
   const debouncedChangeRef = useRef<NodeJS.Timeout | null>(null);
   // Store the last pending update so we can flush it on demand
   const pendingUpdateRef = useRef<any>(null);
+  // Track cells with unsync'd edits (edits in doc but not yet in store)
+  const unsyncedCellsRef = useRef<Set<string>>(new Set());
+  // Track which line ranges changed in the document
+  const changedLineRangesRef = useRef<Array<[number, number]>>([]);
   // Function to flush pending changes (exposed for keyboard handler)
   const flushPendingChangesRef = useRef<() => void>(() => {});
+  // Track target cell for cursor movement after execution
+  // Set by key handler, cleared by store listener after moving cursor
+  const cursorTargetAfterExecutionRef = useRef<string | null>(null);
+  // Track when last edit happened (triggers debounce effect)
+  const [lastEditTime, setLastEditTime] = useState<number | null>(null);
 
   // Toggle markdown cell edit mode
   const toggleMarkdownEdit = React.useCallback(
@@ -101,162 +114,113 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
         return next;
       });
 
-      // Dispatch effect to update decorations
+      // Dispatch effect to update decorations using local effect instance
       if (viewRef.current) {
         viewRef.current.dispatch({
-          effects: outputsChangedEffect.of(new Set([cellId])),
+          effects: outputsChangedEffectRef.current.of(new Set([cellId])),
         });
       }
     },
     [],
   );
 
-  // Handle document changes by mapping them back to cell updates
-  const handleDocumentChange = React.useCallback(
-    (update: any) => {
-      if (!viewRef.current || !mappingsRef.current || !lastCellsRef.current)
-        return;
+  // Flush pending edits to store (called before cell execution)
+  const flushEditsToStore = React.useCallback(() => {
+    if (!viewRef.current || !lastCellsRef.current) {
+      return;
+    }
 
-      const view = viewRef.current;
-      const doc = view.state.doc;
-      const lastCells = lastCellsRef.current;
+    const view = viewRef.current;
+    const doc = view.state.doc;
+    const lastCells = lastCellsRef.current;
+    const store = props.actions.store;
+    if (!store) return;
 
-      // CRITICAL: Rebuild mappings from current document BEFORE extracting cell content
-      // This ensures we use correct cell boundaries, not stale mappings
-      const currentMarkerLines: number[] = [];
-      for (let i = 0; i < doc.lines; i++) {
-        const line = doc.line(i + 1); // 1-indexed
-        if (line.text === ZERO_WIDTH_SPACE) {
-          currentMarkerLines.push(i); // 0-indexed
-        }
+    const cellList = store.get("cell_list");
+    if (!cellList) return;
+
+    // Split document by marker pattern (works even with corrupted markers)
+    // Pattern: ZWS followed by anything until newline
+    const fullContent = doc.sliceString(0, doc.length);
+    const markerPattern = /\u200b[^\n]*/g;
+    const parts = fullContent.split(markerPattern);
+
+    // Extract cell content for each cell
+    const cellsToUpdate: Array<{ cellId: string; content: string }> = [];
+
+    for (let cellIdx = 0; cellIdx < cellList.size; cellIdx++) {
+      const cellId = cellList.get(cellIdx);
+      if (!cellId) continue; // Skip if cellId is undefined
+
+      // Get the content part for this cell
+      let cellContent = parts[cellIdx] || "";
+
+      // Remove leading/trailing newlines
+      cellContent = cellContent
+        .replace(/^\n/, "") // Remove leading newline
+        .replace(/\n$/, ""); // Remove trailing newline
+
+      // DEFENSIVE: Strip any lingering markers from cell content
+      // (should not happen, but prevents corruption if it does)
+      cellContent = cellContent.replace(/\u200b[^\n]*/g, "");
+
+      const originalCell = lastCells.get(cellId);
+      const originalContent = originalCell?.get("input") ?? "";
+
+      // Only update if content actually changed
+      if (cellContent !== originalContent) {
+        cellsToUpdate.push({ cellId, content: cellContent });
       }
+    }
 
-      // Rebuild mappings based on actual marker positions
-      const currentMappings: CellMapping[] = [];
-      for (
-        let i = 0;
-        i < currentMarkerLines.length && i < mappingsRef.current.length;
-        i++
-      ) {
-        const markerLine = currentMarkerLines[i];
-        const originalMapping = mappingsRef.current[i];
-
-        // Cell input starts after the previous marker (or at line 0)
-        const inputStart = i === 0 ? 0 : currentMarkerLines[i - 1] + 1;
-        // Cell input ends BEFORE this marker (exclusive)
-        const inputEnd = markerLine;
-
-        currentMappings.push({
-          ...originalMapping,
-          inputRange: { from: inputStart, to: inputEnd },
-          outputMarkerLine: markerLine,
-        });
+    // Update lastCellsRef and store
+    let updatedLastCells = lastCells;
+    for (const { cellId, content } of cellsToUpdate) {
+      const cell = updatedLastCells.get(cellId);
+      if (cell) {
+        updatedLastCells = updatedLastCells.set(
+          cellId,
+          cell.set("input", content),
+        );
       }
+    }
 
-      // Find changed line ranges from the update
-      // Map ChangeSet to line ranges: iterate through all changes and collect affected lines
-      const changedLines = new Set<number>();
-      let affectedLineStart = doc.lines; // Large number
-      let affectedLineEnd = 0;
-
-      update.changes.iterChanges(
-        (_fromA: number, _toA: number, fromB: number, toB: number) => {
-          // Convert character positions to line numbers
-          const fromLine = doc.lineAt(fromB).number - 1; // 0-indexed
-          const toLine = doc.lineAt(toB).number - 1; // 0-indexed
-          affectedLineStart = Math.min(affectedLineStart, fromLine);
-          affectedLineEnd = Math.max(affectedLineEnd, toLine);
-          // Mark individual lines as changed
-          for (let line = fromLine; line <= toLine; line++) {
-            changedLines.add(line);
-          }
-        },
-      );
-
-      // If no changes detected, return early
-      if (changedLines.size === 0) {
-        return;
-      }
-
-      // Find which cells contain the changed lines
-      const affectedCells = getCellsInRange(
-        currentMappings,
-        affectedLineStart,
-        affectedLineEnd + 1,
-      );
-
-      // Extract and compare only the affected cells
-      const cellsToUpdate: Array<{ cellId: string; content: string }> = [];
-
-      for (const mapping of affectedCells) {
-        const cellId = mapping.cellId;
-
-        // Extract the cell's content from the document
-        const cellLines: string[] = [];
-
-        // inputRange.to is EXCLUSIVE
-        for (
-          let lineNum = mapping.inputRange.from;
-          lineNum < mapping.inputRange.to;
-          lineNum++
-        ) {
-          if (lineNum < doc.lines) {
-            const line = doc.line(lineNum + 1); // Convert 0-indexed to 1-indexed for CodeMirror
-            cellLines.push(line.text);
-          }
-        }
-
-        // Join lines back into cell content
-        const cellContent = cellLines.join("\n");
-
-        // Get the original cell content to check if it actually changed
-        const originalCell = lastCells.get(cellId);
-        const originalContent = originalCell?.get("input") ?? "";
-
-        // Only queue for update if content actually changed
-        if (cellContent !== originalContent) {
-          cellsToUpdate.push({ cellId, content: cellContent });
-        }
-      }
-
-      // Update only the cells that changed
-      let updatedLastCells = lastCells;
+    if (updatedLastCells !== lastCells) {
+      lastCellsRef.current = updatedLastCells;
+      // Sync to store
       for (const { cellId, content } of cellsToUpdate) {
         props.actions.set_cell_input(cellId, content, true);
-
-        // Update lastCellsRef so the store listener knows this is our change
-        // This prevents the feedback loop of duplicates
-        if (updatedLastCells) {
-          const cell = updatedLastCells.get(cellId);
-          if (cell) {
-            // Create updated cell with new input
-            const updatedCell = cell.set("input", content);
-            updatedLastCells = updatedLastCells.set(cellId, updatedCell);
-          }
-        }
       }
-      if (updatedLastCells !== lastCells) {
-        lastCellsRef.current = updatedLastCells;
-      }
+    }
+  }, [props.actions]);
 
-      // CHECK FOR NEW CELLS FROM PASTED CONTENT
-      // If user pasted cells with ZWS markers, create new cells for them
-      // TODO: This needs to be implemented carefully to avoid infinite loops
-      // when the store listener rebuilds the document. For now, we'll defer this.
-      // const currentMarkerLines: number[] = [];
-      // for (let i = 0; i < doc.lines; i++) {
-      //   const line = doc.line(i + 1); // 1-indexed
-      //   if (line.text === "\u200b") {
-      //     currentMarkerLines.push(i); // 0-indexed
-      //   }
-      // }
-      //
-      // if (currentMarkerLines.length > currentMappings.length) {
-      //   // Would create new cells here
-      // }
-    },
-    [props.actions],
-  );
+  // Debounce effect: 500ms after user stops typing, flush edits to store
+  useEffect(() => {
+    if (lastEditTime === null) return;
+
+    const timer = setTimeout(() => {
+      flushEditsToStore();
+
+      // Mark cells as synced (no longer unsynced)
+      for (const [fromLine, toLine] of changedLineRangesRef.current) {
+        const cellsInRange = getCellsInRange(
+          mappingsRef.current,
+          fromLine,
+          toLine,
+        );
+        cellsInRange.forEach((c) => unsyncedCellsRef.current.delete(c.cellId));
+      }
+      changedLineRangesRef.current = [];
+    }, SAVE_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [lastEditTime]);
+
+  // Handle document changes - just track them for flushing later
+  const handleDocumentChange = React.useCallback(() => {
+    // For now, we don't do anything on every keystroke.
+    // Edits accumulate in the document until flushed (via Shift+Return, etc.)
+  }, []);
 
   // Initialize editor when we have data
   useEffect(() => {
@@ -302,7 +266,7 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
           props.actions.set_cell_type(newCellId, "markdown");
         }
       } catch (error) {
-        console.error("[SingleFileEditor] Error inserting cell:", error);
+        // Silently handle error - user action will not complete but won't crash
       }
     };
 
@@ -325,6 +289,7 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
         contextRef.current,
         mdEditIdsRef,
         toggleMarkdownEdit,
+        outputsChangedEffectRef.current,
       );
     }
 
@@ -343,32 +308,151 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
         outputDecoFieldRef.current,
         // Insert cell widget is now part of OutputWidget, no separate decoration field needed
         createMarkerProtectionFilter(), // Prevent deletion of output marker lines
+        createCellMergingFilter(mappingsRef, props.actions), // Detect boundary deletions and merge cells
+        createRangeDeletionFilter(mappingsRef, props.actions), // Detect range deletions across cells
+        createPasteDetectionFilter(mappingsRef, props.actions), // Detect pasted multi-cell content
         createCellExecutionKeyHandler(
           mappingsRef,
           props.actions,
           flushPendingChangesRef,
+          cursorTargetAfterExecutionRef,
         ), // Shift+Return to execute cells
         // Change listener for editing
         EditorView.updateListener.of((update) => {
-          if (
-            update.docChanged &&
-            !update.transactions.some((tr) => tr.isUserEvent("ignore"))
-          ) {
-            // Store the pending update so we can flush it on demand
-            pendingUpdateRef.current = update;
+          // Check for cell merge effects (triggered by boundary deletions)
+          for (const tr of update.transactions) {
+            for (const effect of tr.effects) {
+              if (effect.is(cellMergeEffect)) {
+                const { sourceCellId, targetCellId } = effect.value;
 
-            // Clear existing timeout
-            if (debouncedChangeRef.current) {
-              clearTimeout(debouncedChangeRef.current);
-            }
+                // Use sourceContent from the effect (extracted by the merge filter)
+                // Don't re-extract from document - it might be out of sync
+                const { sourceContent } = effect.value;
 
-            // Set new debounced timeout
-            debouncedChangeRef.current = setTimeout(() => {
-              if (pendingUpdateRef.current) {
-                handleDocumentChange(pendingUpdateRef.current);
-                pendingUpdateRef.current = null;
+                // Get target cell content from store (not document)
+                const store = props.actions.store;
+                const cells = store.get("cells");
+                if (!cells) {
+                  return;
+                }
+
+                const targetCell = cells.get(targetCellId);
+                if (!targetCell) {
+                  return;
+                }
+
+                const targetContent = targetCell.get("input") ?? "";
+
+                // Merge order depends on whether deletion was at start or end
+                const { isAtEnd } = effect.value;
+
+                let mergedContent: string;
+                if (isAtEnd) {
+                  // Delete at end: source comes BEFORE target
+                  // (source was at end of its cell, moving into beginning of target cell)
+                  mergedContent =
+                    sourceContent +
+                    (targetContent && sourceContent ? "\n" : "") +
+                    targetContent;
+                } else {
+                  // Delete at start: target comes BEFORE source
+                  // (target was at start of its cell, source moving into it from before)
+                  mergedContent =
+                    targetContent +
+                    (targetContent && sourceContent ? "\n" : "") +
+                    sourceContent;
+                }
+
+                // Update target cell with merged content
+                props.actions.set_cell_input(targetCellId, mergedContent, true);
+
+                // Delete source cell
+                props.actions.delete_cells([sourceCellId]);
+              } else if (effect.is(rangeDeletionEffect)) {
+                // Handle range deletions across multiple cells
+                const effectData = effect.value;
+
+                if (effectData.type === "delete") {
+                  // Delete this cell completely
+                  props.actions.delete_cells([effectData.cellId]);
+                } else if (effectData.type === "modify") {
+                  // Update cell with remaining content
+                  props.actions.set_cell_input(
+                    effectData.cellId,
+                    effectData.newContent,
+                    true,
+                  );
+                }
+              } else if (effect.is(pasteDetectionEffect)) {
+                // Handle pasted multi-cell content
+                const pastedCells = effect.value;
+
+                // Create cells in order from the pasted content
+                // Get current cell list to determine insertion positions
+                const store = props.actions.store;
+                const cellList = store.get("cell_list");
+                const currentLength = cellList ? cellList.size : 0;
+
+                for (let i = 0; i < pastedCells.length; i++) {
+                  const pastedCell = pastedCells[i];
+                  // Insert at position: currentLength + index means append at end in sequence
+                  const insertPosition = currentLength + i;
+                  const newCellId = props.actions.insert_cell_at(
+                    insertPosition,
+                    false, // Don't save individually, we'll batch them
+                  );
+
+                  // Set the cell input with the pasted content
+                  // The cell is unexecuted (no exec_count) and has no outputs
+                  props.actions.set_cell_input(
+                    newCellId,
+                    pastedCell.content,
+                    false, // Don't save
+                  );
+
+                  // If pasted cell type is not "code", change the cell type
+                  if (pastedCell.cellType === "markdown") {
+                    props.actions.set_cell_type(newCellId, "markdown", false);
+                  } else if (pastedCell.cellType === "raw") {
+                    props.actions.set_cell_type(newCellId, "raw", false);
+                  }
+                }
+
+                // Save all created cells at once
+                props.actions._sync?.();
               }
-            }, SAVE_DEBOUNCE_MS);
+            }
+          }
+
+          // Track user edits (input/delete, not store-sync changes)
+          for (const tr of update.transactions) {
+            if (tr.isUserEvent("input") || tr.isUserEvent("delete")) {
+              // Track which lines changed
+              const startState = tr.startState;
+              tr.changes.iterChanges((fromPos, toPos, _fromA, _toA) => {
+                const fromLine = startState.doc.lineAt(fromPos).number - 1; // 0-indexed
+                const toLine = startState.doc.lineAt(toPos).number - 1; // 0-indexed
+                changedLineRangesRef.current.push([fromLine, toLine]);
+
+                // Find which cells are affected by this change
+                const cellsInRange = getCellsInRange(
+                  mappingsRef.current,
+                  fromLine,
+                  toLine,
+                );
+                cellsInRange.forEach((c) => {
+                  unsyncedCellsRef.current.add(c.cellId);
+                });
+              });
+
+              // Trigger debounce - 500ms after user stops typing
+              setLastEditTime(Date.now());
+            }
+          }
+
+          // Store the pending update so we can flush it on demand
+          if (update.docChanged) {
+            pendingUpdateRef.current = update;
           }
         }),
       ],
@@ -392,13 +476,13 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
         debouncedChangeRef.current = null;
       }
 
-      // Immediately process any pending update
-      if (pendingUpdateRef.current) {
-        handleDocumentChange(pendingUpdateRef.current);
-        pendingUpdateRef.current = null;
-      }
+      // Flush any pending edits to store before execution
+      flushEditsToStore();
+
+      // Clear pending update
+      pendingUpdateRef.current = null;
     };
-  }, [storeUpdateTrigger, handleDocumentChange]); // Only re-run when explicitly triggered (initial data load)
+  }, [storeUpdateTrigger, handleDocumentChange, flushEditsToStore]); // Only re-run when explicitly triggered (initial data load)
 
   // Set up store listener for content updates (separate effect)
   useEffect(() => {
@@ -406,9 +490,7 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
     if (!store) return;
 
     const handleChange = () => {
-      // Only update if view is already mounted
       if (!viewRef.current) {
-        // If editor hasn't been created yet, trigger the data-checking effect
         setStoreUpdateTrigger((prev) => prev + 1);
         return;
       }
@@ -425,300 +507,134 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
         return;
       }
 
-      const lastCells = lastCellsRef.current;
-      if (!lastCells) return; // Not initialized yet
-
-      // Early exit: only process if cells or cell_list actually changed
-      // This avoids processing cursor/focus/selection/metadata changes
-      let hasContentOrStructureChange = false;
-      let hasStateChange = false;
-
-      // Check if cell list structure changed
-      if (
-        mappingsRef.current.length !== updatedCellList.size ||
-        mappingsRef.current.some(
-          (m, idx) => m.cellId !== updatedCellList.get(idx),
-        )
-      ) {
-        hasContentOrStructureChange = true;
-      } else {
-        // Check if any cell's input, outputs, or state changed
-        for (const mapping of mappingsRef.current) {
-          const oldCell = lastCells.get(mapping.cellId);
-          const newCell = updatedCells.get(mapping.cellId);
-
-          const oldInput = oldCell?.get("input") ?? "";
-          const newInput = newCell?.get("input") ?? "";
-          if (oldInput !== newInput) {
-            hasContentOrStructureChange = true;
-            break;
-          }
-
-          const oldOutput = oldCell?.get("output");
-          const newOutput = newCell?.get("output");
-          // Use .equals() for Immutable.js comparison instead of reference equality
-          if (oldOutput && newOutput) {
-            if (!oldOutput.equals?.(newOutput)) {
-              hasContentOrStructureChange = true;
-              break;
-            }
-          } else if (oldOutput !== newOutput) {
-            // Handle null/undefined cases
-            hasContentOrStructureChange = true;
-            break;
-          }
-
-          // Check if cell state changed (for execution status indicators)
-          const oldState = oldCell?.get("state");
-          const newState = newCell?.get("state");
-          if (oldState !== newState) {
-            hasStateChange = true;
-            // Don't break here - continue checking other cells for structure changes
-          }
-        }
+      if (!lastCellsRef.current) {
+        return;
       }
 
-      if (!hasContentOrStructureChange && !hasStateChange) {
-        return; // No relevant changes, skip processing
-      }
+      // CRITICAL: Compute everything from store, never scan document for structure
+      // Build the correct document and mappings from store
+      let { content: newContent, mappings: newMappings } =
+        buildDocumentFromNotebook(updatedCells, updatedCellList);
 
-      // CHECK: Has the cell list itself changed? (new cells, deleted cells, reordered)
-      const cellListChanged =
-        mappingsRef.current.length !== updatedCellList.size ||
-        mappingsRef.current.some(
-          (m, idx) => m.cellId !== updatedCellList.get(idx),
-        );
-
-      if (cellListChanged) {
-        // Rebuild the entire document because cells were added, removed, or reordered
-        const { content, mappings } = buildDocumentFromNotebook(
-          updatedCells,
-          updatedCellList,
-        );
-        mappingsRef.current = mappings;
-        lastCellsRef.current = updatedCells;
-
-        // Replace the entire editor document by dispatching changes
-        // This preserves all extensions and view state
+      // CRITICAL FIX: Preserve document content for cells with unsync'd edits
+      // If any cells have pending edits not yet synced to store, keep their document content
+      if (unsyncedCellsRef.current.size > 0) {
         const oldDoc = viewRef.current.state.doc;
+        const lines: string[] = [];
 
-        // Also signal that ALL cell outputs need to be re-rendered
-        // (decoration field may have cached old widgets)
-        const allCellIds = new Set(mappings.map((m) => m.cellId));
-
-        viewRef.current.dispatch({
-          changes: {
-            from: 0,
-            to: oldDoc.length,
-            insert: content,
-          },
-          effects: outputsChangedEffect.of(allCellIds),
-        });
-
-        return; // Don't do incremental updates after rebuild
-      }
-
-      // IMPORTANT: Rebuild mappings from current document state before syncing changes.
-      // This prevents race conditions: the document may have been modified by user edits,
-      // so we need to determine current cell boundaries from marker positions.
-
-      const currentDoc = viewRef.current.state.doc;
-
-      // Scan document for marker lines to rebuild current mappings
-      const currentMarkerLines: number[] = [];
-      for (let i = 0; i < currentDoc.lines; i++) {
-        const line = currentDoc.line(i + 1); // 1-indexed
-        if (line.text === ZERO_WIDTH_SPACE) {
-          currentMarkerLines.push(i); // 0-indexed
-        }
-      }
-
-      // Rebuild mappings based on marker positions in document
-      const rebuildMappings: CellMapping[] = [];
-      for (
-        let i = 0;
-        i < currentMarkerLines.length && i < mappingsRef.current.length;
-        i++
-      ) {
-        const markerLine = currentMarkerLines[i];
-        const originalMapping = mappingsRef.current[i];
-        const newCell = updatedCells.get(originalMapping.cellId);
-
-        // Cell input starts after the previous marker (or at line 0)
-        const inputStart = i === 0 ? 0 : currentMarkerLines[i - 1] + 1;
-        // Cell input ends BEFORE this marker (exclusive)
-        const inputEnd = markerLine;
-
-        rebuildMappings.push({
-          ...originalMapping,
-          inputRange: { from: inputStart, to: inputEnd },
-          outputMarkerLine: markerLine,
-          // Update state from the latest cell data (for execution status indicators)
-          state: newCell?.get("state"),
-        });
-      }
-
-      mappingsRef.current = rebuildMappings;
-
-      // Now detect what actually changed in cell inputs
-      const changes: Array<{
-        from: number;
-        to: number;
-        insert: string;
-      }> = [];
-
-      // Helper to convert line position to character offset
-      const charOffsetForLine = (lineNum: number): number => {
-        let pos = 0;
-        for (let i = 0; i < lineNum && i < currentDoc.lines; i++) {
-          pos += currentDoc.line(i + 1).length + 1; // +1 for newline
-        }
-        return pos;
-      };
-
-      // Check each cell for input changes
-      for (const mapping of rebuildMappings) {
-        const oldCell = lastCells.get(mapping.cellId);
-        const newCell = updatedCells.get(mapping.cellId);
-
-        // Get input content from store
-        const oldInput = oldCell?.get("input") ?? "";
-        const newInput = newCell?.get("input") ?? "";
-
-        // Skip if cell input hasn't changed in store
-        if (oldInput === newInput) {
-          continue;
-        }
-
-        // Extract current document content for this cell
-        const docLines: string[] = [];
-        for (
-          let lineNum = mapping.inputRange.from;
-          lineNum < mapping.inputRange.to;
-          lineNum++
-        ) {
-          if (lineNum + 1 <= currentDoc.lines) {
-            docLines.push(currentDoc.line(lineNum + 1).text);
-          }
-        }
-        const docContent = docLines.join("\n");
-
-        // Only sync if document doesn't already match the new store value
-        // (avoids overwriting user edits that we just sent)
-        if (docContent === newInput) {
-          continue;
-        }
-
-        // Split into lines for granular comparison
-        const oldLines = oldInput === "" ? [] : oldInput.split("\n");
-        const newLines = newInput === "" ? [] : newInput.split("\n");
-
-        // Compare line by line and generate changes
-        for (
-          let lineIdx = 0;
-          lineIdx < Math.max(oldLines.length, newLines.length);
-          lineIdx++
-        ) {
-          const oldLine = oldLines[lineIdx];
-          const newLine = newLines[lineIdx];
-
-          if (oldLine === newLine) {
-            continue;
-          }
-
-          const absLineNum = mapping.inputRange.from + lineIdx;
-          const fromPos = charOffsetForLine(absLineNum);
-
-          let toPos: number;
-          let insertText: string;
-
-          if (oldLine !== undefined && newLine !== undefined) {
-            toPos = charOffsetForLine(absLineNum + 1);
-            insertText = newLine + "\n";
-          } else if (oldLine === undefined && newLine !== undefined) {
-            toPos = fromPos;
-            insertText = newLine + "\n";
-          } else if (oldLine !== undefined && newLine === undefined) {
-            toPos = charOffsetForLine(absLineNum + 1);
-            insertText = "";
-          } else {
-            continue;
-          }
-
-          changes.push({
-            from: fromPos,
-            to: toPos,
-            insert: insertText,
-          });
-        }
-      }
-
-      // Track which cells have changed outputs or state
-      const changedOutputCellIds = new Set<string>();
-
-      // Update outputs from store
-      for (let i = 0; i < rebuildMappings.length; i++) {
-        const mapping = rebuildMappings[i];
-        const oldCell = lastCells.get(mapping.cellId);
-        const newCell = updatedCells.get(mapping.cellId);
-        if (newCell) {
-          const outputData = newCell.get("output");
-          const outputs: any[] = [];
-          if (outputData) {
-            let outputIndex = 0;
-            while (true) {
-              const message = outputData.get(`${outputIndex}`);
-              if (!message) break;
-              const plainMessage = message.toJS?.() ?? message;
-              outputs.push(plainMessage);
-              outputIndex += 1;
+        for (const mapping of newMappings) {
+          if (unsyncedCellsRef.current.has(mapping.cellId)) {
+            // This cell has unsync'd edits - preserve from document
+            for (
+              let lineIdx = mapping.inputRange.from;
+              lineIdx < mapping.inputRange.to;
+              lineIdx++
+            ) {
+              if (lineIdx + 1 <= oldDoc.lines) {
+                lines.push(oldDoc.line(lineIdx + 1).text);
+              }
             }
+          } else {
+            // Cell was synced - use store content
+            lines.push(...mapping.source);
           }
+          // Add marker
+          const markerChar =
+            mapping.cellType === "markdown"
+              ? "m"
+              : mapping.cellType === "raw"
+              ? "r"
+              : "c";
+          lines.push(`${ZERO_WIDTH_SPACE}${markerChar}`);
+        }
+        newContent = lines.join("\n");
+      }
 
-          const oldOutputs = mapping.outputs ?? [];
-          const outputsStr = JSON.stringify(outputs);
-          const oldOutputsStr = JSON.stringify(oldOutputs);
+      // Update our tracked mappings to the newly computed ones
+      mappingsRef.current = newMappings;
 
-          if (
-            oldOutputs.length !== outputs.length ||
-            oldOutputsStr !== outputsStr
-          ) {
-            changedOutputCellIds.add(mapping.cellId);
-          }
-          mapping.outputs = outputs;
+      // Check if document content changed
+      const oldDocForComparison = viewRef.current.state.doc;
+      const oldContent = oldDocForComparison.sliceString(
+        0,
+        oldDocForComparison.length,
+      );
+      const contentChanged = oldContent !== newContent;
 
-          // Check if state changed (for gutter update)
-          const oldState = oldCell?.get("state");
-          const newState = newCell?.get("state");
-          if (oldState !== newState) {
-            hasStateChange = true;
-          }
+      // Check which cells have changed outputs
+      const changedOutputCellIds = new Set<string>();
+      for (const mapping of newMappings) {
+        const oldCell = lastCellsRef.current.get(mapping.cellId);
+        const newCell = updatedCells.get(mapping.cellId);
+
+        const oldOutputs = oldCell?.get("output");
+        const newOutputs = newCell?.get("output");
+
+        // Use Immutable.js equals for comparison if available
+        let outputsChanged = false;
+        if (oldOutputs && newOutputs) {
+          outputsChanged = !oldOutputs.equals?.(newOutputs);
+        } else {
+          outputsChanged = oldOutputs !== newOutputs;
+        }
+
+        if (outputsChanged) {
+          changedOutputCellIds.add(mapping.cellId);
         }
       }
 
       // Dispatch changes
-      if (
-        changes.length > 0 ||
-        changedOutputCellIds.size > 0 ||
-        hasStateChange
-      ) {
+      if (contentChanged || changedOutputCellIds.size > 0) {
         const txSpec: any = {};
 
-        if (changes.length > 0) {
-          changes.reverse();
-          txSpec.changes = changes;
+        if (contentChanged) {
+          // Full document replacement - atomic and safe
+          // CodeMirror optimizes this internally with smart diffing
+          txSpec.changes = {
+            from: 0,
+            to: oldDocForComparison.length,
+            insert: newContent,
+          };
+
+          // CRITICAL: When content changes, we MUST trigger decoration recomputation
+          // Add all cells to changedOutputCellIds so decorations are recalculated
+          // This is necessary because mappings changed (cell indices shifted due to merge)
+          for (const mapping of newMappings) {
+            changedOutputCellIds.add(mapping.cellId);
+          }
         }
 
         if (changedOutputCellIds.size > 0) {
-          txSpec.effects = outputsChangedEffect.of(changedOutputCellIds);
+          txSpec.effects =
+            outputsChangedEffectRef.current.of(changedOutputCellIds);
         }
 
-        // Even if only state changed (no content/output changes), we need to dispatch
-        // to trigger gutter re-evaluation. An empty dispatch will still cause a re-render.
-        viewRef.current!.dispatch(txSpec);
+        viewRef.current.dispatch(txSpec);
+
+        // Restore focus after output-only changes
+        if (changedOutputCellIds.size > 0 && !contentChanged) {
+          setTimeout(() => {
+            viewRef.current?.focus();
+          }, 0);
+        }
       }
 
-      // Update tracked cells for next comparison
+      // Move cursor to target cell if execution completed
+      if (cursorTargetAfterExecutionRef.current && viewRef.current) {
+        const targetCellId = cursorTargetAfterExecutionRef.current;
+        const targetCell = newMappings.find((m) => m.cellId === targetCellId);
+        if (targetCell) {
+          const cursorPos = viewRef.current.state.doc.line(
+            targetCell.inputRange.from + 1,
+          ).from;
+          viewRef.current.dispatch({
+            selection: { anchor: cursorPos },
+          });
+          cursorTargetAfterExecutionRef.current = null;
+        }
+      }
+
+      // Update tracked cells
       lastCellsRef.current = updatedCells;
     };
 

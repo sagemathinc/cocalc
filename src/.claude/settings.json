@@ -1,6 +1,3 @@
-{
-  "permissions": {
-    "allow": [
       "Bash(../node_modules/.bin/tsc:*)",
       "Bash(NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc --noEmit)",
       "Bash(bash:*)",
@@ -32,6 +29,7 @@
       "Bash(pnpm benchmark:*)",
       "Bash(pnpm build-dev:*)",
       "Bash(pnpm build:*)",
+      "Bash(pnpm exec prettier:*)",
       "Bash(pnpm exec tsc:*)",
       "Bash(pnpm i18n:*)",
       "Bash(pnpm i18n:*:*)",
@@ -62,7 +60,10 @@
       "mcp__github__get_pull_request_status",
       "mcp__github__list_workflow_runs",
       "mcp__github__list_workflows"
-    ],
+    "allow": [
     "deny": []
+    ],
+  "permissions": {
   }
+{
 }

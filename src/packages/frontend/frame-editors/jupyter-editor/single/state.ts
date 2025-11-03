@@ -95,6 +95,16 @@ export function buildDocumentFromNotebook(
       sourceLines = inputData === "" ? [""] : inputData.split("\n");
     }
 
+    // DEFENSIVE: Strip any ZWS characters from source lines
+    // If a cell somehow contains marker characters, remove them to prevent duplication
+    sourceLines = sourceLines.map((line) => {
+      if (line.includes(ZERO_WIDTH_SPACE)) {
+        const cleaned = line.replace(/\u200b/g, "");
+        return cleaned;
+      }
+      return line;
+    });
+
     // Extract outputs from the output object
     // CoCalc output format: Immutable Map with numeric string keys ("0", "1", etc.)
     // Each message has properties like: {data: {...}, name: "stdout"/"stderr", text: "...", traceback: [...], etc.}
@@ -155,7 +165,8 @@ export function buildDocumentFromNotebook(
     // r = raw cell (raw widget)
     const markerChar =
       cellType === "markdown" ? "m" : cellType === "raw" ? "r" : "c";
-    lines.push(`${ZERO_WIDTH_SPACE}${markerChar}`);
+    const marker = `${ZERO_WIDTH_SPACE}${markerChar}`;
+    lines.push(marker);
     currentLine += 1;
   }
 
