@@ -158,7 +158,7 @@ class Watcher extends EventEmitter {
 
   close() {
     log(this.path, "close()");
-    this.watcher.close();
+    this.watcher?.close();
     this.emit("close");
     this.removeAllListeners();
     // @ts-ignore
