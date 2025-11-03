@@ -7,8 +7,10 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "path";
+import { make_patch } from "@cocalc/util/dmp";
 
 let tempDir;
 beforeAll(async () => {
@@ -171,6 +173,41 @@ describe("test watching a file and a folder in the sandbox", () => {
       done: false,
       value: { eventType: "rename", filename: "z" },
     });
+  });
+});
+
+describe("patch write support", () => {
+  let fs;
+  const filename = "patched.txt";
+
+  it("creates sandbox", async () => {
+    await mkdir(join(tempDir, "test-patch"));
+    fs = new SandboxedFilesystem(join(tempDir, "test-patch"));
+  });
+
+  it("applies patch when base hash matches", async () => {
+    const original = "hello world";
+    await fs.writeFile(filename, original);
+    const updated = "hello brave new world";
+    const patch = make_patch(original, updated);
+    const sha = createHash("sha256").update(original, "utf8").digest("hex");
+    await fs.writeFile(filename, { patch, sha256: sha });
+    const result = await fs.readFile(filename, "utf8");
+    expect(result).toBe(updated);
+  });
+
+  it("rejects patch when base hash mismatches", async () => {
+    const wrongBase = "abc";
+    const wrongSha = createHash("sha256")
+      .update(wrongBase, "utf8")
+      .digest("hex");
+    const patch = make_patch(wrongBase, `${wrongBase}d`);
+    try {
+      await fs.writeFile(filename, { patch, sha256: wrongSha });
+      throw new Error("expected mismatch error");
+    } catch (err: any) {
+      expect(err.code).toBe("ETAG_MISMATCH");
+    }
   });
 });
 

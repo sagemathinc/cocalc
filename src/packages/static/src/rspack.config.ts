@@ -218,15 +218,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         "entities/maps": resolve("node_modules/entities/lib/maps"),
       },
       // So we can "import 'file'" instead of "import 'file.tsx'"
-      extensions: [
-        ".js",
-        ".jsx",
-        ".ts",
-        ".tsx",
-        ".json",
-        ".scss",
-        ".sass",
-      ],
+      extensions: [".js", ".jsx", ".ts", ".tsx", ".json", ".scss", ".sass"],
       symlinks: true,
       modules: ["node_modules"],
       fallback: {
@@ -234,6 +226,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         path: require.resolve("path-browserify"),
         util: require.resolve("util/"),
         assert: require.resolve("assert/"),
+        crypto: false,
       },
     },
     resolveLoader: {

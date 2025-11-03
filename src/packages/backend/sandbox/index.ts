@@ -61,6 +61,7 @@ import {
   unlink,
   utimes,
 } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { move } from "fs-extra";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { basename, dirname, join, resolve } from "path";
@@ -74,7 +75,7 @@ import { type ExecOutput } from "./exec";
 import { rusticRepo } from "@cocalc/backend/data";
 import ouch, { type OuchOptions } from "./ouch";
 import cpExec from "./cp";
-import { type CopyOptions } from "@cocalc/conat/files/fs";
+import { type CopyOptions, type PatchWriteRequest } from "@cocalc/conat/files/fs";
 export { type CopyOptions };
 import { ConatError } from "@cocalc/conat/core/client";
 import getListing, { type Files } from "./get-listing";
@@ -82,6 +83,7 @@ import LRU from "lru-cache";
 import TTL from "@isaacs/ttlcache";
 import watch, { type WatchIterator, type WatchOptions } from "./watch";
 import { sha1 } from "@cocalc/backend/sha1";
+import { apply_patch, type CompressedPatch } from "@cocalc/util/dmp";
 //import getLogger from "@cocalc/backend/logger";
 
 //const logger = getLogger("sandbox:fs");
@@ -522,11 +524,83 @@ export class SandboxedFilesystem {
 
   writeFile = async (
     path: string,
-    data: string | Buffer,
+    data: string | Buffer | PatchWriteRequest,
     saveLast?: boolean,
   ) => {
     this.assertWritable(path);
     const p = await this.safeAbsPath(path);
+    if (isPatchRequest(data)) {
+      const encoding = data.encoding ?? "utf8";
+      let current: string;
+      try {
+        current = (await readFile(p, { encoding })) as string;
+      } catch (err: any) {
+        if (err?.code === "ENOENT") {
+          err.code = "ETAG_MISMATCH";
+        }
+        throw err;
+      }
+      const normalizedEncoding = encoding === "utf-8" ? "utf8" : encoding;
+      const currentHash = createHash("sha256")
+        .update(Buffer.from(current, normalizedEncoding))
+        .digest("hex");
+      if (currentHash !== data.sha256) {
+        const err: NodeJS.ErrnoException = new Error(
+          "Mismatched base version for patch write",
+        );
+        err.code = "ETAG_MISMATCH";
+        err.path = p;
+        throw err;
+      }
+      let compressedPatch: CompressedPatch;
+      try {
+        compressedPatch =
+          typeof data.patch === "string"
+            ? (JSON.parse(data.patch) as CompressedPatch)
+            : data.patch;
+      } catch {
+        const err: NodeJS.ErrnoException = new Error(
+          "Invalid patch format for writeFile",
+        );
+        err.code = "EINVAL";
+        err.path = p;
+        throw err;
+      }
+      if (!Array.isArray(compressedPatch)) {
+        const err: NodeJS.ErrnoException = new Error(
+          "Invalid patch payload for writeFile",
+        );
+        err.code = "EINVAL";
+        err.path = p;
+        throw err;
+      }
+      const serializedSize =
+        typeof data.patch === "string"
+          ? data.patch.length
+          : JSON.stringify(compressedPatch).length;
+      const maxRatio = data.maxPatchRatio ?? 2;
+      if (current.length > 0 && serializedSize > current.length * maxRatio) {
+        const err: NodeJS.ErrnoException = new Error("Patch too large");
+        err.code = "PATCH_TOO_LARGE";
+        err.path = p;
+        throw err;
+      }
+      const [patched, clean] = apply_patch(compressedPatch, current);
+      if (!clean) {
+        const err: NodeJS.ErrnoException = new Error(
+          "Failed to apply patch cleanly",
+        );
+        err.code = "PATCH_FAILED";
+        err.path = p;
+        throw err;
+      }
+      await writeFile(p, patched, { encoding: normalizedEncoding });
+      if (saveLast) {
+        this.lastOnDisk.set(p, patched);
+        this.lastOnDiskHash.set(`${p}-${sha1(patched)}`, true);
+      }
+      return;
+    }
     if (saveLast && typeof data == "string") {
       this.lastOnDisk.set(p, data);
       this.lastOnDiskHash.set(`${p}-${sha1(data)}`, true);
@@ -564,4 +638,15 @@ function capTimeout(options, max: number) {
     return { ...options, timeout: max };
   }
   return { ...options, timeout: Math.min(timeout, max) };
+}
+
+function isPatchRequest(data: unknown): data is PatchWriteRequest {
+  if (data == null || typeof data !== "object") {
+    return false;
+  }
+  if (Buffer.isBuffer(data)) {
+    return false;
+  }
+  const candidate = data as PatchWriteRequest & { [key: string]: unknown };
+  return typeof candidate.patch !== "undefined" && typeof candidate.sha256 === "string";
 }

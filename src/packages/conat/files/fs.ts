@@ -21,6 +21,8 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import TTL from "@isaacs/ttlcache";
 import { getLogger } from "@cocalc/conat/client";
+import { make_patch } from "@cocalc/util/dmp";
+import type { CompressedPatch } from "@cocalc/util/dmp";
 
 const logger = getLogger("files:fs");
 
@@ -87,6 +89,30 @@ export const OUCH_FORMATS = [
   "tar.zst",
   "tar.br",
 ];
+
+export type TextEncoding = "utf8" | "utf-8";
+
+/**
+ * Payload for writeFile when sending a diff instead of the full file.
+ * The client computes a compressed patch (see util/dmp.ts) against the
+ * current on-disk contents and includes the corresponding SHA-256 hash.
+ * The backend will only apply the patch if the hash matches; otherwise
+ * callers should retry with the full file contents.
+ */
+export interface PatchWriteRequest {
+  patch: CompressedPatch | string;
+  sha256: string;
+  encoding?: TextEncoding;
+  maxPatchRatio?: number;
+}
+
+export interface WriteFileDeltaOptions {
+  baseContents?: string;
+  baseContents;
+  encoding?: TextEncoding;
+  maxPatchRatio?: number;
+  saveLast?: boolean;
+}
 
 export interface CopyOptions {
   dereference?: boolean;
@@ -162,8 +188,13 @@ export interface Filesystem {
   // for lock see docs for readFile above
   writeFile: (
     path: string,
-    data: string | Buffer,
+    data: string | Buffer | PatchWriteRequest,
     saveLast?: boolean,
+  ) => Promise<void>;
+  writeFileDelta: (
+    path: string,
+    content: string | Buffer,
+    options?: WriteFileDeltaOptions,
   ) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
@@ -480,7 +511,11 @@ export async function fsServer({
     ) {
       await (await fs(this.subject)).utimes(path, atime, mtime);
     },
-    async writeFile(path: string, data: string | Buffer, saveLast?: boolean) {
+    async writeFile(
+      path: string,
+      data: string | Buffer | PatchWriteRequest,
+      saveLast?: boolean,
+    ) {
       await (await fs(this.subject)).writeFile(path, data, saveLast);
     },
     // @ts-ignore
@@ -515,6 +550,112 @@ export type FilesystemClient = Omit<Omit<Filesystem, "stat">, "lstat"> & {
   stat: (path: string) => Promise<Stats>;
   lstat: (path: string) => Promise<Stats>;
 };
+
+const PATCH_FALLBACK_CODES = new Set([
+  "ETAG_MISMATCH",
+  "PATCH_FAILED",
+  "PATCH_TOO_LARGE",
+  "EINVAL",
+]);
+
+async function writeFileDeltaImpl(
+  writeFile: (
+    path: string,
+    data: string | Buffer | PatchWriteRequest,
+    saveLast?: boolean,
+  ) => Promise<void>,
+  path: string,
+  content: string | Buffer,
+  options: WriteFileDeltaOptions = {},
+): Promise<void> {
+  const {
+    baseContents,
+    encoding = "utf8",
+    maxPatchRatio = 2,
+    saveLast,
+  } = options;
+  if (typeof content !== "string" || typeof baseContents !== "string") {
+    await writeFile(path, content, saveLast);
+    return;
+  }
+
+  if (baseContents === content) {
+    return;
+  }
+
+  const patch = make_patch(baseContents, content);
+  const serializedSize = JSON.stringify(patch).length;
+  if (
+    baseContents.length > 0 &&
+    serializedSize > baseContents.length * maxPatchRatio
+  ) {
+    await writeFile(path, content, saveLast);
+    return;
+  }
+
+  try {
+    const sha = await sha256Hex(baseContents, encoding);
+    await writeFile(
+      path,
+      {
+        patch,
+        sha256: sha,
+        encoding,
+        maxPatchRatio,
+      },
+      saveLast,
+    );
+    console.log("wrote using patch", patch);
+  } catch (err: any) {
+    if (!PATCH_FALLBACK_CODES.has(err?.code)) {
+      throw err;
+    }
+    await writeFile(path, content, saveLast);
+  }
+}
+
+async function sha256Hex(
+  text: string,
+  encoding: TextEncoding,
+): Promise<string> {
+  const normalized = encoding === "utf-8" ? "utf8" : encoding;
+  if (globalThis.crypto?.subtle && typeof TextEncoder !== "undefined") {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const buffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+    return bufferToHex(new Uint8Array(buffer));
+  }
+  const nodeCrypto = await importNodeCrypto();
+  if (!nodeCrypto) {
+    throw new Error("SHA-256 not supported in this environment");
+  }
+  return nodeCrypto.createHash("sha256").update(text, normalized).digest("hex");
+}
+
+function bufferToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function importNodeCrypto(): Promise<
+  | {
+      createHash: (algorithm: string) => {
+        update: (data: string, inputEncoding?: BufferEncoding) => any;
+        digest: (encoding: "hex") => string;
+      };
+    }
+  | undefined
+> {
+  if (typeof process === "undefined") {
+    return undefined;
+  }
+  const proc: any = process;
+  if (!proc?.versions?.node) {
+    return undefined;
+  }
+  return (await import("crypto")) as any;
+}
 
 export function getService({
   compute_server_id,
@@ -615,6 +756,14 @@ export function fsClient({
   };
   call.listing = async (path: string) => {
     return await listing({ fs: call, path });
+  };
+
+  call.writeFileDelta = async (
+    path: string,
+    content: string | Buffer,
+    options?: WriteFileDeltaOptions,
+  ) => {
+    await writeFileDeltaImpl(call.writeFile, path, content, options);
   };
 
   return call;
