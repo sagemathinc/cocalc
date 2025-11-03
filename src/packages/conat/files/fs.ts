@@ -108,10 +108,10 @@ export interface PatchWriteRequest {
 
 export interface WriteFileDeltaOptions {
   baseContents?: string;
-  baseContents;
   encoding?: TextEncoding;
   maxPatchRatio?: number;
   saveLast?: boolean;
+  minLength?: number;
 }
 
 export interface CopyOptions {
@@ -191,7 +191,7 @@ export interface Filesystem {
     data: string | Buffer | PatchWriteRequest,
     saveLast?: boolean,
   ) => Promise<void>;
-  writeFileDelta: (
+  writeFileDelta?: (
     path: string,
     content: string | Buffer,
     options?: WriteFileDeltaOptions,
@@ -571,10 +571,18 @@ async function writeFileDeltaImpl(
   const {
     baseContents,
     encoding = "utf8",
+    // serialized patch length must be at most
+    // original string length divided by maxPatchRatio:
     maxPatchRatio = 2,
+    // if content is <= than minLength, never use patching
+    minLength = 1024,
     saveLast,
   } = options;
-  if (typeof content !== "string" || typeof baseContents !== "string") {
+  if (
+    typeof content !== "string" ||
+    typeof baseContents !== "string" ||
+    content.length <= minLength
+  ) {
     await writeFile(path, content, saveLast);
     return;
   }
@@ -587,7 +595,7 @@ async function writeFileDeltaImpl(
   const serializedSize = JSON.stringify(patch).length;
   if (
     baseContents.length > 0 &&
-    serializedSize > baseContents.length * maxPatchRatio
+    serializedSize * maxPatchRatio > baseContents.length
   ) {
     await writeFile(path, content, saveLast);
     return;
@@ -605,7 +613,6 @@ async function writeFileDeltaImpl(
       },
       saveLast,
     );
-    console.log("wrote using patch", patch);
   } catch (err: any) {
     if (!PATCH_FALLBACK_CODES.has(err?.code)) {
       throw err;
