@@ -57,6 +57,7 @@ const DEFAULT_PROJECT_SCRIPT = join(
 );
 const PROJECT_BUNDLE_ENTRY = ["bundle", "index.js"] as const;
 const PROJECT_BUNDLE_MOUNT_POINT = "/opt/cocalc/project-bundle";
+const PROJECT_BUNDLE_BIN_PATH = join(PROJECT_BUNDLE_MOUNT_POINT, "bin");
 
 // if computing status of a project shows pod is
 // somehow messed up, this will cleanly kill it.  It's
@@ -353,6 +354,12 @@ export async function start({
       HOME: "/root",
       image,
     });
+
+    if (bundleMount != null) {
+      env.PATH = env.PATH
+        ? `${PROJECT_BUNDLE_BIN_PATH}:${env.PATH}`
+        : PROJECT_BUNDLE_BIN_PATH;
+    }
 
     bootlog({
       project_id,

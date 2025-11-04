@@ -130,4 +130,13 @@ echo "- Copy project bin scripts"
 mkdir -p "$OUT"/src/packages/cocalc-project
 cp -r packages/project/bin "$OUT"/src/packages/cocalc-project/
 
+echo "- Copy backend tool binaries"
+BACKEND_BIN="packages/backend/node_modules/.bin"
+if [ -d "$BACKEND_BIN" ]; then
+  mkdir -p "$OUT"/bin
+  cp -a "$BACKEND_BIN"/. "$OUT"/bin/
+else
+  echo "  (backend .bin directory not found; skipping)"
+fi
+
 echo "- Bundle created at $OUT"
