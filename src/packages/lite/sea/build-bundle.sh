@@ -48,26 +48,6 @@ else
   echo "zeromq build directory not found; skipping copy"
 fi
 
-echo "- Copy node-pty native addon for current platform"
-ARCH="$(uname -m)"
-case "$ARCH" in
-  x86_64) NODE_PTY_PKG="@lydell/node-pty-linux-x64" ;;
-  aarch64|arm64) NODE_PTY_PKG="@lydell/node-pty-linux-arm64" ;;
-  *)
-    echo "Unsupported architecture for node-pty: $ARCH"
-    NODE_PTY_PKG=""
-    ;;
-esac
-if [ -n "$NODE_PTY_PKG" ]; then
-  NODE_PTY_DIR=$(find packages -path "*node_modules/${NODE_PTY_PKG}" -type d -print -quit || true)
-  if [ -n "$NODE_PTY_DIR" ]; then
-    mkdir -p "$OUT"/bundle/node_modules/"$NODE_PTY_PKG"
-    cp -r "$NODE_PTY_DIR"/. "$OUT"/bundle/node_modules/"$NODE_PTY_PKG"/
-  else
-    echo "node-pty native addon directory not found; skipping copy"
-  fi
-fi
-
 copy_native_pkg() {
   local pkg="$1"
   local dir
@@ -81,6 +61,27 @@ copy_native_pkg() {
   fi
 }
 
+echo "- Copy node-pty native addon for current platform"
+case "${OSTYPE}" in
+  linux*)
+    case "$(uname -m)" in
+      x86_64) copy_native_pkg "@lydell/node-pty-linux-x64" ;;
+      aarch64|arm64) copy_native_pkg "@lydell/node-pty-linux-arm64" ;;
+      *) echo "  (unsupported linux arch for node-pty: $(uname -m))" ;;
+    esac
+    ;;
+  darwin*)
+    case "$(uname -m)" in
+      x86_64) copy_native_pkg "@lydell/node-pty-darwin-x64" ;;
+      arm64) copy_native_pkg "@lydell/node-pty-darwin-arm64" ;;
+      *) echo "  (unsupported darwin arch for node-pty: $(uname -m))" ;;
+    esac
+    ;;
+  *)
+    echo "  (unsupported platform for node-pty: ${OSTYPE})"
+    ;;
+esac
+
 copy_native_pkg "bufferutil"
 copy_native_pkg "utf-8-validate"
 
@@ -93,10 +94,13 @@ rsync -a --delete \
 
 echo "- Remove other platform binaries"
 
-if [[ "$OSTYPE" == "linux"* ]]; then
-   rm -rf "$OUT"/build/win32 "$OUT"/build/darwin
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-   rm -rf "$OUT"/build/win32 "$OUT"/build/linux
-fi
+case "${OSTYPE}" in
+  linux*)
+    rm -rf "$OUT"/build/win32 "$OUT"/build/darwin
+    ;;
+  darwin*)
+    rm -rf "$OUT"/build/win32 "$OUT"/build/linux
+    ;;
+esac
 
 echo "- Bundle created at $OUT"
