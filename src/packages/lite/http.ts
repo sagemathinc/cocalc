@@ -15,7 +15,7 @@ import port0 from "@cocalc/backend/port";
 import { once } from "node:events";
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { handleFileDownload } from "@cocalc/conat/files/file-download";
-import { join } from "path";
+import { join } from "node:path";
 import initBlobUpload from "./hub/blobs/upload";
 import initBlobDownload from "./hub/blobs/download";
 import { account_id } from "@cocalc/backend/data";
@@ -105,7 +105,16 @@ export async function initHttpServer({ AUTH_TOKEN }): Promise<{
 export async function initApp({ app, conatClient, AUTH_TOKEN, isHttps }) {
   initAuth({ app, AUTH_TOKEN, isHttps });
 
-  app.use("/static", express.static(STATIC_PATH));
+  let pathToStaticAssets;
+  if (fs.existsSync(join(STATIC_PATH, "app.html"))) {
+    pathToStaticAssets = STATIC_PATH;
+  } else {
+    pathToStaticAssets = join(__dirname, "..", "static");
+  }
+  if (!fs.existsSync(join(pathToStaticAssets, "app.html"))) {
+    throw Error("unable to find static assets");
+  }
+  app.use("/static", express.static(pathToStaticAssets));
 
   app.use(
     "/webapp/favicon.ico",

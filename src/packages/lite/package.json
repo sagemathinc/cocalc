@@ -5,10 +5,7 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": [
-    "lite",
-    "cocalc"
-  ],
+  "keywords": ["lite", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf build dist node_modules sea/sea-prep.blob",
@@ -17,6 +14,7 @@
     "test": "exit 0",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
     "build:bundle": "cd sea && ./build-bundle.sh",
+    "run:bundle": "node ./build/bundle/bundle/index.js",
     "build-all": "pnpm build && pnpm build-tarball && pnpm build-sea",
     "build-sea": "cd sea && ./build-sea.sh",
     "build-tarball": "cd sea && ./build-tarball.sh",

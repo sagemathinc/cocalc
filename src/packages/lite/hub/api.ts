@@ -114,6 +114,10 @@ export const hubApi: HubApi = {
 
 async function getResponse({ name, args, account_id, project_id }) {
   const [group, functionName] = name.split(".");
+  if (functionName == "getSshKeys") {
+    // no ssh keys in lite mode for now...
+    return [];
+  }
   const f = hubApi[group]?.[functionName];
   if (f == null) {
     throw Error(`not implemented function '${name}'`);

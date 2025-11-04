@@ -3,10 +3,10 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "dist",
-    "lib": ["ES2021","dom"],
-    "target": "ES2021",
+    "lib": ["ES2021", "dom"],
+    "target": "ES2021"
   },
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules", "build"],
   "references": [
     {
       "path": "../backend",
