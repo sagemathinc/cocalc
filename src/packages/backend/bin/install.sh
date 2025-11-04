@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -ev
 
-cp "`pwd`/dist/bin/open.js" node_modules/.bin/open
-chmod +x node_modules/.bin/open
+BIN=node_modules/.bin
+cp "`pwd`/dist/bin/open.js" $BIN/open
+chmod +x $BIN/open
 
-
-
+rm $BIN/reflect $BIN/reflect-sync
+pnpm reflect install $BIN
