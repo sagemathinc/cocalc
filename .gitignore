@@ -185,3 +185,5 @@ g
 
 src/packages/lite/build
 src/packages/project-runner/build
+
+codex.sh

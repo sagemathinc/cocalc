@@ -16,6 +16,7 @@
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "exit 0",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
+    "build:bundle": "cd sea && ./build-bundle.sh",
     "build-all": "pnpm build && pnpm build-tarball && pnpm build-sea",
     "build-sea": "cd sea && ./build-sea.sh",
     "build-tarball": "cd sea && ./build-tarball.sh",

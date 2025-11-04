@@ -16,7 +16,7 @@
 set -euo pipefail
 
 ROOT="$(realpath "$(dirname "$0")/../../..")"
-OUT="${1:-$ROOT/build/lite-bundle}"
+OUT="${1:-$ROOT/packages/lite/build/bundle}"
 
 echo "Building CoCalc Lite bundle..."
 echo "  root: $ROOT"
