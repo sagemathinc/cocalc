@@ -28,7 +28,7 @@ rm -rf "$OUT"/*
 cd "$ROOT"
 
 echo "- Bundle entry point with @vercel/ncc"
-pnpm dlx @vercel/ncc build packages/lite/bin/start.js \
+ncc build packages/lite/bin/start.js \
   -o "$OUT"/bundle \
   --source-map \
   --external bufferutil \
@@ -90,5 +90,13 @@ rsync -a --delete \
   --exclude '*.map' \
   --exclude 'embed-*.js' \
   packages/static/dist/ "$OUT/static/"
+
+echo "- Remove other platform binaries"
+
+if [[ "$OSTYPE" == "linux"* ]]; then
+   rm -rf "$OUT"/build/win32 "$OUT"/build/darwin
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+   rm -rf "$OUT"/build/win32 "$OUT"/build/linux
+fi
 
 echo "- Bundle created at $OUT"

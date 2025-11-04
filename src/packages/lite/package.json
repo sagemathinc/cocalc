@@ -1,11 +1,14 @@
 {
   "name": "@cocalc/lite",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "CoCalc Lite Standalone Server that Optional Syncs with an existing CoCalc instance",
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["lite", "cocalc"],
+  "keywords": [
+    "lite",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf build dist node_modules sea/sea-prep.blob",
@@ -14,10 +17,10 @@
     "test": "exit 0",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
     "build:bundle": "cd sea && ./build-bundle.sh",
+    "build:tarball": "pnpm build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",
-    "build-all": "pnpm build && pnpm build-tarball && pnpm build-sea",
-    "build-sea": "cd sea && ./build-sea.sh",
-    "build-tarball": "cd sea && ./build-tarball.sh",
+    "build:sea": "cd sea && ./build-sea.sh",
+    "build:all": "pnpm build && pnpm build:tarball && pnpm build:sea",
     "app": "pnpm exec cocalc-lite",
     "app-electron": "pnpm electron-rebuild && electron ."
   },
@@ -52,6 +55,7 @@
   "devDependencies": {
     "@electron/rebuild": "^4.0.1",
     "@types/node": "^18.16.14",
+    "@vercel/ncc": "^0.38.4",
     "electron": "^37.3.1"
   }
 }

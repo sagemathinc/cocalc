@@ -96,7 +96,7 @@ if (path.basename(process.argv[1]) == "node") {
   const script = path.join(destDir, mainScript);
 
   if (!fs.existsSync(script)) {
-    console.error("missing start.js at", script);
+    console.error(`missing ${mainScript} at`, script);
     process.exit(1);
   }
 

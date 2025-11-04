@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 export NAME="cocalc-lite"
-export MAIN="lite/bin/start.js"
+export MAIN="bundle/index.js"
 export VERSION="$npm_package_version"
 
 FUSE="NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"   # must match your sea-config.json
@@ -20,7 +20,7 @@ echo "Building SEA for $OS"
 cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"   # make sure it's writable even if copied from system paths
 
-cp ../build/tarball/$NAME-$VERSION-$MACHINE-$OS.tar.xz cocalc.tar.xz
+cp ../build/bundle.tar.xz cocalc.tar.xz
 envsubst < ../../project-runner/sea/cocalc-template.js  > cocalc.js
 
 # 2) Bundle app into a SEA blob
