@@ -89,6 +89,8 @@ src/restart_hub
 src/restart_compute
 .coffee
 
+src/packages/project/build
+
 src/smc-hub/run/hub[0-9].js
 src/smc-hub/lti
 src/smc-hub/landing
@@ -186,5 +188,4 @@ src/packages/lite/build
 src/packages/project-runner/build
 
 codex.sh
-
 
