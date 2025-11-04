@@ -7,7 +7,7 @@
     "rootDir": "./",
     "outDir": "dist"
   },
-  "exclude": ["node_modules", "dist", "test", "jupyter/test"],
+  "exclude": ["node_modules", "dist", "test", "jupyter/test", "build"],
   "references": [
     { "path": "../backend" },
     { "path": "../comm" },

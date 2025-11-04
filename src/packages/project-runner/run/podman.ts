@@ -20,10 +20,10 @@ import { nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, realpath } from "node:fs/promises";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
-import { join } from "path";
+import { join, relative, isAbsolute } from "node:path";
 import { mount as mountRootFs, unmount as unmountRootFs } from "./rootfs";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
@@ -51,6 +51,13 @@ import { podman } from "@cocalc/backend/podman";
 
 const logger = getLogger("project-runner:podman");
 
+const DEFAULT_PROJECT_SCRIPT = join(
+  COCALC_SRC,
+  "packages/project/bin/cocalc-project.js",
+);
+const PROJECT_BUNDLE_ENTRY = ["bundle", "index.js"] as const;
+const PROJECT_BUNDLE_MOUNT_POINT = "/opt/cocalc/project-bundle";
+
 // if computing status of a project shows pod is
 // somehow messed up, this will cleanly kill it.  It's
 // very good right now to have this on, since otherwise
@@ -68,6 +75,154 @@ function projectPodName(project_id) {
 
 function projectContainerName(project_id) {
   return `project-${project_id}`;
+}
+
+interface ScriptResolution {
+  script: string;
+  bundleMount?: { source: string; target: string };
+}
+
+function isSubPath(parent: string, child: string): boolean {
+  const rel = relative(parent, child);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+function getErrorCode(err: unknown): string | undefined {
+  if (err && typeof err === "object" && "code" in err) {
+    const code = (err as { code?: unknown }).code;
+    if (code != null) {
+      return String(code);
+    }
+  }
+  return undefined;
+}
+
+async function resolveProjectScript(): Promise<ScriptResolution> {
+  const bundlesRootEnv = process.env.COCALC_PROJECT_BUNDLES;
+  if (!bundlesRootEnv) {
+    return { script: DEFAULT_PROJECT_SCRIPT };
+  }
+
+  let bundlesRoot: string;
+  try {
+    bundlesRoot = await realpath(bundlesRootEnv);
+  } catch (err) {
+    logger.warn("COCALC_PROJECT_BUNDLES path not accessible; falling back", {
+      path: bundlesRootEnv,
+      error: `${err}`,
+    });
+    return { script: DEFAULT_PROJECT_SCRIPT };
+  }
+
+  const resolveCandidate = async (
+    candidate: string,
+  ): Promise<{ path: string; mtimeMs: number } | undefined> => {
+    try {
+      const resolved = await realpath(candidate);
+      if (!isSubPath(bundlesRoot, resolved)) {
+        logger.warn("bundle candidate outside of root; ignoring", {
+          candidate,
+          resolved,
+        });
+        return undefined;
+      }
+      const info = await stat(resolved);
+      if (!info.isDirectory()) {
+        logger.warn("bundle candidate is not a directory; ignoring", {
+          resolved,
+        });
+        return undefined;
+      }
+      return { path: resolved, mtimeMs: info.mtimeMs };
+    } catch (err) {
+      const code = getErrorCode(err);
+      if (code !== "ENOENT") {
+        logger.warn("failed to inspect bundle candidate; ignoring", {
+          candidate,
+          error: `${err}`,
+        });
+      }
+      return undefined;
+    }
+  };
+
+  let bundleDir: string | undefined;
+
+  const currentCandidate = await resolveCandidate(join(bundlesRoot, "current"));
+  if (currentCandidate != null) {
+    bundleDir = currentCandidate.path;
+  }
+
+  if (bundleDir == null) {
+    let newest: { path: string; mtimeMs: number } | undefined;
+    let entries;
+    try {
+      entries = await readdir(bundlesRoot, { withFileTypes: true });
+    } catch (err) {
+      logger.warn("failed to read bundles directory; falling back", {
+        path: bundlesRoot,
+        error: `${err}`,
+      });
+      entries = [];
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory() && !entry.isSymbolicLink()) {
+        continue;
+      }
+      const candidate = await resolveCandidate(join(bundlesRoot, entry.name));
+      if (candidate == null) {
+        continue;
+      }
+      if (newest == null || candidate.mtimeMs > newest.mtimeMs) {
+        newest = candidate;
+      }
+    }
+
+    if (newest != null) {
+      bundleDir = newest.path;
+    }
+  }
+
+  if (bundleDir == null) {
+    logger.warn(
+      "no suitable bundles found under COCALC_PROJECT_BUNDLES; falling back",
+      { path: bundlesRoot },
+    );
+    return { script: DEFAULT_PROJECT_SCRIPT };
+  }
+
+  const hostScriptPath = join(bundleDir, ...PROJECT_BUNDLE_ENTRY);
+  try {
+    const info = await stat(hostScriptPath);
+    if (!info.isFile()) {
+      logger.warn("bundle entry is not a file; falling back", {
+        entry: hostScriptPath,
+      });
+      return { script: DEFAULT_PROJECT_SCRIPT };
+    }
+  } catch (err) {
+    logger.warn("failed to stat bundle entry; falling back", {
+      entry: hostScriptPath,
+      error: `${err}`,
+    });
+    return { script: DEFAULT_PROJECT_SCRIPT };
+  }
+
+  const containerScript = join(
+    PROJECT_BUNDLE_MOUNT_POINT,
+    ...PROJECT_BUNDLE_ENTRY,
+  );
+
+  logger.info("using project bundle", {
+    source: bundleDir,
+    script: containerScript,
+  });
+
+  return {
+    script: containerScript,
+    bundleMount: { source: bundleDir, target: PROJECT_BUNDLE_MOUNT_POINT },
+  };
 }
 
 export async function start({
@@ -167,7 +322,31 @@ export async function start({
     });
     logger.debug("start: got rootfs", { project_id, rootfs });
 
+    const { script: projectScript, bundleMount } = await resolveProjectScript();
+
     const mounts = getCoCalcMounts();
+    if (bundleMount != null) {
+      let replaced = false;
+      for (const source of Object.keys(mounts)) {
+        if (mounts[source] === COCALC_SRC) {
+          delete mounts[source];
+          replaced = true;
+          break;
+        }
+      }
+      mounts[bundleMount.source] = bundleMount.target;
+      if (!replaced) {
+        logger.warn(
+          "expected to replace default project mount but did not find it",
+          { bundleSource: bundleMount.source },
+        );
+      }
+    }
+
+    logger.debug("start: resolved project script", {
+      project_id,
+      script: projectScript,
+    });
     const env = await getEnvironment({
       project_id,
       env: config?.env,
@@ -264,8 +443,6 @@ export async function start({
     args.push("--replace");
     args.push("--pod", pod);
 
-    const script = join(COCALC_SRC, "/packages/project/bin/cocalc-project.js");
-
     const name = projectContainerName(project_id);
     args.push("--name", name);
 
@@ -299,7 +476,7 @@ export async function start({
 
     args.push("--rootfs", rootfs);
     args.push(nodePath);
-    args.push(script, "--init", "project_init.sh");
+    args.push(projectScript, "--init", "project_init.sh");
 
     logger.debug("start: launching container - ", name);
 

@@ -6,7 +6,7 @@
     "rootDir": "./",
     "outDir": "dist"
   },
-  "exclude": ["node_modules", "dist", "test"],
+  "exclude": ["node_modules", "dist", "test", "build"],
   "references": [
     { "path": "../util", "path": "../conat", "path": "../backend" }
   ]
