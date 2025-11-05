@@ -16,7 +16,7 @@ import { build } from "@cocalc/backend/podman/build-container";
 import { getMutagenAgent } from "./mutagen";
 import { k8sCpuParser, split } from "@cocalc/util/misc";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { delay } from "awaiting";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 import { SSHD_CONFIG } from "@cocalc/conat/project/runner/constants";
@@ -36,14 +36,22 @@ const IDLE_CHECK_INTERVAL = 30_000;
 
 const logger = getLogger("file-server:ssh:container");
 
-const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
+const APPS = [
+  "btm",
+  "rg",
+  "fd",
+  "dust",
+  "rustic",
+  "ouch",
+  "reflect-sync",
+] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const VERSION = "0.3.5";
+const VERSION = "0.3.10";
 const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
 const sshd_conf = `
@@ -139,6 +147,15 @@ export const start = reuseInFlight(
       `role=file-server`,
       "--label",
       `key=${key}`,
+    );
+
+    // mount path containing nodejs so reflect-sync can be run
+    args.push(
+      mountArg({
+        source: dirname(process.execPath),
+        target: "/usr/local/sbin",
+        readOnly: true,
+      }),
     );
 
     // mount the volume contents to the directory /root in the container.
@@ -322,7 +339,7 @@ const buildContainerImage = reuseInFlight(async () => {
   await build({
     name: IMAGE,
     Dockerfile,
-    files: APPS.map((name) => sandbox[name]),
+    files: APPS.map((name) => sandbox.SPEC[name].path),
   });
 });
 

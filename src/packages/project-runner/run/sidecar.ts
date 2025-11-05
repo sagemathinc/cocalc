@@ -56,7 +56,7 @@ const BACKUP_ROOTFS_INTERVAL = 60_000;
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.6.13";
+const VERSION = "0.6.15";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
@@ -67,6 +67,8 @@ COPY backup-rootfs.sh /usr/local/bin/backup-rootfs.sh
 COPY restore-rootfs.sh /usr/local/bin/restore-rootfs.sh
 COPY backup-home.sh /usr/local/bin/backup-home.sh
 COPY restore-home.sh /usr/local/bin/restore-home.sh
+
+ENV REFLECT_HOME /root/.local/share/cocalc-sync
 RUN chmod a+x /usr/local/bin/*
 `;
 

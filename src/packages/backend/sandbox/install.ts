@@ -257,6 +257,11 @@ to make a binary with that version
       return `curl -L https://github.com/sagemathinc/bees-binaries/releases/download/${SPEC.bees.VERSION}/${name}.tar.xz | tar -xJ -C ${binPath} --strip-components=2 ${name}/bin/bees`;
     },
   },
+  "reflect-sync": {
+    optional: true,
+    binary: "reflect-sync",
+    path: join(binPath, "reflect-sync"),
+  },
 };
 
 export const rg = SPEC.rg.path;
