@@ -125,8 +125,8 @@ importers:
         specifier: ^15.1.3
         version: 15.1.3
       reflect-sync:
-        specifier: ^0.9.4
-        version: 0.9.4
+        specifier: ^0.10.2
+        version: 0.10.2
       rimraf:
         specifier: ^5.0.5
         version: 5.0.10
@@ -10666,8 +10666,8 @@ packages:
   reflect-metadata@0.2.2:
     resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
 
-  reflect-sync@0.9.4:
-    resolution: {integrity: sha512-SjVVXdJ18SOIskX/4GJlDLjt3x1+N87j2aXU0CfzyBqaL22M8y4/5UFXwWLtWykdTFCey7cE6QQ/LkV0exsk7A==}
+  reflect-sync@0.10.2:
+    resolution: {integrity: sha512-MNBNzDOX2ANuE0zh1Y680s1lTK+iX2eIhYQeIol02949ggf5yb1f85IUQaWUFNTL6NN6L3/YWytXW4vd9YQtSQ==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -11460,6 +11460,11 @@ packages:
 
   terser@5.44.0:
     resolution: {integrity: sha512-nIVck8DK+GM/0Frwd+nIhZ84pR/BX7rmXMfYwyg+Sri5oGVE99/E3KvXqpC2xHFxyqXyGHTKBSioxxplrO4I4w==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  terser@5.44.1:
+    resolution: {integrity: sha512-t/R3R/n0MSwnnazuPpPNVO60LX0SKL45pyl9YlvxIdkH0Of7D5qM2EVe+yASRIlY5pZ73nclYJfNANGWPwFDZw==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -23052,7 +23057,7 @@ snapshots:
 
   reflect-metadata@0.2.2: {}
 
-  reflect-sync@0.9.4: {}
+  reflect-sync@0.10.2: {}
 
   reflect.getprototypeof@1.0.10:
     dependencies:
@@ -24058,7 +24063,7 @@ snapshots:
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       serialize-javascript: 6.0.2
-      terser: 5.44.0
+      terser: 5.44.1
       webpack: 5.102.1(uglify-js@3.19.3)
     optionalDependencies:
       uglify-js: 3.19.3
@@ -24069,7 +24074,7 @@ snapshots:
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       serialize-javascript: 6.0.2
-      terser: 5.44.0
+      terser: 5.44.1
       webpack: 5.102.1
 
   terser@4.8.1:
@@ -24080,6 +24085,13 @@ snapshots:
       source-map-support: 0.5.21
 
   terser@5.44.0:
+    dependencies:
+      '@jridgewell/source-map': 0.3.11
+      acorn: 8.15.0
+      commander: 2.20.3
+      source-map-support: 0.5.21
+
+  terser@5.44.1:
     dependencies:
       '@jridgewell/source-map': 0.3.11
       acorn: 8.15.0
