@@ -153,13 +153,15 @@ async function createSnapshot({
   project_id,
   name,
   limit,
+  readOnly = true,
 }: {
   project_id: string;
   name?: string;
   limit?: number;
+  readOnly?: boolean;
 }) {
   const vol = await getVolume(project_id);
-  await vol.snapshots.create(name, { limit });
+  await vol.snapshots.create(name, { limit, readOnly });
 }
 
 async function deleteSnapshot({

@@ -143,6 +143,8 @@ export interface Fileserver {
     // if given, throw error if there are already limit snapshots, i.e., this is a hard limit on
     // the total number of snapshots (to avoid abuse/bugs).
     limit?: number;
+    // defaults to true
+    readOnly?: boolean;
   }) => Promise<void>;
   deleteSnapshot: (opts: { project_id: string; name: string }) => Promise<void>;
   updateSnapshots: (opts: {

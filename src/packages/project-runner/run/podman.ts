@@ -32,7 +32,7 @@ import { podmanLimits } from "./limits";
 import {
   startSidecar,
   sidecarContainerName,
-  flushMutagen,
+  flushReflect,
   backupRootFs,
 } from "./sidecar";
 import {
@@ -587,7 +587,7 @@ export async function stop({
         // it doens't not do it due to already being in stopping state.
         const tasks = [
           backupRootFs({ project_id, force: true }),
-          flushMutagen({ project_id }),
+          flushReflect({ project_id }),
         ];
         await Promise.all(tasks);
 

@@ -136,27 +136,6 @@ export const SPEC = {
     BASE: "https://github.com/sagemathinc/sshpiper-binaries/releases",
   },
 
-  // See https://github.com/sagemathinc/mutagen-open-source/releases
-  mutagen: {
-    // Mutagen seems to be critical for everything, so not optional.
-    // Below we also remove the windows agents and x86 darwin, since
-    // old macs are very rare now.
-    desc: "Fast file synchronization and network forwarding for remote development",
-    path: join(binPath, "mutagen"),
-    VERSION: "0.19.0-dev",
-    getVersion: "mutagen --version",
-    // for now
-    script: () => {
-      const VERSION = SPEC.mutagen.VERSION;
-      const a = arch() == "x64" ? "amd64" : arch();
-      if (platform() == "darwin") {
-        return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath}`;
-      } else {
-        return `curl -L https://github.com/sagemathinc/mutagen-open-source/releases/download/${VERSION}/mutagen_${platform()}_${a}_v${VERSION}.tar.gz | tar -zox -C ${binPath} && cd ${binPath} && gunzip mutagen-agents.tar.gz && tar --delete -f mutagen-agents.tar darwin_amd64 windows_amd64 && gzip mutagen-agents.tar`;
-      }
-    },
-  },
-
   btm: {
     // See https://github.com/ClementTsang/bottom/releases
     VERSION: "0.11.1",
@@ -270,7 +249,6 @@ export const dust = SPEC.dust.path;
 export const rustic = SPEC.rustic.path;
 export const ouch = SPEC.ouch.path;
 export const sshpiper = SPEC.sshpiper.path;
-export const mutagen = SPEC.mutagen.path;
 export const btm = SPEC.btm.path;
 export const dropbear = SPEC.dropbear.path;
 export const ssh = SPEC.ssh.path;

@@ -53,14 +53,17 @@ const logger = getLogger("project-runner:sidecar");
 // Of course this always gets run when the project stops.
 const BACKUP_ROOTFS_INTERVAL = 60_000;
 
+const COCALC_REFLECT_SYNC = ".local/share/cocalc-reflect-sync";
+const COCALC_SNAPSHOTS = ".snapshots";
+
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.6.15";
+const VERSION = "0.7.2";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
-FROM docker.io/ubuntu:25.04
+FROM docker.io/ubuntu:25.10
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client rsync
 
 COPY backup-rootfs.sh /usr/local/bin/backup-rootfs.sh
@@ -68,8 +71,12 @@ COPY restore-rootfs.sh /usr/local/bin/restore-rootfs.sh
 COPY backup-home.sh /usr/local/bin/backup-home.sh
 COPY restore-home.sh /usr/local/bin/restore-home.sh
 
-ENV REFLECT_HOME /root/.local/share/cocalc-sync
+ENV REFLECT_TAG_DEBUG 1
+ENV REFLECT_HOME /tmp/${COCALC_REFLECT_SYNC}
 RUN chmod a+x /usr/local/bin/*
+
+RUN echo "reflect-sync daemon start && sleep infinity" > /run.sh
+RUN chmod a+x /run.sh
 `;
 
 const RSYNC_COMPRESS = {
@@ -143,12 +150,11 @@ rsync -axH \
   --update \
   --exclude=/${PROJECT_IMAGE_PATH} \
   --exclude=/${COCALC_PROJECT_CACHE} \
-  --exclude=/.mutagen* \
   --exclude=/.snapshots`;
 
 const RESTORE_HOME_SH = `${RSYNC_HOME_SH} ${FILE_SERVER_NAME}:/root/ /root/`;
 
-// currently we don't use this backup at all, since mutagen
+// currently we don't use this backup at all, since reflect-sync
 // handles all copying back to file server.  But having it
 // in place for making a backup is a nice "just in case".
 const BACKUP_HOME_SH = `${RSYNC_HOME_SH} /root/ ${FILE_SERVER_NAME}:/root/`;
@@ -226,7 +232,7 @@ export async function startSidecar({
 
   args2.push("-e", `ROOTFS_IMAGE=${image}`);
 
-  args2.push(sidecarImageName, "mutagen", "daemon", "run");
+  args2.push(sidecarImageName, "/run.sh");
 
   await podman(args2);
 
@@ -237,7 +243,7 @@ export async function startSidecar({
     desc: "started pod",
   });
 
-  const knownMutagenSessions = await getMutagenSessions(name);
+  const knownReflectSessions = await getReflectSessions(name);
 
   const copyRootFs = async () => {
     const { upperdir } = getOverlayPaths({
@@ -277,8 +283,8 @@ export async function startSidecar({
   };
 
   const copyHome = async () => {
-    if (knownMutagenSessions.has("home")) {
-      // if we have ever setup mutagen then it is
+    if (knownReflectSessions.has("home")) {
+      // if we have ever setup reflect-sync of home then it is
       // now responsible for sync and has its own
       // state.
       // [ ] TODO: should have additional step to make
@@ -286,10 +292,12 @@ export async function startSidecar({
       // correct config, etc.
       return;
     }
-    // If we haven't setup mutagen, we cleanly get the
-    // entire home directory below via rsync (with correct timestamps),
-    // then setup mutagen to sync it for the rest of the time it
+    // If we haven't setup reflect-sync, we cleanly get the
+    // entire home directory below via rsync,
+    // then setup reflect to sync it for the rest of the time it
     // lives on this server.
+    // TODO: might be fine to skip this initial rsync, though
+    // generally speaking straight rsync is optimal.
     bootlog({
       project_id,
       type: "copy-home",
@@ -331,26 +339,17 @@ export async function startSidecar({
     //   if you do then any time there is a file over that size,
     //   mutagen gets stuck in an infinite loop trying repeatedly
     //   to resend it!  NOT good.
-    if (!knownMutagenSessions.has("home")) {
+    if (!knownReflectSessions.has("home")) {
       await podman([
         "exec",
         name,
-        "mutagen",
-        "sync",
+        "reflect-sync",
         "create",
-        // interval on project side (this is the default actually)
-        "--watch-polling-interval-alpha=10",
-        // polling interval on the core side, where
-        // reducing load matters the most:
-        "--watch-polling-interval-beta=15",
         "--name=home",
-        "--mode=two-way-resolved",
-        "--symlink-mode=posix-raw",
-        "--compression=deflate",
-        `--ignore=/${PROJECT_IMAGE_PATH}`,
-        `--ignore=/${COCALC_PROJECT_CACHE}`,
-        "--ignore=/.mutagen**",
-        "--ignore=/.snapshots",
+        `--ignore=${PROJECT_IMAGE_PATH}/`,
+        `--ignore=${COCALC_PROJECT_CACHE}/`,
+        `--ignore=${COCALC_REFLECT_SYNC}/`,
+        `--ignore=${COCALC_SNAPSHOTS}/`,
         `${FILE_SERVER_NAME}:/root`,
         "/root",
       ]);
@@ -454,20 +453,20 @@ async function backupRootFsLoop() {
   }
 }
 
-export async function flushMutagen({ project_id }) {
+export async function flushReflect({ project_id }) {
   const name = sidecarContainerName(project_id);
 
-  // flush mutagen sync so we do not loose any work
+  // flush refect-sync so we do not loose any work
   bootlog({
     project_id,
     type: "save-home",
     progress: 0,
     desc: "saving HOME directory files...",
   });
-  // TODO: implement mutagen progress reporting!
+  // TODO: implement reflect progress reporting.
   // long timeout (60*60 SECONDS)
   try {
-    await podman(["exec", name, "mutagen", "sync", "flush", "--all"], 60 * 60);
+    await podman(["exec", name, "reflect", "sync", "home"], 3 * 60 * 60);
   } catch (error) {
     bootlog({
       project_id,
@@ -486,15 +485,13 @@ export async function flushMutagen({ project_id }) {
   });
 }
 
-async function getMutagenSessions(name: string) {
+async function getReflectSessions(name: string) {
   const { stdout } = await podman([
     "exec",
     name,
-    "mutagen",
-    "sync",
+    "reflect-sync",
     "list",
-    "--template",
-    "{{json .}}",
+    "--json",
   ]);
   const v = JSON.parse(stdout);
   return new Set(v.filter((item) => item.name).map((item) => item.name));
@@ -515,11 +512,10 @@ export async function save({
   }
   const tasks: any[] = [];
   if (home) {
-    tasks.push(flushMutagen({ project_id }));
+    tasks.push(flushReflect({ project_id }));
   }
   if (rootfs) {
     tasks.push(backupRootFs({ project_id }));
   }
   await Promise.all(tasks);
 }
-

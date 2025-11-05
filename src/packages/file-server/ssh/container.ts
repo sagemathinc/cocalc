@@ -1,8 +1,9 @@
 /*
 Container associated to a project that runs on the file-server:
 
-- runs an openssh server, which is used by the project with mutagen
-  to synchronize all files in /root (the home directory)
+- runs an openssh server, which is used by the project
+  and compute servers to synchronize all files in /root
+  (the home directory)
 - is an rsync target for the overlayfs upper layer
 - reflect forwards several ports here:
    - an ssh server running in the project itself
@@ -13,9 +14,8 @@ Container associated to a project that runs on the file-server:
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import { build } from "@cocalc/backend/podman/build-container";
-import { getMutagenAgent } from "./mutagen";
 import { k8sCpuParser, split } from "@cocalc/util/misc";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { delay } from "awaiting";
 import * as sandbox from "@cocalc/backend/sandbox/install";
@@ -46,12 +46,13 @@ const APPS = [
   "reflect-sync",
 ] as const;
 const Dockerfile = `
-FROM docker.io/ubuntu:25.04
+FROM docker.io/ubuntu:25.10
+
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const VERSION = "0.3.10";
+const VERSION = "0.3.18";
 const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
 const sshd_conf = `
@@ -80,35 +81,22 @@ export const start = reuseInFlight(
     path,
     publicKey,
     authorizedKeys,
-    // path in which to put directory for mutagen's state, which includes
-    // it's potentially large staging area.  This should be on the same
-    // btrfs filesystem as projects for optimal performance.  It MUST BE SET, because
-    // without this when the user's quota is hit, the sync just restarts, causing an infinite
-    // loop wasting resources.  It should also obviously be big.
-    scratch,
     // TODO: think about limits once I've benchmarked
     pids = 100,
-    // reality: mutagen potentially uses a lot of RAM of you have
-    // a lot of files, and if it keeps crashing due to out of memory,
-    // the project is completely broken, so for now:
-    memory = "4000m",
-    cpu = "1000m",
+    memory = "2000m",
+    cpu = "2000m",
     lockdown = true,
   }: {
     volume: string;
     path: string;
     publicKey: string;
     authorizedKeys: string;
-    scratch: string;
     memory?: string;
     cpu?: string;
     pids?: number;
     // can be nice to disable for dev and debugging
     lockdown?: boolean;
   }): Promise<Ports> => {
-    if (!scratch) {
-      throw Error("scratch directory must be set");
-    }
     const name = containerName(volume);
     const key = sha1(publicKey + authorizedKeys);
     try {
@@ -225,23 +213,6 @@ export const start = reuseInFlight(
       args.push("--read-only");
     }
 
-    const dotMutagen = join(scratch, volume);
-    dotMutagens[volume] = dotMutagen;
-    try {
-      await rm(dotMutagen, { force: true, recursive: true });
-    } catch {}
-    await mkdir(dotMutagen, { recursive: true });
-    args.push(mountArg({ source: dotMutagen, target: "/root/.mutagen-dev" }));
-    // Mutagen agent mounted in
-    const mutagen = await getMutagenAgent();
-    args.push(
-      mountArg({
-        source: mutagen.path,
-        target: `/root/.mutagen-dev/agents/${mutagen.version}`,
-        readOnly: true,
-      }),
-    );
-
     // openssh server
     //  /usr/sbin/sshd -D -e -f /root/{SSHD_CONFIG}/sshd.conf
     args.push(
@@ -297,8 +268,6 @@ export const getPorts = reuseInFlight(
   },
 );
 
-const dotMutagens: { [volume: string]: string } = {};
-
 export async function stop({
   volume,
   force,
@@ -317,13 +286,6 @@ export async function stop({
     ]);
   } catch (err) {
     logger.debug("stop error", { volume, err });
-  }
-  const dotMutagen = dotMutagens[volume];
-  if (dotMutagen) {
-    try {
-      await rm(dotMutagen, { force: true, recursive: true });
-    } catch {}
-    delete dotMutagens[volume];
   }
 }
 
