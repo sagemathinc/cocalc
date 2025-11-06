@@ -61,9 +61,9 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }, []);
 
   useEffect(() => {
-    if (focus == null) return;
+    if (props.focus == null) return;
     input_ref.current?.focus();
-  }, [focus]);
+  }, [props.focus]);
 
   function get_opts(): { ctrl_down: boolean; shift_down: boolean } {
     return { ctrl_down, shift_down };

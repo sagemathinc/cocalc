@@ -1564,70 +1564,342 @@ When keyboard testing menus:
 3. Press Enter to activate item - should NOT trigger parent handlers
 4. Verify the menu closes and the action executes cleanly
 
-## Session Summary - October 28, 2025
+## Phase 23: AutoFocus User Preference ✅ COMPLETED (Nov 6, 2025)
+
+**Priority: HIGH** - Improves keyboard navigation experience
+
+### Problem Statement
+
+Users with assistive technology or keyboard-only access found that search inputs and form fields would automatically grab focus when navigating pages or opening dialogs. This interfered with:
+
+- Landmark-based navigation (Alt+Shift+M to navigate regions)
+- Tab-order navigation between sections
+- Keyboard shortcut usage
+- General page exploration before using search/input
+
+### Solution Implemented
+
+Created a user-configurable preference to disable autoFocus behavior on normal page input fields. Popup dialogs (modals, confirmation dialogs) retain autoFocus for better UX since they don't interfere with overall page navigation.
+
+### Architecture
+
+#### 1. New Hook: `useAutoFocusPreference()` ✅
+
+**File**: `packages/frontend/account/use-auto-focus-preference.ts` (Created)
+
+```typescript
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+
+export function useAutoFocusPreference(): boolean {
+  const other_settings = useTypedRedux("account", "other_settings");
+  return other_settings?.get("auto_focus") ?? false; // Default: disabled
+}
+```
+
+**Key Details**:
+- Centralized single source of truth for the preference
+- Returns boolean: true (autoFocus enabled) or false (disabled, default)
+- Integrates with Redux account store for persistence across sessions
+
+#### 2. Account Settings UI ✅
+
+**File**: `packages/frontend/account/account-preferences-appearance.tsx`
+
+Added new Switch control in "User Interface" section:
+
+```tsx
+<Switch
+  checked={!!other_settings.get("auto_focus")}
+  onChange={(e) => on_change("auto_focus", e.target.checked)}
+>
+  <FormattedMessage
+    id="account.other-settings.auto_focus"
+    defaultMessage={`<strong>Auto Focus Text Input:</strong>
+    automatically focus text input fields when they appear (e.g., in dialogs and modals)`}
+  />
+</Switch>
+```
+
+**Placement**: Above "Hide File Tab Popovers" in account preferences
+
+#### 3. Implementation Pattern ✅
+
+Used consistently across all affected input fields:
+
+```tsx
+// Import hook
+import { useAutoFocusPreference } from "@cocalc/frontend/account";
+
+// Use in component
+const shouldAutoFocus = useAutoFocusPreference();
+
+// Apply to inputs
+<Input
+  autoFocus={shouldAutoFocus}
+/>
+
+<SearchInput
+  autoFocus={shouldAutoFocus}
+  autoSelect={shouldAutoFocus}
+/>
+```
+
+### Files Modified
+
+**Core**:
+- `packages/frontend/account/use-auto-focus-preference.ts` (Created)
+- `packages/frontend/account/index.ts` - Added export
+- `packages/frontend/account/account-preferences-appearance.ts` - Added UI control
+- `packages/frontend/components/search-input.tsx` - **Bug fix**: Fixed undefined `focus` variable in useEffect (critical fix)
+
+**Input Fields Updated**:
+- `packages/frontend/project/new/new-file-page.tsx` - 2 inputs (create folder modal, filename)
+- `packages/frontend/projects/create-project.tsx` - 1 input (project title)
+- `packages/frontend/projects/projects-table-controls.tsx` - 1 input (search projects)
+- `packages/frontend/project/explorer/search-bar.tsx` - 1 input (filter files, select autoSelect)
+- `packages/frontend/frame-editors/frame-tree/commands/generic-commands.tsx` - 1 input (command palette)
+
+**NOT Modified** (intentional):
+- Popup dialog inputs in `ai-cell-generator.tsx` and `llm-assistant-button.tsx` - These remain with autoFocus enabled since popup dialogs don't interfere with keyboard navigation
+- Cell inputs in Jupyter notebooks - Cell-specific inputs remain with autoFocus enabled
+
+### User Impact
+
+- ✅ Keyboard-only users can navigate landmarks without inputs stealing focus
+- ✅ Assistive technology users have full control over focus behavior
+- ✅ Preference persists across sessions in account settings
+- ✅ Default (disabled) prevents unexpected focus grabs
+- ✅ Users can re-enable if they prefer automatic focusing
+
+### Testing
+
+**Bug Fix Validation**:
+
+The SearchInput component had a critical bug preventing the preference from working:
+
+```typescript
+// BEFORE (broken):
+useEffect(() => {
+  if (focus == null) return;  // ← undefined variable
+  input_ref.current?.focus();
+}, [focus]);  // ← wrong dependency
+
+// AFTER (fixed):
+useEffect(() => {
+  if (props.focus == null) return;
+  input_ref.current?.focus();
+}, [props.focus]);  // ← correct dependency
+```
+
+This fix resolved the issue where file explorer search was still grabbing focus despite `shouldAutoFocus={false}`.
+
+---
+
+## Phase 24: Editor Content Landmark Navigation ⏳ PENDING
+
+**Priority: HIGH** - Core editor accessibility
+
+### Problem Statement
+
+When navigating landmarks with Alt+Shift+M, pressing Alt+Shift+M on the "Content" landmark (e.g., "Content: 123.md (Main)") does not focus the editor content itself. Users land on the region but cannot immediately interact with the editor without additional navigation steps.
+
+Current workaround: Alt+Shift+N to skip to next landmark, but this feels inefficient.
+
+### Proposed Solution: Two-Step Interaction Pattern
+
+#### Step 1: Focus Landmark Region
+- Alt+Shift+M navigates to "Content: {filename}" landmark
+- Region announces file being edited
+- Region becomes focusable (`tabindex="0"`)
+
+#### Step 2: Enter Editor (Return Key Activation)
+- Pressing Return key while on Content landmark focuses the primary editor
+- Dynamically chooses appropriate element:
+  - **CodeMirror**: Focus the editor instance
+  - **Frame-split layouts**: Focus the first/active frame editor
+  - **Jupyter notebook**: Focus active cell input
+  - **Other editors**: Focus primary interactive element
+- Alternative: Tab key after landing on landmark navigates into editable content
+
+### Implementation Plan
+
+#### A. Make Content Landmark Focusable
+
+**File**: `packages/frontend/project/page/page.tsx`
+
+```tsx
+<div
+  role="main"
+  aria-label={contentLabel}
+  tabIndex={0}  // ← Make focusable
+  onKeyDown={handleContentKeyDown}  // ← Handle Return key
+>
+  {/* content */}
+</div>
+```
+
+**Handler Logic**:
+```typescript
+function handleContentKeyDown(e: React.KeyboardEvent) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.stopPropagation();
+    focusPrimaryEditor();
+  }
+}
+
+function focusPrimaryEditor() {
+  // Strategy 1: Try to focus CodeMirror editor
+  const editor = document.querySelector(".cm-editor") as HTMLElement;
+  if (editor) {
+    editor.focus();
+    return;
+  }
+
+  // Strategy 2: Try to focus first focusable element within content
+  const focusable = content.querySelector(
+    "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+  ) as HTMLElement;
+  if (focusable) {
+    focusable.focus();
+  }
+}
+```
+
+#### B. Frame Tree Editor Focus Support
+
+**File**: `packages/frontend/frame-editors/frame-tree/frame-tree.tsx`
+
+Make individual frame editors focusable with keyboard support:
+
+```tsx
+<div
+  className="frame-tree-frame"
+  role="region"
+  aria-label={frameLabel}
+  tabIndex={activeFrame ? 0 : -1}  // ← Focusable if active
+  onKeyDown={ariaKeyDown(handleFrameActivation)}
+>
+  <FrameEditor />
+</div>
+```
+
+#### C. Visual Feedback
+
+Add subtle visual indicator when Content landmark is focused (keyboard-only users need to see focus state):
+
+```tsx
+<div
+  className={`content-region ${isFocused ? "focused-landmark" : ""}`}
+>
+```
+
+```css
+.content-region:focus {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.content-region.focused-landmark {
+  background-color: var(--focus-bg);
+}
+```
+
+### Expected User Experience
+
+**Scenario**: User navigates to a LaTeX editor file
+
+1. **Alt+Shift+M** → "Content: document.tex (Main)" landmark focused
+2. **Return key** → CodeMirror editor receives focus
+3. **Type** → User can immediately edit the LaTeX content
+4. **Alt+Shift+M** → Next landmark (sidebar, etc.)
+
+**Alternative Flow**:
+
+1. **Alt+Shift+M** → Content landmark focused
+2. **Tab** → Focus moves to first interactive element (button bar, editor, etc.)
+3. **Shift+Tab** → Navigate backwards through editor controls
+
+### Potential Enhancements
+
+1. **Visual Highlight**: Subtle glow or border when Content landmark receives focus
+2. **Announcement**: "Content region focused. Press Return to enter editor or Tab to navigate controls"
+3. **Escape Key**: Exit editor focus, return to landmark (for later phase)
+4. **Multiple Frames**: When split editors are active, focus primary/active frame first
+
+### Files to Modify
+
+1. `packages/frontend/project/page/page.tsx` - Main content region (tabindex, keydown handler)
+2. `packages/frontend/frame-editors/frame-tree/frame-tree.tsx` - Frame focusability
+3. `packages/frontend/frame-editors/frame-tree/editor.tsx` - Editor focus management
+4. `packages/frontend/app/aria.tsx` - Potential helper functions for editor focusing
+5. Styling: Add focus indicator CSS to frame-tree or global styles
+
+### Testing Checklist
+
+- [ ] Alt+Shift+M navigates to Content landmark
+- [ ] Content landmark is announced with current file name
+- [ ] Return key while on landmark focuses the editor
+- [ ] Tab/Shift+Tab navigate from landmark to content
+- [ ] Visual focus indicator is visible for keyboard users
+- [ ] Works with CodeMirror editors (LaTeX, Python, JavaScript, etc.)
+- [ ] Works with split editors (multiple frames)
+- [ ] Works with Jupyter notebooks
+- [ ] Works with other editor types (Markdown, CSV, PDF, etc.)
+- [ ] Escape key behavior (future phase)
+
+---
+
+## Session Summary - November 6, 2025
 
 ### Session Accomplishments
 
 **Phases Completed**:
 
-- ✅ Phase 11a: Projects List Page (Complete)
-- ✅ Phase 9b: Account Preferences Sub-Sections (Complete)
+- ✅ Phase 23: AutoFocus User Preference (Complete)
+- ✅ Phase 24: Editor Content Landmark Navigation (Planned)
 
-**Component Enhancements**:
+**Phase 23: AutoFocus User Preference** ✅:
 
-1. **Panel** (`antd-bootstrap.tsx`) - Now supports ARIA region props
-   - Added `role` and `aria-label` parameters
-   - Enables Panel components throughout app to declare landmark regions
+- New user preference: "Auto Focus Text Input" in account appearance settings
+- Created reusable hook: `useAutoFocusPreference()` for consistent behavior
+- Applied to 5 major input locations across the frontend
+- **Critical bug fix**: Fixed undefined `focus` variable in `search-input.tsx` that was preventing preference from working
+- Default: autoFocus disabled (false) for better landmark navigation
+- Popup dialogs remain with autoFocus enabled (no interference with navigation)
 
-2. **SettingBox** (`components/setting-box.tsx`) - Now supports ARIA region props
-   - Added `role` and `aria-label` parameters
-   - Direct ARIA support on component (not wrapped in divs)
+**Files Modified**: 9 files
 
-**Projects List Page (Phase 11a)**:
+- Core infrastructure: 4 files (hook, export, account UI, bug fix)
+- Page input fields: 5 files (file creation, project creation, search inputs, command palette)
 
-- Main workspace landmark with "Projects management" label
-- Project filters section with descriptive "Project filters and controls" label
-- Dynamic projects list label showing count: "Projects list (N total)"
-- All controls (search, filters, buttons) have clear aria-labels
-- Starred projects section with count indicator
+**Component Changes**:
 
-**Account Preferences Sub-Sections (Phase 9b)**:
+- `use-auto-focus-preference.ts` (Created) - Centralized preference hook
+- `account-preferences-appearance.tsx` - New UI switch control
+- `search-input.tsx` - **Bug fix**: Fixed focus prop reference
+- 5 input components updated with conditional autoFocus based on preference
 
-- Enhanced all account preference panels with region landmarks
-- 25+ sub-sections now have clear accessibility labels
-- Consistent naming pattern for easy navigation
-- Components used directly with ARIA props (no wrapper divs)
+### Phase 24: Editor Content Landmark Navigation
 
-**Sub-Sections Labeled**:
-
-- Appearance: User Interface, Dark Mode, Editor Color Scheme, Terminal
-- Editor: Basic Settings, Keyboard, Display, Editing Behavior, Auto-completion, File Operations, Jupyter, UI Elements
-- Keyboard: Keyboard Shortcuts
-- Communication: Notification Settings
-- Security: API Keys, SSH Keys (renamed from "Security settings")
-- Profile: Account Settings, Avatar Settings
-- Tours: Completed Tours
-- Other: AI, Theme, Browser, File Explorer, Projects
-
-**Files Modified**: 30+ files
-
-- Core: 2 component enhancements
-- Projects: 3 files
-- Account Preferences: 25+ files across all preference categories
+- **Status**: Planned, not yet implemented
+- **Approach**: Two-step interaction pattern
+  - Step 1: Alt+Shift+M navigates to Content landmark (announces file)
+  - Step 2: Return key while on landmark focuses the editor
+  - Alternative: Tab key navigates into editable content
+- **Expected files to modify**: 5 core files (page.tsx, frame-tree.tsx, editor.tsx, aria.tsx, CSS)
+- **Testing checklist**: 10 verification points prepared
 
 ### Next Steps
 
-**Phase 11b: Project Page** - Ready to start
+**Phase 24: Editor Content Landmark Navigation** - Ready to implement
 
-- Main project workspace layout
-- Activity bar with tab semantics
-- File tabs navigation
-- Content area routing
+- Make Content region focusable with tabindex="0"
+- Add Return key handler to focus primary editor
+- Add visual feedback for keyboard users
+- Test with all editor types
 
-**Phase 12: App Shell & Navigation** - Pending
+**Future Phases**:
 
-- Top-level navigation structure
-- Connection status indicators
-- Notification management
-
-**Phase 13+**: Form fields, tables, modals, etc.
+- Phase 25: Additional keyboard shortcuts and editor conveniences
+- Phase 26+: Form fields, tables, modals, etc.

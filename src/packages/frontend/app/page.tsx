@@ -36,7 +36,7 @@ import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS, SITE_NAME } from "@cocalc/util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
 import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
@@ -124,7 +124,6 @@ export const Page: React.FC = () => {
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
-  const site_name = useTypedRedux("customize", "site_name") ?? SITE_NAME;
 
   function account_tab_icon(): IconName | React.JSX.Element {
     if (is_anonymous) {

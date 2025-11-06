@@ -11,6 +11,7 @@ import { Button, Card, Col, Form, Input, Modal, Row, Space } from "antd";
 import { delay } from "awaiting";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import { useAutoFocusPreference } from "@cocalc/frontend/account";
 import { Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -60,6 +61,7 @@ export function NewProjectCreator({
   open_trigger,
 }: Props) {
   const intl = useIntl();
+  const shouldAutoFocus = useAutoFocusPreference();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
   const [title_text, set_title_text] = useState<string>(
@@ -378,7 +380,7 @@ export function NewProjectCreator({
                   disabled={state === "saving"}
                   onChange={input_on_change}
                   onKeyDown={handle_keypress}
-                  autoFocus
+                  autoFocus={shouldAutoFocus}
                 />
               </Form.Item>
             </Form>

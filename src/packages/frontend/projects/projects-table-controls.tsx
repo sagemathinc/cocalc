@@ -17,6 +17,7 @@ import { Set } from "immutable";
 import { ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 
+import { useAutoFocusPreference } from "@cocalc/frontend/account";
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -53,6 +54,7 @@ export function ProjectsTableControls({
   filtersRef,
 }: Props) {
   const intl = useIntl();
+  const shouldAutoFocus = useAutoFocusPreference();
   const actions = useActions("projects");
 
   // Redux state
@@ -113,7 +115,7 @@ export function ProjectsTableControls({
             id: "projects.table-controls.search.placeholder",
             defaultMessage: "Filter projects...",
           })}
-          autoFocus
+          autoFocus={shouldAutoFocus}
           value={search}
           onChange={handleSearchChange}
           onPressEnter={handlePressEnter}

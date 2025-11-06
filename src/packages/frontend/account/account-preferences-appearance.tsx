@@ -242,6 +242,16 @@ export function AccountPreferencesAppearance() {
           </div>
         </LabeledRow>
         <Switch
+          checked={!!other_settings.get("auto_focus")}
+          onChange={(e) => on_change("auto_focus", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.auto_focus"
+            defaultMessage={`<strong>Auto Focus Text Input:</strong>
+            automatically focus text input fields when they appear (e.g., file explorer, projects, ...)`}
+          />
+        </Switch>
+        <Switch
           checked={!!other_settings.get("hide_file_popovers")}
           onChange={(e) => on_change("hide_file_popovers", e.target.checked)}
         >
