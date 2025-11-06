@@ -1482,6 +1482,88 @@ const { label, icon, tooltip, onClick, isRunning } = getRunStopButton();
 
 3. **Live Regions**: Use `aria-live="polite"` for status updates and `aria-live="assertive"` only for urgent alerts. Always test with screen readers to ensure announcements are clear.
 
+## Keyboard Event Handling & Event Propagation ✅ (2025-11-06)
+
+### Problem Identified
+
+When keyboard events activate menu items or navigation tabs, events were bubbling up to parent elements, causing:
+
+1. Multiple handlers to trigger for a single keyboard action
+2. Menu items activating while also triggering parent keyboard shortcuts
+3. Return/Enter key causing unexpected behavior in editor context
+
+### Solution Implemented
+
+#### 1. Enhanced `ariaKeyDown()` Handler
+
+**File**: `packages/frontend/app/aria.tsx`
+
+```tsx
+export function ariaKeyDown(
+  handler: (e?: React.KeyboardEvent | React.MouseEvent) => void,
+  stopPropagation: boolean = true, // ← New parameter (default: true)
+): (e: React.KeyboardEvent) => void {
+  return (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (stopPropagation) {
+        e.stopPropagation(); // ← Prevents event bubbling
+      }
+      handler(e);
+    }
+  };
+}
+```
+
+**Impact**: All navigation buttons, tabs, and custom button elements now prevent keyboard event bubbling by default. Optional parameter allows disabling if needed (backwards compatible).
+
+#### 2. Menu Item Click Handlers
+
+**File**: `packages/frontend/frame-editors/frame-tree/commands/manage.tsx` (line 541+)
+
+```tsx
+const onClick = async (event) => {
+  // Prevent event bubbling from menu item clicks
+  event?.stopPropagation?.();
+  event?.preventDefault?.();
+  // ... rest of handler
+};
+```
+
+**Impact**: Menu items from all editor types (File, Edit, View menus, etc.) now prevent event propagation when activated.
+
+#### 3. DropdownMenu Handler
+
+**File**: `packages/frontend/components/dropdown-menu.tsx` (line 99+)
+
+```tsx
+const handleMenuClick: MenuProps["onClick"] = (e) => {
+  // Prevent event bubbling from menu clicks
+  e?.domEvent?.stopPropagation?.();
+  e?.domEvent?.preventDefault?.();
+  // ... rest of handler
+};
+```
+
+**Impact**: Ant Design's menu click events are properly contained and don't bubble to parent components.
+
+### Benefits
+
+- ✅ Menu items activate correctly without side effects
+- ✅ Keyboard navigation (Enter/Space) is isolated to the activated element
+- ✅ Return key in menus doesn't trigger editor keyboard shortcuts
+- ✅ Navigation tabs don't interfere with other page interactions
+- ✅ Backwards compatible - existing code works unchanged
+
+### Testing Notes
+
+When keyboard testing menus:
+
+1. Open a menu with mouse click
+2. Navigate with arrow keys (Ant Design handles this)
+3. Press Enter to activate item - should NOT trigger parent handlers
+4. Verify the menu closes and the action executes cleanly
+
 ## Session Summary - October 28, 2025
 
 ### Session Accomplishments

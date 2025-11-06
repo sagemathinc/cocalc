@@ -32,16 +32,9 @@
  * - Works with Enter key (standard for buttons) and Space (acceptable alternative)
  * - Prevents default browser behavior (e.g., page scroll on Space)
  * - Single source of truth for this common accessibility pattern
- */
-
-/**
- * Create a keyboard event handler for ARIA interactive elements
- *
- * Returns a handler that activates click handlers when users press Enter or Space keys,
- * mimicking native button behavior for custom interactive elements
- * with role="button", role="tab", role="region", etc.
  *
  * @param handler - The click handler to invoke (typically your onClick function)
+ * @param stopPropagation - Whether to prevent event bubbling (default: true)
  * @returns A keyboard event handler function
  *
  * @example
@@ -57,6 +50,7 @@
  */
 export function ariaKeyDown(
   handler: (e?: React.KeyboardEvent | React.MouseEvent) => void,
+  stopPropagation: boolean = true,
 ): (e: React.KeyboardEvent) => void {
   return (e: React.KeyboardEvent) => {
     // Activate on Enter (standard button behavior) or Space (accessible alternative)
@@ -65,6 +59,11 @@ export function ariaKeyDown(
       // - Enter: prevents form submission or other default actions
       // - Space: prevents page scroll
       e.preventDefault();
+      // Stop event bubbling to parent elements (default: true)
+      // This prevents parent handlers from also triggering
+      if (stopPropagation) {
+        e.stopPropagation();
+      }
       // Call the handler (usually onClick)
       handler(e);
     }

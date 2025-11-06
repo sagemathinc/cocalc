@@ -362,11 +362,9 @@ export const Page: React.FC = () => {
 
   // Children must define their own padding from navbar and screen borders
   // Note that the parent is a flex container
-  // ARIA: main element serves as the primary landmark for the entire application
+  // ARIA: content container (main landmarks are defined at the page level below)
   const body = (
-    <main
-      role="main"
-      aria-label={`${site_name} application`}
+    <div
       style={PAGE_STYLE}
       onDragOver={(e) => e.preventDefault()}
       onDrop={drop}
@@ -408,7 +406,7 @@ export const Page: React.FC = () => {
       <PayAsYouGoModal />
       <PopconfirmModal />
       <SettingsModal />
-    </main>
+    </div>
   );
   return (
     <ClientContext.Provider value={{ client: webapp_client }}>

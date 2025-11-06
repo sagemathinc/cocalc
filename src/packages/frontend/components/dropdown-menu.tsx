@@ -97,6 +97,10 @@ export function DropdownMenu({
   }
 
   const handleMenuClick: MenuProps["onClick"] = (e) => {
+    // Prevent event bubbling from menu clicks
+    e?.domEvent?.stopPropagation?.();
+    e?.domEvent?.preventDefault?.();
+
     if (e.key?.includes(STAY_OPEN_ON_CLICK)) {
       setOpen(true);
     } else {

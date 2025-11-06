@@ -326,7 +326,12 @@ export function ProjectsNav(props: ProjectsNavProps) {
           // });
 
           return (
-            <SortableTab key={node.key} id={node.key} style={wrapperStyle}>
+            <SortableTab
+              key={node.key}
+              id={node.key}
+              style={wrapperStyle}
+              onKeyReturn={() => actions.set_active_tab(project_id)}
+            >
               {node}
             </SortableTab>
           );
@@ -336,9 +341,10 @@ export function ProjectsNav(props: ProjectsNavProps) {
   }
 
   return (
-    <div
+    <nav
+      role="main"
+      aria-label="Open projects"
       style={{
-        overflow: "hidden",
         height: `${height}px`,
         ...style,
       }}
@@ -360,10 +366,9 @@ export function ProjectsNav(props: ProjectsNavProps) {
             type={"editable-card"}
             renderTabBar={renderTabBar0}
             items={items}
-            aria-label="Open projects"
           />
         </SortableTabs>
       )}
-    </div>
+    </nav>
   );
 }

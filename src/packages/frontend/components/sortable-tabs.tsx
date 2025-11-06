@@ -30,6 +30,8 @@ import {
 } from "react";
 import useResizeObserver from "use-resize-observer";
 
+import { ariaKeyDown } from "@cocalc/frontend/app/aria";
+
 export { useSortable };
 
 interface Props {
@@ -130,9 +132,22 @@ export function SortableTabs(props: Props) {
   );
 }
 
-export function SortableTab({ children, id, style }) {
+interface SortableTabProps {
+  children: React.ReactNode;
+  id: string | number;
+  style?: CSSProperties;
+  onKeyReturn?: () => void;
+}
+
+export function SortableTab({
+  children,
+  id,
+  style,
+  onKeyReturn,
+}: SortableTabProps) {
   const { attributes, listeners, setNodeRef, transform, transition, active } =
     useSortable({ id });
+
   return (
     <div
       ref={setNodeRef}
@@ -146,6 +161,7 @@ export function SortableTab({ children, id, style }) {
       }}
       {...attributes}
       {...listeners}
+      onKeyDown={onKeyReturn ? ariaKeyDown(onKeyReturn, false) : undefined}
     >
       {children}
     </div>

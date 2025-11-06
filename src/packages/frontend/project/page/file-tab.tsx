@@ -22,6 +22,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { ariaKeyDown } from "@cocalc/frontend/app/aria";
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -188,6 +189,7 @@ interface Props0 {
   role?: string;
   "aria-selected"?: boolean;
   "aria-controls"?: string;
+  tabIndex?: number;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -297,6 +299,28 @@ export function FileTab(props: Readonly<Props>) {
       e.stopPropagation();
       e.preventDefault();
       closeFile();
+    }
+  }
+
+  function handleKeyActivation() {
+    if (actions == null) return;
+    if (path != null) {
+      actions.set_active_tab(path_to_tab(path));
+      track("switch-to-file-tab", {
+        project_id,
+        path,
+        how: "keyboard",
+      });
+    } else if (name != null) {
+      if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
+        // this tab can't be opened in a full page
+        actions?.toggleFlyout(flyout);
+      } else if (flyout != null && actBar !== "both") {
+        // keyboard activation just activates, no modifier key logic
+        setActiveTab(name);
+      } else {
+        setActiveTab(name);
+      }
     }
   }
 
@@ -470,6 +494,12 @@ export function FileTab(props: Readonly<Props>) {
       cocalc-test={label}
       onClick={click}
       onMouseUp={onMouseUp}
+      onKeyDown={
+        props.tabIndex != null
+          ? ariaKeyDown(handleKeyActivation, false)
+          : undefined
+      }
+      tabIndex={props.tabIndex}
       role={props.role}
       aria-selected={props["aria-selected"]}
       aria-controls={props["aria-controls"]}

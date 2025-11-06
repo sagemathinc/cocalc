@@ -539,6 +539,10 @@ export class ManageCommands {
       );
     }
     const onClick = async (event) => {
+      // Prevent event bubbling from menu item clicks
+      event?.stopPropagation?.();
+      event?.preventDefault?.();
+
       let { popconfirm } = cmd;
       if (popconfirm != null) {
         if (typeof popconfirm === "function") {

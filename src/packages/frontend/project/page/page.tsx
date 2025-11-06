@@ -309,14 +309,10 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           width={homePageButtonWidth}
         />
         {renderFlyoutHeader()}
-        {/* ARIA: nav element for file tab navigation (2nd level navigation) */}
-        <nav
-          style={{ flex: 1, overflow: "hidden", display: "flex" }}
-          aria-label="Open files"
-        >
+        <div style={{ flex: 1, display: "flex" }}>
           <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
           <ProjectTabs project_id={project_id} />
-        </nav>
+        </div>
       </div>
     );
   }
@@ -358,9 +354,9 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       );
     } else {
       return (
-        // ARIA: aside element for activity bar (complementary navigation sidebar)
+        // ARIA: aside element for activity bar (main navigation sidebar)
         <aside
-          role="complementary"
+          role="main"
           aria-label="Project activity bar"
           style={{
             flex: "0 0 auto",
