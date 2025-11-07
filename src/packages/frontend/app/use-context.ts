@@ -30,9 +30,11 @@ export interface AppState {
   timeAgoAbsolute?: boolean;
   setTimeAgoAbsolute?: (boolean) => void;
   showActBarLabels?: boolean; // whether to show labels on the vertical fixed bar
+  blockShiftShiftHotkey: boolean; // temporarily block shift+shift hotkey (e.g., during testing)
+  setBlockShiftShiftHotkey?: (block: boolean) => void;
 }
 
-export const DEFAULT_CONTEXT = {
+export const DEFAULT_CONTEXT: AppState = {
   pageWidthPx: 1000, // gets updated
   pageStyle: calcStyle(false), // gets updated
   formatIntl: () => "Loading…",
@@ -44,6 +46,7 @@ export const DEFAULT_CONTEXT = {
     return label;
   },
   showActBarLabels: ACTIVITY_BAR_LABELS_DEFAULT,
+  blockShiftShiftHotkey: false,
 };
 
 export const AppContext = createContext<AppState>(DEFAULT_CONTEXT);

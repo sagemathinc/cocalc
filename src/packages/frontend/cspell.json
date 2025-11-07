@@ -109,6 +109,7 @@
     "mistralai",
     "noconf",
     "nprocs",
+    "payg",
     "pchildren",
     "pids",
     "Popconfirm",

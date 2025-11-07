@@ -27,6 +27,8 @@ import {
   get_dark_mode_config,
 } from "./dark-mode";
 import { EditorSettingsColorScheme } from "./editor-settings/color-schemes";
+import { HotkeyDelayTest } from "./hotkey-delay-test";
+import { HotkeySelector } from "./hotkey-selector";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import { OtherSettings } from "./other-settings";
 import { TerminalSettings } from "./terminal-settings";
@@ -241,6 +243,78 @@ export function AccountPreferencesAppearance() {
             </HelpIcon>
           </div>
         </LabeledRow>
+        <LabeledRow
+          label={
+            <>
+              <Icon name="flash" /> Quick Navigation Hotkey
+            </>
+          }
+        >
+          <HotkeySelector
+            value={other_settings.get("quick_nav_hotkey") ?? "shift+shift"}
+            onChange={(value) => on_change("quick_nav_hotkey", value)}
+            style={{ width: 200 }}
+          />
+        </LabeledRow>
+        {(other_settings.get("quick_nav_hotkey") ?? "shift+shift") ===
+          "shift+shift" && (
+          <LabeledRow
+            label={
+              <>
+                <Icon name="clock" /> Hotkey Delay (milliseconds)
+              </>
+            }
+          >
+            <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+              <div
+                style={{
+                  flex: "1 1 auto",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Slider
+                  min={100}
+                  max={800}
+                  step={100}
+                  value={other_settings.get("quick_nav_hotkey_delay") ?? 300}
+                  onChange={(value) =>
+                    on_change("quick_nav_hotkey_delay", value)
+                  }
+                  style={{ flex: 1 }}
+                  marks={Object.fromEntries(
+                    Array.from({ length: 8 }, (_, i) => (i + 1) * 100).map(
+                      (ms) => [ms, `${ms}ms`],
+                    ),
+                  )}
+                />
+                <span
+                  style={{
+                    minWidth: 60,
+                    textAlign: "right",
+                    fontWeight: 500,
+                    color: COLORS.GRAY_M,
+                    marginLeft: 12,
+                  }}
+                >
+                  {other_settings.get("quick_nav_hotkey_delay") ?? 300}ms
+                </span>
+              </div>
+              <div
+                style={{
+                  flex: "0 1 auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <HotkeyDelayTest
+                  delayMs={other_settings.get("quick_nav_hotkey_delay") ?? 300}
+                />
+              </div>
+            </div>
+          </LabeledRow>
+        )}
         <Switch
           checked={!!other_settings.get("auto_focus")}
           onChange={(e) => on_change("auto_focus", e.target.checked)}

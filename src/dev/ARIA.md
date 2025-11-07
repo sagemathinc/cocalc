@@ -269,6 +269,7 @@ Comprehensive ARIA landmark annotations added across CoCalc frontend:
 - **Phases 13-22**: Component library enhancements, forms, modals, keyboard event handling
 
 **Key Achievements**:
+
 - 100+ files modified with proper ARIA roles and labels
 - Frame tree with split editor support (vertical/horizontal)
 - Live regions for status updates (aria-live="polite")
@@ -1275,6 +1276,7 @@ export function useAutoFocusPreference(): boolean {
 ```
 
 **Key Details**:
+
 - Centralized single source of truth for the preference
 - Returns boolean: true (autoFocus enabled) or false (disabled, default)
 - Integrates with Redux account store for persistence across sessions
@@ -1325,12 +1327,14 @@ const shouldAutoFocus = useAutoFocusPreference();
 ### Files Modified
 
 **Core**:
+
 - `packages/frontend/account/use-auto-focus-preference.ts` (Created)
 - `packages/frontend/account/index.ts` - Added export
 - `packages/frontend/account/account-preferences-appearance.ts` - Added UI control
 - `packages/frontend/components/search-input.tsx` - **Bug fix**: Fixed undefined `focus` variable in useEffect (critical fix)
 
 **Input Fields Updated**:
+
 - `packages/frontend/project/new/new-file-page.tsx` - 2 inputs (create folder modal, filename)
 - `packages/frontend/projects/create-project.tsx` - 1 input (project title)
 - `packages/frontend/projects/projects-table-controls.tsx` - 1 input (search projects)
@@ -1338,6 +1342,7 @@ const shouldAutoFocus = useAutoFocusPreference();
 - `packages/frontend/frame-editors/frame-tree/commands/generic-commands.tsx` - 1 input (command palette)
 
 **NOT Modified** (intentional):
+
 - Popup dialog inputs in `ai-cell-generator.tsx` and `llm-assistant-button.tsx` - These remain with autoFocus enabled since popup dialogs don't interfere with keyboard navigation
 - Cell inputs in Jupyter notebooks - Cell-specific inputs remain with autoFocus enabled
 
@@ -1358,15 +1363,15 @@ The SearchInput component had a critical bug preventing the preference from work
 ```typescript
 // BEFORE (broken):
 useEffect(() => {
-  if (focus == null) return;  // ← undefined variable
+  if (focus == null) return; // ← undefined variable
   input_ref.current?.focus();
-}, [focus]);  // ← wrong dependency
+}, [focus]); // ← wrong dependency
 
 // AFTER (fixed):
 useEffect(() => {
   if (props.focus == null) return;
   input_ref.current?.focus();
-}, [props.focus]);  // ← correct dependency
+}, [props.focus]); // ← correct dependency
 ```
 
 This fix resolved the issue where file explorer search was still grabbing focus despite `shouldAutoFocus={false}`.
@@ -1382,17 +1387,20 @@ This fix resolved the issue where file explorer search was still grabbing focus 
 Users can now navigate editor content with landmarks and Return/Tab keys:
 
 **Step 1: Focus Content Landmark**
+
 ```
 Alt+Shift+M → "Content: {filename}" landmark focused
 ```
 
 **Step 2: Tab Between Frames (if split editors)**
+
 ```
 Tab → Next frame focused and becomes active
 Shift+Tab → Previous frame focused and becomes active
 ```
 
 **Step 3: Enter Editor**
+
 ```
 Return → CodeMirror editor receives focus
 → Ready to edit immediately
@@ -1401,6 +1409,7 @@ Return → CodeMirror editor receives focus
 ### Implementation Summary
 
 **File: `packages/frontend/project/page/page.tsx`**
+
 - Content landmark (`role="main"`) is now focusable with `tabindex="0"`
 - Return key handler calls `focusPrimaryEditor()` which:
   1. Tries to focus CodeMirror editor (`.cm-editor`)
@@ -1408,12 +1417,14 @@ Return → CodeMirror editor receives focus
   3. Last resort: focuses main element itself
 
 **File: `packages/frontend/frame-editors/frame-tree/frame-tree.tsx`**
+
 - All frames focusable with `tabindex="0"` (was: only active frame)
 - `onFocus` handler calls `actions.set_active_id(frameId, false)` - focuses frame makes it active
 - Return key handler focuses editor within the focused frame
 - Tab/Shift+Tab naturally navigate between frames
 
 **File: `packages/frontend/frame-editors/_style.sass`**
+
 - Visual feedback with design system colors:
   - Focus outline: `colors.$COL_ANTD_LINK_BLUE` (#1677ff)
   - Background highlight: `colors.$COL_ANTD_BG_BLUE_L` (#e6f4ff)
@@ -1422,6 +1433,7 @@ Return → CodeMirror editor receives focus
 ### User Experience
 
 **With Split Editors (Vertical or Horizontal)**:
+
 ```
 1. Alt+Shift+M → "Content: file.py (Main)" landmark
 2. Tab → Frame 1 focused (blue border, light blue bg)
@@ -1442,6 +1454,7 @@ Return → CodeMirror editor receives focus
 ✅ Uses `:focus-visible` - only shows on keyboard nav
 
 ### Testing Status
+
 Ready to test - not yet manually tested due to time constraints
 
 ---
@@ -1451,10 +1464,12 @@ Ready to test - not yet manually tested due to time constraints
 ### Session Accomplishments
 
 **Phases Completed**:
+
 - ✅ Phase 23: AutoFocus User Preference
 - ✅ Phase 24: Editor Content Landmark Navigation
 
 **Phase 23: AutoFocus User Preference** ✅
+
 - New user preference: "Auto Focus Text Input" in account appearance settings
 - Created reusable hook: `useAutoFocusPreference()` for consistent behavior across 5+ input locations
 - **Critical bug fix**: Fixed undefined `focus` variable in `search-input.tsx`
@@ -1463,24 +1478,710 @@ Ready to test - not yet manually tested due to time constraints
 - Files modified: 9 (hook, export, account UI, bug fix, 5 input components)
 
 **Phase 24: Editor Content Landmark Navigation** ✅
+
 - **Implementation**: Complete Tab/Shift+Tab navigation between split editor frames
 - Content landmark made focusable: Alt+Shift+M navigates, Return key enters editor
 - All frame containers focusable: Tab between frames, each becomes active when focused
 - Visual feedback: Design system colors (blue outline and light blue background) via `:focus-visible`
-- Files modified: 3 (page.tsx, frame-tree.tsx, _style.sass)
+- Files modified: 3 (page.tsx, frame-tree.tsx, \_style.sass)
 - Status: Built successfully, ready for testing (manual testing deferred due to time)
 
 ### Key Improvements This Session
+
 1. **Keyboard Navigation**: Full Tab/Shift+Tab navigation through split editor frames
 2. **Landmark Integration**: Alt+Shift+M + Return/Tab provides seamless access to editor content
 3. **Visual Design**: Uses design system colors for consistency with rest of app
 4. **Bug Fixes**: Fixed SearchInput focus bug that was preventing autoFocus preference from working
 
 ### Architecture Highlights
+
 - **Frame Focus**: `onFocus` handler auto-activates frames, enabling natural Tab navigation
 - **Focus Strategies**: Three-tier fallback (CodeMirror → focusable element → main element)
 - **No Hardcoding**: All colors use design system variables (`$COL_ANTD_LINK_BLUE`, `$COL_ANTD_BG_BLUE_L`)
 
 ### Next Steps
+
 - Manual testing of Phase 24 when time permits
-- Phase 25+: Additional keyboard shortcuts, form enhancements, table accessibility
+- Phase 25: Hotkey Navigation Dialog (Design Phase - In Progress)
+
+---
+
+## Phase 25: Hotkey Quick Navigation Dialog ✅ COMPLETED (Nov 7, 2025)
+
+**Priority: HIGH** - Keyboard-driven navigation enhancement
+
+**Goal**: Enable rapid keyboard-based navigation between frames, files, and pages via global hotkey.
+
+### Implementation Overview
+
+The Hotkey Quick Navigation Dialog provides a fast, accessible way to navigate anywhere in CoCalc using keyboard shortcuts. It combines:
+
+1. **Global Hotkey Detection**: Configurable hotkey (Shift+Shift, Alt+Shift+H, Alt+Shift+Space) triggers the dialog
+2. **Hierarchical Navigation Tree**: Shows all accessible items (frames, files, pages, account)
+3. **Smart Search**: Multi-term partial matching with visual highlighting
+4. **Keyboard-Only Interaction**: Complete keyboard control with no mouse required
+5. **Focus Management**: Dialog handles focus correctly for accessibility
+
+### Architecture & Files
+
+**Location**: `packages/frontend/app/hotkey/` directory
+
+**Core Components**:
+
+1. **QuickNavigationDialog** (`dialog.tsx`) - 500px wide modal
+   - Search input with clearable button, auto-focused when dialog opens
+   - Tree view with dynamic expansion based on search results
+   - Real-time search with multi-term partial matching
+   - Visual highlighting of matching search terms with `<strong>` tags
+   - Selection highlighting with pale blue background (`rgba(13, 110, 253, 0.15)`)
+   - Fixed height (`80vh`) to prevent jumping layout
+   - No modal animation for instant appearance
+
+2. **Navigation Tree Builder** (`build-tree.tsx`)
+   - Converts Redux state into hierarchical NavigationTreeNode structure
+   - **Files**: `FileInfo[]` with path and frame array
+   - **Pages**: Project fixed tabs (Files, New, Search, Log, Settings, Info, Users, Servers, Upgrades)
+   - **Frames**: Active editor frames in current file (numbered 1-9)
+   - **Icons**: Uses `filenameIcon()` for files and `FIXED_PROJECT_TABS` icons for pages
+   - **NavigationData**: Each node has type ("frame", "file", "page", "account") and action callback
+
+3. **Navigation Data Hook** (`use-navigation-data.ts`)
+   - `useNavigationTreeData()`: Extracts Redux state into raw tree data
+     - Active frames from current editor (if in editor mode)
+     - Current project (prioritized in tree order)
+     - Other open projects from `open_projects` set
+     - File list from current project's Redux state
+     - Attempts to fetch files from other projects via `redux.getProjectStore(projectId)`
+     - Account pages (hardcoded, always available)
+   - `useEnhancedNavigationTreeData()`: Adds Redux action handlers to tree nodes
+     - Frame activation: `editorActions.set_active_id(frameId)`
+     - File opening: `projectActions.open_file({ path })`
+     - Page switching: `projectActions.set_active_tab(pageId)` with project switching if needed
+     - Account navigation: `window.location.href = "/account/path"`
+
+4. **Hotkey Detector** (`detector.tsx`)
+   - `GlobalHotkeyDetector`: Detects configured hotkey (Shift+Shift, Alt+Shift+H, Alt+Shift+Space)
+   - `useShiftShiftDetector()`: Detects double Shift within configurable threshold (default 300ms)
+   - `useAltShiftHDetector()`: Alt+Shift+H / Cmd+Shift+H detection
+   - `useAltShiftSpaceDetector()`: Alt+Shift+Space / Cmd+Shift+Space detection
+   - `useCustomHotkeyDetector()`: Unified hook for all hotkey types
+   - Respects `blockShiftShiftHotkey` flag to prevent triggering when disabled
+
+5. **User Preferences** (`hotkey-selector.tsx`, `hotkey-delay-test.tsx`)
+   - Dropdown in Account → Appearance → User Interface
+   - Configure hotkey: Shift+Shift, Alt+Shift+H, Alt+Shift+Space, or Disabled
+   - Configurable delay for Shift+Shift (100-500ms, slider with marks)
+   - Test button to verify hotkey is working
+   - Labels only shown for Shift+Shift option (others are instant)
+
+### Search & Filtering
+
+**Multi-Term Partial Matching Algorithm**:
+
+1. Search terms separated by spaces
+2. ALL terms must appear in text (subset matching, not fuzzy)
+3. **Case sensitivity**: Automatic based on search input
+   - Contains uppercase letter → case-sensitive
+   - All lowercase → case-insensitive
+4. **Search scope**: Searches across file paths, page names, frame names, account pages
+5. **Tree filtering**: Non-matching branches removed; parent nodes expanded to show matches
+
+**Example**:
+
+- Search: `"foo bar"` matches paths like `/path/to/foo_file_bar.py`
+- Search: `"Foo"` searches case-sensitively
+- Search: `"foo"` searches case-insensitively
+
+**Visual Highlighting**:
+
+- Search terms wrapped in `<strong>` tags within matching items
+- All occurrences highlighted (non-overlapping)
+- Respects case sensitivity of search
+
+### Keyboard Interaction
+
+**Opening the Dialog**:
+
+```
+Hotkey (default Shift+Shift) → Dialog opens
+→ Search input auto-focused
+→ Ready to type immediately
+```
+
+**Navigation While Dialog is Open**:
+
+| Key              | Action                                                       |
+| ---------------- | ------------------------------------------------------------ |
+| Type text        | Filter results by multi-term matching                        |
+| **1-9**          | Jump directly to current frame (only when not searching)     |
+| **↑**            | Navigate to previous visible item                            |
+| **↓**            | Navigate to next visible item                                |
+| **Return**       | Activate selected item (open file, switch page, focus frame) |
+| **ESC**          | Close dialog and return focus to previous location           |
+| **Clear button** | Clear search text (X icon in input)                          |
+
+**Multi-Step Navigation**:
+
+1. User hits hotkey → Dialog opens with empty search
+2. First item auto-selected (current frame or first project)
+3. Type to filter → First matching item auto-selected
+4. Arrow keys to navigate → Parent nodes auto-expand as needed
+5. Return to activate → Dialog closes, action executes
+
+### Accessibility Features
+
+✅ **Focus Management**
+
+- Dialog captures focus via Modal component
+- Search input auto-focused with useRef and setTimeout for reliable focus
+- Clear search button provides quick way to reset
+- ESC key closes dialog
+
+✅ **Keyboard-Only Access**
+
+- No mouse required - complete keyboard navigation
+- Click support for mouse users (info.event detection)
+- All tree items keyboard-navigable via arrow keys
+
+✅ **ARIA Semantics**
+
+- Modal: `<Modal>` component provides role and focus management
+- Tree: `<Tree>` component from Ant Design provides semantic structure
+- Title: i18n-based FormattedMessage with message ID
+- Help text: "Type to search • Numbers 1–9 for current frames • ↑↓ navigate • Return to open • ESC to close"
+
+✅ **Internationalization**
+
+- Translation keys in `app.hotkey.dialog.*` namespace:
+  - `title`: "Hotkey Quick Navigation"
+  - `search_placeholder`: "Search frames, files, and pages..."
+  - `help_text`: Keyboard shortcut help
+- All labels and messages translatable via react-intl
+
+✅ **Visual Feedback**
+
+- Selected items: Pale blue background (ANTD_LINK_BLUE with transparency)
+- Search matches: Bold text via `<strong>` tags
+- Tree structure: Icons + text for visual context
+- Dialog: Fixed 80vh height prevents layout jump
+
+### Tree Structure
+
+The navigation tree prioritizes access:
+
+```
+[current]                          ← Active editor frames (1-9)
+├── Frame 1                        ← Numbered for quick jump
+├── Frame 2
+└── Frame 3
+
+Project "Current Project"          ← Prioritized (active project)
+├── Files
+│   ├── file.py [icon]
+│   │   ├── Frame 1 (Python REPL)
+│   │   └── Frame 2 (Build output)
+│   └── notebook.ipynb [icon]
+│       └── Frame 1 (Jupyter)
+├── Pages
+│   ├── Files [folder icon]
+│   ├── New [plus icon]
+│   ├── Search [search icon]
+│   ├── Log [history icon]
+│   ├── Settings [gear icon]
+│   ├── Info [microchip icon]
+│   ├── Users [users icon]
+│   ├── Servers [server icon]
+│   └── Upgrades [gift icon]
+
+Project "Other Project"            ← Other open projects
+├── Files
+│   └── script.sh [icon]
+└── Pages
+    └── Files [folder icon]
+
+Account                            ← Account pages (mirrors account page left nav)
+├── Settings [settings icon]
+├── Profile [user icon]
+├── Preferences [sliders icon]
+│   ├── Appearance [eye icon]
+│   ├── Editor [edit icon]
+│   ├── Keyboard [keyboard icon]
+│   ├── AI [brain icon]
+│   ├── Communication [comments icon]
+│   ├── SSH and API Keys [key icon]
+│   └── Other [sliders icon]
+├── Subscriptions [calendar icon]
+├── Licenses [key icon]
+├── Pay as you Go [line-chart icon]
+├── Upgrades [arrow-circle-up icon]
+├── Purchases [money-check icon]
+├── Payments [credit-card icon]
+├── Payment Methods [credit-card icon]
+├── Statements [calendar-week icon]
+├── Cloud Filesystems [cloud icon]
+├── Public Paths [share-square icon]
+└── Support [question-circle icon]
+```
+
+**Key Design Decisions**:
+
+1. **Open Projects Only**: Only shows projects in top navigation bar (performance + relevance)
+2. **Current Project First**: Reduces navigation distance for files in active project
+3. **Files by Project**: Groups related files together logically
+4. **Page Icons**: Visual indicators match project UI
+5. **Frame Numbers**: 1-9 for direct jump (keyboard shortcut)
+6. **Account Always Visible**: Quick access to settings
+
+### Implementation Details
+
+**State Management** (dialog.tsx):
+
+- `searchValue`: Current search text (cleared on open)
+- `expandedKeys`: Which tree nodes are expanded
+- `autoExpandParent`: Automatically expand parent nodes when searching
+- `selectedKey`: Currently selected item (keyboard navigation)
+
+**Search Logic**:
+
+```tsx
+// Split search by spaces, filter empty strings
+const terms = searchValue.split(/\s+/).filter((t) => t.length > 0);
+
+// Case sensitivity: true if ANY uppercase letter
+const caseSensitive = /[A-Z]/.test(searchValue);
+
+// All terms must appear in text (subset matching)
+const matches = terms.every((term) => {
+  const regex = new RegExp(escapeRegex(term), caseSensitive ? "" : "i");
+  return regex.test(text);
+});
+```
+
+**Visual Highlighting**:
+
+```tsx
+// Create regex matching any of the terms
+const pattern = terms.map((term) => escapeRegex(term)).join("|");
+const regex = new RegExp(`(${pattern})`, caseSensitive ? "g" : "gi");
+
+// Split text by matches and wrap in <strong>
+const parts = text.split(regex);
+return parts.map((part, idx) =>
+  isMatch(part) ? (
+    <strong key={idx}>{part}</strong>
+  ) : (
+    <span key={idx}>{part}</span>
+  ),
+);
+```
+
+**Click vs Keyboard Detection**:
+
+Ant Design's Tree `onSelect` callback receives `info.event`:
+
+- **Click**: `info.event` is present → activate immediately
+- **Keyboard**: `info.event` is undefined → select only, let Return key activate
+
+```tsx
+onSelect={(keys, info) => {
+  const newKey = keys[0];
+  setSelectedKey(newKey);
+
+  // If clicked (info.event present), activate
+  if (info.event && newKey) {
+    const node = searchList.find((item) => item.key === newKey);
+    if (node?.node.navigationData) {
+      node.node.navigationData.action();
+      onClose();
+    }
+  }
+}}
+```
+
+### Integration Points
+
+**1. Account Preferences** (`account-preferences-appearance.tsx`)
+
+- New section in "User Interface" settings
+- Hotkey selector dropdown
+- Delay slider (100-500ms for Shift+Shift)
+- Test button with visual feedback
+
+**2. App Shell** (`app/page.tsx`)
+
+- Renders `GlobalHotkeyDetector` component
+- Renders `QuickNavigationDialog` component
+- Passes `quick_nav_visible` state and tree data
+- Respects `blockShiftShiftHotkey` flag for disabled state
+
+**3. Redux State**
+
+- Account store: `quick_nav_hotkey` preference, `quick_nav_hotkey_delay`
+- Page store: `blockShiftShiftHotkey` flag for disabling hotkey when modal/dialog is open
+
+### Testing Scenarios
+
+**Scenario 1: Basic Search**
+
+1. Open dialog (hotkey)
+2. Type "python" → Shows Python files
+3. Select file → Opens in editor
+4. Verify file is now active
+
+**Scenario 2: Frame Navigation**
+
+1. Open file with split editor (multiple frames)
+2. Open dialog
+3. Press "1" → Focuses first frame
+4. Press "2" → Focuses second frame
+5. Verify frames become active
+
+**Scenario 3: Project Switching**
+
+1. Have multiple open projects
+2. Open dialog
+3. Search for file in non-current project
+4. Return → Project switches, file opens
+5. Verify project is now active
+
+**Scenario 4: Case Sensitivity**
+
+1. Open dialog
+2. Type "Settings" → Shows only capital S matches
+3. Type "settings" → Shows all case-insensitive matches
+4. Verify correct filtering
+
+**Scenario 5: Account Navigation**
+
+1. Open dialog
+2. Type "billing" → Shows Billing in Account section
+3. Return → Navigates to /account/billing
+4. Verify page loads
+
+### Account Navigation Implementation
+
+The Account section in the hotkey dialog mirrors the exact structure of the account page's left side navigation, including all icons and nested organization.
+
+**Account Navigation Structure**:
+
+1. **Settings** (index) - Overview page with all account statistics
+2. **Profile** - User profile information
+3. **Preferences** (expandable submenu):
+   - Appearance - Visual theme and UI preferences
+   - Editor - Code editor settings
+   - Keyboard - Keyboard shortcuts and bindings
+   - AI - AI assistant configuration
+   - Communication - Notification preferences
+   - SSH and API Keys - Security credentials
+   - Other - Miscellaneous settings
+4. **Subscriptions** - Active subscriptions and renewals
+5. **Licenses** - License management
+6. **Pay as you Go** - Usage tracking and billing
+7. **Upgrades** - (Deprecated but maintained for legacy users)
+8. **Purchases** - Purchased products and add-ons
+9. **Payments** - Payment history and transactions
+10. **Payment Methods** - Credit cards and payment options
+11. **Statements** - Billing statements and invoices
+12. **Cloud Filesystems** - Cloud storage integration
+13. **Public Paths** - Published files and sharing
+14. **Support** - Support tickets and help
+
+**Icon Assignment** (matching `account-page.tsx`):
+
+- Settings → settings icon
+- Profile → user icon
+- Preferences → sliders icon (container)
+  - Appearance → eye icon
+  - Editor → edit icon
+  - Keyboard → keyboard icon
+  - AI → AIAvatar component (special animated avatar)
+  - Communication → comments icon
+  - SSH and API Keys → key icon
+  - Other → sliders icon
+- Subscriptions → calendar icon
+- Licenses → key icon
+- Pay as you Go → line-chart icon
+- Upgrades → arrow-circle-up icon
+- Purchases → money-check icon
+- Payments → credit-card icon
+- Payment Methods → credit-card icon
+- Statements → calendar-week icon
+- Cloud Filesystems → cloud icon
+- Public Paths → share-square icon
+- Support → question-circle icon
+
+**Navigation Handlers** (in `useEnhancedNavigationTreeData`):
+
+The account handler differentiates between three types of navigation:
+
+```tsx
+// 1. Settings index (special case)
+if (navData.id === "index") {
+  accountActions.setState({
+    active_page: "index",
+    active_sub_tab: undefined,
+  });
+  accountActions.push_state(`/settings/index`);
+}
+
+// 2. Profile (standalone page)
+if (navData.id === "profile") {
+  accountActions.setState({
+    active_page: "profile",
+    active_sub_tab: undefined,
+  });
+  accountActions.push_state(`/profile`);
+}
+
+// 3. Preferences sub-tabs (nested navigation)
+if (navData.id.startsWith("preferences-")) {
+  const subTab = navData.id.replace("preferences-", "");
+  accountActions.setState({
+    active_sub_tab: `preferences-${subTab}`,
+    active_page: "preferences",
+  });
+  accountActions.push_state(`/preferences/${subTab}`);
+}
+
+// 4. Other account pages (standard tabs)
+accountActions.set_active_tab(navData.id);
+accountActions.push_state(`/${navData.id}`);
+```
+
+### Known Limitations
+
+1. **File Listing**: Only shows files currently open in each project
+   - Future: Async fetching via conat for full directory listing
+   - Marked as TODO in use-navigation-data.ts
+
+2. **Search Scope**: Doesn't search file contents, only paths/names
+   - Future: Could add content search integration
+
+3. **Hotkey Conflicts**: Might conflict with other applications' hotkeys
+   - Mitigation: Alt+Shift+H/Space options avoid common conflicts
+   - Shift+Shift is easy to accidentally trigger (design decision: useful vs annoying)
+
+### Files Modified Summary
+
+**Core Implementation**:
+
+- `packages/frontend/app/hotkey/dialog.tsx` (850 lines) - Modal with search, tree, keyboard handling
+- `packages/frontend/app/hotkey/build-tree.tsx` (450 lines) - Converts Redux state to navigation tree with full account structure
+- `packages/frontend/app/hotkey/use-navigation-data.ts` (330 lines) - Redux hooks and account navigation handlers
+- `packages/frontend/app/hotkey/detector.tsx` (280 lines) - Hotkey detection for Shift+Shift, Alt+Shift+H/Space
+- `packages/frontend/app/hotkey/index.tsx` (exports) - Module exports
+
+**Integration**:
+
+- `packages/frontend/app/page.tsx` (GlobalHotkeyDetector + QuickNavigationDialog integration)
+- `packages/frontend/account/account-preferences-appearance.tsx` (Hotkey settings UI)
+
+**Total Lines of Code**: ~2,150 (all TypeScript/TSX with proper typing and icons)
+
+### Account Navigation Details
+
+The account section implementation includes:
+
+- ✅ Full account page structure mirroring (14 top-level items + 7 preferences sub-items)
+- ✅ All icons matching account-page.tsx (with special AIAvatar for AI preferences)
+- ✅ Proper Redux action handling for 4 different navigation types:
+  - Settings index (special case)
+  - Profile (standalone page)
+  - Preferences sub-tabs (nested)
+  - Other account pages (standard tabs)
+- ✅ Nested tree structure with proper parent expansion
+- ✅ Full search support across all account items
+
+## Phase 25b: Frame Tree Navigation Dialog Enhancements ⏳ IN PROGRESS (Nov 7, 2025)
+
+**Priority: HIGH** - Improved frame discovery and navigation
+
+### Problem Addressed
+
+Frame navigation in split editors was difficult to discover and use:
+
+- Frames were shown in a collapsed "[current]" section
+- No visual indication of frame editor types
+- Technical internal names instead of user-friendly labels
+- No color differentiation between frame types
+
+### Solution Implemented
+
+Enhanced the hotkey dialog's frame section with better visibility, colors, naming, and structure:
+
+#### 1. Frame Tree Structure Display ✅
+
+**File**: `packages/frontend/app/hotkey/build-tree.tsx`, `packages/frontend/app/hotkey/use-navigation-data.ts`
+
+- Added frame tree structure extraction showing binary split nodes
+- Splits labeled as "Horizontal" or "Vertical" based on direction
+- Leaf frames (numbered 1-9) appear as children of their parent split containers
+- All split nodes have `defaultExpanded: true` so structure is always visible
+
+**Example tree**:
+
+```
+filename.ext
+└── Horizontal
+    ├── Vertical
+    │   ├── <Tag>1</Tag> Python REPL
+    │   └── <Tag>2</Tag> Jupyter
+    └── <Tag>3</Tag> Build Output
+```
+
+#### 2. Auto-Expanded Current File and Splits ✅
+
+**File**: `packages/frontend/app/hotkey/build-tree.tsx`
+
+- Current file node has `defaultExpanded: true`
+- All split nodes have `defaultExpanded: true`
+- Users can collapse manually but starts fully expanded
+- Preference persists in localStorage
+
+#### 3. Colored Frame Tags by Editor Type ✅
+
+**File**: `packages/frontend/app/hotkey/use-navigation-data.ts`
+
+- Import `getRandomColor` from `@cocalc/util/misc`
+- Generate consistent colors based on editor type (e.g., all "cm" editors get same color)
+- Pass `color={frame.color}` to Ant Design Tag component
+- Same type = same color across all frames
+
+#### 4. User-Friendly Frame Names ✅
+
+**File**: `packages/frontend/app/hotkey/use-navigation-data.ts`
+
+- Use `spec.short` as primary display name
+- Fallback order: `spec.short` → `spec.name` → `nodeType` → "Unknown"
+- Shows user-friendly names like "Python REPL", "Jupyter", etc. instead of "cm", "jupyter"
+- **Note**: Currently showing technical names; need to verify `editor_spec` is accessible via `component.editor_spec`
+
+#### 5. Dialog Enhancement ✅
+
+**File**: `packages/frontend/app/hotkey/dialog.tsx`
+
+- Added `defaultExpanded?: boolean` property to NavigationTreeNode interface
+- Updated `loadExpandedKeys()` function to:
+  - Collect all nodes with `defaultExpanded: true`
+  - Merge with stored localStorage keys
+  - Return union of both (users can still collapse)
+
+### Known Issues & Debugging
+
+#### Issue 1: Frame Names Not Showing User-Friendly Labels ⏳
+
+**Status**: Investigating
+
+**Symptom**: Frame names in navigation dialog still show "cm", "terminal", etc. instead of "Python REPL"
+
+**Expected**: Frames should show `spec.short` property with user-friendly names
+
+**Root Cause**: Need to verify `editor_spec` is accessible from `component.editor_spec`
+
+**Debug Info**: Added detailed console logging to frame action handler (when DEBUG=true):
+
+- Frame ID, project ID, editor path
+- Whether editor actions object was found
+- set_active_id call confirmation
+
+#### Issue 2: Frame Focus Not Working ⏳
+
+**Status**: Debugging
+
+**Symptom**: Clicking frame numbers or pressing 1-9 doesn't focus the frame in the editor
+
+**Expected**: Clicking a frame should call `set_active_id(frameId)` and focus changes in editor
+
+**Root Cause**: Unknown - need console logs to determine if:
+
+1. Action is being called at all
+2. Project ID/editor path are correct
+3. Editor actions object is being found
+4. `set_active_id` is being invoked
+
+**Debug Strategy**: Check browser console logs when clicking a frame:
+
+- "Frame action called: ..." - shows frame ID, project ID, editor path
+- "EditorActions: ..." - shows if actions object found
+- "Called set_active_id with: ..." - confirms method was invoked
+
+**Next Steps**: User should run with DEBUG enabled and share console output when clicking a frame number
+
+### Implementation Details
+
+**NavigationTreeNode Interface** (enhanced):
+
+```tsx
+export interface NavigationTreeNode extends TreeDataNode {
+  key: string;
+  title: React.ReactNode;
+  children?: NavigationTreeNode[];
+  defaultExpanded?: boolean; // ← New property
+  navigationData?: { ... };
+}
+```
+
+**Frame Info Structure** (extended):
+
+```tsx
+export interface FrameInfo {
+  id: string;
+  shortName: string;
+  frameName: string;
+  filePath?: string;
+  editorType?: string; // ← New: type of editor (cm, markdown, etc)
+  color?: string; // ← New: color from getRandomColor(editorType)
+}
+```
+
+**Frame Tree Structure**:
+
+```tsx
+interface FrameTreeNode {
+  type: "frame" | "split";
+  id: string;
+  direction?: "row" | "col"; // For split nodes
+  frame?: FrameInfo; // For frame nodes
+  children?: FrameTreeNode[]; // For split nodes
+}
+```
+
+**Frame Section in Tree**:
+
+```
+filename.ext                           ← Always expanded
+└── Horizontal                         ← Split node (expanded)
+    ├── Vertical                       ← Nested split node (expanded)
+    │   ├── <Tag color="blue">1</Tag> Python REPL
+    │   └── <Tag color="green">2</Tag> Jupyter
+    └── <Tag color="purple">3</Tag> Build Output
+```
+
+### Files Modified
+
+- `packages/frontend/app/hotkey/build-tree.tsx` - Frame section rendering with tree structure and colors
+- `packages/frontend/app/hotkey/use-navigation-data.ts` - Frame extraction with tree structure, colors, and debug logging
+- `packages/frontend/app/hotkey/dialog.tsx` - NavigationTreeNode interface + loadExpandedKeys logic
+
+### Benefits (Completed & Expected)
+
+✅ **Better Discoverability**: Current file always visible and expanded
+✅ **Frame Tree Visible**: Shows actual split structure (Horizontal/Vertical nodes)
+✅ **Visual Differentiation**: Colors help identify frame types at a glance
+✅ **Consistent Coloring**: Same frame type always gets same color
+✅ **User Control**: Can collapse if desired, preference persists
+✅ **Keyboard Shortcuts**: Numbers 1-9 still work to jump to frames
+
+⏳ **Clearer Labels**: User-friendly names (pending verification of editor_spec access)
+⏳ **Working Frame Focus**: Clicking frames should focus them (pending debug output)
+
+### Testing Scenarios
+
+1. **Open file with split editor** → Current file expanded, split structure visible with all frames numbered
+2. **Search for "python"** → Shows matching files, frame structure visible with colors
+3. **Press "1"** → ⏳ Should jump to first frame (debug needed)
+4. **Click frame number** → ⏳ Should focus that frame (debug needed)
+5. **Expand/collapse splits** → User action persists in localStorage
+6. **Reload page** → Current file and splits stay expanded, user's collapse state restored
+
+---

@@ -8,8 +8,6 @@ This defines the entire **desktop** Cocalc page layout and brings in
 everything on *desktop*, once the user has signed in.
 */
 
-declare var DEBUG: boolean;
-
 import type { IconName } from "@cocalc/frontend/components/icon";
 
 import { Spin } from "antd";
@@ -28,6 +26,11 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ClientContext } from "@cocalc/frontend/client/context";
 import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  GlobalHotkeyDetector,
+  QuickNavigationDialog,
+  useEnhancedNavigationTreeData,
+} from "@cocalc/frontend/app/hotkey";
 import Next from "@cocalc/frontend/components/next";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
@@ -81,7 +84,7 @@ const PAGE_STYLE: CSS = {
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
 
-  const { pageStyle } = useAppContext();
+  const { pageStyle, blockShiftShiftHotkey } = useAppContext();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const intl = useIntl();
@@ -113,6 +116,24 @@ export const Page: React.FC = () => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const local_storage_warning = useTypedRedux("page", "local_storage_warning");
   const cookie_warning = useTypedRedux("page", "cookie_warning");
+
+  // Quick Navigation (hotkey navigation)
+  const other_settings = useTypedRedux("account", "other_settings");
+  const quick_nav_hotkey:
+    | "shift+shift"
+    | "alt+shift+h"
+    | "alt+shift+space"
+    | "disabled" =
+    (other_settings?.get("quick_nav_hotkey") as unknown as
+      | "shift+shift"
+      | "alt+shift+h"
+      | "alt+shift+space"
+      | "disabled"
+      | null) ?? "shift+shift"; // Default: shift+shift
+  const quick_nav_hotkey_delay =
+    other_settings?.get("quick_nav_hotkey_delay") ?? 300; // Default: 300ms
+  const [quick_nav_visible, setQuickNavVisible] = useState<boolean>(false);
+  const quick_nav_tree_data = useEnhancedNavigationTreeData();
 
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
@@ -343,9 +364,6 @@ export const Page: React.FC = () => {
   // TEST: make sure that usual drag'n'drop activities
   // like rearranging tabs and reordering tasks work
   function drop(e) {
-    if (DEBUG) {
-      e.persist();
-    }
     //console.log "react desktop_app.drop", e
     e.preventDefault();
     e.stopPropagation();
@@ -405,10 +423,23 @@ export const Page: React.FC = () => {
       <PayAsYouGoModal />
       <PopconfirmModal />
       <SettingsModal />
+      <QuickNavigationDialog
+        visible={quick_nav_visible}
+        onClose={() => setQuickNavVisible(false)}
+        treeData={quick_nav_tree_data}
+      />
     </div>
   );
   return (
     <ClientContext.Provider value={{ client: webapp_client }}>
+      <GlobalHotkeyDetector
+        hotkey={is_logged_in ? quick_nav_hotkey : "disabled"}
+        onTriggered={() => {
+          setQuickNavVisible(true);
+        }}
+        delayMs={quick_nav_hotkey_delay}
+        blocked={blockShiftShiftHotkey ?? false}
+      />
       {body}
     </ClientContext.Provider>
   );

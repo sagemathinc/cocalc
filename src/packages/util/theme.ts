@@ -95,6 +95,7 @@ const MAIN_COLORS = {
   FG_BLUE: "#428bca", // blue used for text
   BG_WARNING: "#f0ad4e", // e.g. used for the orange warning when a button is active
 
+  ANTD_BLUE: "#1677ff", // Ant Design primary blue
   ANTD_LINK_BLUE: "#1677ff", // blue used for links
   ANTD_LINK_BLUE_DARK: "#003eb3", // dark blue used for links
 
@@ -107,9 +108,11 @@ const MAIN_COLORS = {
   STAR: "#FFD700", // gold star
 
   ANTD_RED: "#f5222d", // hefty warning (needs white text on top of it)
+  ANTD_ERROR_RED: "#ff4d4f", // Ant Design error red
   ANTD_ORANGE: "#ffbb96", // mild warning
   ANTD_GREEN: "#87d068", // bright lime-ish green
   ANTD_GREEN_D: "#237804", // dark green
+  ANTD_SUCCESS_GREEN: "#52c41a", // Ant Design success green
 
   COCALC_BLUE: "#4474c0", // blue used for the logo
   COCALC_ORANGE: "#fcc861", // orange used for the logo
