@@ -36,6 +36,7 @@ import React from "react";
 
 import { AccountState } from "@cocalc/frontend/account/types";
 import {
+  CSS,
   redux,
   Rendered,
   useEffect,
@@ -56,37 +57,37 @@ import * as tree_ops from "./tree-ops";
 import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
 
 interface FrameTreeProps {
-  actions: Actions;
-  active_id: string;
-  available_features: AvailableFeatures;
-  complete: Map<string, any>;
-  cursors: Map<string, any>;
-  derived_file_types: Set<string>;
-  editor_settings: AccountState["editor_settings"];
-  editor_spec: EditorSpec;
+  actions: Actions; // The Actions object for dispatching state changes
+  active_id: string; // ID of the currently active frame
+  available_features: AvailableFeatures; // Which features are available based on project permissions
+  complete: Map<string, any>; // Completion data for autocomplete suggestions
+  cursors: Map<string, any>; // Other users' cursor positions for collaborative editing
+  derived_file_types: Set<string>; // Set of derived file types (related outputs)
+  editor_settings: AccountState["editor_settings"]; // Account-level editor preferences
+  editor_spec: EditorSpec; // Configuration/spec for the editor (defines capabilities, panels)
   editor_state: EditorState; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
-  font_size: number;
-  frame_tree: Map<string, any>;
-  full_id: string;
-  has_uncommitted_changes: boolean;
-  has_unsaved_changes: boolean;
-  is_only: boolean;
-  is_public: boolean;
-  is_saving: boolean;
-  is_visible: boolean;
-  local_view_state: Map<string, any>;
-  misspelled_words: Set<string>;
+  font_size: number; // Current font size for the editor
+  frame_tree: Map<string, any>; // Binary tree structure defining frame splits and leaf nodes
+  full_id: string; // Unique identifier combining project and editor
+  has_uncommitted_changes: boolean; // File has changes not committed to database
+  has_unsaved_changes: boolean; // File has changes not saved to disk
+  is_only: boolean; // True if this is the only frame (no splits); use to show/hide split controls
+  is_public: boolean; // File is publicly accessible
+  is_saving: boolean; // Currently saving to disk
+  is_visible: boolean; // Editor tab is visible (not hidden)
+  local_view_state: Map<string, any>; // Local view state (scroll position, fold state, etc.)
+  misspelled_words: Set<string>; // Set of misspelled words for spellcheck
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
   path: string; // assumed to never change -- all frames in same project
   project_id: string; // assumed to never change -- all frames in same project
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
-  reload: Map<string, number>;
+  reload: Map<string, number>; // Signals when frames should reload
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
-  settings: Map<string, any>;
-  status: string;
-  tab_is_visible: boolean;
+  settings: Map<string, any>; // Local editor-specific settings
+  status: string; // Editor status string (idle, syncing, etc.)
+  tab_is_visible: boolean; // Tab visibility state (same as is_visible)
   terminal?: Map<string, any>; // terminal settings from account
-  value?: string;
+  value?: string; // Document content
 }
 
 function shouldMemoize(prev, next) {
@@ -168,7 +169,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       };
     }, []);
 
-    function render_frame_tree(desc) {
+    function render_frame_tree(desc: NodeDesc) {
       return (
         <FrameTree
           actions={actions}
@@ -392,25 +393,94 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         reset_frame_tree();
         return <div>{mesg}</div>;
       }
+
+      function handleFrameKeyDown(e: React.KeyboardEvent) {
+        // Return/Enter: focus the editor content within this frame
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          const frameContainer = e.currentTarget as HTMLElement;
+
+          // Strategy 1: Look for active/focused contenteditable element (Jupyter cells, etc.)
+          let target = frameContainer.querySelector(
+            "[contenteditable='true']:not([contenteditable='false'])",
+          ) as HTMLElement;
+          if (target) {
+            target.focus();
+            return;
+          }
+
+          // Strategy 2: Look for CodeMirror editors (both v5 and v6)
+          target = frameContainer.querySelector(
+            ".cm-editor, .CodeMirror-code",
+          ) as HTMLElement;
+          if (target) {
+            target.focus();
+            return;
+          }
+
+          // Strategy 3: Look for input fields, textareas, or other interactive elements
+          // (excluding toolbar buttons by looking inside editor containers)
+          const editorContent = frameContainer.querySelector(
+            "[role='region'], .smc-vfill-container, .frame-content",
+          ) as HTMLElement;
+          if (editorContent) {
+            target = editorContent.querySelector(
+              "input, textarea, [tabindex]:not([tabindex='-1'])",
+            ) as HTMLElement;
+            if (target) {
+              target.focus();
+              return;
+            }
+          }
+
+          // Strategy 4: Focus any input/textarea in the frame
+          target = frameContainer.querySelector(
+            "input, textarea",
+          ) as HTMLElement;
+          if (target) {
+            target.focus();
+          }
+        }
+
+        // Tab/Shift+Tab: switch between frames
+        // This allows tabbing through split editors without using arrow keys
+        if (e.key === "Tab" && !e.ctrlKey && !e.metaKey) {
+          // Note: Tab behavior could be enhanced to move to next frame
+          // For now, we let native tab behavior work
+        }
+      }
+
+      const frameId = desc.get("id");
+      const isActive = active_id === frameId;
+
       return (
         <FrameContext.Provider
           value={{
-            id: desc.get("id"),
+            id: frameId,
             project_id,
             path,
             actions: editor_actions,
             desc,
             font_size: desc.get("font_size") ?? font_size,
-            isFocused: active_id == desc.get("id"),
+            isFocused: isActive,
             isVisible: tab_is_visible,
             redux,
           }}
         >
           <div
-            className={"smc-vfill"}
-            onClick={() => actions.set_active_id(desc.get("id"), true)}
-            onTouchStart={() => actions.set_active_id(desc.get("id"))}
-            style={spec != null ? spec.style : undefined}
+            className={`smc-vfill ${isActive ? "frame-editor-active" : ""}`}
+            onClick={() => actions.set_active_id(frameId, true)}
+            onTouchStart={() => actions.set_active_id(frameId)}
+            // Keyboard accessibility: all frames focusable via Tab/Shift+Tab navigation
+            // When a frame receives focus, it becomes the active frame
+            tabIndex={0}
+            onFocus={() => actions.set_active_id(frameId, false)}
+            onKeyDown={handleFrameKeyDown}
+            style={{
+              ...((spec != null ? spec.style : {}) as React.CSSProperties),
+              outline: "none", // Remove default outline; :focus-visible will handle it
+            }}
           >
             {render_titlebar(desc, spec, editor_actions)}
             {render_leaf(desc, component, spec, editor_actions)}
@@ -419,16 +489,20 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       );
     }
 
-    function get_pos() {
-      let left;
-      let pos = (left = parseFloat(frame_tree.get("pos"))) != null ? left : 0.5;
-      if (isNaN(pos)) {
-        pos = 0.5;
-      }
-      return pos;
+    function get_pos(): number {
+      // Get the frame split position (0 to 1), defaulting to 0.5 (middle)
+      const pos = parseFloat(frame_tree.get("pos"));
+      return isNaN(pos) ? 0.5 : pos;
     }
 
-    function get_data(flex_direction) {
+    function get_data(flex_direction): {
+      pos: number;
+      first: NodeDesc;
+      style_first: CSS;
+      second: NodeDesc;
+      style_second: CSS;
+      outer_style: CSS;
+    } {
       const pos = get_pos();
       const data = {
         pos,

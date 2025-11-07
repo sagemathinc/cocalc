@@ -374,6 +374,59 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     }
   }
 
+  function focusPrimaryEditor() {
+    if (!mainRef.current) {
+      return;
+    }
+
+    // Find the active frame container (which has frame-editor-active class)
+    const activeFrame = mainRef.current.querySelector(
+      ".frame-editor-active",
+    ) as HTMLElement;
+    if (!activeFrame) {
+      return;
+    }
+
+    // Strategy 1: Try to focus contenteditable element (Jupyter cells, rich editors)
+    let target = activeFrame.querySelector(
+      "[contenteditable='true']:not([contenteditable='false'])",
+    ) as HTMLElement;
+    if (target) {
+      target.focus();
+      return;
+    }
+
+    // Strategy 2: Try CodeMirror editors
+    target = activeFrame.querySelector(
+      ".cm-editor, .CodeMirror-code",
+    ) as HTMLElement;
+    if (target) {
+      target.focus();
+      return;
+    }
+
+    // Strategy 3: Try input/textarea elements
+    target = activeFrame.querySelector(
+      "input:not([type='hidden']), textarea",
+    ) as HTMLElement;
+    if (target) {
+      target.focus();
+      return;
+    }
+
+    // Fallback: Focus the frame itself
+    activeFrame.focus();
+  }
+
+  function handleContentKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      focusPrimaryEditor();
+      // Don't prevent default - let the editor's native handlers process Return
+      // (e.g., Jupyter's edit mode toggle, CodeMirror's newline insertion)
+      return;
+    }
+  }
+
   function renderMainContent() {
     // Find the current file being edited and extract just the filename
     let currentFilename = active_project_tab;
@@ -388,15 +441,19 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
     return (
       // ARIA: main element for primary editor content
+      // Focusable landmark: Alt+Shift+M navigates here, Return key focuses the editor
       <div
         ref={mainRef}
         role="main"
         aria-label={`Content: ${currentFilename}`}
+        tabIndex={0}
+        onKeyDown={handleContentKeyDown}
         style={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
           overflowX: "auto",
+          outline: "none", // Remove default outline; CSS provides better styling
         }}
       >
         {START_BANNER && <StartButton />}
