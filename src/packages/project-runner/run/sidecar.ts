@@ -59,7 +59,7 @@ const COCALC_SNAPSHOTS = ".snapshots";
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.7.2";
+const VERSION = "0.7.4";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
@@ -71,8 +71,7 @@ COPY restore-rootfs.sh /usr/local/bin/restore-rootfs.sh
 COPY backup-home.sh /usr/local/bin/backup-home.sh
 COPY restore-home.sh /usr/local/bin/restore-home.sh
 
-ENV REFLECT_TAG_DEBUG 1
-ENV REFLECT_HOME /tmp/${COCALC_REFLECT_SYNC}
+ENV REFLECT_HOME /root/${COCALC_REFLECT_SYNC}
 RUN chmod a+x /usr/local/bin/*
 
 RUN echo "reflect-sync daemon start && sleep infinity" > /run.sh
@@ -93,6 +92,8 @@ const ROOTFS_SUCCESS_SENTINEL = "etc/cocalc/initialized";
 const BACKUP_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
+
+exit 0
 
 mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
@@ -115,6 +116,8 @@ rsync -Hax --delete --numeric-ids \
 const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
+
+exit 0
 
 ssh ${FILE_SERVER_NAME} mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
 
@@ -253,7 +256,8 @@ export async function startSidecar({
     });
 
     if (!(await exists(join(upperdir, ROOTFS_SUCCESS_SENTINEL)))) {
-      // we have not *successfully* grabbed the rootfs, so grab it from the file-server:
+      // we have never before *successfully* grabbed the rootfs, so grab
+      // it from the file-server:
       bootlog({
         project_id,
         type: "copy-rootfs",
@@ -296,8 +300,6 @@ export async function startSidecar({
     // entire home directory below via rsync,
     // then setup reflect to sync it for the rest of the time it
     // lives on this server.
-    // TODO: might be fine to skip this initial rsync, though
-    // generally speaking straight rsync is optimal.
     bootlog({
       project_id,
       type: "copy-home",
@@ -334,22 +336,22 @@ export async function startSidecar({
       desc: "initializing file sync",
     });
 
-    // NOTES:
-    //   Do NOT use --max-staging-file-size=500M say, since
-    //   if you do then any time there is a file over that size,
-    //   mutagen gets stuck in an infinite loop trying repeatedly
-    //   to resend it!  NOT good.
     if (!knownReflectSessions.has("home")) {
       await podman([
         "exec",
         name,
         "reflect-sync",
         "create",
+        // TODO: for now we must disable-micro-sync:
+        "--disable-micro-sync",
         "--name=home",
-        `--ignore=${PROJECT_IMAGE_PATH}/`,
-        `--ignore=${COCALC_PROJECT_CACHE}/`,
-        `--ignore=${COCALC_REFLECT_SYNC}/`,
-        `--ignore=${COCALC_SNAPSHOTS}/`,
+        `--ignore=/${COCALC_PROJECT_CACHE}/`,
+        `--ignore=/${COCALC_REFLECT_SYNC}/`,
+        `--ignore=/${COCALC_SNAPSHOTS}`,
+        `--ignore=/${COCALC_SNAPSHOTS}/`,
+        // [ ] TODO: shouldn't be needed, but it is right now
+        "--ignore=/.local/share/reflect-sync/",
+        "--ignore=/.local/share/overlay/**/workdir/**",
         `${FILE_SERVER_NAME}:/root`,
         "/root",
       ]);
@@ -367,6 +369,7 @@ export async function startSidecar({
 
 export const backupRootFs = reuseInFlight(
   async ({ project_id, force }: { project_id: string; force?: boolean }) => {
+    return;
     // NOTE: very important to *not* do a backup while project is initially opening/loading, which
     // is why we have to check that the project is running.
     if (!force && (starting.has(project_id) || stopping.has(project_id))) {

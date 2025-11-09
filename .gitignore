@@ -184,8 +184,10 @@ src/packages/lite/sea/cocalc*gnu
 *.pkg
 *.zip
 
-src/packages/lite/build
-src/packages/project-runner/build
+src/packages/lite/build/
+src/packages/project/build/
+src/packages/project-runner/build/
+
 
 codex.sh
 

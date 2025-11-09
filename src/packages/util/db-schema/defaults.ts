@@ -28,7 +28,7 @@ export const DEFAULT_COMPUTE_IMAGE = "ubuntu2404";
 // we switch over to 20.04, we will keep older projects on 18.04 (explicit upgrade)
 export const FALLBACK_COMPUTE_IMAGE = "default";
 
-export const DEFAULT_PROJECT_IMAGE = "ubuntu:25.04";
+export const DEFAULT_PROJECT_IMAGE = "ubuntu:25.10";
 
 // directory that contains overlay modifications to roofs filesystem image.
 // It stores them in PROJECT_IMAGE_PATH/{compute_server_id}
