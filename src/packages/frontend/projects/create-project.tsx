@@ -7,12 +7,11 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Modal, Row, Space } from "antd";
+import { Button, Card, Col, Form, Input, Modal, Row } from "antd";
 import { delay } from "awaiting";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useAutoFocusPreference } from "@cocalc/frontend/account";
-import { Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   redux,
@@ -228,7 +227,7 @@ export function NewProjectCreator({
           <Button
             cocalc-test={"create-project"}
             size="large"
-            disabled={noProjects || state !== "view"}
+            disabled={state !== "view"}
             onClick={toggle_editing}
             style={{ width: "100%" }}
           >
@@ -415,24 +414,6 @@ export function NewProjectCreator({
         </Row>
         {render_add_license()}
         {render_license()}
-        {noProjects && (
-          <Row>
-            <Col sm={24} style={{ marginTop: "10px" }}>
-              <Space>
-                <Button disabled={state === "saving"} onClick={cancel_editing}>
-                  {intl.formatMessage(labels.cancel)}
-                </Button>
-                <Button
-                  disabled={isDisabled()}
-                  onClick={() => create_project()}
-                  type="primary"
-                >
-                  {renderOKButtonText()}
-                </Button>
-              </Space>
-            </Col>
-          </Row>
-        )}
         {render_error()}
       </>
     );
@@ -453,37 +434,28 @@ export function NewProjectCreator({
 
   function render_project_creation(): React.JSX.Element | undefined {
     if (state === "view") return;
-    // if user has no projects yet, show the create dialog directly – otherwise its a modal
-    if (noProjects) {
-      return (
-        <Well style={{ backgroundColor: "#FFF" }}>
-          {render_input_section()}
-        </Well>
-      );
-    } else {
-      return (
-        <Modal
-          title={intl.formatMessage(labels.create_project)}
-          open={state === "edit" || state === "saving"}
-          okButtonProps={{ disabled: isDisabled() }}
-          okText={renderOKButtonText()}
-          cancelText={intl.formatMessage(labels.cancel)}
-          onCancel={cancel_editing}
-          onOk={create_project}
-          confirmLoading={state === "saving"}
-          width={{
-            xs: "90%",
-            sm: "90%",
-            md: "80%",
-            lg: "75%",
-            xl: "70%",
-            xxl: "60%",
-          }}
-        >
-          {render_input_section()}
-        </Modal>
-      );
-    }
+    return (
+      <Modal
+        title={intl.formatMessage(labels.create_project)}
+        open={state === "edit" || state === "saving"}
+        okButtonProps={{ disabled: isDisabled() }}
+        okText={renderOKButtonText()}
+        cancelText={intl.formatMessage(labels.cancel)}
+        onCancel={cancel_editing}
+        onOk={create_project}
+        confirmLoading={state === "saving"}
+        width={{
+          xs: "90%",
+          sm: "90%",
+          md: "80%",
+          lg: "75%",
+          xl: "70%",
+          xxl: "60%",
+        }}
+      >
+        {render_input_section()}
+      </Modal>
+    );
   }
 
   return (
