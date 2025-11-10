@@ -59,7 +59,7 @@ const COCALC_SNAPSHOTS = ".snapshots";
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.7.4";
+const VERSION = "0.7.6";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `
@@ -70,11 +70,11 @@ COPY backup-rootfs.sh /usr/local/bin/backup-rootfs.sh
 COPY restore-rootfs.sh /usr/local/bin/restore-rootfs.sh
 COPY backup-home.sh /usr/local/bin/backup-home.sh
 COPY restore-home.sh /usr/local/bin/restore-home.sh
-
-ENV REFLECT_HOME /root/${COCALC_REFLECT_SYNC}
 RUN chmod a+x /usr/local/bin/*
 
-RUN echo "reflect-sync daemon start && sleep infinity" > /run.sh
+ENV REFLECT_HOME /root/${COCALC_REFLECT_SYNC}
+
+RUN echo "reflect-sync daemon start --force; sleep infinity" > /run.sh
 RUN chmod a+x /run.sh
 `;
 
@@ -342,8 +342,6 @@ export async function startSidecar({
         name,
         "reflect-sync",
         "create",
-        // TODO: for now we must disable-micro-sync:
-        "--disable-micro-sync",
         "--name=home",
         `--ignore=/${COCALC_PROJECT_CACHE}/`,
         `--ignore=/${COCALC_REFLECT_SYNC}/`,
