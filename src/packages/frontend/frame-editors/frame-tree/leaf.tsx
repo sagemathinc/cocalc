@@ -181,7 +181,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
         tab_is_visible,
         terminal,
         value,
-      };
+      } as const;
 
       return <TheComponent {...componentProps} />;
     }

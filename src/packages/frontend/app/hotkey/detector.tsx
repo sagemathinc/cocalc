@@ -3,10 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { IS_MACOS } from "@cocalc/frontend/feature";
 import { useEffect, useRef } from "react";
 
-export type HotkeyType = "shift+shift" | "alt+shift+h" | "alt+shift+space";
+import { Hotkey } from "@cocalc/frontend/account/hotkey-selector";
+import { IS_MACOS } from "@cocalc/frontend/feature";
+
+export type HotkeyType = Exclude<Hotkey, "disabled">;
 
 /**
  * Hook to detect double-Shift key press (two Shift keys within delayMs)
@@ -155,18 +157,18 @@ export function useAltShiftSpaceDetector(
  * Props:
  *   hotkey: Which hotkey to detect ("shift+shift", "alt+shift+h", or "disabled")
  *   onTriggered: Callback when hotkey is detected
- *   delayMs: Delay threshold in milliseconds for shift+shift (default: 50ms)
+ *   delayMs: Delay threshold in milliseconds for shift+shift
  *   blocked: Temporarily block the hotkey from triggering (e.g., during testing)
  */
 export function GlobalHotkeyDetector({
   hotkey = "shift+shift",
   onTriggered,
-  delayMs = 50,
+  delayMs,
   blocked = false,
 }: {
   hotkey?: HotkeyType | "disabled";
   onTriggered: () => void;
-  delayMs?: number;
+  delayMs: number;
   blocked?: boolean;
 }): null {
   const isEnabled = hotkey !== "disabled";

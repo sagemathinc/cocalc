@@ -179,23 +179,30 @@ export function MarkdownInput(props: Props) {
     undefined | { left: number; top: number }
   >(undefined);
   const [mentions_search, set_mentions_search] = useState<string>("");
-  const mentions_cursor_ref = useRef<{
-    cursor: EventHandlerFunction;
-    change: EventHandlerFunction;
-    from: { line: number; ch: number };
-  } | undefined>(undefined);
+  const mentions_cursor_ref = useRef<
+    | {
+        cursor: EventHandlerFunction;
+        change: EventHandlerFunction;
+        from: { line: number; ch: number };
+      }
+    | undefined
+  >(undefined);
 
   const mentionableUsers = useMentionableUsers();
 
-  const focus = useCallback(() => {
-    if (isFocusedRef.current) return; // already focused
+  const focusInput = useCallback(() => {
     const ed = cm.current;
     if (ed == null) return;
     ed.getInputField().focus({ preventScroll: true });
   }, []);
 
+  const focus = useCallback(() => {
+    if (isFocusedRef.current) return; // already focused
+    focusInput();
+  }, [focusInput]);
+
   const blur = useCallback(() => {
-    if (!isFocusedRef.current) return; // already blured
+    if (!isFocusedRef.current) return; // already blurred
     const ed = cm.current;
     if (ed == null) return;
     ed.getInputField().blur();

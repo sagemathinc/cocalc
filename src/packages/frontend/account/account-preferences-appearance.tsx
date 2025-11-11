@@ -28,7 +28,11 @@ import {
 } from "./dark-mode";
 import { EditorSettingsColorScheme } from "./editor-settings/color-schemes";
 import { HotkeyDelayTest } from "./hotkey-delay-test";
-import { HotkeySelector } from "./hotkey-selector";
+import {
+  DEFAULT_HOTKEY,
+  DEFAULT_HOTKEY_DELAY_MS,
+  HotkeySelector,
+} from "./hotkey-selector";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import { OtherSettings } from "./other-settings";
 import { TerminalSettings } from "./terminal-settings";
@@ -213,6 +217,9 @@ export function AccountPreferencesAppearance() {
   }
 
   function renderUserInterfacePanel(): ReactElement {
+    const quick_nav_hotkey =
+      other_settings.get("quick_nav_hotkey") ?? DEFAULT_HOTKEY;
+
     return (
       <Panel
         size="small"
@@ -251,17 +258,16 @@ export function AccountPreferencesAppearance() {
           }
         >
           <HotkeySelector
-            value={other_settings.get("quick_nav_hotkey") ?? "shift+shift"}
+            value={quick_nav_hotkey}
             onChange={(value) => on_change("quick_nav_hotkey", value)}
             style={{ width: 200 }}
           />
         </LabeledRow>
-        {(other_settings.get("quick_nav_hotkey") ?? "shift+shift") ===
-          "shift+shift" && (
+        {quick_nav_hotkey === "shift+shift" && (
           <LabeledRow
             label={
               <>
-                <Icon name="clock" /> Hotkey Delay (milliseconds)
+                <Icon name="clock" /> Hotkey Delay
               </>
             }
           >
@@ -277,7 +283,10 @@ export function AccountPreferencesAppearance() {
                   min={100}
                   max={800}
                   step={100}
-                  value={other_settings.get("quick_nav_hotkey_delay") ?? 300}
+                  value={
+                    other_settings.get("quick_nav_hotkey_delay") ??
+                    DEFAULT_HOTKEY_DELAY_MS
+                  }
                   onChange={(value) =>
                     on_change("quick_nav_hotkey_delay", value)
                   }
@@ -297,7 +306,9 @@ export function AccountPreferencesAppearance() {
                     marginLeft: 12,
                   }}
                 >
-                  {other_settings.get("quick_nav_hotkey_delay") ?? 300}ms
+                  {other_settings.get("quick_nav_hotkey_delay") ??
+                    DEFAULT_HOTKEY_DELAY_MS}
+                  ms
                 </span>
               </div>
               <div
@@ -309,7 +320,10 @@ export function AccountPreferencesAppearance() {
                 }}
               >
                 <HotkeyDelayTest
-                  delayMs={other_settings.get("quick_nav_hotkey_delay") ?? 300}
+                  delayMs={
+                    other_settings.get("quick_nav_hotkey_delay") ??
+                    DEFAULT_HOTKEY_DELAY_MS
+                  }
                 />
               </div>
             </div>

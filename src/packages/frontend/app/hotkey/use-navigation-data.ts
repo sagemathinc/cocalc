@@ -6,6 +6,7 @@
 declare var DEBUG: boolean;
 
 import { useMemo } from "react";
+import { useIntl } from "react-intl";
 
 import {
   redux,
@@ -24,12 +25,43 @@ import {
 import {
   buildNavigationTree,
   PageInfo,
-  type AccountPageInfo,
+  type AppPageInfo,
   type FileInfo,
   type FrameInfo,
+  type FrameTreeStructure,
   type ProjectInfo,
 } from "./build-tree";
 import type { NavigationTreeNode } from "./dialog";
+import { switchAccountPage } from "@cocalc/frontend/account/util";
+import { labels } from "@cocalc/frontend/i18n";
+import type { EditorSpec } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import type { FixedTab } from "@cocalc/frontend/project/page/file-tab";
+import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
+import {
+  ensureFrameFilePath,
+  focusFrameWithRetry,
+  resolveSpecLabel,
+} from "./util";
+
+const PROJECT_PAGE_INFOS: PageInfo[] = Object.entries(FIXED_PROJECT_TABS)
+  .filter(([tabId]) => tabId !== "active")
+  .map(([tabId, tabConfig]) => {
+    const fixedTabId = tabId as FixedTab;
+    const label =
+      tabConfig && typeof tabConfig.label === "string"
+        ? tabConfig.label
+        : fixedTabId;
+    return {
+      id: fixedTabId,
+      name: label,
+      icon: tabConfig?.icon,
+    };
+  });
+
+function getEditorSpecFromComponent(component: any): EditorSpec | undefined {
+  if (!component) return undefined;
+  return component?.editor_spec ?? component?.Editor?.editor_spec;
+}
 
 /**
  * Extract frame information from a frame tree structure
@@ -42,49 +74,42 @@ import type { NavigationTreeNode } from "./dialog";
  * @param editor_spec - The editor spec mapping type -> EditorDescription with short names
  * @param includeStructure - If true, return both flat list and tree structure
  */
-function extractFramesFromTree(frameTree: any, editor_spec?: any): FrameInfo[];
 function extractFramesFromTree(
   frameTree: any,
-  editor_spec: any,
-  includeStructure: true,
-): { frames: FrameInfo[]; treeStructure: any };
-function extractFramesFromTree(
-  frameTree: any,
-  editor_spec?: any,
-  includeStructure: boolean = false,
-): FrameInfo[] | { frames: FrameInfo[]; treeStructure: any } {
+  editor_spec?: EditorSpec,
+): { frames: FrameInfo[]; treeStructure: FrameTreeStructure | null } {
   if (!frameTree) {
-    const result = { frames: [], treeStructure: null };
-    return includeStructure ? result : result.frames;
+    return { frames: [], treeStructure: null };
   }
 
   const frames: FrameInfo[] = [];
-  let frameIndex = 0;
-
-  const traverse = (node: any) => {
-    if (!node) return;
+  const traverse = (node: any, depth = 0) => {
+    if (!node) {
+      return;
+    }
 
     // If this is a leaf node (has type and spec or is a frame type)
-    const nodeType = node.get?.("type");
-    const id = node.get?.("id");
+    const nodeType = node.get?.("type") ?? node.type;
+    const id = node.get?.("id") ?? node.id;
 
     // Check if this is a leaf editor node (type like "cm", "markdown", etc)
     if (nodeType && nodeType !== "node" && id) {
       // Look up the editor spec for this type to get user-friendly names
       const typeSpec = editor_spec?.[nodeType];
-      const shortName =
-        typeSpec?.short || typeSpec?.name || nodeType || "Unknown";
-      const frameName = typeSpec?.name || nodeType || "Unknown";
+      const specShort = resolveSpecLabel(typeSpec?.short);
+      const specName = resolveSpecLabel(typeSpec?.name);
+      const shortName = specShort ?? specName ?? nodeType ?? "Unknown";
+      const frameName = specName ?? specShort ?? nodeType ?? "Unknown";
+      const filePath = node.get?.("path") ?? node.path;
 
       frames.push({
         id,
         shortName,
         frameName,
-        filePath: typeSpec?.path,
+        filePath,
         editorType: nodeType,
-        color: getRandomColor(nodeType),
+        color: getRandomColor(nodeType, { min: 80, max: 200, diff: 30 }),
       });
-      frameIndex++;
       return;
     }
 
@@ -92,19 +117,14 @@ function extractFramesFromTree(
     const first = node.get?.("first");
     const second = node.get?.("second");
 
-    if (first) traverse(first);
-    if (second) traverse(second);
+    if (first) traverse(first, depth + 1);
+    if (second) traverse(second, depth + 1);
   };
 
   traverse(frameTree);
 
-  // If structure is not requested, return just the flat list
-  if (!includeStructure) {
-    return frames;
-  }
-
   // Build the tree structure for rendering
-  const buildTreeStructure = (node: any): any => {
+  const buildTreeStructure = (node: any): FrameTreeStructure | null => {
     if (!node) return null;
 
     const nodeType = node.get?.("type");
@@ -124,11 +144,14 @@ function extractFramesFromTree(
     const direction = node.get?.("direction"); // "col" or "row"
     const first = node.get?.("first");
     const second = node.get?.("second");
+    const posRaw = node.get?.("pos");
+    const pos = posRaw ? parseFloat(posRaw) : 0.5; // Position 0-1, defaults to 0.5 (50/50)
 
     return {
       type: "split",
       direction,
       id,
+      pos: isNaN(pos) ? 0.5 : pos,
       children: [buildTreeStructure(first), buildTreeStructure(second)].filter(
         (n) => n !== null,
       ),
@@ -150,6 +173,10 @@ function extractFramesFromTree(
  * - Account pages (hardcoded, always available)
  */
 export function useNavigationTreeData(): NavigationTreeNode[] {
+  const intl = useIntl();
+  const is_logged_in = useTypedRedux("account", "is_logged_in");
+  const is_anonymous = useTypedRedux("account", "is_anonymous");
+
   // Get current active tab - when viewing a project, this is the project_id
   const active_top_tab = useTypedRedux("page", "active_top_tab");
 
@@ -176,96 +203,13 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
     { project_id: project_id ?? "" },
     "open_files_order",
   );
-  const active_project_tab_raw = useTypedRedux(
-    { project_id: project_id ?? "" },
-    "active_project_tab",
-  );
   const starred_files_raw = useTypedRedux(
     { project_id: project_id ?? "" },
     "starred_files",
   );
 
   // Only use these if we're in a project view
-  const active_project_tab = isProjectView ? active_project_tab_raw : undefined;
   const starred_files = isProjectView ? starred_files_raw : undefined;
-
-  interface ActiveEditorContext {
-    activeFileName?: string;
-    editorReduxName?: string;
-    editor_spec?: any;
-  }
-
-  const activeEditorContext: ActiveEditorContext = useMemo(() => {
-    if (
-      !isProjectView ||
-      !active_project_tab ||
-      !active_project_tab.startsWith("editor-") ||
-      !open_files_order
-    ) {
-      return {};
-    }
-
-    const activeFile = open_files_order.find((path: string) => {
-      return !!(path && path_to_tab(path) === active_project_tab);
-    });
-    if (!activeFile) {
-      return {};
-    }
-
-    const fileState = open_files?.get(activeFile);
-    if (!fileState) {
-      return {};
-    }
-
-    const component = fileState?.get("component");
-    const editorReduxName = component?.redux_name;
-
-    return {
-      activeFileName: activeFile,
-      editorReduxName,
-      editor_spec: component?.editor_spec,
-    };
-  }, [isProjectView, active_project_tab, open_files, open_files_order]);
-
-  const frameTreePath = useMemo<string[]>(() => {
-    return [
-      activeEditorContext.editorReduxName ?? "",
-      "local_view_state",
-      "frame_tree",
-    ];
-  }, [activeEditorContext.editorReduxName]);
-
-  const activeFrameTree = useRedux(frameTreePath);
-
-  const { activeFrames, frameTreeStructure } = useMemo(() => {
-    if (!activeEditorContext.activeFileName || !activeFrameTree) {
-      return {
-        activeFrames: [],
-        frameTreeStructure: null,
-      };
-    }
-
-    const extractResult = extractFramesFromTree(
-      activeFrameTree,
-      activeEditorContext.editor_spec,
-      true,
-    );
-    const result =
-      extractResult && "frames" in extractResult
-        ? (extractResult as { frames: FrameInfo[]; treeStructure: any })
-        : { frames: extractResult as FrameInfo[], treeStructure: null };
-
-    return {
-      activeFrames: result.frames,
-      frameTreeStructure: result.treeStructure,
-    };
-  }, [
-    activeFrameTree,
-    activeEditorContext.activeFileName,
-    activeEditorContext.editor_spec,
-  ]);
-
-  const activeFileName = activeEditorContext.activeFileName;
 
   // Build project info for only open projects
   // TODO (ARIA.md): In the future, also include closed projects with their starred files
@@ -306,12 +250,19 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
             .map((path: string) => {
               const fileState = open_files.get(path);
               const frameTree = fileState?.get("frames");
+              const component = fileState?.get("component");
+              const editorSpec = getEditorSpecFromComponent(component);
               // Truncate long file paths in the middle for display
               const displayName = trunc_middle(path, 50);
+              const frameData = frameTree
+                ? extractFramesFromTree(frameTree, editorSpec)
+                : undefined;
               return {
                 path,
                 name: displayName,
-                frames: frameTree ? extractFramesFromTree(frameTree) : [],
+                frames: frameData
+                  ? ensureFrameFilePath(frameData.frames, path)
+                  : [],
               };
             })
             .toArray();
@@ -330,11 +281,18 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
                 .map((path: string) => {
                   const fileState = otherOpenFiles.get(path);
                   const frameTree = fileState?.get("frames");
+                  const component = fileState?.get("component");
+                  const editorSpec = getEditorSpecFromComponent(component);
                   const displayName = trunc_middle(path, 50);
+                  const frameData = frameTree
+                    ? extractFramesFromTree(frameTree, editorSpec)
+                    : undefined;
                   return {
                     path,
                     name: displayName,
-                    frames: frameTree ? extractFramesFromTree(frameTree) : [],
+                    frames: frameData
+                      ? ensureFrameFilePath(frameData.frames, path)
+                      : [],
                   };
                 })
                 .toArray();
@@ -371,24 +329,11 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
           }
         }
 
-        // Project pages (fixed tabs) - use actual FixedTab types from ProjectActions
-        const pages: PageInfo[] = [
-          { id: "files", name: "Files", icon: "folder" },
-          { id: "new", name: "New", icon: "plus" },
-          { id: "search", name: "Search", icon: "search" },
-          { id: "log", name: "Recent Files", icon: "history" },
-          { id: "settings", name: "Settings", icon: "gear" },
-          { id: "info", name: "Info", icon: "microchip" },
-          { id: "users", name: "Users", icon: "users" },
-          { id: "servers", name: "Servers", icon: "server" },
-          { id: "upgrades", name: "Upgrades", icon: "gift" },
-        ];
-
         return {
           id: projectId,
           title: proj.get("title") || projectId,
           files,
-          pages,
+          pages: PROJECT_PAGE_INFOS,
           starredFiles,
         } as ProjectInfo;
       })
@@ -420,97 +365,203 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
         if (!proj) {
           return null;
         }
-        // Get starred files for bookmarked project
-        let starredFiles: string[] = [];
-        const projectStore = redux.getProjectStore(projectId);
-        if (projectStore) {
-          const starredFilesList = projectStore.get("starred_files");
-          if (starredFilesList && starredFilesList.toArray) {
-            starredFiles = starredFilesList.toArray();
-          }
-        }
 
-        // For bookmarked projects, we don't need open files or pages, just basic info and starred files
+        // For bookmarked projects, we don't need open files, pages, or starred files
+        // (they're not open, so those are unavailable)
         return {
           id: projectId,
           title: proj.get("title") || projectId,
           files: [],
           pages: [],
-          starredFiles,
+          starredFiles: [],
         } as ProjectInfo;
       })
       .filter((p): p is ProjectInfo => p !== null);
   }, [bookmarkedProjectIds, project_map, bookmarksInitialized]);
 
-  // Account pages - mirrors the account page left navigation structure
-  // These are not used directly; they're just for documentation
-  // The actual account section is built in buildNavigationTree() instead
-  const accountPages: AccountPageInfo[] = useMemo(
-    () => [
-      { id: "index", name: "Settings" },
-      { id: "profile", name: "Profile" },
-      // Preferences (nested)
-      { id: "preferences-appearance", name: "Appearance" },
-      { id: "preferences-editor", name: "Editor" },
-      { id: "preferences-keyboard", name: "Keyboard" },
-      { id: "preferences-ai", name: "AI" },
-      { id: "preferences-communication", name: "Communication" },
-      { id: "preferences-keys", name: "SSH and API Keys" },
-      { id: "preferences-other", name: "Other" },
-      // Subscriptions & Purchases
-      { id: "subscriptions", name: "Subscriptions" },
-      { id: "licenses", name: "Licenses" },
-      { id: "payg", name: "Pay as you Go" },
-      { id: "upgrades", name: "Upgrades" },
-      { id: "purchases", name: "Purchases" },
-      { id: "payments", name: "Payments" },
-      { id: "payment-methods", name: "Payment Methods" },
-      { id: "statements", name: "Statements" },
-      // Other
-      { id: "cloud-filesystems", name: "Cloud Filesystems" },
-      { id: "public-paths", name: "Public Paths" },
-      { id: "support", name: "Support" },
-    ],
-    [],
-  );
+  const appPages: AppPageInfo[] = useMemo(() => {
+    const pages: AppPageInfo[] = [];
+
+    const projectsLabel = intl.formatMessage(labels.projects);
+    pages.push({
+      id: "projects",
+      name: projectsLabel,
+      icon: "edit",
+      action: "tab",
+      searchText: `${projectsLabel} projects list`,
+    });
+
+    if (is_logged_in && !is_anonymous) {
+      const messagesTitle = intl.formatMessage(labels.messages_title);
+      pages.push({
+        id: "notifications",
+        name: messagesTitle,
+        icon: "mail",
+        action: "tab",
+        searchText: `${messagesTitle} ${intl.formatMessage(labels.messages)}`,
+      });
+
+      const fileUseLabel = intl.formatMessage(labels.file_use_notifications);
+      pages.push({
+        id: "file-use",
+        name: fileUseLabel,
+        icon: "bell",
+        action: "toggle-file-use",
+        searchText: `${fileUseLabel} bell dropdown`,
+      });
+    }
+
+    return pages;
+  }, [intl, is_logged_in, is_anonymous]);
 
   // Build the complete navigation tree
   const treeData = useMemo(() => {
-    // if (DEBUG) {
-    //   console.log("useNavigationTreeData - Building tree:", {
-    //     activeFrames,
-    //     projectsDataLength: projectsData.length,
-    //     project_id,
-    //     accountPagesLength: accountPages.length,
-    //     bookmarkedProjectsDataLength: bookmarkedProjectsData.length,
-    //     isProjectView,
-    //   });
-    // }
     const currentProject =
       projectsData.find((p) => p.id === project_id) || null;
     const otherProjects = projectsData.filter((p) => p.id !== project_id);
 
     return buildNavigationTree(
-      activeFrames,
       currentProject,
       otherProjects,
-      accountPages,
       bookmarkedProjectsData,
-      activeFileName,
-      frameTreeStructure,
-      project_id,
+      appPages,
+      intl,
     );
-  }, [
-    activeFrames,
-    activeFileName,
-    frameTreeStructure,
-    projectsData,
-    project_id,
-    accountPages,
-    bookmarkedProjectsData,
-  ]);
+  }, [projectsData, project_id, bookmarkedProjectsData, appPages, intl]);
 
   return treeData;
+}
+
+/**
+ * Hook that returns just the frame tree structure and active frames
+ * (without the full tree data)
+ */
+export function useActiveFrameData(): {
+  frameTreeStructure: FrameTreeStructure | null;
+  activeFrames: FrameInfo[];
+  activeFileName?: string;
+  activeProjectId?: string;
+} {
+  // Re-use the logic from useNavigationTreeData to get frames
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const isProjectView =
+    typeof active_top_tab === "string" && active_top_tab.length === 36;
+  const project_id: string | undefined = isProjectView
+    ? (active_top_tab as string)
+    : undefined;
+
+  const open_files = useTypedRedux(
+    { project_id: project_id ?? "" },
+    "open_files",
+  );
+  const open_files_order = useTypedRedux(
+    { project_id: project_id ?? "" },
+    "open_files_order",
+  );
+  const active_project_tab_raw = useTypedRedux(
+    { project_id: project_id ?? "" },
+    "active_project_tab",
+  );
+
+  const active_project_tab = isProjectView ? active_project_tab_raw : undefined;
+
+  const activeEditorContext: {
+    activeFileName?: string;
+    editorReduxName?: string;
+    editorSpec?: EditorSpec;
+  } = useMemo(() => {
+    if (
+      !isProjectView ||
+      !active_project_tab ||
+      !active_project_tab.startsWith("editor-") ||
+      !open_files_order
+    ) {
+      return {};
+    }
+
+    const activeFile = open_files_order.find((path: string) => {
+      return !!(path && path_to_tab(path) === active_project_tab);
+    });
+    if (!activeFile) {
+      return {};
+    }
+
+    const fileState = open_files?.get(activeFile);
+    if (!fileState) {
+      return {};
+    }
+
+    const component = fileState?.get("component");
+    const editorReduxName =
+      component?.get?.("redux_name") ?? component?.redux_name;
+    const editorSpec = getEditorSpecFromComponent(component);
+
+    return {
+      activeFileName: activeFile,
+      editorReduxName,
+      editorSpec,
+    };
+  }, [isProjectView, active_project_tab, open_files, open_files_order]);
+
+  const frameTreePath = useMemo<string[]>(() => {
+    return [
+      activeEditorContext.editorReduxName ?? "",
+      "local_view_state",
+      "frame_tree",
+    ];
+  }, [activeEditorContext.editorReduxName]);
+
+  const activeFrameTree = useRedux(frameTreePath);
+
+  const { activeFrames, frameTreeStructure } = useMemo(() => {
+    if (!activeEditorContext.activeFileName || !activeFrameTree) {
+      return {
+        activeFrames: [],
+        frameTreeStructure: null,
+      };
+    }
+
+    const result = extractFramesFromTree(
+      activeFrameTree,
+      activeEditorContext.editorSpec,
+    );
+
+    const normalizedFrames = ensureFrameFilePath(
+      result.frames,
+      activeEditorContext.activeFileName,
+    );
+
+    const updateStructureFrames = (node: FrameTreeStructure | null) => {
+      if (!node) return;
+      if (node.type === "frame" && node.frame) {
+        const match = normalizedFrames.find((f) => f.id === node.frame?.id);
+        if (match) {
+          node.frame = match;
+        }
+        return;
+      }
+      node.children?.forEach((child) => updateStructureFrames(child));
+    };
+    updateStructureFrames(result.treeStructure);
+
+    return {
+      activeFrames: normalizedFrames,
+      frameTreeStructure: result.treeStructure,
+    };
+  }, [
+    activeFrameTree,
+    activeEditorContext.activeFileName,
+    activeEditorContext.editorSpec,
+  ]);
+
+  const activeProjectId = isProjectView ? project_id : undefined;
+
+  return {
+    frameTreeStructure,
+    activeFrames,
+    activeFileName: activeEditorContext.activeFileName,
+    activeProjectId,
+  };
 }
 
 /**
@@ -529,37 +580,6 @@ export function useEnhancedNavigationTreeData(): NavigationTreeNode[] {
 
   const page_actions = useActions("page");
 
-  const focusFrameWithRetry = (
-    targetProjectId: string,
-    editorPath: string,
-    frameId: string,
-    attempt: number = 0,
-  ): void => {
-    const editorActions = redux.getEditorActions(targetProjectId, editorPath);
-    if (editorActions) {
-      editorActions.set_active_id(frameId, false);
-      return;
-    }
-    if (attempt < 15) {
-      setTimeout(
-        () =>
-          focusFrameWithRetry(
-            targetProjectId,
-            editorPath,
-            frameId,
-            attempt + 1,
-          ),
-        100,
-      );
-    } else if (DEBUG) {
-      console.log("Unable to focus frame (editor actions missing)", {
-        targetProjectId,
-        editorPath,
-        frameId,
-      });
-    }
-  };
-
   // Enhance tree nodes with action handlers
   const enhancedTreeData = useMemo(() => {
     const enhanceNode = (node: NavigationTreeNode): NavigationTreeNode => {
@@ -568,72 +588,43 @@ export function useEnhancedNavigationTreeData(): NavigationTreeNode[] {
 
         switch (navData.type) {
           case "frame":
-            navData.action = () => {
-              if (!navData.id) {
+            // Focus a frame within an editor
+            // If the file is not open, open_file handles project switching automatically
+            navData.action = async () => {
+              if (!navData.id || !navData.projectId || !navData.filePath) {
                 if (DEBUG) {
-                  console.log("Frame action missing frameId");
-                }
-                return;
-              }
-              const frameId = navData.id;
-
-              const targetProjectId = navData.projectId ?? project_id;
-              if (!targetProjectId) {
-                if (DEBUG) {
-                  console.log("Frame action missing projectId", {
-                    navProjectId: navData.projectId,
-                    fallbackProjectId: project_id,
+                  console.log("Frame action missing required fields", {
+                    frameId: navData.id,
+                    projectId: navData.projectId,
+                    filePath: navData.filePath,
                   });
                 }
                 return;
               }
 
-              if (targetProjectId !== project_id) {
-                page_actions?.set_active_tab(targetProjectId);
+              const {
+                id: frameId,
+                projectId: targetProjectId,
+                filePath,
+                editorType,
+              } = navData;
+
+              // Ensure the file is open (handles project switching if needed)
+              const projectActions = redux.getProjectActions(targetProjectId);
+              if (projectActions) {
+                await projectActions.open_file({ path: filePath });
               }
 
-              const projectStore = redux.getProjectStore(targetProjectId);
-              const activeProjectTab = projectStore?.get("active_project_tab");
-              const currentEditorPath =
-                typeof activeProjectTab === "string" &&
-                activeProjectTab.startsWith("editor-")
-                  ? activeProjectTab.slice("editor-".length)
-                  : undefined;
-
-              const needsFileSwitch =
-                navData.filePath != null &&
-                navData.filePath.length > 0 &&
-                navData.filePath !== currentEditorPath;
-              if (needsFileSwitch && navData.filePath) {
-                const projectActions = redux.getProjectActions(targetProjectId);
-                projectActions?.open_file({ path: navData.filePath });
-              }
-
-              const editorPath = navData.filePath ?? currentEditorPath;
-              if (!editorPath) {
-                if (DEBUG) {
-                  console.log(
-                    "Unable to determine editorPath for frame action",
-                    {
-                      targetProjectId,
-                      currentEditorPath,
-                      navData,
-                    },
-                  );
-                }
-                return;
-              }
-
-              setTimeout(
-                () => focusFrameWithRetry(targetProjectId, editorPath, frameId),
-                0,
-              );
+              // Focus the frame after the file is open
+              focusFrameWithRetry(targetProjectId, filePath, frameId, 0, {
+                editorType,
+              });
             };
             break;
 
           case "page":
             // Switch to project page (fixed tab)
-            navData.action = () => {
+            navData.action = async () => {
               if (navData.id && navData.projectId) {
                 // If switching to a different project, activate it first
                 if (navData.projectId !== project_id) {
@@ -652,21 +643,14 @@ export function useEnhancedNavigationTreeData(): NavigationTreeNode[] {
 
           case "file":
             // Open file in editor
-            // open_file automatically handles switching to the file tab and setting active project
-            navData.action = () => {
+            // open_file automatically handles switching to the project and setting active tab
+            navData.action = async () => {
               if (navData.id && navData.projectId) {
-                const filePath = navData.id;
-                const projectId = navData.projectId;
-
-                // If switching to a different project, activate it first
-                if (projectId !== project_id) {
-                  page_actions?.set_active_tab(projectId);
-                }
-
-                // Open the file (automatically sets active tab and project)
-                const projectActions = redux.getProjectActions(projectId);
+                const projectActions = redux.getProjectActions(
+                  navData.projectId,
+                );
                 if (projectActions) {
-                  projectActions.open_file({ path: filePath });
+                  await projectActions.open_file({ path: navData.id });
                 }
               }
             };
@@ -674,63 +658,50 @@ export function useEnhancedNavigationTreeData(): NavigationTreeNode[] {
 
           case "account":
             // Navigate to account page via Redux actions (mirrors account-page.tsx structure)
-            navData.action = () => {
+            navData.action = async () => {
               if (navData.id) {
-                const accountActions = redux.getActions("account");
-
-                // Handle settings overview (index)
-                if (navData.id === "index") {
-                  accountActions.set_active_tab("index");
-                  accountActions.setState({
-                    active_page: "index",
-                    active_sub_tab: undefined,
-                  });
-                  accountActions.push_state(`/settings/index`);
-                  return;
-                }
-
-                // Handle profile as standalone page
-                if (navData.id === "profile") {
-                  accountActions.set_active_tab("profile");
-                  accountActions.setState({
-                    active_page: "profile",
-                    active_sub_tab: undefined,
-                  });
-                  accountActions.push_state(`/profile`);
-                  return;
-                }
-
-                // Handle preferences sub-tabs
-                if (navData.id.startsWith("preferences-")) {
-                  const subTab = navData.id.replace("preferences-", "");
-                  const subTabKey = `preferences-${subTab}` as any;
-                  // Use set_active_tab to ensure proper page navigation
-                  accountActions.set_active_tab("preferences");
-                  accountActions.setState({
-                    active_sub_tab: subTabKey,
-                    active_page: "preferences",
-                  });
-                  accountActions.push_state(`/preferences/${subTab}`);
-                  return;
-                }
-
-                // Handle all other account pages (subscriptions, licenses, payg, etc.)
-                // These use set_active_tab which is the standard account page action
-                accountActions.set_active_tab(navData.id);
-                accountActions.push_state(`/${navData.id}`);
+                // First, navigate to the account page (top-level tab)
+                page_actions?.set_active_tab("account");
+                // Then use the shared helper to handle the specific account page/sub-tab
+                switchAccountPage(navData.id, redux.getActions("account"));
               }
             };
             break;
 
           case "bookmarked-project":
             // Open a bookmarked project (not currently open)
-            navData.action = () => {
+            navData.action = async () => {
               if (navData.projectId) {
                 const projectsActions = redux.getActions("projects");
                 projectsActions.open_project({
                   project_id: navData.projectId,
                   switch_to: true,
                 });
+              }
+            };
+            break;
+
+          case "app-page":
+            navData.action = async () => {
+              if (!navData.id || !navData.appPageAction) {
+                return;
+              }
+
+              switch (navData.appPageAction) {
+                case "tab":
+                  page_actions?.set_active_tab(navData.id);
+                  break;
+                case "toggle-file-use": {
+                  const showFileUse = redux
+                    .getStore("page")
+                    ?.get("show_file_use");
+                  if (!showFileUse) {
+                    page_actions?.toggle_show_file_use();
+                  }
+                  break;
+                }
+                default:
+                  unreachable(navData.appPageAction);
               }
             };
             break;

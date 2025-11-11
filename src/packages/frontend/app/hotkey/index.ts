@@ -6,7 +6,6 @@
 export {
   buildNavigationTree,
   flattenTreeForSearch,
-  type AccountPageInfo,
   type FileInfo,
   type FrameInfo,
   type NavigationItem,
@@ -17,6 +16,7 @@ export { GlobalHotkeyDetector, useShiftShiftDetector } from "./detector";
 export { QuickNavigationDialog } from "./dialog";
 export type { NavigationTreeNode } from "./dialog";
 export {
+  useActiveFrameData,
   useEnhancedNavigationTreeData,
   useNavigationTreeData,
 } from "./use-navigation-data";

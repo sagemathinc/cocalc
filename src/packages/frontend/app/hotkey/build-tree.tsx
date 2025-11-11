@@ -3,19 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Tag } from "antd";
+import type { IntlShape } from "react-intl";
 
 import {
   ACCOUNT_MAIN_MENU_ITEMS,
   PREFERENCES_SUB_TABS,
 } from "@cocalc/frontend/account/account-preferences-config";
+import { isIntlMessage, labels } from "@cocalc/frontend/i18n";
+import type { IntlMessage } from "@cocalc/frontend/i18n";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
-import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import type { FixedTab } from "@cocalc/frontend/project/page/file-tab";
+import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import { COLORS } from "@cocalc/util/theme";
-import { trunc_middle } from "@cocalc/util/misc";
 import type { NavigationTreeNode } from "./dialog";
 
 /**
@@ -24,7 +25,7 @@ import type { NavigationTreeNode } from "./dialog";
 export interface FrameInfo {
   id: string;
   shortName: string;
-  frameName: string; // Full name (e.g., "Jupyter Notebook")
+  frameName: string | IntlMessage; // Full name (e.g., "Jupyter Notebook")
   filePath?: string; // If frame is for a file
   editorType?: string; // Type of editor (e.g., "cm", "markdown") for coloring
   color?: string; // Color for the tag
@@ -59,13 +60,17 @@ export interface ProjectInfo {
   starredFiles?: string[]; // Paths to starred files in this project
 }
 
+export type AppPageAction = "tab" | "toggle-file-use";
+
 /**
- * Account page
+ * Application-level page (e.g., Projects list, Notifications panel)
  */
-export interface AccountPageInfo {
+export interface AppPageInfo {
   id: string;
   name: string;
-  href?: string;
+  icon?: IconName;
+  searchText?: string;
+  action: AppPageAction;
 }
 
 function buildFrameSearchText(
@@ -75,6 +80,19 @@ function buildFrameSearchText(
   const parts = [frame.shortName, frame.frameName, frame.editorType, filePath];
   const text = parts.filter(Boolean).join(" ");
   return text || undefined;
+}
+
+/**
+ * Frame tree structure for visual rendering (separate from tree nodes)
+ * Exported for use in dialog component
+ */
+export interface FrameTreeStructure {
+  type: "frame" | "split";
+  frame?: FrameInfo;
+  direction?: "row" | "col";
+  children?: FrameTreeStructure[];
+  id?: string;
+  pos?: number;
 }
 
 /**
@@ -88,136 +106,24 @@ function buildFrameSearchText(
  * - Account - Account pages
  */
 export function buildNavigationTree(
-  activeFrames: FrameInfo[],
   currentProject: ProjectInfo | null,
   allProjects: ProjectInfo[],
-  accountPages: AccountPageInfo[],
-  bookmarkedProjects: ProjectInfo[] = [],
-  activeFileName?: string,
-  frameTreeStructure?: any,
-  activeProjectId?: string,
+  bookmarkedProjects: ProjectInfo[],
+  appPages: AppPageInfo[],
+  intl: IntlShape,
 ): NavigationTreeNode[] {
   const tree: NavigationTreeNode[] = [];
 
-  // Build a map of frame IDs to their indices for quick lookup
-  const frameIndexMap = new Map<string, number>();
-  activeFrames.forEach((frame, index) => {
-    frameIndexMap.set(frame.id, index + 1);
-  });
-
-  /**
-   * Recursively build tree nodes from frame tree structure
-   * Splits show as "Horizontal" or "Vertical" with frame children
-   */
-  function buildFrameTreeNodes(
-    node: any,
-    path: string = "tree",
-    projectId?: string,
-    filePath?: string,
-  ): NavigationTreeNode | null {
-    if (!node) return null;
-
-    if (node.type === "frame" && node.frame) {
-      const frameIndex = frameIndexMap.get(node.frame.id) ?? 1;
-      return {
-        key: `frame-${node.frame.id}`,
-        title: (
-          <span>
-            <Tag color={node.frame.color}>{frameIndex}</Tag>{" "}
-            {node.frame.shortName}
-          </span>
-        ),
-        navigationData: {
-          type: "frame",
-          id: node.frame.id,
-          projectId,
-          filePath,
-          shortcutNumber: frameIndex,
-          searchText: buildFrameSearchText(node.frame, filePath),
-          action: () => {
-            // Will be set by caller with actual actions
-          },
-        },
-      };
-    }
-
-    if (node.type === "split") {
-      const isVertical = node.direction === "row"; // "row" means vertical divider (frames stacked vertically)
-      const directionLabel = isVertical ? "Vertical" : "Horizontal";
-
-      return {
-        key: `split-${path}`,
-        title: directionLabel,
-        defaultExpanded: true, // Always expand split nodes to show the frame structure
-        children: (node.children || [])
-          .map((child: any, i: number) =>
-            buildFrameTreeNodes(child, `${path}-${i}`, projectId, filePath),
-          )
-          .filter((n): n is NavigationTreeNode => n !== null),
-      };
-    }
-
-    return null;
-  }
-
-  // 1. Current file with frames section (if editor is open)
-  if (activeFrames.length > 0 && activeFileName) {
-    const children: NavigationTreeNode[] = [];
-
-    // If we have a frame tree structure, render it; otherwise show flat list
-    if (frameTreeStructure) {
-      const structureNode = buildFrameTreeNodes(
-        frameTreeStructure,
-        "tree",
-        activeProjectId ?? currentProject?.id,
-        activeFileName,
-      );
-      if (structureNode) {
-        children.push(structureNode);
-      }
-    } else {
-      // Fallback to flat list if no structure is available
-      children.push(
-        ...activeFrames.map((frame, index) => ({
-          key: `frame-${frame.id}`,
-          title: (
-            <span>
-              <Tag color={frame.color}>{index + 1}</Tag> {frame.shortName}
-            </span>
-          ),
-          navigationData: {
-            type: "frame" as const,
-            id: frame.id,
-            projectId: activeProjectId ?? currentProject?.id,
-            filePath: activeFileName,
-            shortcutNumber: index + 1,
-            searchText: buildFrameSearchText(frame, activeFileName),
-            action: () => {
-              // Will be set by caller with actual actions
-            },
-          },
-        })),
-      );
-    }
-
-    tree.push({
-      key: "current-file",
-      title: trunc_middle(activeFileName, 50),
-      defaultExpanded: true, // Always expand the current file
-      children,
-    });
-  }
-
   // 2. Current project (prioritized if in a project)
   if (currentProject) {
-    tree.push(buildProjectNode(currentProject));
+    tree.push(buildProjectNode(currentProject, intl));
   }
 
   // 3. Other projects
   allProjects
     .filter((p) => p.id !== currentProject?.id)
     .forEach((project) => {
-      tree.push(buildProjectNode(project));
+      tree.push(buildProjectNode(project, intl));
     });
 
   // 4. Bookmarked projects (filtered to exclude already open projects)
@@ -237,7 +143,7 @@ export function buildNavigationTree(
           type: "bookmarked-project",
           projectId: project.id,
           searchText: `${project.title} ${project.id}`,
-          action: () => {
+          action: async () => {
             // Will be set by caller with actual actions
           },
         },
@@ -247,7 +153,8 @@ export function buildNavigationTree(
       key: "bookmarked-projects",
       title: (
         <>
-          <Icon name="star-filled" style={{ color: COLORS.STAR }} /> Projects
+          <Icon name="star-filled" style={{ color: COLORS.STAR }} />{" "}
+          {intl ? intl.formatMessage(labels.projects) : "Projects"}
         </>
       ),
       children: bookmarkedChildren,
@@ -255,47 +162,51 @@ export function buildNavigationTree(
   }
 
   // 5. Account pages (with nested structure matching account page left navigation)
-  if (accountPages && accountPages.length > 0) {
+  if (ACCOUNT_MAIN_MENU_ITEMS.length > 0) {
     const accountChildren: NavigationTreeNode[] = [];
 
     // Generate main menu items from config
     ACCOUNT_MAIN_MENU_ITEMS.forEach((item) => {
+      const itemLabel = intl.formatMessage(item.label);
       accountChildren.push({
         key: item.key,
         title: (
           <>
-            <Icon name={item.icon as IconName} /> {item.label}
+            <Icon name={item.icon as IconName} /> {itemLabel}
           </>
         ),
         navigationData: {
           type: "account",
           id: item.id,
-          searchText: item.label,
-          action: () => {},
+          searchText: itemLabel,
+          action: async () => {},
         },
       });
     });
 
     // Insert Preferences (nested submenu) after Profile
     const preferencesChildren: NavigationTreeNode[] = PREFERENCES_SUB_TABS.map(
-      (tab) => ({
-        key: tab.key,
-        title: tab.useAIAvatar ? (
-          <>
-            <AIAvatar size={16} style={{ top: "-5px" }} /> {tab.label}
-          </>
-        ) : (
-          <>
-            <Icon name={tab.icon as IconName} /> {tab.label}
-          </>
-        ),
-        navigationData: {
-          type: "account",
-          id: tab.id,
-          searchText: tab.label,
-          action: () => {},
-        },
-      }),
+      (tab) => {
+        const tabLabel = intl.formatMessage(tab.label);
+        return {
+          key: tab.key,
+          title: tab.useAIAvatar ? (
+            <>
+              <AIAvatar size={16} style={{ top: "-5px" }} /> {tabLabel}
+            </>
+          ) : (
+            <>
+              <Icon name={tab.icon as IconName} /> {tabLabel}
+            </>
+          ),
+          navigationData: {
+            type: "account",
+            id: tab.id,
+            searchText: tabLabel,
+            action: async () => {},
+          },
+        };
+      },
     );
 
     // Insert Preferences after Profile (at index 2: after Settings and Profile)
@@ -303,7 +214,7 @@ export function buildNavigationTree(
       key: "account-preferences",
       title: (
         <>
-          <Icon name="sliders" /> Preferences
+          <Icon name="sliders" /> {intl.formatMessage(labels.preferences)}
         </>
       ),
       children: preferencesChildren,
@@ -311,8 +222,32 @@ export function buildNavigationTree(
 
     tree.push({
       key: "account",
-      title: "Account",
+      title: intl.formatMessage(labels.account),
       children: accountChildren,
+    });
+  }
+
+  // 6. Application-level pages (Projects page, notifications, etc.)
+  if (appPages?.length) {
+    const appPageChildren: NavigationTreeNode[] = appPages.map((page) => ({
+      key: `app-page-${page.id}`,
+      title: page.name,
+      icon: page.icon ? <Icon name={page.icon} /> : undefined,
+      navigationData: {
+        type: "app-page",
+        id: page.id,
+        searchText: page.searchText ?? page.name,
+        appPageAction: page.action,
+        action: async () => {
+          // Will be connected to Redux actions by caller
+        },
+      },
+    }));
+
+    tree.push({
+      key: "app-pages",
+      title: intl.formatMessage(labels.pages),
+      children: appPageChildren,
     });
   }
 
@@ -324,7 +259,10 @@ export function buildNavigationTree(
  * Structure: Project -> [Files, Pages] -> [files, pages]
  * (Prioritization is handled by insertion order in buildNavigationTree)
  */
-function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
+function buildProjectNode(
+  project: ProjectInfo,
+  intl: IntlShape,
+): NavigationTreeNode {
   const children: NavigationTreeNode[] = [];
 
   // 1. Files section with nested file list
@@ -334,8 +272,12 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
     project.files.forEach((file) => {
       const fileIcon = filenameIcon(file.path);
       const fileNode: NavigationTreeNode = {
-        key: `file-${file.path}`,
-        title: trunc_middle(file.name, 30),
+        key: `file-${project.id}-${file.path}`,
+        title: (
+          <span className="tree-node-ellipsis" title={file.path}>
+            {file.name}
+          </span>
+        ),
         icon: <Icon name={fileIcon} />,
         navigationData: {
           type: "file",
@@ -343,12 +285,12 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
           projectId: project.id,
           filePath: file.path,
           searchText: file.path,
-          action: () => {
+          action: async () => {
             // Will be set by caller with actual actions
           },
         },
         children: file.frames.map((frame) => ({
-          key: `file-frame-${file.path}-${frame.id}`,
+          key: `file-frame-${project.id}-${file.path}-${frame.id}`,
           title: frame.shortName,
           navigationData: {
             type: "frame",
@@ -356,7 +298,8 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
             projectId: project.id,
             filePath: file.path,
             searchText: buildFrameSearchText(frame, file.path),
-            action: () => {
+            editorType: frame.editorType,
+            action: async () => {
               // Will be set by caller with actual actions
             },
           },
@@ -367,7 +310,7 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
 
     children.push({
       key: `project-${project.id}-files`,
-      title: "Files",
+      title: intl.formatMessage(labels.files),
       icon: <Icon name="folder" />,
       children: fileChildren,
     });
@@ -380,8 +323,12 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
         const fileName = filePath.split("/").pop() || filePath;
         const fileIcon = filenameIcon(filePath);
         return {
-          key: `starred-file-${filePath}`,
-          title: trunc_middle(fileName, 30),
+          key: `starred-file-${project.id}-${filePath}`,
+          title: (
+            <span className="tree-node-ellipsis" title={filePath}>
+              {fileName}
+            </span>
+          ),
           icon: <Icon name={fileIcon} />,
           navigationData: {
             type: "file",
@@ -389,7 +336,7 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
             projectId: project.id,
             filePath,
             searchText: filePath,
-            action: () => {
+            action: async () => {
               // Will be set by caller with actual actions
             },
           },
@@ -415,16 +362,35 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
     project.pages.forEach((page) => {
       const pageTab = FIXED_PROJECT_TABS[page.id as FixedTab];
       const pageIcon = pageTab?.icon ?? "question";
+
+      // Get translated page label
+      let pageName = page.name;
+      if (pageTab?.label) {
+        if (isIntlMessage(pageTab.label)) {
+          pageName = intl.formatMessage(pageTab.label);
+        } else if (typeof pageTab.label === "string") {
+          pageName = pageTab.label;
+        }
+      }
+
+      // Build search text with translated labels
+      let searchText = pageName;
+      if (page.id === "files") {
+        // For Files page, also include "Explorer" translation
+        const explorerLabel = intl.formatMessage(labels.explorer);
+        searchText = `${pageName} ${explorerLabel}`;
+      }
+
       pageChildren.push({
         key: `page-${project.id}-${page.id}`,
-        title: page.name,
+        title: pageName,
         icon: <Icon name={pageIcon} />,
         navigationData: {
           type: "page",
           id: page.id,
           projectId: project.id,
-          searchText: `${page.name} ${project.title}`,
-          action: () => {
+          searchText,
+          action: async () => {
             // Will be set by caller with actual actions
           },
         },
@@ -433,7 +399,7 @@ function buildProjectNode(project: ProjectInfo): NavigationTreeNode {
 
     children.push({
       key: `project-${project.id}-pages`,
-      title: "Pages",
+      title: intl.formatMessage(labels.pages),
       icon: <Icon name="list" />,
       children: pageChildren,
     });

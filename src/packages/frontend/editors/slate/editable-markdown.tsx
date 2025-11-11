@@ -125,6 +125,7 @@ interface Props {
   minimal?: boolean;
   controlRef?: MutableRefObject<{
     moveCursorToEndOfLine: () => void;
+    focus: () => void;
   } | null>;
   showEditBar?: boolean;
 }
@@ -254,17 +255,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       };
     }
 
-    if (controlRef != null) {
-      controlRef.current = {
-        moveCursorToEndOfLine: () => control.moveCursorToEndOfLine(ed),
-      };
-    }
-
     ed.onCursorBottom = onCursorBottom;
     ed.onCursorTop = onCursorTop;
 
     return ed as SlateEditor;
   }, []);
+
+  useEffect(() => {
+    if (controlRef == null) return;
+    controlRef.current = {
+      moveCursorToEndOfLine: () => control.moveCursorToEndOfLine(editor),
+      focus: () => ReactEditor.focus(editor),
+    };
+    return () => {
+      controlRef.current = null;
+    };
+  }, [controlRef, editor]);
 
   // hook up to syncstring if available:
   useEffect(() => {

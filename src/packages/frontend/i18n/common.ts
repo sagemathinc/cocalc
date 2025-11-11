@@ -243,6 +243,11 @@ export const labels = defineMessages({
   },
   ssh_keys: { id: "labels.ssh_keys", defaultMessage: "SSH Keys" },
   support: { id: "labels.support", defaultMessage: "Support" },
+  public_paths: {
+    id: "labels.public_paths",
+    defaultMessage: "Public Paths",
+    description: "Public paths for sharing files and documents",
+  },
   new: {
     id: "labels.new.file",
     defaultMessage: "New",
@@ -917,6 +922,11 @@ export const labels = defineMessages({
     defaultMessage: "Messages, Mentions and News",
     description:
       "Title of the panel where user messages, messages about a user being mentioned, and general news of the platform are shown",
+  },
+  file_use_notifications: {
+    id: "labels.file_use_notifications",
+    defaultMessage: "File Use Notifications",
+    description: "Label for the dropdown containing file use alerts",
   },
   messages: {
     id: "labels.messages",

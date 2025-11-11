@@ -12,10 +12,7 @@ and configuration.
 
 // cSpell:ignore payg
 
-import type {
-  PreferencesSubTabKey,
-  PreferencesSubTabType,
-} from "@cocalc/util/types/settings";
+import type { PreferencesSubTabKey } from "@cocalc/util/types/settings";
 
 import { Button, Flex, Menu, Space } from "antd";
 import { useEffect, useState } from "react";
@@ -50,42 +47,25 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
-import { VALID_PREFERENCES_SUB_TYPES } from "@cocalc/util/types/settings";
 import { AccountPreferencesAI } from "./account-preferences-ai";
-import {
-  AccountPreferencesAppearance,
-  APPEARANCE_ICON_NAME,
-} from "./account-preferences-appearance";
-import {
-  AccountPreferencesCommunication,
-  COMMUNICATION_ICON_NAME,
-} from "./account-preferences-communication";
-import {
-  AccountPreferencesEditor,
-  EDITOR_ICON_NAME,
-} from "./account-preferences-editor";
-import {
-  AccountPreferencesKeyboard,
-  KEYBOARD_ICON_NAME,
-} from "./account-preferences-keyboard";
-import {
-  AccountPreferencesOther,
-  OTHER_ICON_NAME,
-} from "./account-preferences-other";
+import { AccountPreferencesAppearance } from "./account-preferences-appearance";
+import { AccountPreferencesCommunication } from "./account-preferences-communication";
+import { PREFERENCES_SUB_TABS } from "./account-preferences-config";
+import { AccountPreferencesEditor } from "./account-preferences-editor";
+import { AccountPreferencesKeyboard } from "./account-preferences-keyboard";
+import { AccountPreferencesOther } from "./account-preferences-other";
 import {
   ACCOUNT_PREFERENCES_ICON_NAME,
   ACCOUNT_PROFILE_ICON_NAME,
   AccountPreferencesProfile,
 } from "./account-preferences-profile";
-import {
-  AccountPreferencesSecurity,
-  KEYS_ICON_NAME,
-} from "./account-preferences-security";
+import { AccountPreferencesSecurity } from "./account-preferences-security";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SettingsOverview } from "./settings-index";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import { switchAccountPage } from "./util";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
 
@@ -98,17 +78,6 @@ type MenuKey =
   | "profile"
   | PreferencesSubTabKey
   | string;
-
-// Utility function to safely create preferences sub-tab key
-function createPreferencesSubTabKey(
-  subTab: string,
-): PreferencesSubTabKey | null {
-  if (VALID_PREFERENCES_SUB_TYPES.includes(subTab as PreferencesSubTabType)) {
-    const validSubTab = subTab as PreferencesSubTabType;
-    return `preferences-${validSubTab}`;
-  }
-  return null;
-}
 
 // give up on trying to load account info and redirect to landing page.
 // Do NOT make too short, since loading account info might takes ~10 seconds, e,g., due
@@ -138,49 +107,35 @@ export const AccountPage: React.FC = () => {
   const get_api_key = useTypedRedux("page", "get_api_key");
 
   function handle_select(key: MenuKey): void {
-    switch (key) {
-      case "settings":
-        // Handle settings overview page
-        redux.getActions("account").setState({
-          active_page: "index",
-          active_sub_tab: undefined,
-        });
-        redux.getActions("account").push_state(`/settings/index`);
-        return;
-      case "billing":
+    switchAccountPage(key, redux.getActions("account"), {
+      onBilling: () => {
         redux.getActions("billing").update_customer();
-        break;
-      case "support":
-        break;
-      case "signout":
-        return;
-      case "profile":
-        // Handle profile as standalone page
-        redux.getActions("account").setState({
-          active_page: "profile",
-          active_sub_tab: undefined,
-        });
-        redux.getActions("account").push_state(`/profile`);
-        return;
-    }
+      },
+      onSignout: () => {
+        // Signout does not navigate
+      },
+    });
+  }
 
-    // Handle sub-tabs under preferences
-    if (typeof key === "string" && key.startsWith("preferences-")) {
-      const subTab = key.replace("preferences-", "");
-      const subTabKey = createPreferencesSubTabKey(subTab);
-      if (subTabKey) {
-        redux.getActions("account").setState({
-          active_sub_tab: subTabKey,
-          active_page: "preferences",
-        });
-        // Update URL to settings/preferences/[sub-tab]
-        redux.getActions("account").push_state(`/preferences/${subTab}`);
-      }
-      return;
+  function getPreferencesComponent(tabId: string): React.ReactNode {
+    switch (tabId) {
+      case "preferences-appearance":
+        return <AccountPreferencesAppearance />;
+      case "preferences-editor":
+        return <AccountPreferencesEditor />;
+      case "preferences-keyboard":
+        return <AccountPreferencesKeyboard />;
+      case "preferences-ai":
+        return <AccountPreferencesAI />;
+      case "preferences-communication":
+        return <AccountPreferencesCommunication />;
+      case "preferences-keys":
+        return <AccountPreferencesSecurity />;
+      case "preferences-other":
+        return <AccountPreferencesOther />;
+      default:
+        return null;
     }
-
-    redux.getActions("account").set_active_tab(key);
-    redux.getActions("account").push_state(`/${key}`);
   }
 
   function getTabs(): any[] {
@@ -215,97 +170,25 @@ export const AccountPage: React.FC = () => {
             {intl.formatMessage(labels.preferences)}
           </span>
         ),
-        children: [
-          {
-            key: "preferences-appearance",
-            label: (
+        children: PREFERENCES_SUB_TABS.map((tab) => {
+          const tabLabel = intl.formatMessage(tab.label);
+          return {
+            key: tab.id,
+            label: tab.useAIAvatar ? (
               <span>
-                <Icon name={APPEARANCE_ICON_NAME} />{" "}
-                {intl.formatMessage(labels.appearance)}
+                <AIAvatar size={16} style={{ top: "-5px" }} /> {tabLabel}
+              </span>
+            ) : (
+              <span>
+                <Icon name={tab.icon as IconName} /> {tabLabel}
               </span>
             ),
-            children: active_page === "preferences" &&
-              active_sub_tab === "preferences-appearance" && (
-                <AccountPreferencesAppearance />
-              ),
-          },
-          {
-            key: "preferences-editor",
-            label: (
-              <span>
-                <Icon name={EDITOR_ICON_NAME} />{" "}
-                {intl.formatMessage(labels.editor)}
-              </span>
-            ),
-            children: active_page === "preferences" &&
-              active_sub_tab === "preferences-editor" && (
-                <AccountPreferencesEditor />
-              ),
-          },
-          {
-            key: "preferences-keyboard",
-            label: (
-              <span>
-                <Icon name={KEYBOARD_ICON_NAME} />{" "}
-                {intl.formatMessage(labels.keyboard)}
-              </span>
-            ),
-            children: active_page === "preferences" &&
-              active_sub_tab === "preferences-keyboard" && (
-                <AccountPreferencesKeyboard />
-              ),
-          },
-          {
-            key: "preferences-ai",
-            label: (
-              <span>
-                <AIAvatar size={16} style={{ top: "-5px" }} />{" "}
-                {intl.formatMessage(labels.ai)}
-              </span>
-            ),
-            children: active_page === "preferences" &&
-              active_sub_tab === "preferences-ai" && <AccountPreferencesAI />,
-          },
-          {
-            key: "preferences-communication",
-            label: (
-              <span>
-                <Icon name={COMMUNICATION_ICON_NAME} />{" "}
-                {intl.formatMessage(labels.communication)}
-              </span>
-            ),
-            children: active_page === "preferences" &&
-              active_sub_tab === "preferences-communication" && (
-                <AccountPreferencesCommunication />
-              ),
-          },
-          {
-            key: "preferences-keys",
-            label: (
-              <span>
-                <Icon name={KEYS_ICON_NAME} />{" "}
-                {intl.formatMessage(labels.ssh_and_api_keys)}
-              </span>
-            ),
-            children: active_page === "preferences" &&
-              active_sub_tab === "preferences-keys" && (
-                <AccountPreferencesSecurity />
-              ),
-          },
-          {
-            key: "preferences-other",
-            label: (
-              <span>
-                <Icon name={OTHER_ICON_NAME} />{" "}
-                {intl.formatMessage(labels.other)}
-              </span>
-            ),
-            children: active_page === "preferences" &&
-              active_sub_tab === "preferences-other" && (
-                <AccountPreferencesOther />
-              ),
-          },
-        ],
+            children:
+              active_page === "preferences" && active_sub_tab === tab.id
+                ? getPreferencesComponent(tab.id)
+                : null,
+          };
+        }),
       },
     ];
     // adds a few conditional tabs
@@ -621,8 +504,12 @@ export const AccountPage: React.FC = () => {
           role="region"
           aria-label={
             active_page === "preferences" && active_sub_tab
-              ? `${titles[active_sub_tab]?.props?.children?.[1] || active_sub_tab} settings`
-              : `${titles[active_page]?.props?.children?.[1] || active_page} settings`
+              ? `${
+                  titles[active_sub_tab]?.props?.children?.[1] || active_sub_tab
+                } settings`
+              : `${
+                  titles[active_page]?.props?.children?.[1] || active_page
+                } settings`
           }
           style={{
             overflow: "auto",

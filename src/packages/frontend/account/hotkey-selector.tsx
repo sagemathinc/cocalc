@@ -6,16 +6,19 @@
 import { Select, SelectProps } from "antd";
 import { IS_MACOS } from "@cocalc/frontend/feature";
 
-export type HotkeyOption =
+export type Hotkey =
   | "shift+shift"
   | "alt+shift+h"
   | "alt+shift+space"
   | "disabled";
 
+export const DEFAULT_HOTKEY: Hotkey = "disabled";
+export const DEFAULT_HOTKEY_DELAY_MS = 400;
+
 interface HotkeySelectorProps
   extends Omit<SelectProps, "options" | "onChange"> {
-  value?: HotkeyOption;
-  onChange?: (hotkey: HotkeyOption) => void;
+  value?: Hotkey;
+  onChange?: (hotkey: Hotkey) => void;
 }
 
 /**
@@ -31,26 +34,26 @@ export function HotkeySelector({
 
   const options = [
     {
-      value: "shift+shift" as HotkeyOption,
+      value: "shift+shift" as Hotkey,
       label: "Shift, Shift (double tap)",
     },
     {
-      value: "alt+shift+h" as HotkeyOption,
+      value: "alt+shift+h" as Hotkey,
       label: `${altShiftH}`,
     },
     {
-      value: "alt+shift+space" as HotkeyOption,
+      value: "alt+shift+space" as Hotkey,
       label: `${altShiftSpace}`,
     },
     {
-      value: "disabled" as HotkeyOption,
+      value: DEFAULT_HOTKEY,
       label: "<disabled>",
     },
   ];
 
   return (
     <Select
-      value={value ?? "shift+shift"}
+      value={value ?? DEFAULT_HOTKEY}
       onChange={onChange}
       options={options}
       placeholder="Select hotkey..."

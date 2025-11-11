@@ -470,6 +470,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         >
           <div
             className={`smc-vfill ${isActive ? "frame-editor-active" : ""}`}
+            data-frame-id={frameId}
             onClick={() => actions.set_active_id(frameId, true)}
             onTouchStart={() => actions.set_active_id(frameId)}
             // Keyboard accessibility: all frames focusable via Tab/Shift+Tab navigation

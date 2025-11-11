@@ -233,6 +233,8 @@ export default function SideChat({
         ) : undefined}
         <ChatInput
           autoFocus
+          focusWhenFrameFocused
+          actions={actions}
           fontSize={fontSize}
           cacheId={`${path}${project_id}-new`}
           input={input}

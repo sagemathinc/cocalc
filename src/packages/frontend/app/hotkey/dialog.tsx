@@ -3,16 +3,23 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+declare var DEBUG: boolean;
+
 import type { TreeDataNode } from "antd";
 import { Input, Modal, Tree } from "antd";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
+import { getSideChatActions } from "@cocalc/frontend/frame-editors/generic/chat";
 import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+import { RenderFrameTree } from "./render-frame-tree";
+import type { AppPageAction, FrameInfo } from "./build-tree";
+import { focusFrameWithRetry } from "./util";
 
 // Extended TreeDataNode with navigation data
 export interface NavigationTreeNode extends TreeDataNode {
@@ -21,20 +28,36 @@ export interface NavigationTreeNode extends TreeDataNode {
   children?: NavigationTreeNode[];
   defaultExpanded?: boolean; // Always expand this node by default
   navigationData?: {
-    type: "frame" | "file" | "page" | "account" | "bookmarked-project";
+    type:
+      | "frame"
+      | "file"
+      | "page"
+      | "account"
+      | "bookmarked-project"
+      | "app-page";
     id?: string;
     projectId?: string;
     filePath?: string;
     shortcutNumber?: number; // 1-9 for frame shortcuts
     searchText?: string;
-    action: () => void; // Focus/navigate action
+    appPageAction?: AppPageAction;
+    editorType?: string;
+    action: () => Promise<void>; // Focus/navigate action
   };
+  // Frame tree visualization (for current file node)
+  frameTreeStructure?: any;
+  activeFrames?: FrameInfo[];
+  activeProjectId?: string;
 }
 
 interface QuickNavigationDialogProps {
   visible: boolean;
   onClose: () => void;
   treeData: NavigationTreeNode[];
+  frameTreeStructure?: any; // Frame tree visualization structure
+  activeFrames?: FrameInfo[]; // Current active frames for keyboard shortcuts
+  activeFileName?: string; // Path to currently open file
+  activeProjectId?: string; // ID of currently active project
 }
 
 /**
@@ -238,9 +261,14 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
   visible,
   onClose,
   treeData,
+  frameTreeStructure,
+  activeFrames,
+  activeFileName,
+  activeProjectId,
 }) => {
   const intl = useIntl();
   const searchInputRef = useRef<any>(null);
+  const treeContainerRef = useRef<HTMLDivElement>(null);
   const [searchValue, setSearchValue] = useState("");
   const [expandedKeys, setExpandedKeysState] = useState<React.Key[]>([]);
   const [autoExpandParent, setAutoExpandParent] = useState(false);
@@ -289,6 +317,30 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
     }
   }, [visible, treeData]);
 
+  // Scroll selected tree node into view when selection changes via keyboard
+  useEffect(() => {
+    if (selectedKey && treeContainerRef.current) {
+      // Use setTimeout to ensure the DOM has been updated after React render
+      const timer = setTimeout(() => {
+        // Find the selected node using the .ant-tree-node-selected class
+        // This is the class added by Ant Design when a node is selected
+        const selectedNode = treeContainerRef.current?.querySelector(
+          ".ant-tree-node-content-wrapper.ant-tree-node-selected",
+        );
+
+        if (selectedNode) {
+          // Scroll this node into view
+          selectedNode.scrollIntoView({
+            behavior: "instant",
+            block: "nearest", // scroll minimally - show just the node if possible
+          });
+        }
+      }, 0);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedKey]);
+
   /**
    * Check if a node is a leaf (has no children or empty children)
    */
@@ -335,11 +387,67 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
     );
   }, [searchList, searchValue]);
 
-  const triggerAction = (action?: () => void) => {
+  const triggerAction = async (action?: () => Promise<void>) => {
     if (!action) return;
-    setTimeout(() => {
-      action();
-    }, 0);
+    await action();
+  };
+
+  // Build a map of frame IDs to shortcut numbers
+  // Chat frames get number 0, other frames get 1-9
+  const frameShortcutMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!activeFrames || activeFrames.length === 0) {
+      return map;
+    }
+
+    let shortcutNumber = 1;
+    for (const frame of activeFrames) {
+      // Chat frames get number 0
+      if (frame.editorType === "chat") {
+        map.set(frame.id, 0);
+        continue;
+      }
+      // Other frames get 1-9
+      if (shortcutNumber <= 9) {
+        map.set(frame.id, shortcutNumber);
+        shortcutNumber++;
+      }
+    }
+    return map;
+  }, [activeFrames]);
+
+  // Handle frame click from visual frame tree or keyboard shortcuts
+  const handleFrameClick = async (frameId: string) => {
+    // First, find the frame in searchList (for frames from project files in tree view)
+    const frameItem = searchList.find(
+      (item) =>
+        item.node.navigationData?.type === "frame" &&
+        item.node.navigationData?.id === frameId,
+    );
+
+    if (frameItem?.node.navigationData) {
+      await triggerAction(frameItem.node.navigationData.action);
+      onClose();
+      return;
+    }
+
+    // If not found in searchList, check activeFrames (current editor frames)
+    // These are frames from the currently active editor
+    if (activeFrames && activeFileName && activeProjectId) {
+      const activeFrame = activeFrames.find((f) => f.id === frameId);
+      if (activeFrame) {
+        // Focus the frame using retry logic (same as in useEnhancedNavigationTreeData)
+        setTimeout(
+          () =>
+            focusFrameWithRetry(activeProjectId, activeFileName, frameId, 0, {
+              editorType: activeFrame.editorType,
+            }),
+          0,
+        );
+        onClose();
+        return;
+      }
+    }
   };
 
   // Find parent key for search expansion
@@ -422,29 +530,22 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
         const searchTarget = `${titleText} ${
           node.navigationData?.searchText ?? ""
         }`;
-        const matches = matchesAllTerms(searchTarget, searchValue);
-        const isParent = node.children && node.children.length > 0;
+
+        // Only leaf nodes can match the search; container nodes are never matched directly
+        const isLeaf = !node.children || node.children.length === 0;
+        const matches = isLeaf
+          ? matchesAllTerms(searchTarget, searchValue)
+          : false;
 
         // Recursively filter children
         const filteredChildren = node.children ? filterTree(node.children) : [];
 
-        // Include node if:
-        // 1. It matches the search, OR
-        // 2. It has matching children (parent containers should always show if they have matches)
+        // Include node if it matches the search OR has at least one matching descendant
         if (matches || filteredChildren.length > 0) {
           return {
             ...node,
             children:
               filteredChildren.length > 0 ? filteredChildren : node.children,
-          };
-        }
-
-        // Keep parent nodes even if they don't match, to preserve tree structure
-        // (they will be filtered out by children anyway if children don't match)
-        if (isParent) {
-          return {
-            ...node,
-            children: filteredChildren.length > 0 ? filteredChildren : [],
           };
         }
 
@@ -455,36 +556,83 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
     return filtered;
   };
 
+  const focusChatInputWithRetry = (
+    projectId: string,
+    filePath: string,
+    attempt: number = 0,
+    keepActiveFrame: boolean = false,
+  ): void => {
+    const chatActions = getSideChatActions({
+      project_id: projectId,
+      path: filePath,
+    });
+    chatActions?.focusInput({ keepActiveFrame });
+    if (attempt < 5) {
+      setTimeout(
+        () =>
+          focusChatInputWithRetry(
+            projectId,
+            filePath,
+            attempt + 1,
+            keepActiveFrame,
+          ),
+        80,
+      );
+    }
+  };
+
   // Keyboard handler - handle number shortcuts and navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Number shortcuts (1-9) - only in non-search mode
-    if (!searchValue) {
-      const num = parseInt(e.key);
-      if (num >= 1 && num <= 9) {
-        const frameNode = searchList.find(
-          (item) => item.node.navigationData?.shortcutNumber === num,
-        );
-        if (frameNode?.node.navigationData) {
-          triggerAction(frameNode.node.navigationData.action);
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
+    // Number shortcuts (0-9) - always available to jump to frames
+    const num = parseInt(e.key, 10);
+    if (!isNaN(num) && num >= 0 && num <= 9) {
+      // Special handling for chat frame (key 0)
+      if (num === 0) {
+        if (activeFileName && activeProjectId) {
+          const projectActions = redux.getProjectActions(activeProjectId);
+          projectActions?.open_chat({ path: activeFileName });
+          focusChatInputWithRetry(activeProjectId, activeFileName, 0, true);
           onClose();
           e.preventDefault();
           return;
         }
+        return;
+      }
+
+      // Find frame by shortcut number from the map
+      let targetFrameId: string | undefined;
+      for (const [frameId, shortcutNum] of frameShortcutMap) {
+        if (shortcutNum === num) {
+          targetFrameId = frameId;
+          break;
+        }
+      }
+
+      if (targetFrameId) {
+        await handleFrameClick(targetFrameId);
+        e.preventDefault();
+        return;
       }
     }
 
     // Arrow keys and Return - navigate through filtered leaf nodes only
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      if (!searchValue || filteredSearchList.length === 0) {
+        return;
+      }
       // filteredSearchList contains only leaf nodes matching the search (if any)
       const currentIndex = filteredSearchList.findIndex(
         (item) => item.key === selectedKey,
       );
-      let nextIndex = currentIndex;
+      const direction = e.key === "ArrowUp" ? -1 : 1;
+      const listLength = filteredSearchList.length;
+      let nextIndex: number;
 
-      if (e.key === "ArrowUp") {
-        nextIndex = Math.max(0, currentIndex - 1);
+      if (currentIndex === -1) {
+        // No selection yet – jump to start/end depending on direction
+        nextIndex = direction === -1 ? listLength - 1 : 0;
       } else {
-        nextIndex = Math.min(filteredSearchList.length - 1, currentIndex + 1);
+        nextIndex = (currentIndex + direction + listLength) % listLength;
       }
 
       if (filteredSearchList[nextIndex]) {
@@ -507,7 +655,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
       // Activate selected node
       const node = filteredSearchList.find((item) => item.key === selectedKey);
       if (node?.node.navigationData) {
-        triggerAction(node.node.navigationData.action);
+        await triggerAction(node.node.navigationData.action);
         onClose();
       }
       e.preventDefault();
@@ -525,7 +673,6 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
     // Then, transform for visual highlighting
     const transform = (nodes: NavigationTreeNode[]): NavigationTreeNode[] => {
       return nodes.map((node) => {
-        const isSelected = node.key === selectedKey;
         const titleText = extractTextFromTitle(node.title);
         const isLeaf = !node.children || node.children.length === 0;
 
@@ -534,23 +681,29 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
         // Apply search term highlighting only to leaf nodes (files, not container labels)
         if (searchValue && titleText.length > 0 && isLeaf) {
           const highlighted = highlightSearchMatches(titleText, searchValue);
-          title = <span>{highlighted}</span>;
+          // Preserve tree-node-ellipsis styling when wrapping highlighted content
+          const hasEllipsisClass =
+            React.isValidElement(node.title) &&
+            typeof node.title.props === "object" &&
+            node.title.props !== null &&
+            "className" in node.title.props &&
+            typeof node.title.props.className === "string" &&
+            node.title.props.className.includes("tree-node-ellipsis");
+
+          if (hasEllipsisClass) {
+            // Preserve the ellipsis class with highlighted content
+            title = (
+              <span className="tree-node-ellipsis" title={titleText}>
+                {highlighted}
+              </span>
+            );
+          } else {
+            title = <span>{highlighted}</span>;
+          }
         }
 
-        // Apply selection styling with pale blue background (not bold to preserve search highlighting)
-        if (isSelected) {
-          title = (
-            <span
-              style={{
-                backgroundColor: "rgba(13, 110, 253, 0.15)",
-                padding: "0 2px",
-                borderRadius: "2px",
-              }}
-            >
-              {title}
-            </span>
-          );
-        }
+        // Note: Selection styling is handled by CSS in _hotkey.sass via .ant-tree-node-selected class
+        // Ant Design's Tree component applies this class when node key is in selectedKeys prop
 
         return {
           ...node,
@@ -589,7 +742,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
           padding: "16px",
           display: "flex",
           flexDirection: "column",
-          height: "80vh",
+          height: "max(300px, 70vh)",
           width: "100%",
           boxSizing: "border-box",
           overflow: "hidden",
@@ -606,11 +759,21 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
           minWidth: 0,
         }}
       >
+        {/* Frame tree visualization (above search box) */}
+        {frameTreeStructure && (
+          <RenderFrameTree
+            structure={frameTreeStructure}
+            onFrameClick={handleFrameClick}
+            frameShortcutMap={frameShortcutMap}
+          />
+        )}
+
+        {/* Search input */}
         <Input.Search
           ref={searchInputRef}
           placeholder={intl.formatMessage({
             id: "app.hotkey.dialog.search_placeholder",
-            defaultMessage: "Search frames, files, and pages...",
+            defaultMessage: "Search files and pages...",
             description:
               "Placeholder text for the search input in quick navigation",
           })}
@@ -623,6 +786,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
         />
 
         <div
+          ref={treeContainerRef}
           style={{
             flex: 1,
             overflow: "auto",
@@ -633,14 +797,6 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
           }}
           className="quick-nav-tree"
         >
-          <style>{`
-            .quick-nav-tree .ant-tree-node-selected {
-              background-color: transparent !important;
-            }
-            .quick-nav-tree .ant-tree-node-selected > span[class*="content"] {
-              outline: none !important;
-            }
-          `}</style>
           <Tree
             treeData={transformedTreeData}
             expandedKeys={expandedKeys}
@@ -650,33 +806,60 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
             showLine={true}
             showIcon={true}
             blockNode={true}
-            onSelect={(keys, info) => {
+            onSelect={async (keys, info) => {
               const newKey = keys[0] || null;
-              const targetNode = searchList.find((item) => item.key === newKey);
+
+              // Search in transformedTreeData (full tree with parents) not searchList (only leaves)
+              const findNode = (
+                nodes: NavigationTreeNode[],
+              ): NavigationTreeNode | undefined => {
+                for (const node of nodes) {
+                  if (node.key === newKey) return node;
+                  if (node.children) {
+                    const found = findNode(node.children);
+                    if (found) return found;
+                  }
+                }
+                return undefined;
+              };
+
+              const targetNode = findNode(transformedTreeData);
 
               // Check if this is a leaf node (no children)
               const isLeaf =
-                !targetNode?.node.children ||
-                targetNode.node.children.length === 0;
+                !targetNode?.children || targetNode.children.length === 0;
 
-              // Only select/focus on leaf nodes
-              if (isLeaf) {
-                setSelectedKey(newKey);
+              // Only allow selection and interaction for leaf nodes
+              if (!isLeaf) {
+                // Parent nodes expand/collapse but are not selected
+                // Reset selection to previous state if clicking a parent
+                setSelectedKey(null);
+
+                // Toggle expand/collapse for parent node when clicked
+                if (info.event && newKey) {
+                  const isCurrentlyExpanded = expandedKeys.includes(newKey);
+                  if (isCurrentlyExpanded) {
+                    // Collapse: remove from expandedKeys
+                    setExpandedKeys(
+                      expandedKeys.filter((key) => key !== newKey),
+                    );
+                  } else {
+                    // Expand: add to expandedKeys
+                    setExpandedKeys([...expandedKeys, newKey]);
+                  }
+                }
+
+                return;
               }
+
+              // For leaf nodes: update selection and trigger action on click
+              setSelectedKey(newKey);
 
               // If selected via mouse click on a leaf node, activate it immediately
               // The info.event object is only present when user clicks
-              if (info.event && newKey && isLeaf) {
-                if (targetNode?.node.navigationData) {
-                  triggerAction(targetNode.node.navigationData.action);
-                  onClose();
-                }
-              }
-
-              // If it's a parent node (has children), just toggle expansion without selecting
-              if (!isLeaf && info.event) {
-                // The expand/collapse is handled by Ant Design's Tree component automatically
-                // when clicking on the expand icon, so we don't need to do anything here
+              if (info.event && targetNode?.navigationData) {
+                await triggerAction(targetNode.navigationData.action);
+                onClose();
               }
             }}
           />
@@ -685,7 +868,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
         <Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
           <FormattedMessage
             id="app.hotkey.dialog.help_text"
-            defaultMessage="Type to search • Numbers 1–9 for current frames • ↑↓ navigate • Return to open • ESC to close"
+            defaultMessage="Click frames above • Key 0 shows/focuses chat • Keys 1–9 focus frames • Type to search • ↑↓ navigate • Return to open • ESC to close"
             description="Help text showing keyboard shortcuts in the quick navigation dialog"
           />
         </Paragraph>

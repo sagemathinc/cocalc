@@ -42,6 +42,7 @@ export function HomeRecentFiles({
   style,
   mode = "box",
 }: Props): React.JSX.Element {
+  const intl = useIntl();
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -99,7 +100,6 @@ export function HomeRecentFiles({
   }
 
   function renderHeader(): React.JSX.Element | undefined {
-    const intl = useIntl();
     return (
       <Flex
         justify="space-between"

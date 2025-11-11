@@ -29,6 +29,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import {
   GlobalHotkeyDetector,
   QuickNavigationDialog,
+  useActiveFrameData,
   useEnhancedNavigationTreeData,
 } from "@cocalc/frontend/app/hotkey";
 import Next from "@cocalc/frontend/components/next";
@@ -57,6 +58,11 @@ import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { VerifyEmail } from "./verify-email-banner";
 import VersionWarning from "./version-warning";
 import { CookieWarning, LocalStorageWarning } from "./warnings";
+import {
+  DEFAULT_HOTKEY,
+  DEFAULT_HOTKEY_DELAY_MS,
+  Hotkey,
+} from "../account/hotkey-selector";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -119,21 +125,15 @@ export const Page: React.FC = () => {
 
   // Quick Navigation (hotkey navigation)
   const other_settings = useTypedRedux("account", "other_settings");
-  const quick_nav_hotkey:
-    | "shift+shift"
-    | "alt+shift+h"
-    | "alt+shift+space"
-    | "disabled" =
-    (other_settings?.get("quick_nav_hotkey") as unknown as
-      | "shift+shift"
-      | "alt+shift+h"
-      | "alt+shift+space"
-      | "disabled"
-      | null) ?? "shift+shift"; // Default: shift+shift
+  const quick_nav_hotkey: Hotkey =
+    (other_settings?.get("quick_nav_hotkey") as unknown as Hotkey | null) ??
+    DEFAULT_HOTKEY;
   const quick_nav_hotkey_delay =
-    other_settings?.get("quick_nav_hotkey_delay") ?? 300; // Default: 300ms
+    other_settings?.get("quick_nav_hotkey_delay") ?? DEFAULT_HOTKEY_DELAY_MS;
   const [quick_nav_visible, setQuickNavVisible] = useState<boolean>(false);
   const quick_nav_tree_data = useEnhancedNavigationTreeData();
+  const { frameTreeStructure, activeFrames, activeFileName, activeProjectId } =
+    useActiveFrameData();
 
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
@@ -427,6 +427,10 @@ export const Page: React.FC = () => {
         visible={quick_nav_visible}
         onClose={() => setQuickNavVisible(false)}
         treeData={quick_nav_tree_data}
+        frameTreeStructure={frameTreeStructure}
+        activeFrames={activeFrames}
+        activeFileName={activeFileName}
+        activeProjectId={activeProjectId}
       />
     </div>
   );
