@@ -12,9 +12,10 @@
 
 import type { SelectProps } from "antd";
 
-import { Button, Input, Select, Space, Switch } from "antd";
+import { Button, Input, InputRef, Select, Space, Switch } from "antd";
 import { Set } from "immutable";
 import { ReactNode, useMemo } from "react";
+import type { KeyboardEvent } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
 import { useAutoFocusPreference } from "@cocalc/frontend/account";
@@ -47,6 +48,8 @@ const CONTROLS_STYLE: CSS = {
   justifyContent: "space-between",
 } as const;
 
+type SearchNavigateDirection = "up" | "down";
+
 interface Props {
   visible_projects: string[];
   onCreateProject: () => void;
@@ -54,6 +57,8 @@ interface Props {
   createNewRef: React.RefObject<any>;
   searchRef: React.RefObject<any>;
   filtersRef: React.RefObject<any>;
+  searchInputRef?: React.RefObject<InputRef | null>;
+  onSearchNavigate?: (direction: SearchNavigateDirection) => void;
 }
 
 export function ProjectsTableControls({
@@ -63,6 +68,8 @@ export function ProjectsTableControls({
   createNewRef,
   searchRef,
   filtersRef,
+  searchInputRef,
+  onSearchNavigate,
 }: Props) {
   const intl = useIntl();
   const shouldAutoFocus = useAutoFocusPreference();
@@ -116,11 +123,22 @@ export function ProjectsTableControls({
     }
   }
 
+  function handleSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      onSearchNavigate?.("down");
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      onSearchNavigate?.("up");
+    }
+  }
+
   return (
     <Space style={CONTROLS_STYLE} direction="horizontal">
       {/* Left section: Search and Hashtags */}
       <Space wrap ref={searchRef}>
         <Input.Search
+          ref={searchInputRef}
           aria-label="Filter projects by name"
           placeholder={intl.formatMessage({
             id: "projects.table-controls.search.placeholder",
@@ -130,6 +148,7 @@ export function ProjectsTableControls({
           value={search}
           onChange={handleSearchChange}
           onPressEnter={handlePressEnter}
+          onKeyDown={handleSearchKeyDown}
           style={{ width: IS_MOBILE ? 125 : 250 }}
           allowClear
         />

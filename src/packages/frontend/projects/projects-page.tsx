@@ -3,9 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { InputRef } from "antd";
 import { Col, Grid, Row, Space } from "antd";
 import { Map, Set } from "immutable";
-import { useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 
 // ensure redux stuff (actions and store) are initialized:
@@ -30,6 +31,7 @@ import { LoadAllProjects } from "./projects-load-all";
 import { ProjectsOperations } from "./projects-operations";
 import { StarredProjectsBar } from "./projects-starred";
 import { ProjectsTable } from "./projects-table";
+import type { ProjectsTableHandle } from "./projects-table";
 import { ProjectsTableControls } from "./projects-table-controls";
 import ProjectsPageTour from "./tour";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
@@ -63,6 +65,8 @@ export const ProjectsPage: React.FC = () => {
   const createNewRef = useRef<any>(null);
   const projectListRef = useRef<any>(null);
   const filenameSearchRef = useRef<any>(null);
+  const searchInputRef = useRef<InputRef>(null);
+  const projectsTableRef = useRef<ProjectsTableHandle>(null);
 
   // Calculating table height
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,6 +94,49 @@ export const ProjectsPage: React.FC = () => {
   const [filteredCollaborators, setFilteredCollaborators] = useState<
     string[] | null
   >(null);
+
+  const focusSearchInput = useCallback(() => {
+    const input = searchInputRef.current;
+    if (!input) return false;
+    input.focus({ cursor: "end" });
+    return true;
+  }, []);
+
+  const handleSearchNavigate = useCallback((direction: "down" | "up") => {
+    if (direction === "down") {
+      projectsTableRef.current?.focusFirstRow();
+    } else {
+      projectsTableRef.current?.focusLastRow();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      const isEditable =
+        !!target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      const hasModifier = event.metaKey || event.ctrlKey || event.altKey;
+
+      if (event.key === "/" && !hasModifier && !isEditable) {
+        if (focusSearchInput()) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (event.key === "ArrowDown" && !hasModifier && !isEditable) {
+        projectsTableRef.current?.focusFirstRow();
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalShortcut);
+    return () => window.removeEventListener("keydown", handleGlobalShortcut);
+  }, [focusSearchInput]);
 
   // if not shown, trigger a re-calculation
   const allLoaded = !!useTypedRedux(
@@ -313,6 +360,8 @@ export const ProjectsPage: React.FC = () => {
                 createNewRef={createNewRef}
                 searchRef={searchRef}
                 filtersRef={filtersRef}
+                searchInputRef={searchInputRef}
+                onSearchNavigate={handleSearchNavigate}
                 tour={
                   <ProjectsPageTour
                     searchRef={searchRef}
@@ -341,11 +390,13 @@ export const ProjectsPage: React.FC = () => {
               aria-label={`Projects list (${visible_projects.length} total)`}
             >
               <ProjectsTable
+                ref={projectsTableRef}
                 visible_projects={visible_projects}
                 height={tableHeight}
                 narrow={narrow}
                 filteredCollaborators={filteredCollaborators}
                 onFilteredCollaboratorsChange={setFilteredCollaborators}
+                onRequestSearchFocus={focusSearchInput}
               />
             </div>
 
